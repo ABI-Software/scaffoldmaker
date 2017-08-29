@@ -1,0 +1,6 @@
+
+<RCC>
+  <qresource prefix="meshgeneratorstep">
+    <file>images/model-viewer.png</file>
+  </qresource>
+</RCC>
