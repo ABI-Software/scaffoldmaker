@@ -71,7 +71,7 @@ class ConfigureDialog(QtGui.QDialog):
         self._previousIdentifier = self._ui.lineEdit0.text()
         config = {}
         config['identifier'] = self._ui.lineEdit0.text()
-        config['AutoDone'] = self._ui.lineEdit1.text()
+        config['AutoDone'] = self._ui.autoDoneCheckBox.isChecked()
         return config
 
     def setConfig(self, config):
@@ -82,5 +82,5 @@ class ConfigureDialog(QtGui.QDialog):
         '''
         self._previousIdentifier = config['identifier']
         self._ui.lineEdit0.setText(config['identifier'])
-        self._ui.lineEdit1.setText(config['AutoDone'])
+        self._ui.autoDoneCheckBox.setChecked(config['AutoDone'])
 

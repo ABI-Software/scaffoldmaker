@@ -2,12 +2,15 @@
 """
 MAP Client Plugin Step
 """
+import os
 import json
 
 from PySide import QtGui
 
 from mapclient.mountpoints.workflowstep import WorkflowStepMountPoint
 from mapclientplugins.meshgeneratorstep.configuredialog import ConfigureDialog
+from mapclientplugins.meshgeneratorstep.model.meshgeneratormodel import MeshGeneratorModel
+from mapclientplugins.meshgeneratorstep.view.meshgeneratorwidget import MeshGeneratorWidget
 
 
 class MeshGeneratorStep(WorkflowStepMountPoint):
@@ -19,7 +22,7 @@ class MeshGeneratorStep(WorkflowStepMountPoint):
     def __init__(self, location):
         super(MeshGeneratorStep, self).__init__('Mesh Generator', location)
         self._configured = False # A step cannot be executed until it has been configured.
-        self._category = 'Model Creator'
+        self._category = 'Source'
         # Add any other initialisation code here:
         self._icon =  QtGui.QImage(':/meshgeneratorstep/images/model-viewer.png')
         # Ports:
@@ -31,16 +34,18 @@ class MeshGeneratorStep(WorkflowStepMountPoint):
         # Config:
         self._config = {}
         self._config['identifier'] = ''
-        self._config['AutoDone'] = 'False'
+        self._config['AutoDone'] = False
+        self._view = None
 
     def execute(self):
         """
-        Add your code here that will kick off the execution of the step.
-        Make sure you call the _doneExecution() method when finished.  This method
-        may be connected up to a button in a widget for example.
+        Kick off the execution of the step, in this case an interactive dialog.
+        User invokes the _doneExecution() method when finished, via pushbutton.
         """
-        # Put your execute step code here before calling the '_doneExecution' method.
-        self._doneExecution()
+        self._model = MeshGeneratorModel(os.path.join(self._location, self._config['identifier']))
+        self._view = MeshGeneratorWidget(self._model)
+        self._view.registerDoneExecution(self._doneExecution)
+        self._setCurrentWidget(self._view)
 
     def getPortData(self, index):
         """
@@ -50,6 +55,8 @@ class MeshGeneratorStep(WorkflowStepMountPoint):
 
         :param index: Index of the port to return.
         """
+        self._portData0 = self._model.getOutputModelFilename()
+        print('grc output file ', self._portData0)
         return self._portData0 # http://physiomeproject.org/workflow/1.0/rdf-schema#file_location
 
     def configure(self):
