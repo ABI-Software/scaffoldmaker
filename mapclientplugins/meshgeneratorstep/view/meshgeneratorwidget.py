@@ -4,6 +4,7 @@ Created on Aug 29, 2017
 @author: Richard Christie
 '''
 from PySide import QtGui, QtCore
+from functools import partial
 
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
 
@@ -41,7 +42,6 @@ class MeshGeneratorWidget(QtGui.QWidget):
             self._viewAll()
 
     def _sceneChanged(self):
-        print('scene changed!')
         sceneviewer = self._ui.sceneviewer_widget.getSceneviewer()
         if sceneviewer is not None:
             scene = self._model.getScene()
@@ -51,8 +51,12 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.done_button.clicked.connect(self._doneButtonClicked)
         self._ui.viewAll_button.clicked.connect(self._viewAll)
         meshTypeNames = self._model.getAllMeshTypeNames()
+        index = 0;
         for meshTypeName in meshTypeNames:
             self._ui.meshType_comboBox.addItem(meshTypeName)
+            if meshTypeName == self._model.getMeshTypeName():
+                self._ui.meshType_comboBox.setCurrentIndex(index)
+            index = index + 1
         self._ui.meshType_comboBox.currentIndexChanged.connect(self._meshTypeChanged)
 
     def getModel(self):
@@ -67,18 +71,14 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._doneCallback()
 
     def _meshTypeChanged(self, index):
-        print('_meshTypeChanged index = ', str(index))
         meshTypeName = self._ui.meshType_comboBox.itemText(index)
-        print('_meshTypeChanged meshTypeName = ', meshTypeName)
         self._model.setMeshTypeByName(meshTypeName)
         self._refreshMeshTypeOptions()
 
     def _meshTypeOptionCheckBoxClicked(self, checkBox):
-        print('_meshTypeOptionBooleanStateChanged ', checkBox.objectName(), ' = ', checkBox.isChecked())
         self._model.setMeshTypeOption(checkBox.objectName(), checkBox.isChecked())
 
     def _meshTypeOptionLineEditChanged(self, lineEdit):
-        print('_meshTypeOptionLineEdited ', lineEdit.objectName(), ' = ', lineEdit.text())
         self._model.setMeshTypeOption(lineEdit.objectName(), lineEdit.text())
         finalValue = self._model.getMeshTypeOption(lineEdit.objectName())
         lineEdit.setText(str(finalValue))
@@ -86,21 +86,21 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _refreshMeshTypeOptions(self):
         layout = self._ui.meshTypeOptions_frame.layout()
         # remove all current mesh type widgets
-        #b = layout.takeAt(0)
-        #buttons.pop(2)
-        #b.widget().deleteLater()
-        options = self._model.getMeshTypeOptions()
-        count = 0
-        opt = []
-        for key, value in options.items():
-            print('key ', key, ' value ', value)
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+              child.widget().deleteLater()
+        optionNames = self._model.getMeshTypeOrderedOptionNames()
+        for key in optionNames:
+            value = self._model.getMeshTypeOption(key)
+            # print('key ', key, ' value ', value)
             if type(value) is bool:
                 checkBox = QtGui.QCheckBox(self._ui.meshTypeOptions_frame)
                 checkBox.setObjectName(key)
                 checkBox.setText(key)
                 checkBox.setChecked(value)
-                opt.append(checkBox)
-                checkBox.clicked.connect(lambda: self._meshTypeOptionCheckBoxClicked(opt[-1]))
+                callback = partial(self._meshTypeOptionCheckBoxClicked, checkBox)
+                checkBox.clicked.connect(callback)
                 layout.addWidget(checkBox)
             else:
                 label = QtGui.QLabel(self._ui.meshTypeOptions_frame)
@@ -110,11 +110,10 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 lineEdit = QtGui.QLineEdit(self._ui.meshTypeOptions_frame)
                 lineEdit.setObjectName(key)
                 lineEdit.setText(str(value))
-                opt.append(lineEdit)
-                lineEdit.returnPressed.connect(lambda: self._meshTypeOptionLineEditChanged(opt[-1]))
-                lineEdit.editingFinished.connect(lambda: self._meshTypeOptionLineEditChanged(opt[-1]))
+                callback = partial(self._meshTypeOptionLineEditChanged, lineEdit)
+                lineEdit.returnPressed.connect(callback)
+                lineEdit.editingFinished.connect(callback)
                 layout.addWidget(lineEdit)
-            count += 1
 
     def _viewAll(self):
         '''

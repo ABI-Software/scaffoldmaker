@@ -12,6 +12,7 @@ from opencmiss.zinc.status import OK as ZINC_OK
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.glyph import Glyph
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
+from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 
 class MeshGeneratorModel(object):
     '''
@@ -24,6 +25,8 @@ class MeshGeneratorModel(object):
         '''
         self._location = location
         self._context = Context("MeshGenerator")
+        tess = self._context.getTessellationmodule().getDefaultTessellation()
+        tess.setRefinementFactors(12)
         self._sceneChangeCallback = None
         # set up standard materials and glyphs so we can use them elsewhere
         self._materialmodule = self._context.getMaterialmodule()
@@ -44,7 +47,8 @@ class MeshGeneratorModel(object):
 
     def _discoverAllMeshTypes(self):
         self._meshTypes = [
-            MeshType_3d_box1
+            MeshType_3d_box1,
+            MeshType_3d_tube1
             ]
         self._currentMeshType = MeshType_3d_box1
         self._settings['meshTypeName'] = self._currentMeshType.getName()
@@ -74,30 +78,33 @@ class MeshGeneratorModel(object):
                 self._settings['meshTypeOptions'] = self._currentMeshType.getDefaultOptions()
                 self._generateMesh()
 
-    def getMeshTypeOptions(self):
-        return self._settings['meshTypeOptions']
+    def getMeshTypeOrderedOptionNames(self):
+        return self._currentMeshType.getOrderedOptionNames()
 
     def getMeshTypeOption(self, key):
         return self._settings['meshTypeOptions'][key]
 
     def setMeshTypeOption(self, key, value):
-        print('setMeshTypeOption: key ', key, ' value ', str(value))
         oldValue = self._settings['meshTypeOptions'][key]
-        print('oldValue = ', oldValue)
+        # print('setMeshTypeOption: key ', key, ' value ', str(value))
         newValue = None
-        if type(oldValue) is bool:
-            newValue = bool(value)
-        elif type(oldValue) is int:
-            newValue = int(value)
-        elif type(oldValue) is float:
-            newValue = int(value)
-        elif type(oldValue) is str:
-            newValue = str(value)
-        else:
-            newValue = value
+        try:
+            if type(oldValue) is bool:
+                newValue = bool(value)
+            elif type(oldValue) is int:
+                newValue = int(value)
+            elif type(oldValue) is float:
+                newValue = float(value)
+            elif type(oldValue) is str:
+                newValue = str(value)
+            else:
+                newValue = value
+        except:
+            print('setMeshTypeOption: Invalid value')
+            return
         self._settings['meshTypeOptions'][key] = newValue
         self._currentMeshType.checkOptions(self._settings['meshTypeOptions'])
-        print('final value = ', self._settings['meshTypeOptions'][key])
+        # print('final value = ', self._settings['meshTypeOptions'][key])
         if self._settings['meshTypeOptions'][key] != oldValue:
             self._generateMesh()
 
@@ -132,9 +139,9 @@ class MeshGeneratorModel(object):
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
         fm.defineAllFaces()
         self._writeModel()
-        for dimension in range(3,0,-1):
-            mesh = fm.findMeshByDimension(dimension)
-            print(dimension, '-D element count: ', mesh.getSize())
+        #for dimension in range(3,0,-1):
+        #    mesh = fm.findMeshByDimension(dimension)
+        #    print(dimension, '-D element count: ', mesh.getSize())
         fm.endChange()
         # TODO: offset identifiers of elements, faces, lines, nodes
         # TODO: delete elements and any orphaned faces, lines and nodes
