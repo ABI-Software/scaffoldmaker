@@ -56,7 +56,6 @@ class MeshGeneratorStep(WorkflowStepMountPoint):
         :param index: Index of the port to return.
         """
         self._portData0 = self._model.getOutputModelFilename()
-        print('grc output file ', self._portData0)
         return self._portData0 # http://physiomeproject.org/workflow/1.0/rdf-schema#file_location
 
     def configure(self):

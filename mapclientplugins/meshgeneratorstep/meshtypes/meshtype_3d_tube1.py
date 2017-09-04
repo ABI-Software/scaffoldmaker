@@ -4,8 +4,6 @@ through wall, plus variable wall thickness for unit diameter.
 """
 
 import math
-from opencmiss.zinc.context import Context as ZincContext
-from opencmiss.zinc.status import OK as ZINC_OK
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -31,7 +29,7 @@ class MeshType_3d_tube1(object):
     @staticmethod
     def getOrderedOptionNames():
         return [
-             'Number of elements along',
+            'Number of elements along',
             'Number of elements around',
             'Number of elements through wall',
             'Wall thickness',
@@ -81,9 +79,10 @@ class MeshType_3d_tube1(object):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
         if useCrossDerivatives:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        if useCrossDerivatives:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
