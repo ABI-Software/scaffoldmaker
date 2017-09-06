@@ -1,5 +1,5 @@
 """
-Generates a 3-D tube model with variable numbers of elements around, along and
+Generates a 3-D unit tube mesh with variable numbers of elements around, along and
 through wall, plus variable wall thickness for unit diameter.
 """
 

@@ -1,5 +1,5 @@
 """
-Generates a 2-D tube model with variable numbers of elements around, along.
+Generates a 2-D unit tube mesh with variable numbers of elements around, along.
 """
 
 import math

@@ -1,6 +1,6 @@
 """
-Generates a 3-D sphere wall model with variable numbers of
-elements around, up and through the thickness.
+Generates a 3-D unit sphere shell mesh with variable numbers of elements
+around, up and through the thickness.
 """
 
 import math

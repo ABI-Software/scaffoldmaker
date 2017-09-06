@@ -1,5 +1,5 @@
 """
-Generates a 3-D box model with variable numbers of elements in 3 directions.
+Generates a 3-D unit box mesh with variable numbers of elements in 3 directions.
 """
 
 import math
