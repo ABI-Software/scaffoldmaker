@@ -87,6 +87,7 @@ class MeshType_3d_sphereshell1(object):
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
@@ -352,8 +353,6 @@ class MeshType_3d_sphereshell1(object):
                 # redefine field in template for changes to eftApex1:
                 elementtemplateApex1.defineField(coordinates, -1, eftApex1)
                 element = mesh.createElement(elementIdentifier, elementtemplateApex1)
-                # on the second row, need to get the global eft:
-                eftApex1 = element.getElementfieldtemplate(coordinates, -1)  # GRC workaround; define field should merge into global
                 bni1 = no + 1
                 bni2 = no + e1 + 2
                 bni3 = no + (e1 + 1)%elementsCountAround + 2
@@ -397,7 +396,6 @@ class MeshType_3d_sphereshell1(object):
                 # redefine field in template for changes to eftApex2:
                 elementtemplateApex1.defineField(coordinates, -1, eftApex2)
                 element = mesh.createElement(elementIdentifier, elementtemplateApex1)
-                eftApex2 = element.getElementfieldtemplate(coordinates, -1)  # GRC workaround; define field should merge into global
                 bni3 = no + now
                 bni1 = bni3 - elementsCountAround + e1
                 bni2 = bni3 - elementsCountAround + (e1 + 1)%elementsCountAround
