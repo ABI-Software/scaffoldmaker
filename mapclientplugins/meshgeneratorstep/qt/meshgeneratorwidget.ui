@@ -105,35 +105,26 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_3">
              <item>
-              <layout class="QFormLayout" name="formLayout_2">
-               <property name="fieldGrowthPolicy">
-                <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+              <widget class="QFrame" name="meshType_frame">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
                </property>
-               <item row="0" column="0">
-                <widget class="QLabel" name="meshType_label">
-                 <property name="text">
-                  <string>Mesh type:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="meshType_comboBox"/>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="identifierOffset_label">
-                 <property name="text">
-                  <string>ID offset:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QLineEdit" name="identifierOffset_lineEdit">
-                 <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Offset to add to all node and element identifiers to not clash with other meshes this will join with.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QFormLayout" name="formLayout_3">
+                <item row="0" column="0">
+                 <widget class="QLabel" name="meshType_label">
+                  <property name="text">
+                   <string>Mesh type:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QComboBox" name="meshType_comboBox"/>
+                </item>
+               </layout>
+              </widget>
              </item>
              <item>
               <widget class="QFrame" name="meshTypeOptions_frame">
@@ -147,14 +138,29 @@
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="deleteElementRanges_label">
-               <property name="text">
-                <string>Delete element ID ranges (e.g. 1,2-5,13):</string>
+              <widget class="QFrame" name="modifyOptions_frame">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
                </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_6">
+                <item>
+                 <widget class="QLabel" name="deleteElementRanges_label">
+                  <property name="text">
+                   <string>Delete element ID ranges (e.g. 1,2-5,13):</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="deleteElementsRanges_lineEdit"/>
+                </item>
+               </layout>
+               <zorder>deleteElementRanges_label</zorder>
+               <zorder>deleteElementRanges_label</zorder>
+               <zorder>deleteElementsRanges_lineEdit</zorder>
               </widget>
-             </item>
-             <item>
-              <widget class="QLineEdit" name="deleteElementsRanges_lineEdit"/>
              </item>
              <item>
               <widget class="QGroupBox" name="displayOptions_groupBox">
@@ -169,6 +175,27 @@
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
+                 <widget class="QCheckBox" name="displayAxes_checkBox">
+                  <property name="text">
+                   <string>Axes</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="displayLines_checkBox">
+                  <property name="text">
+                   <string>Lines</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="displaySurfaces_checkBox">
+                  <property name="text">
+                   <string>Surfaces</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <widget class="QCheckBox" name="displayElementNumbers_checkBox">
                   <property name="text">
                    <string>Element numbers</string>
@@ -179,6 +206,20 @@
                  <widget class="QCheckBox" name="displayNodeNumbers_checkBox">
                   <property name="text">
                    <string>Node numbers</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="displayNodeDerivatives_checkBox">
+                  <property name="text">
+                   <string>Node derivatives</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="displayXiAxes_checkBox">
+                  <property name="text">
+                   <string>Xi axes</string>
                   </property>
                  </widget>
                 </item>

@@ -11,6 +11,8 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.status import OK as ZINC_OK
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.glyph import Glyph
+from opencmiss.zinc.material import Material
+from opencmiss.zinc.node import Node
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
@@ -35,6 +37,15 @@ class MeshGeneratorModel(object):
         # set up standard materials and glyphs so we can use them elsewhere
         self._materialmodule = self._context.getMaterialmodule()
         self._materialmodule.defineStandardMaterials()
+        trans_blue = self._materialmodule.createMaterial()
+        trans_blue.setName('trans_blue')
+        trans_blue.setManaged(True)
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.2, 0.6 ])
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
+        trans_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
+        trans_blue.setAttributeReal(Material.ATTRIBUTE_ALPHA , 0.3)
+        trans_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
         glyphmodule = self._context.getGlyphmodule()
         glyphmodule.defineStandardGlyphs()
         self._deleteElementRanges = []
@@ -43,8 +54,13 @@ class MeshGeneratorModel(object):
             'meshTypeOptions' : { },
             'identifierOffset' : 0,
             'deleteElementRanges' : '',
+            'displayAxes' : True,
+            'displayElementNumbers' : True,
+            'displayLines' : True,
+            'displayNodeDerivatives' : False,
             'displayNodeNumbers' : True,
-            'displayElementNumbers' : True
+            'displaySurfaces' : True,
+            'displayXiAxes' : False
         }
         self._discoverAllMeshTypes()
         self._loadSettings()
@@ -183,6 +199,63 @@ class MeshGeneratorModel(object):
         with open(self._location + '-settings.json', 'w') as f:
             f.write(json.dumps(self._settings, default=lambda o: o.__dict__, sort_keys=True, indent=4))
 
+    def _getVisibility(self, graphicsName):
+        return self._settings[graphicsName];
+
+    def _setVisibility(self, graphicsName, show):
+        self._settings[graphicsName] = show
+        graphics = self._region.getScene().findGraphicsByName(graphicsName)
+        graphics.setVisibilityFlag(show)
+
+    def isDisplayAxes(self):
+        return self._getVisibility('displayAxes')
+
+    def setDisplayAxes(self, show):
+        self._setVisibility('displayAxes', show)
+
+    def isDisplayElementNumbers(self):
+        return self._getVisibility('displayElementNumbers')
+
+    def setDisplayElementNumbers(self, show):
+        self._setVisibility('displayElementNumbers', show)
+
+    def isDisplayLines(self):
+        return self._getVisibility('displayLines')
+
+    def setDisplayLines(self, show):
+        self._setVisibility('displayLines', show)
+
+    def isDisplayNodeDerivatives(self):
+        return self._getVisibility('displayNodeDerivatives')
+
+    def setDisplayNodeDerivatives(self, show):
+        graphicsName = 'displayNodeDerivatives'
+        self._settings[graphicsName] = show
+        scene = self._region.getScene()
+        graphics = scene.getFirstGraphics()
+        while graphics.isValid():
+            if graphics.getName() == graphicsName:
+                graphics.setVisibilityFlag(show)
+            graphics = scene.getNextGraphics(graphics)
+
+    def isDisplayNodeNumbers(self):
+        return self._getVisibility('displayNodeNumbers')
+
+    def setDisplayNodeNumbers(self, show):
+        self._setVisibility('displayNodeNumbers', show)
+
+    def isDisplaySurfaces(self):
+        return self._getVisibility('displaySurfaces')
+
+    def setDisplaySurfaces(self, show):
+        self._setVisibility('displaySurfaces', show)
+
+    def isDisplayXiAxes(self):
+        return self._getVisibility('displayXiAxes')
+
+    def setDisplayXiAxes(self, show):
+        self._setVisibility('displayXiAxes', show)
+
     def _generateMesh(self):
         self._region = self._context.createRegion()
         fm = self._region.getFieldmodule()
@@ -214,13 +287,19 @@ class MeshGeneratorModel(object):
             #size2 = nodes.getSize()
             #print('deleted', size1 - size2, 'nodes')
         fm.defineAllFaces()
-        #for dimension in range(3,0,-1):
-        #    mesh = fm.findMeshByDimension(dimension)
-        #    print(dimension, '-D element count: ', mesh.getSize())
         fm.endChange()
-        # TODO: offset identifiers of elements, faces, lines, nodes
-        # TODO: delete elements and any orphaned faces, lines and nodes
         coordinates = fm.findFieldByName('coordinates')
+        nodeDerivativeFields = [
+            fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS1, 1),
+            fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS2, 1),
+            fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS3, 1)
+        ]
+        elementDerivativeFields = [
+            fm.createFieldDerivative(coordinates, 1),
+            fm.createFieldDerivative(coordinates, 2),
+            fm.createFieldDerivative(coordinates, 3)
+        ]
+        elementDerivativesField = fm.createFieldConcatenate(elementDerivativeFields)
         cmiss_number = fm.findFieldByName('cmiss_number')
         # make graphics
         scene = self._region.getScene()
@@ -230,8 +309,12 @@ class MeshGeneratorModel(object):
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_AXES_XYZ)
         pointattr.setBaseSize([1.0,1.0,1.0])
         axes.setMaterial(self._materialmodule.findMaterialByName('grey50'))
+        axes.setName('displayAxes')
+        axes.setVisibilityFlag(self.isDisplayAxes())
         lines = scene.createGraphicsLines()
         lines.setCoordinateField(coordinates)
+        lines.setName('displayLines')
+        lines.setVisibilityFlag(self.isDisplayLines())
         nodeNumbers = scene.createGraphicsPoints()
         nodeNumbers.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeNumbers.setCoordinateField(coordinates)
@@ -239,6 +322,8 @@ class MeshGeneratorModel(object):
         pointattr.setLabelField(cmiss_number)
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
         nodeNumbers.setMaterial(self._materialmodule.findMaterialByName('green'))
+        nodeNumbers.setName('displayNodeNumbers')
+        nodeNumbers.setVisibilityFlag(self.isDisplayNodeNumbers())
         elementNumbers = scene.createGraphicsPoints()
         elementNumbers.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
         elementNumbers.setCoordinateField(coordinates)
@@ -246,6 +331,42 @@ class MeshGeneratorModel(object):
         pointattr.setLabelField(cmiss_number)
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_NONE)
         elementNumbers.setMaterial(self._materialmodule.findMaterialByName('cyan'))
+        elementNumbers.setName('displayElementNumbers')
+        elementNumbers.setVisibilityFlag(self.isDisplayElementNumbers())
+        surfaces = scene.createGraphicsSurfaces()
+        surfaces.setCoordinateField(coordinates)
+        if mesh.getDimension() == 3:
+            surfaces.setExterior(True)
+        surfaces.setMaterial(self._materialmodule.findMaterialByName('trans_blue'))
+        surfaces.setName('displaySurfaces')
+        surfaces.setVisibilityFlag(self.isDisplaySurfaces())
+
+        nodeDerivativeMaterialNames = [ 'gold', 'silver', 'green' ]
+        for i in range(mesh.getDimension()):
+            nodeDerivatives = scene.createGraphicsPoints()
+            nodeDerivatives.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            nodeDerivatives.setCoordinateField(coordinates)
+            pointattr = nodeDerivatives.getGraphicspointattributes()
+            pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_ARROW_SOLID)
+            pointattr.setOrientationScaleField(nodeDerivativeFields[i])
+            pointattr.setBaseSize([0.0, 0.02, 0.02])
+            pointattr.setScaleFactors([1.0, 0.0, 0.0])
+            nodeDerivatives.setMaterial(self._materialmodule.findMaterialByName(nodeDerivativeMaterialNames[i]))
+            nodeDerivatives.setName('displayNodeDerivatives')
+            nodeDerivatives.setVisibilityFlag(self.isDisplayNodeDerivatives())
+
+        xiAxes = scene.createGraphicsPoints()
+        xiAxes.setFieldDomainType(Field.DOMAIN_TYPE_MESH_HIGHEST_DIMENSION)
+        xiAxes.setCoordinateField(coordinates)
+        pointattr = xiAxes.getGraphicspointattributes()
+        pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_AXES_123)
+        pointattr.setOrientationScaleField(elementDerivativesField)
+        pointattr.setBaseSize([0.0, 0.0, 0.0])
+        pointattr.setScaleFactors([0.25, 0.25, 0.25])
+        xiAxes.setMaterial(self._materialmodule.findMaterialByName('yellow'))
+        xiAxes.setName('displayXiAxes')
+        xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
+
         scene.endChange()
         if self._sceneChangeCallback is not None:
             self._sceneChangeCallback()

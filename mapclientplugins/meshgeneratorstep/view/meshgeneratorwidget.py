@@ -5,6 +5,7 @@ Created on Aug 29, 2017
 '''
 from PySide import QtGui, QtCore
 from functools import partial
+from opencmiss.zinc.sceneviewer import Sceneviewer
 
 from mapclientplugins.meshgeneratorstep.view.ui_meshgeneratorwidget import Ui_MeshGeneratorWidget
 
@@ -39,6 +40,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
             sceneviewer.setScene(scene)
             #self._ui.sceneviewer_widget.setSelectModeAll()
             sceneviewer.setLookatParametersNonSkew([2.0, -2.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0])
+            sceneviewer.setTransparencyMode(sceneviewer.TRANSPARENCY_MODE_SLOW)
             self._viewAll()
 
     def _sceneChanged(self):
@@ -60,6 +62,13 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.meshType_comboBox.currentIndexChanged.connect(self._meshTypeChanged)
         self._ui.deleteElementsRanges_lineEdit.returnPressed.connect(self._deleteElementRangesLineEditChanged)
         self._ui.deleteElementsRanges_lineEdit.editingFinished.connect(self._deleteElementRangesLineEditChanged)
+        self._ui.displayAxes_checkBox.clicked.connect(self._displayAxesClicked)
+        self._ui.displayElementNumbers_checkBox.clicked.connect(self._displayElementNumbersClicked)
+        self._ui.displayLines_checkBox.clicked.connect(self._displayLinesClicked)
+        self._ui.displayNodeDerivatives_checkBox.clicked.connect(self._displayNodeDerivativesClicked)
+        self._ui.displayNodeNumbers_checkBox.clicked.connect(self._displayNodeNumbersClicked)
+        self._ui.displaySurfaces_checkBox.clicked.connect(self._displaySurfacesClicked)
+        self._ui.displayXiAxes_checkBox.clicked.connect(self._displayXiAxesClicked)
 
     def getModel(self):
         return self._model
@@ -120,10 +129,38 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _refreshOptions(self):
         self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
         self._refreshMeshTypeOptions()
+        self._ui.displayAxes_checkBox.setChecked(self._model.isDisplayAxes())
+        self._ui.displayElementNumbers_checkBox.setChecked(self._model.isDisplayElementNumbers())
+        self._ui.displayLines_checkBox.setChecked(self._model.isDisplayLines())
+        self._ui.displayNodeDerivatives_checkBox.setChecked(self._model.isDisplayNodeDerivatives())
+        self._ui.displayNodeNumbers_checkBox.setChecked(self._model.isDisplayNodeNumbers())
+        self._ui.displaySurfaces_checkBox.setChecked(self._model.isDisplaySurfaces())
+        self._ui.displayXiAxes_checkBox.setChecked(self._model.isDisplayXiAxes())
 
     def _deleteElementRangesLineEditChanged(self):
         self._model.setDeleteElementsRangesText(self._ui.deleteElementsRanges_lineEdit.text())
         self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
+
+    def _displayAxesClicked(self):
+        self._model.setDisplayAxes(self._ui.displayAxes_checkBox.isChecked())
+
+    def _displayElementNumbersClicked(self):
+        self._model.setDisplayElementNumbers(self._ui.displayElementNumbers_checkBox.isChecked())
+
+    def _displayLinesClicked(self):
+        self._model.setDisplayLines(self._ui.displayLines_checkBox.isChecked())
+
+    def _displayNodeDerivativesClicked(self):
+        self._model.setDisplayNodeDerivatives(self._ui.displayNodeDerivatives_checkBox.isChecked())
+
+    def _displayNodeNumbersClicked(self):
+        self._model.setDisplayNodeNumbers(self._ui.displayNodeNumbers_checkBox.isChecked())
+
+    def _displaySurfacesClicked(self):
+        self._model.setDisplaySurfaces(self._ui.displaySurfaces_checkBox.isChecked())
+
+    def _displayXiAxesClicked(self):
+        self._model.setDisplayXiAxes(self._ui.displayXiAxes_checkBox.isChecked())
 
     def _viewAll(self):
         '''
