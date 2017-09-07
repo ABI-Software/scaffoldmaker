@@ -25,7 +25,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.sceneviewer_widget.graphicsInitialized.connect(self._graphicsInitialized)
         self._model.registerSceneChangeCallback(self._sceneChanged)
         self._doneCallback = None
-        self._refreshMeshTypeOptions()
+        self._refreshOptions()
         self._makeConnections()
 
     def _graphicsInitialized(self):
@@ -58,6 +58,8 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 self._ui.meshType_comboBox.setCurrentIndex(index)
             index = index + 1
         self._ui.meshType_comboBox.currentIndexChanged.connect(self._meshTypeChanged)
+        self._ui.deleteElementsRanges_lineEdit.returnPressed.connect(self._deleteElementRangesLineEditChanged)
+        self._ui.deleteElementsRanges_lineEdit.editingFinished.connect(self._deleteElementRangesLineEditChanged)
 
     def getModel(self):
         return self._model
@@ -114,6 +116,14 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 lineEdit.returnPressed.connect(callback)
                 lineEdit.editingFinished.connect(callback)
                 layout.addWidget(lineEdit)
+
+    def _refreshOptions(self):
+        self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
+        self._refreshMeshTypeOptions()
+
+    def _deleteElementRangesLineEditChanged(self):
+        self._model.setDeleteElementsRangesText(self._ui.deleteElementsRanges_lineEdit.text())
+        self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
 
     def _viewAll(self):
         '''

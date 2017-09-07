@@ -37,6 +37,7 @@ class MeshGeneratorModel(object):
         self._materialmodule.defineStandardMaterials()
         glyphmodule = self._context.getGlyphmodule()
         glyphmodule.defineStandardGlyphs()
+        self._deleteElementRanges = []
         self._settings = {
             'meshTypeName' : '',
             'meshTypeOptions' : { },
@@ -116,6 +117,47 @@ class MeshGeneratorModel(object):
         if self._settings['meshTypeOptions'][key] != oldValue:
             self._generateMesh()
 
+    def getDeleteElementsRangesText(self):
+        return self._settings['deleteElementRanges']
+
+    def _parseDeleteElementsRangesText(self, elementRangesTextIn):
+        '''
+        :return: True if ranges changed, otherwise False
+        '''
+        elementRanges = []
+        for elementRangeText in elementRangesTextIn.split(','):
+            try:
+                elementRangeEnds = elementRangeText.split('-')
+                elementRangeStart = int(elementRangeEnds[0])
+                if len(elementRangeEnds) > 1:
+                    elementRangeStop = int(elementRangeEnds[1])
+                else:
+                    elementRangeStop = elementRangeStart
+                if elementRangeStop >= elementRangeStart:
+                    elementRanges.append([elementRangeStart, elementRangeStop])
+                else:
+                    elementRanges.append([elementRangeStop, elementRangeStart])
+            except:
+                pass
+        elementRangesText = ''
+        first = True
+        for elementRange in elementRanges:
+            if first:
+                first = False
+            else:
+                elementRangesText += ','
+            elementRangesText += str(elementRange[0])
+            if elementRange[1] != elementRange[0]:
+                elementRangesText += '-' + str(elementRange[1])
+        changed = self._deleteElementRanges != elementRanges
+        self._deleteElementRanges = elementRanges
+        self._settings['deleteElementRanges'] = elementRangesText
+        return changed
+
+    def setDeleteElementsRangesText(self, elementRangesTextIn):
+        if self._parseDeleteElementsRangesText(elementRangesTextIn):
+            self._generateMesh()
+
     def getContext(self):
         return self._context
 
@@ -133,6 +175,7 @@ class MeshGeneratorModel(object):
             with open(self._location + '-settings.json', 'r') as f:
                 self._settings.update(json.loads(f.read()))
             self._currentMeshType = self._getMeshTypeByName(self._settings['meshTypeName'])
+            self._parseDeleteElementsRangesText(self._settings['deleteElementRanges'])
         except:
             pass  # no settings saved yet
 
@@ -145,6 +188,31 @@ class MeshGeneratorModel(object):
         fm = self._region.getFieldmodule()
         fm.beginChange()
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
+        for dimension in range(3,0,-1):
+            mesh = fm.findMeshByDimension(dimension)
+            if mesh.getSize() > 0:
+                break
+        if len(self._deleteElementRanges) > 0:
+            deleteElementIdentifiers = []
+            elementIter = mesh.createElementiterator()
+            element = elementIter.next()
+            while element.isValid():
+                identifier = element.getIdentifier()
+                for deleteElementRange in self._deleteElementRanges:
+                    if (identifier >= deleteElementRange[0]) and (identifier <= deleteElementRange[1]):
+                        deleteElementIdentifiers.append(identifier)
+                element = elementIter.next()
+            #print('delete elements ', deleteElementIdentifiers)
+            for identifier in deleteElementIdentifiers:
+                element = mesh.findElementByIdentifier(identifier)
+                mesh.destroyElement(element)
+            del element
+            # destroy all orphaned nodes
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            #size1 = nodes.getSize()
+            nodes.destroyAllNodes()
+            #size2 = nodes.getSize()
+            #print('deleted', size1 - size2, 'nodes')
         fm.defineAllFaces()
         #for dimension in range(3,0,-1):
         #    mesh = fm.findMeshByDimension(dimension)
