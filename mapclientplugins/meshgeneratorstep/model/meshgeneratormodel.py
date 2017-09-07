@@ -294,11 +294,9 @@ class MeshGeneratorModel(object):
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS2, 1),
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS3, 1)
         ]
-        elementDerivativeFields = [
-            fm.createFieldDerivative(coordinates, 1),
-            fm.createFieldDerivative(coordinates, 2),
-            fm.createFieldDerivative(coordinates, 3)
-        ]
+        elementDerivativeFields = []
+        for d in range(mesh.getDimension()):
+            elementDerivativeFields.append(fm.createFieldDerivative(coordinates, d + 1));
         elementDerivativesField = fm.createFieldConcatenate(elementDerivativeFields)
         cmiss_number = fm.findFieldByName('cmiss_number')
         # make graphics
