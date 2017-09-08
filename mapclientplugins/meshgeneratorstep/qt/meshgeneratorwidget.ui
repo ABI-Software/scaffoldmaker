@@ -156,10 +156,22 @@
                 <item>
                  <widget class="QLineEdit" name="deleteElementsRanges_lineEdit"/>
                 </item>
+                <item>
+                 <widget class="QLabel" name="scale_label">
+                  <property name="text">
+                   <string>Scale x*y*z:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="scale_lineEdit"/>
+                </item>
                </layout>
                <zorder>deleteElementRanges_label</zorder>
                <zorder>deleteElementRanges_label</zorder>
                <zorder>deleteElementsRanges_lineEdit</zorder>
+               <zorder>scale_label</zorder>
+               <zorder>scale_lineEdit</zorder>
               </widget>
              </item>
              <item>

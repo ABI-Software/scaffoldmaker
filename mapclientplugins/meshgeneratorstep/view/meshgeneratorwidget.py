@@ -62,6 +62,8 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.meshType_comboBox.currentIndexChanged.connect(self._meshTypeChanged)
         self._ui.deleteElementsRanges_lineEdit.returnPressed.connect(self._deleteElementRangesLineEditChanged)
         self._ui.deleteElementsRanges_lineEdit.editingFinished.connect(self._deleteElementRangesLineEditChanged)
+        self._ui.scale_lineEdit.returnPressed.connect(self._scaleLineEditChanged)
+        self._ui.scale_lineEdit.editingFinished.connect(self._scaleLineEditChanged)
         self._ui.displayAxes_checkBox.clicked.connect(self._displayAxesClicked)
         self._ui.displayElementNumbers_checkBox.clicked.connect(self._displayElementNumbersClicked)
         self._ui.displayLines_checkBox.clicked.connect(self._displayLinesClicked)
@@ -128,6 +130,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
 
     def _refreshOptions(self):
         self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
+        self._ui.scale_lineEdit.setText(self._model.getScaleText())
         self._refreshMeshTypeOptions()
         self._ui.displayAxes_checkBox.setChecked(self._model.isDisplayAxes())
         self._ui.displayElementNumbers_checkBox.setChecked(self._model.isDisplayElementNumbers())
@@ -140,6 +143,10 @@ class MeshGeneratorWidget(QtGui.QWidget):
     def _deleteElementRangesLineEditChanged(self):
         self._model.setDeleteElementsRangesText(self._ui.deleteElementsRanges_lineEdit.text())
         self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
+
+    def _scaleLineEditChanged(self):
+        self._model.setScaleText(self._ui.scale_lineEdit.text())
+        self._ui.scale_lineEdit.setText(self._model.getScaleText())
 
     def _displayAxesClicked(self):
         self._model.setDisplayAxes(self._ui.displayAxes_checkBox.isChecked())

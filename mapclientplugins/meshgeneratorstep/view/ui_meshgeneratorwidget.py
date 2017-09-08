@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapclientplugins\meshgeneratorstep\qt\meshgeneratorwidget.ui'
 #
-# Created: Fri Sep  8 08:31:46 2017
+# Created: Fri Sep  8 11:08:00 2017
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -98,6 +98,12 @@ class Ui_MeshGeneratorWidget(object):
         self.deleteElementsRanges_lineEdit = QtGui.QLineEdit(self.modifyOptions_frame)
         self.deleteElementsRanges_lineEdit.setObjectName("deleteElementsRanges_lineEdit")
         self.verticalLayout_6.addWidget(self.deleteElementsRanges_lineEdit)
+        self.scale_label = QtGui.QLabel(self.modifyOptions_frame)
+        self.scale_label.setObjectName("scale_label")
+        self.verticalLayout_6.addWidget(self.scale_label)
+        self.scale_lineEdit = QtGui.QLineEdit(self.modifyOptions_frame)
+        self.scale_lineEdit.setObjectName("scale_lineEdit")
+        self.verticalLayout_6.addWidget(self.scale_lineEdit)
         self.verticalLayout_3.addWidget(self.modifyOptions_frame)
         self.displayOptions_groupBox = QtGui.QGroupBox(self.scrollAreaWidgetContents_2)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
@@ -173,6 +179,7 @@ class Ui_MeshGeneratorWidget(object):
         self.dockWidget.setWindowTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Mesh Generator Controls", None, QtGui.QApplication.UnicodeUTF8))
         self.meshType_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Mesh type:", None, QtGui.QApplication.UnicodeUTF8))
         self.deleteElementRanges_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Delete element ID ranges (e.g. 1,2-5,13):", None, QtGui.QApplication.UnicodeUTF8))
+        self.scale_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Scale x*y*z:", None, QtGui.QApplication.UnicodeUTF8))
         self.displayOptions_groupBox.setTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Display options:", None, QtGui.QApplication.UnicodeUTF8))
         self.displayAxes_checkBox.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Axes", None, QtGui.QApplication.UnicodeUTF8))
         self.displayLines_checkBox.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Lines", None, QtGui.QApplication.UnicodeUTF8))

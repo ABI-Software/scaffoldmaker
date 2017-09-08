@@ -20,6 +20,8 @@ from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshTy
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 
+STRING_FLOAT_FORMAT = '{:.8g}'
+
 class MeshGeneratorModel(object):
     '''
     Framework for generating meshes of a number of types, with mesh type specific options
@@ -49,11 +51,13 @@ class MeshGeneratorModel(object):
         glyphmodule = self._context.getGlyphmodule()
         glyphmodule.defineStandardGlyphs()
         self._deleteElementRanges = []
+        self._scale = [ 1.0, 1.0, 1.0 ]
         self._settings = {
             'meshTypeName' : '',
             'meshTypeOptions' : { },
             'identifierOffset' : 0,
             'deleteElementRanges' : '',
+            'scale' : '*'.join(STRING_FLOAT_FORMAT.format(value) for value in self._scale),
             'displayAxes' : True,
             'displayElementNumbers' : True,
             'displayLines' : True,
@@ -174,6 +178,33 @@ class MeshGeneratorModel(object):
         if self._parseDeleteElementsRangesText(elementRangesTextIn):
             self._generateMesh()
 
+    def getScaleText(self):
+        return self._settings['scale']
+
+    def _parseScaleText(self, scaleTextIn):
+        '''
+        :return: True if scale changed, otherwise False
+        '''
+        scale = []
+        for valueText in scaleTextIn.split('*'):
+            try:
+                scale.append(float(valueText))
+            except:
+                scale.append(1.0)
+        for i in range(3 - len(scale)):
+            scale.append(scale[-1])
+        if len(scale) > 3:
+            scale = scale[:3]
+        scaleText = '*'.join(STRING_FLOAT_FORMAT.format(value) for value in scale)
+        changed = self._scale != scale
+        self._scale = scale
+        self._settings['scale'] = scaleText
+        return changed
+
+    def setScaleText(self, scaleTextIn):
+        if self._parseScaleText(scaleTextIn):
+            self._generateMesh()
+
     def getContext(self):
         return self._context
 
@@ -192,6 +223,7 @@ class MeshGeneratorModel(object):
                 self._settings.update(json.loads(f.read()))
             self._currentMeshType = self._getMeshTypeByName(self._settings['meshTypeName'])
             self._parseDeleteElementsRangesText(self._settings['deleteElementRanges'])
+            self._parseScaleText(self._settings['scale'])
         except:
             pass  # no settings saved yet
 
@@ -261,10 +293,13 @@ class MeshGeneratorModel(object):
         fm = self._region.getFieldmodule()
         fm.beginChange()
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
+        coordinates = fm.findFieldByName('coordinates').castFiniteElement()
         for dimension in range(3,0,-1):
             mesh = fm.findMeshByDimension(dimension)
             if mesh.getSize() > 0:
                 break
+        meshDimension = mesh.getDimension()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         if len(self._deleteElementRanges) > 0:
             deleteElementIdentifiers = []
             elementIter = mesh.createElementiterator()
@@ -281,21 +316,35 @@ class MeshGeneratorModel(object):
                 mesh.destroyElement(element)
             del element
             # destroy all orphaned nodes
-            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
             #size1 = nodes.getSize()
             nodes.destroyAllNodes()
             #size2 = nodes.getSize()
             #print('deleted', size1 - size2, 'nodes')
         fm.defineAllFaces()
+        if self._settings['scale'] != '1*1*1':
+            # scale coordinates and first derivatives. Note doesn't handle versions nor cross derivatives yet
+            cache = fm.createFieldcache()
+            nodeiterator = nodes.createNodeiterator()
+            node = nodeiterator.next()
+            valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
+            while node.isValid():
+                cache.setNode(node)
+                for valueLabel in valueLabels:
+                    result, x = coordinates.getNodeParameters(cache, -1, valueLabel, 1, 3)
+                    oldx = x
+                    x[0] *= self._scale[0]
+                    x[1] *= self._scale[1]
+                    x[2] *= self._scale[2]
+                    coordinates.setNodeParameters(cache, -1, valueLabel, 1, x)
+                node = nodeiterator.next()
         fm.endChange()
-        coordinates = fm.findFieldByName('coordinates')
         nodeDerivativeFields = [
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS1, 1),
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS2, 1),
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS3, 1)
         ]
         elementDerivativeFields = []
-        for d in range(mesh.getDimension()):
+        for d in range(meshDimension):
             elementDerivativeFields.append(fm.createFieldDerivative(coordinates, d + 1));
         elementDerivativesField = fm.createFieldConcatenate(elementDerivativeFields)
         cmiss_number = fm.findFieldByName('cmiss_number')
@@ -333,21 +382,32 @@ class MeshGeneratorModel(object):
         elementNumbers.setVisibilityFlag(self.isDisplayElementNumbers())
         surfaces = scene.createGraphicsSurfaces()
         surfaces.setCoordinateField(coordinates)
-        if mesh.getDimension() == 3:
+        if meshDimension == 3:
             surfaces.setExterior(True)
         surfaces.setMaterial(self._materialmodule.findMaterialByName('trans_blue'))
         surfaces.setName('displaySurfaces')
         surfaces.setVisibilityFlag(self.isDisplaySurfaces())
 
+        # derivative arrow width is based on shortest non-zero side
+        minScale = 1.0
+        first = True
+        for i in range(coordinates.getNumberOfComponents()):
+            absScale = abs(self._scale[i])
+            if absScale > 0.0:
+                if first or (absScale < minScale):
+                    minScale = absScale
+                    first = False
+        width = 0.02*minScale
+
         nodeDerivativeMaterialNames = [ 'gold', 'silver', 'green' ]
-        for i in range(mesh.getDimension()):
+        for i in range(meshDimension):
             nodeDerivatives = scene.createGraphicsPoints()
             nodeDerivatives.setFieldDomainType(Field.DOMAIN_TYPE_NODES)
             nodeDerivatives.setCoordinateField(coordinates)
             pointattr = nodeDerivatives.getGraphicspointattributes()
             pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_ARROW_SOLID)
             pointattr.setOrientationScaleField(nodeDerivativeFields[i])
-            pointattr.setBaseSize([0.0, 0.02, 0.02])
+            pointattr.setBaseSize([0.0, width, width])
             pointattr.setScaleFactors([1.0, 0.0, 0.0])
             nodeDerivatives.setMaterial(self._materialmodule.findMaterialByName(nodeDerivativeMaterialNames[i]))
             nodeDerivatives.setName('displayNodeDerivatives')
@@ -359,8 +419,15 @@ class MeshGeneratorModel(object):
         pointattr = xiAxes.getGraphicspointattributes()
         pointattr.setGlyphShapeType(Glyph.SHAPE_TYPE_AXES_123)
         pointattr.setOrientationScaleField(elementDerivativesField)
-        pointattr.setBaseSize([0.0, 0.0, 0.0])
-        pointattr.setScaleFactors([0.25, 0.25, 0.25])
+        if meshDimension == 1:
+            pointattr.setBaseSize([0.0, 2*width, 2*width])
+            pointattr.setScaleFactors([0.25, 0.0, 0.0])
+        elif meshDimension == 2:
+            pointattr.setBaseSize([0.0, 0.0, 2*width])
+            pointattr.setScaleFactors([0.25, 0.25, 0.0])
+        else:
+            pointattr.setBaseSize([0.0, 0.0, 0.0])
+            pointattr.setScaleFactors([0.25, 0.25, 0.25])
         xiAxes.setMaterial(self._materialmodule.findMaterialByName('yellow'))
         xiAxes.setName('displayXiAxes')
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
