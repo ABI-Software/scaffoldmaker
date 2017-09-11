@@ -2,7 +2,6 @@
 """
 MAP Client Plugin Step
 """
-import os
 import json
 
 from PySide import QtGui
@@ -42,7 +41,7 @@ class MeshGeneratorStep(WorkflowStepMountPoint):
         Kick off the execution of the step, in this case an interactive dialog.
         User invokes the _doneExecution() method when finished, via pushbutton.
         """
-        self._model = MeshGeneratorModel(os.path.join(self._location, self._config['identifier']))
+        self._model = MeshGeneratorModel(self._location, self._config['identifier'])
         self._view = MeshGeneratorWidget(self._model)
         self._view.registerDoneExecution(self._doneExecution)
         self._setCurrentWidget(self._view)

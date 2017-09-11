@@ -53,7 +53,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         self._ui.done_button.clicked.connect(self._doneButtonClicked)
         self._ui.viewAll_button.clicked.connect(self._viewAll)
         meshTypeNames = self._model.getAllMeshTypeNames()
-        index = 0;
+        index = 0
         for meshTypeName in meshTypeNames:
             self._ui.meshType_comboBox.addItem(meshTypeName)
             if meshTypeName == self._model.getMeshTypeName():
@@ -129,6 +129,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
                 layout.addWidget(lineEdit)
 
     def _refreshOptions(self):
+        self._ui.identifier_label.setText('Identifier:  ' + self._model.getIdentifier())
         self._ui.deleteElementsRanges_lineEdit.setText(self._model.getDeleteElementsRangesText())
         self._ui.scale_lineEdit.setText(self._model.getScaleText())
         self._refreshMeshTypeOptions()

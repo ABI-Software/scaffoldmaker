@@ -105,6 +105,44 @@
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_3">
              <item>
+              <widget class="QFrame" name="identifier_frame">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_4">
+                <property name="topMargin">
+                 <number>5</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>3</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="identifier_label">
+                  <property name="text">
+                   <string>Identifier</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="Line" name="line">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
               <widget class="QFrame" name="meshType_frame">
                <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -113,6 +151,12 @@
                 <enum>QFrame::Raised</enum>
                </property>
                <layout class="QFormLayout" name="formLayout_3">
+                <property name="fieldGrowthPolicy">
+                 <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+                </property>
+                <property name="topMargin">
+                 <number>3</number>
+                </property>
                 <item row="0" column="0">
                  <widget class="QLabel" name="meshType_label">
                   <property name="text">
@@ -167,11 +211,6 @@
                  <widget class="QLineEdit" name="scale_lineEdit"/>
                 </item>
                </layout>
-               <zorder>deleteElementRanges_label</zorder>
-               <zorder>deleteElementRanges_label</zorder>
-               <zorder>deleteElementsRanges_lineEdit</zorder>
-               <zorder>scale_label</zorder>
-               <zorder>scale_lineEdit</zorder>
               </widget>
              </item>
              <item>

@@ -27,11 +27,13 @@ class MeshGeneratorModel(object):
     Framework for generating meshes of a number of types, with mesh type specific options
     '''
 
-    def __init__(self, location):
+    def __init__(self, location, identifier):
         '''
         Constructor
         '''
         self._location = location
+        self._identifier = identifier
+        self._filenameStem = os.path.join(self._location, self._identifier)
         self._context = Context("MeshGenerator")
         tess = self._context.getTessellationmodule().getDefaultTessellation()
         tess.setRefinementFactors(12)
@@ -55,7 +57,6 @@ class MeshGeneratorModel(object):
         self._settings = {
             'meshTypeName' : '',
             'meshTypeOptions' : { },
-            'identifierOffset' : 0,
             'deleteElementRanges' : '',
             'scale' : '*'.join(STRING_FLOAT_FORMAT.format(value) for value in self._scale),
             'displayAxes' : True,
@@ -217,9 +218,12 @@ class MeshGeneratorModel(object):
     def getScene(self):
         return self._region.getScene()
 
+    def getIdentifier(self):
+        return self._identifier
+
     def _loadSettings(self):
         try:
-            with open(self._location + '-settings.json', 'r') as f:
+            with open(self._filenameStem + '-settings.json', 'r') as f:
                 self._settings.update(json.loads(f.read()))
             self._currentMeshType = self._getMeshTypeByName(self._settings['meshTypeName'])
             self._parseDeleteElementsRangesText(self._settings['deleteElementRanges'])
@@ -228,11 +232,11 @@ class MeshGeneratorModel(object):
             pass  # no settings saved yet
 
     def _saveSettings(self):
-        with open(self._location + '-settings.json', 'w') as f:
+        with open(self._filenameStem + '-settings.json', 'w') as f:
             f.write(json.dumps(self._settings, default=lambda o: o.__dict__, sort_keys=True, indent=4))
 
     def _getVisibility(self, graphicsName):
-        return self._settings[graphicsName];
+        return self._settings[graphicsName]
 
     def _setVisibility(self, graphicsName, show):
         self._settings[graphicsName] = show
@@ -293,7 +297,6 @@ class MeshGeneratorModel(object):
         fm = self._region.getFieldmodule()
         fm.beginChange()
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
-        coordinates = fm.findFieldByName('coordinates').castFiniteElement()
         for dimension in range(3,0,-1):
             mesh = fm.findMeshByDimension(dimension)
             if mesh.getSize() > 0:
@@ -322,6 +325,7 @@ class MeshGeneratorModel(object):
             #print('deleted', size1 - size2, 'nodes')
         fm.defineAllFaces()
         if self._settings['scale'] != '1*1*1':
+            coordinates = fm.findFieldByName('coordinates').castFiniteElement()
             # scale coordinates and first derivatives. Note doesn't handle versions nor cross derivatives yet
             cache = fm.createFieldcache()
             nodeiterator = nodes.createNodeiterator()
@@ -338,6 +342,18 @@ class MeshGeneratorModel(object):
                     coordinates.setNodeParameters(cache, -1, valueLabel, 1, x)
                 node = nodeiterator.next()
         fm.endChange()
+        self._createGraphics(self._region)
+        if self._sceneChangeCallback is not None:
+            self._sceneChangeCallback()
+
+    def _createGraphics(self, region):
+        fm = region.getFieldmodule()
+        for dimension in range(3,0,-1):
+            mesh = fm.findMeshByDimension(dimension)
+            if mesh.getSize() > 0:
+                break
+        meshDimension = mesh.getDimension()
+        coordinates = fm.findFieldByName('coordinates')
         nodeDerivativeFields = [
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS1, 1),
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS2, 1),
@@ -345,11 +361,11 @@ class MeshGeneratorModel(object):
         ]
         elementDerivativeFields = []
         for d in range(meshDimension):
-            elementDerivativeFields.append(fm.createFieldDerivative(coordinates, d + 1));
+            elementDerivativeFields.append(fm.createFieldDerivative(coordinates, d + 1))
         elementDerivativesField = fm.createFieldConcatenate(elementDerivativeFields)
         cmiss_number = fm.findFieldByName('cmiss_number')
         # make graphics
-        scene = self._region.getScene()
+        scene = region.getScene()
         scene.beginChange()
         axes = scene.createGraphicsPoints()
         pointattr = axes.getGraphicspointattributes()
@@ -433,11 +449,10 @@ class MeshGeneratorModel(object):
         xiAxes.setVisibilityFlag(self.isDisplayXiAxes())
 
         scene.endChange()
-        if self._sceneChangeCallback is not None:
-            self._sceneChangeCallback()
+
 
     def getOutputModelFilename(self):
-        return self._location + '.ex2'
+        return self._filenameStem + '.ex2'
 
     def _writeModel(self):
         self._region.writeFile(self.getOutputModelFilename())

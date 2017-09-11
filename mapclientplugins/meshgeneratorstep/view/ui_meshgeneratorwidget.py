@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapclientplugins\meshgeneratorstep\qt\meshgeneratorwidget.ui'
 #
-# Created: Fri Sep  8 11:08:00 2017
+# Created: Mon Sep 11 15:53:10 2017
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -66,11 +66,30 @@ class Ui_MeshGeneratorWidget(object):
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.verticalLayout_3 = QtGui.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.identifier_frame = QtGui.QFrame(self.scrollAreaWidgetContents_2)
+        self.identifier_frame.setMinimumSize(QtCore.QSize(0, 0))
+        self.identifier_frame.setFrameShape(QtGui.QFrame.StyledPanel)
+        self.identifier_frame.setFrameShadow(QtGui.QFrame.Raised)
+        self.identifier_frame.setObjectName("identifier_frame")
+        self.verticalLayout_4 = QtGui.QVBoxLayout(self.identifier_frame)
+        self.verticalLayout_4.setContentsMargins(-1, 5, -1, 3)
+        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.identifier_label = QtGui.QLabel(self.identifier_frame)
+        self.identifier_label.setObjectName("identifier_label")
+        self.verticalLayout_4.addWidget(self.identifier_label)
+        self.line = QtGui.QFrame(self.identifier_frame)
+        self.line.setFrameShape(QtGui.QFrame.HLine)
+        self.line.setFrameShadow(QtGui.QFrame.Sunken)
+        self.line.setObjectName("line")
+        self.verticalLayout_4.addWidget(self.line)
+        self.verticalLayout_3.addWidget(self.identifier_frame)
         self.meshType_frame = QtGui.QFrame(self.scrollAreaWidgetContents_2)
         self.meshType_frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self.meshType_frame.setFrameShadow(QtGui.QFrame.Raised)
         self.meshType_frame.setObjectName("meshType_frame")
         self.formLayout_3 = QtGui.QFormLayout(self.meshType_frame)
+        self.formLayout_3.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
+        self.formLayout_3.setContentsMargins(-1, 3, -1, -1)
         self.formLayout_3.setObjectName("formLayout_3")
         self.meshType_label = QtGui.QLabel(self.meshType_frame)
         self.meshType_label.setObjectName("meshType_label")
@@ -177,6 +196,7 @@ class Ui_MeshGeneratorWidget(object):
     def retranslateUi(self, MeshGeneratorWidget):
         MeshGeneratorWidget.setWindowTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.dockWidget.setWindowTitle(QtGui.QApplication.translate("MeshGeneratorWidget", "Mesh Generator Controls", None, QtGui.QApplication.UnicodeUTF8))
+        self.identifier_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Identifier", None, QtGui.QApplication.UnicodeUTF8))
         self.meshType_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Mesh type:", None, QtGui.QApplication.UnicodeUTF8))
         self.deleteElementRanges_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Delete element ID ranges (e.g. 1,2-5,13):", None, QtGui.QApplication.UnicodeUTF8))
         self.scale_label.setText(QtGui.QApplication.translate("MeshGeneratorWidget", "Scale x*y*z:", None, QtGui.QApplication.UnicodeUTF8))
