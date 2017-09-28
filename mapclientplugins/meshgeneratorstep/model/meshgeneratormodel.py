@@ -11,6 +11,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.status import OK as ZINC_OK
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.glyph import Glyph
+from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.material import Material
 from opencmiss.zinc.node import Node
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
@@ -41,6 +42,14 @@ class MeshGeneratorModel(object):
         # set up standard materials and glyphs so we can use them elsewhere
         self._materialmodule = self._context.getMaterialmodule()
         self._materialmodule.defineStandardMaterials()
+        solid_blue = self._materialmodule.createMaterial()
+        solid_blue.setName('solid_blue')
+        solid_blue.setManaged(True)
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_AMBIENT, [ 0.0, 0.2, 0.6 ])
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_DIFFUSE, [ 0.0, 0.7, 1.0 ])
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_EMISSION, [ 0.0, 0.0, 0.0 ])
+        solid_blue.setAttributeReal3(Material.ATTRIBUTE_SPECULAR, [ 0.1, 0.1, 0.1 ])
+        solid_blue.setAttributeReal(Material.ATTRIBUTE_SHININESS , 0.2)
         trans_blue = self._materialmodule.createMaterial()
         trans_blue.setName('trans_blue')
         trans_blue.setManaged(True)
@@ -65,6 +74,9 @@ class MeshGeneratorModel(object):
             'displayNodeDerivatives' : False,
             'displayNodeNumbers' : True,
             'displaySurfaces' : True,
+            'displaySurfacesExterior' : True,
+            'displaySurfacesTranslucent' : True,
+            'displaySurfacesWireframe' : False,
             'displayXiAxes' : False
         }
         self._discoverAllMeshTypes()
@@ -286,21 +298,56 @@ class MeshGeneratorModel(object):
     def setDisplaySurfaces(self, show):
         self._setVisibility('displaySurfaces', show)
 
+    def isDisplaySurfacesExterior(self):
+        return self._settings['displaySurfacesExterior']
+
+    def setDisplaySurfacesExterior(self, isExterior):
+        self._settings['displaySurfacesExterior'] = isExterior
+        surfaces = self._region.getScene().findGraphicsByName('displaySurfaces')
+        surfaces.setExterior(self.isDisplaySurfacesExterior() if (self.getMeshDimension() == 3) else False)
+
+    def isDisplaySurfacesTranslucent(self):
+        return self._settings['displaySurfacesTranslucent']
+
+    def setDisplaySurfacesTranslucent(self, isTranslucent):
+        self._settings['displaySurfacesTranslucent'] = isTranslucent
+        surfaces = self._region.getScene().findGraphicsByName('displaySurfaces')
+        surfacesMaterial = self._materialmodule.findMaterialByName('trans_blue' if isTranslucent else 'solid_blue')
+        surfaces.setMaterial(surfacesMaterial)
+
+    def isDisplaySurfacesWireframe(self):
+        return self._settings['displaySurfacesWireframe']
+
+    def setDisplaySurfacesWireframe(self, isWireframe):
+        self._settings['displaySurfacesWireframe'] = isWireframe
+        surfaces = self._region.getScene().findGraphicsByName('displaySurfaces')
+        surfaces.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_WIREFRAME if isWireframe else Graphics.RENDER_POLYGON_MODE_SHADED)
+
     def isDisplayXiAxes(self):
         return self._getVisibility('displayXiAxes')
 
     def setDisplayXiAxes(self, show):
         self._setVisibility('displayXiAxes', show)
 
+    def _getMesh(self):
+        fm = self._region.getFieldmodule()
+        for dimension in range(3,0,-1):
+            mesh = fm.findMeshByDimension(dimension)
+            if mesh.getSize() > 0:
+                break
+        if mesh.getSize() == 0:
+            mesh = fm.findMeshByDimension(3)
+        return mesh
+
+    def getMeshDimension(self):
+        return self._getMesh().getDimension()
+
     def _generateMesh(self):
         self._region = self._context.createRegion()
         fm = self._region.getFieldmodule()
         fm.beginChange()
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
-        for dimension in range(3,0,-1):
-            mesh = fm.findMeshByDimension(dimension)
-            if mesh.getSize() > 0:
-                break
+        mesh = self._getMesh()
         meshDimension = mesh.getDimension()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         if len(self._deleteElementRanges) > 0:
@@ -348,11 +395,7 @@ class MeshGeneratorModel(object):
 
     def _createGraphics(self, region):
         fm = region.getFieldmodule()
-        for dimension in range(3,0,-1):
-            mesh = fm.findMeshByDimension(dimension)
-            if mesh.getSize() > 0:
-                break
-        meshDimension = mesh.getDimension()
+        meshDimension = self.getMeshDimension()
         coordinates = fm.findFieldByName('coordinates')
         nodeDerivativeFields = [
             fm.createFieldNodeValue(coordinates, Node.VALUE_LABEL_D_DS1, 1),
@@ -398,9 +441,10 @@ class MeshGeneratorModel(object):
         elementNumbers.setVisibilityFlag(self.isDisplayElementNumbers())
         surfaces = scene.createGraphicsSurfaces()
         surfaces.setCoordinateField(coordinates)
-        if meshDimension == 3:
-            surfaces.setExterior(True)
-        surfaces.setMaterial(self._materialmodule.findMaterialByName('trans_blue'))
+        surfaces.setRenderPolygonMode(Graphics.RENDER_POLYGON_MODE_WIREFRAME if self.isDisplaySurfacesWireframe() else Graphics.RENDER_POLYGON_MODE_SHADED)
+        surfaces.setExterior(self.isDisplaySurfacesExterior() if (meshDimension == 3) else False)
+        surfacesMaterial = self._materialmodule.findMaterialByName('trans_blue' if self.isDisplaySurfacesTranslucent() else 'solid_blue')
+        surfaces.setMaterial(surfacesMaterial)
         surfaces.setName('displaySurfaces')
         surfaces.setVisibilityFlag(self.isDisplaySurfaces())
 

@@ -88,8 +88,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>351</width>
-            <height>552</height>
+            <width>364</width>
+            <height>531</height>
            </rect>
           </property>
           <property name="sizePolicy">
@@ -240,10 +240,46 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QCheckBox" name="displaySurfaces_checkBox">
-                  <property name="text">
-                   <string>Surfaces</string>
+                 <widget class="QFrame" name="displaySurfaces_frame">
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
                   </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Raised</enum>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_3">
+                   <property name="margin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QCheckBox" name="displaySurfaces_checkBox">
+                     <property name="text">
+                      <string>Surfaces</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QCheckBox" name="displaySurfacesExterior_checkBox">
+                     <property name="text">
+                      <string>Exterior</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QCheckBox" name="displaySurfacesTranslucent_checkBox">
+                     <property name="text">
+                      <string>Transluc.</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QCheckBox" name="displaySurfacesWireframe_checkBox">
+                     <property name="text">
+                      <string>Wireframe</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
                  </widget>
                 </item>
                 <item>
