@@ -18,6 +18,7 @@ from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_plate1 import Mesh
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
+from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 
@@ -89,6 +90,7 @@ class MeshGeneratorModel(object):
             MeshType_2d_sphere1,
             MeshType_2d_tube1,
             MeshType_3d_box1,
+            MeshType_3d_boxhole1,
             MeshType_3d_sphereshell1,
             MeshType_3d_tube1
             ]
