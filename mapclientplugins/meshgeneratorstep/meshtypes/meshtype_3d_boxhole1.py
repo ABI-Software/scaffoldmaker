@@ -158,54 +158,78 @@ class MeshType_3d_boxhole1(object):
         # note I'm cheating here by using element-based scale factors
         # i.e. not shared by neighbouring elements, and I'm also using the same scale
         # factors for the bottom and top of each element
-        eftOuter = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        eftOuter.setNumberOfLocalScaleFactors(9)
-        eft.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        # GRC: allow scale factor identifier for global -1 to be prescribed
-        eft.setScaleFactorIdentifier(1, 1)
-        nonCrossDerivativesNodes = [0, 1, 4, 5] if useCrossDerivatives else range(8)
-        for n in nonCrossDerivativesNodes:
-            eftOuter.setFunctionNumberOfTerms(n*8 + 4, 0)
-            eftOuter.setFunctionNumberOfTerms(n*8 + 6, 0)
-            eftOuter.setFunctionNumberOfTerms(n*8 + 7, 0)
-            eftOuter.setFunctionNumberOfTerms(n*8 + 8, 0)
-        # nodes 3,4,7,8: map dxi2 to -ds3, dxi3 -> ds2
-        # xi2 derivatives use negative s3 derivative parameter:
-        for n in [2, 3, 6, 7]:
-            ln = n + 1
-            eftOuter.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftOuter.setTermScaling(n*8 + 3, 1, [1])
-            eftOuter.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
-            if useCrossDerivatives:
-                eftOuter.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 1)
-                eftOuter.setTermScaling(n*8 + 4, 1, [1])
-                eftOuter.setTermNodeParameter(n*8 + 6, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 1)
-                eftOuter.setTermNodeParameter(n*8 + 7, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 1)
-                eftOuter.setTermScaling(n*8 + 7, 1, [1])
-                eftOuter.setTermNodeParameter(n*8 + 8, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-                eftOuter.setTermScaling(n*8 + 8, 1, [1])
-        # nodes 1,2,5,6: general map dxi1, dsxi2 from ds1, ds2
-        for n in [0, 1, 4, 5]:
-            ln = n + 1
-            sfo = (n % 2)*4 + 1
-            eftOuter.setFunctionNumberOfTerms(n*8 + 2, 2)
-            eftOuter.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftOuter.setTermScaling(n*8 + 2, 1, [1 + sfo])
-            eftOuter.setTermNodeParameter(n*8 + 2, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
-            eftOuter.setTermScaling(n*8 + 2, 2, [2 + sfo])
-            eftOuter.setFunctionNumberOfTerms(n*8 + 3, 2)
-            eftOuter.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftOuter.setTermScaling(n*8 + 3, 1, [3 + sfo])
-            eftOuter.setTermNodeParameter(n*8 + 3, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
-            eftOuter.setTermScaling(n*8 + 3, 2, [4 + sfo])
+        eftOuter1 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+        eftOuter2 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+        i = 0
+        for eftOuter in [ eftOuter1, eftOuter2 ]:
+            i += 1
+            eftOuter.setNumberOfLocalScaleFactors(10)
+            eft.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+            # GRC: allow scale factor identifier for global -1 to be prescribed
+            eft.setScaleFactorIdentifier(1, 1)
+            # Global scale factor 4 to subtract lateral derivative term from cross derivative to fix edges
+            eft.setScaleFactorType(2, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+            eft.setScaleFactorIdentifier(2, 2)
+            nonCrossDerivativesNodes = [0, 1, 4, 5] if useCrossDerivatives else range(8)
+            for n in nonCrossDerivativesNodes:
+                eftOuter.setFunctionNumberOfTerms(n*8 + 4, 0)
+                eftOuter.setFunctionNumberOfTerms(n*8 + 6, 0)
+                eftOuter.setFunctionNumberOfTerms(n*8 + 7, 0)
+                eftOuter.setFunctionNumberOfTerms(n*8 + 8, 0)
+            # nodes 3,4,7,8: map dxi2 to -ds3, dxi3 -> ds2
+            # xi2 derivatives use negative s3 derivative parameter:
+            for n in [2, 3, 6, 7]:
+                ln = n + 1
+                eftOuter.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
+                eftOuter.setTermScaling(n*8 + 3, 1, [1])
+                eftOuter.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
+                if useCrossDerivatives:
+                    eftOuter.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 1)
+                    eftOuter.setTermScaling(n*8 + 4, 1, [1])
+                    eftOuter.setTermNodeParameter(n*8 + 6, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 1)
+                    eftOuter.setTermNodeParameter(n*8 + 7, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 1)
+                    eftOuter.setTermScaling(n*8 + 7, 1, [1])
+                    eftOuter.setTermNodeParameter(n*8 + 8, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+                    eftOuter.setTermScaling(n*8 + 8, 1, [1])
+            # nodes 1,2,5,6: general map dxi1, dsxi2 from ds1, ds2
+            for n in [0, 1, 4, 5]:
+                ln = n + 1
+                sfo = (n % 2)*4 + 2
+                eftOuter.setFunctionNumberOfTerms(n*8 + 2, 2)
+                eftOuter.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftOuter.setTermScaling(n*8 + 2, 1, [1 + sfo])
+                eftOuter.setTermNodeParameter(n*8 + 2, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+                eftOuter.setTermScaling(n*8 + 2, 2, [2 + sfo])
+                eftOuter.setFunctionNumberOfTerms(n*8 + 3, 2)
+                eftOuter.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftOuter.setTermScaling(n*8 + 3, 1, [3 + sfo])
+                eftOuter.setTermNodeParameter(n*8 + 3, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+                eftOuter.setTermScaling(n*8 + 3, 2, [4 + sfo])
+                # map d2_dxi1dxi2 to subtract corner angle terms to fix edge continuity
+                eftOuter.setFunctionNumberOfTerms(n*8 + 4, 1)
+                if i == 1:
+                    eftOuter.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                    if (n % 2) == 0:
+                        eftOuter.setTermScaling(n*8 + 4, 1, [1, 2, 3 + sfo])
+                    else:
+                        eftOuter.setTermScaling(n*8 + 4, 1, [2, 3 + sfo])
+                else:
+                    eftOuter.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
+                    if (n % 2) == 0:
+                        eftOuter.setTermScaling(n*8 + 4, 1, [1, 2, 4 + sfo])
+                    else:
+                        eftOuter.setTermScaling(n*8 + 4, 1, [2, 4 + sfo])
 
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplate.defineField(coordinates, -1, eft)
 
-        elementtemplateOuter = mesh.createElementtemplate()
-        elementtemplateOuter.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplateOuter.defineField(coordinates, -1, eftOuter)
+        elementtemplateOuter1 = mesh.createElementtemplate()
+        elementtemplateOuter1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateOuter1.defineField(coordinates, -1, eftOuter1)
+        elementtemplateOuter2 = mesh.createElementtemplate()
+        elementtemplateOuter2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateOuter2.defineField(coordinates, -1, eftOuter2)
 
         cache = fm.createFieldcache()
 
@@ -353,6 +377,9 @@ class MeshType_3d_boxhole1(object):
             # first row general maps ds1, ds2 to dxi1, dxi2
             for e1 in range(elementsCountAround):
                 en = (e1 + 1)%elementsCountAround
+                onX = (e1 % (elementsCount1 + elementsCount2)) < elementsCount1
+                elementtemplateOuter = elementtemplateOuter1 if onX else elementtemplateOuter2
+                eftOuter = eftOuter1 if onX else eftOuter2
                 element = mesh.createElement(elementIdentifier, elementtemplateOuter)
                 bni11 = e3*no3 + e1 + 1
                 bni12 = e3*no3 + en + 1
@@ -360,13 +387,13 @@ class MeshType_3d_boxhole1(object):
                 bni22 = e3*no3 + elementsCountAround + en + 1
                 nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + no3, bni12 + no3, bni21 + no3, bni22 + no3 ]
                 result = element.setNodesByIdentifier(eftOuter, nodeIdentifiers)
-                onX = (e1 % (elementsCount1 + elementsCount2)) < elementsCount1
                 rev = e1 >= (elementsCount1 + elementsCount2)
                 one = -1.0 if rev else 1.0
                 vx = one if onX else 0.0
                 vy = 0.0 if onX else one
                 scaleFactors = [
                     -1.0,
+                    4.0,
                     vx, vy,
                     -outer_d2[e1][0]/outer_dx_ds1[0]/elementsCountThroughWall, -outer_d2[e1][1]/outer_dx_ds2[1]/elementsCountThroughWall,
                     vx, vy,
