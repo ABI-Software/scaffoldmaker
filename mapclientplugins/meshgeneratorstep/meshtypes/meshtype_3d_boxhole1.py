@@ -257,61 +257,63 @@ class MeshType_3d_boxhole1(object):
         mag = math.sqrt(elementsCount1*elementsCount1 + elementsCount2*elementsCount2)
         outer_dx1_ds1 = 1.0 / elementsCount1
         outer_dx2_ds2 = 1.0 / elementsCount2
-        cornerScale1 = 1.0 / max(elementsCount1 + 1, elementsCount2 + 1)
+        #cornerScale1 = 1.0 / max(elementsCount1 + 1, elementsCount2 + 1)
+        #cornerScale1 = 1.0 / min(2, max(elementsCount1, elementsCount2))
+        cornerScale1 = 1.0 / max(elementsCount1 + elementsCountThroughWall, elementsCount2 + elementsCountThroughWall)
+        sqrt05 = math.sqrt(0.5)
+        wallThicknessMax = sqrt05 - holeRadius
         for n in range(elementsCount1):
             x = -0.5 + n/elementsCount1
             outer_x.append((x, -0.5))
-            mag = math.sqrt(x*x + 0.25)
-            wallThicknessHere = mag - holeRadius
-            scale2 = 2.0*wallThicknessHere - wallThicknessMin
-            rx = x/mag
-            ry = -0.5/mag
-            r = 2.0*math.fabs(x)
             if n == 0:
+                rx = x/sqrt05
+                ry = -0.5/sqrt05
+                scale2 = wallThicknessMax
                 outer_d1.append((-ry*cornerScale1, rx*cornerScale1))
+                outer_d2.append((rx*scale2, ry*scale2))
             else:
+                scale2 = wallThicknessMin
                 outer_d1.append((outer_dx1_ds1, 0.0))
-            outer_d2.append((rx*scale2, ry*scale2))
+                outer_d2.append((0.0, -scale2))
         for n in range(elementsCount2):
             y =  -0.5 + n/elementsCount2
             outer_x.append((0.5, y))
-            mag = math.sqrt(0.25 + y*y)
-            wallThicknessHere = mag - holeRadius
-            scale2 = 2.0*wallThicknessHere - wallThicknessMin
-            rx = 0.5/mag
-            ry = y/mag
-            r = 2.0*math.fabs(y)
             if n == 0:
+                rx = 0.5/sqrt05
+                ry = y/sqrt05
+                scale2 = wallThicknessMax
                 outer_d1.append((-ry*cornerScale1, rx*cornerScale1))
+                outer_d2.append((rx*scale2, ry*scale2))
             else:
+                scale2 = wallThicknessMin
                 outer_d1.append((0.0, outer_dx2_ds2))
-            outer_d2.append((rx*scale2, ry*scale2))
+                outer_d2.append((scale2, 0.0))
         for n in range(elementsCount1):
             x = 0.5 - n/elementsCount1
             outer_x.append((x, 0.5))
-            mag = math.sqrt(x*x + 0.25)
-            wallThicknessHere = mag - holeRadius
-            scale2 = 2.0*wallThicknessHere - wallThicknessMin
-            rx = x/mag
-            ry = 0.5/mag
             if n == 0:
+                rx = x/sqrt05
+                ry = 0.5/sqrt05
+                scale2 = wallThicknessMax
                 outer_d1.append((-ry*cornerScale1, rx*cornerScale1))
+                outer_d2.append((rx*scale2, ry*scale2))
             else:
+                scale2 = wallThicknessMin
                 outer_d1.append((-outer_dx1_ds1, 0.0))
-            outer_d2.append((rx*scale2, ry*scale2))
+                outer_d2.append((0.0, scale2))
         for n in range(elementsCount2):
             y =  0.5 - n/elementsCount2
             outer_x.append((-0.5, y))
-            mag = math.sqrt(0.25 + y*y)
-            wallThicknessHere = mag - holeRadius
-            scale2 = 2.0*wallThicknessHere - wallThicknessMin
-            rx = -0.5/mag
-            ry = y/mag
             if n == 0:
+                rx = -0.5/sqrt05
+                ry = y/sqrt05
+                scale2 = wallThicknessMax
                 outer_d1.append((-ry*cornerScale1, rx*cornerScale1))
+                outer_d2.append((rx*scale2, ry*scale2))
             else:
+                scale2 = wallThicknessMin
                 outer_d1.append((0.0, -outer_dx2_ds2))
-            outer_d2.append((rx*scale2, ry*scale2))
+                outer_d2.append((-scale2, 0.0))
 
         nodeIdentifier = 1
         x = [ 0.0, 0.0, 0.0 ]
