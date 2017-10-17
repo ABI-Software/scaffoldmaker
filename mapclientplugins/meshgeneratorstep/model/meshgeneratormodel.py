@@ -15,6 +15,7 @@ from opencmiss.zinc.graphics import Graphics
 from opencmiss.zinc.material import Material
 from opencmiss.zinc.node import Node
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
+from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
@@ -87,6 +88,7 @@ class MeshGeneratorModel(object):
     def _discoverAllMeshTypes(self):
         self._meshTypes = [
             MeshType_2d_plate1,
+            MeshType_2d_platehole1,
             MeshType_2d_sphere1,
             MeshType_2d_tube1,
             MeshType_3d_box1,
