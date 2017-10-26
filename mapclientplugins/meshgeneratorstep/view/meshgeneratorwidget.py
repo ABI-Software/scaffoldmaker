@@ -37,7 +37,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         sceneviewer = self._ui.sceneviewer_widget.getSceneviewer()
         if sceneviewer is not None:
             scene = self._model.getScene()
-            sceneviewer.setScene(scene)
+            self._ui.sceneviewer_widget.setScene(scene)
             #self._ui.sceneviewer_widget.setSelectModeAll()
             sceneviewer.setLookatParametersNonSkew([2.0, -2.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0])
             sceneviewer.setTransparencyMode(sceneviewer.TRANSPARENCY_MODE_SLOW)
@@ -47,7 +47,7 @@ class MeshGeneratorWidget(QtGui.QWidget):
         sceneviewer = self._ui.sceneviewer_widget.getSceneviewer()
         if sceneviewer is not None:
             scene = self._model.getScene()
-            sceneviewer.setScene(scene)
+            self._ui.sceneviewer_widget.setScene(scene)
 
     def _makeConnections(self):
         self._ui.done_button.clicked.connect(self._doneButtonClicked)
