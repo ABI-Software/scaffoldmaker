@@ -224,26 +224,31 @@ class MeshType_3d_tubeseptum1(object):
                 for n1 in range(elementsCountAcross + 3):
                     if (n1 == 0) or (n1 == (elementsCountAcross + 2)):
                         x[0] = -0.5 if (n1 == 0) else 0.5
-                        x[1] = -sign*baseY
+                        x[1] = -sign*baseY*0.5
                         dx_ds1[0] = 0.0
-                        dx_ds1[1] = -2.0*baseY*(1.0 if (n1 == 0) else -1.0)
+                        dx_ds1[1] = -1.0*baseY*(1.0 if (n1 == 0) else -1.0)
                         dx_ds3[0] = wallThickness[n3]*(-1.0 if (n1 == 0) else 1.0)
                         dx_ds3[1] = 0.0
-                    else:
-                        radiansAcross = (n1 - 1.0)*radiansPerElementAcross
-                        cosRadiansAcross = math.cos(radiansAcross)
-                        sinRadiansAcross = math.sin(radiansAcross)
-                        x[0] = -radiusX*cosRadiansAcross
-                        x[1] = -sign*(baseY - radiusY*sinRadiansAcross)
-                        dx_ds1[0] = radiusX*sinRadiansAcross*radiansPerElementAcross
-                        dx_ds1[1] = sign*radiusY*cosRadiansAcross*radiansPerElementAcross
-                        dx_ds3[0] = sign*cosRadiansAcross*wallThickness[n3]
-                        dx_ds3[1] = -sinRadiansAcross*wallThicknessSeptum
-                        if (n3 == 1) and ((n1 == 1) or (n1 == (elementsCountAcross + 1))):
-                            dx_ds1[0] = -dx_ds1[0]
+                    elif (n1 == 1) or (n1 == (elementsCountAcross + 1)):
+                        x[0] = -radiusX if (n1 == 1) else radiusX
+                        x[1] = sign*radiusY*(-1.0 - 4.0*radiusX/(elementsCountAcross + 1))
+                        angle_radians = math.pi/4
+                        dx_ds1[0] = -sign*2.0*radiusX/(elementsCountAcross + 1)*math.cos(angle_radians)
+                        dx_ds1[1] = 2.0*radiusX/(elementsCountAcross + 1)*math.sin(angle_radians)
+                        dx_ds3[0] = wallThickness[n3]*math.sin(angle_radians)
+                        dx_ds3[1] = sign*wallThickness[n3]*math.cos(angle_radians)
+                        if n1 == 1:
                             dx_ds1[1] = -dx_ds1[1]
                             dx_ds3[0] = -dx_ds3[0]
-                            dx_ds3[1] = -dx_ds3[1]
+                    else:
+                        f1 = (n1 - 1)/elementsCountAcross
+                        f2 = 1.0 - f1
+                        x[0] = (f1 - f2)*radiusX
+                        x[1] = -sign*radiusY
+                        dx_ds1[0] = 2.0*radiusX/(elementsCountAcross + 1)
+                        dx_ds1[1] = 0.0
+                        dx_ds3[0] = 0.0
+                        dx_ds3[1] = -wallThicknessSeptum
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     cache.setNode(node)
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
