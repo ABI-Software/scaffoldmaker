@@ -22,6 +22,7 @@ from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshTy
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
+from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 
 STRING_FLOAT_FORMAT = '{:.8g}'
 
@@ -94,7 +95,8 @@ class MeshGeneratorModel(object):
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
             MeshType_3d_sphereshell1,
-            MeshType_3d_tube1
+            MeshType_3d_tube1,
+            MeshType_3d_tubeseptum1
             ]
         self._currentMeshType = MeshType_3d_box1
         self._settings['meshTypeName'] = self._currentMeshType.getName()
