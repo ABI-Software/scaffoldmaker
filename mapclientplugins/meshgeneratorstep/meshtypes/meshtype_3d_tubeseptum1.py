@@ -214,16 +214,19 @@ class MeshType_3d_tubeseptum1(object):
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
         wallThicknessSeptum = wallThickness[0]
+        wallThicknessMin = min(wallThickness)
         for n3 in range(2):
             sign = -1.0 if (n3 == 0) else 1.0
             baseY = wallThicknessSeptum
             radiusY = 0.5*wallThicknessSeptum
-            radiusX = 0.5 - wallThickness[n3]
+            radiusX = 0.5 - wallThicknessMin
             for n2 in range(elementsCountAlong + 1):
                 x[2] = n2 / elementsCountAlong
                 for n1 in range(elementsCountAcross + 3):
                     if (n1 == 0) or (n1 == (elementsCountAcross + 2)):
-                        x[0] = -0.5 if (n1 == 0) else 0.5
+                        x[0] = radiusX + wallThickness[n3]
+                        if n1 == 0:
+                            x[0] = -x[0]
                         x[1] = -sign*baseY*0.5
                         dx_ds1[0] = 0.0
                         dx_ds1[1] = -1.0*baseY*(1.0 if (n1 == 0) else -1.0)
