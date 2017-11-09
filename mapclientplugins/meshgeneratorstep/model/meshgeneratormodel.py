@@ -21,6 +21,7 @@ from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_tube1 import MeshT
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
+from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 
@@ -95,6 +96,7 @@ class MeshGeneratorModel(object):
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
             MeshType_3d_sphereshell1,
+            MeshType_3d_sphereshellseptum1,
             MeshType_3d_tube1,
             MeshType_3d_tubeseptum1
             ]
@@ -352,7 +354,13 @@ class MeshGeneratorModel(object):
         self._region = self._context.createRegion()
         fm = self._region.getFieldmodule()
         fm.beginChange()
+        logger = self.getContext().getLogger()
         self._currentMeshType.generateMesh(self._region, self._settings['meshTypeOptions'])
+        loggerMessageCount = logger.getNumberOfMessages()
+        if loggerMessageCount > 0:
+            for i in range(1, loggerMessageCount + 1):
+                print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
+            logger.removeAllMessages()
         mesh = self._getMesh()
         meshDimension = mesh.getDimension()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
