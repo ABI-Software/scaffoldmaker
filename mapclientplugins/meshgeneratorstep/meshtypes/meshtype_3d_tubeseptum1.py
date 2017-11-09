@@ -207,21 +207,21 @@ class MeshType_3d_tubeseptum1(object):
 
         # create nodes
         nodeIdentifier = 1
-        radiansPerElementAcross = math.pi/elementsCountAcross
+        #radiansPerElementAcross = math.pi/elementsCountAcross
+        angle_radians = math.pi/4
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 0.0, 1.0 / elementsCountAlong ]
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
         wallThicknessSeptum = wallThickness[0]
-        wallThicknessMin = min(wallThickness)
+        #wallThicknessMin = min(wallThickness)
         wallThicknessMax = max(wallThickness)
         for n3 in range(2):
             sign = -1.0 if (n3 == 0) else 1.0
-            baseY = wallThicknessSeptum
             radiusY = 0.5*wallThicknessSeptum
             radiusX = 0.5 - wallThicknessMax
-            sideBulge = 8.0*radiusY*radiusX/(elementsCountAcross + 1)
+            sideBulge = 8.0*radiusY*radiusX/elementsCountAcross
             for n2 in range(elementsCountAlong + 1):
                 x[2] = n2 / elementsCountAlong
                 for n1 in range(elementsCountAcross + 3):
@@ -229,21 +229,20 @@ class MeshType_3d_tubeseptum1(object):
                         x[0] = radiusX + wallThickness[n3]
                         if n1 == 0:
                             x[0] = -x[0]
-                        x[1] = -sign*baseY*0.5
+                        x[1] = -sign*radiusY
                         if wallThickness[0] > wallThickness[1]:
                             x[1] -= sideBulge
                         elif wallThickness[0] < wallThickness[1]:
                             x[1] += sideBulge
                         dx_ds1[0] = 0.0
-                        dx_ds1[1] = -1.0*baseY*(1.0 if (n1 == 0) else -1.0)
+                        dx_ds1[1] = -2.0*radiusY*(1.0 if (n1 == 0) else -1.0)
                         dx_ds3[0] = wallThickness[n3]*(-1.0 if (n1 == 0) else 1.0)
                         dx_ds3[1] = 0.0
                     elif (n1 == 1) or (n1 == (elementsCountAcross + 1)):
                         x[0] = -radiusX if (n1 == 1) else radiusX
-                        x[1] = sign*(-radiusY - sideBulge)
-                        angle_radians = math.pi/4
-                        dx_ds1[0] = -sign*2.0*radiusX/(elementsCountAcross + 1)*math.cos(angle_radians)
-                        dx_ds1[1] = 2.0*radiusX/(elementsCountAcross + 1)*math.sin(angle_radians)
+                        x[1] = -sign*(radiusY + sideBulge)
+                        dx_ds1[0] = -sign*2.0*radiusX/elementsCountAcross*math.cos(angle_radians)
+                        dx_ds1[1] = 2.0*radiusX/elementsCountAcross*math.sin(angle_radians)
                         if ((n3 == 1) and (wallThickness[0] > wallThickness[1])) or \
                             ((n3 == 0) and (wallThickness[0] < wallThickness[1])):
                             dx_ds3[0] = wallThickness[n3]
@@ -259,7 +258,7 @@ class MeshType_3d_tubeseptum1(object):
                         f2 = 1.0 - f1
                         x[0] = (f1 - f2)*radiusX
                         x[1] = -sign*radiusY
-                        dx_ds1[0] = 2.0*radiusX/(elementsCountAcross + 1)
+                        dx_ds1[0] = 2.0*radiusX/elementsCountAcross
                         dx_ds1[1] = 0.0
                         dx_ds3[0] = 0.0
                         dx_ds3[1] = -wallThicknessSeptum
