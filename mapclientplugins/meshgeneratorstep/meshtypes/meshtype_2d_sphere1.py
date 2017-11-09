@@ -244,8 +244,8 @@ class MeshType_2d_sphere1(object):
         node = nodes.createNode(nodeIdentifier, nodetemplateApex)
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*-radiansPerElementUp, 0.0, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -radius*radiansPerElementUp, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
         nodeIdentifier = nodeIdentifier + 1
 
         # create elements
@@ -304,8 +304,8 @@ class MeshType_2d_sphere1(object):
             nodeIdentifiers = [ bni1, bni2, bni3 ]
             result = element.setNodesByIdentifier(eftApex2, nodeIdentifiers)
             # set general linear map coefficients
-            radiansAround = e1*radiansPerElementAround
-            radiansAroundNext = ((e1 + 1)%elementsCountAround)*radiansPerElementAround
+            radiansAround = math.pi + e1*radiansPerElementAround
+            radiansAroundNext = math.pi + ((e1 + 1)%elementsCountAround)*radiansPerElementAround
             scalefactors = [
                 -math.sin(radiansAround), math.cos(radiansAround), -math.sin(radiansAroundNext), math.cos(radiansAroundNext)
             ]
