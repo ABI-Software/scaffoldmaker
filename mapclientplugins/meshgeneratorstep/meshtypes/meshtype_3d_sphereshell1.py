@@ -108,49 +108,61 @@ class MeshType_3d_sphereshell1(object):
         # Apex1: collapsed on xi1 = 0
         eftApex1 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftApex1.setNumberOfLocalNodes(6)
-        eftApex1.setNumberOfLocalScaleFactors(8)
+        eftApex1.setNumberOfLocalScaleFactors(13)
+        # GRC: allow scale factor identifier for global -1.0 to be prescribed
+        eftApex1.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        eftApex1.setScaleFactorIdentifier(1, 1)
         for layer in range(2):
-            so = layer*4
+            so = layer*6 + 1
             no = layer*3
             fo = layer*32
-            for s in range(4):
+            for s in range(6):
                 si = so + s + 1
-                sid = (s // 2)*100 + s + 1  # add 100 for different 'version'
+                # 3 scale factors per node: cos(theta), sin(theta), arc angle radians
+                sid = (s // 3)*100 + s + 1  # add 100 for different 'version'
                 eftApex1.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                 eftApex1.setScaleFactorIdentifier(si, sid)
 
             # basis node 1 -> local node 1
-            eftApex1.setTermNodeParameter(fo + 1, 1, no + 1, Node.VALUE_LABEL_VALUE, 1)
+            ln = no + 1
+            eftApex1.setTermNodeParameter(fo + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
             # 0 terms = zero parameter for d/dxi1 basis
             eftApex1.setFunctionNumberOfTerms(fo + 2, 0)
             # 2 terms for d/dxi2 via general linear map:
             eftApex1.setFunctionNumberOfTerms(fo + 3, 2)
-            eftApex1.setTermNodeParameter(fo + 3, 1, no + 1, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex1.setTermNodeParameter(fo + 3, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
             eftApex1.setTermScaling(fo + 3, 1, [so + 1])
-
-            eftApex1.setTermNodeParameter(fo + 3, 2, no + 1, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex1.setTermNodeParameter(fo + 3, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
             eftApex1.setTermScaling(fo + 3, 2, [so + 2])
-            # 0 terms = zero parameter for cross derivative 1 2
-            eftApex1.setFunctionNumberOfTerms(fo + 4, 0)
-            eftApex1.setTermNodeParameter(fo + 5, 1, no + 1, Node.VALUE_LABEL_D_DS3, 1)
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            eftApex1.setFunctionNumberOfTerms(fo + 4, 2)
+            eftApex1.setTermNodeParameter(fo + 4, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex1.setTermScaling(fo + 4, 1, [so + 2, so + 3])
+            eftApex1.setTermNodeParameter(fo + 4, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex1.setTermScaling(fo + 4, 2, [1, so + 1, so + 3])
+            eftApex1.setTermNodeParameter(fo + 5, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
             # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
             eftApex1.setFunctionNumberOfTerms(fo + 6, 0)
             eftApex1.setFunctionNumberOfTerms(fo + 7, 0)
             eftApex1.setFunctionNumberOfTerms(fo + 8, 0)
 
             # basis node 2 -> local node 1
-            eftApex1.setTermNodeParameter(fo + 9, 1, no + 1, Node.VALUE_LABEL_VALUE, 1)
+            eftApex1.setTermNodeParameter(fo + 9, 1, ln, Node.VALUE_LABEL_VALUE, 1)
             # 0 terms = zero parameter for d/dxi1 basis
             eftApex1.setFunctionNumberOfTerms(fo + 10, 0)
             # 2 terms for d/dxi2 via general linear map:
             eftApex1.setFunctionNumberOfTerms(fo + 11, 2)
-            eftApex1.setTermNodeParameter(fo + 11, 1, no + 1, Node.VALUE_LABEL_D_DS1, 1)
-            eftApex1.setTermScaling(fo + 11, 1, [so + 3])
-            eftApex1.setTermNodeParameter(fo + 11, 2, no + 1, Node.VALUE_LABEL_D_DS2, 1)
-            eftApex1.setTermScaling(fo + 11, 2, [so + 4])
-            # 0 terms = zero parameter for cross derivative 1 2
-            eftApex1.setFunctionNumberOfTerms(fo + 12, 0)
-            eftApex1.setTermNodeParameter(fo + 13, 1, no + 1, Node.VALUE_LABEL_D_DS3, 1)
+            eftApex1.setTermNodeParameter(fo + 11, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex1.setTermScaling(fo + 11, 1, [so + 4])
+            eftApex1.setTermNodeParameter(fo + 11, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex1.setTermScaling(fo + 11, 2, [so + 5])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            eftApex1.setFunctionNumberOfTerms(fo + 12, 2)
+            eftApex1.setTermNodeParameter(fo + 12, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex1.setTermScaling(fo + 12, 1, [so + 5, so + 6])
+            eftApex1.setTermNodeParameter(fo + 12, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex1.setTermScaling(fo + 12, 2, [1, so + 4, so + 6])
+            eftApex1.setTermNodeParameter(fo + 13, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
             # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
             eftApex1.setFunctionNumberOfTerms(fo + 14, 0)
             eftApex1.setFunctionNumberOfTerms(fo + 15, 0)
@@ -179,13 +191,18 @@ class MeshType_3d_sphereshell1(object):
         eftApex2 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftApex2.setNumberOfLocalNodes(6)
         eftApex2.setNumberOfLocalScaleFactors(8)
+        eftApex2.setNumberOfLocalScaleFactors(13)
+        # GRC: allow scale factor identifier for global -1.0 to be prescribed
+        eftApex2.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        eftApex2.setScaleFactorIdentifier(1, 1)
         for layer in range(2):
-            so = layer*4
+            so = layer*6 + 1
             no = layer*3
             fo = layer*32
-            for s in range(4):
+            for s in range(6):
                 si = so + s + 1
-                sid = (s // 2)*100 + s + 1  # add 100 for different 'version'
+                # 3 scale factors per node: cos(theta), sin(theta), arc angle radians
+                sid = (s // 3)*100 + s + 1  # add 100 for different 'version'
                 eftApex2.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                 eftApex2.setScaleFactorIdentifier(si, sid)
 
@@ -209,38 +226,46 @@ class MeshType_3d_sphereshell1(object):
                      eftApex2.setFunctionNumberOfTerms(fo2 + 8, 0)
 
             # basis node 3 -> local node 3
+            ln = no + 3
             fo3 = fo + 16
-            eftApex2.setTermNodeParameter(fo3 + 1, 1, no + 3, Node.VALUE_LABEL_VALUE, 1)
+            eftApex2.setTermNodeParameter(fo3 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
             # 0 terms = zero parameter for d/dxi1 basis
             eftApex2.setFunctionNumberOfTerms(fo3 + 2, 0)
             # 2 terms for d/dxi2 via general linear map:
             eftApex2.setFunctionNumberOfTerms(fo3 + 3, 2)
-            eftApex2.setTermNodeParameter(fo3 + 3, 1, no + 3, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex2.setTermNodeParameter(fo3 + 3, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
             eftApex2.setTermScaling(fo3 + 3, 1, [so + 1])
-
-            eftApex2.setTermNodeParameter(fo3 + 3, 2, no + 3, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex2.setTermNodeParameter(fo3 + 3, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
             eftApex2.setTermScaling(fo3 + 3, 2, [so + 2])
-            # 0 terms = zero parameter for cross derivative 1 2
-            eftApex2.setFunctionNumberOfTerms(fo3 + 4, 0)
-            eftApex2.setTermNodeParameter(fo3 + 5, 1, no + 3, Node.VALUE_LABEL_D_DS3, 1)
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            eftApex2.setFunctionNumberOfTerms(fo3 + 4, 2)
+            eftApex2.setTermNodeParameter(fo3 + 4, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex2.setTermScaling(fo3 + 4, 1, [1, so + 2, so + 3])
+            eftApex2.setTermNodeParameter(fo3 + 4, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex2.setTermScaling(fo3 + 4, 2, [so + 1, so + 3])
+            eftApex2.setTermNodeParameter(fo3 + 5, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
             # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
             eftApex2.setFunctionNumberOfTerms(fo3 + 6, 0)
             eftApex2.setFunctionNumberOfTerms(fo3 + 7, 0)
             eftApex2.setFunctionNumberOfTerms(fo3 + 8, 0)
 
             # basis node 4 -> local node 3
-            eftApex2.setTermNodeParameter(fo3 + 9, 1, no + 3, Node.VALUE_LABEL_VALUE, 1)
+            eftApex2.setTermNodeParameter(fo3 + 9, 1, ln, Node.VALUE_LABEL_VALUE, 1)
             # 0 terms = zero parameter for d/dxi1 basis
             eftApex2.setFunctionNumberOfTerms(fo3 + 10, 0)
             # 2 terms for d/dxi2 via general linear map:
             eftApex2.setFunctionNumberOfTerms(fo3 + 11, 2)
-            eftApex2.setTermNodeParameter(fo3 + 11, 1, no + 3, Node.VALUE_LABEL_D_DS1, 1)
-            eftApex2.setTermScaling(fo3 + 11, 1, [so + 3])
-            eftApex2.setTermNodeParameter(fo3 + 11, 2, no + 3, Node.VALUE_LABEL_D_DS2, 1)
-            eftApex2.setTermScaling(fo3 + 11, 2, [so + 4])
-            # 0 terms = zero parameter for cross derivative 1 2
-            eftApex2.setFunctionNumberOfTerms(fo3 + 12, 0)
-            eftApex2.setTermNodeParameter(fo3 + 13, 1, no + 3, Node.VALUE_LABEL_D_DS3, 1)
+            eftApex2.setTermNodeParameter(fo3 + 11, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex2.setTermScaling(fo3 + 11, 1, [so + 4])
+            eftApex2.setTermNodeParameter(fo3 + 11, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex2.setTermScaling(fo3 + 11, 2, [so + 5])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            eftApex2.setFunctionNumberOfTerms(fo3 + 12, 2)
+            eftApex2.setTermNodeParameter(fo3 + 12, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftApex2.setTermScaling(fo3 + 12, 1, [1, so + 5, so + 6])
+            eftApex2.setTermNodeParameter(fo3 + 12, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftApex2.setTermScaling(fo3 + 12, 2, [so + 4, so + 6])
+            eftApex2.setTermNodeParameter(fo3 + 13, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
             # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
             eftApex2.setFunctionNumberOfTerms(fo3 + 14, 0)
             eftApex2.setFunctionNumberOfTerms(fo3 + 15, 0)
@@ -342,14 +367,18 @@ class MeshType_3d_sphereshell1(object):
             for e1 in range(elementsCountAround):
                 va = e1
                 vb = (e1 + 1)%elementsCountAround
-                eftApex1.setScaleFactorIdentifier(1, va*100 + 1)
-                eftApex1.setScaleFactorIdentifier(2, va*100 + 2)
-                eftApex1.setScaleFactorIdentifier(3, vb*100 + 1)
-                eftApex1.setScaleFactorIdentifier(4, vb*100 + 2)
-                eftApex1.setScaleFactorIdentifier(5, va*100 + 1)
-                eftApex1.setScaleFactorIdentifier(6, va*100 + 2)
-                eftApex1.setScaleFactorIdentifier(7, vb*100 + 1)
-                eftApex1.setScaleFactorIdentifier(8, vb*100 + 2)
+                eftApex1.setScaleFactorIdentifier(2, va*100 + 1)
+                eftApex1.setScaleFactorIdentifier(3, va*100 + 2)
+                eftApex1.setScaleFactorIdentifier(4, va*100 + 3)
+                eftApex1.setScaleFactorIdentifier(5, vb*100 + 1)
+                eftApex1.setScaleFactorIdentifier(6, vb*100 + 2)
+                eftApex1.setScaleFactorIdentifier(7, vb*100 + 3)
+                eftApex1.setScaleFactorIdentifier(8, va*100 + 1)
+                eftApex1.setScaleFactorIdentifier(9, va*100 + 2)
+                eftApex1.setScaleFactorIdentifier(10, va*100 + 3)
+                eftApex1.setScaleFactorIdentifier(11, vb*100 + 1)
+                eftApex1.setScaleFactorIdentifier(12, vb*100 + 2)
+                eftApex1.setScaleFactorIdentifier(13, vb*100 + 3)
                 # redefine field in template for changes to eftApex1:
                 elementtemplateApex1.defineField(coordinates, -1, eftApex1)
                 element = mesh.createElement(elementIdentifier, elementtemplateApex1)
@@ -362,8 +391,11 @@ class MeshType_3d_sphereshell1(object):
                 radiansAround = e1*radiansPerElementAround
                 radiansAroundNext = ((e1 + 1)%elementsCountAround)*radiansPerElementAround
                 scalefactors = [
-                    math.sin(radiansAround), math.cos(radiansAround), math.sin(radiansAroundNext), math.cos(radiansAroundNext),
-                    math.sin(radiansAround), math.cos(radiansAround), math.sin(radiansAroundNext), math.cos(radiansAroundNext)
+                    -1.0,
+                    math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                    math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
+                    math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                    math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
                 ]
                 result = element.setScaleFactors(eftApex1, scalefactors)
                 elementIdentifier = elementIdentifier + 1
@@ -385,14 +417,18 @@ class MeshType_3d_sphereshell1(object):
             for e1 in range(elementsCountAround):
                 va = e1
                 vb = (e1 + 1)%elementsCountAround
-                eftApex2.setScaleFactorIdentifier(1, va*100 + 1)
-                eftApex2.setScaleFactorIdentifier(2, va*100 + 2)
-                eftApex2.setScaleFactorIdentifier(3, vb*100 + 1)
-                eftApex2.setScaleFactorIdentifier(4, vb*100 + 2)
-                eftApex2.setScaleFactorIdentifier(5, va*100 + 1)
-                eftApex2.setScaleFactorIdentifier(6, va*100 + 2)
-                eftApex2.setScaleFactorIdentifier(7, vb*100 + 1)
-                eftApex2.setScaleFactorIdentifier(8, vb*100 + 2)
+                eftApex2.setScaleFactorIdentifier(2, va*100 + 1)
+                eftApex2.setScaleFactorIdentifier(3, va*100 + 2)
+                eftApex2.setScaleFactorIdentifier(4, va*100 + 3)
+                eftApex2.setScaleFactorIdentifier(5, vb*100 + 1)
+                eftApex2.setScaleFactorIdentifier(6, vb*100 + 2)
+                eftApex2.setScaleFactorIdentifier(7, vb*100 + 3)
+                eftApex2.setScaleFactorIdentifier(8, va*100 + 1)
+                eftApex2.setScaleFactorIdentifier(9, va*100 + 2)
+                eftApex2.setScaleFactorIdentifier(10, va*100 + 3)
+                eftApex2.setScaleFactorIdentifier(11, vb*100 + 1)
+                eftApex2.setScaleFactorIdentifier(12, vb*100 + 2)
+                eftApex2.setScaleFactorIdentifier(13, vb*100 + 3)
                 # redefine field in template for changes to eftApex2:
                 elementtemplateApex1.defineField(coordinates, -1, eftApex2)
                 element = mesh.createElement(elementIdentifier, elementtemplateApex1)
@@ -405,8 +441,11 @@ class MeshType_3d_sphereshell1(object):
                 radiansAround = math.pi + e1*radiansPerElementAround
                 radiansAroundNext = math.pi + ((e1 + 1)%elementsCountAround)*radiansPerElementAround
                 scalefactors = [
-                    -math.sin(radiansAround), math.cos(radiansAround), -math.sin(radiansAroundNext), math.cos(radiansAroundNext),
-                    -math.sin(radiansAround), math.cos(radiansAround), -math.sin(radiansAroundNext), math.cos(radiansAroundNext)
+                    -1.0,
+                    -math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                    -math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
+                    -math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                    -math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
                 ]
                 result = element.setScaleFactors(eftApex2, scalefactors)
                 elementIdentifier = elementIdentifier + 1
