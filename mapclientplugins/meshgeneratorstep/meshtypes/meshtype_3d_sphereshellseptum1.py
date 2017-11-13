@@ -100,7 +100,7 @@ class MeshType_3d_sphereshellseptum1(object):
         elementsCountUp = options['Number of elements up']
         elementsCountAcross = options['Number of elements across']
         wallThickness = [ options['Wall thickness left'], options['Wall thickness right'] ]
-        apexScaleFactorIdentifierOffset = 10000
+        apexScaleFactorIdentifierOffset = options['Apex scale factor identifier offset']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -314,7 +314,7 @@ class MeshType_3d_sphereshellseptum1(object):
         eftInnerApex1b = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftInnerApex1c = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         for eftInnerApex in [ eftInnerApex1a, eftInnerApex1b, eftInnerApex1c ]:
-            print('**** eftInnerApex ****')
+            #print('**** eftInnerApex ****')
             eftInnerApex.setNumberOfLocalNodes(6)
             if eftInnerApex is eftInnerApex1b:
                 eftInnerApex.setNumberOfLocalScaleFactors(17)
@@ -333,14 +333,14 @@ class MeshType_3d_sphereshellseptum1(object):
                     sid = apexScaleFactorIdentifierOffset + (s // 3)*100 + (s % 3) + 101  # add 100 for different 'version'
                     eftInnerApex.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                     eftInnerApex.setScaleFactorIdentifier(si, sid)
-                    print('scalefactor ', si, ' identifier', sid)
+                    #print('scalefactor ', si, ' identifier', sid)
                 for s in range(2):
                     si = so + s + 7
                     # 2 scale factors per node in xi3: cos(phi), sin(phi)
                     sid = apexScaleFactorIdentifierOffset + s + 1
                     eftInnerApex.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                     eftInnerApex.setScaleFactorIdentifier(si, sid)
-                    print('scalefactor ', si, ' identifier', sid)
+                    #print('scalefactor ', si, ' identifier', sid)
                 if eftInnerApex is not eftInnerApex1b:
                     for s in range(2):
                         si = so + s + 9
@@ -348,7 +348,7 @@ class MeshType_3d_sphereshellseptum1(object):
                         sid = s + 1  # add 100 for different 'version'
                         eftInnerApex.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                         eftInnerApex.setScaleFactorIdentifier(si, sid)
-                        print('scalefactor ', si, ' identifier', sid)
+                        #print('scalefactor ', si, ' identifier', sid)
 
                 # basis node 1 -> local node 1
                 ln = no + 1
@@ -446,7 +446,7 @@ class MeshType_3d_sphereshellseptum1(object):
                     eftInnerApex.setTermScaling(fo2 + 5, 1, [1, so + 9])
                     eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
                     eftInnerApex.setTermScaling(fo2 + 5, 2, [1, so + 10])
-            print('eftInnerApex.validate()', eftInnerApex.validate())
+            #print('eftInnerApex.validate()', eftInnerApex.validate())
 
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
@@ -716,13 +716,12 @@ class MeshType_3d_sphereshellseptum1(object):
             vb = e1 + 2
             for layer in range(2):
                 si = layer*(8 if (eftInnerApex is eftInnerApex1b) else 10)
-                so = apexScaleFactorIdentifierOffset + si
-                eftInnerApex.setScaleFactorIdentifier(si + 2, va*100 + 1)
-                eftInnerApex.setScaleFactorIdentifier(si + 3, va*100 + 2)
-                eftInnerApex.setScaleFactorIdentifier(si + 4, va*100 + 3)
-                eftInnerApex.setScaleFactorIdentifier(si + 5, vb*100 + 1)
-                eftInnerApex.setScaleFactorIdentifier(si + 6, vb*100 + 2)
-                eftInnerApex.setScaleFactorIdentifier(si + 7, vb*100 + 3)
+                eftInnerApex.setScaleFactorIdentifier(si + 2, apexScaleFactorIdentifierOffset + va*100 + 1)
+                eftInnerApex.setScaleFactorIdentifier(si + 3, apexScaleFactorIdentifierOffset + va*100 + 2)
+                eftInnerApex.setScaleFactorIdentifier(si + 4, apexScaleFactorIdentifierOffset + va*100 + 3)
+                eftInnerApex.setScaleFactorIdentifier(si + 5, apexScaleFactorIdentifierOffset + vb*100 + 1)
+                eftInnerApex.setScaleFactorIdentifier(si + 6, apexScaleFactorIdentifierOffset + vb*100 + 2)
+                eftInnerApex.setScaleFactorIdentifier(si + 7, apexScaleFactorIdentifierOffset + vb*100 + 3)
             # redefine field in template for changes to eftInnerApex:
             elementtemplateInnerApex.defineField(coordinates, -1, eftInnerApex)
             element = mesh.createElement(elementIdentifier, elementtemplateInnerApex)
@@ -731,7 +730,7 @@ class MeshType_3d_sphereshellseptum1(object):
             bni22 = e1 + 5
             nodeIdentifiers = [ bni1, bni21, bni22, bni1 + wno, bni21 + wno, bni22 + wno ]
             result = element.setNodesByIdentifier(eftInnerApex, nodeIdentifiers)
-            print('eftInnerApex setNodesByIdentifier result ', result, 'element', elementIdentifier, 'nodes', nodeIdentifiers)
+            #print('eftInnerApex setNodesByIdentifier result ', result, 'element', elementIdentifier, 'nodes', nodeIdentifiers)
             # set general linear map coefficients
             radiansAround1 = math.pi + e1*radiansPerElementAcross
             radiansAround1Next = math.pi + (e1 + 1)*radiansPerElementAcross
@@ -749,7 +748,7 @@ class MeshType_3d_sphereshellseptum1(object):
             if eftInnerApex is not eftInnerApex1b:
                 scalefactors = scalefactors[:9] + [ cos_bevel_angle, sin_bevel_angle ] + scalefactors[9:] + [cos_bevel_angle, -sin_bevel_angle ]
             result = element.setScaleFactors(eftInnerApex, scalefactors)
-            print('eftInnerApex setScaleFactors', result, scalefactors)
+            #print('eftInnerApex setScaleFactors', result, scalefactors)
             elementIdentifier = elementIdentifier + 1
 
         element = mesh.createElement(elementIdentifier, elementtemplateOuterApex0)
