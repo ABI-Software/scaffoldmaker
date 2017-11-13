@@ -247,6 +247,10 @@ class MeshGeneratorModel(object):
                 self._settings.update(json.loads(f.read()))
             self._currentMeshType = self._getMeshTypeByName(self._settings['meshTypeName'])
             self._parseDeleteElementsRangesText(self._settings['deleteElementRanges'])
+            # merge any new options for this generator
+            savedMeshTypeOptions = self._settings['meshTypeOptions']
+            self._settings['meshTypeOptions'] = self._currentMeshType.getDefaultOptions()
+            self._settings['meshTypeOptions'].update(savedMeshTypeOptions)
             self._parseScaleText(self._settings['scale'])
         except:
             pass  # no settings saved yet
