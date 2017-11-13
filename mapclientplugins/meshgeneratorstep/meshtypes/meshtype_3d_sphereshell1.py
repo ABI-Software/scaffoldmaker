@@ -119,7 +119,7 @@ class MeshType_3d_sphereshell1(object):
             for s in range(6):
                 si = so + s + 1
                 # 3 scale factors per node: cos(theta), sin(theta), arc angle radians
-                sid = (s // 3)*100 + s + 1  # add 100 for different 'version'
+                sid = (s // 3)*100 + (s % 3) + 1  # add 100 for different 'version'
                 eftApex1.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                 eftApex1.setScaleFactorIdentifier(si, sid)
 
@@ -202,7 +202,7 @@ class MeshType_3d_sphereshell1(object):
             for s in range(6):
                 si = so + s + 1
                 # 3 scale factors per node: cos(theta), sin(theta), arc angle radians
-                sid = (s // 3)*100 + s + 1  # add 100 for different 'version'
+                sid = (s // 3)*100 + (s % 3) + 1  # add 100 for different 'version'
                 eftApex2.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
                 eftApex2.setScaleFactorIdentifier(si, sid)
 

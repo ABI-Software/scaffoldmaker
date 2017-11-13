@@ -95,7 +95,7 @@ class MeshType_2d_sphere1(object):
         for s in range(6):
             si = s + 2
             # 3 scale factors per node: cos(theta), sin(theta), arc angle radians
-            sid = (s // 3)*100 + s + 1  # add 100 for different 'version'
+            sid = (s // 3)*100 + (s % 3) + 1  # add 100 for different 'version'
             eftApex1.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
             eftApex1.setScaleFactorIdentifier(si, sid)
         # basis nodes 1, 2 -> local node 1
@@ -154,7 +154,7 @@ class MeshType_2d_sphere1(object):
         for s in range(6):
             si = s + 2
             # 3 scale factors per node: cos(theta), sin(theta), arc angle radians
-            sid = (s // 3)*100 + s + 1  # add 100 for different 'version'
+            sid = (s // 3)*100 + (s % 3) + 1  # add 100 for different 'version'
             eftApex2.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
             eftApex2.setScaleFactorIdentifier(si, sid)
         # basis nodes 1, 2 -> regular local nodes 1, 2 (for each layer)
