@@ -26,6 +26,7 @@ class MeshType_3d_tubeseptum1(object):
             'Number of elements across' : 2,
             'Wall thickness left' : 0.25,
             'Wall thickness right' : 0.25,
+            'Bulge radius' : 0.0,
             'Use cross derivatives' : False
         }
 
@@ -36,6 +37,7 @@ class MeshType_3d_tubeseptum1(object):
             'Number of elements across',
             'Wall thickness left',
             'Wall thickness right',
+            'Bulge radius',
             'Use cross derivatives'
         ]
 
@@ -64,6 +66,7 @@ class MeshType_3d_tubeseptum1(object):
         elementsCountAlong = options['Number of elements along']
         elementsCountAcross = options['Number of elements across']
         wallThickness = [ options['Wall thickness left'], options['Wall thickness right'] ]
+        bulgeRadius = options['Bulge radius']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -346,6 +349,24 @@ class MeshType_3d_tubeseptum1(object):
             #print(result, 'element', elementIdentifier, nodeIdentifiers)
             element.setScaleFactors(eftOuter, scaleFactorsOuter)
             elementIdentifier = elementIdentifier + 1
+
+        if bulgeRadius != 0.0:
+            # cylindrical polar coordinates:
+            # r = y - bulgeRadius
+            # theta = -x / bulgeRadius
+            # z = z
+            yxzCoordinates = fm.createFieldComponent(coordinates, [2, 1, 3])
+            scale = fm.createFieldConstant([1.0, -1.0/bulgeRadius, 1.0 ])
+            scaleCoordinates = fm.createFieldMultiply(yxzCoordinates, scale)
+            offset = fm.createFieldConstant([-bulgeRadius, 0.0, 0.0 ])
+            polarCoordinates = fm.createFieldAdd(scaleCoordinates, offset)
+            polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
+            rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
+            rcCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+            newyxzCoordinates = fm.createFieldSubtract(rcCoordinates, offset)
+            newCoordinates = fm.createFieldComponent(newyxzCoordinates, [2, 1, 3])
+            fieldassignment = coordinates.createFieldassignment(newCoordinates)
+            result = fieldassignment.assign()
 
         fm.endChange()
 

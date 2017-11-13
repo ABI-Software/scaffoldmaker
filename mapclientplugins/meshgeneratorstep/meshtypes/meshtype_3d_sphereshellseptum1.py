@@ -58,6 +58,7 @@ class MeshType_3d_sphereshellseptum1(object):
             'Number of elements across' : 2,
             'Wall thickness left' : 0.25,
             'Wall thickness right' : 0.25,
+            'Bulge radius' : 0.0,
             'Apex scale factor identifier offset' : 10000,
             'Use cross derivatives' : False
         }
@@ -69,6 +70,7 @@ class MeshType_3d_sphereshellseptum1(object):
             'Number of elements across',
             'Wall thickness left',
             'Wall thickness right',
+            'Bulge radius',
             'Apex scale factor identifier offset',
             'Use cross derivatives'
         ]
@@ -100,6 +102,7 @@ class MeshType_3d_sphereshellseptum1(object):
         elementsCountUp = options['Number of elements up']
         elementsCountAcross = options['Number of elements across']
         wallThickness = [ options['Wall thickness left'], options['Wall thickness right'] ]
+        bulgeRadius = options['Bulge radius']
         apexScaleFactorIdentifierOffset = options['Apex scale factor identifier offset']
         useCrossDerivatives = options['Use cross derivatives']
 
@@ -435,7 +438,6 @@ class MeshType_3d_sphereshellseptum1(object):
                     result2 = eftInnerApex.setTermScaling(fo2 + 5, 1, [so + 9])
                     result3 = eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
                     result4 = eftInnerApex.setTermScaling(fo2 + 5, 2, [so + 10])
-                    print('results:', result1, result2, result3, result4)
                 elif eftInnerApex is eftInnerApex1c:
                     fo2 = fo + 3*8
                     ln = no + 3
@@ -843,8 +845,26 @@ class MeshType_3d_sphereshellseptum1(object):
         #print(result, 'top outer apex element 2', elementIdentifier, nodeIdentifiers)
         result = element.setScaleFactors(eftOuterApex2, scaleFactorsOuterApex2)
         #print(result, 'top outer apex element 2 scale', elementIdentifier, scaleFactorsOuterApex2)
-
         elementIdentifier = elementIdentifier + 1
+
+
+        if bulgeRadius != 0.0:
+            # spherical polar coordinates:
+            # r = y - bulgeRadius
+            # theta = -x / bulgeRadius
+            # phi = z / bulgeRadius
+            yxzCoordinates = fm.createFieldComponent(coordinates, [2, 1, 3])
+            scale = fm.createFieldConstant([1.0, -1.0/bulgeRadius, -1.0/bulgeRadius ])
+            scaleCoordinates = fm.createFieldMultiply(yxzCoordinates, scale)
+            offset = fm.createFieldConstant([-bulgeRadius, 0.0, 0.0 ])
+            polarCoordinates = fm.createFieldAdd(scaleCoordinates, offset)
+            polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_SPHERICAL_POLAR)
+            rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
+            rcCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+            newyxzCoordinates = fm.createFieldSubtract(rcCoordinates, offset)
+            newCoordinates = fm.createFieldComponent(newyxzCoordinates, [2, 1, 3])
+            fieldassignment = coordinates.createFieldassignment(newCoordinates)
+            result = fieldassignment.assign()
 
         fm.endChange()
 
