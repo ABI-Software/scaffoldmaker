@@ -309,6 +309,106 @@ class MeshType_3d_sphereshellseptum1(object):
         for n in [5, 7]:
             eftInner2.setTermScaling(n*8 + 2, 1, [1])
 
+        # Inner Apex 1: collapsed on xi1 = 0
+        eftInnerApex1b = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+        eftInnerApex1b.setNumberOfLocalNodes(6)
+        eftInnerApex1b.setNumberOfLocalScaleFactors(17)
+        # GRC: allow scale factor identifier for global -1.0 to be prescribed
+        eftInnerApex1b.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        eftInnerApex1b.setScaleFactorIdentifier(1, 1)
+        for layer in range(2):
+            so = layer*8 + 1
+            no = layer*3
+            fo = layer*32
+            for s in range(6):
+                si = so + s + 1
+                # 3 scale factors per node*direction in xi1, xi2: cos(theta), sin(theta), arc angle radians
+                sid = apexScaleFactorIdentifierOffset + (s // 3)*100 + s + 101  # add 100 for different 'version'
+                eftInnerApex1b.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+                eftInnerApex1b.setScaleFactorIdentifier(si, sid)
+                #print('scalefactor ', si, ' identifier', sid)
+            for s in range(2):
+                si = so + s + 7
+                # 2 scale factors per node in xi3: cos(phi), sin(phi)
+                sid = apexScaleFactorIdentifierOffset + s + 1  # add 100 for different 'version'
+                eftInnerApex1b.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+                eftInnerApex1b.setScaleFactorIdentifier(si, sid)
+                #print('scalefactor ', si, ' identifier', sid)
+
+            # basis node 1 -> local node 1
+            ln = no + 1
+            eftInnerApex1b.setTermNodeParameter(fo + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+            # 0 terms = zero parameter for d/dxi1 basis
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 2, 0)
+            # 2 terms for d/dxi2 via general linear map:
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 3, 2)
+            eftInnerApex1b.setTermNodeParameter(fo + 3, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftInnerApex1b.setTermScaling(fo + 3, 1, [so + 1])
+            eftInnerApex1b.setTermNodeParameter(fo + 3, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftInnerApex1b.setTermScaling(fo + 3, 2, [so + 2])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 4, 2)
+            eftInnerApex1b.setTermNodeParameter(fo + 4, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftInnerApex1b.setTermScaling(fo + 4, 1, [so + 2, so + 3])
+            eftInnerApex1b.setTermNodeParameter(fo + 4, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftInnerApex1b.setTermScaling(fo + 4, 2, [1, so + 1, so + 3])
+            # 2 terms for d/dx3 via general linear map
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 5, 2)
+            eftInnerApex1b.setTermNodeParameter(fo + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftInnerApex1b.setTermScaling(fo + 5, 1, [1, so + 7])
+            eftInnerApex1b.setTermNodeParameter(fo + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
+            eftInnerApex1b.setTermScaling(fo + 5, 2, [1, so + 8])
+            # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 6, 0)
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 7, 0)
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 8, 0)
+
+            # basis node 2 -> local node 1
+            eftInnerApex1b.setTermNodeParameter(fo + 9, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+            # 0 terms = zero parameter for d/dxi1 basis
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 10, 0)
+            # 2 terms for d/dxi2 via general linear map:
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 11, 2)
+            eftInnerApex1b.setTermNodeParameter(fo + 11, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftInnerApex1b.setTermScaling(fo + 11, 1, [so + 4])
+            eftInnerApex1b.setTermNodeParameter(fo + 11, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftInnerApex1b.setTermScaling(fo + 11, 2, [so + 5])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 12, 2)
+            eftInnerApex1b.setTermNodeParameter(fo + 12, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftInnerApex1b.setTermScaling(fo + 12, 1, [so + 5, so + 6])
+            eftInnerApex1b.setTermNodeParameter(fo + 12, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+            eftInnerApex1b.setTermScaling(fo + 12, 2, [1, so + 4, so + 6])
+            # 2 terms for d/dx3 via general linear map
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 13, 2)
+            eftInnerApex1b.setTermNodeParameter(fo + 13, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            eftInnerApex1b.setTermScaling(fo + 13, 1, [1, so + 7])
+            eftInnerApex1b.setTermNodeParameter(fo + 13, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
+            eftInnerApex1b.setTermScaling(fo + 13, 2, [1, so + 8])
+            # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 14, 0)
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 15, 0)
+            eftInnerApex1b.setFunctionNumberOfTerms(fo + 16, 0)
+
+            # basis nodes 3, 4 -> regular local nodes 2, 3
+            for bn in range(2,4):
+                fo2 = fo + bn*8
+                ni = no + bn
+                eftInnerApex1b.setTermNodeParameter(fo2 + 1, 1, ni, Node.VALUE_LABEL_VALUE, 1)
+                eftInnerApex1b.setTermNodeParameter(fo2 + 2, 1, ni, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex1b.setTermNodeParameter(fo2 + 3, 1, ni, Node.VALUE_LABEL_D_DS2, 1)
+                eftInnerApex1b.setTermNodeParameter(fo2 + 5, 1, ni, Node.VALUE_LABEL_D_DS3, 1)
+                if useCrossDerivatives:
+                    eftInnerApex1b.setTermNodeParameter(fo2 + 4, 1, ni, Node.VALUE_LABEL_D2_DS1DS2, 1)
+                    eftInnerApex1b.setTermNodeParameter(fo2 + 6, 1, ni, Node.VALUE_LABEL_D2_DS1DS3, 1)
+                    eftInnerApex1b.setTermNodeParameter(fo2 + 7, 1, ni, Node.VALUE_LABEL_D2_DS2DS3, 1)
+                    eftInnerApex1b.setTermNodeParameter(fo2 + 8, 1, ni, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+                else:
+                     eftInnerApex1b.setFunctionNumberOfTerms(fo2 + 4, 0)
+                     eftInnerApex1b.setFunctionNumberOfTerms(fo2 + 6, 0)
+                     eftInnerApex1b.setFunctionNumberOfTerms(fo2 + 7, 0)
+                     eftInnerApex1b.setFunctionNumberOfTerms(fo2 + 8, 0)
+
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplate.defineField(coordinates, -1, eft)
@@ -335,15 +435,19 @@ class MeshType_3d_sphereshellseptum1(object):
         elementtemplateInner2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplateInner2.defineField(coordinates, -1, eftInner2)
 
+        elementtemplateInnerApex1b = mesh.createElementtemplate()
+        elementtemplateInnerApex1b.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateInnerApex1b.defineField(coordinates, -1, eftInnerApex1b)
+
         cache = fm.createFieldcache()
 
         # create nodes
         nodeIdentifier = 1
         radiansPerElementUp = math.pi/elementsCountUp
-        #radiansPerElementAcross = math.pi/elementsCountAcross
-        angle_radians = math.pi/4
-        sin_angle_radians = math.sin(angle_radians)
-        cos_angle_radians = math.cos(angle_radians)
+        radiansPerElementAcross = math.pi/elementsCountAcross
+        bevel_angle = math.pi/4
+        sin_bevel_angle = math.sin(bevel_angle)
+        cos_bevel_angle = math.cos(bevel_angle)
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 0.0, 0.0 ]
@@ -385,13 +489,13 @@ class MeshType_3d_sphereshellseptum1(object):
                 dx_ds3[1] = 0.0
                 dx_ds3[2] = -wallThickness[n3]
             else:
-                dx_ds3[1] = sign*wallThickness[n3]*cos_angle_radians
-                dx_ds3[2] = -wallThickness[n3]*sin_angle_radians
+                dx_ds3[1] = sign*wallThickness[n3]*cos_bevel_angle
+                dx_ds3[2] = -wallThickness[n3]*sin_bevel_angle
             node = nodes.createNode(nodeIdentifier, nodetemplateApex)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             mag1 = 2.0*radius/elementsCountAcross
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, mag1*sin_angle_radians, sign*mag1*cos_angle_radians ])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, mag1*sin_bevel_angle, sign*mag1*cos_bevel_angle ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
             nodeIdentifier = nodeIdentifier + 1
@@ -426,7 +530,7 @@ class MeshType_3d_sphereshellseptum1(object):
                         x[1] = sign*(-radiusY - sideBulge)
                         x[2] = -cosRadiansUp*radius
                         mag1 = 2.0*radius/elementsCountAcross
-                        dx_ds1 = [ -sign*sinRadiansUp*mag1*cos_angle_radians, flip*mag1*sin_angle_radians, flip*sign*cosRadiansUp*mag1*cos_angle_radians ]
+                        dx_ds1 = [ -sign*sinRadiansUp*mag1*cos_bevel_angle, flip*mag1*sin_bevel_angle, flip*sign*cosRadiansUp*mag1*cos_bevel_angle ]
                         mag2 = radius*radiansPerElementUp
                         dx_ds2 = [ mag2*cosRadiansUp*flip, 0.0, mag2*sinRadiansUp ]
                         mag3 = wallThickness[n3]
@@ -434,7 +538,7 @@ class MeshType_3d_sphereshellseptum1(object):
                             ((n3 == 0) and (wallThickness[0] < wallThickness[1])):
                             dx_ds3 = [ flip*sinRadiansUp*mag3, 0.0, -cosRadiansUp*mag3 ]
                         else:
-                            dx_ds3 = [ flip*sinRadiansUp*mag3*sin_angle_radians, sign*mag3*cos_angle_radians, -cosRadiansUp*mag3*sin_angle_radians ]
+                            dx_ds3 = [ flip*sinRadiansUp*mag3*sin_bevel_angle, sign*mag3*cos_bevel_angle, -cosRadiansUp*mag3*sin_bevel_angle ]
                         if n1 == 1:
                             # Prepare for interpolating interior points
                             v1 = ( -sinRadiansUp*radius, -sign*radiusY, -cosRadiansUp*radius )
@@ -492,13 +596,13 @@ class MeshType_3d_sphereshellseptum1(object):
                 dx_ds3[1] = 0.0
                 dx_ds3[2] = wallThickness[n3]
             else:
-                dx_ds3[1] = sign*wallThickness[n3]*cos_angle_radians
-                dx_ds3[2] = wallThickness[n3]*sin_angle_radians
+                dx_ds3[1] = sign*wallThickness[n3]*cos_bevel_angle
+                dx_ds3[2] = wallThickness[n3]*sin_bevel_angle
             node = nodes.createNode(nodeIdentifier, nodetemplateApex)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             mag1 = 2.0*radius/elementsCountAcross
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -mag1*sin_angle_radians, sign*mag1*cos_angle_radians ])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -mag1*sin_bevel_angle, sign*mag1*cos_bevel_angle ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
             nodeIdentifier = nodeIdentifier + 1
@@ -520,20 +624,20 @@ class MeshType_3d_sphereshellseptum1(object):
             nodeIdentifier = nodeIdentifier + 1
 
         scaleFactorsOuter = [
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi),
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi)
+            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle,
+            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle
         ]
         scaleFactorsOuterApex1 = [ -1.0,
-            -math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi), -math.cos(0.25*math.pi),
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi)
+            -cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle, -cos_bevel_angle,
+            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle
         ]
         scaleFactorsOuterApex2 = [ -1.0,
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi),
-            -math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi), -math.cos(0.25*math.pi)
+            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle,
+            -cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle, -cos_bevel_angle
         ]
         scaleFactorsInner1 = [ -1.0,
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi),
-            math.cos(0.25*math.pi), -math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi)
+            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, cos_bevel_angle,
+            cos_bevel_angle, -cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle
         ]
 
         # create elements
@@ -552,6 +656,46 @@ class MeshType_3d_sphereshellseptum1(object):
         #print(result, 'bottom outer apex element 1', elementIdentifier, nodeIdentifiers)
         element.setScaleFactors(eftOuterApex1, scaleFactorsOuterApex1)
         elementIdentifier = elementIdentifier + 1
+
+        for e1 in range(1, elementsCountAcross - 1):
+            va = e1 + 1
+            vb = e1 + 2
+            for layer in range(2):
+                si = layer*8
+                so = apexScaleFactorIdentifierOffset + si
+                eftInnerApex1b.setScaleFactorIdentifier(si + 2, so + va*100 + 1)
+                eftInnerApex1b.setScaleFactorIdentifier(si + 3, so + va*100 + 2)
+                eftInnerApex1b.setScaleFactorIdentifier(si + 4, so + va*100 + 3)
+                eftInnerApex1b.setScaleFactorIdentifier(si + 5, so + vb*100 + 1)
+                eftInnerApex1b.setScaleFactorIdentifier(si + 6, so + vb*100 + 2)
+                eftInnerApex1b.setScaleFactorIdentifier(si + 7, so + vb*100 + 3)
+            # redefine field in template for changes to eftInnerApex1b:
+            elementtemplateInnerApex1b.defineField(coordinates, -1, eftInnerApex1b)
+            element = mesh.createElement(elementIdentifier, elementtemplateInnerApex1b)
+            bni1 = 2
+            bni21 = e1 + 4
+            bni22 = e1 + 5
+            nodeIdentifiers = [ bni1, bni21, bni22, bni1 + wno, bni21 + wno, bni22 + wno ]
+            result = element.setNodesByIdentifier(eftInnerApex1b, nodeIdentifiers)
+            print('eftInnerApex1b setNodesByIdentifier result ', result, 'element', elementIdentifier, 'nodes', nodeIdentifiers)
+
+            # set general linear map coefficients
+            radiansAround1 = math.pi + e1*radiansPerElementAcross
+            radiansAround1Next = math.pi + (e1 + 1)*radiansPerElementAcross
+            radiansAround2 = math.pi - e1*radiansPerElementAcross
+            radiansAround2Next = math.pi - (e1 + 1)*radiansPerElementAcross
+            scalefactors = [
+                -1.0,
+                math.sin(radiansAround1), math.cos(radiansAround1), radiansPerElementAcross,
+                math.sin(radiansAround1Next), math.cos(radiansAround1Next), radiansPerElementAcross,
+                -cos_bevel_angle, -sin_bevel_angle,
+                math.sin(radiansAround2), math.cos(radiansAround2), -radiansPerElementAcross,
+                math.sin(radiansAround2Next), math.cos(radiansAround2Next), -radiansPerElementAcross,
+                -cos_bevel_angle, -sin_bevel_angle
+            ]
+            result = element.setScaleFactors(eftInnerApex1b, scalefactors)
+            print('eftInnerApex1b setScaleFactors', result, scalefactors)
+            elementIdentifier = elementIdentifier + 1
 
         element = mesh.createElement(elementIdentifier, elementtemplateOuterApex0)
         bni11 = wno + 2
