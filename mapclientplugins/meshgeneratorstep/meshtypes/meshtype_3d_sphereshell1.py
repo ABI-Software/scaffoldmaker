@@ -105,7 +105,7 @@ class MeshType_3d_sphereshell1(object):
                 eft.setFunctionNumberOfTerms(n*8 + 7, 0)
                 eft.setFunctionNumberOfTerms(n*8 + 8, 0)
 
-        # Apex1: collapsed on xi1 = 0
+        # Apex1: collapsed on xi2 = 0
         eftApex1 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftApex1.setNumberOfLocalNodes(6)
         eftApex1.setNumberOfLocalScaleFactors(13)
@@ -187,7 +187,7 @@ class MeshType_3d_sphereshell1(object):
                      eftApex1.setFunctionNumberOfTerms(fo2 + 7, 0)
                      eftApex1.setFunctionNumberOfTerms(fo2 + 8, 0)
 
-        # Apex2: collapsed on xi1 = 1
+        # Apex2: collapsed on xi2 = 1
         eftApex2 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftApex2.setNumberOfLocalNodes(6)
         eftApex2.setNumberOfLocalScaleFactors(8)

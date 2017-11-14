@@ -85,7 +85,7 @@ class MeshType_2d_sphere1(object):
             for n in range(4):
                 eft.setFunctionNumberOfTerms(n*4 + 4, 0)
 
-        # Apex1: collapsed on xi1 = 0
+        # Apex1: collapsed on xi2 = 0
         eftApex1 = mesh.createElementfieldtemplate(bicubicHermiteBasis)
         eftApex1.setNumberOfLocalNodes(3)
         eftApex1.setNumberOfLocalScaleFactors(7)
@@ -144,7 +144,7 @@ class MeshType_2d_sphere1(object):
             else:
                 eftApex1.setFunctionNumberOfTerms(fo + 4, 0)
 
-        # Apex2: collapsed on xi1 = 1
+        # Apex2: collapsed on xi2 = 1
         eftApex2 = mesh.createElementfieldtemplate(bicubicHermiteBasis)
         eftApex2.setNumberOfLocalNodes(3)
         eftApex2.setNumberOfLocalScaleFactors(7)

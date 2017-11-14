@@ -312,7 +312,7 @@ class MeshType_3d_sphereshellseptum1(object):
         for n in [5, 7]:
             eftInner2.setTermScaling(n*8 + 2, 1, [1])
 
-        # Inner Apex 1: collapsed on xi1 = 0
+        # Inner Apex 1: collapsed on xi2 = 0
         eftInnerApex1a = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftInnerApex1b = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         eftInnerApex1c = mesh.createElementfieldtemplate(tricubicHermiteBasis)
@@ -427,7 +427,7 @@ class MeshType_3d_sphereshellseptum1(object):
                          eftInnerApex.setFunctionNumberOfTerms(fo2 + 7, 0)
                          eftInnerApex.setFunctionNumberOfTerms(fo2 + 8, 0)
 
-                # correct inner apex 1a which reverses d/dxi1 and general linear maps d/dxi3
+                # correct inner apex 1a and 1c which general linear map d/dxi3 and reverse d/dxi1 on 2nd layer
                 if eftInnerApex is eftInnerApex1a:
                     fo2 = fo + 2*8
                     ln = no + 2
@@ -449,6 +449,145 @@ class MeshType_3d_sphereshellseptum1(object):
                     eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
                     eftInnerApex.setTermScaling(fo2 + 5, 2, [1, so + 10])
             #print('eftInnerApex.validate()', eftInnerApex.validate())
+
+        # Inner Apex 2: collapsed on xi2 = 2
+        eftInnerApex2a = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+        eftInnerApex2b = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+        eftInnerApex2c = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+        for eftInnerApex in [ eftInnerApex2a, eftInnerApex2b, eftInnerApex2c ]:
+            #print('**** eftInnerApex ****')
+            eftInnerApex.setNumberOfLocalNodes(6)
+            if eftInnerApex is eftInnerApex2b:
+                eftInnerApex.setNumberOfLocalScaleFactors(17)
+            else:
+                eftInnerApex.setNumberOfLocalScaleFactors(21)
+            # GRC: allow scale factor identifier for global -1.0 to be prescribed
+            eftInnerApex.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+            eftInnerApex.setScaleFactorIdentifier(1, 1)
+            for layer in range(2):
+                so = 1 + layer*(8 if (eftInnerApex is eftInnerApex2b) else 10)
+                no = layer*3
+                fo = layer*32
+                for s in range(6):
+                    si = so + s + 1
+                    # 3 scale factors per node*direction in xi1, xi2: cos(theta), sin(theta), arc angle radians
+                    sid = apexScaleFactorIdentifierOffset + (s // 3)*100 + (s % 3) + 101  # add 100 for different 'version'
+                    eftInnerApex.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+                    eftInnerApex.setScaleFactorIdentifier(si, sid)
+                    #print('scalefactor ', si, ' identifier', sid)
+                for s in range(2):
+                    si = so + s + 7
+                    # 2 scale factors per node in xi3: cos(phi), sin(phi)
+                    sid = apexScaleFactorIdentifierOffset + s + 1
+                    eftInnerApex.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+                    eftInnerApex.setScaleFactorIdentifier(si, sid)
+                    #print('scalefactor ', si, ' identifier', sid)
+                if eftInnerApex is not eftInnerApex2b:
+                    for s in range(2):
+                        si = so + s + 9
+                        # 2 scale factors per node in xi3: cos(phi), sin(phi)
+                        sid = s + 1  # add 100 for different 'version'
+                        eftInnerApex.setScaleFactorType(si, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+                        eftInnerApex.setScaleFactorIdentifier(si, sid)
+                        #print('scalefactor ', si, ' identifier', sid)
+
+                # basis nodes 1, 2 -> regular local nodes 1, 2 (for each layer)
+                for bn in range(2):
+                    fo2 = fo + bn*8
+                    ln = no + bn + 1
+                    eftInnerApex.setTermNodeParameter(fo2 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+                    eftInnerApex.setTermNodeParameter(fo2 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                    eftInnerApex.setTermNodeParameter(fo2 + 3, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
+                    eftInnerApex.setTermNodeParameter(fo2 + 5, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
+                    if useCrossDerivatives:
+                        eftInnerApex.setTermNodeParameter(fo2 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 1)
+                        eftInnerApex.setTermNodeParameter(fo2 + 6, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 1)
+                        eftInnerApex.setTermNodeParameter(fo2 + 7, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 1)
+                        eftInnerApex.setTermNodeParameter(fo2 + 8, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+                    else:
+                            eftInnerApex.setFunctionNumberOfTerms(fo2 + 4, 0)
+                            eftInnerApex.setFunctionNumberOfTerms(fo2 + 6, 0)
+                            eftInnerApex.setFunctionNumberOfTerms(fo2 + 7, 0)
+                            eftInnerApex.setFunctionNumberOfTerms(fo2 + 8, 0)
+
+                # correct inner apex 2a and 2x which general linear map d/dxi3 and reverse d/dxi1 on 2nd layer
+                if eftInnerApex is eftInnerApex2a:
+                    fo2 = fo
+                    ln = no + 1
+                    if layer == 1:
+                        eftInnerApex.setTermScaling(fo2 + 2, 1, [1])
+                    eftInnerApex.setFunctionNumberOfTerms(fo2 + 5, 2)
+                    result1 = eftInnerApex.setTermNodeParameter(fo2 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                    result2 = eftInnerApex.setTermScaling(fo2 + 5, 1, [so + 9])
+                    result3 = eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
+                    result4 = eftInnerApex.setTermScaling(fo2 + 5, 2, [so + 10])
+                elif eftInnerApex is eftInnerApex2c:
+                    fo2 = fo + 8
+                    ln = no + 2
+                    if layer == 1:
+                        eftInnerApex.setTermScaling(fo2 + 2, 1, [1])
+                    eftInnerApex.setFunctionNumberOfTerms(fo2 + 5, 2)
+                    eftInnerApex.setTermNodeParameter(fo2 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                    eftInnerApex.setTermScaling(fo2 + 5, 1, [1, so + 9])
+                    eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
+                    eftInnerApex.setTermScaling(fo2 + 5, 2, [1, so + 10])
+
+                # basis node 3 -> local node 3
+                ln = no + 3
+                fo3 = fo + 16
+                eftInnerApex.setTermNodeParameter(fo3 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+                # 0 terms = zero parameter for d/dxi1 basis
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 2, 0)
+                # 2 terms for d/dxi2 via general linear map:
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 3, 2)
+                eftInnerApex.setTermNodeParameter(fo3 + 3, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex.setTermScaling(fo3 + 3, 1, [so + 1])
+                eftInnerApex.setTermNodeParameter(fo3 + 3, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+                eftInnerApex.setTermScaling(fo3 + 3, 2, [so + 2])
+                # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 4, 2)
+                eftInnerApex.setTermNodeParameter(fo3 + 4, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex.setTermScaling(fo3 + 4, 1, [1, so + 2, so + 3])
+                eftInnerApex.setTermNodeParameter(fo3 + 4, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+                eftInnerApex.setTermScaling(fo3 + 4, 2, [so + 1, so + 3])
+                # 2 terms for d/dx3 via general linear map
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 5, 2)
+                eftInnerApex.setTermNodeParameter(fo3 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex.setTermScaling(fo3 + 5, 1, [1, so + 7])
+                eftInnerApex.setTermNodeParameter(fo3 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
+                eftInnerApex.setTermScaling(fo3 + 5, 2, [1, so + 8])
+                # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 6, 0)
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 7, 0)
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 8, 0)
+
+                # basis node 4 -> local node 3
+                eftInnerApex.setTermNodeParameter(fo3 + 9, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+                # 0 terms = zero parameter for d/dxi1 basis
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 10, 0)
+                # 2 terms for d/dxi2 via general linear map:
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 11, 2)
+                eftInnerApex.setTermNodeParameter(fo3 + 11, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex.setTermScaling(fo3 + 11, 1, [so + 4])
+                eftInnerApex.setTermNodeParameter(fo3 + 11, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+                eftInnerApex.setTermScaling(fo3 + 11, 2, [so + 5])
+                # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 12, 2)
+                eftInnerApex.setTermNodeParameter(fo3 + 12, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex.setTermScaling(fo3 + 12, 1, [1, so + 5, so + 6])
+                eftInnerApex.setTermNodeParameter(fo3 + 12, 2, ln, Node.VALUE_LABEL_D_DS2, 1)
+                eftInnerApex.setTermScaling(fo3 + 12, 2, [so + 4, so + 6])
+                # 2 terms for d/dx3 via general linear map
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 13, 2)
+                eftInnerApex.setTermNodeParameter(fo3 + 13, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                eftInnerApex.setTermScaling(fo3 + 13, 1, [1, so + 7])
+                eftInnerApex.setTermNodeParameter(fo3 + 13, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
+                eftInnerApex.setTermScaling(fo3 + 13, 2, [1, so + 8])
+                # 0 terms = zero parameter for cross derivative 1 3, 2 3 and 1 2 3
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 14, 0)
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 15, 0)
+                eftInnerApex.setFunctionNumberOfTerms(fo3 + 16, 0)
+            #print('eftInnerApex2.validate()', eftInnerApex.validate())
 
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
@@ -485,6 +624,16 @@ class MeshType_3d_sphereshellseptum1(object):
         elementtemplateInnerApex1c = mesh.createElementtemplate()
         elementtemplateInnerApex1c.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplateInnerApex1c.defineField(coordinates, -1, eftInnerApex1c)
+
+        elementtemplateInnerApex2a = mesh.createElementtemplate()
+        elementtemplateInnerApex2a.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateInnerApex2a.defineField(coordinates, -1, eftInnerApex2a)
+        elementtemplateInnerApex2b = mesh.createElementtemplate()
+        elementtemplateInnerApex2b.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateInnerApex2b.defineField(coordinates, -1, eftInnerApex2b)
+        elementtemplateInnerApex2c = mesh.createElementtemplate()
+        elementtemplateInnerApex2c.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateInnerApex2c.defineField(coordinates, -1, eftInnerApex2c)
 
         cache = fm.createFieldcache()
 
@@ -834,6 +983,55 @@ class MeshType_3d_sphereshellseptum1(object):
         #print(result, 'top outer apex element 1', elementIdentifier, nodeIdentifiers)
         element.setScaleFactors(eftOuterApex0, scaleFactorsOuter)
         elementIdentifier = elementIdentifier + 1
+
+        for e1 in range(0, elementsCountAcross):
+            if e1 == 0:
+                eftInnerApex = eftInnerApex2a
+                elementtemplateInnerApex = elementtemplateInnerApex2a
+            elif e1 < (elementsCountAcross - 1):
+                eftInnerApex = eftInnerApex2b
+                elementtemplateInnerApex = elementtemplateInnerApex2b
+            else:
+                eftInnerApex = eftInnerApex2c
+                elementtemplateInnerApex = elementtemplateInnerApex2c
+            va = e1 + 1
+            vb = e1 + 2
+            for layer in range(2):
+                si = layer*(8 if (eftInnerApex is eftInnerApex2b) else 10)
+                eftInnerApex.setScaleFactorIdentifier(si + 2, apexScaleFactorIdentifierOffset + va*100 + 1)
+                eftInnerApex.setScaleFactorIdentifier(si + 3, apexScaleFactorIdentifierOffset + va*100 + 2)
+                eftInnerApex.setScaleFactorIdentifier(si + 4, apexScaleFactorIdentifierOffset + va*100 + 3)
+                eftInnerApex.setScaleFactorIdentifier(si + 5, apexScaleFactorIdentifierOffset + vb*100 + 1)
+                eftInnerApex.setScaleFactorIdentifier(si + 6, apexScaleFactorIdentifierOffset + vb*100 + 2)
+                eftInnerApex.setScaleFactorIdentifier(si + 7, apexScaleFactorIdentifierOffset + vb*100 + 3)
+            # redefine field in template for changes to eftInnerApex:
+            elementtemplateInnerApex.defineField(coordinates, -1, eftInnerApex)
+            element = mesh.createElement(elementIdentifier, elementtemplateInnerApex)
+            bni11 = wno - rno + e1
+            bni12 = bni11 + 1
+            bni2 = wno - 1
+            nodeIdentifiers = [ bni11, bni12, bni2, bni11 + wno, bni12 + wno, bni2 + wno ]
+            result = element.setNodesByIdentifier(eftInnerApex, nodeIdentifiers)
+            #print('eftInnerApex setNodesByIdentifier result ', result, 'element', elementIdentifier, 'nodes', nodeIdentifiers)
+            # set general linear map coefficients
+            radiansAround1 = math.pi + e1*radiansPerElementAcross
+            radiansAround1Next = math.pi + (e1 + 1)*radiansPerElementAcross
+            radiansAround2 = math.pi - e1*radiansPerElementAcross
+            radiansAround2Next = math.pi - (e1 + 1)*radiansPerElementAcross
+            scalefactors = [
+                -1.0,
+                math.sin(radiansAround1), -math.cos(radiansAround1), radiansPerElementAcross,
+                math.sin(radiansAround1Next), -math.cos(radiansAround1Next), radiansPerElementAcross,
+                -cos_bevel_angle, -sin_bevel_angle,
+                math.sin(radiansAround2), -math.cos(radiansAround2), -radiansPerElementAcross,
+                math.sin(radiansAround2Next), -math.cos(radiansAround2Next), -radiansPerElementAcross,
+                -cos_bevel_angle, -sin_bevel_angle
+            ]
+            if eftInnerApex is not eftInnerApex2b:
+                scalefactors = scalefactors[:9] + [ cos_bevel_angle, sin_bevel_angle ] + scalefactors[9:] + [cos_bevel_angle, -sin_bevel_angle ]
+            result = element.setScaleFactors(eftInnerApex, scalefactors)
+            #print('eftInnerApex setScaleFactors', result, scalefactors)
+            elementIdentifier = elementIdentifier + 1
 
         element = mesh.createElement(elementIdentifier, elementtemplateOuterApex2)
         bni11 = 2*wno - 3
