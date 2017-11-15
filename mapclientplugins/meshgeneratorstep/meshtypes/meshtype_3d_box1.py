@@ -3,6 +3,7 @@ Generates a 3-D unit box mesh with variable numbers of elements in 3 directions.
 """
 
 import math
+from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -80,14 +81,10 @@ class MeshType_3d_box1(object):
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
 
         mesh = fm.findMeshByDimension(3)
-        tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-        eft = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        if not useCrossDerivatives:
-            for n in range(8):
-                eft.setFunctionNumberOfTerms(n*8 + 4, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 6, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 7, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 8, 0)
+
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft = tricubichermite.createEftBasic()
+
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplate.defineField(coordinates, -1, eft)

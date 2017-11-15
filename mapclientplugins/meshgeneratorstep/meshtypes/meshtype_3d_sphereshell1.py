@@ -4,6 +4,7 @@ around, up and through the thickness.
 """
 
 import math
+from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -95,15 +96,11 @@ class MeshType_3d_sphereshell1(object):
             nodetemplate = nodetemplateApex
 
         mesh = fm.findMeshByDimension(3)
-        tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
-        eft = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        if not useCrossDerivatives:
-            for n in range(8):
-                eft.setFunctionNumberOfTerms(n*8 + 4, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 6, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 7, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 8, 0)
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft = tricubichermite.createEftBasic()
+
+        tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
         # Apex1: collapsed on xi2 = 0
         eftApex1 = mesh.createElementfieldtemplate(tricubicHermiteBasis)

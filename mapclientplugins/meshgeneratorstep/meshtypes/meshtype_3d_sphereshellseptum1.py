@@ -8,6 +8,7 @@ Only one element throught the wall is currently implemented.
 """
 
 import math
+from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from mapclientplugins.meshgeneratorstep.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
@@ -109,39 +110,14 @@ class MeshType_3d_sphereshellseptum1(object):
             nodetemplate = nodetemplateApex
 
         mesh = fm.findMeshByDimension(3)
+
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft = tricubichermite.createEftBasic()
+        eftOuter = tricubichermite.createEftTubeSeptumOuter()
+        eftInner1 = tricubichermite.createEftTubeSeptumInner1()
+        eftInner2 = tricubichermite.createEftTubeSeptumInner2()
+
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-
-        eft = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        if not useCrossDerivatives:
-            for n in range(8):
-                eft.setFunctionNumberOfTerms(n*8 + 4, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 6, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 7, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 8, 0)
-
-        eftOuter = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        # general linear map at 4 nodes for one derivative
-        eftOuter.setNumberOfLocalScaleFactors(8)
-        for s in range(8):
-            eftOuter.setScaleFactorType(s + 1, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eftOuter.setScaleFactorIdentifier(s + 1, (s % 2) + 1)
-        if useCrossDerivatives:
-            noCrossRange = range(4)
-        else:
-            noCrossRange = range(8)
-        for n in noCrossRange:
-            eftOuter.setFunctionNumberOfTerms(n*8 + 4, 0)
-            eftOuter.setFunctionNumberOfTerms(n*8 + 6, 0)
-            eftOuter.setFunctionNumberOfTerms(n*8 + 7, 0)
-            eftOuter.setFunctionNumberOfTerms(n*8 + 8, 0)
-        # general linear map dxi1 from ds1 + ds3 for first 4 nodes
-        for n in range(4):
-            ln = n + 1
-            eftOuter.setFunctionNumberOfTerms(n*8 + 2, 2)
-            eftOuter.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftOuter.setTermScaling(n*8 + 2, 1, [n*2 + 1])
-            eftOuter.setTermNodeParameter(n*8 + 2, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftOuter.setTermScaling(n*8 + 2, 2, [n*2 + 2])
 
         eftOuterApex0 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
         # general linear map at 4 nodes for one derivative
@@ -217,70 +193,6 @@ class MeshType_3d_sphereshellseptum1(object):
                 eftOuterApex.setTermScaling(n*8 + 3, 1, [1])
         #print('eftOuterApex1', eftOuterApex1.validate())
         #print('eftOuterApex2', eftOuterApex2.validate())
-
-        eftInner1 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        # negate dxi1 plus general linear map at 4 nodes for one derivative
-        eftInner1.setNumberOfLocalScaleFactors(9)
-        # GRC: allow scale factor identifier for global -1.0 to be prescribed
-        eftInner1.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        eftInner1.setScaleFactorIdentifier(1, 1)
-        for s in range(8):
-            eftInner1.setScaleFactorType(s + 2, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eftInner1.setScaleFactorIdentifier(s + 2, (s % 2) + 1)
-        if useCrossDerivatives:
-            noCrossRange = [ 0, 2, 4, 6 ]
-        else:
-            noCrossRange = range(8)
-        for n in noCrossRange:
-            eftInner1.setFunctionNumberOfTerms(n*8 + 4, 0)
-            eftInner1.setFunctionNumberOfTerms(n*8 + 6, 0)
-            eftInner1.setFunctionNumberOfTerms(n*8 + 7, 0)
-            eftInner1.setFunctionNumberOfTerms(n*8 + 8, 0)
-        # general linear map dxi3 from ds1 + ds3 for 4 odd nodes
-        s = 0
-        for n in [ 0, 2, 4, 6 ]:
-            ln = n + 1
-            eftInner1.setFunctionNumberOfTerms(n*8 + 5, 2)
-            eftInner1.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftInner1.setTermScaling(n*8 + 5, 1, [s*2 + 2])
-            eftInner1.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftInner1.setTermScaling(n*8 + 5, 2, [s*2 + 3])
-            s += 1
-        # negate d/dxi1 at 2 nodes
-        for n in [4, 6]:
-            result = eftInner1.setTermScaling(n*8 + 2, 1, [1])
-
-        eftInner2 = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        # negate dxi1 plus general linear map at 4 nodes for one derivative
-        eftInner2.setNumberOfLocalScaleFactors(9)
-        # GRC: allow scale factor identifier for global -1.0 to be prescribed
-        eftInner2.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        eftInner2.setScaleFactorIdentifier(1, 1)
-        for s in range(8):
-            eftInner2.setScaleFactorType(s + 2, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eftInner2.setScaleFactorIdentifier(s + 2, (s % 2) + 1)
-        if useCrossDerivatives:
-            noCrossRange = [ 1, 3, 5, 7 ]
-        else:
-            noCrossRange = range(8)
-        for n in noCrossRange:
-            eftInner2.setFunctionNumberOfTerms(n*8 + 4, 0)
-            eftInner2.setFunctionNumberOfTerms(n*8 + 6, 0)
-            eftInner2.setFunctionNumberOfTerms(n*8 + 7, 0)
-            eftInner2.setFunctionNumberOfTerms(n*8 + 8, 0)
-        # general linear map dxi3 from ds1 + ds3 for 4 even nodes
-        s = 0
-        for n in [ 1, 3, 5, 7 ]:
-            ln = n + 1
-            eftInner2.setFunctionNumberOfTerms(n*8 + 5, 2)
-            eftInner2.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftInner2.setTermScaling(n*8 + 5, 1, [1, s*2 + 2])
-            eftInner2.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftInner2.setTermScaling(n*8 + 5, 2, [1, s*2 + 3])
-            s += 1
-        # negate d/dxi1 at 2 nodes
-        for n in [5, 7]:
-            eftInner2.setTermScaling(n*8 + 2, 1, [1])
 
         # Inner Apex 1: collapsed on xi2 = 0
         eftInnerApex1a = mesh.createElementfieldtemplate(tricubicHermiteBasis)
