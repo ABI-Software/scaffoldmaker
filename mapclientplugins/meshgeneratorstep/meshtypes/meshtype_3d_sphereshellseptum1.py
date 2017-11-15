@@ -523,9 +523,9 @@ class MeshType_3d_sphereshellseptum1(object):
         nodeIdentifier = 1
         radiansPerElementUp = math.pi/elementsCountUp
         radiansPerElementAcross = math.pi/elementsCountAcross
-        bevel_angle = math.pi/4
-        sin_bevel_angle = math.sin(bevel_angle)
-        cos_bevel_angle = math.cos(bevel_angle)
+        bevelAngle = math.pi/4
+        sinBevelAngle = math.sin(bevelAngle)
+        cosBevelAngle = math.cos(bevelAngle)
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 0.0, 0.0 ]
@@ -567,13 +567,13 @@ class MeshType_3d_sphereshellseptum1(object):
                 dx_ds3[1] = 0.0
                 dx_ds3[2] = -wallThickness[n3]
             else:
-                dx_ds3[1] = sign*wallThickness[n3]*cos_bevel_angle
-                dx_ds3[2] = -wallThickness[n3]*sin_bevel_angle
+                dx_ds3[1] = sign*wallThickness[n3]*cosBevelAngle
+                dx_ds3[2] = -wallThickness[n3]*sinBevelAngle
             node = nodes.createNode(nodeIdentifier, nodetemplateApex)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             mag1 = 2.0*radius/elementsCountAcross
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, mag1*sin_bevel_angle, sign*mag1*cos_bevel_angle ])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, mag1*sinBevelAngle, sign*mag1*cosBevelAngle ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
             nodeIdentifier = nodeIdentifier + 1
@@ -608,7 +608,7 @@ class MeshType_3d_sphereshellseptum1(object):
                         x[1] = sign*(-radiusY - sideBulge)
                         x[2] = -cosRadiansUp*radius
                         mag1 = 2.0*radius/elementsCountAcross
-                        dx_ds1 = [ -sign*sinRadiansUp*mag1*cos_bevel_angle, flip*mag1*sin_bevel_angle, flip*sign*cosRadiansUp*mag1*cos_bevel_angle ]
+                        dx_ds1 = [ -sign*sinRadiansUp*mag1*cosBevelAngle, flip*mag1*sinBevelAngle, flip*sign*cosRadiansUp*mag1*cosBevelAngle ]
                         mag2 = radius*radiansPerElementUp
                         dx_ds2 = [ mag2*cosRadiansUp*flip, 0.0, mag2*sinRadiansUp ]
                         mag3 = wallThickness[n3]
@@ -616,7 +616,7 @@ class MeshType_3d_sphereshellseptum1(object):
                             ((n3 == 0) and (wallThickness[0] < wallThickness[1])):
                             dx_ds3 = [ flip*sinRadiansUp*mag3, 0.0, -cosRadiansUp*mag3 ]
                         else:
-                            dx_ds3 = [ flip*sinRadiansUp*mag3*sin_bevel_angle, sign*mag3*cos_bevel_angle, -cosRadiansUp*mag3*sin_bevel_angle ]
+                            dx_ds3 = [ flip*sinRadiansUp*mag3*sinBevelAngle, sign*mag3*cosBevelAngle, -cosRadiansUp*mag3*sinBevelAngle ]
                         if n1 == 1:
                             # Prepare for interpolating interior points
                             v1 = ( -sinRadiansUp*radius, -sign*radiusY, -cosRadiansUp*radius )
@@ -674,13 +674,13 @@ class MeshType_3d_sphereshellseptum1(object):
                 dx_ds3[1] = 0.0
                 dx_ds3[2] = wallThickness[n3]
             else:
-                dx_ds3[1] = sign*wallThickness[n3]*cos_bevel_angle
-                dx_ds3[2] = wallThickness[n3]*sin_bevel_angle
+                dx_ds3[1] = sign*wallThickness[n3]*cosBevelAngle
+                dx_ds3[2] = wallThickness[n3]*sinBevelAngle
             node = nodes.createNode(nodeIdentifier, nodetemplateApex)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             mag1 = 2.0*radius/elementsCountAcross
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -mag1*sin_bevel_angle, sign*mag1*cos_bevel_angle ])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -mag1*sinBevelAngle, sign*mag1*cosBevelAngle ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
             nodeIdentifier = nodeIdentifier + 1
@@ -701,21 +701,25 @@ class MeshType_3d_sphereshellseptum1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, wallThickness[n3] ])
             nodeIdentifier = nodeIdentifier + 1
 
+        rimCrossAngle = math.pi/4
+        sinRimCrossAngle = math.sin(rimCrossAngle)
+        cosRimCrossAngle = math.cos(rimCrossAngle)
+
         scaleFactorsOuter = [
-            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle,
-            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle,
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
         ]
         scaleFactorsOuterApex1 = [ -1.0,
-            -cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle, -cos_bevel_angle,
-            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle
+            -cosRimCrossAngle, sinRimCrossAngle, -cosRimCrossAngle, -sinRimCrossAngle,
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
         ]
         scaleFactorsOuterApex2 = [ -1.0,
-            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle,
-            -cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle, -cos_bevel_angle
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle,
+            -cosRimCrossAngle, sinRimCrossAngle, -cosRimCrossAngle, -sinRimCrossAngle
         ]
         scaleFactorsInner1 = [ -1.0,
-            cos_bevel_angle, cos_bevel_angle, cos_bevel_angle, cos_bevel_angle,
-            cos_bevel_angle, -cos_bevel_angle, cos_bevel_angle, -cos_bevel_angle
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, sinRimCrossAngle,
+            cosRimCrossAngle, -sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
         ]
 
         # create elements
@@ -773,13 +777,13 @@ class MeshType_3d_sphereshellseptum1(object):
                 -1.0,
                 math.sin(radiansAround1), math.cos(radiansAround1), radiansPerElementAcross,
                 math.sin(radiansAround1Next), math.cos(radiansAround1Next), radiansPerElementAcross,
-                -cos_bevel_angle, -sin_bevel_angle,
+                -cosRimCrossAngle, -sinRimCrossAngle,
                 math.sin(radiansAround2), math.cos(radiansAround2), -radiansPerElementAcross,
                 math.sin(radiansAround2Next), math.cos(radiansAround2Next), -radiansPerElementAcross,
-                -cos_bevel_angle, -sin_bevel_angle
+                -cosRimCrossAngle, -sinRimCrossAngle
             ]
             if eftInnerApex is not eftInnerApex1b:
-                scalefactors = scalefactors[:9] + [ cos_bevel_angle, sin_bevel_angle ] + scalefactors[9:] + [cos_bevel_angle, -sin_bevel_angle ]
+                scalefactors = scalefactors[:9] + [ cosRimCrossAngle, sinRimCrossAngle ] + scalefactors[9:] + [cosRimCrossAngle, -sinRimCrossAngle ]
             result = element.setScaleFactors(eftInnerApex, scalefactors)
             #print('eftInnerApex setScaleFactors', result, scalefactors)
             elementIdentifier = elementIdentifier + 1
@@ -904,13 +908,13 @@ class MeshType_3d_sphereshellseptum1(object):
                 -1.0,
                 math.sin(radiansAround1), -math.cos(radiansAround1), radiansPerElementAcross,
                 math.sin(radiansAround1Next), -math.cos(radiansAround1Next), radiansPerElementAcross,
-                -cos_bevel_angle, -sin_bevel_angle,
+                -cosRimCrossAngle, -sinRimCrossAngle,
                 math.sin(radiansAround2), -math.cos(radiansAround2), -radiansPerElementAcross,
                 math.sin(radiansAround2Next), -math.cos(radiansAround2Next), -radiansPerElementAcross,
-                -cos_bevel_angle, -sin_bevel_angle
+                -cosRimCrossAngle, -sinRimCrossAngle
             ]
             if eftInnerApex is not eftInnerApex2b:
-                scalefactors = scalefactors[:9] + [ cos_bevel_angle, sin_bevel_angle ] + scalefactors[9:] + [cos_bevel_angle, -sin_bevel_angle ]
+                scalefactors = scalefactors[:9] + [ cosRimCrossAngle, sinRimCrossAngle ] + scalefactors[9:] + [cosRimCrossAngle, -sinRimCrossAngle ]
             result = element.setScaleFactors(eftInnerApex, scalefactors)
             #print('eftInnerApex setScaleFactors', result, scalefactors)
             elementIdentifier = elementIdentifier + 1

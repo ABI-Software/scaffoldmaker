@@ -121,7 +121,10 @@ class MeshType_3d_tubeseptum1(object):
         # create nodes
         nodeIdentifier = 1
         #radiansPerElementAcross = math.pi/elementsCountAcross
-        angle_radians = math.pi/4
+        bevelAngle = math.pi/4
+        sinBevelAngle = math.sin(bevelAngle)
+        cosBevelAngle = math.cos(bevelAngle)
+
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 0.0, 1.0 / elementsCountAlong ]
@@ -154,15 +157,15 @@ class MeshType_3d_tubeseptum1(object):
                     elif (n1 == 1) or (n1 == (elementsCountAcross + 1)):
                         x[0] = -radiusX if (n1 == 1) else radiusX
                         x[1] = -sign*(radiusY + sideBulge)
-                        dx_ds1[0] = -sign*2.0*radiusX/elementsCountAcross*math.cos(angle_radians)
-                        dx_ds1[1] = 2.0*radiusX/elementsCountAcross*math.sin(angle_radians)
+                        dx_ds1[0] = -sign*2.0*radiusX/elementsCountAcross*cosBevelAngle
+                        dx_ds1[1] = 2.0*radiusX/elementsCountAcross*sinBevelAngle
                         if ((n3 == 1) and (wallThickness[0] > wallThickness[1])) or \
                             ((n3 == 0) and (wallThickness[0] < wallThickness[1])):
                             dx_ds3[0] = wallThickness[n3]
                             dx_ds3[1] = 0.0
                         else:
-                            dx_ds3[0] = wallThickness[n3]*math.sin(angle_radians)
-                            dx_ds3[1] = sign*wallThickness[n3]*math.cos(angle_radians)
+                            dx_ds3[0] = wallThickness[n3]*sinBevelAngle
+                            dx_ds3[1] = sign*wallThickness[n3]*cosBevelAngle
                         if n1 == 1:
                             dx_ds1[1] = -dx_ds1[1]
                             dx_ds3[0] = -dx_ds3[0]
@@ -188,13 +191,16 @@ class MeshType_3d_tubeseptum1(object):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
                     nodeIdentifier = nodeIdentifier + 1
 
+        rimCrossAngle = math.pi/4
+        sinRimCrossAngle = math.sin(rimCrossAngle)
+        cosRimCrossAngle = math.cos(rimCrossAngle)
         scaleFactorsOuter = [
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi),
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi)
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle,
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
         ]
         scaleFactorsInner1 = [-1,
-            math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi), math.cos(0.25*math.pi),
-            math.cos(0.25*math.pi), -math.cos(0.25*math.pi), math.cos(0.25*math.pi), -math.cos(0.25*math.pi)
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, sinRimCrossAngle,
+            cosRimCrossAngle, -sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
         ]
 
         # create elements
