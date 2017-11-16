@@ -391,21 +391,12 @@ class MeshGeneratorModel(object):
         fm.defineAllFaces()
         if self._settings['scale'] != '1*1*1':
             coordinates = fm.findFieldByName('coordinates').castFiniteElement()
-            # scale coordinates and first derivatives. Note doesn't handle versions nor cross derivatives yet
-            cache = fm.createFieldcache()
-            nodeiterator = nodes.createNodeiterator()
-            node = nodeiterator.next()
-            valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
-            while node.isValid():
-                cache.setNode(node)
-                for valueLabel in valueLabels:
-                    result, x = coordinates.getNodeParameters(cache, -1, valueLabel, 1, 3)
-                    oldx = x
-                    x[0] *= self._scale[0]
-                    x[1] *= self._scale[1]
-                    x[2] *= self._scale[2]
-                    coordinates.setNodeParameters(cache, -1, valueLabel, 1, x)
-                node = nodeiterator.next()
+            scale = fm.createFieldConstant(self._scale)
+            newCoordinates = fm.createFieldMultiply(coordinates, scale)
+            fieldassignment = coordinates.createFieldassignment(newCoordinates)
+            fieldassignment.assign()
+            del newCoordinates
+            del scale
         fm.endChange()
         self._createGraphics(self._region)
         if self._sceneChangeCallback is not None:

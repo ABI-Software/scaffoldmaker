@@ -75,7 +75,6 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftTubeSeptumOuter:  Failed to validate eft'
         return eft
 
-
     def createEftTubeSeptumInner1(self):
         '''
         Create an element field template suitable for the inner bottom elements
@@ -87,13 +86,16 @@ class eftfactory_tricubichermite:
         '''
         eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
         # negate dxi1 plus general linear map at 4 nodes for one derivative
-        eft.setNumberOfLocalScaleFactors(9)
+        eft.setNumberOfLocalScaleFactors(10)
         # GRC: allow scale factor identifier for global -1.0 to be prescribed
         eft.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
         eft.setScaleFactorIdentifier(1, 1)
+        # Global scale factor 4.0 used for cross derivative term to correct first derivative
+        eft.setScaleFactorType(2, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        eft.setScaleFactorIdentifier(2, 2)
         for s in range(8):
-            eft.setScaleFactorType(s + 2, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eft.setScaleFactorIdentifier(s + 2, (s % 2) + 1)
+            eft.setScaleFactorType(s + 3, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+            eft.setScaleFactorIdentifier(s + 3, (s % 2) + 1)
         if self._useCrossDerivatives:
             noCrossRange = [ 0, 2, 4, 6 ]
         else:
@@ -107,11 +109,17 @@ class eftfactory_tricubichermite:
         s = 0
         for n in [ 0, 2, 4, 6 ]:
             ln = n + 1
+            # 2 terms for d/dx3 via general linear map
             eft.setFunctionNumberOfTerms(n*8 + 5, 2)
             eft.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eft.setTermScaling(n*8 + 5, 1, [s*2 + 2])
+            eft.setTermScaling(n*8 + 5, 1, [s*2 + 3])
             eft.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eft.setTermScaling(n*8 + 5, 2, [s*2 + 3])
+            eft.setTermScaling(n*8 + 5, 2, [s*2 + 4])
+            # add d2/dxi1dxi3 correction along xi1 == 0 to fit septum outer xi1 derivative better
+            # GRC WIP
+            eft.setFunctionNumberOfTerms(n*8 + 6, 1)
+            eft.setTermNodeParameter(n*8 + 6, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
+            eft.setTermScaling(n*8 + 6, 1, [1, 2] if (n < 4) else [2])
             s += 1
         # negate d/dxi1 at 2 nodes
         for n in [4, 6]:
@@ -130,13 +138,16 @@ class eftfactory_tricubichermite:
         '''
         eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
         # negate dxi1 plus general linear map at 4 nodes for one derivative
-        eft.setNumberOfLocalScaleFactors(9)
+        eft.setNumberOfLocalScaleFactors(10)
         # GRC: allow scale factor identifier for global -1.0 to be prescribed
         eft.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
         eft.setScaleFactorIdentifier(1, 1)
+        # Global scale factor 4.0 used for cross derivative term to correct first derivative
+        eft.setScaleFactorType(2, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        eft.setScaleFactorIdentifier(2, 2)
         for s in range(8):
-            eft.setScaleFactorType(s + 2, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eft.setScaleFactorIdentifier(s + 2, (s % 2) + 1)
+            eft.setScaleFactorType(s + 3, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+            eft.setScaleFactorIdentifier(s + 3, (s % 2) + 1)
         if self._useCrossDerivatives:
             noCrossRange = [ 1, 3, 5, 7 ]
         else:
@@ -150,11 +161,17 @@ class eftfactory_tricubichermite:
         s = 0
         for n in [ 1, 3, 5, 7 ]:
             ln = n + 1
+            # 2 terms for d/dx3 via general linear map
             eft.setFunctionNumberOfTerms(n*8 + 5, 2)
             eft.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eft.setTermScaling(n*8 + 5, 1, [1, s*2 + 2])
+            eft.setTermScaling(n*8 + 5, 1, [1, s*2 + 3])
             eft.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eft.setTermScaling(n*8 + 5, 2, [1, s*2 + 3])
+            eft.setTermScaling(n*8 + 5, 2, [1, s*2 + 4])
+            # add d2/dxi1dxi3 correction along xi1 == 0 to fit septum outer xi1 derivative better
+            # GRC WIP
+            eft.setFunctionNumberOfTerms(n*8 + 6, 1)
+            eft.setTermNodeParameter(n*8 + 6, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
+            eft.setTermScaling(n*8 + 6, 1, [2] if (n < 4) else [1, 2])
             s += 1
         # negate d/dxi1 at 2 nodes
         for n in [5, 7]:

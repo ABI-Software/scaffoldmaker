@@ -27,6 +27,7 @@ class MeshType_3d_tubeseptum1(object):
             'Number of elements across' : 2,
             'Wall thickness left' : 0.25,
             'Wall thickness right' : 0.25,
+            'Flange length' : 0.125,
             'Bulge radius' : 0.0,
             'Use cross derivatives' : False
         }
@@ -38,6 +39,7 @@ class MeshType_3d_tubeseptum1(object):
             'Number of elements across',
             'Wall thickness left',
             'Wall thickness right',
+            'Flange length',
             'Bulge radius',
             'Use cross derivatives'
         ]
@@ -56,6 +58,8 @@ class MeshType_3d_tubeseptum1(object):
             options['Wall thickness right'] = 0.0
         elif (options['Wall thickness right'] > 0.5) :
             options['Wall thickness right'] = 0.5
+        if (options['Flange length'] < 0.0) :
+            options['Flange length'] = 0.0
 
     @staticmethod
     def generateMesh(region, options):
@@ -67,6 +71,7 @@ class MeshType_3d_tubeseptum1(object):
         elementsCountAlong = options['Number of elements along']
         elementsCountAcross = options['Number of elements across']
         wallThickness = [ options['Wall thickness left'], options['Wall thickness right'] ]
+        flangeLength = options['Flange length']
         bulgeRadius = options['Bulge radius']
         useCrossDerivatives = options['Use cross derivatives']
 
@@ -121,7 +126,7 @@ class MeshType_3d_tubeseptum1(object):
         # create nodes
         nodeIdentifier = 1
         #radiansPerElementAcross = math.pi/elementsCountAcross
-        bevelAngle = math.pi/4
+        bevelAngle = math.pi/2
         sinBevelAngle = math.sin(bevelAngle)
         cosBevelAngle = math.cos(bevelAngle)
 
@@ -137,35 +142,45 @@ class MeshType_3d_tubeseptum1(object):
             sign = -1.0 if (n3 == 0) else 1.0
             radiusY = 0.5*wallThicknessSeptum
             radiusX = 0.5 - wallThicknessMax
-            sideBulge = 8.0*radiusY*radiusX/elementsCountAcross
             for n2 in range(elementsCountAlong + 1):
                 x[2] = n2 / elementsCountAlong
                 for n1 in range(elementsCountAcross + 3):
                     if (n1 == 0) or (n1 == (elementsCountAcross + 2)):
+                        flip = -1.0 if (n1 == 0) else 1.0
                         x[0] = radiusX + wallThickness[n3]
                         if n1 == 0:
                             x[0] = -x[0]
-                        x[1] = -sign*radiusY
-                        if wallThickness[0] > wallThickness[1]:
-                            x[1] -= sideBulge
-                        elif wallThickness[0] < wallThickness[1]:
-                            x[1] += sideBulge
+                        x[1] = -sign*(radiusY + flangeLength)
+                        #if wallThickness[0] > wallThickness[1]:
+                        #    x[1] -= flangeLength
+                        #elif wallThickness[0] < wallThickness[1]:
+                        #    x[1] += flangeLength
                         dx_ds1[0] = 0.0
-                        dx_ds1[1] = -2.0*radiusY*(1.0 if (n1 == 0) else -1.0)
-                        dx_ds3[0] = wallThickness[n3]*(-1.0 if (n1 == 0) else 1.0)
+                        dx_ds1[1] = 2.0*flip*(radiusY + flangeLength)
+                        dx_ds3[0] = flip*wallThickness[n3]
                         dx_ds3[1] = 0.0
                     elif (n1 == 1) or (n1 == (elementsCountAcross + 1)):
-                        x[0] = -radiusX if (n1 == 1) else radiusX
-                        x[1] = -sign*(radiusY + sideBulge)
-                        dx_ds1[0] = -sign*2.0*radiusX/elementsCountAcross*cosBevelAngle
-                        dx_ds1[1] = 2.0*radiusX/elementsCountAcross*sinBevelAngle
-                        if ((n3 == 1) and (wallThickness[0] > wallThickness[1])) or \
-                            ((n3 == 0) and (wallThickness[0] < wallThickness[1])):
-                            dx_ds3[0] = wallThickness[n3]
-                            dx_ds3[1] = 0.0
-                        else:
-                            dx_ds3[0] = wallThickness[n3]*sinBevelAngle
-                            dx_ds3[1] = sign*wallThickness[n3]*cosBevelAngle
+                        flip = -1.0 if (n1 == 1) else 1.0
+                        radius = radiusX
+                        x[0] = flip*radius
+                        x[1] = -sign*(radiusY + flangeLength)
+                        #dx_ds1[0] = -sign*2.0*radiusX/elementsCountAcross*cosBevelAngle
+                        #dx_ds1[1] = 2.0*radiusX/elementsCountAcross*sinBevelAngle
+                        mag1x = radiusX/elementsCountAcross
+                        mag1y = flangeLength
+                        #mag1min = radiusX/elementsCountAcross + flangeLength + math.sqrt(mag1x*mag1x + mag1y*mag1y)
+                        mag1min = 2.0*math.sqrt(mag1x*mag1x + mag1y*mag1y)
+                        mag1max = 2.0*(radiusY + flangeLength)
+                        mag1 = mag1min if (mag1min < mag1max) else mag1max
+                        dx_ds1[0] = -sign*mag1*cosBevelAngle
+                        dx_ds1[1] = mag1*sinBevelAngle
+                        #if ((n3 == 1) and (wallThickness[0] > wallThickness[1])) or \
+                        #    ((n3 == 0) and (wallThickness[0] < wallThickness[1])):
+                        dx_ds3[0] = wallThickness[n3]
+                        dx_ds3[1] = 0.0
+                        #else:
+                        #    dx_ds3[0] = wallThickness[n3]*sinBevelAngle
+                        #    dx_ds3[1] = sign*wallThickness[n3]*cosBevelAngle
                         if n1 == 1:
                             dx_ds1[1] = -dx_ds1[1]
                             dx_ds3[0] = -dx_ds3[0]
@@ -198,9 +213,13 @@ class MeshType_3d_tubeseptum1(object):
             cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle,
             cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
         ]
-        scaleFactorsInner1 = [-1,
+        scaleFactorsInner1 = [ -1.0, 4.0,
             cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, sinRimCrossAngle,
             cosRimCrossAngle, -sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle
+        ]
+        scaleFactorsInner2 = [ -1.0, 4.0,
+            cosRimCrossAngle, -sinRimCrossAngle, cosRimCrossAngle, -sinRimCrossAngle,
+            cosRimCrossAngle, sinRimCrossAngle, cosRimCrossAngle, sinRimCrossAngle
         ]
 
         # create elements
@@ -228,7 +247,7 @@ class MeshType_3d_tubeseptum1(object):
             nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + wno, bni12 + wno, bni21 + wno, bni22 + wno ]
             result = element.setNodesByIdentifier(eftInner1, nodeIdentifiers)
             #print(result, 'element', elementIdentifier, 'nodes', nodeIdentifiers)
-            result = element.setScaleFactor(eftInner1, 1, -1.0)
+            element.setScaleFactors(eftInner1, scaleFactorsInner1)
             #print(result, 'element', elementIdentifier, 'scale factors', scaleFactorsInner1)
             elementIdentifier = elementIdentifier + 1
 
@@ -251,7 +270,7 @@ class MeshType_3d_tubeseptum1(object):
             nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + wno, bni12 + wno, bni21 + wno, bni22 + wno ]
             result = element.setNodesByIdentifier(eftInner2, nodeIdentifiers)
             #print(result, 'element', elementIdentifier, 'nodes', nodeIdentifiers)
-            result = element.setScaleFactor(eftInner2, 1, -1.0)
+            element.setScaleFactors(eftInner2, scaleFactorsInner2)
             #print(result, 'element', elementIdentifier, 'scale factors', scaleFactorsInner1)
             elementIdentifier = elementIdentifier + 1
 
