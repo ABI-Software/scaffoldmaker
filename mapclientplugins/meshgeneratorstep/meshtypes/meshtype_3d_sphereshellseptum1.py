@@ -277,7 +277,7 @@ class MeshType_3d_sphereshellseptum1(object):
                 #eftInnerApex.setTermScaling(fo + 7, 2, [1, 2, so + 8] if (layer == 0) else [2, so + 8])
                 eftInnerApex.setFunctionNumberOfTerms(fo + 7, 1)
                 eftInnerApex.setTermNodeParameter(fo + 7, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-                eftInnerApex.setTermScaling(fo + 7, 1, [1, 2] if (layer == 0) else [2])
+                eftInnerApex.setTermScaling(fo + 7, 1, [2, so + 1])
                 # 0 terms = zero parameter for cross derivative 1 2 3
                 eftInnerApex.setFunctionNumberOfTerms(fo + 8, 0)
 
@@ -314,7 +314,7 @@ class MeshType_3d_sphereshellseptum1(object):
                 #eftInnerApex.setTermScaling(fo + 15, 2, [2, so + 8] if (layer == 0) else [1, 2, so + 8])
                 eftInnerApex.setFunctionNumberOfTerms(fo + 15, 1)
                 eftInnerApex.setTermNodeParameter(fo + 15, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-                eftInnerApex.setTermScaling(fo + 15, 1, [1, 2] if (layer == 0) else [2])
+                eftInnerApex.setTermScaling(fo + 15, 1, [2, so + 4])
                 # 0 terms = zero parameter for cross derivative 1 2 3
                 eftInnerApex.setFunctionNumberOfTerms(fo + 16, 0)
 
@@ -349,7 +349,6 @@ class MeshType_3d_sphereshellseptum1(object):
                     result3 = eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
                     result4 = eftInnerApex.setTermScaling(fo2 + 5, 2, [so + 10])
                     # add d2/dxi1dxi3 correction along xi1 == 0 to fit septum outer xi1 derivative better
-                    # GRC WIP
                     eftInnerApex.setFunctionNumberOfTerms(fo2 + 6, 1)
                     eftInnerApex.setTermNodeParameter(fo2 + 6, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
                     eftInnerApex.setTermScaling(fo2 + 6, 1, [1, 2] if (layer == 0) else [2])
@@ -363,7 +362,6 @@ class MeshType_3d_sphereshellseptum1(object):
                     eftInnerApex.setTermScaling(fo2 + 5, 1, [1, so + 9])
                     eftInnerApex.setTermNodeParameter(fo2 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1) 
                     eftInnerApex.setTermScaling(fo2 + 5, 2, [1, so + 10])
-                    # GRC WIP
                     eftInnerApex.setFunctionNumberOfTerms(fo2 + 6, 1)
                     eftInnerApex.setTermNodeParameter(fo2 + 6, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
                     eftInnerApex.setTermScaling(fo2 + 6, 1, [2] if (layer == 0) else [1, 2])
@@ -498,7 +496,7 @@ class MeshType_3d_sphereshellseptum1(object):
                 #eftInnerApex.setTermScaling(fo3 + 7, 2, [1, 2, so + 8] if (layer == 0) else [2, so + 8])
                 eftInnerApex.setFunctionNumberOfTerms(fo3 + 7, 1)
                 eftInnerApex.setTermNodeParameter(fo3 + 7, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-                eftInnerApex.setTermScaling(fo3 + 7, 1, [2] if (layer == 0) else [1, 2])
+                eftInnerApex.setTermScaling(fo3 + 7, 1, [1, 2, so + 1])
                 # 0 terms = zero parameter for cross derivative 1 2 3
                 eftInnerApex.setFunctionNumberOfTerms(fo3 + 8, 0)
 
@@ -535,7 +533,7 @@ class MeshType_3d_sphereshellseptum1(object):
                 #eftInnerApex.setTermScaling(fo3 + 15, 2, [2, so + 8] if (layer == 0) else [1, 2, so + 8])
                 eftInnerApex.setFunctionNumberOfTerms(fo3 + 15, 1)
                 eftInnerApex.setTermNodeParameter(fo3 + 15, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-                eftInnerApex.setTermScaling(fo3 + 15, 1, [2] if (layer == 0) else [1, 2])
+                eftInnerApex.setTermScaling(fo3 + 15, 1, [1, 2, so + 4])
                 # 0 terms = zero parameter for cross derivative 11 2 3
                 eftInnerApex.setFunctionNumberOfTerms(fo3 + 16, 0)
             #print('eftInnerApex2.validate()', eftInnerApex.validate())
