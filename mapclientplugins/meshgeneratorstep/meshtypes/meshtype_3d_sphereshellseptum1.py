@@ -430,7 +430,7 @@ class MeshType_3d_sphereshellseptum1(object):
                         eftInnerApex.setFunctionNumberOfTerms(fo2 + 7, 0)
                         eftInnerApex.setFunctionNumberOfTerms(fo2 + 8, 0)
 
-                # correct inner apex 2a and 2x which general linear map d/dxi3 and reverse d/dxi1 on 2nd layer
+                # correct inner apex 2a and 2c which general linear map d/dxi3 and reverse d/dxi1 on 2nd layer
                 if eftInnerApex is eftInnerApex2a:
                     fo2 = fo
                     ln = no + 1

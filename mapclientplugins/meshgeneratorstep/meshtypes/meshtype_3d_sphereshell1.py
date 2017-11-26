@@ -24,6 +24,7 @@ class MeshType_3d_sphereshell1(object):
             'Number of elements around' : 4,
             'Number of elements through wall' : 1,
             'Wall thickness' : 0.25,
+            'Wall thickness ratio apex' : 1.0,
             'Use cross derivatives' : False
         }
 
@@ -34,6 +35,7 @@ class MeshType_3d_sphereshell1(object):
             'Number of elements around',
             'Number of elements through wall',
             'Wall thickness',
+            'Wall thickness ratio apex',
             'Use cross derivatives'
         ]
 
@@ -49,6 +51,8 @@ class MeshType_3d_sphereshell1(object):
             options['Wall thickness'] = 0.0
         elif (options['Wall thickness'] > 0.5) :
             options['Wall thickness'] = 0.5
+        if (options['Wall thickness ratio apex'] < 0.0) :
+            options['Wall thickness ratio apex'] = 0.0
 
     @staticmethod
     def generateMesh(region, options):
@@ -61,6 +65,7 @@ class MeshType_3d_sphereshell1(object):
         elementsCountAround = options['Number of elements around']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
+        wallThicknessRatioApex = options['Wall thickness ratio apex']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -446,5 +451,20 @@ class MeshType_3d_sphereshell1(object):
                 ]
                 result = element.setScaleFactors(eftApex2, scalefactors)
                 elementIdentifier = elementIdentifier + 1
+
+        if (wallThickness < 0.5):  # and (wallThicknessRatioApex != 1.0):
+            r = fm.createFieldMagnitude(coordinates)
+            const05 = fm.createFieldConstant([0.5])
+            d = fm.createFieldSubtract(const05, r)
+            d_r = fm.createFieldDivide(d, r)
+            rRatio = 1.0 - wallThicknessRatioApex
+            rScale = fm.createFieldConstant([rRatio])
+            zScale = fm.createFieldMultiply(d_r, rScale)
+            one = fm.createFieldConstant([1.0])
+            one_plus_zScale = fm.createFieldAdd(one, zScale)
+            scale = fm.createFieldConcatenate([one, one, one_plus_zScale])
+            newCoordinates = fm.createFieldMultiply(coordinates, scale)
+            fieldassignment = coordinates.createFieldassignment(newCoordinates)
+            fieldassignment.assign()
 
         fm.endChange()
