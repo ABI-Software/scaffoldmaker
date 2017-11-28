@@ -6,6 +6,7 @@ directions go around the hole.
 """
 
 import math
+from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from mapclientplugins.meshgeneratorstep.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
@@ -97,33 +98,11 @@ class MeshType_3d_boxhole1(object):
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
 
         mesh = fm.findMeshByDimension(3)
+
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft = tricubichermite.createEftBasic()
+
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-        eft = mesh.createElementfieldtemplate(tricubicHermiteBasis)
-        eft.setNumberOfLocalScaleFactors(1)
-        eft.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        # GRC: allow scale factor identifier for global -1 to be prescribed
-        eft.setScaleFactorIdentifier(1, 1)
-        if not useCrossDerivatives:
-            for n in range(8):
-                eft.setFunctionNumberOfTerms(n*8 + 4, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 6, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 7, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 8, 0)
-        # map dxi2 to -ds3, dxi3 -> ds2
-        # xi2 derivatives use negative s3 derivative parameter:
-        for n in range(8):
-            ln = n + 1
-            eft.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eft.setTermScaling(n*8 + 3, 1, [1])
-            eft.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
-            if useCrossDerivatives:
-                eft.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 1)
-                eft.setTermScaling(n*8 + 4, 1, [1])
-                eft.setTermNodeParameter(n*8 + 6, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 1)
-                eft.setTermNodeParameter(n*8 + 7, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 1)
-                eft.setTermScaling(n*8 + 7, 1, [1])
-                eft.setTermNodeParameter(n*8 + 8, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-                eft.setTermScaling(n*8 + 8, 1, [1])
 
         # note I'm cheating here by using element-based scale factors
         # i.e. not shared by neighbouring elements, and I'm also using the same scale
@@ -146,21 +125,6 @@ class MeshType_3d_boxhole1(object):
                 eftOuter.setFunctionNumberOfTerms(n*8 + 6, 0)
                 eftOuter.setFunctionNumberOfTerms(n*8 + 7, 0)
                 eftOuter.setFunctionNumberOfTerms(n*8 + 8, 0)
-            # nodes 3,4,7,8: map dxi2 to -ds3, dxi3 -> ds2
-            # xi2 derivatives use negative s3 derivative parameter:
-            for n in [2, 3, 6, 7]:
-                ln = n + 1
-                eftOuter.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-                eftOuter.setTermScaling(n*8 + 3, 1, [1])
-                eftOuter.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
-                if useCrossDerivatives:
-                    eftOuter.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 1)
-                    eftOuter.setTermScaling(n*8 + 4, 1, [1])
-                    eftOuter.setTermNodeParameter(n*8 + 6, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 1)
-                    eftOuter.setTermNodeParameter(n*8 + 7, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 1)
-                    eftOuter.setTermScaling(n*8 + 7, 1, [1])
-                    eftOuter.setTermNodeParameter(n*8 + 8, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-                    eftOuter.setTermScaling(n*8 + 8, 1, [1])
             # nodes 1,2,5,6: general map dxi1, dsxi2 from ds1, ds2
             for n in [0, 1, 4, 5]:
                 ln = n + 1
@@ -288,8 +252,8 @@ class MeshType_3d_boxhole1(object):
         nodeIdentifier = 1
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
-        dx_ds2 = [ 0.0, 0.0, 1.0 / elementsCount3 ]
-        dx_ds3 = [ 0.0, 0.0, 0.0 ]
+        dx_ds2 = [ 0.0, 0.0, 0.0 ]
+        dx_ds3 = [ 0.0, 0.0, 1.0 / elementsCount3 ]
         outer_dx_ds1 = [ 1.0 / elementsCount1, 0.0, 0.0 ]
         outer_dx_ds2 = [ 0.0, 1.0 / elementsCount2, 0.0 ]
         outer_dx_ds3 = [ 0.0, 0.0, 1.0 / elementsCount3 ]
@@ -326,11 +290,9 @@ class MeshType_3d_boxhole1(object):
                     x[1] = v[1]
                     dx_ds1[0] = xir*inner_d1[n1][0] + xi*outer_d1[n1][0]
                     dx_ds1[1] = xir*inner_d1[n1][1] + xi*outer_d1[n1][1]
-                    #dx_ds3[0] = xir*inner_d2[n1][0] + xi*outer_d2[n1][0]
-                    #dx_ds3[1] = xir*inner_d2[n1][1] + xi*outer_d2[n1][1]
                     d2 = interpolateCubicHermiteDerivative(inner_x[n1], inner_d2[n1], outer_x[n1], outer_d2[n1], xi)
-                    dx_ds3[0] = d2[0]/elementsCountThroughWall  # *wallThicknessPerElement
-                    dx_ds3[1] = d2[1]/elementsCountThroughWall  # *wallThicknessPerElement
+                    dx_ds2[0] = -d2[0]/elementsCountThroughWall  # *wallThicknessPerElement
+                    dx_ds2[1] = -d2[1]/elementsCountThroughWall  # *wallThicknessPerElement
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -383,7 +345,6 @@ class MeshType_3d_boxhole1(object):
                     bni22 = e3*no3 + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
                     nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + no3, bni12 + no3, bni21 + no3, bni22 + no3 ]
                     result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                    element.setScaleFactors(eft, [-1.0])
                     elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
