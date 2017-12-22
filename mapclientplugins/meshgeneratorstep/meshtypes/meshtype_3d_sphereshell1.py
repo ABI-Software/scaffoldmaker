@@ -9,7 +9,7 @@ from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_sphereshell1(object):
+class MeshType_3d_sphereshell1:
     '''
     classdocs
     '''
@@ -25,6 +25,8 @@ class MeshType_3d_sphereshell1(object):
             'Number of elements through wall' : 1,
             'Wall thickness' : 0.25,
             'Wall thickness ratio apex' : 1.0,
+            'Exclude bottom rows' : 0,
+            'Exclude top rows' : 0,
             'Use cross derivatives' : False
         }
 
@@ -36,22 +38,28 @@ class MeshType_3d_sphereshell1(object):
             'Number of elements through wall',
             'Wall thickness',
             'Wall thickness ratio apex',
+            'Exclude bottom rows',
+            'Exclude top rows',
             'Use cross derivatives'
         ]
 
     @staticmethod
     def checkOptions(options):
-        if (options['Number of elements up'] < 2) :
+        if options['Number of elements up'] < 2:
             options['Number of elements up'] = 2
-        if (options['Number of elements around'] < 2) :
+        if options['Number of elements around'] < 2:
             options['Number of elements around'] = 2
-        if (options['Number of elements through wall'] < 1) :
+        if options['Number of elements through wall'] < 1:
             options['Number of elements through wall'] = 1
-        if (options['Wall thickness'] < 0.0) :
+        if options['Exclude bottom rows'] < 0:
+            options['Exclude bottom rows'] = 0
+        if options['Exclude top rows'] < 0:
+            options['Exclude top rows'] = 0
+        if options['Wall thickness'] < 0.0:
             options['Wall thickness'] = 0.0
-        elif (options['Wall thickness'] > 0.5) :
+        elif options['Wall thickness'] > 0.5:
             options['Wall thickness'] = 0.5
-        if (options['Wall thickness ratio apex'] < 0.0) :
+        if options['Wall thickness ratio apex'] < 0.0:
             options['Wall thickness ratio apex'] = 0.0
 
     @staticmethod
@@ -67,6 +75,8 @@ class MeshType_3d_sphereshell1(object):
         wallThickness = options['Wall thickness']
         wallThicknessRatioApex = options['Wall thickness ratio apex']
         useCrossDerivatives = options['Use cross derivatives']
+        excludeBottomRows = options['Exclude bottom rows']
+        excludeTopRows = options['Exclude top rows']
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -298,17 +308,20 @@ class MeshType_3d_sphereshell1(object):
         for n3 in range(elementsCountThroughWall + 1):
             radius = 0.5 + wallThickness*(n3/elementsCountThroughWall - 1.0)
 
-            # create apex1 node
-            node = nodes.createNode(nodeIdentifier, nodetemplateApex)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -wallThicknessPerElement ])
-            nodeIdentifier = nodeIdentifier + 1
+            if excludeBottomRows == 0:
+                # create apex1 node
+                node = nodes.createNode(nodeIdentifier, nodetemplateApex)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -wallThicknessPerElement ])
+                nodeIdentifier = nodeIdentifier + 1
 
             # create regular rows between apexes
-            for n2 in range(1, elementsCountUp):
+            rowStart = 1 if (excludeBottomRows <= 1) else excludeBottomRows
+            rowLimit = elementsCountUp if (excludeTopRows <= 1) else (elementsCountUp - excludeTopRows + 1)
+            for n2 in range(rowStart, rowLimit):
                 radiansUp = n2*radiansPerElementUp
                 cosRadiansUp = math.cos(radiansUp);
                 sinRadiansUp = math.sin(radiansUp);
@@ -349,108 +362,129 @@ class MeshType_3d_sphereshell1(object):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
                     nodeIdentifier = nodeIdentifier + 1
 
-            # create apex2 node
-            node = nodes.createNode(nodeIdentifier, nodetemplateApex)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -radius*radiansPerElementUp, 0.0 ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, wallThicknessPerElement ])
-            nodeIdentifier = nodeIdentifier + 1
+            if excludeTopRows == 0:
+                # create apex2 node
+                node = nodes.createNode(nodeIdentifier, nodetemplateApex)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius ])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -radius*radiansPerElementUp, 0.0 ])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, wallThicknessPerElement ])
+                nodeIdentifier = nodeIdentifier + 1
 
         # create elements
         elementIdentifier = 1
-        now = 2 + (elementsCountUp - 1)*elementsCountAround
+        # now (node offset through wall) varies with number of excluded rows
+        now = 0;
+        if excludeBottomRows == 0:
+            now += 1  # bottom apex node
+        if excludeTopRows == 0:
+            now += 1  # top apex node
+        fullNodeRows = elementsCountUp - 1
+        if excludeBottomRows > 1:
+            fullNodeRows -= (excludeBottomRows - 1)
+        if excludeTopRows > 1:
+            fullNodeRows -= (excludeTopRows - 1)
+        if fullNodeRows > 0:
+            now += fullNodeRows*elementsCountAround
+        row2NodeOffset = 2 if (excludeBottomRows == 0) else 1
         for e3 in range(elementsCountThroughWall):
             no = e3*now
 
-            # create Apex1 elements, editing eft scale factor identifiers around apex
-            # scale factor identifiers follow convention of offsetting by 100 for each 'version'
-            for e1 in range(elementsCountAround):
-                va = e1
-                vb = (e1 + 1)%elementsCountAround
-                eftApex1.setScaleFactorIdentifier(2, va*100 + 1)
-                eftApex1.setScaleFactorIdentifier(3, va*100 + 2)
-                eftApex1.setScaleFactorIdentifier(4, va*100 + 3)
-                eftApex1.setScaleFactorIdentifier(5, vb*100 + 1)
-                eftApex1.setScaleFactorIdentifier(6, vb*100 + 2)
-                eftApex1.setScaleFactorIdentifier(7, vb*100 + 3)
-                eftApex1.setScaleFactorIdentifier(8, va*100 + 1)
-                eftApex1.setScaleFactorIdentifier(9, va*100 + 2)
-                eftApex1.setScaleFactorIdentifier(10, va*100 + 3)
-                eftApex1.setScaleFactorIdentifier(11, vb*100 + 1)
-                eftApex1.setScaleFactorIdentifier(12, vb*100 + 2)
-                eftApex1.setScaleFactorIdentifier(13, vb*100 + 3)
-                # redefine field in template for changes to eftApex1:
-                elementtemplateApex1.defineField(coordinates, -1, eftApex1)
-                element = mesh.createElement(elementIdentifier, elementtemplateApex1)
-                bni1 = no + 1
-                bni2 = no + e1 + 2
-                bni3 = no + (e1 + 1)%elementsCountAround + 2
-                nodeIdentifiers = [ bni1, bni2, bni3, bni1 + now, bni2 + now, bni3 + now ]
-                element.setNodesByIdentifier(eftApex1, nodeIdentifiers)
-                # set general linear map coefficients
-                radiansAround = e1*radiansPerElementAround
-                radiansAroundNext = ((e1 + 1)%elementsCountAround)*radiansPerElementAround
-                scalefactors = [
-                    -1.0,
-                    math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
-                    math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
-                    math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
-                    math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
-                ]
-                result = element.setScaleFactors(eftApex1, scalefactors)
-                elementIdentifier = elementIdentifier + 1
+            if excludeBottomRows == 0:
+                # create Apex1 elements, editing eft scale factor identifiers around apex
+                # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+                for e1 in range(elementsCountAround):
+                    va = e1
+                    vb = (e1 + 1)%elementsCountAround
+                    eftApex1.setScaleFactorIdentifier(2, va*100 + 1)
+                    eftApex1.setScaleFactorIdentifier(3, va*100 + 2)
+                    eftApex1.setScaleFactorIdentifier(4, va*100 + 3)
+                    eftApex1.setScaleFactorIdentifier(5, vb*100 + 1)
+                    eftApex1.setScaleFactorIdentifier(6, vb*100 + 2)
+                    eftApex1.setScaleFactorIdentifier(7, vb*100 + 3)
+                    eftApex1.setScaleFactorIdentifier(8, va*100 + 1)
+                    eftApex1.setScaleFactorIdentifier(9, va*100 + 2)
+                    eftApex1.setScaleFactorIdentifier(10, va*100 + 3)
+                    eftApex1.setScaleFactorIdentifier(11, vb*100 + 1)
+                    eftApex1.setScaleFactorIdentifier(12, vb*100 + 2)
+                    eftApex1.setScaleFactorIdentifier(13, vb*100 + 3)
+                    # redefine field in template for changes to eftApex1:
+                    elementtemplateApex1.defineField(coordinates, -1, eftApex1)
+                    element = mesh.createElement(elementIdentifier, elementtemplateApex1)
+                    bni1 = no + 1
+                    bni2 = no + e1 + 2
+                    bni3 = no + (e1 + 1)%elementsCountAround + 2
+                    nodeIdentifiers = [ bni1, bni2, bni3, bni1 + now, bni2 + now, bni3 + now ]
+                    element.setNodesByIdentifier(eftApex1, nodeIdentifiers)
+                    # set general linear map coefficients
+                    radiansAround = e1*radiansPerElementAround
+                    radiansAroundNext = ((e1 + 1)%elementsCountAround)*radiansPerElementAround
+                    scalefactors = [
+                        -1.0,
+                        math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                        math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
+                        math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                        math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
+                    ]
+                    result = element.setScaleFactors(eftApex1, scalefactors)
+                    elementIdentifier = elementIdentifier + 1
 
             # create regular rows between apexes
-            for e2 in range(elementsCountUp - 2):
+            rowLimit = (elementsCountUp - 2)
+            if excludeBottomRows > 1:
+                rowLimit -= (excludeBottomRows - 1)
+            if excludeTopRows > 1:
+                rowLimit -= (excludeTopRows - 1)
+            for e2 in range(0, rowLimit):
                 for e1 in range(elementsCountAround):
                     element = mesh.createElement(elementIdentifier, elementtemplate)
-                    bni11 = no + e2*elementsCountAround + e1 + 2
-                    bni12 = no + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 2
-                    bni21 = no + (e2 + 1)*elementsCountAround + e1 + 2
-                    bni22 = no + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 2
+                    bni11 = no + e2*elementsCountAround + e1 + row2NodeOffset
+                    bni12 = no + e2*elementsCountAround + (e1 + 1)%elementsCountAround + row2NodeOffset
+                    bni21 = no + (e2 + 1)*elementsCountAround + e1 + row2NodeOffset
+                    bni22 = no + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + row2NodeOffset
                     nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
                     result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                     elementIdentifier = elementIdentifier + 1
 
-            # create Apex2 elements, editing eft scale factor identifiers around apex
-            # scale factor identifiers follow convention of offsetting by 100 for each 'version'
-            for e1 in range(elementsCountAround):
-                va = e1
-                vb = (e1 + 1)%elementsCountAround
-                eftApex2.setScaleFactorIdentifier(2, va*100 + 1)
-                eftApex2.setScaleFactorIdentifier(3, va*100 + 2)
-                eftApex2.setScaleFactorIdentifier(4, va*100 + 3)
-                eftApex2.setScaleFactorIdentifier(5, vb*100 + 1)
-                eftApex2.setScaleFactorIdentifier(6, vb*100 + 2)
-                eftApex2.setScaleFactorIdentifier(7, vb*100 + 3)
-                eftApex2.setScaleFactorIdentifier(8, va*100 + 1)
-                eftApex2.setScaleFactorIdentifier(9, va*100 + 2)
-                eftApex2.setScaleFactorIdentifier(10, va*100 + 3)
-                eftApex2.setScaleFactorIdentifier(11, vb*100 + 1)
-                eftApex2.setScaleFactorIdentifier(12, vb*100 + 2)
-                eftApex2.setScaleFactorIdentifier(13, vb*100 + 3)
-                # redefine field in template for changes to eftApex2:
-                elementtemplateApex1.defineField(coordinates, -1, eftApex2)
-                element = mesh.createElement(elementIdentifier, elementtemplateApex1)
-                bni3 = no + now
-                bni1 = bni3 - elementsCountAround + e1
-                bni2 = bni3 - elementsCountAround + (e1 + 1)%elementsCountAround
-                nodeIdentifiers = [ bni1, bni2, bni3, bni1 + now, bni2 + now, bni3 + now ]
-                element.setNodesByIdentifier(eftApex2, nodeIdentifiers)
-                # set general linear map coefficients
-                radiansAround = math.pi + e1*radiansPerElementAround
-                radiansAroundNext = math.pi + ((e1 + 1)%elementsCountAround)*radiansPerElementAround
-                scalefactors = [
-                    -1.0,
-                    -math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
-                    -math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
-                    -math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
-                    -math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
-                ]
-                result = element.setScaleFactors(eftApex2, scalefactors)
-                elementIdentifier = elementIdentifier + 1
+            if excludeTopRows == 0:
+                # create Apex2 elements, editing eft scale factor identifiers around apex
+                # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+                for e1 in range(elementsCountAround):
+                    va = e1
+                    vb = (e1 + 1)%elementsCountAround
+                    eftApex2.setScaleFactorIdentifier(2, va*100 + 1)
+                    eftApex2.setScaleFactorIdentifier(3, va*100 + 2)
+                    eftApex2.setScaleFactorIdentifier(4, va*100 + 3)
+                    eftApex2.setScaleFactorIdentifier(5, vb*100 + 1)
+                    eftApex2.setScaleFactorIdentifier(6, vb*100 + 2)
+                    eftApex2.setScaleFactorIdentifier(7, vb*100 + 3)
+                    eftApex2.setScaleFactorIdentifier(8, va*100 + 1)
+                    eftApex2.setScaleFactorIdentifier(9, va*100 + 2)
+                    eftApex2.setScaleFactorIdentifier(10, va*100 + 3)
+                    eftApex2.setScaleFactorIdentifier(11, vb*100 + 1)
+                    eftApex2.setScaleFactorIdentifier(12, vb*100 + 2)
+                    eftApex2.setScaleFactorIdentifier(13, vb*100 + 3)
+                    # redefine field in template for changes to eftApex2:
+                    elementtemplateApex1.defineField(coordinates, -1, eftApex2)
+                    element = mesh.createElement(elementIdentifier, elementtemplateApex1)
+                    bni3 = no + now
+                    bni1 = bni3 - elementsCountAround + e1
+                    bni2 = bni3 - elementsCountAround + (e1 + 1)%elementsCountAround
+                    nodeIdentifiers = [ bni1, bni2, bni3, bni1 + now, bni2 + now, bni3 + now ]
+                    element.setNodesByIdentifier(eftApex2, nodeIdentifiers)
+                    # set general linear map coefficients
+                    radiansAround = math.pi + e1*radiansPerElementAround
+                    radiansAroundNext = math.pi + ((e1 + 1)%elementsCountAround)*radiansPerElementAround
+                    scalefactors = [
+                        -1.0,
+                        -math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                        -math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
+                        -math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                        -math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
+                    ]
+                    result = element.setScaleFactors(eftApex2, scalefactors)
+                    elementIdentifier = elementIdentifier + 1
 
         if (wallThickness < 0.5):  # and (wallThicknessRatioApex != 1.0):
             r = fm.createFieldMagnitude(coordinates)
