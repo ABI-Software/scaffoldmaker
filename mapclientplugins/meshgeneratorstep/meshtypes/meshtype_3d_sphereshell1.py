@@ -27,6 +27,8 @@ class MeshType_3d_sphereshell1:
             'Wall thickness ratio apex' : 1.0,
             'Exclude bottom rows' : 0,
             'Exclude top rows' : 0,
+            'Length ratio' : 1.0,
+            'Element length ratio equator/apex' : 1.0,
             'Use cross derivatives' : False
         }
 
@@ -36,10 +38,12 @@ class MeshType_3d_sphereshell1:
             'Number of elements up',
             'Number of elements around',
             'Number of elements through wall',
-            'Wall thickness',
-            'Wall thickness ratio apex',
             'Exclude bottom rows',
             'Exclude top rows',
+            'Wall thickness',
+            'Wall thickness ratio apex',
+            'Length ratio',
+            'Element length ratio equator/apex',
             'Use cross derivatives'
         ]
 
@@ -61,6 +65,10 @@ class MeshType_3d_sphereshell1:
             options['Wall thickness'] = 0.5
         if options['Wall thickness ratio apex'] < 0.0:
             options['Wall thickness ratio apex'] = 0.0
+        if options['Length ratio'] < 1.0E-6:
+            options['Length ratio'] = 1.0E-6
+        if options['Element length ratio equator/apex'] < 1.0E-6:
+            options['Element length ratio equator/apex'] = 1.0E-6
 
     @staticmethod
     def generateMesh(region, options):
@@ -72,11 +80,13 @@ class MeshType_3d_sphereshell1:
         elementsCountUp = options['Number of elements up']
         elementsCountAround = options['Number of elements around']
         elementsCountThroughWall = options['Number of elements through wall']
-        wallThickness = options['Wall thickness']
-        wallThicknessRatioApex = options['Wall thickness ratio apex']
         useCrossDerivatives = options['Use cross derivatives']
         excludeBottomRows = options['Exclude bottom rows']
         excludeTopRows = options['Exclude top rows']
+        wallThickness = options['Wall thickness']
+        wallThicknessRatioApex = options['Wall thickness ratio apex']
+        lengthRatio = options['Length ratio']
+        elementLengthRatioEquatorApex = options['Element length ratio equator/apex']
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -298,79 +308,143 @@ class MeshType_3d_sphereshell1:
         # create nodes
         nodeIdentifier = 1
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
-        radiansPerElementUp = math.pi/elementsCountUp
-        wallThicknessPerElement = wallThickness/elementsCountThroughWall
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 0.0, 0.0 ]
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
+
+        # pre-calculate positions and tangent/normal vectors up (elementsCountUp + 1) node layers
+        outerWidth = 0.5
+        outerLength = outerWidth*lengthRatio
+        bOuter = 2.0 / (1.0 + elementLengthRatioEquatorApex / lengthRatio)
+        aOuter = 1.0 - bOuter
+
+        innerWidth = outerWidth - wallThickness
+        innerLength = outerLength - wallThickness*wallThicknessRatioApex
+        lengthRatioInner = innerLength/innerWidth if (innerWidth > 0.0) else lengthRatio
+        bInner = 2.0 / (1.0 + elementLengthRatioEquatorApex / lengthRatio)
+        aInner = 1.0 - bInner
+
+        positionOuterArray = [(0,0)]*(elementsCountUp + 1)
+        positionInnerArray = [(0,0)]*(elementsCountUp + 1)
+        radiansUpOuterArray = [0]*(elementsCountUp + 1)
+        radiansUpInnerArray = [0]*(elementsCountUp + 1)
+        vector2OuterArray = [(0,0)]*(elementsCountUp + 1)
+        vector2InnerArray = [(0,0)]*(elementsCountUp + 1)
+        for n2 in range(elementsCountUp + 1):
+            if n2*2 <= elementsCountUp:
+                xi = n2*2 / elementsCountUp
+            else:
+                xi = 2.0 - (n2*2 / elementsCountUp)
+
+            nxiOuter = aOuter*xi*xi + bOuter*xi
+            dnxiOuter = 2.0*aOuter*xi + bOuter
+            radiansUpOuterArray[n2] = radiansUpOuter = nxiOuter*math.pi*0.5 if (n2*2 <= elementsCountUp) else (math.pi - nxiOuter*math.pi*0.5)
+            dRadiansUpOuter = dnxiOuter*math.pi/elementsCountUp
+            cosRadiansUpOuter = math.cos(radiansUpOuter);
+            sinRadiansUpOuter = math.sin(radiansUpOuter);
+            positionOuterArray[n2] = positionOuter = ( outerWidth*sinRadiansUpOuter, -outerLength*cosRadiansUpOuter )
+            vector2OuterArray[n2] = ( outerWidth*cosRadiansUpOuter*dRadiansUpOuter, outerLength*sinRadiansUpOuter*dRadiansUpOuter )
+
+            nxiInner = aInner*xi*xi + bInner*xi
+            dnxiInner = 2.0*aInner*xi + bInner
+            radiansUpInnerArray[n2] = radiansUpInner = nxiInner*math.pi*0.5 if (n2*2 <= elementsCountUp) else (math.pi - nxiInner*math.pi*0.5)
+            dRadiansUpInner = dnxiInner*math.pi/elementsCountUp
+            cosRadiansUpInner = math.cos(radiansUpInner);
+            sinRadiansUpInner = math.sin(radiansUpInner);
+            positionInnerArray[n2] = positionInner = ( innerWidth*sinRadiansUpInner, -innerLength*cosRadiansUpInner )
+            vector2InnerArray[n2] = ( innerWidth*cosRadiansUpInner*dRadiansUpInner, innerLength*sinRadiansUpInner*dRadiansUpInner )
+
+        # now create the nodes
         for n3 in range(elementsCountThroughWall + 1):
-            radius = 0.5 + wallThickness*(n3/elementsCountThroughWall - 1.0)
 
-            if excludeBottomRows == 0:
-                # create apex1 node
-                node = nodes.createNode(nodeIdentifier, nodetemplateApex)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -wallThicknessPerElement ])
-                nodeIdentifier = nodeIdentifier + 1
+            n3_fraction = n3 / elementsCountThroughWall
 
-            # create regular rows between apexes
-            rowStart = 1 if (excludeBottomRows <= 1) else excludeBottomRows
-            rowLimit = elementsCountUp if (excludeTopRows <= 1) else (elementsCountUp - excludeTopRows + 1)
-            for n2 in range(rowStart, rowLimit):
-                radiansUp = n2*radiansPerElementUp
-                cosRadiansUp = math.cos(radiansUp);
-                sinRadiansUp = math.sin(radiansUp);
-                for n1 in range(elementsCountAround):
-                    radiansAround = n1*radiansPerElementAround
-                    cosRadiansAround = math.cos(radiansAround)
-                    sinRadiansAround = math.sin(radiansAround)
-                    x = [
-                        radius*cosRadiansAround*sinRadiansUp,
-                        radius*sinRadiansAround*sinRadiansUp,
-                        -radius*cosRadiansUp
-                    ]
-                    dx_ds1 = [
-                        radius*-sinRadiansAround*sinRadiansUp*radiansPerElementAround,
-                        radius*cosRadiansAround*sinRadiansUp*radiansPerElementAround,
-                        0.0
-                    ]
-                    dx_ds2 = [
-                        radius*cosRadiansAround*cosRadiansUp*radiansPerElementUp,
-                        radius*sinRadiansAround*cosRadiansUp*radiansPerElementUp,
-                        radius*sinRadiansUp*radiansPerElementUp
-                    ]
-                    dx_ds3 = [
-                        wallThicknessPerElement*cosRadiansAround*sinRadiansUp,
-                        wallThicknessPerElement*sinRadiansAround*sinRadiansUp,
-                        -wallThicknessPerElement*cosRadiansUp
-                    ]
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+            for n2 in range(excludeBottomRows, elementsCountUp + 1 - excludeTopRows):
+
+                positionOuter = positionOuterArray[n2]
+                positionInner = positionInnerArray[n2]
+                position = (
+                    positionOuter[0]*n3_fraction + positionInner[0]*(1.0 - n3_fraction),
+                    positionOuter[1]*n3_fraction + positionInner[1]*(1.0 - n3_fraction)
+                )
+
+                radiansUpOuter = radiansUpOuterArray[n2]
+                sinRadiansUpOuter = math.sin(radiansUpOuter)
+                radiansUpInner = radiansUpInnerArray[n2]
+                sinRadiansUpInner = math.sin(radiansUpInner)
+
+                vector2Outer = vector2OuterArray[n2]
+                vector2Inner = vector2InnerArray[n2]
+                vector2 = (
+                    vector2Outer[0]*n3_fraction + vector2Inner[0]*(1.0 - n3_fraction),
+                    vector2Outer[1]*n3_fraction + vector2Inner[1]*(1.0 - n3_fraction)
+                )
+
+                vector3 = (
+                    (positionOuter[0] - positionInner[0])/elementsCountThroughWall,
+                    (positionOuter[1] - positionInner[1])/elementsCountThroughWall
+                )
+
+                if n2 == 0:
+                    # create apex1 node
+                    node = nodes.createNode(nodeIdentifier, nodetemplateApex)
                     cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-                    if useCrossDerivatives:
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, position[1] ])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, vector2[0], 0.0 ])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ vector2[0], 0.0, 0.0 ])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, vector3[1] ])
                     nodeIdentifier = nodeIdentifier + 1
 
-            if excludeTopRows == 0:
-                # create apex2 node
-                node = nodes.createNode(nodeIdentifier, nodetemplateApex)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius ])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, -radius*radiansPerElementUp, 0.0 ])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, wallThicknessPerElement ])
-                nodeIdentifier = nodeIdentifier + 1
+                elif n2 < elementsCountUp:
+                    # create regular rows between apexes
+                    for n1 in range(elementsCountAround):
+                        radiansAround = n1*radiansPerElementAround
+                        cosRadiansAround = math.cos(radiansAround)
+                        sinRadiansAround = math.sin(radiansAround)
+                        x = [
+                            position[0]*cosRadiansAround,
+                            position[0]*sinRadiansAround,
+                            position[1]
+                        ]
+                        dx_ds1 = [
+                            position[0]*-sinRadiansAround*radiansPerElementAround,
+                            position[0]*cosRadiansAround*radiansPerElementAround,
+                            0.0
+                        ]
+                        dx_ds2 = [
+                            vector2[0]*cosRadiansAround,
+                            vector2[0]*sinRadiansAround,
+                            vector2[1]
+                        ]
+                        dx_ds3 = [
+                            vector3[0]*cosRadiansAround,
+                            vector3[0]*sinRadiansAround,
+                            vector3[1]
+                        ]
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        cache.setNode(node)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                        if useCrossDerivatives:
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+                        nodeIdentifier = nodeIdentifier + 1
+
+                else:
+                    # create apex2 node
+                    node = nodes.createNode(nodeIdentifier, nodetemplateApex)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, position[1] ])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, vector2[0], 0.0 ])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ -vector2[0], 0.0, 0.0 ])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, vector3[1] ])
+                    nodeIdentifier = nodeIdentifier + 1
 
         # create elements
         elementIdentifier = 1
@@ -486,7 +560,7 @@ class MeshType_3d_sphereshell1:
                     result = element.setScaleFactors(eftApex2, scalefactors)
                     elementIdentifier = elementIdentifier + 1
 
-        if (wallThickness < 0.5):  # and (wallThicknessRatioApex != 1.0):
+        if False:  # (wallThickness < 0.5):  # and (wallThicknessRatioApex != 1.0):
             r = fm.createFieldMagnitude(coordinates)
             const05 = fm.createFieldConstant([0.5])
             d = fm.createFieldSubtract(const05, r)
