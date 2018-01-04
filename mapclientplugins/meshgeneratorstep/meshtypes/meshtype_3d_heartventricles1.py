@@ -4,6 +4,8 @@ Generates 3-D Left and Right ventricles mesh starting from modified sphere shell
 
 import math
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
+from mapclientplugins.meshgeneratorstep.utils.eft_utils import *
+from mapclientplugins.meshgeneratorstep.utils.zinc_utils import *
 from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
@@ -127,84 +129,96 @@ class MeshType_3d_heartventricles1:
         mesh = fm.findMeshByDimension(3)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        eft = tricubichermite.createEftBasic()
-
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
-        # RV free wall inner bottom elements
-        eftRVFreeWallInnerBottom = tricubichermite.createEftBasic()
-        eftRVFreeWallInnerBottom.setNumberOfLocalScaleFactors(4)
-        for s in range(4):
-            eftRVFreeWallInnerBottom.setScaleFactorType(s + 1, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eftRVFreeWallInnerBottom.setScaleFactorIdentifier(s + 1, (s % 2) + 3)  # allow for node sf ids 1,2 on inside elements
-        # map d/dxi2 = d/ds3, d/dxi3 = a.d/ds2 + b.d/ds3 on RV apex
-        for n in range(2):
-            ln = n + 1
-            eftRVFreeWallInnerBottom.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-            # 2 terms for d/dxi3 via general linear map
-            eftRVFreeWallInnerBottom.setFunctionNumberOfTerms(n*8 + 5, 2)
-            eftRVFreeWallInnerBottom.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS2, 1)
-            eftRVFreeWallInnerBottom.setTermScaling(n*8 + 5, 1, [n*2 + 1])
-            eftRVFreeWallInnerBottom.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftRVFreeWallInnerBottom.setTermScaling(n*8 + 5, 2, [n*2 + 2])
-
-        # RV free wall inner side 2 elements
-        eftRVFreeWallInnerSide1 = tricubichermite.createEftBasic()
-        eftRVFreeWallInnerSide1.setNumberOfLocalScaleFactors(5)
-        # GRC: allow scale factor identifier for global -1.0 to be prescribed
-        eftRVFreeWallInnerSide1.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        eftRVFreeWallInnerSide1.setScaleFactorIdentifier(1, 1)
-        for s in range(4):
-            eftRVFreeWallInnerSide1.setScaleFactorType(s + 2, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eftRVFreeWallInnerSide1.setScaleFactorIdentifier(s + 2, (s % 2) + 3)  # allow for node sf ids 1,2 on inside elements
-        # map d/dxi1 = d/ds3, d/dxi3 = -a.d/ds1 + b.d/ds3 on RV apex
-        for s in range(2):
-            n = s*2
-            ln = n + 1
-            eftRVFreeWallInnerSide1.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-            # 2 terms for d/dxi3 via general linear map
-            eftRVFreeWallInnerSide1.setFunctionNumberOfTerms(n*8 + 5, 2)
-            eftRVFreeWallInnerSide1.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftRVFreeWallInnerSide1.setTermScaling(n*8 + 5, 1, [1, s*2 + 2])
-            eftRVFreeWallInnerSide1.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftRVFreeWallInnerSide1.setTermScaling(n*8 + 5, 2, [s*2 + 3])
-        print('eftRVFreeWallInnerSide1.isValid()',eftRVFreeWallInnerSide1.isValid())
-
-        # RV free wall inner side 2 elements
-        eftRVFreeWallInnerSide2 = tricubichermite.createEftBasic()
-        eftRVFreeWallInnerSide2.setNumberOfLocalScaleFactors(5)
-        # GRC: allow scale factor identifier for global -1.0 to be prescribed
-        eftRVFreeWallInnerSide2.setScaleFactorType(1, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        eftRVFreeWallInnerSide2.setScaleFactorIdentifier(1, 1)
-        for s in range(4):
-            eftRVFreeWallInnerSide2.setScaleFactorType(s + 2, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-            eftRVFreeWallInnerSide2.setScaleFactorIdentifier(s + 2, (s % 2) + 3)
-        # map d/dxi1 = -d/ds3, d/dxi3 = a.d/ds1 + b.d/ds3 on RV apex
-        for s in range(2):
-            n = s*2 + 1
-            ln = n + 1
-            eftRVFreeWallInnerSide2.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftRVFreeWallInnerSide2.setTermScaling(n*8 + 2, 1, [1])
-            # 2 terms for d/dxi3 via general linear map
-            eftRVFreeWallInnerSide2.setFunctionNumberOfTerms(n*8 + 5, 2)
-            eftRVFreeWallInnerSide2.setTermNodeParameter(n*8 + 5, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            eftRVFreeWallInnerSide2.setTermScaling(n*8 + 5, 1, [s*2 + 2])
-            eftRVFreeWallInnerSide2.setTermNodeParameter(n*8 + 5, 2, ln, Node.VALUE_LABEL_D_DS3, 1)
-            eftRVFreeWallInnerSide2.setTermScaling(n*8 + 5, 2, [s*2 + 3])
-        print('eftRVFreeWallInnerSide2.isValid()',eftRVFreeWallInnerSide2.isValid())
-
+        eft = tricubichermite.createEftBasic()
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplate.defineField(coordinates, -1, eft)
+
+        # RV septal wall inner bottom elements
+        eftRVSeptalWallInnerBottom = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftRVSeptalWallInnerBottom, [1], [3, 4, 3, 4])
+        for s in range(2):
+            n = 4 + s
+            ln = n + 1
+            # d/dxi2 = -d/ds3, d/dxi3 = sa.d/ds2 + sb.d/ds3
+            mapEftFunction1Node1Term(eftRVSeptalWallInnerBottom, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node2Terms(eftRVSeptalWallInnerBottom, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [s*2 + 2], Node.VALUE_LABEL_D_DS3, 1, [s*2 + 3])
+        elementtemplateRVSeptalWallInnerBottom = mesh.createElementtemplate()
+        elementtemplateRVSeptalWallInnerBottom.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateRVSeptalWallInnerBottom.defineField(coordinates, -1, eftRVSeptalWallInnerBottom)
+        print('eftRVSeptalWallInnerBottom', result)
+
+        # RV septal wall inner side 1 elements
+        eftRVSeptalWallInnerSide1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftRVSeptalWallInnerSide1, [1], [3, 4, 3, 4])
+        for s in range(2):
+            n = 4 + s*2
+            ln = n + 1
+            # d/dxi1 = -d/ds3, d/dxi3 = sa.d/ds1 + sb.d/ds3
+            mapEftFunction1Node1Term(eftRVSeptalWallInnerSide1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node2Terms(eftRVSeptalWallInnerSide1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [s*2 + 2], Node.VALUE_LABEL_D_DS3, 1, [s*2 + 3])
+        elementtemplateRVSeptalWallInnerSide1 = mesh.createElementtemplate()
+        elementtemplateRVSeptalWallInnerSide1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateRVSeptalWallInnerSide1.defineField(coordinates, -1, eftRVSeptalWallInnerSide1)
+        print('eftRVSeptalWallInnerSide1', result)
+
+        # RV septal wall inner side 2 elements
+        eftRVSeptalWallInnerSide2 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftRVSeptalWallInnerSide2, [1], [3, 4, 3, 4])
+        for s in range(2):
+            n = 5 + s*2
+            ln = n + 1
+            # d/dxi1 = d/ds3, d/dxi3 = -sa.d/ds1 + sb.d/ds3
+            mapEftFunction1Node1Term(eftRVSeptalWallInnerSide2, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [])
+            mapEftFunction1Node2Terms(eftRVSeptalWallInnerSide2, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [1, s*2 + 2], Node.VALUE_LABEL_D_DS3, 1, [s*2 + 3])
+        elementtemplateRVSeptalWallInnerSide2 = mesh.createElementtemplate()
+        elementtemplateRVSeptalWallInnerSide2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateRVSeptalWallInnerSide2.defineField(coordinates, -1, eftRVSeptalWallInnerSide2)
+        print('eftRVSeptalWallInnerSide2', result)
+
+        # RV free wall inner bottom elements
+        eftRVFreeWallInnerBottom = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftRVFreeWallInnerBottom, [1], [3, 4, 3, 4])
+        for s in range(2):
+            n = s
+            ln = n + 1
+            # d/dxi2 = d/ds3, d/dxi3 = -sa.d/ds2 + sb.d/ds3
+            mapEftFunction1Node1Term(eftRVFreeWallInnerBottom, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [])
+            mapEftFunction1Node2Terms(eftRVFreeWallInnerBottom, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [1, s*2 + 2], Node.VALUE_LABEL_D_DS3, 1, [s*2 + 3])
         elementtemplateRVFreeWallInnerBottom = mesh.createElementtemplate()
         elementtemplateRVFreeWallInnerBottom.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplateRVFreeWallInnerBottom.defineField(coordinates, -1, eftRVFreeWallInnerBottom)
+        print('eftRVFreeWallInnerBottom', result)
+
+        # RV free wall inner side 1 elements
+        eftRVFreeWallInnerSide1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftRVFreeWallInnerSide1, [1], [3, 4, 3, 4])
+        for s in range(2):
+            n = s*2
+            ln = n + 1
+            # d/dxi1 = d/ds3, d/dxi3 = -sa.d/ds1 + sb.d/ds3
+            mapEftFunction1Node1Term(eftRVFreeWallInnerSide1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [])
+            mapEftFunction1Node2Terms(eftRVFreeWallInnerSide1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [1, s*2 + 2], Node.VALUE_LABEL_D_DS3, 1, [s*2 + 3])
         elementtemplateRVFreeWallInnerSide1 = mesh.createElementtemplate()
         elementtemplateRVFreeWallInnerSide1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplateRVFreeWallInnerSide1.defineField(coordinates, -1, eftRVFreeWallInnerSide1)
+        print('eftRVFreeWallInnerSide1', result)
+
+        # RV free wall inner side 2 elements
+        eftRVFreeWallInnerSide2 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftRVFreeWallInnerSide2, [1], [3, 4, 3, 4])
+        for s in range(2):
+            n = s*2 + 1
+            ln = n + 1
+            # d/dxi1 = -d/ds3, d/dxi3 = sa.d/ds1 + sb.d/ds3
+            mapEftFunction1Node1Term(eftRVFreeWallInnerSide2, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node2Terms(eftRVFreeWallInnerSide2, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [s*2 + 2], Node.VALUE_LABEL_D_DS3, 1, [s*2 + 3])
         elementtemplateRVFreeWallInnerSide2 = mesh.createElementtemplate()
         elementtemplateRVFreeWallInnerSide2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplateRVFreeWallInnerSide2.defineField(coordinates, -1, eftRVFreeWallInnerSide2)
+        print('eftRVFreeWallInnerSide2', result)
 
         cache = fm.createFieldcache()
 
@@ -268,10 +282,13 @@ class MeshType_3d_heartventricles1:
                         base_dx_ds2[1]*scale1,
                         base_dx_ds2[2]*scale1
                     ]
+                    scale3 = RVFreeWallThickness
+                    if onInside and (onBottomEdge or onSideEdge):
+                        scale3 += 2.0*edgeOffsetInner
                     dx_ds3 = [
-                        unitOutward[0]*RVFreeWallThickness,
-                        unitOutward[1]*RVFreeWallThickness,
-                        unitOutward[2]*RVFreeWallThickness
+                        unitOutward[0]*scale3,
+                        unitOutward[1]*scale3,
+                        unitOutward[2]*scale3
                     ]
 
                     if onInside and (onBottomEdge or onSideEdge):
@@ -294,10 +311,73 @@ class MeshType_3d_heartventricles1:
         crossAngle = math.pi/12
         sinCrossAngle = math.sin(crossAngle)
         cosCrossAngle = math.cos(crossAngle)
-        scalefactors4 = [ sinCrossAngle, cosCrossAngle, sinCrossAngle, cosCrossAngle ]
-        scalefactors4r2 = [ -sinCrossAngle, cosCrossAngle, -sinCrossAngle, cosCrossAngle ]
         scalefactors5 = [ -1.0, sinCrossAngle, cosCrossAngle, sinCrossAngle, cosCrossAngle ]
 
+        # Tweak RV septal wall
+        eow = elementsCountUp*elementsCountAround
+        RVSeptumElementIdBase = eow*(elementsCountThroughLVWall - 1) + elementsCountBelowSeptum*elementsCountAround + 2
+        for n2 in range(elementsCountUpRV):
+
+            for n1 in range(elementsCountAcrossSeptum):
+                existingElementIdentifier = RVSeptumElementIdBase + n2*elementsCountAround + n1
+
+                element = mesh.findElementByIdentifier(existingElementIdentifier)
+                eftTemp = element.getElementfieldtemplate(coordinates, -1)
+                nodeIdentifiers = getElementNodeIdentifiers(element, eft)
+                #print('existing element', existingElementIdentifier, eftTemp.isValid(), nodeIdentifiers)
+                if n2 == 0:
+                    if n1 == 0:
+                        # RV free wall inner bottom side 1 elements: doubly curved but can't avoid a sharp corner at node 1
+                        eftTemp = tricubichermite.createEftBasic()
+                        setEftScaleFactorIds(eftTemp, [1], [3, 4, 3, 4])
+                        # node 6 d/dxi2 = -d/ds3, d/dxi3 = sa.d/ds2 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 5*8 + 3, 6, Node.VALUE_LABEL_D_DS3, 1, [1])
+                        mapEftFunction1Node2Terms(eftTemp, 5*8 + 5, 6, Node.VALUE_LABEL_D_DS2, 1, [2], Node.VALUE_LABEL_D_DS3, 1, [3])
+                        # node 7 d/dxi1 = -d/ds3, d/dxi3 = sa.d/ds1 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 6*8 + 2, 7, Node.VALUE_LABEL_D_DS3, 1, [1])
+                        mapEftFunction1Node2Terms(eftTemp, 6*8 + 5, 7, Node.VALUE_LABEL_D_DS1, 1, [1, 4], Node.VALUE_LABEL_D_DS3, 1, [5])
+                        #print('inner bottom side 1 eftTemp.isValid()',eftTemp.isValid())
+                        elementtemplateTemp = mesh.createElementtemplate()
+                        elementtemplateTemp.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        result = elementtemplateTemp.defineField(coordinates, -1, eftTemp)
+                        result = element.merge(elementtemplateTemp)
+                        result = element.setNodesByIdentifier(eftTemp, nodeIdentifiers)
+                        result = element.setScaleFactors(eftTemp, scalefactors5)
+                    elif n1 == (elementsCountAcrossSeptum - 1):
+                        # RV free wall inner bottom side 1 elements: doubly curved but can't avoid a sharp corner at node 1
+                        eftTemp = tricubichermite.createEftBasic()
+                        setEftScaleFactorIds(eftTemp, [1], [3, 4, 3, 4])
+                        # node 5 d/dxi2 = -d/ds3, d/dxi3 = sa.d/ds2 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 4*8 + 3, 5, Node.VALUE_LABEL_D_DS3, 1, [1])
+                        mapEftFunction1Node2Terms(eftTemp, 4*8 + 5, 5, Node.VALUE_LABEL_D_DS2, 1, [2], Node.VALUE_LABEL_D_DS3, 1, [3])
+                        # node 8 d/dxi1 = d/ds3, d/dxi3 = s2.d/ds1 + s3.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 7*8 + 2, 8, Node.VALUE_LABEL_D_DS3, 1, [])
+                        mapEftFunction1Node2Terms(eftTemp, 7*8 + 5, 8, Node.VALUE_LABEL_D_DS1, 1, [1, 4], Node.VALUE_LABEL_D_DS3, 1, [5])
+                        #print('inner bottom side 2 eftTemp.isValid()',eftTemp.isValid())
+                        elementtemplateTemp = mesh.createElementtemplate()
+                        elementtemplateTemp.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        result = elementtemplateTemp.defineField(coordinates, -1, eftTemp)
+                        result = element.merge(elementtemplateTemp)
+                        result = element.setNodesByIdentifier(eftTemp, nodeIdentifiers)
+                        result = element.setScaleFactors(eftTemp, scalefactors5)
+                    else:
+                        result = element.merge(elementtemplateRVSeptalWallInnerBottom)
+                        result = element.setNodesByIdentifier(eftRVSeptalWallInnerBottom, nodeIdentifiers)
+                        result = element.setScaleFactors(eftRVSeptalWallInnerBottom, scalefactors5)
+                else:
+                    if n1 == 0:
+                        result = element.merge(elementtemplateRVSeptalWallInnerSide1)
+                        result = element.setNodesByIdentifier(eftRVSeptalWallInnerSide1, nodeIdentifiers)
+                        result = element.setScaleFactors(eftRVSeptalWallInnerSide1, scalefactors5)
+                    elif n1 == (elementsCountAcrossSeptum - 1):
+                        result = element.merge(elementtemplateRVSeptalWallInnerSide2)
+                        result = element.setNodesByIdentifier(eftRVSeptalWallInnerSide2, nodeIdentifiers)
+                        result = element.setScaleFactors(eftRVSeptalWallInnerSide2, scalefactors5)
+                    else:
+                        pass
+                print('RV septal wall element merge', existingElementIdentifier, result)
+
+        # RV free wall
         for n2 in range(elementsCountUpRV):
 
             for n1 in range(elementsCountAcrossSeptum):
@@ -308,21 +388,57 @@ class MeshType_3d_heartventricles1:
                     rv_nidsOuter[bni], rv_nidsOuter[bni + 1], rv_nidsOuter[bni + elementsCountAcrossSeptum + 1], rv_nidsOuter[bni + elementsCountAcrossSeptum + 2]
                 ]
                 if n2 == 0:
-                    element = mesh.createElement(elementIdentifier, elementtemplateRVFreeWallInnerBottom)
-                    result = element.setNodesByIdentifier(eftRVFreeWallInnerBottom, nodeIdentifiers)
-                    result = element.setScaleFactors(eftRVFreeWallInnerBottom, scalefactors4r2)
-                elif n1 == 0:
-                    element = mesh.createElement(elementIdentifier, elementtemplateRVFreeWallInnerSide1)
-                    result = element.setNodesByIdentifier(eftRVFreeWallInnerSide1, nodeIdentifiers)
-                    result = element.setScaleFactors(eftRVFreeWallInnerSide1, scalefactors5)
-                elif n1 == (elementsCountAcrossSeptum - 1):
-                    element = mesh.createElement(elementIdentifier, elementtemplateRVFreeWallInnerSide2)
-                    result = element.setNodesByIdentifier(eftRVFreeWallInnerSide2, nodeIdentifiers)
-                    result = element.setScaleFactors(eftRVFreeWallInnerSide2, scalefactors5)
+                    if n1 == 0:
+                        # RV free wall inner bottom side 1 elements: doubly curved but can't avoid a sharp corner at node 1
+                        eftTemp = tricubichermite.createEftBasic()
+                        setEftScaleFactorIds(eftTemp, [1], [3, 4, 3, 4])
+                        # node 2 d/dxi2 = d/ds3, d/dxi3 = -sa.d/ds2 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 1*8 + 3, 2, Node.VALUE_LABEL_D_DS3, 1, [])
+                        mapEftFunction1Node2Terms(eftTemp, 1*8 + 5, 2, Node.VALUE_LABEL_D_DS2, 1, [1, 2], Node.VALUE_LABEL_D_DS3, 1, [3])
+                        # node 3 d/dxi1 = d/ds3, d/dxi3 = -sa.d/ds1 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 2*8 + 2, 3, Node.VALUE_LABEL_D_DS3, 1, [])
+                        mapEftFunction1Node2Terms(eftTemp, 2*8 + 5, 3, Node.VALUE_LABEL_D_DS1, 1, [1, 4], Node.VALUE_LABEL_D_DS3, 1, [5])
+                        #print('inner bottom side 1 eftTemp.isValid()',eftTemp.isValid())
+                        elementtemplateTemp = mesh.createElementtemplate()
+                        elementtemplateTemp.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        result = elementtemplateTemp.defineField(coordinates, -1, eftTemp)
+                        element = mesh.createElement(elementIdentifier, elementtemplateTemp)
+                        result = element.setNodesByIdentifier(eftTemp, nodeIdentifiers)
+                        result = element.setScaleFactors(eftTemp, scalefactors5)
+                    elif n1 == (elementsCountAcrossSeptum - 1):
+                        # RV free wall inner bottom side 1 elements: doubly curved but can't avoid a sharp corner at node 1
+                        eftTemp = tricubichermite.createEftBasic()
+                        setEftScaleFactorIds(eftTemp, [1], [3, 4, 3, 4])
+                        # node 1 d/dxi2 = d/ds3, d/dxi3 = -sa.d/ds2 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 0*8 + 3, 1, Node.VALUE_LABEL_D_DS3, 1, [])
+                        mapEftFunction1Node2Terms(eftTemp, 0*8 + 5, 1, Node.VALUE_LABEL_D_DS2, 1, [1, 2], Node.VALUE_LABEL_D_DS3, 1, [3])
+                        # node 4 d/dxi1 = -d/ds3, d/dxi3 = sa.d/ds1 + sb.d/ds3
+                        mapEftFunction1Node1Term(eftTemp, 3*8 + 2, 4, Node.VALUE_LABEL_D_DS3, 1, [1])
+                        mapEftFunction1Node2Terms(eftTemp, 3*8 + 5, 4, Node.VALUE_LABEL_D_DS1, 1, [4], Node.VALUE_LABEL_D_DS3, 1, [5])
+                        #print('inner bottom side 2 eftTemp.isValid()',eftTemp.isValid())
+                        elementtemplateTemp = mesh.createElementtemplate()
+                        elementtemplateTemp.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        result = elementtemplateTemp.defineField(coordinates, -1, eftTemp)
+                        element = mesh.createElement(elementIdentifier, elementtemplateTemp)
+                        result = element.setNodesByIdentifier(eftTemp, nodeIdentifiers)
+                        result = element.setScaleFactors(eftTemp, scalefactors5)
+                    else:
+                        element = mesh.createElement(elementIdentifier, elementtemplateRVFreeWallInnerBottom)
+                        result = element.setNodesByIdentifier(eftRVFreeWallInnerBottom, nodeIdentifiers)
+                        result = element.setScaleFactors(eftRVFreeWallInnerBottom, scalefactors5)
                 else:
-                    element = mesh.createElement(elementIdentifier, elementtemplate)
-                    result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                print('element ', elementIdentifier, result)
+                    if n1 == 0:
+                        element = mesh.createElement(elementIdentifier, elementtemplateRVFreeWallInnerSide1)
+                        result = element.setNodesByIdentifier(eftRVFreeWallInnerSide1, nodeIdentifiers)
+                        result = element.setScaleFactors(eftRVFreeWallInnerSide1, scalefactors5)
+                    elif n1 == (elementsCountAcrossSeptum - 1):
+                        element = mesh.createElement(elementIdentifier, elementtemplateRVFreeWallInnerSide2)
+                        result = element.setNodesByIdentifier(eftRVFreeWallInnerSide2, nodeIdentifiers)
+                        result = element.setScaleFactors(eftRVFreeWallInnerSide2, scalefactors5)
+                    else:
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+                print('RV free wall element create', elementIdentifier, result)
                 elementIdentifier += 1
 
         fm.endChange()
