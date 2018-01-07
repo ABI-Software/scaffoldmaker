@@ -29,6 +29,7 @@ class MeshType_3d_heartventricles1:
             'Number of elements through LV wall' : 1,
             'LV wall thickness' : 0.15,
             'LV wall thickness ratio apex' : 0.5,
+            'LV wall thickness ratio base': 0.5,
             'RV free wall thickness' : 0.05,
             'RV width' : 0.2,
             'Length ratio' : 2.0,
@@ -46,6 +47,7 @@ class MeshType_3d_heartventricles1:
             'Number of elements through LV wall',
             'LV wall thickness',
             'LV wall thickness ratio apex',
+            'LV wall thickness ratio base',
             'RV free wall thickness',
             'RV width',
             'Length ratio',
@@ -74,6 +76,8 @@ class MeshType_3d_heartventricles1:
             options['LV wall thickness'] = 0.5
         if options['LV wall thickness ratio apex'] < 0.0:
             options['LV wall thickness ratio apex'] = 0.0
+        if options['LV wall thickness ratio base'] < 0.0:
+            options['LV wall thickness ratio base'] = 0.0
         if options['RV free wall thickness'] < 0.0:
             options['RV free wall thickness'] = 0.0
         if options['RV width'] < 0.0:
@@ -97,7 +101,8 @@ class MeshType_3d_heartventricles1:
         elementsCountThroughLVWall = options['Number of elements through LV wall']
         LVWallThickness = options['LV wall thickness']
         LVWallThicknessRatioApex = options['LV wall thickness ratio apex']
-        RVWidth = options['RV width']
+        LVWallThicknessRatioBase = options['LV wall thickness ratio base']
+        RVWidthTop = options['RV width']
         RVFreeWallThickness = options['RV free wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
 
@@ -128,6 +133,47 @@ class MeshType_3d_heartventricles1:
 
         mesh = fm.findMeshByDimension(3)
 
+        cache = fm.createFieldcache()
+
+        if LVWallThicknessRatioBase != 1.0:
+            # make LV walls thinner at base
+            # get inside node at middle of RV
+            now = 1 + elementsCountUp*elementsCountAround
+            midRVnid = now - elementsCountAround + 2 + (elementsCountAcrossSeptum // 2)
+            #print('midRVnid', midRVnid)
+            midRVnode = nodes.findNodeByIdentifier(midRVnid)
+            cp_coordinates = fm.createFieldCoordinateTransformation(coordinates)
+            cp_coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
+            radius = fm.createFieldComponent(cp_coordinates, 1)
+            theta = fm.createFieldComponent(cp_coordinates, 2)
+            z = fm.createFieldComponent(cp_coordinates, 3)
+            cache.setNode(midRVnode)
+            #result, cp = cp_coordinates.evaluateReal(cache, 3)
+            #coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, innerRadius = radius.evaluateReal(cache, 1)
+            #print('innerRadius', innerRadius)
+            ir = fm.createFieldConstant([innerRadius*0.9999])
+            radius_gt_ir = fm.createFieldGreaterThan(radius, ir)
+            radius_minus_ir = fm.createFieldSubtract(radius, ir)
+            thickness_scale = fm.createFieldConstant([LVWallThicknessRatioBase])
+            delta_radius = fm.createFieldMultiply(radius_minus_ir, thickness_scale)
+            new_radius = fm.createFieldAdd(ir, delta_radius)
+            new_cp_coordinates = fm.createFieldConcatenate([new_radius, theta, z])
+            new_cp_coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
+            new_coordinates = fm.createFieldCoordinateTransformation(new_cp_coordinates)
+            new_coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+
+            baseNodeGroupField = fm.createFieldNodeGroup(nodes)
+            just_under_zero = fm.createFieldConstant([-0.0001])
+            isBase = fm.createFieldGreaterThan(z, just_under_zero)
+            baseNodesetGroup = baseNodeGroupField.getNodesetGroup()
+            baseNodesetGroup.addNodesConditional(isBase)
+            #print('baseNodesetGroup.getSize()', baseNodesetGroup.getSize())
+            fieldassignment = coordinates.createFieldassignment(new_coordinates)
+            result = fieldassignment.setNodeset(baseNodesetGroup)
+            #print('fieldassignment.setNodeset', result)
+            fieldassignment.assign()
+
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
@@ -136,14 +182,10 @@ class MeshType_3d_heartventricles1:
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplate.defineField(coordinates, -1, eft)
 
-        cache = fm.createFieldcache()
-
-        edgeOffsetInner = RVWidth*0.125
-        edgeOffsetOuter = edgeOffsetInner*2.0 + RVFreeWallThickness
-        crossAngle = math.pi/12
+        crossAngle = math.pi/8
         sinCrossAngle = math.sin(crossAngle)
         cosCrossAngle = math.cos(crossAngle)
-        edgeRotateCrossAngle = math.pi/24
+        edgeRotateCrossAngle = math.pi/16
         sinEdgeRotateCrossAngle = math.sin(edgeRotateCrossAngle)
         cosEdgeRotateCrossAngle = math.cos(edgeRotateCrossAngle)
 
@@ -153,11 +195,25 @@ class MeshType_3d_heartventricles1:
         nodeIdentifier = 1 + 2*elementsCountThroughLVWall*now
         rv_nidsInner = []
         rv_nidsOuter = []
+        baseExtraRVWidth = LVWallThickness*(1.0 - LVWallThicknessRatioBase)
         for n3 in range(1, -1, -1):  # only 1 element through RV free wall
 
             onInside = n3 == 0
 
             for n2 in range(elementsCountUpRV + 1):
+
+                #if n2 > (elementsCountUpRV - elementsCountUpBase):
+                #    theta = math.pi*0.5
+                #else:
+                #    theta = (n2 / (elementsCountUpRV - elementsCountUpBase))*math.pi*0.5
+                #theta = (n2 / elementsCountUpRV)*math.pi*0.5
+                RVWidth = RVWidthTop  #*math.sin(theta)
+                #RVWidth = RVWidthTop
+
+                edgeOffsetInner = RVWidth*0.125
+                if n2 == elementsCountUpRV:
+                    RVWidth += baseExtraRVWidth
+                    edgeOffsetInner = edgeOffsetInner + baseExtraRVWidth*0.5
 
                 onBottomEdge = (n2 == 0)
 
