@@ -4,6 +4,7 @@ Created on Nov 15, 2017
 
 @author: Richard Christie
 '''
+from mapclientplugins.meshgeneratorstep.utils.eft_utils import *
 from opencmiss.zinc.element import Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK
@@ -179,12 +180,82 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftTubeSeptumInner2:  Failed to validate eft'
         return eft
 
+    def setEftLinearDerivativeXi3(self, eft, basisNode1, basisNode2, localNode1, localNode2, minus1scaleFactorIndex):
+        '''
+        Makes the derivative in Xi3 for basisNode1 and basisNode2 equal to the difference in
+        the value parameter at localNode2 - localNode1. This makes the basis equivalent to linear Lagrange.
+        Note! Cross derivatives are not handled and are currently unmodified.
+        :param minus1scaleFactorIndex: Local scale factor index for general value -1.0
+        '''
+        for n in [basisNode1 - 1, basisNode2 - 1]:
+            eft.setFunctionNumberOfTerms(n*8 + 5, 2)
+            eft.setTermNodeParameter(n*8 + 5, 1, localNode2, Node.VALUE_LABEL_VALUE, 1)
+            eft.setTermScaling(n*8 + 5, 1, [])
+            eft.setTermNodeParameter(n*8 + 5, 2, localNode1, Node.VALUE_LABEL_VALUE, 1)
+            eft.setTermScaling(n*8 + 5, 2, [minus1scaleFactorIndex])
+
+
+    def setEftMidsideXi1HangingNode(self, eft, hangingBasisNode, otherBasisNode, localNode1, localNode2, scaleFactorIndexes):
+        '''
+        Makes the functions for eft at basisNode work as a hanging node interpolating the parameters
+        from localNode1 at xi1=0 and localNode2 at xi1=1 to midside xi1 = 0.5.
+        Note! Cross derivatives are not handled and are currently unmodified.
+        :param otherBasisNode: Other node along xi1 which needs its dxi1 derivative halved
+        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.25 0.125 0.75
+        '''
+        n = hangingBasisNode - 1
+        o = otherBasisNode - 1
+        sfneg1 = scaleFactorIndexes[0]
+        sf05 = scaleFactorIndexes[1]
+        sf025 = scaleFactorIndexes[2]
+        sf0125 = scaleFactorIndexes[3]
+        sf075 = scaleFactorIndexes[4]
+        # otherBasisNode d/dxi1 must be halved
+        eft.setTermScaling(o*8 + 2, 1, [sf05])
+        # workaround for Zinc limitation where faces are not found due to only first
+        # node in general linear map being reported; reversing order of terms fixes this
+        otherLocalNode = eft.getTermLocalNodeIndex(o*8 + 2, 1)
+        termOrder = [ 3, 4, 1, 2] if (otherLocalNode == localNode1) else [ 1, 2, 3, 4]
+        # value = 0.5*x_1 + 0.125*ds3_1 + 0.5*x_2 - 0.125*ds3_2
+        eft.setFunctionNumberOfTerms(n*8 + 1, 4)
+        eft.setTermNodeParameter(n*8 + 1, termOrder[0], localNode1, Node.VALUE_LABEL_VALUE, 1)
+        eft.setTermScaling(n*8 + 1, termOrder[0], [sf05])
+        eft.setTermNodeParameter(n*8 + 1, termOrder[1], localNode1, Node.VALUE_LABEL_D_DS1, 1)
+        eft.setTermScaling(n*8 + 1, termOrder[1], [sf0125])
+        eft.setTermNodeParameter(n*8 + 1, termOrder[2], localNode2, Node.VALUE_LABEL_VALUE, 1)
+        eft.setTermScaling(n*8 + 1, termOrder[2], [sf05])
+        eft.setTermNodeParameter(n*8 + 1, termOrder[3], localNode2, Node.VALUE_LABEL_D_DS1, 1)
+        eft.setTermScaling(n*8 + 1, termOrder[3], [sfneg1, sf0125])
+        # d/dxi1 = -0.75*x_1 - 0.125*ds1_1 + 0.75*x_2 - 0.125*ds1_2
+        eft.setFunctionNumberOfTerms(n*8 + 2, 4)
+        eft.setTermNodeParameter(n*8 + 2, 1, localNode1, Node.VALUE_LABEL_VALUE, 1)
+        eft.setTermScaling(n*8 + 2, 1, [sfneg1, sf075])
+        eft.setTermNodeParameter(n*8 + 2, 2, localNode1, Node.VALUE_LABEL_D_DS1, 1)
+        eft.setTermScaling(n*8 + 2, 2, [sfneg1, sf0125])
+        eft.setTermNodeParameter(n*8 + 2, 3, localNode2, Node.VALUE_LABEL_VALUE, 1)
+        eft.setTermScaling(n*8 + 2, 3, [sf075])
+        eft.setTermNodeParameter(n*8 + 2, 4, localNode2, Node.VALUE_LABEL_D_DS1, 1)
+        eft.setTermScaling(n*8 + 2, 4, [sfneg1, sf0125])
+        # d/dxi2 = 0.5*ds2_1 + 0.5*ds2_2
+        eft.setFunctionNumberOfTerms(n*8 + 3, 2)
+        eft.setTermNodeParameter(n*8 + 3, 1, localNode1, Node.VALUE_LABEL_D_DS2, 1)
+        eft.setTermScaling(n*8 + 3, 1, [sf05])
+        eft.setTermNodeParameter(n*8 + 3, 2, localNode2, Node.VALUE_LABEL_D_DS2, 1)
+        eft.setTermScaling(n*8 + 3, 2, [sf05])
+        # d/dxi1 = 0.5*ds3_1 + 0.5*ds3_2
+        eft.setFunctionNumberOfTerms(n*8 + 5, 2)
+        eft.setTermNodeParameter(n*8 + 5, 1, localNode1, Node.VALUE_LABEL_D_DS3, 1)
+        eft.setTermScaling(n*8 + 5, 1, [sf05])
+        eft.setTermNodeParameter(n*8 + 5, 2, localNode2, Node.VALUE_LABEL_D_DS3, 1)
+        eft.setTermScaling(n*8 + 5, 2, [sf05])
+
+
     def setEftMidsideXi3HangingNode(self, eft, hangingBasisNode, otherBasisNode, localNode1, localNode2, scaleFactorIndexes):
         '''
         Makes the functions for eft at basisNode work as a hanging node interpolating the parameters
         from localNode1 at xi3=0 and localNode2 at xi3=1 to midside xi3 = 0.5.
         Note! Cross derivatives are not handled and are currently unmodified.
-        :param otherBasisNode: Othernode along xi3 which needs its dxi3 derivative halved
+        :param otherBasisNode: Other node along xi3 which needs its dxi3 derivative halved
         :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.25 0.125 0.75
         '''
         n = hangingBasisNode - 1

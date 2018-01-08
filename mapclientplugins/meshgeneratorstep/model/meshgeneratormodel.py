@@ -21,6 +21,7 @@ from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_2d_tube1 import MeshT
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
+from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_heartventricles2
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
@@ -98,6 +99,7 @@ class MeshGeneratorModel(object):
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
             MeshType_3d_heartventricles1,
+            MeshType_3d_heartventricles2,
             MeshType_3d_heartventriclesbase1,
             MeshType_3d_sphereshell1,
             MeshType_3d_sphereshellseptum1,
