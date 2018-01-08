@@ -24,43 +24,68 @@ class MeshType_3d_heartventriclesbase1(object):
     @staticmethod
     def getDefaultOptions():
         return {
-            'Atria length' : 0.35,
-            'Atria width' : 0.25,
-            'Base height' : 0.2,
-            'Base thickness' : 0.1,
+            'LV wall thickness' : 0.15,
+            'LV wall thickness ratio apex' : 0.5,
+            'LV wall thickness ratio base': 0.5,
+            'RV free wall thickness' : 0.05,
+            'RV width' : 0.15,
+            'Length ratio' : 2.0,
+            'Element length ratio equator/apex' : 1.0,
+            'Base height' : 0.1,
+            'Base thickness' : 0.05,
             'LV outlet inner diameter' : 0.25,
             'LV outlet wall thickness' : 0.02,
-            'LV outlet element length' : 0.1,
             'RV outlet inner diameter' : 0.25,
             'RV outlet wall thickness' : 0.02,
-            'RV outlet element length' : 0.1,
-            'Outlet spacing' : 0.05,
-            'Atrial septum thickness' : 0.075,
-            'Ventricular septum thickness' : 0.1
+            'Outlet element length' : 0.1
         }
 
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Atria length',
-            'Atria width',
+            'LV wall thickness',
+            'LV wall thickness ratio apex',
+            'LV wall thickness ratio base',
+            'RV free wall thickness',
+            'RV width',
+            'Length ratio',
+            'Element length ratio equator/apex',
             'Base height',
             'Base thickness',
             'LV outlet inner diameter',
             'LV outlet wall thickness',
-            'LV outlet element length',
             'RV outlet inner diameter',
             'RV outlet wall thickness',
-            'RV outlet element length',
-            'Outlet spacing',
-            'Atrial septum thickness',
-            'Ventricular septum thickness'
+            'Outlet element length'
         ]
 
     @staticmethod
     def checkOptions(options):
+        if options['LV wall thickness'] < 0.0:
+            options['LV wall thickness'] = 0.0
+        elif options['LV wall thickness'] > 0.5:
+            options['LV wall thickness'] = 0.5
+        if options['LV wall thickness ratio apex'] < 0.0:
+            options['LV wall thickness ratio apex'] = 0.0
+        if options['LV wall thickness ratio base'] < 0.0:
+            options['LV wall thickness ratio base'] = 0.0
+        if options['RV free wall thickness'] < 0.0:
+            options['RV free wall thickness'] = 0.0
+        if options['RV width'] < 0.0:
+            options['RV width'] = 0.0
+        if options['Length ratio'] < 1.0E-6:
+            options['Length ratio'] = 1.0E-6
+        if options['Element length ratio equator/apex'] < 1.0E-6:
+            options['Element length ratio equator/apex'] = 1.0E-6
         for key in options:
-            if isinstance(options[key], float):
+            if key in [
+                'Base height',
+                'Base thickness',
+                'LV outlet inner diameter',
+                'LV outlet wall thickness',
+                'RV outlet inner diameter',
+                'RV outlet wall thickness',
+                'Outlet element length']:
                 if options[key] < 0.0:
                     options[key] = 0.0
 
@@ -71,20 +96,27 @@ class MeshType_3d_heartventriclesbase1(object):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+        lvWallThickness = options['LV wall thickness']
         baseHeight = options['Base height']
         baseThickness = options['Base thickness']
         lvOutletRadius = options['LV outlet inner diameter']*0.5
         lvOutletWallThickness = options['LV outlet wall thickness']
-        lvOutletElementLength = options['LV outlet element length']
         rvOutletRadius = options['RV outlet inner diameter']*0.5
         rvOutletWallThickness = options['RV outlet wall thickness']
-        rvOutletElementLength = options['RV outlet element length']
-        outletSpacing = options['Outlet spacing']
+        outletElementLength = options['Outlet element length']
         useCrossDerivatives = False
 
-
-        # generate heart ventricles model to add base pla
+        # generate default heart ventricles model to add base plane to
         heartVentriclesOptions = MeshType_3d_heartventricles1.getDefaultOptions()
+        for key in [
+            'LV wall thickness',
+            'LV wall thickness ratio apex',
+            'LV wall thickness ratio base',
+            'RV free wall thickness',
+            'RV width',
+            'Length ratio',
+            'Element length ratio equator/apex']:
+            heartVentriclesOptions[key] = options[key]
         MeshType_3d_heartventricles1.generateMesh(region, heartVentriclesOptions)
 
         fm = region.getFieldmodule()
@@ -118,23 +150,37 @@ class MeshType_3d_heartventriclesbase1(object):
         cache = fm.createFieldcache()
 
         # create nodes
-        startNodeIdentifier = nodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
-        # LV outflow - for bicubic-linear tube connection
+        nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
+
+        lvDisplacementRadians = math.pi*2.0/3.0
+        coslvDisplacementRadians = math.cos(lvDisplacementRadians)
+        sinlvDisplacementRadians = math.sin(lvDisplacementRadians)
+
+        outletJoinRadians = math.pi  # *0.8
+        cosOutletJoinRadians = math.cos(outletJoinRadians)
+        sinOutletJoinRadians = math.sin(outletJoinRadians)
+        lvOutletOffset = 0.5 - lvWallThickness - lvOutletRadius
+        #lvOutletCentreX = cosOutletJoinRadians*lvOutletOffset
+        #lvOutletCentreY = sinOutletJoinRadians*lvOutletOffset
+        lvOutletCentreX = lvOutletOffset*math.cos(lvDisplacementRadians)
+        lvOutletCentreY = lvOutletOffset*math.sin(lvDisplacementRadians)
+
+        # LV outlet - for bicubic-linear tube connection
         elementsCountAround = 6
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
         x = [ 0.0, 0.0, baseHeight + baseThickness ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
-        dx_ds2 = [ 0.0, 0.0, lvOutletElementLength ]
+        dx_ds2 = [ 0.0, 0.0, outletElementLength ]
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
         for n3 in range(2):
             radius = lvOutletRadius + lvOutletWallThickness*n3
             for n1 in range(elementsCountAround):
-                radiansAround = n1*radiansPerElementAround
+                radiansAround = outletJoinRadians - math.pi + n1*radiansPerElementAround
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
-                x[0] = radius*cosRadiansAround
-                x[1] = radius*sinRadiansAround
+                x[0] = lvOutletCentreX + radius*cosRadiansAround
+                x[1] = lvOutletCentreY + radius*sinRadiansAround
                 dx_ds1[0] = radiansPerElementAround*radius*-sinRadiansAround
                 dx_ds1[1] = radiansPerElementAround*radius*cosRadiansAround
                 nodetemplate = nodetemplateLinearS3 if (n3 == 0) else nodetemplateFull
@@ -149,22 +195,27 @@ class MeshType_3d_heartventriclesbase1(object):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
 
-        # RV outflow - for bicubic-linear tube connection
+        # RV outlet - for bicubic-linear tube connection
         elementsCountAround = 6
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
-        xCentre = -(lvOutletRadius + lvOutletWallThickness + outletSpacing + rvOutletRadius + rvOutletWallThickness)
+        rvOutletOffset = lvOutletRadius + lvOutletWallThickness + rvOutletWallThickness + rvOutletRadius
+        rvOutletCentreX = lvOutletCentreX + cosOutletJoinRadians*rvOutletOffset
+        rvOutletCentreY = lvOutletCentreY + sinOutletJoinRadians*rvOutletOffset
+
         x = [ 0.0, 0.0, baseHeight + baseThickness ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
-        dx_ds2 = [ 0.0, 0.0, rvOutletElementLength ]
+        dx_ds2 = [ 0.0, 0.0, outletElementLength ]
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         for n3 in range(2):
-            radius = lvOutletRadius + lvOutletWallThickness*n3
+            radius = rvOutletRadius + rvOutletWallThickness*n3
             for n1 in range(elementsCountAround):
-                radiansAround = n1*radiansPerElementAround
+                if (n3 == 1) and (n1 == 0):
+                    continue  # node is common with LV outlet
+                radiansAround = outletJoinRadians - math.pi + n1*radiansPerElementAround
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
-                x[0] = xCentre + radius*cosRadiansAround
-                x[1] = radius*sinRadiansAround
+                x[0] = rvOutletCentreX + radius*cosRadiansAround
+                x[1] = rvOutletCentreY + radius*sinRadiansAround
                 dx_ds1[0] = radiansPerElementAround*radius*-sinRadiansAround
                 dx_ds1[1] = radiansPerElementAround*radius*cosRadiansAround
                 node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
@@ -174,19 +225,206 @@ class MeshType_3d_heartventriclesbase1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                 nodeIdentifier += 1
 
+
+        # create nodes on top and bottom of supraventricular crest centre where it meets
+        # between nodes 141 and 130
+        radiansAround = outletJoinRadians - math.pi + 1.75*radiansPerElementAround
+        cosRadiansAround = math.cos(radiansAround)
+        sinRadiansAround = math.sin(radiansAround)
+        scale1 = 0.15
+        scale2 = 0.15
+        x = [
+            lvOutletCentreX + cosRadiansAround*(lvOutletRadius + lvOutletWallThickness + scale1),
+            lvOutletCentreY + sinRadiansAround*(lvOutletRadius + lvOutletWallThickness + scale1),
+            baseHeight
+        ]
+        dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
+        dx_ds2 = [ -cosRadiansAround*scale2, -sinRadiansAround*scale2, 0.0 ]
+        dx_ds3 = [ 0.0, 0.0, baseThickness ]
+        crest_nid1 = nodeIdentifier;
+        nodeIdentifier += 1
+        node = nodes.createNode(crest_nid1, nodetemplateFull)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        x[2] = baseHeight + baseThickness
+        crest_nid2 = nodeIdentifier;
+        nodeIdentifier += 1
+        node = nodes.createNode(crest_nid2, nodetemplateFull)
+        cache.setNode(node)
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+
+        #node1 = nodes.findNodeByIdentifier(141)
+        #cache.setNode(node1)
+        #result, x1 = coordinates.evaluateReal(cache, 3)
+        #node2 = nodes.findNodeByIdentifier(130)
+
         # create elements
-        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+
+        # triangle wedges on top of ventricular septum
+        # collapsed at xi2 = 1, angling in xi3 = 0 face
+        eftSeptumWedge = tricubichermite.createEftBasic()
+        eftSeptumWedge.setNumberOfLocalNodes(6)
+        setEftScaleFactorIds(eftSeptumWedge, [1], [])
+        for ln in [5, 6]:
+            n = ln - 1
+            # general map d/ds2 to get angle:
+            mapEftFunction1Node2Terms(eftSeptumWedge, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [], Node.VALUE_LABEL_D_DS3, 1, [1])
+        for ln in [3, 4]:
+            n = ln + 3
+            # shape value and d/ds1
+            eftSeptumWedge.setTermNodeParameter(n*8 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+            eftSeptumWedge.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+            # general map d/ds2 to get angle:
+            mapEftFunction1Node2Terms(eftSeptumWedge, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [], Node.VALUE_LABEL_D_DS3, 1, [1])
+            # zero d/dxi3
+            eftSeptumWedge.setFunctionNumberOfTerms(n*8 + 5, 0)
+        print('eftSeptumWedge.validate()', eftSeptumWedge.validate())
+        elementtemplateSeptumWedge = mesh.createElementtemplate()
+        elementtemplateSeptumWedge.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateSeptumWedge.defineField(coordinates, -1, eftSeptumWedge)
+
+        septumNids = [
+            [ 40, 41, 133, 134, 89, 90, 139, 140 ],
+            [ 41, 42, 134, 135, 90, 91, 140, 141 ],
+            [ 42, 43, 135, 136, 91, 92, 141, 142 ],
+            [ 43, 44, 136, 137, 92, 93, 142, 143 ]
+        ]
+        for i in range(4):
+            element = mesh.createElement(elementIdentifier, elementtemplateSeptumWedge)
+            nids = septumNids[i]
+            nodeIdentifiers1 = [ nids[0], nids[1], nids[6], nids[7], nids[4], nids[5] ]
+            result2 = element.setNodesByIdentifier(eftSeptumWedge, nodeIdentifiers1)
+            result3 = element.setScaleFactors(eftSeptumWedge, [-1])
+            print('create wedge element', elementIdentifier, result2, result3, nodeIdentifiers1)
+            elementIdentifier += 1
+
+
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        # transition to no derivatives at outlet
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 112, 113, 146, 147, 130, 131, 151, 152 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+
         if False:
-            no2 = (elementsCount1 + 1)
-            no3 = (elementsCount2 + 1)*no2
-            for e3 in range(elementsCount3):
-                for e2 in range(elementsCount2):
-                    for e1 in range(elementsCount1):
-                        element = mesh.createElement(elementIdentifier, elementtemplate)
-                        bni = e3*no3 + e2*no2 + e1 + 1
-                        nodeIdentifiers = [ bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1, bni + no2 + no3, bni + no2 + no3 + 1 ]
-                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        elementIdentifier += 1
+            eft1 = tricubichermite.createEftBasic()
+            setEftScaleFactorIds(eft1, [1], [])
+            mapEftFunction1Node1Term(eft1, 0*8 + 2, 1, Node.VALUE_LABEL_D_DS2, 1, [1])
+            mapEftFunction1Node1Term(eft1, 0*8 + 3, 1, Node.VALUE_LABEL_D_DS1, 1, [])
+            mapEftFunction1Node1Term(eft1, 1*8 + 2, 2, Node.VALUE_LABEL_D_DS2, 1, [1])
+            mapEftFunction1Node1Term(eft1, 4*8 + 2, 5, Node.VALUE_LABEL_D_DS2, 1, [1])
+            mapEftFunction1Node1Term(eft1, 4*8 + 3, 5, Node.VALUE_LABEL_D_DS1, 1, [])
+            mapEftFunction1Node1Term(eft1, 5*8 + 2, 6, Node.VALUE_LABEL_D_DS2, 1, [1])
+            # transition to no derivatives at outlet
+            tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+            tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            nodeIdentifiers1 = [ 156, 112, 146, 147, 157, 130, 151, 152 ]
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+            result3 = element.setScaleFactors(eft1, [-1.0])
+            print('create element', elementIdentifier, result2, result3, nodeIdentifiers1 )
+            elementIdentifier += 1
+
+            rvNids = [
+                [147, 148, 152, 153 ],
+                [148, 149, 153, 154 ]
+            ]
+
+            i = 0
+            for eid in [ 67, 68 ]:
+                origElement = mesh.findElementByIdentifier(eid)
+                origEft = origElement.getElementfieldtemplate(coordinates, -1)
+                origNodeIdentifiers = getElementNodeIdentifiers(origElement, origEft)
+                eft1 = origEft
+                setEftScaleFactorIds(eft1, [1], [])
+                # transition to no derivatives at outlet
+                tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+                tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+                elementtemplate1 = mesh.createElementtemplate()
+                elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                result = elementtemplate1.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                nids = rvNids[i]
+                nodeIdentifiers1 = [ origNodeIdentifiers[2], origNodeIdentifiers[3], nids[0], nids[1], origNodeIdentifiers[6], origNodeIdentifiers[7], nids[2], nids[3] ]
+                result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+                result3 = element.setScaleFactors(eft1, [-1.0])
+                print('create element', elementIdentifier, result2, result3, nodeIdentifiers1 )
+                elementIdentifier += 1
+                i += 1
+
+
+        rvNids = [
+            [147, 148, 152, 153 ],
+            [148, 149, 153, 154 ]
+        ]
+
+        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
+
+        i = -1
+        for eid in [ 68 ]:
+            i += 1
+            origElement = mesh.findElementByIdentifier(eid)
+            origEft = origElement.getElementfieldtemplate(coordinates, -1)
+            origNodeIdentifiers = getElementNodeIdentifiers(origElement, origEft)
+
+            eft1 = tricubichermite.createEftBasic()
+            eft2 = tricubichermite.createEftBasic()
+
+            # general scale factors 1 -> 1, 102 -> 1/2, 104 -> 1/4, 108 -> 1/8, 304 -> 3/4
+            setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+            setEftScaleFactorIds(eft2, [1, 102, 104, 108, 304], [])
+
+            tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
+            tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
+            tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+            tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+
+            tricubichermite.setEftMidsideXi1HangingNode(eft2, 1, 2, 1, 2, [1, 2, 3, 4, 5])
+            tricubichermite.setEftMidsideXi1HangingNode(eft2, 5, 6, 5, 6, [1, 2, 3, 4, 5])
+            tricubichermite.setEftLinearDerivativeXi3(eft2, 3, 7, 3, 7, 1)
+            tricubichermite.setEftLinearDerivativeXi3(eft2, 4, 8, 4, 8, 1)
+
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            nids = rvNids[i*2]
+            nodeIdentifiers1 = [ origNodeIdentifiers[2], origNodeIdentifiers[3], nids[0], nids[1], origNodeIdentifiers[6], origNodeIdentifiers[7], nids[2], nids[3] ]
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+            result3 = element.setScaleFactors(eft1, scalefactors5hanging)
+            print('create hanging element 1', elementIdentifier, result2, result3, nodeIdentifiers1, scalefactors5hanging)
+            elementIdentifier += 1
+
+            elementtemplate2 = mesh.createElementtemplate()
+            elementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate2.defineField(coordinates, -1, eft2)
+            element = mesh.createElement(elementIdentifier, elementtemplate2)
+            nids = rvNids[i*2 + 1]
+            nodeIdentifiers2 = [ origNodeIdentifiers[2], origNodeIdentifiers[3], nids[0], nids[1], origNodeIdentifiers[6], origNodeIdentifiers[7], nids[2], nids[3] ]
+            result2 = element.setNodesByIdentifier(eft2, nodeIdentifiers2)
+            result3 = element.setScaleFactors(eft2, scalefactors5hanging)
+            print('create hanging element 2', elementIdentifier, result2, result3, nodeIdentifiers2, scalefactors5hanging)
+            elementIdentifier += 1
+
 
         fm.endChange()
 

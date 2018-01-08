@@ -461,7 +461,7 @@ class MeshType_3d_heartventricles1:
                             # d/dxi2 is zero on right side, reversed on inner left side
                             eft1.setFunctionNumberOfTerms(1*8 + 3, 0)
                             eft1.setFunctionNumberOfTerms(3*8 + 3, 0)
-                            mapEftFunction1Node1Term(eft1, 0*8 + 3, 2, Node.VALUE_LABEL_D_DS2, 1, [1])
+                            mapEftFunction1Node1Term(eft1, 0*8 + 3, 1, Node.VALUE_LABEL_D_DS2, 1, [1])
                             # d/dxi3 = -d/dS2 on LV side
                             for ln in [1, 2, 5, 6]:
                                 n = ln - 1
