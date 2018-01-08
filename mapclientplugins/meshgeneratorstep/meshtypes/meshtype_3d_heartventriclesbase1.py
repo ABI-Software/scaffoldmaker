@@ -97,6 +97,7 @@ class MeshType_3d_heartventriclesbase1(object):
         :return: None
         """
         lvWallThickness = options['LV wall thickness']
+        lvWallThicknessRatioBase = options['LV wall thickness ratio base']
         baseHeight = options['Base height']
         baseThickness = options['Base thickness']
         lvOutletRadius = options['LV outlet inner diameter']*0.5
@@ -159,7 +160,7 @@ class MeshType_3d_heartventriclesbase1(object):
         outletJoinRadians = math.pi  # *0.8
         cosOutletJoinRadians = math.cos(outletJoinRadians)
         sinOutletJoinRadians = math.sin(outletJoinRadians)
-        lvOutletOffset = 0.5 - lvWallThickness - lvOutletRadius
+        lvOutletOffset = 0.5 - lvWallThickness*(1.0 - lvWallThicknessRatioBase) - lvOutletRadius - lvOutletWallThickness
         #lvOutletCentreX = cosOutletJoinRadians*lvOutletOffset
         #lvOutletCentreY = sinOutletJoinRadians*lvOutletOffset
         lvOutletCentreX = lvOutletOffset*math.cos(lvDisplacementRadians)
@@ -267,28 +268,39 @@ class MeshType_3d_heartventriclesbase1(object):
         # create elements
         elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
 
-        # triangle wedges on top of ventricular septum
-        # collapsed at xi2 = 1, angling in xi3 = 0 face
-        eftSeptumWedge = tricubichermite.createEftBasic()
-        eftSeptumWedge.setNumberOfLocalNodes(6)
-        setEftScaleFactorIds(eftSeptumWedge, [1], [])
-        for ln in [5, 6]:
-            n = ln - 1
-            # general map d/ds2 to get angle:
-            mapEftFunction1Node2Terms(eftSeptumWedge, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [], Node.VALUE_LABEL_D_DS3, 1, [1])
-        for ln in [3, 4]:
-            n = ln + 3
-            # shape value and d/ds1
-            eftSeptumWedge.setTermNodeParameter(n*8 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
-            eftSeptumWedge.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
-            # general map d/ds2 to get angle:
-            mapEftFunction1Node2Terms(eftSeptumWedge, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [], Node.VALUE_LABEL_D_DS3, 1, [1])
-            # zero d/dxi3
-            eftSeptumWedge.setFunctionNumberOfTerms(n*8 + 5, 0)
-        print('eftSeptumWedge.validate()', eftSeptumWedge.validate())
-        elementtemplateSeptumWedge = mesh.createElementtemplate()
-        elementtemplateSeptumWedge.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplateSeptumWedge.defineField(coordinates, -1, eftSeptumWedge)
+
+        eftLinearOutlet = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eftLinearOutlet, [1], [])
+        # transition to no derivatives at outlet
+        tricubichermite.setEftLinearDerivativeXi3(eftLinearOutlet, 3, 7, 3, 7, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eftLinearOutlet, 4, 8, 4, 8, 1)
+        elementtemplateLinearOutlet = mesh.createElementtemplate()
+        elementtemplateLinearOutlet.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateLinearOutlet.defineField(coordinates, -1, eftLinearOutlet)
+
+        if False:
+            # triangle wedges on top of ventricular septum
+            # collapsed at xi2 = 1, angling in xi3 = 0 face
+            eftSeptumWedge = tricubichermite.createEftBasic()
+            eftSeptumWedge.setNumberOfLocalNodes(6)
+            setEftScaleFactorIds(eftSeptumWedge, [1], [])
+            for ln in [5, 6]:
+                n = ln - 1
+                # general map d/ds2 to get angle:
+                mapEftFunction1Node2Terms(eftSeptumWedge, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [], Node.VALUE_LABEL_D_DS3, 1, [1])
+            for ln in [3, 4]:
+                n = ln + 3
+                # shape value and d/ds1
+                eftSeptumWedge.setTermNodeParameter(n*8 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+                eftSeptumWedge.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 1)
+                # general map d/ds2 to get angle:
+                mapEftFunction1Node2Terms(eftSeptumWedge, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [], Node.VALUE_LABEL_D_DS3, 1, [1])
+                # zero d/dxi3
+                eftSeptumWedge.setFunctionNumberOfTerms(n*8 + 5, 0)
+            print('eftSeptumWedge.validate()', eftSeptumWedge.validate())
+            elementtemplateSeptumWedge = mesh.createElementtemplate()
+            elementtemplateSeptumWedge.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplateSeptumWedge.defineField(coordinates, -1, eftSeptumWedge)
 
         septumNids = [
             [ 40, 41, 133, 134, 89, 90, 139, 140 ],
@@ -297,27 +309,17 @@ class MeshType_3d_heartventriclesbase1(object):
             [ 43, 44, 136, 137, 92, 93, 142, 143 ]
         ]
         for i in range(4):
-            element = mesh.createElement(elementIdentifier, elementtemplateSeptumWedge)
-            nids = septumNids[i]
-            nodeIdentifiers1 = [ nids[0], nids[1], nids[6], nids[7], nids[4], nids[5] ]
-            result2 = element.setNodesByIdentifier(eftSeptumWedge, nodeIdentifiers1)
-            result3 = element.setScaleFactors(eftSeptumWedge, [-1])
-            print('create wedge element', elementIdentifier, result2, result3, nodeIdentifiers1)
+            element = mesh.createElement(elementIdentifier, elementtemplateLinearOutlet)
+            result2 = element.setNodesByIdentifier(eftLinearOutlet, septumNids[i])
+            result3 = element.setScaleFactors(eftLinearOutlet, [-1])
+            print('create septum element', elementIdentifier, result2, result3, septumNids[i])
             elementIdentifier += 1
 
 
-        eft1 = tricubichermite.createEftBasic()
-        setEftScaleFactorIds(eft1, [1], [])
-        # transition to no derivatives at outlet
-        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
-        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
-        elementtemplate1 = mesh.createElementtemplate()
-        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate1.defineField(coordinates, -1, eft1)
-        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        element = mesh.createElement(elementIdentifier, elementtemplateLinearOutlet)
         nodeIdentifiers1 = [ 112, 113, 146, 147, 130, 131, 151, 152 ]
-        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
-        result3 = element.setScaleFactors(eft1, [-1.0])
+        result2 = element.setNodesByIdentifier(eftLinearOutlet, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eftLinearOutlet, [-1.0])
         print('create element', elementIdentifier, result2, result3, nodeIdentifiers1 )
         elementIdentifier += 1
 
