@@ -174,6 +174,7 @@ class MeshType_3d_heartventriclesbase1(object):
         dx_ds2 = [ 0.0, 0.0, outletElementLength ]
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
+        outletScale3 = 0.15
         for n3 in range(2):
             radius = lvOutletRadius + lvOutletWallThickness*n3
             for n1 in range(elementsCountAround):
@@ -184,15 +185,15 @@ class MeshType_3d_heartventriclesbase1(object):
                 x[1] = lvOutletCentreY + radius*sinRadiansAround
                 dx_ds1[0] = radiansPerElementAround*radius*-sinRadiansAround
                 dx_ds1[1] = radiansPerElementAround*radius*cosRadiansAround
-                nodetemplate = nodetemplateLinearS3 if (n3 == 0) else nodetemplateFull
+                nodetemplate = nodetemplateLinearS3 if ((n3 == 0) or (n1 == 3)) else nodetemplateFull
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                 if nodetemplate is nodetemplateFull:
-                    dx_ds3[0] = lvOutletWallThickness*cosRadiansAround
-                    dx_ds3[1] = lvOutletWallThickness*sinRadiansAround
+                    dx_ds3[0] = outletScale3*cosRadiansAround
+                    dx_ds3[1] = outletScale3*sinRadiansAround
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
 
@@ -229,36 +230,48 @@ class MeshType_3d_heartventriclesbase1(object):
 
         # create nodes on top and bottom of supraventricular crest centre where it meets
         # between nodes 141 and 130
-        radiansAround = outletJoinRadians - math.pi + 1.75*radiansPerElementAround
-        cosRadiansAround = math.cos(radiansAround)
-        sinRadiansAround = math.sin(radiansAround)
-        scale1 = 0.15
-        scale2 = 0.15
-        x = [
-            lvOutletCentreX + cosRadiansAround*(lvOutletRadius + lvOutletWallThickness + scale1),
-            lvOutletCentreY + sinRadiansAround*(lvOutletRadius + lvOutletWallThickness + scale1),
-            baseHeight
-        ]
-        dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
-        dx_ds2 = [ -cosRadiansAround*scale2, -sinRadiansAround*scale2, 0.0 ]
-        dx_ds3 = [ 0.0, 0.0, baseThickness ]
-        crest_nid1 = nodeIdentifier;
-        nodeIdentifier += 1
-        node = nodes.createNode(crest_nid1, nodetemplateFull)
-        cache.setNode(node)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-        x[2] = baseHeight + baseThickness
-        crest_nid2 = nodeIdentifier;
-        nodeIdentifier += 1
-        node = nodes.createNode(crest_nid2, nodetemplateFull)
-        cache.setNode(node)
-        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        for i in range(2):
+            radiansAround = outletJoinRadians - math.pi + (1.5 + 0.5*i)*radiansPerElementAround
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            scale1 = 0.15
+            distance = 0.15
+            if i == 0:
+                scale2 = 0.25
+            else:
+                scale2 = 0.1
+            x = [
+                lvOutletCentreX + cosRadiansAround*(lvOutletRadius + lvOutletWallThickness + distance),
+                lvOutletCentreY + sinRadiansAround*(lvOutletRadius + lvOutletWallThickness + distance),
+                baseHeight
+            ]
+            dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
+            dx_ds2 = [ -cosRadiansAround*scale2, -sinRadiansAround*scale2, 0.0 ]
+            dx_ds3 = [ 0.0, 0.0, baseThickness ]
+            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            if i == 1:
+                crest_nid1 = nodeIdentifier
+            else:
+                ra_nid1 = nodeIdentifier
+            nodeIdentifier += 1
+
+            x[2] = baseHeight + baseThickness
+            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+            cache.setNode(node)
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            if i == 1:
+                crest_nid2 = nodeIdentifier
+            else:
+                ra_nid2 = nodeIdentifier
+            nodeIdentifier += 1
 
         #node1 = nodes.findNodeByIdentifier(141)
         #cache.setNode(node1)
@@ -267,7 +280,6 @@ class MeshType_3d_heartventriclesbase1(object):
 
         # create elements
         elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
-
 
         eftLinearOutlet = tricubichermite.createEftBasic()
         setEftScaleFactorIds(eftLinearOutlet, [1], [])
@@ -315,12 +327,146 @@ class MeshType_3d_heartventriclesbase1(object):
             print('create septum element', elementIdentifier, result2, result3, septumNids[i])
             elementIdentifier += 1
 
+        # supraventricular crest at RA by RV free wall
+        eft1 = tricubichermite.createEftBasic()
+        eft1.setTermNodeParameter(0*8 + 3, 1, 1, Node.VALUE_LABEL_D_DS1, 1)
+        eft1.setTermNodeParameter(4*8 + 3, 1, 5, Node.VALUE_LABEL_D_DS1, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 111, 112, 156, 158, 129, 130, 157, 159 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        print('create element supra RA 1', elementIdentifier, result2, nodeIdentifiers1 )
+        elementIdentifier += 1
 
-        element = mesh.createElement(elementIdentifier, elementtemplateLinearOutlet)
-        nodeIdentifiers1 = [ 112, 113, 146, 147, 130, 131, 151, 152 ]
-        result2 = element.setNodesByIdentifier(eftLinearOutlet, nodeIdentifiers1)
-        result3 = element.setScaleFactors(eftLinearOutlet, [-1.0])
-        print('create element', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        # supraventricular crest at PO by RV free wall
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+        for ln in [4,8]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            #mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 112, 113, 158, 147, 130, 131, 159, 152 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra PO 1', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # supraventricular crest at RA by RV septum
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        for ln in [3, 4]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for ln in [7]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for ln in [8]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 156, 158, 90, 91, 157, 159, 140, 141 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra RA 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # supraventricular crest at PO by RV septum
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 2, 6, 2, 6, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+        for ln in [3]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for ln in [7]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for ln in [2,6]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        for ln in [4,8]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 158, 147, 91, 146, 159, 152, 141, 151 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra PO 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # supraventricular crest at PO-AO joiner
+        # This element has some penetraton when very thin. Possible adding a rake angle to septal elements will help
+        eft1 = tricubichermite.createEftBasic()
+        eft1.setNumberOfLocalNodes(7)
+        setEftScaleFactorIds(eft1, [1], [])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 2, 6, 2, 6, 1)
+        #tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 7, 4, 7, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 7, 1)
+        for ln in [1]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        #print('eft1.validate() 1', eft1.validate())
+        for ln in [3]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            #eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        #print('eft1.validate() 2', eft1.validate())
+        for ln in [2, 4, 6]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        for ln in [5]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        #print('eft1.validate() 3', eft1.validate())
+        for n in [6, 7]:
+            ln = 7  # collapse on one edge
+            mapEftFunction1Node1Term(eft1, n*8 + 1, ln, Node.VALUE_LABEL_VALUE, 1, [])
+            eft1.setFunctionNumberOfTerms(n*8 + 2, 0)
+            #eft1.setFunctionNumberOfTerms(n*8 + 3, 0)
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+            #eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        for n in [6]:
+            ln = 7  # collapse on one edge
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            #eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        print('eft1.validate() 4', eft1.validate())
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 91, 146, 92, 145, 141, 151, 142 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra PO AO 3', elementIdentifier, result2, result3, nodeIdentifiers1 )
         elementIdentifier += 1
 
 
