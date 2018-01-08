@@ -37,3 +37,16 @@ def setEftScaleFactorIds(eft, generalScaleFactorIds, nodeScaleFactorIds):
         eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
         eft.setScaleFactorIdentifier(s, id)
         s += 1
+
+def remapEftLocalNodes(eft, newNodeCount, localNodeIndexes):
+    '''
+    Remaps current local nodes to the new local ids, changing number of local nodes.
+    Assumes node parameters are in use.
+    :param localNodeIds: new local node identifiers starting at 1 for each current local node id - 1 referenced.
+    '''
+    functionCount = eft.getNumberOfFunctions()
+    for f in range(1, functionCount + 1):
+        termCount = eft.getFunctionNumberOfTerms(f)
+        for t in range(1, termCount + 1):
+            eft.setTermNodeParameter(f, t, localNodeIndexes[eft.getTermLocalNodeIndex(f, t) - 1], eft.getTermNodeValueLabel(f, t), eft.getTermNodeVersion(f, t))
+    eft.setNumberOfLocalNodes(newNodeCount)

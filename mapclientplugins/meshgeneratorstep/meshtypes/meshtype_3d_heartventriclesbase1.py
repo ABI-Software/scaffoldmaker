@@ -273,13 +273,116 @@ class MeshType_3d_heartventriclesbase1(object):
                 ra_nid2 = nodeIdentifier
             nodeIdentifier += 1
 
-        #node1 = nodes.findNodeByIdentifier(141)
-        #cache.setNode(node1)
-        #result, x1 = coordinates.evaluateReal(cache, 3)
-        #node2 = nodes.findNodeByIdentifier(130)
+        # place nodes below RV outlet nodes 143, 144
+        for nid in [143, 144]:
+            node1 = nodes.findNodeByIdentifier(nid)
+            cache.setNode(node1)
+            result, x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            result, dx_ds2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+            x[2] -= baseThickness
+            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+            nodeIdentifier += 1
+            cache.setNode(node)
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+
+        # create extra nodes on LV 'crest' and edge of RA
+        for i in range(2):
+            radiansAround = math.pi*(1.4 - 0.2*i)
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            scale1 = 0.25
+            distance = 0.17 + 0.08*i
+            scale2 = 0.25
+            x = [ cosRadiansAround*distance, sinRadiansAround*distance, baseHeight ]
+            dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
+            dx_ds2 = [ -cosRadiansAround*scale2, -sinRadiansAround*scale2, 0.0 ]
+            dx_ds3 = [ 0.0, 0.0, baseThickness ]
+            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            nodeIdentifier += 1
+
+            x[2] = baseHeight + baseThickness
+            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+            cache.setNode(node)
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            nodeIdentifier += 1
+
 
         # create elements
         elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+
+        # crux of the heart - collapsed on 1 side, and partially on the other
+        eft1 = tricubichermite.createEftBasic()
+        ln_map = [ 1, 2, 1, 3, 4, 5, 1, 6 ]
+        remapEftLocalNodes(eft1, 6, ln_map)
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [0, 2, 4]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 3, 0)
+        for n in [2]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        for n in [4, 6]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+        for n in [2, 6]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 3, 6, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 39, 40, 133, 88, 89, 139 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element crux', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # Mitral - Aorta separator, collapsed on one end and one side
+        eft1 = tricubichermite.createEftBasic()
+        ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
+        remapEftLocalNodes(eft1, 6, ln_map)
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [3, 7]:
+            ln = ln_map[n]
+            #eft1.setFunctionNumberOfTerms(n*8 + 3, 0)
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+        for n in [0, 1, 4, 5]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        for n in [1, 5]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+        for n in [0]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 5, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 6, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 161, 39, 138, 133, 144, 139 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element Mitral - Aorta separator', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+
 
         eftLinearOutlet = tricubichermite.createEftBasic()
         setEftScaleFactorIds(eftLinearOutlet, [1], [])
