@@ -279,8 +279,10 @@ class MeshType_3d_heartventriclesbase1(object):
             cache.setNode(node1)
             result, x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
             result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-            result, dx_ds2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            dx_ds2 = [ 0.0, 0.0, baseThickness ]
             result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+            for c in range(3):
+                dx_ds3[c] *= lvOutletWallThickness/outletScale3
             x[2] -= baseThickness
             node = nodes.createNode(nodeIdentifier, nodetemplateFull)
             nodeIdentifier += 1
@@ -292,11 +294,11 @@ class MeshType_3d_heartventriclesbase1(object):
 
         # create extra nodes on LV 'crest' and edge of RA
         for i in range(2):
-            radiansAround = math.pi*(1.4 - 0.2*i)
+            radiansAround = math.pi*(1.45 - 0.2*i)
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
             scale1 = 0.25
-            distance = 0.17 + 0.08*i
+            distance = 0.16 + 0.08*i
             scale2 = 0.25
             x = [ cosRadiansAround*distance, sinRadiansAround*distance, baseHeight ]
             dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
@@ -675,6 +677,156 @@ class MeshType_3d_heartventriclesbase1(object):
             result3 = element.setScaleFactors(eft2, scalefactors5hanging)
             print('create hanging element 2', elementIdentifier, result2, result3, nodeIdentifiers2, scalefactors5hanging)
             elementIdentifier += 1
+
+        # PO segment on RV free wall h element
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        for ln in [2]:
+            n = ln - 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+        for ln in [ 6]:
+            n = ln - 1
+            #mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 114, 93, 149, 150, 132, 94, 154, 155 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element PO 5', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # Last PO segment on LV/AO side
+        eft1 = tricubichermite.createEftBasic()
+        ln_map = [ 1, 2, 3, 4, 5, 6, 7, 6 ]
+        remapEftLocalNodes(eft1, 7, ln_map)
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [0, 1, 4, 5]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for n in [0, 1, 4, 5, 7]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        for n in [4]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        for n in [5, 7]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 3, 0)
+        for n in [5]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 6, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 93, 92, 150, 145, 143, 142, 155 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element PO 6', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # LV/RV junction 1: element collapsed on 3 edges
+        eft1 = tricubichermite.createEftBasic()
+        ln_map = [ 1, 1, 2, 2, 3, 4, 5, 5 ]
+        remapEftLocalNodes(eft1, 5, ln_map)
+        setEftScaleFactorIds(eft1, [1, 2], [])
+        for n in [0, 1, 2, 3, 6, 7]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 2, 0)
+        for n in [0]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+        for n in [1]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for n in [4]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            #mapEftFunction1Node2Terms(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS1, 1, [], Node.VALUE_LABEL_D_DS2, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+            # cross derivative to reduce bulge:
+            mapEftFunction1Node2Terms(eft1, n*8 + 4, ln, Node.VALUE_LABEL_D_DS1, 1, [2], Node.VALUE_LABEL_D_DS2, 1, [1, 2])
+        for n in [5]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 2, 5, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 2, 5, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 93, 150, 94, 143, 155 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0, 4.0])
+        print('create element LV/RV junction 1', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # LV/RV junction 2: element collapsed on 1 edge
+        # This needs work - non positive jacobian
+        eft1 = tricubichermite.createEftBasic()
+        ln_map = [ 1, 2, 3, 4, 5, 6, 7, 7 ]
+        remapEftLocalNodes(eft1, 7, ln_map)
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [2]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [1])
+        for n in [3]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for n in [6, 7]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 2, 0)
+        for n in [6]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for n in [7]:
+            ln = ln_map[n]
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 44, 45, 137, 160, 93, 94, 143 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element LV/RV junction 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # AO 5
+        eft1 = tricubichermite.createEftBasic()
+        ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
+        remapEftLocalNodes(eft1, 6, ln_map)
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [0, 1]:
+            ln = ln_map[n]
+            eft1.setFunctionNumberOfTerms(n*8 + 5, 0)
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 5, 1)
+        tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 6, 1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 160, 161, 137, 138, 143, 144 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element LV/RV junction 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
 
 
         fm.endChange()
