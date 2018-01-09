@@ -294,15 +294,11 @@ class MeshType_3d_heartventriclesbase1(object):
 
         # create extra nodes on LV 'crest' and edge of RA
         for i in range(2):
-            radiansAround = math.pi*(1.45 - 0.2*i)
-            cosRadiansAround = math.cos(radiansAround)
-            sinRadiansAround = math.sin(radiansAround)
-            scale1 = 0.25
-            distance = 0.16 + 0.08*i
-            scale2 = 0.25
-            x = [ cosRadiansAround*distance, sinRadiansAround*distance, baseHeight ]
-            dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
-            dx_ds2 = [ -cosRadiansAround*scale2, -sinRadiansAround*scale2, 0.0 ]
+            scale1 = 0.08
+            scale2 = 0.2
+            x = [ -0.06 - scale1*i, -0.16, baseHeight ]
+            dx_ds1 = [ scale1, 0.0, 0.0 ]
+            dx_ds2 = [ 0.0, scale2, 0.0 ]
             dx_ds3 = [ 0.0, 0.0, baseThickness ]
             node = nodes.createNode(nodeIdentifier, nodetemplateFull)
             cache.setNode(node)
@@ -827,7 +823,66 @@ class MeshType_3d_heartventriclesbase1(object):
         print('create element LV/RV junction 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
         elementIdentifier += 1
 
+        # LV supraventricular crest at LA by LV free wall
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [1, 5]:
+            ln = n + 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 46, 47, 164, 162, 95, 96, 165, 163 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra LA 1', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
 
+        # LV supraventricular crest at LA by LV septum 2
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [2, 3, 6, 7]:
+            ln = n + 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for n in [2, 6]:
+            ln = n + 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+        for n in [3, 7]:
+            ln = n + 1
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 164, 162, 160, 161, 165, 163, 143, 144 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra LA 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
+
+        # LV supraventricular crest at LA by LV septum 3
+        eft1 = tricubichermite.createEftBasic()
+        setEftScaleFactorIds(eft1, [1], [])
+        for n in [2, 6]:
+            ln = n + 1
+            #mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+        for n in [3, 7]:
+            ln = n + 1
+            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [1])
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
+        element = mesh.createElement(elementIdentifier, elementtemplate1)
+        nodeIdentifiers1 = [ 45, 46, 160, 164, 94, 95, 143, 165 ]
+        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+        result3 = element.setScaleFactors(eft1, [-1.0])
+        print('create element supra LA 3', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        elementIdentifier += 1
 
         fm.endChange()
 
