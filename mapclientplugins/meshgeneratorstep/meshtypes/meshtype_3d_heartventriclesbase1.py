@@ -23,33 +23,35 @@ class MeshType_3d_heartventriclesbase1(object):
 
     @staticmethod
     def getDefaultOptions():
-        return {
-            'LV wall thickness' : 0.15,
-            'LV wall thickness ratio apex' : 0.5,
-            'LV wall thickness ratio base': 0.5,
-            'RV free wall thickness' : 0.05,
-            'RV width' : 0.15,
-            'Length ratio' : 2.0,
-            'Element length ratio equator/apex' : 1.0,
-            'Base height' : 0.1,
-            'Base thickness' : 0.05,
-            'LV outlet inner diameter' : 0.25,
-            'LV outlet wall thickness' : 0.02,
-            'RV outlet inner diameter' : 0.25,
-            'RV outlet wall thickness' : 0.02,
-            'Outlet element length' : 0.1
-        }
+        options = MeshType_3d_heartventricles1.getDefaultOptions()
+        # only works with particular numbers of elements
+        options['Number of elements up'] = 4
+        options['Number of elements around'] = 12
+        options['Number of elements across septum'] = 5
+        options['Number of elements below septum'] = 2
+        options['Number of elements through LV wall'] = 1
+        # additional options
+        options['Base height'] = 0.1
+        options['Base thickness'] = 0.05
+        options['LV outlet inner diameter'] = 0.25
+        options['LV outlet wall thickness'] = 0.02
+        options['RV outlet wall thickness'] = 0.25
+        options['RV outlet wall thickness'] = 0.02
+        options['Outlet element length'] = 0.1
+        return options
 
     @staticmethod
     def getOrderedOptionNames():
-        return [
-            'LV wall thickness',
-            'LV wall thickness ratio apex',
-            'LV wall thickness ratio base',
-            'RV free wall thickness',
-            'RV width',
-            'Length ratio',
-            'Element length ratio equator/apex',
+        optionNames = MeshType_3d_heartventricles1.getOrderedOptionNames()
+        # do not allow numbers of elements to be edited
+        for hiddenOptionName in [
+            'Number of elements up',
+            'Number of elements around',
+            'Number of elements across septum',
+            'Number of elements below septum',
+            'Number of elements through LV wall']:
+            optionNames.remove(hiddenOptionName)
+        optionNames += [
             'Base height',
             'Base thickness',
             'LV outlet inner diameter',
@@ -58,25 +60,11 @@ class MeshType_3d_heartventriclesbase1(object):
             'RV outlet wall thickness',
             'Outlet element length'
         ]
+        return optionNames
 
     @staticmethod
     def checkOptions(options):
-        if options['LV wall thickness'] < 0.0:
-            options['LV wall thickness'] = 0.0
-        elif options['LV wall thickness'] > 0.5:
-            options['LV wall thickness'] = 0.5
-        if options['LV wall thickness ratio apex'] < 0.0:
-            options['LV wall thickness ratio apex'] = 0.0
-        if options['LV wall thickness ratio base'] < 0.0:
-            options['LV wall thickness ratio base'] = 0.0
-        if options['RV free wall thickness'] < 0.0:
-            options['RV free wall thickness'] = 0.0
-        if options['RV width'] < 0.0:
-            options['RV width'] = 0.0
-        if options['Length ratio'] < 1.0E-6:
-            options['Length ratio'] = 1.0E-6
-        if options['Element length ratio equator/apex'] < 1.0E-6:
-            options['Element length ratio equator/apex'] = 1.0E-6
+        MeshType_3d_heartventricles1.checkOptions(options)
         for key in options:
             if key in [
                 'Base height',
@@ -108,17 +96,7 @@ class MeshType_3d_heartventriclesbase1(object):
         useCrossDerivatives = False
 
         # generate default heart ventricles model to add base plane to
-        heartVentriclesOptions = MeshType_3d_heartventricles1.getDefaultOptions()
-        for key in [
-            'LV wall thickness',
-            'LV wall thickness ratio apex',
-            'LV wall thickness ratio base',
-            'RV free wall thickness',
-            'RV width',
-            'Length ratio',
-            'Element length ratio equator/apex']:
-            heartVentriclesOptions[key] = options[key]
-        MeshType_3d_heartventricles1.generateMesh(region, heartVentriclesOptions)
+        MeshType_3d_heartventricles1.generateMesh(region, options)
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -292,21 +270,22 @@ class MeshType_3d_heartventriclesbase1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
 
-        # create extra nodes on LV 'crest' and edge of RA
-        for i in range(2):
-            scale1 = 0.08
-            scale2 = 0.2
-            x = [ -0.06 - scale1*i, -0.16, baseHeight ]
-            dx_ds1 = [ scale1, 0.0, 0.0 ]
-            dx_ds2 = [ 0.0, scale2, 0.0 ]
-            dx_ds3 = [ 0.0, 0.0, baseThickness ]
-            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-            nodeIdentifier += 1
+        if False:
+            # create extra nodes on LV 'crest' and edge of RA
+            for i in range(2):
+                scale1 = 0.08
+                scale2 = 0.2
+                x = [ -0.06 - scale1*i, -0.16, baseHeight ]
+                dx_ds1 = [ scale1, 0.0, 0.0 ]
+                dx_ds2 = [ 0.0, scale2, 0.0 ]
+                dx_ds3 = [ 0.0, 0.0, baseThickness ]
+                node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                nodeIdentifier += 1
 
             x[2] = baseHeight + baseThickness
             node = nodes.createNode(nodeIdentifier, nodetemplateFull)
@@ -823,33 +802,78 @@ class MeshType_3d_heartventriclesbase1(object):
         print('create element LV/RV junction 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
         elementIdentifier += 1
 
-        # LV supraventricular crest at LA by LV free wall
+        if False:
+            # LV supraventricular crest at LA by LV free wall
+            eft1 = tricubichermite.createEftBasic()
+            setEftScaleFactorIds(eft1, [1], [])
+            for n in [1, 5]:
+                ln = n + 1
+                mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+                mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            nodeIdentifiers1 = [ 46, 47, 164, 162, 95, 96, 165, 163 ]
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+            result3 = element.setScaleFactors(eft1, [-1.0])
+            print('create element supra LA 1', elementIdentifier, result2, result3, nodeIdentifiers1 )
+            elementIdentifier += 1
+
+            # LV supraventricular crest at LA by LV septum 2
+            eft1 = tricubichermite.createEftBasic()
+            setEftScaleFactorIds(eft1, [1], [])
+            for n in [2, 3, 6, 7]:
+                ln = n + 1
+                mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+                mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            for n in [2, 6]:
+                ln = n + 1
+                mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+            for n in [3, 7]:
+                ln = n + 1
+                mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            nodeIdentifiers1 = [ 164, 162, 160, 161, 165, 163, 143, 144 ]
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+            result3 = element.setScaleFactors(eft1, [-1.0])
+            print('create element supra LA 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+            elementIdentifier += 1
+
+            # LV supraventricular crest at LA by LV septum 3
+            eft1 = tricubichermite.createEftBasic()
+            setEftScaleFactorIds(eft1, [1], [])
+            for n in [2, 6]:
+                ln = n + 1
+                #mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+                mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
+                mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
+            for n in [3, 7]:
+                ln = n + 1
+                mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [1])
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            nodeIdentifiers1 = [ 45, 46, 160, 164, 94, 95, 143, 165 ]
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
+            result3 = element.setScaleFactors(eft1, [-1.0])
+            print('create element supra LA 3', elementIdentifier, result2, result3, nodeIdentifiers1 )
+            elementIdentifier += 1
+
+        # LV free wall to AO
         eft1 = tricubichermite.createEftBasic()
         setEftScaleFactorIds(eft1, [1], [])
         for n in [1, 5]:
             ln = n + 1
             mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
-            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
-        elementtemplate1 = mesh.createElementtemplate()
-        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate1.defineField(coordinates, -1, eft1)
-        element = mesh.createElement(elementIdentifier, elementtemplate1)
-        nodeIdentifiers1 = [ 46, 47, 164, 162, 95, 96, 165, 163 ]
-        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
-        result3 = element.setScaleFactors(eft1, [-1.0])
-        print('create element supra LA 1', elementIdentifier, result2, result3, nodeIdentifiers1 )
-        elementIdentifier += 1
-
-        # LV supraventricular crest at LA by LV septum 2
-        eft1 = tricubichermite.createEftBasic()
-        setEftScaleFactorIds(eft1, [1], [])
         for n in [2, 3, 6, 7]:
             ln = n + 1
             mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
             mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
-        for n in [2, 6]:
-            ln = n + 1
-            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
         for n in [3, 7]:
             ln = n + 1
             mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS1, 1, [])
@@ -857,32 +881,13 @@ class MeshType_3d_heartventriclesbase1(object):
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplate1.defineField(coordinates, -1, eft1)
         element = mesh.createElement(elementIdentifier, elementtemplate1)
-        nodeIdentifiers1 = [ 164, 162, 160, 161, 165, 163, 143, 144 ]
+        nodeIdentifiers1 = [ 45, 46, 160, 161, 94, 95, 143, 144 ]
         result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
         result3 = element.setScaleFactors(eft1, [-1.0])
-        print('create element supra LA 2', elementIdentifier, result2, result3, nodeIdentifiers1 )
+        print('create element LV free wall to AO', elementIdentifier, result2, result3, nodeIdentifiers1 )
         elementIdentifier += 1
 
-        # LV supraventricular crest at LA by LV septum 3
-        eft1 = tricubichermite.createEftBasic()
-        setEftScaleFactorIds(eft1, [1], [])
-        for n in [2, 6]:
-            ln = n + 1
-            #mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
-            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS3, 1, [1])
-            mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS2, 1, [])
-        for n in [3, 7]:
-            ln = n + 1
-            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS2, 1, [1])
-        elementtemplate1 = mesh.createElementtemplate()
-        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate1.defineField(coordinates, -1, eft1)
-        element = mesh.createElement(elementIdentifier, elementtemplate1)
-        nodeIdentifiers1 = [ 45, 46, 160, 164, 94, 95, 143, 165 ]
-        result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers1)
-        result3 = element.setScaleFactors(eft1, [-1.0])
-        print('create element supra LA 3', elementIdentifier, result2, result3, nodeIdentifiers1 )
-        elementIdentifier += 1
+
 
         fm.endChange()
 

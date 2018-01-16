@@ -29,11 +29,14 @@ class MeshType_3d_heartventricles1:
             'Number of elements through LV wall' : 1,
             'LV wall thickness' : 0.15,
             'LV wall thickness ratio apex' : 0.5,
-            'LV wall thickness ratio base': 0.5,
+            'LV wall thickness ratio base': 0.75,
+            'LV base flatten ratio': 0.75,
+            'LV base flatten angle degrees': 0.0,
             'RV free wall thickness' : 0.05,
             'RV width' : 0.15,
             'Length ratio' : 2.0,
             'Element length ratio equator/apex' : 1.0,
+            'Septum arc angle degrees' : 130.0,
             'Use cross derivatives' : False
         }
 
@@ -48,10 +51,13 @@ class MeshType_3d_heartventricles1:
             'LV wall thickness',
             'LV wall thickness ratio apex',
             'LV wall thickness ratio base',
+            'LV base flatten ratio',
+            'LV base flatten angle degrees',
             'RV free wall thickness',
             'RV width',
             'Length ratio',
-            'Element length ratio equator/apex'
+            'Element length ratio equator/apex',
+            'Septum arc angle degrees'
         ]
 
     @staticmethod
@@ -78,6 +84,8 @@ class MeshType_3d_heartventricles1:
             options['LV wall thickness ratio apex'] = 0.0
         if options['LV wall thickness ratio base'] < 0.0:
             options['LV wall thickness ratio base'] = 0.0
+        if options['LV base flatten ratio'] < 0.0:
+            options['LV base flatten ratio'] = 0.0
         if options['RV free wall thickness'] < 0.0:
             options['RV free wall thickness'] = 0.0
         if options['RV width'] < 0.0:
@@ -86,6 +94,10 @@ class MeshType_3d_heartventricles1:
             options['Length ratio'] = 1.0E-6
         if options['Element length ratio equator/apex'] < 1.0E-6:
             options['Element length ratio equator/apex'] = 1.0E-6
+        if options['Septum arc angle degrees'] < 45.0:
+            options['Septum arc angle degrees'] = 45.0
+        elif options['Septum arc angle degrees'] > 270.0:
+            options['Septum arc angle degrees'] = 270.0
 
     @staticmethod
     def generateMesh(region, options):
@@ -102,8 +114,13 @@ class MeshType_3d_heartventricles1:
         LVWallThickness = options['LV wall thickness']
         LVWallThicknessRatioApex = options['LV wall thickness ratio apex']
         LVWallThicknessRatioBase = options['LV wall thickness ratio base']
+        LVBaseFlattenRatio = options['LV base flatten ratio']
+        LVBaseFlattenAngleRadians = options['LV base flatten angle degrees']*math.pi/180.0
+
+        lengthRatio = options['Length ratio']
         RVWidthTop = options['RV width']
         RVFreeWallThickness = options['RV free wall thickness']
+        septumArcAngleRadians = options['Septum arc angle degrees']*math.pi/180.0
         useCrossDerivatives = options['Use cross derivatives']
 
         # generate a half sphere shell which will be edited
@@ -114,7 +131,7 @@ class MeshType_3d_heartventricles1:
         sphereShellOptions['Exclude top rows'] = elementsCountUp
         sphereShellOptions['Wall thickness'] = LVWallThickness
         sphereShellOptions['Wall thickness ratio apex'] = LVWallThicknessRatioApex
-        sphereShellOptions['Length ratio'] = options['Length ratio']
+        sphereShellOptions['Length ratio'] = lengthRatio
         sphereShellOptions['Element length ratio equator/apex'] = options['Element length ratio equator/apex']
         MeshType_3d_sphereshell1.generateMesh(region, sphereShellOptions)
 
@@ -134,6 +151,73 @@ class MeshType_3d_heartventricles1:
         mesh = fm.findMeshByDimension(3)
 
         cache = fm.createFieldcache()
+
+        nor = elementsCountAround
+        now = 1 + elementsCountUp*nor
+
+        # Resize elements around LV to get desired septum arc angle
+        radiansPerElementOrig = 2.0*math.pi/elementsCountAround
+        radiansPerElementSeptum = septumArcAngleRadians/elementsCountAcrossSeptum
+        # want LV-RV 'transition' elements to be mean size of Septum and LV FreeWall elements
+        radiansRemaining = 2.0*math.pi - septumArcAngleRadians
+        elementsCountAroundLVFreeWall = elementsCountAround - elementsCountAcrossSeptum - 2
+        radiansPerElementLVFreeWall = (radiansRemaining - radiansPerElementSeptum) / (elementsCountAroundLVFreeWall + 1)
+        radiansPerElementTransition = 0.5*(radiansPerElementSeptum + radiansPerElementLVFreeWall)
+        #print('Element size ratio LVFreeWall / Septum', radiansPerElementLVFreeWall/radiansPerElementSeptum)
+        xyz_scale = fm.createFieldConstant([1.0, 1.0, lengthRatio/2.0 - LVWallThickness*LVWallThicknessRatioApex])
+        coordinates_scale = fm.createFieldMultiply(coordinates, xyz_scale)
+        sp = fm.createFieldCoordinateTransformation(coordinates_scale)
+        sp.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_SPHERICAL_POLAR)
+        r = fm.createFieldComponent(sp, 1)
+        theta = fm.createFieldComponent(sp, 2)
+        phi = fm.createFieldComponent(sp, 3)
+        zero = fm.createFieldConstant([0.0])
+        one = fm.createFieldConstant([1.0])  # also used as 'true'
+        two_pi = fm.createFieldConstant([2.0*math.pi])
+        radians_per_element_orig = fm.createFieldConstant([radiansPerElementOrig])
+        half_radians_per_element_orig = fm.createFieldConstant([0.5*radiansPerElementOrig])
+        radians_per_element_transition = fm.createFieldConstant([radiansPerElementTransition])
+
+        theta_continuous = fm.createFieldIf(fm.createFieldLessThan(theta, half_radians_per_element_orig), fm.createFieldAdd(theta, two_pi), theta)
+        theta_offset = fm.createFieldSubtract(theta_continuous, radians_per_element_orig)
+        theta_offset_septum_start = fm.createFieldConstant([-0.5*radiansPerElementOrig])
+        theta_offset_septum_end = fm.createFieldConstant([(elementsCountAcrossSeptum + 0.5)*radiansPerElementOrig])
+        in_septum = fm.createFieldAnd(fm.createFieldGreaterThan(theta_offset, theta_offset_septum_start), fm.createFieldLessThan(theta_offset, theta_offset_septum_end))
+        septum_scale = fm.createFieldConstant([radiansPerElementSeptum/radiansPerElementOrig])
+        thetaNewSeptumStart = radiansPerElementOrig + (radiansPerElementOrig - radiansPerElementSeptum)*elementsCountAcrossSeptum/2.0
+        theta_new_septum_start = fm.createFieldConstant([thetaNewSeptumStart])
+        theta_new_septum = fm.createFieldAdd(fm.createFieldMultiply(theta_offset, septum_scale), theta_new_septum_start)
+        lvfreewall_scale = fm.createFieldConstant([radiansPerElementLVFreeWall/radiansPerElementOrig])
+        theta_offset_lvfreewall_start = fm.createFieldConstant([radiansPerElementOrig*(elementsCountAcrossSeptum + 1.0)])
+        theta_new_lvfreewall_start = fm.createFieldConstant([thetaNewSeptumStart + septumArcAngleRadians + radiansPerElementTransition])
+        theta_new_lvfreewall = fm.createFieldAdd(
+            fm.createFieldMultiply(fm.createFieldSubtract(theta_offset, theta_offset_lvfreewall_start), lvfreewall_scale),
+            theta_new_lvfreewall_start)
+        theta_new = fm.createFieldIf(in_septum, theta_new_septum, theta_new_lvfreewall)
+
+        sp_new = fm.createFieldConcatenate([r, theta_new, phi])
+        sp_new.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_SPHERICAL_POLAR)
+        coordinates_new_scale = fm.createFieldCoordinateTransformation(sp_new)
+        coordinates_new_scale.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+        coordinates_new = fm.createFieldDivide(coordinates_new_scale, xyz_scale)
+        nonApexNodesetGroupField = fm.createFieldNodeGroup(nodes)
+        nonApexNodesetGroup = nonApexNodesetGroupField.getNodesetGroup()
+        nonApexNodesetGroup.addNodesConditional(one)  # add all
+        # remove apex nodes:
+        for i in range(elementsCountThroughLVWall + 1):
+            node = nodes.findNodeByIdentifier(i*now + 1)
+            nonApexNodesetGroup.removeNode(node)
+        fieldassignment = coordinates.createFieldassignment(coordinates_new)
+        fieldassignment.setNodeset(nonApexNodesetGroup)
+        fieldassignment.assign()
+
+        baseNodesetGroup = None
+        baseNodeGroupField = fm.createFieldNodeGroup(nodes)
+        z = fm.createFieldComponent(coordinates, 3)
+        is_base = fm.createFieldGreaterThan(z, fm.createFieldConstant([-0.0001]))
+        baseNodesetGroup = baseNodeGroupField.getNodesetGroup()
+        baseNodesetGroup.addNodesConditional(is_base)
+        #print('baseNodesetGroup.getSize()', baseNodesetGroup.getSize())
 
         if LVWallThicknessRatioBase != 1.0:
             # make LV walls thinner at base
@@ -163,16 +247,65 @@ class MeshType_3d_heartventricles1:
             new_coordinates = fm.createFieldCoordinateTransformation(new_cp_coordinates)
             new_coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
 
-            baseNodeGroupField = fm.createFieldNodeGroup(nodes)
-            just_under_zero = fm.createFieldConstant([-0.0001])
-            isBase = fm.createFieldGreaterThan(z, just_under_zero)
-            baseNodesetGroup = baseNodeGroupField.getNodesetGroup()
-            baseNodesetGroup.addNodesConditional(isBase)
-            #print('baseNodesetGroup.getSize()', baseNodesetGroup.getSize())
             fieldassignment = coordinates.createFieldassignment(new_coordinates)
             result = fieldassignment.setNodeset(baseNodesetGroup)
-            #print('fieldassignment.setNodeset', result)
             fieldassignment.assign()
+
+        if LVBaseFlattenRatio != 1.0:
+            # flatten LV normal to mid-RV-aorta-mitral axis
+            septumCentreRadians = (1.0 + elementsCountAcrossSeptum/2.0)*radiansPerElementOrig
+            flattenAxisRadians = septumCentreRadians + LVBaseFlattenAngleRadians - 0.5*math.pi
+
+            half = fm.createFieldConstant([0.5])
+            minus_one = fm.createFieldConstant([-1.0])
+            minus_two = fm.createFieldConstant([-2.0])
+
+            beta_base = fm.createFieldConstant([1.0 - LVBaseFlattenRatio])
+            z = fm.createFieldComponent(coordinates, 3)
+            z2 = fm.createFieldMultiply(z, z)
+            zero_dist_node = nodes.findNodeByIdentifier(now - nor)
+            cache.setNode(zero_dist_node)
+            result, z_zero_dist_value = z.evaluateReal(cache, 1)
+            #print('zero dist', result, z_zero_dist_value)
+            z_zerodist = fm.createFieldConstant([z_zero_dist_value])
+            z_zerodist2 = fm.createFieldMultiply(z_zerodist, z_zerodist)
+            z_a = fm.createFieldDivide(one, z_zerodist2)
+            z_b = fm.createFieldDivide(minus_two, z_zerodist)
+            zfact = fm.createFieldAdd(fm.createFieldAdd(fm.createFieldMultiply(z_a, z2), fm.createFieldMultiply(z_b, z)), one)
+            beta = fm.createFieldMultiply(zfact, beta_base)  # 1 - squash factor
+            alpha = fm.createFieldSubtract(one, beta)  # z-dependent squash factor
+
+            psi = fm.createFieldConstant([flattenAxisRadians])
+            ri = fm.createFieldConstant([0.5 - LVWallThickness])
+            theta_minus_psi = fm.createFieldSubtract(theta, psi)
+            cos_theta_minus_psi = fm.createFieldCos(theta_minus_psi)
+            sin_theta_minus_psi = fm.createFieldSin(theta_minus_psi)
+            r_minus_ri = fm.createFieldSubtract(r, ri)
+
+            rf = fm.createFieldAdd(fm.createFieldMultiply(alpha, r), fm.createFieldMultiply(beta, r_minus_ri))
+            x_new = fm.createFieldMultiply(rf, cos_theta_minus_psi)
+            y_new = fm.createFieldMultiply(r, sin_theta_minus_psi)
+            r2_new = fm.createFieldAdd(fm.createFieldMultiply(x_new, x_new), fm.createFieldMultiply(y_new, y_new))
+            r_new = fm.createFieldSqrt(r2_new)
+            theta_minus_psi_raw = fm.createFieldAtan2(y_new, x_new)
+            theta_wrap = fm.createFieldAnd(
+                fm.createFieldLessThan(theta_minus_psi, minus_one),
+                fm.createFieldGreaterThan(theta_minus_psi_raw, one))
+            theta_minus_psi_fix = fm.createFieldIf(theta_wrap, fm.createFieldAdd(theta_minus_psi, two_pi), theta_minus_psi)
+            # above theta is too great; average with theta_minus_psi_raw
+            theta_minus_psi_new = fm.createFieldMultiply(half, fm.createFieldAdd(theta_minus_psi_fix, theta_minus_psi_raw))
+            theta_new = fm.createFieldAdd(theta_minus_psi_new, psi)
+            sp_new = fm.createFieldConcatenate([r_new, theta_new, phi])
+            sp_new.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_SPHERICAL_POLAR)
+            coordinates_new_scale = fm.createFieldCoordinateTransformation(sp_new)
+            coordinates_new_scale.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+            coordinates_new = fm.createFieldDivide(coordinates_new_scale, xyz_scale)
+
+            fieldassignment = coordinates.createFieldassignment(coordinates_new)
+            result = fieldassignment.setNodeset(baseNodesetGroup)
+            fieldassignment.assign()
+
+        baseNodesetGroup = None
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
@@ -191,8 +324,6 @@ class MeshType_3d_heartventricles1:
 
         # create RV nodes and modify adjoining LV nodes
         elementsCountUpRV = elementsCountUp - elementsCountBelowSeptum
-        nor = elementsCountAround
-        now = 1 + elementsCountUp*nor
         lv_bni_base = 3 + elementsCountThroughLVWall*now + (elementsCountBelowSeptum - 1)*elementsCountAround
         nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
         baseExtraRVWidth = LVWallThickness*(1.0 - LVWallThicknessRatioBase)
@@ -504,10 +635,10 @@ class MeshType_3d_heartventricles1:
                             eft1.setFunctionNumberOfTerms(0*8 + 2, 0)
                             eft1.setFunctionNumberOfTerms(1*8 + 2, 0)
                             mapEftFunction1Node1Term(eft1, 3*8 + 2, 4, Node.VALUE_LABEL_D_DS1, 1, [1])
-                            # d/dxi3 = -d/dS1 on LV side
+                            # d/dxi3 = d/dS1 on LV side
                             for ln in [2, 4, 6, 8]:
                                 n = ln - 1
-                                mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [1])
+                                mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS1, 1, [])
                             #print('eft1 next', eft1.validate())
                         else:
                             eft1 = eftRVSide2

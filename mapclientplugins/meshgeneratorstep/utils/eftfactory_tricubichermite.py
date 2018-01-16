@@ -216,7 +216,7 @@ class eftfactory_tricubichermite:
         # node in general linear map being reported; reversing order of terms fixes this
         otherLocalNode = eft.getTermLocalNodeIndex(o*8 + 2, 1)
         termOrder = [ 3, 4, 1, 2] if (otherLocalNode == localNode1) else [ 1, 2, 3, 4]
-        # value = 0.5*x_1 + 0.125*ds3_1 + 0.5*x_2 - 0.125*ds3_2
+        # value = 0.5*x_1 + 0.125*ds1_1 + 0.5*x_2 - 0.125*ds1_2
         eft.setFunctionNumberOfTerms(n*8 + 1, 4)
         eft.setTermNodeParameter(n*8 + 1, termOrder[0], localNode1, Node.VALUE_LABEL_VALUE, 1)
         eft.setTermScaling(n*8 + 1, termOrder[0], [sf05])
@@ -242,7 +242,7 @@ class eftfactory_tricubichermite:
         eft.setTermScaling(n*8 + 3, 1, [sf05])
         eft.setTermNodeParameter(n*8 + 3, 2, localNode2, Node.VALUE_LABEL_D_DS2, 1)
         eft.setTermScaling(n*8 + 3, 2, [sf05])
-        # d/dxi1 = 0.5*ds3_1 + 0.5*ds3_2
+        # d/dxi3 = 0.5*ds3_1 + 0.5*ds3_2
         eft.setFunctionNumberOfTerms(n*8 + 5, 2)
         eft.setTermNodeParameter(n*8 + 5, 1, localNode1, Node.VALUE_LABEL_D_DS3, 1)
         eft.setTermScaling(n*8 + 5, 1, [sf05])
