@@ -31,14 +31,67 @@ class eftfactory_tricubichermite:
         node derivatives, with or without cross derivatives.
         :return: Element field template
         '''
-        eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
         if not self._useCrossDerivatives:
-            for n in range(8):
-                eft.setFunctionNumberOfTerms(n*8 + 4, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 6, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 7, 0)
-                eft.setFunctionNumberOfTerms(n*8 + 8, 0)
+            return self.createEftNoCrossDerivatives()
+        eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
         assert eft.validate(), 'eftfactory_tricubichermite.createEftBasic:  Failed to validate eft'
+        return eft
+
+    def createEftNoCrossDerivatives(self):
+        '''
+        Create a basic tricubic hermite element template with 1:1 mappings to
+        node derivatives, without cross derivatives.
+        :return: Element field template
+        '''
+        eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
+        for n in range(8):
+            eft.setFunctionNumberOfTerms(n*8 + 4, 0)
+            eft.setFunctionNumberOfTerms(n*8 + 6, 0)
+            eft.setFunctionNumberOfTerms(n*8 + 7, 0)
+            eft.setFunctionNumberOfTerms(n*8 + 8, 0)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftNoCrossDerivatives:  Failed to validate eft'
+        return eft
+
+    def createEftSplitXi1LeftStraight(self):
+        '''
+        Create an element field template suitable for the inner elements of the
+        join between left and right chambers, with xi1 bifurcating.
+        :return: Element field template
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [1], [])
+        remapEftNodeValueLabel(eft, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+        remapEftNodeValueLabel(eft, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi1LeftStraight:  Failed to validate eft'
+        return eft
+
+    def createEftSplitXi1RightStraight(self):
+        '''
+        Create an element field template suitable for the inner elements of the
+        join between left and right chambers, with xi1 bifurcating.
+        Straight through version.
+        :return: Element field template
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [1], [])
+        remapEftNodeValueLabel(eft, [ 5, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eft, [ 6, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi1RightStraight:  Failed to validate eft'
+        return eft
+
+    def createEftSplitXi1RightOut(self):
+        '''
+        Create an element field template suitable for the outer elements of the
+        join between left and right chambers, with xi1 bifurcating.
+        Right out version i.e. xi1 heading to right. h-shape.
+        :return: Element field template
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [1], [])
+        remapEftNodeValueLabel(eft, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+        remapEftNodeValueLabel(eft, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eft, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi1RightOut:  Failed to validate eft'
         return eft
 
     def createEftTubeSeptumOuter(self):
