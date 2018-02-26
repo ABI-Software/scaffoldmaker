@@ -576,14 +576,6 @@ class MeshType_3d_heartventriclesbase1(object):
                     # negate two derivatives to align with left side across ventricular septum
                     dx_ds1 = [ -x for x in dx_ds1 ]
                     dx_ds3 = [ -x for x in dx_ds3 ]
-                elif n1 == (elementsCountAroundAtria - 3):
-                    dx_ds2 = dx_ds1
-                    if n3 == 0:
-                        mag = 0.25/math.sqrt(dx_ds3[0]*dx_ds3[0] + dx_ds3[1]*dx_ds3[1] + dx_ds3[2]*dx_ds3[2])
-                        dx_ds1 = [ mag*dx_ds3[0], mag*dx_ds3[1], -mag*dx_ds3[2] ]
-                    else:
-                        mag = 0.25/math.sqrt(dx_ds3[0]*dx_ds3[0] + dx_ds3[1]*dx_ds3[1])
-                        dx_ds1 = [ mag*dx_ds3[0], mag*dx_ds3[1], 0.0 ]
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
@@ -701,21 +693,16 @@ class MeshType_3d_heartventriclesbase1(object):
             eft1 = eft
             if e == 0:
                 eft1 = tricubichermite.createEftSplitXi1RightOut()
-            elif e == 2:
-                eft1 = tricubichermite.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, []) ])
             elif e == 3:
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
             elif e == 4:
                 # supraventricular crest 1
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
                 scaleEftNodeValueLabels(eft1, [ 3, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [1])
                 remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
