@@ -164,24 +164,25 @@ class MeshType_3d_heartventriclesbase1(object):
         # LV outlet - for bicubic-linear tube connection
 
         elementsCountAroundOutlet = 6
-        radiansPerElementAround = 2.0*math.pi/elementsCountAroundOutlet
+        radiansPerElementAroundOutlet = 2.0*math.pi/elementsCountAroundOutlet
         lvOutletNodeId = [ [-1]*elementsCountAroundOutlet, [-1]*elementsCountAroundOutlet ]
         x = [ 0.0, 0.0, baseHeight + baseThickness ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 0.0, outletElementLength ]
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
+        # GRC Set properly:
         outletScale3 = 0.15
         for n3 in range(2):
             radius = lvOutletRadius + lvOutletWallThickness*n3
             for n1 in range(elementsCountAroundOutlet):
-                radiansAround = outletJoinRadians - math.pi + n1*radiansPerElementAround
+                radiansAround = outletJoinRadians - math.pi + n1*radiansPerElementAroundOutlet
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
                 x[0] = lvOutletCentreX + radius*cosRadiansAround
                 x[1] = lvOutletCentreY + radius*sinRadiansAround
-                dx_ds1[0] = radiansPerElementAround*radius*-sinRadiansAround
-                dx_ds1[1] = radiansPerElementAround*radius*cosRadiansAround
+                dx_ds1[0] = radiansPerElementAroundOutlet*radius*-sinRadiansAround
+                dx_ds1[1] = radiansPerElementAroundOutlet*radius*cosRadiansAround
                 nodetemplate = nodetemplateLinearS3 if ((n3 == 0) or (n1 == 3)) else nodetemplateFull
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 lvOutletNodeId[n3][n1] = nodeIdentifier
@@ -221,84 +222,86 @@ class MeshType_3d_heartventriclesbase1(object):
             for n1 in range(elementsCountAroundOutlet):
                 if (n3 == 1) and (n1 == 0):
                     continue  # node is common with LV outlet
-                radiansAround = outletJoinRadians - math.pi + n1*radiansPerElementAround
+                radiansAround = outletJoinRadians - math.pi + n1*radiansPerElementAroundOutlet
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
                 x[0] = rvOutletCentreX + radius*cosRadiansAround
                 x[1] = rvOutletCentreY + radius*sinRadiansAround
-                dx_ds1[0] = radiansPerElementAround*radius*-sinRadiansAround
-                dx_ds1[1] = radiansPerElementAround*radius*cosRadiansAround
-                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
+                dx_ds1[0] = radiansPerElementAroundOutlet*radius*-sinRadiansAround
+                dx_ds1[1] = radiansPerElementAroundOutlet*radius*cosRadiansAround
+                nodetemplate = nodetemplateFull if ((n3 == 1) and (n1 == 1)) else nodetemplateLinearS3
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
                 rvOutletNodeId[n3][n1] = nodeIdentifier
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                if nodetemplate is nodetemplateFull:
+                    rvOutletInclineRadians = 0.25*math.pi
+                    dx_ds3 = [
+                        outletScale3*cosRadiansAround*math.cos(rvOutletInclineRadians),
+                        outletScale3*sinRadiansAround*math.cos(rvOutletInclineRadians),
+                        -outletScale3*math.sin(rvOutletInclineRadians)
+                    ]
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
 
-        # create nodes on top and bottom of supraventricular crest centre where it meets
-        # between nodes 141 and 130
-        for i in range(2):
-            radiansAround = outletJoinRadians - math.pi + (1.5 + 0.5*i)*radiansPerElementAround
-            cosRadiansAround = math.cos(radiansAround)
-            sinRadiansAround = math.sin(radiansAround)
-            scale1 = 0.15
-            distance = 0.15
-            if i == 0:
-                scale2 = 0.25
-            else:
-                scale2 = 0.1
-            x = [
-                lvOutletCentreX + cosRadiansAround*(lvOutletRadius + lvOutletWallThickness + distance),
-                lvOutletCentreY + sinRadiansAround*(lvOutletRadius + lvOutletWallThickness + distance),
-                baseHeight
-            ]
-            dx_ds1 = [ -sinRadiansAround*scale1, cosRadiansAround*scale1, 0.0 ]
-            dx_ds2 = [ -cosRadiansAround*scale2, -sinRadiansAround*scale2, 0.0 ]
-            dx_ds3 = [ 0.0, 0.0, baseThickness ]
-            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-            if i == 1:
-                crest_nid1 = nodeIdentifier
-            else:
-                ra_nid1 = nodeIdentifier
-            nodeIdentifier += 1
+        # create nodes on top and bottom of supraventricular crest
+        crestRadians = outletJoinRadians - radiansPerElementAroundOutlet
+        cosCrestRadians = math.cos(crestRadians)
+        sinCrestRadians = math.sin(crestRadians)
+        scale1 = 0.15
+        distance = 0.12
+        scale2 = 0.15
+        x = [
+            lvOutletCentreX + cosCrestRadians*(lvOutletRadius + lvOutletWallThickness + distance),
+            lvOutletCentreY + sinCrestRadians*(lvOutletRadius + lvOutletWallThickness + distance),
+            baseHeight
+        ]
+        dx_ds1 = [ -sinCrestRadians*scale1, cosCrestRadians*scale1, 0.0 ]
+        innerCrestScaling = 0.5
+        dx_ds2 = [ -cosCrestRadians*scale2*innerCrestScaling, -sinCrestRadians*scale2*innerCrestScaling, 0.0 ]
+        dx_ds3 = [ 0.0, 0.0, baseThickness ]
+        node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        crest_nid1 = nodeIdentifier
+        nodeIdentifier += 1
 
-            x[2] = baseHeight + baseThickness
-            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
-            cache.setNode(node)
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-            if i == 1:
-                crest_nid2 = nodeIdentifier
-            else:
-                ra_nid2 = nodeIdentifier
-            nodeIdentifier += 1
+        x[2] = baseHeight + baseThickness
+        dx_ds2 = [ -cosCrestRadians*scale2, -sinCrestRadians*scale2, 0.0 ]
+        node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+        cache.setNode(node)
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        crest_nid2 = nodeIdentifier
+        nodeIdentifier += 1
 
-        # place nodes below RV outlet nodes 143, 144
-        for nid in [143, 144]:
-            node1 = nodes.findNodeByIdentifier(nid)
-            cache.setNode(node1)
-            result, x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-            result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-            dx_ds2 = [ 0.0, 0.0, baseThickness ]
-            result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
-            for c in range(3):
-                dx_ds3[c] *= lvOutletWallThickness/outletScale3
-            x[2] -= baseThickness
-            node = nodes.createNode(nodeIdentifier, nodetemplateFull)
-            nodeIdentifier += 1
-            cache.setNode(node)
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        # place nodes below RV outlet at end of supraventricular crest
+        node1 = nodes.findNodeByIdentifier(rvOutletNodeId[1][1])
+        cache.setNode(node1)
+        result, x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        thickness = 0.5*(baseThickness + rvOutletWallThickness)
+        x[2] -= thickness
+        dx_ds1 = [ d*innerCrestScaling for d in dx_ds1 ]
+        dx_ds2 = [ 0.0, 0.0, thickness ]
+        result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        crestScale3 = math.sqrt(thickness*thickness + lvOutletWallThickness*lvOutletWallThickness)
+        dx_ds3 = [ d*crestScale3/outletScale3 for d in dx_ds3 ]
+        node = nodes.createNode(nodeIdentifier, nodetemplateFull)
+        cache.setNode(node)
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        crest_nid3 = nodeIdentifier
+        nodeIdentifier += 1
 
         if False:
             # create extra nodes on LV 'crest' and edge of RA
@@ -676,18 +679,26 @@ class MeshType_3d_heartventriclesbase1(object):
 
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids[e])
-            print('create element new', elementIdentifier, result, result2, nids[e])
+            print('create element lv', elementIdentifier, result, result2, nids[e])
             elementIdentifier += 1
 
         # RV
         nidr = 101
         nowr = 18
+        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
         nids = [
             [ nid1 + nowl + 1, nidr + 0, atriumRightNodeId[0][0], atriumRightNodeId[0][1], nid1 + nowl + 0, nidr + nowr + 0, atriumLeftNodeId[1][5] , atriumRightNodeId[1][1] ],
             [ nidr        + 0, nidr + 1, atriumRightNodeId[0][1], atriumRightNodeId[0][2], nidr + nowr + 0, nidr + nowr + 1, atriumRightNodeId[1][1], atriumRightNodeId[1][2] ],
             [ nidr        + 1, nidr + 2, atriumRightNodeId[0][2], atriumRightNodeId[0][3], nidr + nowr + 1, nidr + nowr + 2, atriumRightNodeId[1][2], atriumRightNodeId[1][3] ],
             [ nidr        + 2, nidr + 3, atriumRightNodeId[0][3],              crest_nid1, nidr + nowr + 2, nidr + nowr + 3, atriumRightNodeId[1][3],              crest_nid2 ],
-            [ atriumRightNodeId[0][3], crest_nid1, atriumRightNodeId[0][4], 2*nowl - norl + 5, atriumRightNodeId[1][3], crest_nid2, lvOutletNodeId[1][1], lvOutletNodeId[1][2] ]
+            # refined pair of elements with hanging nodes across xi1=0.5 at bottom
+            [ nidr        + 3, nidr + 4,              crest_nid1,              crest_nid3, nidr + nowr + 3, nidr + nowr + 4,              crest_nid2,    rvOutletNodeId[1][1] ],
+            [ nidr        + 3, nidr + 4,              crest_nid3,    rvOutletNodeId[0][2], nidr + nowr + 3, nidr + nowr + 4,    rvOutletNodeId[1][1],    rvOutletNodeId[1][2] ],
+            # refined pair of elements with hanging nodes across xi1=0.5 at bottom
+            [ nidr        + 4, nidr + 5,    rvOutletNodeId[0][2],    rvOutletNodeId[0][3], nidr + nowr + 4, nidr + nowr + 5,    rvOutletNodeId[1][2],    rvOutletNodeId[1][3] ],
+            [ nidr        + 4, nidr + 5,    rvOutletNodeId[0][3],    rvOutletNodeId[0][4], nidr + nowr + 4, nidr + nowr + 5,    rvOutletNodeId[1][3],    rvOutletNodeId[1][4] ],
+            [ atriumRightNodeId[0][3], crest_nid1, atriumRightNodeId[0][4], 2*nowl - norl + 5, atriumRightNodeId[1][3],           crest_nid2, lvOutletNodeId[1][1], lvOutletNodeId[1][2] ],
+            [              crest_nid1, crest_nid3,         nid1 + nowl + 4,   nid1 + nowl + 5,              crest_nid2, rvOutletNodeId[1][1], lvOutletNodeId[1][2], lvOutletNodeId[1][3], rvOutletNodeId[0][0] ]
         ]
         for e in range(len(nids)):
             eft1 = eft
@@ -697,8 +708,30 @@ class MeshType_3d_heartventriclesbase1(object):
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
-            elif e == 4:
-                # supraventricular crest 1
+            elif e in [ 4, 6 ]:
+                eft1 = tricubichermite.createEftBasic()
+                # general scale factors 1 -> 1, 102 -> 1/2, 104 -> 1/4, 108 -> 1/8, 304 -> 3/4
+                setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
+                tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+                if e == 4:
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                else:
+                    tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+            elif e in [ 5, 7 ]:
+                eft1 = tricubichermite.createEftBasic()
+                # general scale factors 1 -> 1, 102 -> 1/2, 104 -> 1/4, 108 -> 1/8, 304 -> 3/4
+                setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4, 5])
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4, 5])
+                tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
+                tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
+                if e == 5:
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+            elif e == 8:
+                # supraventricular crest 1, by RA-LV outlet junction
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
@@ -706,17 +739,37 @@ class MeshType_3d_heartventriclesbase1(object):
                 scaleEftNodeValueLabels(eft1, [ 3, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [1])
                 remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+            elif e == 9:
+                # supraventricular crest 2, by LV-RV outlet junction)
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                # add 9th node to get 'dx/ds3' by difference of x at two nodes
+                eft1.setNumberOfLocalNodes(9)
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                tricubichermite.setEftLinearDerivativeXi3(eft1, 2, 6, 2, 6, 1)
+                remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
+                remapEftNodeValueLabelWithNodes(eft1, 8, Node.VALUE_LABEL_D_DS3, [ (8, Node.VALUE_LABEL_D_DS2, []), (8, Node.VALUE_LABEL_VALUE, []), (9, Node.VALUE_LABEL_VALUE, [1]) ])
+
             elementtemplate1 = mesh.createElementtemplate()
             elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             result = elementtemplate1.defineField(coordinates, -1, eft1)
 
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids[e])
-            print('create element new rv', elementIdentifier, result, result2, nids[e])
+            if e in [ 4, 5, 6, 7 ]:
+                result3 = element.setScaleFactors(eft1, scalefactors5hanging)
+                print('create rv hanging', elementIdentifier, result, result2, result3, nids[e], scalefactors5hanging)
+            else:
+                print('create element rv', elementIdentifier, result, result2, nids[e])
             elementIdentifier += 1
 
 
