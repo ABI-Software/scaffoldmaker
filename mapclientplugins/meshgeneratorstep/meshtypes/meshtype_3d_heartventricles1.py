@@ -252,7 +252,7 @@ class MeshType_3d_heartventricles1:
             fieldassignment.assign()
 
         if LVBaseFlattenRatio != 1.0:
-            # flatten LV normal to mid-RV-aorta-mitral axis
+            # flatten LV normal to mid-RV-aorta-mitral axis plus additional flatten angle
             septumCentreRadians = (1.0 + elementsCountAcrossSeptum/2.0)*radiansPerElementOrig
             flattenAxisRadians = septumCentreRadians + LVBaseFlattenAngleRadians - 0.5*math.pi
 
@@ -260,6 +260,7 @@ class MeshType_3d_heartventricles1:
             minus_one = fm.createFieldConstant([-1.0])
             minus_two = fm.createFieldConstant([-2.0])
 
+            # flatten ratio = new inner radius / original inner radius
             beta_base = fm.createFieldConstant([1.0 - LVBaseFlattenRatio])
             z = fm.createFieldComponent(coordinates, 3)
             z2 = fm.createFieldMultiply(z, z)
