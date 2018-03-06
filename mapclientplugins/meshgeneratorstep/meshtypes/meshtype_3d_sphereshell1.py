@@ -3,6 +3,7 @@ Generates a 3-D unit sphere shell mesh with variable numbers of elements
 around, up and through the thickness.
 """
 
+from __future__ import division
 import math
 from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate

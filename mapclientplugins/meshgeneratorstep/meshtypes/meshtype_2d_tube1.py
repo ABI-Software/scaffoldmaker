@@ -2,6 +2,7 @@
 Generates a 2-D unit tube mesh with variable numbers of elements around, along.
 """
 
+from __future__ import division
 import math
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field

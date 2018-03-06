@@ -2,6 +2,7 @@
 Generates a 2-D unit sphere mesh with variable numbers of elements around and up.
 """
 
+from __future__ import division
 import math
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field

@@ -3,6 +3,7 @@ Generates a 3-D unit tube mesh with variable numbers of elements around, along a
 through wall, plus variable wall thickness for unit diameter.
 """
 
+from __future__ import division
 import math
 from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis

@@ -2,6 +2,7 @@
 Generates a 2-D unit plate mesh with variable numbers of elements in 2 directions.
 """
 
+from __future__ import division
 import math
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
