@@ -79,6 +79,21 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi1RightStraight:  Failed to validate eft'
         return eft
 
+    def createEftSplitXi1RightIn(self):
+        '''
+        Create an element field template suitable for the outer elements of the
+        join between left and right chambers, with xi1 merging from the right.
+        Right in version i.e. xi1 heading in from right. h-shape.
+        :return: Element field template
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [1], [])
+        remapEftNodeValueLabel(eft, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+        remapEftNodeValueLabel(eft, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eft, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi1RightOut:  Failed to validate eft'
+        return eft
+
     def createEftSplitXi1RightOut(self):
         '''
         Create an element field template suitable for the outer elements of the
@@ -233,6 +248,21 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftTubeSeptumInner2:  Failed to validate eft'
         return eft
 
+    def setEftLinearDerivativeXi1(self, eft, basisNode1, basisNode2, localNode1, localNode2, minus1scaleFactorIndex):
+        '''
+        Makes the derivative in Xi1 for basisNode1 and basisNode2 equal to the difference in
+        the value parameter at localNode2 - localNode1. This makes the basis equivalent to linear Lagrange.
+        Note! Cross derivatives are not handled and are currently unmodified.
+        :param minus1scaleFactorIndex: Local scale factor index for general value -1.0
+        '''
+        for n in [basisNode1 - 1, basisNode2 - 1]:
+            f = n*8 + 2
+            eft.setFunctionNumberOfTerms(f, 2)
+            eft.setTermNodeParameter(f, 1, localNode2, Node.VALUE_LABEL_VALUE, 1)
+            eft.setTermScaling(f, 1, [])
+            eft.setTermNodeParameter(f, 2, localNode1, Node.VALUE_LABEL_VALUE, 1)
+            eft.setTermScaling(f, 2, [minus1scaleFactorIndex])
+
     def setEftLinearDerivativeXi3(self, eft, basisNode1, basisNode2, localNode1, localNode2, minus1scaleFactorIndex):
         '''
         Makes the derivative in Xi3 for basisNode1 and basisNode2 equal to the difference in
@@ -241,12 +271,12 @@ class eftfactory_tricubichermite:
         :param minus1scaleFactorIndex: Local scale factor index for general value -1.0
         '''
         for n in [basisNode1 - 1, basisNode2 - 1]:
-            eft.setFunctionNumberOfTerms(n*8 + 5, 2)
-            eft.setTermNodeParameter(n*8 + 5, 1, localNode2, Node.VALUE_LABEL_VALUE, 1)
-            eft.setTermScaling(n*8 + 5, 1, [])
-            eft.setTermNodeParameter(n*8 + 5, 2, localNode1, Node.VALUE_LABEL_VALUE, 1)
-            eft.setTermScaling(n*8 + 5, 2, [minus1scaleFactorIndex])
-
+            f = n*8 + 5
+            eft.setFunctionNumberOfTerms(f, 2)
+            eft.setTermNodeParameter(f, 1, localNode2, Node.VALUE_LABEL_VALUE, 1)
+            eft.setTermScaling(f, 1, [])
+            eft.setTermNodeParameter(f, 2, localNode1, Node.VALUE_LABEL_VALUE, 1)
+            eft.setTermScaling(f, 2, [minus1scaleFactorIndex])
 
     def setEftMidsideXi1HangingNode(self, eft, hangingBasisNode, otherBasisNode, localNode1, localNode2, scaleFactorIndexes):
         '''
