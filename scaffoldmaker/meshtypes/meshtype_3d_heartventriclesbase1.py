@@ -666,6 +666,8 @@ class MeshType_3d_heartventriclesbase1(object):
             [ nidl +  5, nidl +  6,  rvOutletNodeId[1][0], rvOutletNodeId[1][-1], nidl + nowl +  5, nidl + nowl +  6, rvOutletNodeId[0][0], rvOutletNodeId[0][-1] ],
             # 6-node collapsed element on inside of RV-LV join. xi2=1 face collapsed to a line by merging edges adjacent to corner node 7
             [ nidl +  6, nidl +  7, rvOutletNodeId[1][-1],       nidl + nowl + 6, nidl + nowl +  7, rvOutletNodeId[0][-1] ],
+            # 4 node collapsed / tetrahedral element
+            [ nidl +  7, rvOutletNodeId[1][-1], nidl + nowl + 7, lv_nid1 ],
             # 7-node collapsed element
             [ nidl +  7, nidl +  8,        laNodeId[0][2], nidl + nowl +  7, nidl + nowl +  8,              lv_nid1,        laNodeId[1][2] ],
             [ nidl +  8, nidl +  9,        laNodeId[0][2],        laNodeId[0][3], nidl + nowl +  8, nidl + nowl +  9,       laNodeId[1][2],        laNodeId[1][3] ],
@@ -715,16 +717,30 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS1, [ ])
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 3, 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
-                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, [ ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
-                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 tricubichermite.setEftLinearDerivativeXi3(eft1, 3, 7, 3, 7, 1)
                 tricubichermite.setEftLinearDerivativeXi1(eft1, 7, 8, 7, 8, 1)
                 ln_map = [ 1, 2, 3, 3, 4, 5, 6, 3 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
             elif e == 7:
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                # remap parameters before collapsing nodes
+                remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS1, [ ])
+                remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4, 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ])
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1,  [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 1, 1, 1, 2, 3, 2, 4 ]
+                remapEftLocalNodes(eft1, 4, ln_map)
+            elif e == 8:
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 # remap parameters before collapsing nodes
@@ -734,7 +750,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
                 ln_map = [ 1, 2, 1, 3,  4, 5, 6, 7 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
-            elif e == 11:
+            elif e == 12:
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 # remap parameters before collapsing nodes
@@ -748,48 +764,40 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 ln_map = [ 1, 2, 3, 4, 2, 2, 5, 5 ]
                 remapEftLocalNodes(eft1, 5, ln_map)
-            elif e == 12:
+            elif e == 13:
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 # remap parameters before collapsing nodes
                 remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ])
                 remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ])
                 remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ])
-
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []) ])
-
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
-
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, []) ])
-
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
-                #remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []) ])
-
                 ln_map = [ 1, 1, 2, 3, 1, 1, 4, 5 ]
                 remapEftLocalNodes(eft1, 5, ln_map)
-            elif e == 13:
+            elif e == 14:
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 # remap parameters before collapsing nodes
-                # following uses D2_DS1DS3 as a temporary swap variable
                 remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
-                #remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [ 1 ]) ])
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                # following uses D2_DS1DS3 as a temporary swap variable
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D2_DS1DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []) ])
-                #remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [ 1 ]) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
@@ -875,7 +883,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 tricubichermite.setEftLinearDerivativeXi3(eft1, 4, 8, 4, 8, 1)
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
-                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
             elif e == 9:
                 # supraventricular crest 1, by RA-LV outlet junction
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
