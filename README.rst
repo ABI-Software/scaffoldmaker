@@ -1,4 +1,4 @@
-Mesh Generator
+Scaffold Maker
 ==============
 
-Generating meshes via scripts using OpenCMISS-Zinc.
+Anatomical scaffold generator using OpenCMISS-Zinc.
