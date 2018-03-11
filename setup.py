@@ -31,7 +31,7 @@ class InstallCommand(install):
         subprocess.call(['pip', 'install', '-r', os.path.join(SETUP_DIR, 'requirements.txt')])
 
 
-setup(name='mapclientplugins.meshgeneratorstep',
+setup(name='scaffoldmaker',
     version='0.1.0',
     description='',
     long_description='\n'.join(readme) + source_license,
@@ -46,7 +46,7 @@ setup(name='mapclientplugins.meshgeneratorstep',
     url='',
     license='APACHE',
     packages=find_packages(exclude=['ez_setup',]),
-    namespace_packages=['mapclientplugins'],
+    namespace_packages=['scaffoldmaker'],
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,

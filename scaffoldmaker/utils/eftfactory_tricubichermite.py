@@ -4,7 +4,7 @@ Created on Nov 15, 2017
 
 @author: Richard Christie
 '''
-from mapclientplugins.meshgeneratorstep.utils.eft_utils import *
+from scaffoldmaker.utils.eft_utils import *
 from opencmiss.zinc.element import Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK

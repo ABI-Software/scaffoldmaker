@@ -6,11 +6,11 @@ pulmonary trunk and their valves regions.
 
 from __future__ import division
 import math
-from mapclientplugins.meshgeneratorstep.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
-from mapclientplugins.meshgeneratorstep.utils.eft_utils import *
-from mapclientplugins.meshgeneratorstep.utils.interpolation import *
-from mapclientplugins.meshgeneratorstep.utils.zinc_utils import *
-from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
+from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node

@@ -9,8 +9,8 @@ Only one element throught the wall is currently implemented.
 
 from __future__ import division
 import math
-from mapclientplugins.meshgeneratorstep.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from mapclientplugins.meshgeneratorstep.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
