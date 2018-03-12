@@ -677,7 +677,9 @@ class MeshType_3d_heartventriclesbase1(object):
             [ nidl +  5, nidl +  6,  lvOutletNodeId[1][3],  lvOutletNodeId[1][4], rvOutletNodeId[1][-1] ],
             # 5-node square pyramid
             [ rvOutletNodeId[1][-1], nidl +  6, nidl +  7, lvOutletNodeId[1][4], lv_nid1 ],
-            [ nidl +  6, nidl +  7,  laNodeId[0][1], laNodeId[0][2],lvOutletNodeId[1][-2], lv_nid1, laNodeId[1][1],  laNodeId[1][2] ]
+            [ nidl +  6, nidl +  7,  laNodeId[0][1], laNodeId[0][2],lvOutletNodeId[1][-2], lv_nid1, laNodeId[1][1],  laNodeId[1][2] ],
+            # 6-node LV outlet closure septum side
+            [ nidl + 1, laNodeId[0][1], laNodeId[0][0], nidl + 2, lvOutletNodeId[1][0], laNodeId[1][1] ]
         ]
 
         for e in range(len(nids)):
@@ -803,6 +805,23 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
                 scaleEftNodeValueLabels(eft1, [ 7 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
+            elif e == 15:
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                # remap parameters before collapsing nodes
+                #remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, []) ])
+                #remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []) ])
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, [ ])
+                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS3, [ ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                ln_map = [ 1, 2, 3, 2, 4, 2, 5, 6 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
 
             elementtemplate1 = mesh.createElementtemplate()
             elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
