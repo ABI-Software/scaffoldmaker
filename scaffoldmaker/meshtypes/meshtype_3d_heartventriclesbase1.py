@@ -11,6 +11,7 @@ from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -90,7 +91,7 @@ class MeshType_3d_heartventriclesbase1(object):
         """
         elementsCountUp = options['Number of elements up']
         elementsCountAround = options['Number of elements around']
-        print('elementsCountAround', elementsCountAround)
+        #print('elementsCountAround', elementsCountAround)
         elementsCountAcrossSeptum = options['Number of elements across septum']
         lvWallThickness = options['LV wall thickness']
         lvWallThicknessRatioBase = options['LV wall thickness ratio base']
@@ -344,7 +345,7 @@ class MeshType_3d_heartventriclesbase1(object):
         qx = ox*laUnitMajorX + oy*laUnitMajorY
         qy = ox*laUnitMinorX + oy*laUnitMinorY
         cruxLeftRadians = math.atan2(atriaOuterMajorMag*qy, atriaOuterMinorMag*qx)
-        print('qx', qx, ' qy', qy, ' cruxLeftDegrees', cruxLeftRadians*180.0/math.pi)
+        #print('qx', qx, ' qy', qy, ' cruxLeftDegrees', cruxLeftRadians*180.0/math.pi)
 
         cosRadiansAround = math.cos(laSeptumRadians)
         sinRadiansAround = math.sin(laSeptumRadians)
@@ -422,7 +423,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
 
-        if True:
+        if False:
             # show axes of left atrium
             node = nodes.createNode(nodeIdentifier, nodetemplateFull)
             cache.setNode(node)
@@ -466,7 +467,7 @@ class MeshType_3d_heartventriclesbase1(object):
         cruxRightRadians = math.atan2(atriaOuterMajorMag*qy, atriaOuterMinorMag*qx)
         if cruxRightRadians < math.pi:
             cruxRightRadians += 2.0*math.pi
-        print('qx', qx, ' qy', qy, ' cruxRightDegrees', cruxRightRadians*180.0/math.pi)
+        #print('qx', qx, ' qy', qy, ' cruxRightDegrees', cruxRightRadians*180.0/math.pi)
 
         raRadians = [0.0]*elementsCountAroundAtria
         raRadians[0] = raSeptumRadians
@@ -538,7 +539,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
 
-        if True:
+        if False:
             # show axes of right atrium
             node = nodes.createNode(nodeIdentifier, nodetemplateFull)
             cache.setNode(node)
@@ -953,6 +954,40 @@ class MeshType_3d_heartventriclesbase1(object):
             else:
                 result3 = 1
             print('create element rv', elementIdentifier, result, result2, result3, nids[e])
+            elementIdentifier += 1
+
+        # LV outlet ring elements: linear in xi3
+
+        bicubichermitelinear3 = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives, linearAxis = 3)
+
+        # wedge shape, collapsed across xi3 at xi2 == 0
+        eft_lvring = bicubichermitelinear3.createEftNoCrossDerivatives()
+        ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
+        remapEftLocalNodes(eft_lvring, 6, ln_map)
+        lvring_nids = [ nidl + 2, nidl + 3, nidl + 4, nidl + 5, nidl + 6, laNodeId[0][1] ]
+        for e in range(elementsCountAroundOutlet):
+            e2 = (e + 1) % elementsCountAroundOutlet
+            eft1 = eft_lvring
+            if e >= 4:
+                eft1 = bicubichermitelinear3.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                if e == 4:
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                localNodes = [ 2, 6 ] if (e == 4) else [ 1, 5 ]
+                remapEftNodeValueLabel(eft1, localNodes, Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, localNodes[0:1], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, localNodes[1:], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
+
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            nids = [ lvring_nids[e], lvring_nids[e2], lvOutletNodeId[0][e], lvOutletNodeId[0][e2], lvOutletNodeId[1][e], lvOutletNodeId[1][e2] ]
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            print('create element lv outlet', elementIdentifier, result, result2, nids)
             elementIdentifier += 1
 
         fm.endChange()
