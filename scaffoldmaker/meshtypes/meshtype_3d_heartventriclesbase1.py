@@ -33,15 +33,19 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Number of elements across septum'] = 5
         options['Number of elements below septum'] = 2
         options['Number of elements through LV wall'] = 1
+        # additional defaults for heartventricles1:
+        options['Element length ratio equator/apex'] = 0.5
+        options['LV base flatten angle degrees'] = 25.0
+        options['Length ratio'] = 1.8
         # additional options
         options['Base height'] = 0.1
         options['Base thickness'] = 0.05
-        options['LV outlet inner diameter'] = 0.25
+        options['LV outlet inner diameter'] = 0.3
         options['LV outlet wall thickness'] = 0.02
-        options['RV outlet inner diameter'] = 0.25
+        options['RV outlet inner diameter'] = 0.3
         options['RV outlet wall thickness'] = 0.02
         options['Outlet element length'] = 0.1
-        options['Outlet rotation degrees'] = 0.0
+        options['Outlet rotation degrees'] = 5.0
         return options
 
     @staticmethod
