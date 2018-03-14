@@ -850,7 +850,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
-            print('create element lv', elementIdentifier, result, result2, result3, nids[e])
+            #print('create element lv', elementIdentifier, result, result2, result3, nids[e])
             elementIdentifier += 1
 
         # RV base elements
@@ -962,7 +962,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
-            print('create element rv', elementIdentifier, result, result2, result3, nids[e])
+            #print('create element rv', elementIdentifier, result, result2, result3, nids[e])
             elementIdentifier += 1
 
         # LV outlet ring elements: linear in xi3
@@ -995,7 +995,7 @@ class MeshType_3d_heartventriclesbase1(object):
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             nids = [ lvring_nids[e], lvring_nids[e2], lvOutletNodeId[0][e], lvOutletNodeId[0][e2], lvOutletNodeId[1][e], lvOutletNodeId[1][e2] ]
             result2 = element.setNodesByIdentifier(eft1, nids)
-            print('create element lv outlet', elementIdentifier, result, result2, nids)
+            #print('create element lv outlet', elementIdentifier, result, result2, nids)
             elementIdentifier += 1
 
         fm.endChange()
