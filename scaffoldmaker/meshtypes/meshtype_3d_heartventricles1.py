@@ -30,14 +30,14 @@ class MeshType_3d_heartventricles1:
             'Number of elements through LV wall' : 1,
             'LV wall thickness' : 0.15,
             'LV wall thickness ratio apex' : 0.5,
-            'LV wall thickness ratio base': 0.75,
+            'LV wall thickness ratio base': 0.8,
             'LV base flatten ratio': 0.75,
             'LV base flatten angle degrees': 0.0,
             'RV free wall thickness' : 0.05,
-            'RV width' : 0.15,
+            'RV width' : 0.2,
             'Length ratio' : 2.0,
             'Element length ratio equator/apex' : 1.0,
-            'Septum arc angle degrees' : 130.0,
+            'Septum arc angle degrees' : 125.0,
             'Use cross derivatives' : False
         }
 
