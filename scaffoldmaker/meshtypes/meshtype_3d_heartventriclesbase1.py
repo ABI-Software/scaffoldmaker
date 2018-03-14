@@ -207,6 +207,8 @@ class MeshType_3d_heartventriclesbase1(object):
                     elif n1 == (elementsCountAroundOutlet - 1):
                         cruxLeftNodeId = nodeIdentifier
                         cruxLeft = [ x[0], x[1], x[2] ]
+                elif n1 == (elementsCountAroundOutlet - 1):
+                    cruxLeftInner = [ x[0], x[1], x[2] ]
                 nodeIdentifier += 1
 
         # RV outlet - for bicubic-linear tube connection
@@ -406,14 +408,17 @@ class MeshType_3d_heartventriclesbase1(object):
                         laDeltaRadians[n1]*(-sinRadiansAround*laOuterMajorY + cosRadiansAround*laOuterMinorY),
                         0.0 ]
                 dx_ds3 = [ outer[0] - inner[0], outer[1] - inner[1], outer[2] - inner[2] ]
-                dx_ds2 = [
-                    dx_ds3[1]*dx_ds1[2] - dx_ds3[2]*dx_ds1[1],
-                    dx_ds3[2]*dx_ds1[0] - dx_ds3[0]*dx_ds1[2],
-                    dx_ds3[0]*dx_ds1[1] - dx_ds3[1]*dx_ds1[0] ]
-                mag = math.sqrt(dx_ds2[0]*dx_ds2[0] + dx_ds2[1]*dx_ds2[1] + dx_ds2[2]*dx_ds2[2])
-                for i in range(3):
-                    # GRC check scaling here:
-                    dx_ds2[i] *= inner[2]/mag
+                if (n3 == 0) and (n1 == 1):
+                    dx_ds2 = [ cruxLeftInner[0] - inner[0], cruxLeftInner[1] - inner[1], 0.0 ]
+                else:
+                    dx_ds2 = [
+                        dx_ds3[1]*dx_ds1[2] - dx_ds3[2]*dx_ds1[1],
+                        dx_ds3[2]*dx_ds1[0] - dx_ds3[0]*dx_ds1[2],
+                        dx_ds3[0]*dx_ds1[1] - dx_ds3[1]*dx_ds1[0] ]
+                    mag = math.sqrt(dx_ds2[0]*dx_ds2[0] + dx_ds2[1]*dx_ds2[1] + dx_ds2[2]*dx_ds2[2])
+                    for i in range(3):
+                        # GRC check scaling here:
+                        dx_ds2[i] *= inner[2]/mag
                 if n1 == 0:
                     # GRC check scaling here:
                     dx_ds2 = [ 0.0, 0.0, inner[2] ]
@@ -972,11 +977,10 @@ class MeshType_3d_heartventriclesbase1(object):
                 eft1 = bicubichermitelinear3.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 if e == 4:
-                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
                 localNodes = [ 2, 6 ] if (e == 4) else [ 1, 5 ]
                 remapEftNodeValueLabel(eft1, localNodes, Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
-                remapEftNodeValueLabel(eft1, localNodes[0:1], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
-                remapEftNodeValueLabel(eft1, localNodes[1:], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ localNodes[1], 8 if (e == 4) else 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ])
                 ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
 
