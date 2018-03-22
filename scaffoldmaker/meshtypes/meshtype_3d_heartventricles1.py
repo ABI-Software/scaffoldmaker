@@ -138,8 +138,7 @@ class MeshType_3d_heartventricles1:
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        # find the coordinates field created for the sphere shell
-        coordinates = fm.findFieldByName('coordinates').castFiniteElement()
+        coordinates = getOrCreateCoordinateField(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
