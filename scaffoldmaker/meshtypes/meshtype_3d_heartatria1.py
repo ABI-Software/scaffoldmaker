@@ -35,7 +35,7 @@ class MeshType_3d_heartatria1(object):
             'Free wall thickness' : 0.03,
             'Major axis rotation degrees' : 30.0,
             'Base inner major axis length' : 0.5,
-            'Base inner minor axis length' : 0.35,
+            'Base inner minor axis length' : 0.4,
             'Use cross derivatives' : False
         }
 
@@ -212,8 +212,8 @@ class MeshType_3d_heartatria1(object):
             upRadians[1][i] = upRadians[0][i]
             deltaUpRadians[1][i] = deltaUpRadians[0][i]
 
-        print('upRadians',upRadians[0])
-        print('deltaUpRadians',deltaUpRadians[0])
+        #print('upRadians',upRadians[0])
+        #print('deltaUpRadians',deltaUpRadians[0])
 
         innerScaleZ = (lengthRatio - freeWallThickness)/(1.0 - math.cos(totalArcUpRadians))
         outerScaleZ = lengthRatio/(1.0 - math.cos(totalArcUpRadians))
@@ -228,7 +228,7 @@ class MeshType_3d_heartatria1(object):
 
                 # GRC support separate inner and outer radians up
                 radiansUp = upRadians[n3][n2]
-                scalingUp = baseToEquatorRatio*math.sin(radiansUp)  # GRC error!
+                scalingUp = baseToEquatorRatio*math.sin(radiansUp)
                 innerZ = -innerScaleZ*math.cos(radiansUp)
                 outerZ = -outerScaleZ*math.cos(radiansUp)
 
@@ -272,7 +272,7 @@ class MeshType_3d_heartatria1(object):
                             centreX + scalingUp*(cosRadiansAround*outerMajorX + sinRadiansAround*outerMinorX),
                             centreY + scalingUp*(cosRadiansAround*outerMajorY + sinRadiansAround*outerMinorY),
                             outerZ ]
-                        if (n3 == 1) and (n1 == 0):
+                        if (n3 == 1) and (n2 <= elementsCountUpSeptum) and (n1 == 0):
                             continue  # right septum node created in next loop
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         layerNodeId[n1] = nodeIdentifier
@@ -297,11 +297,6 @@ class MeshType_3d_heartatria1(object):
                                 deltaUpRadians[n3][n2]*math.cos(radiansUp)*(cosRadiansAround*outerMajorY + sinRadiansAround*outerMinorY),
                                 deltaUpRadians[n3][n2]*math.sin(radiansUp)*outerScaleZ ]
                         dx_ds3 = [ outer[0] - inner[0], outer[1] - inner[1], outer[2] - inner[2] ]
-                        if n1 == 0:
-                            if i == 0:
-                                dx_ds3 = [ raSeptumX - laSeptumX, raSeptumY - laSeptumY, 0.0 ]
-                            else:
-                                dx_ds3 = [ laSeptumX - raSeptumX, laSeptumY - raSeptumY, 0.0 ]
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
@@ -356,13 +351,64 @@ class MeshType_3d_heartatria1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
 
-
-        # transfer inner septum nodes to outer on opposite side
-        for n2 in range(elementsCountUp):
+        # transfer inner septum nodes to outer on opposite side, set derivative 3 to be node difference
+        for n2 in range(elementsCountUpSeptum + 1):
             laNodeId[1][n2][0] = raNodeId[0][n2][0]
             raNodeId[1][n2][0] = laNodeId[0][n2][0]
+            node2 = nodes.findNodeByIdentifier(laNodeId[1][n2][0])
+            cache.setNode(node2)
+            result, x_o = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            node1 = nodes.findNodeByIdentifier(laNodeId[0][n2][0])
+            cache.setNode(node1)
+            result, x_i = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            dx_ds3 = [ (x_o[i] - x_i[i]) for i in range(3) ]
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            dx_ds3 = [ -v for v in dx_ds3 ]
+            cache.setNode(node2)
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
 
-        if True:
+        # create extra node(s) at top of septum
+        n2 = elementsCountUpSeptum + 1
+        node1 = nodes.findNodeByIdentifier(laNodeId[1][n2][0])
+        cache.setNode(node1)
+        result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        d1 = [ -d for d in d1 ]
+        node2 = nodes.findNodeByIdentifier(raNodeId[1][n2][0])
+        cache.setNode(node2)
+        result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        xi = 0.5
+        vc = interpolateCubicHermite(v1, d1, v2, d2, xi )
+        dc = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi )
+        x = [ vc[0], vc[1], vc[2] ]
+        # get magnitude of dx_ds1 from arc around apex to next node
+        node = nodes.findNodeByIdentifier(apexNodeId[0])
+        cache.setNode(node)
+        result, ac = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        node = nodes.findNodeByIdentifier(laNodeId[1][n2 - 1][1])
+        cache.setNode(node)
+        result, vb = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        a = [ (vc[i] - ac[i]) for i in range(3) ]
+        b = [ (vb[i] - ac[i]) for i in range(3) ]
+        mag_a = math.sqrt(a[0]*a[0] + a[1]*a[1] + a[1]*a[1])
+        mag_b = math.sqrt(b[0]*b[0] + b[1]*b[1] + b[1]*b[1])
+        arcRadians = math.acos((a[0]*b[0] + a[1]*b[1] + a[1]*b[1]) / (mag_a*mag_b))
+        mag = 0.5*(mag_a + mag_b)*arcRadians
+        dx_ds1 = [ mag, 0.0, 0.0 ]
+        dx_ds2 = [ 0.5*d for d in dc ]
+        dx_ds3 = [ 0.0, 0.0, vc[2] + innerScaleZ*math.cos(math.pi - totalArcUpRadians + septumArcUpRadians) ]
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        septumNodeId = nodeIdentifier
+        cache.setNode(node)
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        print('septum', node.isValid(), result, ' nodes', laNodeId[1][n2][0], raNodeId[1][n2][0])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        nodeIdentifier += 1
+
+        if False:
             # show centre/axes of atria
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
