@@ -461,6 +461,7 @@ class MeshType_3d_heartatria1(object):
         elementtemplateSeptumSplitCentre.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplateSeptumSplitCentre.defineField(coordinates, -1, eftSeptumSplitCentre)
 
+        # regular rows within septum
         for e2 in range(elementsCountUpSeptum):
 
             for i in range(2):
@@ -470,7 +471,7 @@ class MeshType_3d_heartatria1(object):
                 else:  # right
                     nodeId = raNodeId
                     otherNodeId = laNodeId
-                # left atrium
+
                 for e1 in range(elementsCountAround):
 
                     en = (e1 + 1) % elementsCountAround
@@ -497,6 +498,118 @@ class MeshType_3d_heartatria1(object):
                         result3 = 1
                     print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
                     elementIdentifier += 1
+
+        # septum transition interior collapsed elements
+
+        n2 = elementsCountUpSeptum
+        nids = [
+            [ laNodeId[0][n2][ 0], laNodeId[0][n2][1], raNodeId[1][n2][-1], laNodeId[1][n2][1], septumNodeId ],
+            [ laNodeId[0][n2][-1], laNodeId[0][n2][0], laNodeId[1][n2][-1], laNodeId[1][n2][0], septumNodeId ],
+            [ raNodeId[0][n2][ 0], raNodeId[0][n2][1], laNodeId[1][n2][-1], raNodeId[1][n2][1], septumNodeId ],
+            [ raNodeId[0][n2][-1], raNodeId[0][n2][0], raNodeId[1][n2][-1], raNodeId[1][n2][0], septumNodeId ]
+        ]
+
+        for e in range(len(nids)):
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            if e in [ 0, 2 ]:
+                remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ] )
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+                if e == 0:
+                    #remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                    #remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                    #remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                ln_map = [ 1, 2, 1, 2, 3, 4, 5, 4 ]
+                remapEftLocalNodes(eft1, 5, ln_map)
+            else:
+                remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4, 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ] )
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                if e == 1:
+                    #remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 2, 1, 2, 3, 4, 3, 5 ]
+                remapEftLocalNodes(eft1, 5, ln_map)
+
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids[e])
+            if eft1.getNumberOfLocalScaleFactors() == 1:
+                result3 = element.setScaleFactors(eft1, [ -1.0 ])
+            else:
+                result3 = 1
+            print('create element st', elementIdentifier, result, result2, result3, nids[e])
+            elementIdentifier += 1
+
+        # semi-regular rows above septum but below apex, including second septum transition elements
+
+        for e2 in range(elementsCountUpSeptum, elementsCountUp - 1):
+
+            for i in range(2):
+                if i == 0:  # left
+                    nodeId = laNodeId
+                    otherNodeId = raNodeId
+                else:  # right
+                    nodeId = raNodeId
+                    otherNodeId = laNodeId
+
+                for e1 in range(elementsCountAround):
+
+                    en = (e1 + 1) % elementsCountAround
+                    nids = [ nodeId[0][e2][e1], nodeId[0][e2][en], nodeId[0][e2 + 1][e1], nodeId[0][e2 + 1][en], \
+                             nodeId[1][e2][e1], nodeId[1][e2][en], nodeId[1][e2 + 1][e1], nodeId[1][e2 + 1][en] ]
+
+                    if (e2 == elementsCountUpSeptum) and ((e1 == 0) or (e1 == elementsCountAround - 1)):
+                        if e1 == 0:
+                            eft1 = eftSeptumSplitRight
+                            elementtemplate1 = elementtemplateSeptumSplitRight
+                            nids[4] = otherNodeId[1][e2][-1]
+                            nids[6] = otherNodeId[1][e2 + 1][-1]
+                        else:
+                            eft1 = eftSeptumSplitCentre
+                            elementtemplate1 = elementtemplateSeptumSplitCentre
+                        elementtemplate1 = mesh.createElementtemplate()
+                        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        result = elementtemplate1.defineField(coordinates, -1, eft1)
+                        continue  # GRC tmp
+                    else:
+                        eft1 = eft
+                        elementtemplate1 = elementtemplate
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate1)
+                    result2 = element.setNodesByIdentifier(eft1, nids)
+                    if eft1.getNumberOfLocalScaleFactors() == 1:
+                        result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                    else:
+                        result3 = 1
+                    print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
+                    elementIdentifier += 1
+
 
         fm.endChange()
 
