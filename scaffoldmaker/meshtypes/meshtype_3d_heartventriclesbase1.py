@@ -116,8 +116,7 @@ class MeshType_3d_heartventriclesbase1(object):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        # find the coordinates field created for the sphere shell
-        coordinates = fm.findFieldByName('coordinates').castFiniteElement()
+        coordinates = getOrCreateCoordinateField(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplateFull = nodes.createNodetemplate()
@@ -846,7 +845,7 @@ class MeshType_3d_heartventriclesbase1(object):
 
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids[e])
-            if eft1.getNumberOfLocalScaleFactors == 1:
+            if eft1.getNumberOfLocalScaleFactors() == 1:
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
@@ -958,7 +957,7 @@ class MeshType_3d_heartventriclesbase1(object):
             result2 = element.setNodesByIdentifier(eft1, nids[e])
             if e in [ 4, 5, 6, 7 ]:
                 result3 = element.setScaleFactors(eft1, scalefactors5hanging)
-            elif eft1.getNumberOfLocalScaleFactors == 1:
+            elif eft1.getNumberOfLocalScaleFactors() == 1:
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
