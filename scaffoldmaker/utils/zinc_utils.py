@@ -17,7 +17,6 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
     :param componentsCount: Number of components / dimension of field.
     '''
     assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateCoordinateField.  Dimensions must be from 1 to 3'
-    fieldmodule.beginChange()
     coordinates = fieldmodule.findFieldByName(name)
     if coordinates.isValid():
         coordinates = coordinates.castFiniteElement()
@@ -25,6 +24,7 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
         assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
         assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
         return coordinates
+    fieldmodule.beginChange()
     coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
     coordinates.setName(name)
     coordinates.setManaged(True)
