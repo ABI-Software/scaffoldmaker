@@ -5,9 +5,27 @@ Created on Nov 15, 2017
 @author: Richard Christie
 '''
 from scaffoldmaker.utils.eft_utils import *
-from opencmiss.zinc.element import Elementbasis, Elementfieldtemplate
+from scaffoldmaker.utils.zinc_utils import *
+from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK
+import math
+
+def normalise(v):
+    '''
+    :return: vector v normalised to unit length
+    '''
+    mag = 0.0
+    for s in v:
+        mag += s*s
+    mag = math.sqrt(mag)
+    return [ s/mag for s in v ]
+
+def crossproduct3(a, b):
+    '''
+    :return: vector 3-D cross product of a and b
+    '''
+    return [ a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0] ]
 
 class eftfactory_tricubichermite:
     '''
@@ -450,7 +468,6 @@ class eftfactory_tricubichermite:
         eft.setTermNodeParameter(n*8 + 5, 2, localNode2, Node.VALUE_LABEL_D_DS3, 1)
         eft.setTermScaling(n*8 + 5, 2, [sf05])
 
-
     def setEftMidsideXi3HangingNode(self, eft, hangingBasisNode, otherBasisNode, localNode1, localNode2, scaleFactorIndexes):
         '''
         Makes the functions for eft at basisNode work as a hanging node interpolating the parameters
@@ -505,3 +522,102 @@ class eftfactory_tricubichermite:
         eft.setTermNodeParameter(n*8 + 5, 4, localNode2, Node.VALUE_LABEL_D_DS3, 1)
         eft.setTermScaling(n*8 + 5, 4, [sfneg1, sf0125])
 
+    def replaceElementWithInlet4(self, element, startElementId, nodetemplate, startNodeId, tubeLength, innerDiameter, wallThickness):
+        '''
+        Replace element with 4 element X-layout tube inlet.
+        Inlet axis is at given length from centre of xi3=0 face, oriented with dx/dxi1.
+        8 new nodes are created.
+        '''
+        fm = self._mesh.getFieldmodule()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        fm.beginChange()
+        cache = fm.createFieldcache()
+        diff1 = self._mesh.getChartDifferentialoperator(1, 1)
+        diff2 = self._mesh.getChartDifferentialoperator(1, 2)
+        coordinates = getOrCreateCoordinateField(fm)
+        cache.setMeshLocation(element, [0.5, 0.5, 1.0])
+        result, fc = coordinates.evaluateReal(cache, 3)
+        resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
+        resultb, b = coordinates.evaluateDerivative(diff2, cache, 3)
+        n = normalise(crossproduct3(a, b))
+        #print(resulta, 'a =', a, ',', resultb, ' b=', b, ' fc=', fc, ' n=',n)
+        ic = [ (fc[i] + tubeLength*n[i]) for i in range(3) ]
+        na = normalise(a)
+        nb = normalise(b)
+        a = normalise([ -(na[i] + nb[i]) for i in range(3) ])
+        b = normalise(crossproduct3(a, n))
+
+        zero = [ 0.0, 0.0, 0.0 ]
+        nodeIdentifier = startNodeId
+        elementsCountAround = 4
+        radiansPerElementAround = math.pi*2.0/elementsCountAround
+        for n3 in range(2):
+            radius = innerDiameter*0.5 + n3*wallThickness
+            for n1 in range(elementsCountAround):
+                radiansAround = n1*radiansPerElementAround
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                x = [ (ic[i] + radius*(cosRadiansAround*a[i] + sinRadiansAround*b[i])) for i in range(3) ]
+                dx_ds1 = [ radiansPerElementAround*radius*(-sinRadiansAround*a[i] + cosRadiansAround*b[i]) for i in range(3) ]
+                dx_ds2 = [ -tubeLength*c for c in n ]
+                dx_ds3 = [ wallThickness*(cosRadiansAround*a[i] + sinRadiansAround*b[i]) for i in range(3) ]
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                if self._useCrossDerivatives:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+                nodeIdentifier = nodeIdentifier + 1
+
+        eft0 = element.getElementfieldtemplate(coordinates, -1)
+        nids0 = getElementNodeIdentifiers(element, eft0)
+        orig_nids = [ nids0[0], nids0[2], nids0[3], nids0[1], nids0[4], nids0[6], nids0[7], nids0[5] ]
+
+        elementIdentifier = startElementId
+        elementtemplate1 = self._mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        for e in range(4):
+            eft1 = self.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            if e == 0:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, []) ])
+            elif e == 1:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+            elif e == 2:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+            elif e == 3:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+            ea = e
+            eb = (e + 1) % 4
+            ec = ea + 4
+            ed = eb + 4
+            nids = [
+                startNodeId + ea, startNodeId + eb, orig_nids[ea], orig_nids[eb],
+                startNodeId + ec, startNodeId + ed, orig_nids[ec], orig_nids[ed]
+            ]
+            elementtemplate1.defineField(coordinates, -1, eft1)
+            element = self._mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if eft1.getNumberOfLocalScaleFactors() == 1:
+                result3 = element.setScaleFactors(eft1, [ -1.0 ])
+            else:
+                result3 = 7
+            #print('create element in', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier += 1
+
+        fm.endChange()
