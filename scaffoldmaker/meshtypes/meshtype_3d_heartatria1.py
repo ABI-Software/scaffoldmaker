@@ -25,7 +25,7 @@ class MeshType_3d_heartatria1(object):
     def getDefaultOptions():
         return {
             'Number of elements up' : 4,
-            'Number of elements up septum' : 1,
+            'Number of elements up septum' : 2,
             'Number of elements around' : 6,
             'Number of extra elements along septum' : 0,
             'Total arc up degrees' : 120.0,
@@ -585,18 +585,25 @@ class MeshType_3d_heartatria1(object):
                              nodeId[1][e2][e1], nodeId[1][e2][en], nodeId[1][e2 + 1][e1], nodeId[1][e2 + 1][en] ]
 
                     if (e2 == elementsCountUpSeptum) and ((e1 == 0) or (e1 == elementsCountAround - 1)):
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
                         if e1 == 0:
-                            eft1 = eftSeptumSplitRight
-                            elementtemplate1 = elementtemplateSeptumSplitRight
-                            nids[4] = otherNodeId[1][e2][-1]
-                            nids[6] = otherNodeId[1][e2 + 1][-1]
+                            nids[4] = septumNodeId
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS3, [0]) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
                         else:
-                            eft1 = eftSeptumSplitCentre
-                            elementtemplate1 = elementtemplateSeptumSplitCentre
+                            nids[5] = septumNodeId
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS2, [0 if (i == 0) else 1]) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS3, [0]) ])
                         elementtemplate1 = mesh.createElementtemplate()
                         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                         result = elementtemplate1.defineField(coordinates, -1, eft1)
-                        continue  # GRC tmp
                     else:
                         eft1 = eft
                         elementtemplate1 = elementtemplate
@@ -610,6 +617,35 @@ class MeshType_3d_heartatria1(object):
                     print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
                     elementIdentifier += 1
 
+        for i in range(2):
+            nodeId = laNodeId if (i == 0) else raNodeId
+            apexNodeId = laApexNodeId if (i == 0) else raApexNodeId
+            aRadians = laRadians if (i == 0) else raRadians
+            deltaRadians = laDeltaRadians if (i == 0) else raDeltaRadians
+
+            # create top apex elements
+            # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            for e1 in range(elementsCountAround):
+                va = e1
+                vb = (e1 + 1)%elementsCountAround
+                eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+                elementtemplate1.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                n2 = elementsCountUp - 1
+                nodeIdentifiers = [ nodeId[0][n2][va], nodeId[0][n2][vb], apexNodeId[0], nodeId[1][n2][va], nodeId[1][n2][vb], apexNodeId[1] ]
+                element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                # set general linear map coefficients
+                scalefactors = [
+                    -1.0,
+                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), deltaRadians[va],
+                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), deltaRadians[vb],
+                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), deltaRadians[va],
+                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), deltaRadians[vb]
+                ]
+                result = element.setScaleFactors(eft1, scalefactors)
+                elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
 
