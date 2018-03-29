@@ -25,7 +25,7 @@ class MeshType_3d_heartatria1(object):
     def getDefaultOptions():
         return {
             'Number of elements up' : 4,
-            'Number of elements up septum' : 1,
+            'Number of elements up septum' : 2,
             'Number of elements around' : 6,
             'Number of extra elements along septum' : 0,
             'Total arc up degrees' : 120.0,
@@ -36,6 +36,10 @@ class MeshType_3d_heartatria1(object):
             'Major axis rotation degrees' : 30.0,
             'Base inner major axis length' : 0.5,
             'Base inner minor axis length' : 0.4,
+            'Vena cava inner diameter' : 0.12,
+            'Vena cava wall thickness' : 0.012,
+            'Pulmonary vein inner diameter' : 0.08,
+            'Pulmonary vein wall thickness' : 0.008,
             'Use cross derivatives' : False
         }
 
@@ -53,7 +57,11 @@ class MeshType_3d_heartatria1(object):
             'Free wall thickness',
             'Major axis rotation degrees',
             'Base inner major axis length',
-            'Base inner minor axis length'
+            'Base inner minor axis length',
+            'Vena cava inner diameter',
+            'Vena cava wall thickness',
+            'Pulmonary vein inner diameter',
+            'Pulmonary vein wall thickness'
             #,'Use cross derivatives'
         ]
 
@@ -85,7 +93,11 @@ class MeshType_3d_heartatria1(object):
                 'Base septum thickness',
                 'Free wall thickness',
                 'Base inner major axis length',
-                'Base inner minor axis length']:
+                'Base inner minor axis length',
+                'Vena cava inner diameter',
+                'Vena cava wall thickness',
+                'Pulmonary vein inner diameter',
+                'Pulmonary vein wall thickness']:
                 if options[key] < 1.0E-6:
                     options[key] = 1.0E-6
 
@@ -111,6 +123,10 @@ class MeshType_3d_heartatria1(object):
         baseToEquatorRatio = 1.0/math.sin(totalArcUpRadians)
         innerMajorMag = 0.5*options['Base inner major axis length']
         innerMinorMag = 0.5*options['Base inner minor axis length']
+        vcInnerDiameter = options['Vena cava inner diameter']
+        vcWallThickness = options['Vena cava wall thickness']
+        pvInnerDiameter = options['Pulmonary vein inner diameter']
+        pvWallThickness = options['Pulmonary vein wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -402,7 +418,7 @@ class MeshType_3d_heartatria1(object):
         septumNodeId = nodeIdentifier
         cache.setNode(node)
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-        print('septum', node.isValid(), result, ' nodes', laNodeId[1][n2][0], raNodeId[1][n2][0])
+        #print('septum', node.isValid(), result, ' nodes', laNodeId[1][n2][0], raNodeId[1][n2][0])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
@@ -496,7 +512,7 @@ class MeshType_3d_heartatria1(object):
                         result3 = element.setScaleFactors(eft1, [ -1.0 ])
                     else:
                         result3 = 1
-                    print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
+                    #print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
                     elementIdentifier += 1
 
         # septum transition interior collapsed elements
@@ -563,7 +579,7 @@ class MeshType_3d_heartatria1(object):
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
-            print('create element st', elementIdentifier, result, result2, result3, nids[e])
+            #print('create element st', elementIdentifier, result, result2, result3, nids[e])
             elementIdentifier += 1
 
         # semi-regular rows above septum but below apex, including second septum transition elements
@@ -585,18 +601,25 @@ class MeshType_3d_heartatria1(object):
                              nodeId[1][e2][e1], nodeId[1][e2][en], nodeId[1][e2 + 1][e1], nodeId[1][e2 + 1][en] ]
 
                     if (e2 == elementsCountUpSeptum) and ((e1 == 0) or (e1 == elementsCountAround - 1)):
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
                         if e1 == 0:
-                            eft1 = eftSeptumSplitRight
-                            elementtemplate1 = elementtemplateSeptumSplitRight
-                            nids[4] = otherNodeId[1][e2][-1]
-                            nids[6] = otherNodeId[1][e2 + 1][-1]
+                            nids[4] = septumNodeId
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS3, [0]) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
                         else:
-                            eft1 = eftSeptumSplitCentre
-                            elementtemplate1 = elementtemplateSeptumSplitCentre
+                            nids[5] = septumNodeId
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS2, [0 if (i == 0) else 1]) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1 if (i == 0) else 0]), (Node.VALUE_LABEL_D_DS3, [0]) ])
                         elementtemplate1 = mesh.createElementtemplate()
                         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                         result = elementtemplate1.defineField(coordinates, -1, eft1)
-                        continue  # GRC tmp
                     else:
                         eft1 = eft
                         elementtemplate1 = elementtemplate
@@ -607,9 +630,74 @@ class MeshType_3d_heartatria1(object):
                         result3 = element.setScaleFactors(eft1, [ -1.0 ])
                     else:
                         result3 = 1
-                    print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
+                    #print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
+                    if e2 == elementsCountUp - 2:
+                        if i == 0:
+                            if e1 == 0:
+                                rapvElementId = elementIdentifier
+                            elif e1 == (elementsCountAround - 1):
+                                rppvElementId = elementIdentifier
+                            elif e1 == (elementsCountAround//2 - 1):
+                                lapvElementId = elementIdentifier
+                            elif e1 == ((elementsCountAround + 1)//2):
+                                lppvElementId = elementIdentifier
+                        else:  # i == 1:
+                            if e1 == 1:
+                                ivcElementId = elementIdentifier
+                            elif e1 == (elementsCountAround - 2):
+                                svcElementId = elementIdentifier
+
                     elementIdentifier += 1
 
+        for i in range(2):
+            nodeId = laNodeId if (i == 0) else raNodeId
+            apexNodeId = laApexNodeId if (i == 0) else raApexNodeId
+            aRadians = laRadians if (i == 0) else raRadians
+            deltaRadians = laDeltaRadians if (i == 0) else raDeltaRadians
+
+            # create top apex elements
+            # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            for e1 in range(elementsCountAround):
+                va = e1
+                vb = (e1 + 1)%elementsCountAround
+                eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+                elementtemplate1.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                n2 = elementsCountUp - 1
+                nodeIdentifiers = [ nodeId[0][n2][va], nodeId[0][n2][vb], apexNodeId[0], nodeId[1][n2][va], nodeId[1][n2][vb], apexNodeId[1] ]
+                element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                # set general linear map coefficients
+                scalefactors = [
+                    -1.0,
+                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), deltaRadians[va],
+                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), deltaRadians[vb],
+                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), deltaRadians[va],
+                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), deltaRadians[vb]
+                ]
+                result = element.setScaleFactors(eft1, scalefactors)
+                elementIdentifier = elementIdentifier + 1
+
+        # add right atria inlets (venae cavae)
+
+        for elementId in [ ivcElementId, svcElementId ]:
+            element = mesh.findElementByIdentifier(elementId)
+            vcLength = vcInnerDiameter*0.5
+            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, vcLength, vcInnerDiameter, vcWallThickness)
+            elementIdentifier += 4
+            nodeIdentifier += 8
+            mesh.destroyElement(element)
+
+		# add left atria inlets (pulmonary veins)
+
+        for elementId in [ lapvElementId, lppvElementId, rapvElementId, rppvElementId ]:
+            element = mesh.findElementByIdentifier(elementId)
+            pvLength = pvInnerDiameter*0.5
+            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, pvLength, pvInnerDiameter, pvWallThickness)
+            elementIdentifier += 4
+            nodeIdentifier += 8
+            mesh.destroyElement(element)
 
         fm.endChange()
 
