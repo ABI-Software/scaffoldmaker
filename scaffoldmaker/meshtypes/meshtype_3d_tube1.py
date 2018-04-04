@@ -6,6 +6,7 @@ through wall, plus variable wall thickness for unit diameter.
 from __future__ import division
 import math
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -21,45 +22,59 @@ class MeshType_3d_tube1(object):
     @staticmethod
     def getDefaultOptions():
         return {
-            'Number of elements along' : 1,
             'Number of elements around' : 4,
+            'Number of elements along' : 1,
             'Number of elements through wall' : 1,
             'Wall thickness' : 0.25,
-            'Use cross derivatives' : False
+            'Use cross derivatives' : False,
+            'Refine' : False,
+            'Refine number of elements around' : 1,
+            'Refine number of elements along' : 1,
+            'Refine number of elements through wall' : 1
         }
 
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of elements along',
             'Number of elements around',
+            'Number of elements along',
             'Number of elements through wall',
             'Wall thickness',
-            'Use cross derivatives'
+            'Use cross derivatives',
+            'Refine',
+            'Refine number of elements around',
+            'Refine number of elements along',
+            'Refine number of elements through wall'
         ]
 
     @staticmethod
     def checkOptions(options):
-        if (options['Number of elements along'] < 1) :
-            options['Number of elements along'] = 1
+        for key in [
+            'Number of elements along',
+            'Number of elements through wall',
+            'Refine number of elements around',
+            'Refine number of elements along',
+            'Refine number of elements through wall']:
+            if options[key] < 1:
+                options[key] = 1
         if (options['Number of elements around'] < 2) :
             options['Number of elements around'] = 2
-        if (options['Number of elements through wall'] < 1) :
-            options['Number of elements through wall'] = 1
         if (options['Wall thickness'] < 0.0) :
             options['Wall thickness'] = 0.0
         elif (options['Wall thickness'] > 0.5) :
             options['Wall thickness'] = 0.5
 
+
     @staticmethod
-    def generateMesh(region, options):
+    def generateBaseMesh(region, options):
         """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        elementsCountAlong = options['Number of elements along']
         elementsCountAround = options['Number of elements around']
+        elementsCountAlong = options['Number of elements along']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
@@ -153,3 +168,23 @@ class MeshType_3d_tube1(object):
 
         fm.endChange()
 
+
+    def generateMesh(region, options):
+        """
+        Generate base or refined mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        if not options['Refine']:
+            MeshType_3d_tube1.generateBaseMesh(region, options)
+            return
+
+        refineElementsCountAround = options['Refine number of elements around']
+        refineElementsCountAlong = options['Refine number of elements along']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
+
+        baseRegion = region.createRegion()
+        MeshType_3d_tube1.generateBaseMesh(baseRegion, options)
+
+        meshrefinement = MeshRefinement(baseRegion, region)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)

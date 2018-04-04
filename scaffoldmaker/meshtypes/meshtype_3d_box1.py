@@ -5,6 +5,7 @@ Generates a 3-D unit box mesh with variable numbers of elements in 3 directions.
 from __future__ import division
 import math
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -23,7 +24,11 @@ class MeshType_3d_box1(object):
             'Number of elements 1' : 1,
             'Number of elements 2' : 1,
             'Number of elements 3' : 1,
-            'Use cross derivatives' : False
+            'Use cross derivatives' : False,
+            'Refine' : False,
+            'Refine number of elements 1' : 1,
+            'Refine number of elements 2' : 1,
+            'Refine number of elements 3' : 1
         }
 
     @staticmethod
@@ -32,21 +37,29 @@ class MeshType_3d_box1(object):
             'Number of elements 1',
             'Number of elements 2',
             'Number of elements 3',
-            'Use cross derivatives'
+            'Use cross derivatives',
+            'Refine',
+            'Refine number of elements 1',
+            'Refine number of elements 2',
+            'Refine number of elements 3'
         ]
 
     @staticmethod
     def checkOptions(options):
-        if (options['Number of elements 1'] < 1) :
-            options['Number of elements 1'] = 1
-        if (options['Number of elements 2'] < 1) :
-            options['Number of elements 2'] = 1
-        if (options['Number of elements 3'] < 1) :
-            options['Number of elements 3'] = 1
+        for key in [
+            'Number of elements 1',
+            'Number of elements 2',
+            'Number of elements 3',
+            'Refine number of elements 1',
+            'Refine number of elements 2',
+            'Refine number of elements 3']:
+            if options[key] < 1:
+                options[key] = 1
 
     @staticmethod
-    def generateMesh(region, options):
+    def generateBaseMesh(region, options):
         """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
@@ -133,3 +146,23 @@ class MeshType_3d_box1(object):
 
         fm.endChange()
 
+
+    def generateMesh(region, options):
+        """
+        Generate base or refined mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        if not options['Refine']:
+            MeshType_3d_box1.generateBaseMesh(region, options)
+            return
+
+        refineElementsCount1 = options['Refine number of elements 1']
+        refineElementsCount2 = options['Refine number of elements 2']
+        refineElementsCount3 = options['Refine number of elements 3']
+
+        baseRegion = region.createRegion()
+        MeshType_3d_box1.generateBaseMesh(baseRegion, options)
+
+        meshrefinement = MeshRefinement(baseRegion, region)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount1, refineElementsCount2, refineElementsCount3)
