@@ -168,7 +168,7 @@ class MeshType_3d_tube1(object):
 
         fm.endChange()
 
-
+    @staticmethod
     def generateMesh(region, options):
         """
         Generate base or refined mesh.

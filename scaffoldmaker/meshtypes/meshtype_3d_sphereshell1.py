@@ -395,7 +395,7 @@ class MeshType_3d_sphereshell1:
 
         fm.endChange()
 
-
+    @staticmethod
     def generateMesh(region, options):
         """
         Generate base or refined mesh.

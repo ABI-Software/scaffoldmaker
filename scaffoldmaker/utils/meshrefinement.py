@@ -44,6 +44,7 @@ class MeshRefinement:
         maximumsField = None
         self._sourceFm.endChange()
         self._sourceMesh = self._sourceFm.findMeshByDimension(3)
+        self._sourceElementiterator = self._sourceMesh.createElementiterator()
         self._octree = Octree(minimums, maximums)
 
         self._targetRegion = targetRegion
@@ -108,8 +109,7 @@ class MeshRefinement:
                     self._elementIdentifier += 1
 
     def refineAllElementsCubeStandard3d(self, numberInXi1, numberInXi2, numberInXi3):
-        elementIter = self._sourceMesh.createElementiterator()
-        element = elementIter.next()
+        element = self._sourceElementiterator.next()
         while element.isValid():
             self.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
-            element = elementIter.next()
+            element = self._sourceElementiterator.next()

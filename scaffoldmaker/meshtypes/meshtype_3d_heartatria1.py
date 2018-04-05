@@ -689,7 +689,7 @@ class MeshType_3d_heartatria1(object):
             nodeIdentifier += 8
             mesh.destroyElement(element)
 
-		# add left atria inlets (pulmonary veins)
+        # add left atria inlets (pulmonary veins)
 
         for elementId in [ lapvElementId, lppvElementId, rapvElementId, rppvElementId ]:
             element = mesh.findElementByIdentifier(elementId)
