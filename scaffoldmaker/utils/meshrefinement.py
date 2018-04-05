@@ -64,8 +64,6 @@ class MeshRefinement:
         self._targetElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = self._targetElementtemplate.defineField(self._targetCoordinates, -1, self._targetEft)
 
-        self._nodetemplate.defineField(self._targetCoordinates)
-
         self._nodeIdentifier = 1
         self._elementIdentifier = 1
 
