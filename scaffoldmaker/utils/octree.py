@@ -20,6 +20,7 @@ class Octree:
         :param tolerance: If supplied, tolerance to use, or None to compute as 1.0E-6*diagonal.
         '''
         self._dimension = 3
+        self._dimensionPower2 = 1 << self._dimension
         self._maxObjects = 20
         assert len(minimums) == self._dimension, 'Octree minimums is invalid length'
         assert len(maximums) == self._dimension, 'Octree maximums is invalid length'
@@ -33,29 +34,6 @@ class Octree:
         self._coordinatesObjects = []
         # exactly 2^self._dimension children, cycling in lowest x index fastest
         self._children = None
-        #if tolerance is None:
-        #print('Octree:', self._minimums, self._maximums, self._tolerance)
-
-
-    def _isWithinBounds(self, x):
-        '''
-        :return: True if x is within bounds of minimums and maximums.
-        '''
-        for i in range(self._dimension):
-            if (x[i] < self._minimums[i]) or (x[i] > self._maximums[i]):
-                return False
-        return True
-
-
-    def _isWithinBoundsPlusTolerance(self, x):
-        '''
-        :return: True if x is within bounds of minimums and maximums plus tolerance.
-        '''
-        for i in range(self._dimension):
-            if (x[i] < (self._minimums[i] - self._tolerance)) or \
-                (x[i] > (self._maximums[i] + self._tolerance)):
-                return False
-        return True
 
 
     def _findObjectByCoordinates(self, x):
@@ -64,22 +42,39 @@ class Octree:
         :param x: 3 coordinates in a list.
         :return: nearest distance, nearest object or None, None if none found.
         '''
-        if not self._isWithinBoundsPlusTolerance(x):
-            return None, None
         nearestDistance = None
         nearestObject = None
         if self._coordinatesObjects is not None:
             for coordinatesObject in self._coordinatesObjects:
-                distance = math.sqrt(sum((x[i] - coordinatesObject[0][i])*(x[i] - coordinatesObject[0][i]) for i in range(self._dimension)))
-                if (distance < self._tolerance) and ((nearestDistance is None) or (distance < nearestDistance)):
-                    nearestDistance = distance
-                    nearestObject = coordinatesObject[1]
+                # cheaply determine if in 2*tolerance sized box around object
+                inBox = True
+                for c in range(self._dimension):
+                    if math.fabs(x[c] - coordinatesObject[0][c]) > self._tolerance:
+                        inBox = False
+                        break
+                if inBox:
+                    # now test exact distance
+                    distance = math.sqrt(sum((x[i] - coordinatesObject[0][i])*(x[i] - coordinatesObject[0][i]) for i in range(self._dimension)))
+                    if (distance < self._tolerance) and ((nearestDistance is None) or (distance < nearestDistance)):
+                        nearestDistance = distance
+                        nearestObject = coordinatesObject[1]
         else:
-            for child in self._children:
-                distance, obj = child._findObjectByCoordinates(x)
-                if (distance is not None) and ((nearestDistance is None) or (distance < nearestDistance)):
-                    nearestDistance = distance
-                    nearestObject = obj
+            centre = self._children[0]._maximums
+            for i in range(self._dimensionPower2):
+                inBoundsPlusTolerance = True
+                for c in range(self._dimension):
+                    if i & (1 << c):
+                        if x[c] < (centre[c] - self._tolerance):
+                            inBoundsPlusTolerance = False
+                            break
+                    elif x[c] > (centre[c] + self._tolerance):
+                        inBoundsPlusTolerance = False
+                        break
+                if inBoundsPlusTolerance:
+                    distance, obj = self._children[i]._findObjectByCoordinates(x)
+                    if (distance is not None) and ((nearestDistance is None) or (distance < nearestDistance)):
+                        nearestDistance = distance
+                        nearestObject = obj
         return nearestDistance, nearestObject
 
 
@@ -110,27 +105,23 @@ class Octree:
                 coordinatesObjects = self._coordinatesObjects
                 self._coordinatesObjects = None
                 self._children = []
-                for i in range(1 << self._dimension):
+                for i in range(self._dimensionPower2):
                     childMinimums = copy.deepcopy(self._minimums)
                     childMaximums = copy.deepcopy(self._maximums)
-                    for j in range(self._dimension):
-                        if i & (1 << j):
-                            childMinimums[j] = 0.5*(self._minimums[j] + self._maximums[j])
+                    for c in range(self._dimension):
+                        if i & (1 << c):
+                            childMinimums[c] = 0.5*(self._minimums[c] + self._maximums[c])
                         else:
-                            childMaximums[j] = 0.5*(self._minimums[j] + self._maximums[j])
+                            childMaximums[c] = 0.5*(self._minimums[c] + self._maximums[c])
                     child = Octree(childMinimums, childMaximums, self._tolerance)
                     self._children.append(child)
-                    # add any coordinatesObjects to child, if in range
-                    addedCoordinatesObjects = []
-                    for coordinatesObject in coordinatesObjects:
-                        if child._isWithinBounds(coordinatesObject[0]):
-                            #print('+ add ', coordinatesObject[1])
-                            child.addObjectAtCoordinates(coordinatesObject[0], coordinatesObject[1])
-                            addedCoordinatesObjects.append(coordinatesObject)
-                    coordinatesObjects = [ v for v in coordinatesObjects if v not in addedCoordinatesObjects ]
-                assert (len(coordinatesObjects) == 0), 'Octree.addObjectAtCoordinates failed to add existing objects'
-        # add the new object to the first child it fits in
-        for child in self._children:
-            if child._isWithinBounds(x):
-                child.addObjectAtCoordinates(x, obj)
-                return
+                # add coordinatesObjects to children
+                for coordinatesObject in coordinatesObjects:
+                    self.addObjectAtCoordinates(coordinatesObject[0], coordinatesObject[1])
+        # add the new object to the first child it fits in, using efficient octree search
+        i = 0
+        centre = self._children[0]._maximums
+        for c in range(self._dimension):
+            if x[c] > centre[c]:
+                i += 1 << c
+        self._children[i].addObjectAtCoordinates(x, obj)
