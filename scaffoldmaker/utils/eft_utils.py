@@ -61,7 +61,8 @@ def getEftTermScaling(eft, functionIndex, termIndex):
     '''
     scaleFactorCount, scaleFactorIndexes = eft.getTermScaling(functionIndex, termIndex, 1)
     if scaleFactorCount < 0:
-        print('getEftTermScaling function', functionIndex, ' term', termIndex, ' scaleFactorCount ', scaleFactorCount)
+        if eft.getNumberOfLocalScaleFactors() > 0:
+            print('getEftTermScaling function', functionIndex, ' term', termIndex, ' scaleFactorCount ', scaleFactorCount)
         return []
     if scaleFactorCount == 0:
         return []

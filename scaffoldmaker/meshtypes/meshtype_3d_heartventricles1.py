@@ -8,6 +8,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_spheres
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -23,11 +24,11 @@ class MeshType_3d_heartventricles1:
     @staticmethod
     def getDefaultOptions():
         return {
-            'Number of elements up' : 4,
             'Number of elements around' : 12,
+            'Number of elements up' : 4,
+            'Number of elements through LV wall' : 1,
             'Number of elements across septum' : 5,
             'Number of elements below septum' : 2,
-            'Number of elements through LV wall' : 1,
             'LV wall thickness' : 0.15,
             'LV wall thickness ratio apex' : 0.5,
             'LV wall thickness ratio base': 0.8,
@@ -38,17 +39,21 @@ class MeshType_3d_heartventricles1:
             'Length ratio' : 2.0,
             'Element length ratio equator/apex' : 1.0,
             'Septum arc angle degrees' : 125.0,
-            'Use cross derivatives' : False
+            'Use cross derivatives' : False,
+            'Refine' : False,
+            'Refine number of elements surface' : 1,
+            'Refine number of elements through LV wall' : 1,
+            'Refine number of elements through RV wall' : 1
         }
 
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of elements up',
             'Number of elements around',
+            'Number of elements up',
+            'Number of elements through LV wall',
             'Number of elements across septum',
             'Number of elements below septum',
-            'Number of elements through LV wall',
             'LV wall thickness',
             'LV wall thickness ratio apex',
             'LV wall thickness ratio base',
@@ -58,11 +63,22 @@ class MeshType_3d_heartventricles1:
             'RV width',
             'Length ratio',
             'Element length ratio equator/apex',
-            'Septum arc angle degrees'
+            'Septum arc angle degrees',
+            'Refine',
+            'Refine number of elements surface',
+            'Refine number of elements through LV wall',
+            'Refine number of elements through RV wall'
         ]
 
     @staticmethod
     def checkOptions(options):
+        for key in [
+            'Number of elements through LV wall',
+            'Refine number of elements surface',
+            'Refine number of elements through LV wall',
+            'Refine number of elements through RV wall']:
+            if options[key] < 1:
+                options[key] = 1
         if options['Number of elements up'] < 4:
             options['Number of elements up'] = 4
         if options['Number of elements around'] < 4:
@@ -75,8 +91,6 @@ class MeshType_3d_heartventricles1:
             options['Number of elements below septum'] = 2
         elif options['Number of elements below septum'] > (options['Number of elements up'] - 1):
             options['Number of elements below septum'] = options['Number of elements up'] - 1
-        if (options['Number of elements through LV wall'] < 1) :
-            options['Number of elements through LV wall'] = 1
         if options['LV wall thickness'] < 0.0:
             options['LV wall thickness'] = 0.0
         elif options['LV wall thickness'] > 0.5:
@@ -101,17 +115,18 @@ class MeshType_3d_heartventricles1:
             options['Septum arc angle degrees'] = 270.0
 
     @staticmethod
-    def generateMesh(region, options):
+    def generateBaseMesh(region, options):
         """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        elementsCountUp = options['Number of elements up']
         elementsCountAround = options['Number of elements around']
+        elementsCountUp = options['Number of elements up']
+        elementsCountThroughLVWall = options['Number of elements through LV wall']
         elementsCountAcrossSeptum = options['Number of elements across septum']
         elementsCountBelowSeptum = options['Number of elements below septum']
-        elementsCountThroughLVWall = options['Number of elements through LV wall']
         LVWallThickness = options['LV wall thickness']
         LVWallThicknessRatioApex = options['LV wall thickness ratio apex']
         LVWallThicknessRatioBase = options['LV wall thickness ratio base']
@@ -134,7 +149,7 @@ class MeshType_3d_heartventricles1:
         sphereShellOptions['Wall thickness ratio apex'] = LVWallThicknessRatioApex
         sphereShellOptions['Length ratio'] = lengthRatio
         sphereShellOptions['Element length ratio equator/apex'] = options['Element length ratio equator/apex']
-        MeshType_3d_sphereshell1.generateMesh(region, sphereShellOptions)
+        MeshType_3d_sphereshell1.generateBaseMesh(region, sphereShellOptions)
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -543,30 +558,22 @@ class MeshType_3d_heartventricles1:
                 eft1 = None
 
                 if n2 == -1:
-                    if (n1 == -1) or (n1 == elementsCountAcrossSeptum):
+                    if n1 == -1:
                         # pinched to zero thickness on 3 sides
-                        eft1 = tricubichermite.createEftBasic()
-                        eft1.setNumberOfLocalNodes(5)
-                        if n1 == -1:
-                            unpinched_n1 = 3
-                            nodeIdentifiers = [ bni, bni + 1, bni + nor, bni + nor + 1, rv_nids[rv_bni + rv_nor + rv_now + 1] ]
-                        else:
-                            unpinched_n1 = 2
-                            nodeIdentifiers = [ bni, bni + 1, bni + nor, bni + nor + 1, rv_nids[rv_bni + rv_nor + rv_now] ]
-                        unpinched_n2 = unpinched_n1 + 4
-                        for n in [1, 2, 3, 4]:
-                            if n != unpinched_n1:
-                                eft1.setFunctionNumberOfTerms(n*8 + 5, 0)  # zero d/dxi3
-                        for n in [4, 5, 6, 7]:
-                            ln = 5 if (n == unpinched_n2) else n - 3
-                            mapEftFunction1Node1Term(eft1, n*8 + 1, ln, Node.VALUE_LABEL_VALUE, 1, [])
-                            mapEftFunction1Node1Term(eft1, n*8 + 2, ln, Node.VALUE_LABEL_D_DS1, 1, [])
-                            mapEftFunction1Node1Term(eft1, n*8 + 3, ln, Node.VALUE_LABEL_D_DS2, 1, [])
-                            if n == unpinched_n2:
-                                mapEftFunction1Node1Term(eft1, n*8 + 5, ln, Node.VALUE_LABEL_D_DS3, 1, [])
-                            else:
-                                eft1.setFunctionNumberOfTerms(n*8 + 5, 0)  # zero d/dxi3
-                        #print('eft1 corner', eft1.validate())
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        remapEftNodeValueLabel(eft1, [ 1, 2, 3, 5, 6, 7 ], Node.VALUE_LABEL_D_DS3, [])
+                        ln_map = [ 1, 2, 3, 4, 1, 2, 3, 5 ]
+                        remapEftLocalNodes(eft1, 5, ln_map)
+                        nodeIdentifiers = [ bni, bni + 1, bni + nor, bni + nor + 1, rv_nids[rv_bni + rv_nor + rv_now + 1] ]
+                        #print('eft1 corner a', eft1.validate())
+                    elif n1 == elementsCountAcrossSeptum:
+                        # pinched to zero thickness on 3 sides
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        remapEftNodeValueLabel(eft1, [ 1, 2, 4, 5, 6, 8 ], Node.VALUE_LABEL_D_DS3, [])
+                        ln_map = [ 1, 2, 3, 4, 1, 2, 5, 4 ]
+                        remapEftLocalNodes(eft1, 5, ln_map)
+                        nodeIdentifiers = [ bni, bni + 1, bni + nor, bni + nor + 1, rv_nids[rv_bni + rv_nor + rv_now] ]
+                        #print('eft1 corner b', eft1.validate())
                     else:
                         nodeIdentifiers = [
                             bni + nor, bni + nor + 1, rv_nids[rv_bni + rv_nor], rv_nids[rv_bni + rv_nor + 1],
@@ -661,3 +668,54 @@ class MeshType_3d_heartventricles1:
                 elementIdentifier += 1
 
         fm.endChange()
+
+    @staticmethod
+    def refineMesh(meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        Stops at end of ventricles, hence can be called from ventriclesbase.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshrefinement, MeshRefinement)
+        elementsCountAround = options['Number of elements around']
+        elementsCountUp = options['Number of elements up']
+        elementsCountThroughLVWall = options['Number of elements through LV wall']
+        elementsCountAcrossSeptum = options['Number of elements across septum']
+        elementsCountBelowSeptum = options['Number of elements below septum']
+
+        refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
+        refineElementsCountThroughRVWall = options['Refine number of elements through RV wall']
+
+        startRvElementIdentifier = elementsCountAround*elementsCountUp*elementsCountThroughLVWall + 1
+        limitRvElementIdentifier = startRvElementIdentifier + (elementsCountAcrossSeptum + 2)*(elementsCountUp - elementsCountBelowSeptum + 1)
+
+        element = meshrefinement._sourceElementiterator.next()
+        while element.isValid():
+            numberInXi1 = refineElementsCountSurface
+            numberInXi2 = refineElementsCountSurface
+            elementId = element.getIdentifier()
+            if elementId < startRvElementIdentifier:
+                numberInXi3 = refineElementsCountThroughLVWall
+            elif elementId < limitRvElementIdentifier:
+                numberInXi3 = refineElementsCountThroughRVWall
+            meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+            if elementId == (limitRvElementIdentifier - 1):
+                return  # finish on last so can continue in ventriclesbase
+            element = meshrefinement._sourceElementiterator.next()
+
+    @staticmethod
+    def generateMesh(region, options):
+        """
+        Generate base or refined mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        if not options['Refine']:
+            MeshType_3d_heartventricles1.generateBaseMesh(region, options)
+            return
+        baseRegion = region.createRegion()
+        MeshType_3d_heartventricles1.generateBaseMesh(baseRegion, options)
+        meshrefinement = MeshRefinement(baseRegion, region)
+        MeshType_3d_heartventricles1.refineMesh(meshrefinement, options)

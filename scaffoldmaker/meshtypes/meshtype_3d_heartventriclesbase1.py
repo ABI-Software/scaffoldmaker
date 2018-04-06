@@ -12,6 +12,7 @@ from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -46,6 +47,10 @@ class MeshType_3d_heartventriclesbase1(object):
         options['RV outlet wall thickness'] = 0.02
         options['Outlet element length'] = 0.1
         options['Outlet rotation degrees'] = 5.0
+        options['Refine'] = False
+        options['Refine number of elements surface'] = 4
+        options['Refine number of elements through LV wall'] = 1
+        options['Refine number of elements through RV wall'] = 1
         return options
 
     @staticmethod
@@ -67,13 +72,20 @@ class MeshType_3d_heartventriclesbase1(object):
             'RV outlet inner diameter',
             'RV outlet wall thickness',
             'Outlet element length',
-            'Outlet rotation degrees'
+            'Outlet rotation degrees',
+            'Refine',
+            'Refine number of elements surface',
+            'Refine number of elements through LV wall',
+            'Refine number of elements through RV wall'
         ]
         return optionNames
 
     @staticmethod
     def checkOptions(options):
         MeshType_3d_heartventricles1.checkOptions(options)
+        # need even number of refine surface elements for elements with hanging nodes to conform
+        if (options['Refine number of elements surface'] % 2) == 1:
+            options['Refine number of elements surface'] += 1
         for key in options:
             if key in [
                 'Base height',
@@ -87,15 +99,15 @@ class MeshType_3d_heartventriclesbase1(object):
                     options[key] = 0.0
 
     @staticmethod
-    def generateMesh(region, options):
+    def generateBaseMesh(region, options):
         """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        elementsCountUp = options['Number of elements up']
         elementsCountAround = options['Number of elements around']
-        #print('elementsCountAround', elementsCountAround)
+        elementsCountUp = options['Number of elements up']
         elementsCountAcrossSeptum = options['Number of elements across septum']
         lvWallThickness = options['LV wall thickness']
         lvWallThicknessRatioBase = options['LV wall thickness ratio base']
@@ -112,7 +124,7 @@ class MeshType_3d_heartventriclesbase1(object):
         useCrossDerivatives = False
 
         # generate default heart ventricles model to add base plane to
-        MeshType_3d_heartventricles1.generateMesh(region, options)
+        MeshType_3d_heartventricles1.generateBaseMesh(region, options)
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -999,3 +1011,63 @@ class MeshType_3d_heartventriclesbase1(object):
 
         fm.endChange()
 
+    @staticmethod
+    def refineMesh(meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshrefinement, MeshRefinement)
+
+        elementsCountAround = options['Number of elements around']
+        elementsCountUp = options['Number of elements up']
+        elementsCountThroughLVWall = options['Number of elements through LV wall']
+        elementsCountAcrossSeptum = options['Number of elements across septum']
+        elementsCountBelowSeptum = options['Number of elements below septum']
+
+        refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
+        refineElementsCountThroughRVWall = options['Refine number of elements through RV wall']
+
+        MeshType_3d_heartventricles1.refineMesh(meshrefinement, options)
+        element = meshrefinement._sourceElementiterator.next()
+        startBaseLvElementIdentifier = element.getIdentifier()
+        startBaseRvElementIdentifier = startBaseLvElementIdentifier + 16
+        startLvOutletElementIdentifier = startBaseRvElementIdentifier + 11
+        limitLvOutletElementIdentifier = startLvOutletElementIdentifier + 6
+
+        startHangingElementIdentifier = startBaseRvElementIdentifier + 4
+        limitHangingElementIdentifier = startHangingElementIdentifier + 4
+
+        while element.isValid():
+            numberInXi1 = refineElementsCountSurface
+            numberInXi2 = refineElementsCountSurface
+            elementId = element.getIdentifier()
+            if elementId < startBaseRvElementIdentifier:
+                numberInXi3 = refineElementsCountThroughLVWall
+            elif elementId < startLvOutletElementIdentifier:
+                numberInXi3 = refineElementsCountThroughRVWall
+                if (elementId >= startHangingElementIdentifier) and (elementId < limitHangingElementIdentifier):
+                    numberInXi1 //= 2
+            elif elementId < limitLvOutletElementIdentifier:
+                numberInXi3 = 1
+            meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+            if elementId == (limitLvOutletElementIdentifier - 1):
+                return  # finish on last so can continue in ventriclesbase
+            element = meshrefinement._sourceElementiterator.next()
+
+    @staticmethod
+    def generateMesh(region, options):
+        """
+        Generate base or refined mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        if not options['Refine']:
+            MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
+            return
+        baseRegion = region.createRegion()
+        MeshType_3d_heartventriclesbase1.generateBaseMesh(baseRegion, options)
+        meshrefinement = MeshRefinement(baseRegion, region)
+        MeshType_3d_heartventriclesbase1.refineMesh(meshrefinement, options)

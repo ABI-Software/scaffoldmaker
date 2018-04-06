@@ -7,6 +7,7 @@ from __future__ import division
 import math
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -22,8 +23,8 @@ class MeshType_3d_sphereshell1:
     @staticmethod
     def getDefaultOptions():
         return {
-            'Number of elements up' : 4,
             'Number of elements around' : 4,
+            'Number of elements up' : 4,
             'Number of elements through wall' : 1,
             'Wall thickness' : 0.25,
             'Wall thickness ratio apex' : 1.0,
@@ -31,14 +32,18 @@ class MeshType_3d_sphereshell1:
             'Exclude top rows' : 0,
             'Length ratio' : 1.0,
             'Element length ratio equator/apex' : 1.0,
-            'Use cross derivatives' : False
+            'Use cross derivatives' : False,
+            'Refine' : False,
+            'Refine number of elements around' : 1,
+            'Refine number of elements up' : 1,
+            'Refine number of elements through wall' : 1
         }
 
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of elements up',
             'Number of elements around',
+            'Number of elements up',
             'Number of elements through wall',
             'Exclude bottom rows',
             'Exclude top rows',
@@ -46,17 +51,26 @@ class MeshType_3d_sphereshell1:
             'Wall thickness ratio apex',
             'Length ratio',
             'Element length ratio equator/apex',
-            'Use cross derivatives'
+            'Use cross derivatives',
+            'Refine',
+            'Refine number of elements around',
+            'Refine number of elements up',
+            'Refine number of elements through wall'
         ]
 
     @staticmethod
     def checkOptions(options):
+        for key in [
+            'Number of elements through wall',
+            'Refine number of elements around',
+            'Refine number of elements up',
+            'Refine number of elements through wall']:
+            if options[key] < 1:
+                options[key] = 1
         if options['Number of elements up'] < 2:
             options['Number of elements up'] = 2
         if options['Number of elements around'] < 2:
             options['Number of elements around'] = 2
-        if options['Number of elements through wall'] < 1:
-            options['Number of elements through wall'] = 1
         if options['Exclude bottom rows'] < 0:
             options['Exclude bottom rows'] = 0
         if options['Exclude top rows'] < 0:
@@ -73,14 +87,15 @@ class MeshType_3d_sphereshell1:
             options['Element length ratio equator/apex'] = 1.0E-6
 
     @staticmethod
-    def generateMesh(region, options):
+    def generateBaseMesh(region, options):
         """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        elementsCountUp = options['Number of elements up']
         elementsCountAround = options['Number of elements around']
+        elementsCountUp = options['Number of elements up']
         elementsCountThroughWall = options['Number of elements through wall']
         useCrossDerivatives = options['Use cross derivatives']
         excludeBottomRows = options['Exclude bottom rows']
@@ -379,3 +394,24 @@ class MeshType_3d_sphereshell1:
             fieldassignment.assign()
 
         fm.endChange()
+
+    @staticmethod
+    def generateMesh(region, options):
+        """
+        Generate base or refined mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        if not options['Refine']:
+            MeshType_3d_sphereshell1.generateBaseMesh(region, options)
+            return
+
+        refineElementsCountAround = options['Refine number of elements around']
+        refineElementsCountUp = options['Refine number of elements up']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
+
+        baseRegion = region.createRegion()
+        MeshType_3d_sphereshell1.generateBaseMesh(baseRegion, options)
+
+        meshrefinement = MeshRefinement(baseRegion, region)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp, refineElementsCountThroughWall)
