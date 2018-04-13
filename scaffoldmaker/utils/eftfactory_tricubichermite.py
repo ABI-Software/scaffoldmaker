@@ -6,26 +6,11 @@ Created on Nov 15, 2017
 '''
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.zinc_utils import *
+import scaffoldmaker.utils.vector as vector
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK
 import math
-
-def normalise(v):
-    '''
-    :return: vector v normalised to unit length
-    '''
-    mag = 0.0
-    for s in v:
-        mag += s*s
-    mag = math.sqrt(mag)
-    return [ s/mag for s in v ]
-
-def crossproduct3(a, b):
-    '''
-    :return: vector 3-D cross product of a and b
-    '''
-    return [ a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0] ]
 
 class eftfactory_tricubichermite:
     '''
@@ -539,13 +524,13 @@ class eftfactory_tricubichermite:
         result, fc = coordinates.evaluateReal(cache, 3)
         resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
         resultb, b = coordinates.evaluateDerivative(diff2, cache, 3)
-        n = normalise(crossproduct3(a, b))
+        n = vector.normalise(vector.crossproduct3(a, b))
         #print(resulta, 'a =', a, ',', resultb, ' b=', b, ' fc=', fc, ' n=',n)
         ic = [ (fc[i] + tubeLength*n[i]) for i in range(3) ]
-        na = normalise(a)
-        nb = normalise(b)
-        a = normalise([ -(na[i] + nb[i]) for i in range(3) ])
-        b = normalise(crossproduct3(a, n))
+        na = vector.normalise(a)
+        nb = vector.normalise(b)
+        a = vector.normalise([ -(na[i] + nb[i]) for i in range(3) ])
+        b = vector.normalise(vector.crossproduct3(a, n))
 
         zero = [ 0.0, 0.0, 0.0 ]
         nodeIdentifier = startNodeId
