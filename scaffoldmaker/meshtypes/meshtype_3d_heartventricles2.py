@@ -418,7 +418,7 @@ class MeshType_3d_heartventricles2:
         # Create nodes
         #################
 
-        elementsCountUpRV = elementsCountUp - elementsCountBelowSeptum
+        elementsCountUpRV = elementsCountUp - elementsCountBelowSeptum + 1
         nodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
 
         norl = elementsCountAround
@@ -442,7 +442,7 @@ class MeshType_3d_heartventricles2:
         rd1Outer = []
         rd2Outer = []
         rd3Outer = []
-        for n2 in range(elementsCountUpRV + 1):
+        for n2 in range(elementsCountUpRV):
             nida = nidl + norl*(n2 + 1)
             node = nodes.findNodeByIdentifier(nida)
             cache.setNode(node)
@@ -462,7 +462,7 @@ class MeshType_3d_heartventricles2:
             #print('rvAddWidthRadius =', rvAddWidthRadius, ', rvAddCrossRadius=', rvAddCrossRadius)
             rx, rd1 = getRvOuterPoints(rvArcRadians, lvOuterRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundRV, dEndMag, z)
 
-            if n2 < elementsCountUpRV:
+            if n2 < (elementsCountUpRV - 1):
                 # get points at node position plus increment of xi2, to calculate derivative 2
                 dxi = 1.0E-3
                 xPlus = [ ax[i] + ad2[i]*dxi for i in range(3) ]
@@ -492,7 +492,7 @@ class MeshType_3d_heartventricles2:
         rd1Inner = []
         rd2Inner = []
         rd3Inner = rd3Outer
-        for n2 in range(elementsCountUpRV + 1):
+        for n2 in range(elementsCountUpRV):
             ix = []
             id1 = []
             id2 = []
@@ -502,15 +502,16 @@ class MeshType_3d_heartventricles2:
             rd3 = rd3Outer[n2]
             for n in range(elementsCountAroundRV - 1):
                 ix.append([ (rx[n][c] - rd3[n][c]) for c in range(3) ] )
+                unitRadial = vector.normalise(rd3[n])
 
                 # calculate inner d1 from curvature around
                 curvature = 0.0
                 count = 0
                 if n > 0:
-                    curvature += getCubicHermiteCurvature(rx[n - 1], rd1[n - 1], rx[n], rd1[n], rd3[n], 1.0)
+                    curvature -= getCubicHermiteCurvature(rx[n - 1], rd1[n - 1], rx[n], rd1[n], unitRadial, 1.0)
                     count += 1
                 if n < (elementsCountAroundRV - 2):
-                    curvature += getCubicHermiteCurvature(rx[n], rd1[n], rx[n + 1], rd1[n + 1], rd3[n], 0.0)
+                    curvature -= getCubicHermiteCurvature(rx[n], rd1[n], rx[n + 1], rd1[n + 1], unitRadial, 0.0)
                     count += 1
                 curvature /= count
                 factor = 1.0 - curvature*RVFreeWallThickness
@@ -520,10 +521,10 @@ class MeshType_3d_heartventricles2:
                 curvature = 0.0
                 count = 0.0
                 if n2 > 0:
-                    curvature += getCubicHermiteCurvature(rxOuter[n2 - 1][n], rd2Outer[n2 - 1][n], rx[n], rd2[n], rd3[n], 1.0)
+                    curvature -= getCubicHermiteCurvature(rxOuter[n2 - 1][n], rd2Outer[n2 - 1][n], rx[n], rd2[n], unitRadial, 1.0)
                     count += 1
-                if n2 < elementsCountUpRV:
-                    curvature += getCubicHermiteCurvature(rx[n], rd2[n], rxOuter[n2 + 1][n], rd2Outer[n2 + 1][n], rd3[n], 0.0)
+                if n2 < (elementsCountUpRV - 1):
+                    curvature -= getCubicHermiteCurvature(rx[n], rd2[n], rxOuter[n2 + 1][n], rd2Outer[n2 + 1][n], unitRadial, 0.0)
                     count += 1
                 curvature /= count
                 factor = 1.0 - curvature*RVFreeWallThickness
@@ -533,32 +534,160 @@ class MeshType_3d_heartventricles2:
             rd1Inner.append(id1)
             rd2Inner.append(id2)
 
-
+        zero = [ 0.0, 0.0, 0.0 ]
         rv_nids = [[],[]]
-
         for n3 in range(2):
-            for n2 in range(elementsCountUpRV + 1):
+            for n2 in range(-2, elementsCountUpRV):
+                nids = []
+                rv_nids[n3].append(nids)
+                n2r = max(0, n2)
                 if n3 == 0:
-                    rx = rxInner[n2]
-                    rd1 = rd1Inner[n2]
-                    rd2 = rd2Inner[n2]
-                    rd3 = rd3Inner[n2]
+                    rx = rxInner[n2r]
+                    rd1 = rd1Inner[n2r]
+                    rd2 = rd2Inner[n2r]
+                    rd3 = rd3Inner[n2r]
                 else:
-                    rx = rxOuter[n2]
-                    rd1 = rd1Outer[n2]
-                    rd2 = rd2Outer[n2]
-                    rd3 = rd3Outer[n2]
-                for n1 in range(elementsCountAroundRV - 1):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rx[n1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[n1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[n1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[n1])
-                    #rv_nids.append(node.getIdentifier())
-                    nodeIdentifier += 1
+                    rx = rxOuter[n2r]
+                    rd1 = rd1Outer[n2r]
+                    rd2 = rd2Outer[n2r]
+                    rd3 = rd3Outer[n2r]
+                for n1 in range(-2, elementsCountAroundRV + 1):
+                    n1r = min(max(0, n1), elementsCountAroundRV - 2)
+                    nid = -1
+                    if n2 < 0:
+                        nid = nidl + norl + 1
+                        if n1 == -2:
+                            pass
+                        elif n1 == elementsCountAroundRV:
+                            nid += elementsCountAroundRV - 2
+                        elif n2 == -2:
+                            nid += n1
+                        elif n3 == 0:  # and (n2 == -1)
+                            if n1 != n1r:
+                                # create but calculate later
+                                x = dx_dxi1 = dx_dxi2 = dx_dxi3 = zero
+                                nid = -1
+                            else:
+                                # interpolate node inside RV bottom edge
+                                nid += n1
+                                print('bottom nid', nid)
+                                node = nodes.findNodeByIdentifier(nid)
+                                cache.setNode(node)
+                                result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                                result, ad1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                                result, ad2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                                ad2 = [ -d for d in ad2 ]
+                                nid -= norl
+                                node = nodes.findNodeByIdentifier(nid)
+                                cache.setNode(node)
+                                result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                                print('  bottom nid', nid)
+                                bx = rx[n1r]
+                                bd1 = rd1[n1r]
+                                bd2 = rd2[n1r]
+                                x = list(interpolateCubicHermite(ax, ad2, bx, bd2, 0.5))
+                                dx_dxi2 = interpolateCubicHermiteDerivative(ax, ad2, bx, bd2, 0.5)
+                                dx_dxi2 = [ 0.5*d for d in dx_dxi2 ]
+                                dx_dxi1 = [ 0.5*(ad1[c] + bd1[c]) for c in range(3) ]
+                                dx_dxi3 = [ (cx[c] - x[c]) for c in range(3) ]
+                                nid = -1
+                        else: # n3 == 1
+                            nid += n1 - norl
+                    else:  # 0 <= n2
+                        if n1 != n1r:
+                            nid = nidl + norl*(n2 + 1) + (0 if (n1 < 0) else elementsCountAroundRV)
+                            if n1 == -2:
+                                nid += 1
+                            elif n1 == elementsCountAroundRV:
+                                nid -= 1
+                            elif n3 == 0:
+                                # interpolate node inside RV side edge
+                                print('nid', nid)
+                                node = nodes.findNodeByIdentifier(nid)
+                                cache.setNode(node)
+                                result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                                if n1 < 0:
+                                    nid += 1
+                                else:
+                                    nid -= 1
+                                print('  nid', nid)
+                                node = nodes.findNodeByIdentifier(nid)
+                                cache.setNode(node)
+                                result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                                result, ad1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                                result, ad2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                                ad1 = [ -d for d in ad1 ]
+                                bx = rx[n1r]
+                                bd1 = rd1[n1r]
+                                bd2 = rd2[n1r]
+                                if n1 < 0:
+                                    x = list(interpolateCubicHermite(ax, ad1, bx, bd1, 0.5))
+                                    dx_dxi1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
+                                else:
+                                    x = list(interpolateCubicHermite(bx, bd1, ax, ad1, 0.5))
+                                    dx_dxi1 = interpolateCubicHermiteDerivative(bx, bd1, ax, ad1, 0.5)
+                                dx_dxi1 = [ 0.5*d for d in dx_dxi1 ]
+                                dx_dxi2 = [ 0.5*(ad2[c] + bd2[c]) for c in range(3) ]
+                                dx_dxi3 = [ (cx[c] - x[c]) for c in range(3) ]
+                                nid = -1
+                        else:
+                            x = rx[n1r]
+                            dx_dxi1 = rd1[n1r]
+                            dx_dxi2 = rd2[n1r]
+                            dx_dxi3 = rd3[n1r]
+
+                    if nid < 0:
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        cache.setNode(node)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_dxi1)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_dxi2)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_dxi3)
+                        nid = nodeIdentifier
+                        nodeIdentifier += 1
+                    nids.append(nid)
+
+        # set parameters for inside corners of RV
+        fix_nids = [
+            [ rv_nids[0][1][1], rv_nids[0][1][2], rv_nids[0][2][1], rv_nids[1][1][1] ],
+            [ rv_nids[0][1][-2], rv_nids[0][1][-3], rv_nids[0][2][-2], rv_nids[1][1][-2] ]
+        ]
+        for i in range(len(fix_nids)):
+            nid = fix_nids[i][0]
+            nida = fix_nids[i][1]
+            nidb = fix_nids[i][2]
+            nidc = fix_nids[i][3]
+            print('fix_nids', fix_nids)
+            node = nodes.findNodeByIdentifier(nida)
+            cache.setNode(node)
+            result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, ad1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            result, ad2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            node = nodes.findNodeByIdentifier(nidb)
+            cache.setNode(node)
+            result, bx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, bd1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            result, bd2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            node = nodes.findNodeByIdentifier(nidc)
+            cache.setNode(node)
+            result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            if i == 0:
+                ad1 = [ -d for d in ad1 ]
+            else:
+                bd1 = [ -d for d in bd1 ]
+            x = list(interpolateCubicHermite(ax, ad1, bx, bd2, 0.5))
+            dx_dxi2 = list(interpolateCubicHermiteDerivative(ax, ad1, bx, bd2, 0.5))
+            dx_dxi1 = [ 0.5*(ad2[c] + bd1[c]) for c in range(3) ]
+            dx_dxi3 = [ (cx[c] - x[c]) for c in range(3) ]
+            node = nodes.findNodeByIdentifier(nid)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_dxi1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_dxi2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_dxi3)
 
         fm.endChange()
+
 
     @staticmethod
     def refineMesh(meshrefinement, options):
