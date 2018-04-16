@@ -570,7 +570,7 @@ class MeshType_3d_heartventricles2:
                             else:
                                 # interpolate node inside RV bottom edge
                                 nid += n1
-                                print('bottom nid', nid)
+                                #print('bottom nid', nid)
                                 node = nodes.findNodeByIdentifier(nid)
                                 cache.setNode(node)
                                 result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -581,7 +581,7 @@ class MeshType_3d_heartventricles2:
                                 node = nodes.findNodeByIdentifier(nid)
                                 cache.setNode(node)
                                 result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-                                print('  bottom nid', nid)
+                                #print('  bottom nid', nid)
                                 bx = rx[n1r]
                                 bd1 = rd1[n1r]
                                 bd2 = rd2[n1r]
@@ -602,7 +602,7 @@ class MeshType_3d_heartventricles2:
                                 nid -= 1
                             elif n3 == 0:
                                 # interpolate node inside RV side edge
-                                print('nid', nid)
+                                #print('nid', nid)
                                 node = nodes.findNodeByIdentifier(nid)
                                 cache.setNode(node)
                                 result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -610,7 +610,7 @@ class MeshType_3d_heartventricles2:
                                     nid += 1
                                 else:
                                     nid -= 1
-                                print('  nid', nid)
+                                #print('  nid', nid)
                                 node = nodes.findNodeByIdentifier(nid)
                                 cache.setNode(node)
                                 result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -652,12 +652,12 @@ class MeshType_3d_heartventricles2:
             [ rv_nids[0][1][1], rv_nids[0][1][2], rv_nids[0][2][1], rv_nids[1][1][1] ],
             [ rv_nids[0][1][-2], rv_nids[0][1][-3], rv_nids[0][2][-2], rv_nids[1][1][-2] ]
         ]
+        #print('fix_nids', fix_nids)
         for i in range(len(fix_nids)):
             nid = fix_nids[i][0]
             nida = fix_nids[i][1]
             nidb = fix_nids[i][2]
             nidc = fix_nids[i][3]
-            print('fix_nids', fix_nids)
             node = nodes.findNodeByIdentifier(nida)
             cache.setNode(node)
             result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -685,6 +685,132 @@ class MeshType_3d_heartventricles2:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_dxi1)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_dxi2)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_dxi3)
+
+        #################
+        # Create elements
+        #################
+
+        # redefine elements on boundary of RV to be slightly concave
+
+        eftSplitBottomInner = tricubichermite.createEftSplitXi2RightStraight()
+        eftSplitSideInner = tricubichermite.createEftSplitXi1RightStraight()
+        elementtemplateSplitSideInner = mesh.createElementtemplate()
+        elementtemplateSplitSideInner.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplateSplitSideInner.defineField(coordinates, -1, eftSplitSideInner)
+
+        eor = elementsCountAround
+        eow = eor*elementsCountUp
+        eidl = eow*(elementsCountThroughLVWall - 1) + eor*(elementsCountBelowSeptum - 1) + 1
+        print('eidl', eidl)
+
+        for e1 in range(0, elementsCountAroundRV):
+            eid = eidl + e1
+            element = mesh.findElementByIdentifier(eid)
+            eft1 = element.getElementfieldtemplate(coordinates, -1)
+            nids  = getElementNodeIdentifiers(element, eft1)
+            if e1 == 0:
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+            elif e1 == (elementsCountAroundRV - 1):
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+            else:
+                eft1 = eftSplitBottomInner
+            elementtemplate1 = mesh.createElementtemplate()
+            elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element.merge(elementtemplate1)
+            element.setNodesByIdentifier(eft1, nids)
+            element.setScaleFactors(eft1, [ -1.0 ])
+
+        for e2 in range(1, elementsCountUpRV):
+            for e1 in [ 0, elementsCountAroundRV - 1]:
+                eid = eidl + e2*eor + e1
+                element = mesh.findElementByIdentifier(eid)
+                eft1 = element.getElementfieldtemplate(coordinates, -1)
+                nids  = getElementNodeIdentifiers(element, eft1)
+                element.merge(elementtemplateSplitSideInner)
+                element.setNodesByIdentifier(eftSplitSideInner, nids)
+                element.setScaleFactors(eftSplitSideInner, [ -1.0 ])
+
+        # create RV elements
+
+        elementIdentifier = eow*elementsCountThroughLVWall + 1
+
+        eft = tricubichermite.createEftBasic()
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate.defineField(coordinates, -1, eft)
+
+        eftOuterExit1 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eftOuterExit1, [1], [])
+        remapEftNodeValueLabel(eftOuterExit1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+        remapEftNodeValueLabel(eftOuterExit1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ])
+        remapEftNodeValueLabel(eftOuterExit1, [ 5, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eftOuterExit1, [ 6, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+        remapEftNodeValueLabel(eftOuterExit1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+        ln_map = [ 1, 2, 3, 4, 1, 5, 3, 6 ]
+        remapEftLocalNodes(eftOuterExit1, 6, ln_map)
+
+        eftOuterExit2 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eftOuterExit2, [1], [])
+        remapEftNodeValueLabel(eftOuterExit2, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+
+        eftOuterEntry1 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eftOuterEntry1, [1], [])
+        remapEftNodeValueLabel(eftOuterEntry1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+        remapEftNodeValueLabel(eftOuterEntry1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ])
+        remapEftNodeValueLabel(eftOuterEntry1, [ 5, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eftOuterEntry1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []) ])
+        remapEftNodeValueLabel(eftOuterEntry1, [ 6, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+        ln_map = [ 1, 2, 3, 4, 5, 2, 6, 4 ]
+        remapEftLocalNodes(eftOuterEntry1, 6, ln_map)
+
+        eftOuterEntry2 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eftOuterEntry2, [1], [])
+        remapEftNodeValueLabel(eftOuterEntry2, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []) ])
+
+        for e2 in range(2, elementsCountUpRV + 1):
+            for e1 in range(0, elementsCountAroundRV + 2):
+                eft1 = eft
+
+                nids = [ rv_nids[0][e2][e1], rv_nids[0][e2][e1 + 1], rv_nids[0][e2 + 1][e1], rv_nids[0][e2 + 1][e1 + 1], \
+                         rv_nids[1][e2][e1], rv_nids[1][e2][e1 + 1], rv_nids[1][e2 + 1][e1], rv_nids[1][e2 + 1][e1 + 1] ]
+
+                if e1 == 0:
+                    eft1 = eftOuterExit1
+                    nids.pop(4)
+                    nids.pop(5)
+                if e1 == 1:
+                    eft1 = eftOuterExit2
+                elif e1 == elementsCountAroundRV:
+                    eft1 = eftOuterEntry2
+                elif e1 == (elementsCountAroundRV + 1):
+                    eft1 = eftOuterEntry1
+                    nids.pop(5)
+                    nids.pop(6)
+
+                elementtemplate1 = mesh.createElementtemplate()
+                elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                result = elementtemplate1.defineField(coordinates, -1, eft1)
+
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if eft1.getNumberOfLocalScaleFactors() == 1:
+                    result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                else:
+                    result3 = 7
+                print('create element rv', elementIdentifier, result, result2, result3, nids)
+                elementIdentifier += 1
+
 
         fm.endChange()
 

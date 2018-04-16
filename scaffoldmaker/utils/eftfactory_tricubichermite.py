@@ -230,6 +230,20 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi1RightOut:  Failed to validate eft'
         return eft
 
+    def createEftSplitXi2RightStraight(self):
+        '''
+        Create an element field template suitable for the inner elements of the
+        join between left and right chambers at the bottom of the RV, with xi2 bifurcating.
+        Straight through version.
+        :return: Element field template
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [1], [])
+        remapEftNodeValueLabel(eft, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eft, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftSplitXi2RightStraight:  Failed to validate eft'
+        return eft
+
     def createEftTubeSeptumOuter(self):
         '''
         Create an element field template suitable for the outer elements of
