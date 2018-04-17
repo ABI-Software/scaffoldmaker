@@ -117,7 +117,7 @@ class MeshType_3d_heartventricles2:
             'RV free wall thickness' : 0.05,
             'RV width' : 0.3,
             'RV extra cross radius base' : 0.1,
-            'Septum arc angle degrees' : 125.0,
+            'Septum arc angle degrees' : 120.0,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements surface' : 1,
@@ -585,9 +585,11 @@ class MeshType_3d_heartventricles2:
                                 bx = rx[n1r]
                                 bd1 = rd1[n1r]
                                 bd2 = rd2[n1r]
+                                ad2 = [ 1.5*d for d in ad2 ]
+                                bd2 = [ 1.5*d for d in bd2 ]
                                 x = list(interpolateCubicHermite(ax, ad2, bx, bd2, 0.5))
                                 dx_dxi2 = interpolateCubicHermiteDerivative(ax, ad2, bx, bd2, 0.5)
-                                dx_dxi2 = [ 0.5*d for d in dx_dxi2 ]
+                                dx_dxi2 = [ (1.0/3.0)*d for d in dx_dxi2 ]
                                 dx_dxi1 = [ 0.5*(ad1[c] + bd1[c]) for c in range(3) ]
                                 dx_dxi3 = [ (cx[c] - x[c]) for c in range(3) ]
                                 nid = -1
@@ -620,13 +622,15 @@ class MeshType_3d_heartventricles2:
                                 bx = rx[n1r]
                                 bd1 = rd1[n1r]
                                 bd2 = rd2[n1r]
+                                ad1 = [ 1.5*d for d in ad1 ]
+                                bd1 = [ 1.5*d for d in bd1 ]
                                 if n1 < 0:
                                     x = list(interpolateCubicHermite(ax, ad1, bx, bd1, 0.5))
                                     dx_dxi1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
                                 else:
                                     x = list(interpolateCubicHermite(bx, bd1, ax, ad1, 0.5))
                                     dx_dxi1 = interpolateCubicHermiteDerivative(bx, bd1, ax, ad1, 0.5)
-                                dx_dxi1 = [ 0.5*d for d in dx_dxi1 ]
+                                dx_dxi1 = [ (1.0/3.0)*d for d in dx_dxi1 ]
                                 dx_dxi2 = [ 0.5*(ad2[c] + bd2[c]) for c in range(3) ]
                                 dx_dxi3 = [ (cx[c] - x[c]) for c in range(3) ]
                                 nid = -1
@@ -673,10 +677,11 @@ class MeshType_3d_heartventricles2:
             result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
             if i == 0:
                 ad1 = [ -d for d in ad1 ]
-            else:
-                bd1 = [ -d for d in bd1 ]
+            ad1 = [ 1.5*d for d in ad1 ]
+            bd2 = [ 1.5*d for d in bd2 ]
             x = list(interpolateCubicHermite(ax, ad1, bx, bd2, 0.5))
-            dx_dxi2 = list(interpolateCubicHermiteDerivative(ax, ad1, bx, bd2, 0.5))
+            dx_dxi2 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd2, 0.5)
+            dx_dxi2 = [ (1.0/3.0)*d for d in dx_dxi2 ]
             dx_dxi1 = [ 0.5*(ad2[c] + bd1[c]) for c in range(3) ]
             dx_dxi3 = [ (cx[c] - x[c]) for c in range(3) ]
             node = nodes.findNodeByIdentifier(nid)
@@ -778,25 +783,70 @@ class MeshType_3d_heartventricles2:
         setEftScaleFactorIds(eftOuterEntry2, [1], [])
         remapEftNodeValueLabel(eftOuterEntry2, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []) ])
 
-        for e2 in range(2, elementsCountUpRV + 1):
-            for e1 in range(0, elementsCountAroundRV + 2):
+        eftOuterApexExit1 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eftOuterApexExit1, [1], [])
+        remapEftNodeValueLabel(eftOuterApexExit1, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+        remapEftNodeValueLabel(eftOuterApexExit1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ])
+        remapEftNodeValueLabel(eftOuterApexExit1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+        remapEftNodeValueLabel(eftOuterApexExit1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+        remapEftNodeValueLabel(eftOuterApexExit1, [ 7, 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+        ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
+        remapEftLocalNodes(eftOuterApexExit1, 6, ln_map)
+
+        eftOuterApexExit2 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eftOuterApexExit2, [1], [])
+        remapEftNodeValueLabel(eftOuterApexExit2, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+
+        for e2 in range(elementsCountUpRV + 1):
+            for e1 in range(elementsCountAroundRV + 2):
                 eft1 = eft
 
                 nids = [ rv_nids[0][e2][e1], rv_nids[0][e2][e1 + 1], rv_nids[0][e2 + 1][e1], rv_nids[0][e2 + 1][e1 + 1], \
                          rv_nids[1][e2][e1], rv_nids[1][e2][e1 + 1], rv_nids[1][e2 + 1][e1], rv_nids[1][e2 + 1][e1 + 1] ]
 
-                if e1 == 0:
-                    eft1 = eftOuterExit1
-                    nids.pop(4)
-                    nids.pop(5)
-                if e1 == 1:
-                    eft1 = eftOuterExit2
-                elif e1 == elementsCountAroundRV:
-                    eft1 = eftOuterEntry2
-                elif e1 == (elementsCountAroundRV + 1):
-                    eft1 = eftOuterEntry1
-                    nids.pop(5)
-                    nids.pop(6)
+                if e2 == 0:
+                    if (e1 == 0) or (e1 >= elementsCountAroundRV):
+                        continue
+                    if e1 == 1:
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, []) ])
+                        remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, [ ])
+                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                        remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, []) ])
+                        remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                        ln_map = [ 1, 2, 3, 4, 5, 6, 3, 7 ]
+                        remapEftLocalNodes(eft1, 7, ln_map)
+                        nids = [ rv_nids[0][1][2], rv_nids[0][1][1], rv_nids[0][0][0], rv_nids[0][2][1], \
+                                 rv_nids[1][1][2], rv_nids[1][1][1], rv_nids[1][2][1] ]
+                    else:
+                        eft1 = eftOuterApexExit1
+                        nids.pop(4)
+                        nids.pop(4)
+                elif e2 == 1:
+                    if (e1 < 2) or (e1 >= elementsCountAroundRV):
+                        continue
+                    eft1 = eftOuterApexExit2
+                else:
+                    if e1 == 0:
+                        eft1 = eftOuterExit1
+                        nids.pop(4)
+                        nids.pop(5)
+                    if e1 == 1:
+                        eft1 = eftOuterExit2
+                    elif e1 == elementsCountAroundRV:
+                        eft1 = eftOuterEntry2
+                    elif e1 == (elementsCountAroundRV + 1):
+                        eft1 = eftOuterEntry1
+                        nids.pop(5)
+                        nids.pop(6)
 
                 elementtemplate1 = mesh.createElementtemplate()
                 elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
@@ -835,7 +885,8 @@ class MeshType_3d_heartventricles2:
         refineElementsCountThroughRVWall = options['Refine number of elements through RV wall']
 
         startRvElementIdentifier = elementsCountAround*elementsCountUp*elementsCountThroughLVWall + 1
-        limitRvElementIdentifier = startRvElementIdentifier + (elementsCountAroundSeptum + 2)*(elementsCountUp - elementsCountBelowSeptum + 1)
+        elementsCountUpRV = elementsCountUp - elementsCountBelowSeptum + 1
+        limitRvElementIdentifier = startRvElementIdentifier + (elementsCountAroundSeptum + 4)*elementsCountUpRV + elementsCountAroundSeptum + 2
 
         element = meshrefinement._sourceElementiterator.next()
         while element.isValid():
