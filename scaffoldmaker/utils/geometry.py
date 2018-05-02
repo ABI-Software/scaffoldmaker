@@ -64,5 +64,5 @@ def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
         angle += (arcLength - lengthMoved)/dlength_dangle
         lengthMoved = getEllipseArcLength(a, b, inAngleRadians, angle)
         #print('lengthMoved', lengthMoved)
-    print('updateEllipseAngleByArcLength a', a, 'b', b, ', angle', inAngleRadians, ', arcLength', arcLength, ' -> ', angle)
+    #print('updateEllipseAngleByArcLength a', a, 'b', b, ', angle', inAngleRadians, ', arcLength', arcLength, ' -> ', angle)
     return angle

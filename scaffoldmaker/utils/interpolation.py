@@ -8,6 +8,9 @@ Created on Nov 15, 2017
 import math
 import scaffoldmaker.utils.vector as vector
 
+gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )
+gaussWt3 = ( 5.0/18.0, 4.0/9.0, 5.0/18.0 )
+
 def interpolateCubicHermite(v1, d1, v2, d2, xi):
     """
     Return cubic Hermite interpolated value of tuples v1, d1 (end 1) to v2, d2 (end 2) for xi in [0,1]
@@ -44,29 +47,45 @@ def interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi):
     f4 = -2.0 +  6.0*xi
     return tuple([ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ])
 
-def computeCubicHermiteArcLength(v1, d1, v2, d2):
+def computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives):
     """
     Compute arc length between v1 and v2, scaling unit d1 and d2.
     Iterative; not optimised.
-    :param d1: Initially unit length derivative at v1.
-    :param d2: Initially unit length derivative at v2.
+    :param d1: Initial derivative at v1.
+    :param d2: Initial derivative at v2.
+    :param rescaleDerivatives: If True, rescale initial d1 and d2 to |v2 - v|
     :return: Arc length.
     """
-    lastArcLength = math.sqrt(sum((v2[i] - v1[i])*(v2[i] - v1[i]) for i in range(len(v1))))
-    xiTol = 1.0E-6
-    iters = 0
-    while True:
-        iters += 1
+    if rescaleDerivatives:
+        lastArcLength = math.sqrt(sum((v2[i] - v1[i])*(v2[i] - v1[i]) for i in range(len(v1))))
+    else:
+        lastArcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+    d1 = vector.normalise(d1)
+    d2 = vector.normalise(d2)
+    tol = 1.0E-6
+    for iters in range(100):
         #print('iter',iters,'=',lastArcLength)
         d1s = [lastArcLength*d for d in d1]
         d2s = [lastArcLength*d for d in d2]
-        dm = interpolateCubicHermiteDerivative(v1, d1s, v2, d2s, 0.5)
-        magdm = math.sqrt(sum(d*d for d in dm))
-        arcLength = 0.5*(magdm + lastArcLength)
-        if (math.fabs(arcLength - lastArcLength) < xiTol) or (iter == 100):
-            #print('iter',iters,'=',arcLength,', closeness', math.fabs(arcLength - lastArcLength)/xiTol)
+        arcLength = getCubicHermiteArcLength(v1, d1s, v2, d2s)
+        if iters > 9:
+            arcLength = 0.8*arcLength + 0.2*lastArcLength
+        if math.fabs(arcLength - lastArcLength) < tol*arcLength:
+            #print('computeCubicHermiteArcLength converged at iter',iters,'=',arcLength,', closeness', math.fabs(arcLength - lastArcLength))
             return arcLength
         lastArcLength = arcLength
+    print('computeCubicHermiteArcLength Max iters reached:',iters,'=',arcLength,', closeness', math.fabs(arcLength - lastArcLength))
+    return arcLength
+
+def getCubicHermiteArcLength(v1, d1, v2, d2):
+    '''
+    :return: Arc length of cubic curve using 3 point Gaussian quadrature.
+    '''
+    arcLength = 0.0
+    for i in range(3):
+        dm = interpolateCubicHermiteDerivative(v1, d1, v2, d2, gaussXi3[i])
+        arcLength += gaussWt3[i]*math.sqrt(sum(d*d for d in dm))
+    return arcLength
 
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
