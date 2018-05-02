@@ -220,16 +220,20 @@ class MeshType_3d_heartventricles2:
                 sinRadiansUp = math.sin(radiansUp)
                 z = -a*cosRadiansUp
                 radius = b*sinRadiansUp
+                bSeptum = b
+                if (n3 == 1) and (n2 >= elementsCountUpApex):
+                    bSeptum -= (lvFreeWallThickness - septumThickness)
+                radiusSeptum = bSeptum*sinRadiansUp
 
                 # get radial displacement of centre of septum, a function of radiansUp
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
                 radialDisplacement = interpolateCubicHermite([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
 
-                sx, sd1 = getSeptumPoints(rvArcAroundRadians, radius, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z, n3)
+                sx, sd1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z, n3)
 
                 # do finite difference in xi2
                 dxi = 1.0E-3
-                dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
+                dzr_dRadiansUp = [ a*sinRadiansUp, bSeptum*cosRadiansUp ]
                 ds_dRadiansUp = vector.magnitude(dzr_dRadiansUp)
                 dzr_ds = vector.normalise(dzr_dRadiansUp)
                 ds_dxi = dArcLengthUp
@@ -237,7 +241,7 @@ class MeshType_3d_heartventricles2:
                 dr = dxi*ds_dxi*dzr_ds[1]
                 dxiUp_dxi = ds_dxi/(ds_dRadiansUp*(0.5*math.pi - radialDisplacementStartRadiansUp))
                 dRadialDisplacement = dxi*dxiUp_dxi*interpolateCubicHermiteDerivative([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
-                tx, td1 = getSeptumPoints(rvArcAroundRadians, radius + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z + dz, n3)
+                tx, td1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z + dz, n3)
 
                 for n1 in range(elementsCountAroundLV):
 
