@@ -29,20 +29,20 @@ class MeshType_3d_heartventricles2:
     def getDefaultOptions():
         return {
             'Number of elements around LV free wall' : 5,
-            'Number of elements around septum' : 5,
+            'Number of elements around septum' : 6,
             'Number of elements up' : 4,
             'Number of elements up septum' : 3,
             'Total height' : 1.0,
             'LV outer radius' : 0.5,
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
-            'RV height' : 0.7,
-            'RV arc around degrees' : 160.0,
+            'RV height' : 0.8,
+            'RV arc around degrees' : 180.0,
             'RV free wall thickness' : 0.04,
             'RV width' : 0.4,
             'RV extra cross radius base' : 0.05,
-            'Septum thickness' : 0.08,
-            'Septum base radial displacement' : 0.1,
+            'Septum thickness' : 0.1,
+            'Septum base radial displacement' : 0.15,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements surface' : 1,
@@ -158,11 +158,14 @@ class MeshType_3d_heartventricles2:
 
         # LV nodes
 
+        rvOuterWidthBase = rvWidth - septumBaseRadialDisplacement + rvFreeWallThickness
+
         # get element spacing up
         # approximate correction to move up to next inner node, since bottom of RV is halfway up element
         rvHeightCorrection = (elementsCountUpSeptum - 1)/(elementsCountUpSeptum - 0.5)
         rvThetaUp = math.acos(rvHeight*rvHeightCorrection/totalHeight)
         rvOuterHeight = 0.5*(rvHeight + totalHeight)
+        rvCrossHeight = rvHeight
         radialDisplacementStartRadiansUp = math.acos(rvOuterHeight/totalHeight)
         elementsCountUpApex = elementsCountUp - elementsCountUpSeptum
         elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
@@ -189,7 +192,7 @@ class MeshType_3d_heartventricles2:
             else:
                 elementSizeUpApex = (lengthUpApex - 0.5*elementSizeUpSeptum)/(elementsCountUpApex + 0.5)
                 elementSizeUpSeptumTransition = 0.5*(elementSizeUpApex + elementSizeUpSeptum)
-            print('length total apex septum', lengthUp, lengthUpApex, lengthUpSeptum, ' size apex septum', elementSizeUpApex, elementSizeUpSeptum)
+            #print('length total apex septum', lengthUp, lengthUpApex, lengthUpSeptum, ' size apex septum', elementSizeUpApex, elementSizeUpSeptum)
 
             # apex node, noting s1, s2 is x, -y to get out outward s3
             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -229,19 +232,44 @@ class MeshType_3d_heartventricles2:
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
                 radialDisplacement = interpolateCubicHermite([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
 
-                sx, sd1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z, n3)
+                radiansAround = -0.5*rvArcAroundRadians
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                if (n3 == 1) and (n2 < elementsCountUpApex):
+                    # Follow RV on outside below septum
+                    dEndMag = radius*radiansPerElementAroundLVFreeWall
+                    xiUpZ = 1.0 + z/rvOuterHeight
+                    xiUpCross = 1.0 + z/rvCrossHeight
+                    rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZ, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
+                    sx, sd1 = getRvOuterPoints(rvArcAroundRadians, radius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundSeptum, dEndMag, z, xiUpCross)
+                else:
+                    sx, sd1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z, n3)
 
-                # do finite difference in xi2
+                # do finite difference to get d/dxi2
                 dxi = 1.0E-3
-                dzr_dRadiansUp = [ a*sinRadiansUp, bSeptum*cosRadiansUp ]
+                ds_dxi = dArcLengthUp
+                if (n3 == 1) and (n2 < elementsCountUpApex):
+                    dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
+                else:
+                    dzr_dRadiansUp = [ a*sinRadiansUp, bSeptum*cosRadiansUp ]
                 ds_dRadiansUp = vector.magnitude(dzr_dRadiansUp)
                 dzr_ds = vector.normalise(dzr_dRadiansUp)
-                ds_dxi = dArcLengthUp
                 dz = dxi*ds_dxi*dzr_ds[0]
                 dr = dxi*ds_dxi*dzr_ds[1]
-                dxiUp_dxi = ds_dxi/(ds_dRadiansUp*(0.5*math.pi - radialDisplacementStartRadiansUp))
-                dRadialDisplacement = dxi*dxiUp_dxi*interpolateCubicHermiteDerivative([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
-                tx, td1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z + dz, n3)
+                if (n3 == 1) and (n2 < elementsCountUpApex):
+                    # Follow RV on outside below septum
+                    dEndMag = (radius + dr)*radiansPerElementAroundLVFreeWall
+                    xiUpZPlus = 1.0 + (z + dz)/rvOuterHeight
+                    xiUpCross = 1.0 + (z + dz)/rvCrossHeight
+                    rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZPlus, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
+                    tx, td1 = getRvOuterPoints(rvArcAroundRadians, radius + dr, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundSeptum, dEndMag, z + dz, xiUpCross)
+                else:
+                    dxiUp_dxi = ds_dxi/(ds_dRadiansUp*(0.5*math.pi - radialDisplacementStartRadiansUp))
+                    dRadialDisplacement = dxi*dxiUp_dxi*interpolateCubicHermiteDerivative([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
+                    tx, td1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z + dz, n3)
+                # true values for LV freewall
+                dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
+                dzr_ds = vector.normalise(dzr_dRadiansUp)
 
                 for n1 in range(elementsCountAroundLV):
 
@@ -290,7 +318,6 @@ class MeshType_3d_heartventricles2:
         nidr = nodeIdentifier
         elementsCountUpRV = elementsCountUpSeptum + 1
         elementsCountAroundRV = elementsCountAroundSeptum + 2
-        rvOuterWidthBase = rvWidth - septumBaseRadialDisplacement + rvFreeWallThickness
 
         rxOuter = []
         rd1Outer = []
@@ -301,8 +328,8 @@ class MeshType_3d_heartventricles2:
         distUp = elementSizeUpApex*elementsCountUpApex + elementSizeUpRvTransition
         radiansUp = updateEllipseAngleByArcLength(a, b, 0.0, distUp)
 
-        print('RV element size apex', elementSizeUpApex, ', transition', elementSizeUpRvTransition, ', rv', elementSizeUpRv, \
-            ', total', elementsCountUpApex*elementsCountUpApex + elementSizeUpRvTransition + (elementsCountUpRV - 1)*elementSizeUpRv, ' vs ', lengthUp)
+        #print('RV element size apex', elementSizeUpApex, ', transition', elementSizeUpRvTransition, ', rv', elementSizeUpRv, \
+        #    ', total', elementsCountUpApex*elementsCountUpApex + elementSizeUpRvTransition + (elementsCountUpRV - 1)*elementSizeUpRv, ' vs ', lengthUp)
 
         for n2 in range(elementsCountUpRV):
             if n2 == (elementsCountUpRV - 1):
@@ -322,12 +349,13 @@ class MeshType_3d_heartventricles2:
             scale = elementSizeUpRv/vector.magnitude(ad2)
             ad2 = [ d*scale for d in ad2 ]
 
-            xiUp = 1.0 + z/rvOuterHeight
+            xiUpZ =1.0 + z/rvOuterHeight
+            xiUpCross = 1.0 + z/rvCrossHeight
 
-            rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUp, rvOuterWidthBase, rvExtraCrossRadiusBase)
-            #print('z',z,'xiUp', xiUp, 'xiUpFast', xiUpFast, 'xiUpSlow', xiUpSlow)
+            rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZ, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
+            #print('z',z,'xiUpZ', xiUpZ, 'xiUpFast', xiUpFast, 'xiUpSlow', xiUpSlow)
             #print('rvAddWidthRadius =', rvAddWidthRadius, ', rvAddCrossRadius=', rvAddCrossRadius)
-            rx, rd1 = getRvOuterPoints(rvArcAroundRadians, lvOuterRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundRV, dEndMag, z)
+            rx, rd1 = getRvOuterPoints(rvArcAroundRadians, lvOuterRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundRV, dEndMag, z, xiUpCross, True)
 
             if n2 < (elementsCountUpRV - 1):
                 # get points at node position plus increment of xi2, to calculate derivative 2
@@ -335,9 +363,10 @@ class MeshType_3d_heartventricles2:
                 xPlus = [ ax[i] + ad2[i]*dxi for i in range(3) ]
                 lvOuterRadiusPlus = math.sqrt(xPlus[0]*xPlus[0] + xPlus[1]*xPlus[1])
                 dEndMagPlus = dEndMag*lvOuterRadiusPlus/lvOuterRadius
-                xiUpPlus = 1.0 + xPlus[2]/rvOuterHeight
-                rvAddWidthRadiusPlus, rvAddCrossRadiusPlus = getRVOuterSize(xiUpPlus, rvOuterWidthBase, rvExtraCrossRadiusBase)
-                px, pd1 = getRvOuterPoints(rvArcAroundRadians, lvOuterRadiusPlus, rvAddWidthRadiusPlus, rvAddCrossRadiusPlus, elementsCountAroundRV, dEndMagPlus, xPlus[2])
+                xiUpZPlus = 1.0 + xPlus[2]/rvOuterHeight
+                xiUpCross = 1.0 + xPlus[2]/rvCrossHeight
+                rvAddWidthRadiusPlus, rvAddCrossRadiusPlus = getRVOuterSize(xiUpZPlus, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
+                px, pd1 = getRvOuterPoints(rvArcAroundRadians, lvOuterRadiusPlus, rvAddWidthRadiusPlus, rvAddCrossRadiusPlus, elementsCountAroundRV, dEndMagPlus, xPlus[2], xiUpCross, True)
 
                 rd2 = [ [(px[n][c] - rx[n][c])/dxi for c in range(3)] for n in range(len(rx)) ]
             else:
@@ -582,7 +611,12 @@ class MeshType_3d_heartventricles2:
                         continue
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
                     if e1 == 1:
+                        if False:
+                            setEftScaleFactorIds(eft1, [1, 2], [])
+                            remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [2] ), ( Node.VALUE_LABEL_D_DS2, [2] ) ])
+                            scalefactors = [ -1.0, math.cos(0.25*math.pi) ]
                         remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                         remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -603,12 +637,16 @@ class MeshType_3d_heartventricles2:
                     bnjr = bnir + 1
                     nids = [ bnil       , bnjl       , bnir       , bnjr, \
                              bnil + nowl, bnjl + nowl, bnir + nowr, bnjr + nowr ]
-                    scalefactors = [ -1.0 ]
                 else:
                     if e1 == 0:
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
                         if e2 == 1:
+                            if False:
+                                setEftScaleFactorIds(eft1, [1, 2], [])
+                                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [2] ), ( Node.VALUE_LABEL_D_DS2, [2] ) ])
+                                scalefactors = [ -1.0, math.cos(0.25*math.pi) ]
                             remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                             remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -621,7 +659,6 @@ class MeshType_3d_heartventricles2:
                         bnir = nidr + norr*(e2 - 1) + e1
                         nids = [ bnil       , bnir       , bnil + norl       , bnir + norr, \
                                  bnil + nowl, bnir + nowr, bnil + norl + nowl, bnir + norr + nowr ]
-                        scalefactors = [ -1.0 ]
                     elif e1 == (elementsCountAroundRV - 1):
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
@@ -730,91 +767,109 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
         scale = cubicArcLength/circleArcLength
         d1 = [ d*scale for d in d1 ]
         d2 = [ d*scale for d in d2 ]
-        elementLengthAroundSeptum = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum - 1)
-        elementLengthAroundTransition = 0.5*(lvRadius*radiansPerElementAroundLVFreeWall + elementLengthAroundSeptum)
-        lengthAroundStart = (elementsCountAroundSeptum % 2)*elementLengthAroundSeptum*0.5
+        elementLengthMid = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum + n3*0.5 - 1)
+        #elementLengthMid = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum - 1)
+        #elementLengthEnd = 0.5*(lvRadius*radiansPerElementAroundLVFreeWall + elementLengthMid)
+        length = (elementsCountAroundSeptum % 2)*elementLengthMid*0.5
         x = []
         dx_ds1 = []
-        for n1 in range((elementsCountAroundSeptum + 1)//2):
-                xi = (n1*elementLengthAroundSeptum + lengthAroundStart)/cubicArcLength
-                pos1 = interpolateCubicHermite(v1, d1, v2, d2, xi)
-                x.append([ v for v in pos1 ])
-                deriv1 = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
-                scale = elementLengthAroundSeptum/vector.magnitude(deriv1)
-                dx_ds1.append([ d*scale for d in deriv1 ])
+        for n1 in range(elementsCountAroundSeptum//2):
+            xi = length/cubicArcLength
+            pos1 = interpolateCubicHermite(v1, d1, v2, d2, xi)
+            x.append([ v for v in pos1 ])
+            deriv1 = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+            scale = elementLengthMid/vector.magnitude(deriv1)
+            dx_ds1.append([ d*scale for d in deriv1 ])
+            length += elementLengthMid
         return x, dx_ds1
 
 
-def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAround, dEndMag, z):
+def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundRV, dEndMag, z, xi, mirror=False):
     '''
-    Get array of points and derivatives around RV, centred at +x axis.
+    Get array of points and derivatives around half of RV from +x axis anticlockwise.
     LV is assumed to be circular, centred at x, y = (0,0)
     :param rvArcAroundRadians: Angle in radians around outside of RV to tangent nodes where it meets LV.
     :param lvRadius: Radius of the LV.
     :param rvAddWidthRadius: Radius to add to LV to get RV width at centre.
     :param rvAddCrossRadius: Additional radius to add only laterally around septum.
-    :param elementsCountAround: Number of elements around RV.
-    :param dEndMag: Magnitude of the external derivative at each end.
+    :param elementsCountAroundRV: Number of elements around RV.
+    :param dEndMag: Magnitude of the external derivative at LV junction.
     :param z: Z coordinate to give to all values of x[]. dx_ds1[2] is all zero.
-    :return: Arrays x[], dx_ds1[], starting at first point after end at lowest angle around.
+    :param xi: xi value ranging from 0 at bottom of RV to 1 at base.
+    :param mirror: Set to True to mirror points, otherwise only second half of RV returned.
+    :return: Arrays x[], dx_ds1[].
     '''
-    #print('\ngetRvOuterPoints', rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAround, dEndMag, z)
-    startRadians = -0.5*rvArcAroundRadians
-    ellipseStartRadians = startRadians + 0.5*rvArcAroundRadians/elementsCountAround
+    #print('\ngetRvOuterPoints', rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundRV, dEndMag, z)
+    startRadians = 0.5*rvArcAroundRadians
+    ellipseEndRadians = startRadians - xi*0.5*rvArcAroundRadians/elementsCountAroundRV
     b = lvRadius + rvAddCrossRadius  # cross radius
-    theta = math.asin(-lvRadius*math.sin(ellipseStartRadians)/b) - math.pi
-    #print('phi',ellipseStartRadians)
+    if rvAddCrossRadius >= 0.0:
+        theta = math.pi - math.asin(lvRadius*math.sin(ellipseEndRadians)/b)
+    else:
+        theta = math.pi/2.0
+    #print('phi',ellipseEndRadians)
     #print('theta',theta)
-    a = (lvRadius*(math.cos(ellipseStartRadians) - 1.0) - rvAddWidthRadius)/(math.cos(theta) - 1.0)  # width radius
+    a = (lvRadius*(math.cos(ellipseEndRadians) - 1.0) - rvAddWidthRadius)/(math.cos(theta) - 1.0)  # width radius
     cx = lvRadius + rvAddWidthRadius - a
-    #print(ellipseStartRadians,'a',a,'b',b,'cx',cx)
-    # get cubic curve joining start point with half ellipse, first with unit derivatives then compute arc length
-    x1 = ( lvRadius*math.cos(startRadians), lvRadius*math.sin(startRadians) )
-    d1 = ( -math.sin(startRadians), math.cos(startRadians) )
-    x2 = ( cx, -b )
-    d2 = ( 1.0, 0.0 )
+    #print(ellipseEndRadians,'a',a,'b',b,'cx',cx)
+    # get cubic curve joining half ellipse with to end point, first with unit derivatives then compute arc length
+    x1 = ( cx, b )
+    d1 = ( -1.0, 0.0 )
+    x2 = ( lvRadius*math.cos(startRadians), lvRadius*math.sin(startRadians) )
+    d2 = ( -math.sin(startRadians), math.cos(startRadians) )
     cubicArcLength = computeCubicHermiteArcLength(x1, d1, x2, d2, True)
     d1 = ( d1[0]*cubicArcLength, d1[1]*cubicArcLength )
     d2 = ( d2[0]*cubicArcLength, d2[1]*cubicArcLength )
-    halfEllipsePerimeter = 0.5*getApproximateEllipsePerimeter(a, b)
-    totalLength = 2.0*cubicArcLength + halfEllipsePerimeter
-    #print('length cubic', cubicArcLength, 'halfEllipsePerimeter',halfEllipsePerimeter,'total',totalLength)
-    midLength = (totalLength - dEndMag)/(elementsCountAround - 1)
-    endLength = 0.5*(dEndMag + midLength)
-    #print('midLength',midLength,'endLength',endLength)
+    quarterEllipsePerimeter = 0.25*getApproximateEllipsePerimeter(a, b)
+    halfLength = cubicArcLength + quarterEllipsePerimeter
+    print('getRvOuterPoints. length cubic', cubicArcLength, ', quarterEllipsePerimeter', quarterEllipsePerimeter, ', halfLength',halfLength)
+    elementLengthMid = (2.0*halfLength - dEndMag)/(elementsCountAroundRV - 1)
+    elementLengthEnd = 0.5*(dEndMag + elementLengthMid)
+    #print('elementLengthMid',elementLengthMid,', elementLengthEnd',elementLengthEnd)
     length = 0.0
     angle = 0.0
-    if (elementsCountAround % 2) == 1:
-        length = -0.5*midLength
+    if (elementsCountAroundRV % 2) == 1:
+        length += 0.5*elementLengthMid
         angle = updateEllipseAngleByArcLength(a, b, angle, length)
     x = []
     dx_ds1 = []
-    quarterEllipsePerimeter = halfEllipsePerimeter*0.5
-    for n in range(elementsCountAround//2):
-        if length >= -quarterEllipsePerimeter:
-            v = ( cx + a*math.cos(angle), b*math.sin(angle) )
-            t = ( -a*math.sin(angle), b*math.cos(angle) )
-            angle = updateEllipseAngleByArcLength(a, b, angle, -midLength)
+    for n in range(elementsCountAroundRV//2):
+        if length <= quarterEllipsePerimeter:
+            cosAngle = math.cos(angle)
+            sinAngle = math.sin(angle)
+            v = ( cx + a*cosAngle, b*sinAngle )
+            t = ( -a*sinAngle, b*cosAngle )
+            angle = updateEllipseAngleByArcLength(a, b, angle, elementLengthMid)
         else:
-            xi = 1.0 + (length + quarterEllipsePerimeter)/cubicArcLength
-            #print('interpolate',x1,d1,x2,d2, xi)
+            xi = (length - quarterEllipsePerimeter)/cubicArcLength
             v = interpolateCubicHermite(x1, d1, x2, d2, xi)
             t = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
-        x.insert(0, [ v[0], v[1], z ] )
-        scale = midLength/math.sqrt(t[0]*t[0] + t[1]*t[1])
-        dx_ds1.insert(0, [ t[0]*scale, t[1]*scale, 0.0 ])
-        length -= midLength
-    length += midLength - endLength
-    #print('length',length,' remainder',totalLength*0.5+length)
-    # mirror in y (about x axis) to get other side
-    for n in range((elementsCountAround - 1)//2 - 1, -1, -1):
-        x.append([ x[n][0], -x[n][1], z ])
-        dx_ds1.append([ -dx_ds1[n][0], dx_ds1[n][1], 0.0 ])
+        x.append([ v[0], v[1], z ])
+        scale = elementLengthMid/math.sqrt(t[0]*t[0] + t[1]*t[1])
+        dx_ds1.append([ t[0]*scale, t[1]*scale, 0.0 ])
+        length += elementLengthMid
+    length += elementLengthEnd - elementLengthMid
+    #print('getRvOuterPoints. length',length,', overshoot', length - halfLength)
+    if mirror:
+        xm = []
+        dxm_ds1 = []
+        for n in range(elementsCountAroundRV//2 - 1, -(elementsCountAroundRV%2), -1):
+            xm.append([ x[n][0], -x[n][1], x[n][2] ])
+            dxm_ds1.append([ -dx_ds1[n][0], dx_ds1[n][1], dx_ds1[n][2] ])
+        x = xm + x
+        dx_ds1 = dxm_ds1 + dx_ds1
     return x, dx_ds1
 
-def getRVOuterSize(xiUp, rvWidthRadius, rvExtraCrossRadiusBase):
-    xiUpFast = 1.0 - (1.0 - xiUp)*(1.0 - xiUp)
-    xiUpSlow = xiUp*xiUp
+
+def getRVOuterSize(xiUpWidth, xiUpCross, rvWidthRadius, rvExtraCrossRadiusBase):
+    if xiUpWidth < 0.0:
+        print('getRVOuterSize NEGATIVE xiUpWidth', xiUpWidth)
+        return 0.0, 0.0
+    if xiUpCross < 0.0:
+        xiUpCross = 0.0
+    xiUpFast = 1.0 - (1.0 - xiUpWidth)*(1.0 - xiUpWidth)
+    xiUpSlow = xiUpCross
     rvAddWidthRadius = interpolateCubicHermite([0.0], [0.0], [rvWidthRadius], [0.0], xiUpFast)[0]
     rvAddCrossRadius = interpolateCubicHermite([0.0], [0.0], [rvExtraCrossRadiusBase], [0.0], xiUpSlow)[0]
+    #print('getRVOuterSize xiUpWidth', xiUpWidth, ', addWidth', rvAddWidthRadius, ', addCross', rvAddCrossRadius)
     return rvAddWidthRadius, rvAddCrossRadius
