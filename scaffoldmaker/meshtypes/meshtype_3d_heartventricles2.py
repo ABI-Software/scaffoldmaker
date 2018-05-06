@@ -30,7 +30,7 @@ class MeshType_3d_heartventricles2:
         return {
             'Number of elements around LV free wall' : 5,
             'Number of elements around septum' : 6,
-            'Number of elements up' : 4,
+            'Number of elements up apex' : 1,
             'Number of elements up septum' : 3,
             'Total height' : 1.0,
             'LV outer radius' : 0.5,
@@ -55,7 +55,7 @@ class MeshType_3d_heartventricles2:
         return [
             'Number of elements around LV free wall',
             'Number of elements around septum',
-            'Number of elements up',
+            'Number of elements up apex',
             'Number of elements up septum',
             'Total height',
             'LV outer radius',
@@ -80,17 +80,15 @@ class MeshType_3d_heartventricles2:
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
             'Refine number of elements through RV wall',
+            'Number of elements up apex',
             'Number of elements up septum']:
             if options[key] < 1:
                 options[key] = 1
         for key in [
             'Number of elements around LV free wall',
-            'Number of elements around septum',
-            'Number of elements up']:
+            'Number of elements around septum']:
             if options[key] < 2:
                 options[key] = 2
-        if options['Number of elements up septum'] >= options['Number of elements up']:
-            options['Number of elements up septum'] = options['Number of elements up'] - 1
         for key in [
             'Total height',
             'LV outer radius',
@@ -121,8 +119,10 @@ class MeshType_3d_heartventricles2:
         """
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundSeptum = options['Number of elements around septum']
-        elementsCountUp = options['Number of elements up']
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
+        elementsCountUpApex = options['Number of elements up apex']
         elementsCountUpSeptum = options['Number of elements up septum']
+        elementsCountUp = elementsCountUpApex + elementsCountUpSeptum
         totalHeight = options['Total height']
         lvOuterRadius = options['LV outer radius']
         lvFreeWallThickness = options['LV free wall thickness']
@@ -167,8 +167,6 @@ class MeshType_3d_heartventricles2:
         rvOuterHeight = 0.5*(rvHeight + totalHeight)
         rvCrossHeight = rvHeight
         radialDisplacementStartRadiansUp = math.acos(rvOuterHeight/totalHeight)
-        elementsCountUpApex = elementsCountUp - elementsCountUpSeptum
-        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
         radiansPerElementAroundLVFreeWall = (2.0*math.pi - rvArcAroundRadians)/elementsCountAroundLVFreeWall
 
         norl = elementsCountAroundLV
@@ -707,7 +705,7 @@ class MeshType_3d_heartventricles2:
         """
         assert isinstance(meshrefinement, MeshRefinement)
         elementsCountAround = options['Number of elements around LV free wall']
-        elementsCountUp = options['Number of elements up']
+        elementsCountUp = options['Number of elements up apex']
         elementsCountThroughLVWall = options['Number of elements through LV wall']
         elementsCountAroundSeptum = options['Number of elements around septum']
         elementsCountBelowSeptum = options['Number of elements below septum']
