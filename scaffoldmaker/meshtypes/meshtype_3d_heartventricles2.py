@@ -80,15 +80,18 @@ class MeshType_3d_heartventricles2:
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
             'Refine number of elements through RV wall',
-            'Number of elements up apex',
-            'Number of elements up septum']:
+            'Number of elements up apex']:
             if options[key] < 1:
                 options[key] = 1
         for key in [
             'Number of elements around LV free wall',
-            'Number of elements around septum']:
+            'Number of elements up septum']:
             if options[key] < 2:
                 options[key] = 2
+        for key in [
+            'Number of elements around septum']:
+            if options[key] < 3:
+                options[key] = 3
         for key in [
             'Total height',
             'LV outer radius',
@@ -167,7 +170,7 @@ class MeshType_3d_heartventricles2:
         rvOuterHeight = 0.5*(rvHeight + totalHeight)
         rvCrossHeight = rvHeight
         radialDisplacementStartRadiansUp = math.acos(rvOuterHeight/totalHeight)
-        radiansPerElementAroundLVFreeWall = (2.0*math.pi - rvArcAroundRadians)/elementsCountAroundLVFreeWall
+        lvArcAroundRadians = 2.0*math.pi - rvArcAroundRadians
 
         norl = elementsCountAroundLV
         nowl = elementsCountUp*elementsCountAroundLV + 1
@@ -184,12 +187,15 @@ class MeshType_3d_heartventricles2:
             lengthUpApex = getEllipseArcLength(a, b, 0.0, rvThetaUp)
             lengthUpSeptum = lengthUp - lengthUpApex
             elementSizeUpSeptum = lengthUpSeptum/(elementsCountUpSeptum - 1)
-            if n3 == 1:
-                elementSizeUpApex = (lengthUpApex - (2.0/3.0)*elementSizeUpSeptum)/(elementsCountUpApex + (2.0/3.0))
-                elementSizeUpSeptumTransition = (2.0/3.0)*(elementSizeUpApex + elementSizeUpSeptum)
-            else:
-                elementSizeUpApex = (lengthUpApex - 0.5*elementSizeUpSeptum)/(elementsCountUpApex + 0.5)
-                elementSizeUpSeptumTransition = 0.5*(elementSizeUpApex + elementSizeUpSeptum)
+            #if n3 == 1:
+            #    elementSizeUpApex = (lengthUpApex - (2.0/3.0)*elementSizeUpSeptum)/(elementsCountUpApex + (2.0/3.0))
+            #    elementSizeUpSeptumTransition = (2.0/3.0)*(elementSizeUpApex + elementSizeUpSeptum)
+            #else:
+            elementSizeUpApex = (lengthUpApex - 0.5*elementSizeUpSeptum)/(elementsCountUpApex + 0.5)
+            elementSizeUpSeptumTransition = 0.5*(elementSizeUpApex + elementSizeUpSeptum)
+            # have reduced derivative around RV junction to fit extra row of elements:
+            d2FactorRvTransition = 0.5*elementSizeUpSeptumTransition/elementSizeUpApex  #  2.0/3.0
+
             #print('length total apex septum', lengthUp, lengthUpApex, lengthUpSeptum, ' size apex septum', elementSizeUpApex, elementSizeUpSeptum)
 
             # apex node, noting s1, s2 is x, -y to get out outward s3
@@ -204,14 +210,14 @@ class MeshType_3d_heartventricles2:
             radiansUp = 0.0
             for n2 in range(elementsCountUp):
 
-                if n2 <= elementsCountUpApex:
+                if n2 < elementsCountUpApex:
+                    arcLengthUp = elementSizeUpApex
+                    dArcLengthUp = elementSizeUpApex
+                else:
                     if n2 == elementsCountUpApex:
                         arcLengthUp = elementSizeUpSeptumTransition
                     else:
-                        arcLengthUp = elementSizeUpApex
-                    dArcLengthUp = elementSizeUpApex
-                else:
-                    arcLengthUp = elementSizeUpSeptum
+                        arcLengthUp = elementSizeUpSeptum
                     dArcLengthUp = elementSizeUpSeptum
                 radiansUp = updateEllipseAngleByArcLength(a, b, radiansUp, arcLengthUp)
                 if n2 == (elementsCountUp - 1):
@@ -226,6 +232,10 @@ class MeshType_3d_heartventricles2:
                     bSeptum -= (lvFreeWallThickness - septumThickness)
                 radiusSeptum = bSeptum*sinRadiansUp
 
+                elementSizeCrossSeptum = 0.5*(radius*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*sinRadiansUp)
+                elementSizeAroundLVFreeWall = (radius*lvArcAroundRadians - elementSizeCrossSeptum)/(elementsCountAroundLVFreeWall - 1)
+                elementSizeAroundLVFreeWallTransition = 0.5*(elementSizeAroundLVFreeWall + elementSizeCrossSeptum)
+
                 # get radial displacement of centre of septum, a function of radiansUp
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
                 radialDisplacement = interpolateCubicHermite([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
@@ -235,7 +245,7 @@ class MeshType_3d_heartventricles2:
                 sinRadiansAround = math.sin(radiansAround)
                 if (n3 == 1) and (n2 < elementsCountUpApex):
                     # Follow RV on outside below septum
-                    dEndMag = radius*radiansPerElementAroundLVFreeWall
+                    dEndMag = elementSizeCrossSeptum
                     xiUpZ = 1.0 + z/rvOuterHeight
                     xiUpCross = 1.0 + z/rvCrossHeight
                     rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZ, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
@@ -256,7 +266,8 @@ class MeshType_3d_heartventricles2:
                 dr = dxi*ds_dxi*dzr_ds[1]
                 if (n3 == 1) and (n2 < elementsCountUpApex):
                     # Follow RV on outside below septum
-                    dEndMag = (radius + dr)*radiansPerElementAroundLVFreeWall
+                    radiansUpPlus = radiansUp + math.sqrt(dz*dz + dr*dr)/ds_dRadiansUp
+                    dEndMag = 0.5*((radius + dr)*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*math.sin(radiansUpPlus))
                     xiUpZPlus = 1.0 + (z + dz)/rvOuterHeight
                     xiUpCross = 1.0 + (z + dz)/rvCrossHeight
                     rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZPlus, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
@@ -287,13 +298,21 @@ class MeshType_3d_heartventricles2:
                     else:
                         if n1 == 0:
                             radiansAround = -0.5*rvArcAroundRadians
+                            dMagAround = elementSizeCrossSeptum
+                        elif n1 == elementsCountAroundSeptum:
+                            radiansAround = 0.5*rvArcAroundRadians
+                            dMagAround = elementSizeCrossSeptum
                         else:
-                            radiansAround = 0.5*rvArcAroundRadians + (n1 - elementsCountAroundSeptum)*radiansPerElementAroundLVFreeWall
+                            radiansAround = 0.5*rvArcAroundRadians + (elementSizeAroundLVFreeWallTransition + (n1 - elementsCountAroundSeptum - 1)*elementSizeAroundLVFreeWall)/radius
+                            dMagAround = elementSizeAroundLVFreeWall
                         cosRadiansAround = math.cos(radiansAround)
                         sinRadiansAround = math.sin(radiansAround)
                         x = [ radius*cosRadiansAround, radius*sinRadiansAround, z ]
-                        dx_ds1 = [ radius*radiansPerElementAroundLVFreeWall*-sinRadiansAround, radius*radiansPerElementAroundLVFreeWall*cosRadiansAround, 0.0 ]
+                        dx_ds1 = [ dMagAround*-sinRadiansAround, dMagAround*cosRadiansAround, 0.0 ]
                         dx_ds2 = [ cosRadiansAround*ds_dxi*dzr_ds[1], sinRadiansAround*ds_dxi*dzr_ds[1], ds_dxi*dzr_ds[0] ]
+
+                    if (n3 == 1) and (n2 == (elementsCountUpApex - 1)) and (n1 >= 0) and (n1 <= elementsCountAroundSeptum):
+                        dx_ds2 = [ d*d2FactorRvTransition for d in dx_ds2 ]
 
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     cache.setNode(node)
@@ -321,13 +340,14 @@ class MeshType_3d_heartventricles2:
         rd1Outer = []
         rd2Outer = []
         rd3Outer = []
-        elementSizeUpRv = (lengthUp - (elementsCountUpApex + 0.5)*elementSizeUpApex)/(elementsCountUpRV - 0.5)
-        elementSizeUpRvTransition = 0.5*(elementSizeUpApex + elementSizeUpRv)
-        distUp = elementSizeUpApex*elementsCountUpApex + elementSizeUpRvTransition
+        elementSizeUpRvTransition1 = d2FactorRvTransition*elementSizeUpApex
+        elementSizeUpRv = (lengthUp - elementsCountUpApex*elementSizeUpApex - 1.5*elementSizeUpRvTransition1)/(elementsCountUpRV - 1.5)
+        elementSizeUpRvTransition2 = 0.5*(elementSizeUpRvTransition1 + elementSizeUpRv)
+        distUp = elementSizeUpApex*elementsCountUpApex + elementSizeUpRvTransition1
         radiansUp = updateEllipseAngleByArcLength(a, b, 0.0, distUp)
 
-        #print('RV element size apex', elementSizeUpApex, ', transition', elementSizeUpRvTransition, ', rv', elementSizeUpRv, \
-        #    ', total', elementsCountUpApex*elementsCountUpApex + elementSizeUpRvTransition + (elementsCountUpRV - 1)*elementSizeUpRv, ' vs ', lengthUp)
+        #print('RV element size apex', elementSizeUpApex, ', transition1', elementSizeUpRvTransition2, ', ', transition2', elementSizeUpRvTransition1, ', rv', elementSizeUpRv, \
+        #    ', total', elementsCountUpApex*elementsCountUpApex + elementSizeUpRvTransition1 + elementSizeUpRvTransition2 + (elementsCountUpRV - 2)*elementSizeUpRv, ' vs ', lengthUp)
 
         for n2 in range(elementsCountUpRV):
             if n2 == (elementsCountUpRV - 1):
@@ -342,9 +362,12 @@ class MeshType_3d_heartventricles2:
             lvOuterRadius = b*math.sin(radiansUp)
             ax = [ lvOuterRadius*cosRadiansAround, lvOuterRadius*sinRadiansAround, -a*cosRadiansUp ]
             z = ax[2]
-            dEndMag = lvOuterRadius*radiansPerElementAroundLVFreeWall
+            elementSizeCrossSeptum = 0.5*(lvOuterRadius*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*sinRadiansUp)
+            dEndMag = elementSizeCrossSeptum
             ad2 = [ b*cosRadiansUp*cosRadiansAround, b*cosRadiansUp*sinRadiansAround, a*sinRadiansUp ]
             scale = elementSizeUpRv/vector.magnitude(ad2)
+            if n2 == 0:
+                scale *= elementSizeUpRvTransition1/elementSizeUpRv
             ad2 = [ d*scale for d in ad2 ]
 
             xiUpZ =1.0 + z/rvOuterHeight
@@ -360,7 +383,15 @@ class MeshType_3d_heartventricles2:
                 dxi = 1.0E-3
                 xPlus = [ ax[i] + ad2[i]*dxi for i in range(3) ]
                 lvOuterRadiusPlus = math.sqrt(xPlus[0]*xPlus[0] + xPlus[1]*xPlus[1])
-                dEndMagPlus = dEndMag*lvOuterRadiusPlus/lvOuterRadius
+                dArcLengthUp = elementSizeUpRv
+                ds_dxi = dArcLengthUp
+                dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
+                ds_dRadiansUp = vector.magnitude(dzr_dRadiansUp)
+                dzr_ds = vector.normalise(dzr_dRadiansUp)
+                dz = dxi*ds_dxi*dzr_ds[0]
+                dr = dxi*ds_dxi*dzr_ds[1]
+                radiansUpPlus = radiansUp + math.sqrt(dz*dz + dr*dr)/ds_dRadiansUp
+                dEndMagPlus = 0.5*(lvOuterRadiusPlus*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*math.sin(radiansUpPlus))
                 xiUpZPlus = 1.0 + xPlus[2]/rvOuterHeight
                 xiUpCross = 1.0 + xPlus[2]/rvCrossHeight
                 rvAddWidthRadiusPlus, rvAddCrossRadiusPlus = getRVOuterSize(xiUpZPlus, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
@@ -369,6 +400,10 @@ class MeshType_3d_heartventricles2:
                 rd2 = [ [(px[n][c] - rx[n][c])/dxi for c in range(3)] for n in range(len(rx)) ]
             else:
                 rd2 = [ad2]*len(rx)
+
+            #if n2 == 0:
+            #    for n in range(len(rd2)):
+            #        rd2[n] = [ d*elementSizeUpRvTransition1/elementSizeUpRv for d in rd2[n] ]
 
             rd3 = []
             for n in range(len(rx)):
@@ -380,7 +415,7 @@ class MeshType_3d_heartventricles2:
             rd1Outer.append(rd1)
             rd2Outer.append(rd2)
             rd3Outer.append(rd3)
-            radiansUp = updateEllipseAngleByArcLength(a, b, radiansUp, elementSizeUpRv)
+            radiansUp = updateEllipseAngleByArcLength(a, b, radiansUp, elementSizeUpRv if (n2 > 0) else elementSizeUpRvTransition2)
 
         # get inner RV nodes from outer
         rxInner = []
@@ -477,11 +512,12 @@ class MeshType_3d_heartventricles2:
         # LV elements
 
         # calculate values used for apex scale factors
+        radiansPerElementAroundLVFreeWall = lvArcAroundRadians/elementsCountAroundLVFreeWall
         if elementsCountAroundSeptum > 2:
             radiansPerElementAroundSeptum = (rvArcAroundRadians - radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum - 1)
             radiansPerElementAroundSeptumTransition = 0.5*(radiansPerElementAroundLVFreeWall + radiansPerElementAroundSeptum)
         else:
-            radiansPerElementAroundSeptum = radiansPerElementAroundSeptumTransition = radiansPerElementAroundSeptum/elementsCountAroundSeptum
+            radiansPerElementAroundSeptum = radiansPerElementAroundSeptumTransition = rvArcAroundRadians/elementsCountAroundSeptum
         radiansAround = -0.5*rvArcAroundRadians
 
         for e2 in range(elementsCountUp):
@@ -765,7 +801,8 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
         scale = cubicArcLength/circleArcLength
         d1 = [ d*scale for d in d1 ]
         d2 = [ d*scale for d in d2 ]
-        elementLengthMid = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum + n3*0.5 - 1)
+        elementLengthMid = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum + n3 - 1)
+        #elementLengthMid = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum + n3*0.5 - 1)
         #elementLengthMid = (2.0*cubicArcLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundSeptum - 1)
         #elementLengthEnd = 0.5*(lvRadius*radiansPerElementAroundLVFreeWall + elementLengthMid)
         length = (elementsCountAroundSeptum % 2)*elementLengthMid*0.5
@@ -797,6 +834,7 @@ def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossR
     :param mirror: Set to True to mirror points, otherwise only second half of RV returned.
     :return: Arrays x[], dx_ds1[].
     '''
+    elementsCountEnd = 0 if (xi <= 0.0) else 1
     #print('\ngetRvOuterPoints', rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundRV, dEndMag, z)
     startRadians = 0.5*rvArcAroundRadians
     ellipseEndRadians = startRadians - xi*0.5*rvArcAroundRadians/elementsCountAroundRV
@@ -820,9 +858,15 @@ def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossR
     d2 = ( d2[0]*cubicArcLength, d2[1]*cubicArcLength )
     quarterEllipsePerimeter = 0.25*getApproximateEllipsePerimeter(a, b)
     halfLength = cubicArcLength + quarterEllipsePerimeter
-    print('getRvOuterPoints. length cubic', cubicArcLength, ', quarterEllipsePerimeter', quarterEllipsePerimeter, ', halfLength',halfLength)
-    elementLengthMid = (2.0*halfLength - dEndMag)/(elementsCountAroundRV - 1)
-    elementLengthEnd = 0.5*(dEndMag + elementLengthMid)
+    #print('getRvOuterPoints. length cubic', cubicArcLength, ', quarterEllipsePerimeter', quarterEllipsePerimeter, ', halfLength',halfLength)
+
+    if elementsCountEnd == 0:
+        elementLengthTrans = elementLengthMid = (2.0*halfLength - dEndMag)/(elementsCountAroundRV - 1)
+        elementLengthEnd = 0.5*(elementLengthMid + dEndMag)
+    else:
+        elementLengthEnd = dEndMag
+        elementLengthMid = (2.0*halfLength - elementLengthEnd*3.0)/(elementsCountAroundRV - 3)
+        elementLengthTrans = 0.5*(elementLengthEnd + elementLengthMid)
     #print('elementLengthMid',elementLengthMid,', elementLengthEnd',elementLengthEnd)
     length = 0.0
     angle = 0.0
@@ -831,22 +875,31 @@ def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossR
         angle = updateEllipseAngleByArcLength(a, b, angle, length)
     x = []
     dx_ds1 = []
-    for n in range(elementsCountAroundRV//2):
+    nLimit = elementsCountAroundRV//2
+    for n in range(nLimit):
+        dMag = elementLengthMid
+        if n < (nLimit - 2):
+            elementLength = elementLengthMid
+        elif n == (nLimit - 2):
+            elementLength = elementLengthTrans
+        else:
+            elementLength = elementLengthEnd
+            if elementsCountEnd > 0:
+                dMag = elementLengthEnd
         if length <= quarterEllipsePerimeter:
             cosAngle = math.cos(angle)
             sinAngle = math.sin(angle)
             v = ( cx + a*cosAngle, b*sinAngle )
             t = ( -a*sinAngle, b*cosAngle )
-            angle = updateEllipseAngleByArcLength(a, b, angle, elementLengthMid)
+            angle = updateEllipseAngleByArcLength(a, b, angle, elementLength)
         else:
             xi = (length - quarterEllipsePerimeter)/cubicArcLength
             v = interpolateCubicHermite(x1, d1, x2, d2, xi)
             t = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
         x.append([ v[0], v[1], z ])
-        scale = elementLengthMid/math.sqrt(t[0]*t[0] + t[1]*t[1])
+        scale = dMag/math.sqrt(t[0]*t[0] + t[1]*t[1])
         dx_ds1.append([ t[0]*scale, t[1]*scale, 0.0 ])
-        length += elementLengthMid
-    length += elementLengthEnd - elementLengthMid
+        length += elementLength
     #print('getRvOuterPoints. length',length,', overshoot', length - halfLength)
     if mirror:
         xm = []
