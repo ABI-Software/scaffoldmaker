@@ -550,7 +550,10 @@ class MeshType_3d_heartventricles2:
             x = list(interpolateCubicHermite(ax, ad1, bx, bd1, 0.5))
             dx_ds1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
             dx_ds1 = [ (1.0/3.0)*d for d in dx_ds1 ]
-            dx_ds2 = [ -d for d in dx_ds1 ]
+            if n1 == 0:
+                dx_ds2 = [ -d for d in dx_ds1 ]
+            else:
+                dx_ds2 = dx_ds1
             ix.insert(n1, x)
             id1.insert(n1, dx_ds1)
             id2.insert(n1, dx_ds2)
@@ -1012,7 +1015,7 @@ def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossR
 
 def getRVOuterSize(xiUpWidth, xiUpCross, rvWidthRadius, rvExtraCrossRadiusBase):
     if xiUpWidth < 0.0:
-        print('getRVOuterSize NEGATIVE xiUpWidth', xiUpWidth)
+        #print('getRVOuterSize NEGATIVE xiUpWidth', xiUpWidth)
         return 0.0, 0.0
     if xiUpCross < 0.0:
         xiUpCross = 0.0
