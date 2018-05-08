@@ -491,11 +491,13 @@ class MeshType_3d_heartventricles2:
                 dx_ds1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
                 dx_ds1 = [ 0.5*d for d in dx_ds1 ]
                 dx_ds2 = [ 0.5*(ad2[c] + bd2[c]) for c in range(3) ]
+                ox = rxOuter[n2][n1]
+                dx_ds3 = [ (ox[c] - x[c]) for c in range(3) ]
                 ix.insert(n1, x)
                 id1.insert(n1, dx_ds1)
                 id2.insert(n1, dx_ds2)
-                ox = rxOuter[n2][n1]
-                id3.insert(n1, [ (ox[c] - x[c]) for c in range(3) ])
+                id3.insert(n1, dx_ds3)
+                rd3Outer[n2][n1] = dx_ds3
 
             rxInner.append(ix)
             rd1Inner.append(id1)
@@ -526,11 +528,13 @@ class MeshType_3d_heartventricles2:
             dx_ds1 = [ 0.5*(ad1[c] + bd1[c]) for c in range(3) ]
             dx_ds2 = interpolateCubicHermiteDerivative(ax, ad2, bx, bd2, 0.5)
             dx_ds2 = [ (1.0/3.0)*d for d in dx_ds2 ]
+            ox = rxOuter[0][n1]
+            dx_ds3 = [ (ox[c] - x[c]) for c in range(3) ]
             ix.append(x)
             id1.append(dx_ds1)
             id2.append(dx_ds2)
-            ox = rxOuter[0][n1]
-            id3.append([ (ox[c] - x[c]) for c in range(3) ])
+            id3.append(dx_ds3)
+            rd3Outer[0][n1] = dx_ds3
 
         # Bottom corners of RV
         for n1 in [ 0, elementsCountAroundRV - 2 ]:
@@ -554,11 +558,13 @@ class MeshType_3d_heartventricles2:
                 dx_ds2 = [ -d for d in dx_ds1 ]
             else:
                 dx_ds2 = dx_ds1
+            ox = rxOuter[0][n1]
+            dx_ds3 = [ (ox[c] - x[c]) for c in range(3) ]
             ix.insert(n1, x)
             id1.insert(n1, dx_ds1)
             id2.insert(n1, dx_ds2)
-            ox = rxOuter[0][n1]
-            id3.insert(n1, [ (ox[c] - x[c]) for c in range(3) ])
+            id3.insert(n1, dx_ds3)
+            rd3Outer[0][n1] = dx_ds3
 
         rxInner.insert(0, ix)
         rd1Inner.insert(0, id1)
