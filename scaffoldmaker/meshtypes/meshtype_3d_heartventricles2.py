@@ -161,7 +161,7 @@ class MeshType_3d_heartventricles2:
 
         # LV nodes
 
-        rvOuterWidthBase = rvWidth - septumBaseRadialDisplacement + rvFreeWallThickness
+        rvOuterWidthBase = rvWidth - septumBaseRadialDisplacement + septumThickness - lvFreeWallThickness + rvFreeWallThickness
 
         # get element spacing up
         # approximate correction to move up to next inner node, since bottom of RV is halfway up element
