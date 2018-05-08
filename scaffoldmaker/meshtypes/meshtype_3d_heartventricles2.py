@@ -754,20 +754,16 @@ class MeshType_3d_heartventricles2:
                     setEftScaleFactorIds(eft1, [1], [])
                     scalefactors = [ -1.0 ]
                     if e1 == 1:
-                        if False:
-                            setEftScaleFactorIds(eft1, [1, 2], [])
-                            remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [2] ), ( Node.VALUE_LABEL_D_DS2, [2] ) ])
-                            scalefactors = [ -1.0, math.cos(0.25*math.pi) ]
                         remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                     elif e1 == (elementsCountAroundRV - 2):
                         remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                         remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                         remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                        remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                     else:
                         remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -784,10 +780,6 @@ class MeshType_3d_heartventricles2:
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
                         if e2 == 1:
-                            if False:
-                                setEftScaleFactorIds(eft1, [1, 2], [])
-                                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [2] ), ( Node.VALUE_LABEL_D_DS2, [2] ) ])
-                                scalefactors = [ -1.0, math.cos(0.25*math.pi) ]
                             remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                             remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -847,19 +839,20 @@ class MeshType_3d_heartventricles2:
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
-        elementsCountAround = options['Number of elements around LV free wall']
-        elementsCountUp = options['Number of elements up apex']
-        elementsCountThroughLVWall = options['Number of elements through LV wall']
+        elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundSeptum = options['Number of elements around septum']
-        elementsCountBelowSeptum = options['Number of elements below septum']
-
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
+        elementsCountUpApex = options['Number of elements up apex']
+        elementsCountUpSeptum = options['Number of elements up septum']
+        elementsCountUp = elementsCountUpApex + elementsCountUpSeptum
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
         refineElementsCountThroughRVWall = options['Refine number of elements through RV wall']
 
-        startRvElementIdentifier = elementsCountAround*elementsCountUp*elementsCountThroughLVWall + 1
-        elementsCountUpSeptum = elementsCountUp - elementsCountBelowSeptum + 1
-        limitRvElementIdentifier = startRvElementIdentifier + (elementsCountAroundSeptum + 4)*elementsCountUpSeptum + elementsCountAroundSeptum + 2
+        elementsCountUpRV = elementsCountUpSeptum + 1
+        elementsCountAroundRV = elementsCountAroundSeptum + 2
+        startRvElementIdentifier = elementsCountAroundLV*elementsCountUp + 1
+        limitRvElementIdentifier = startRvElementIdentifier + elementsCountUpRV*elementsCountAroundRV - 2
 
         element = meshrefinement._sourceElementiterator.next()
         while element.isValid():
