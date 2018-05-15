@@ -40,9 +40,9 @@ class MeshType_3d_heartventricles2:
             'RV arc around degrees' : 180.0,
             'RV free wall thickness' : 0.04,
             'RV width' : 0.4,
-            'RV extra cross radius base' : 0.05,
-            'Septum thickness' : 0.1,
-            'Septum base radial displacement' : 0.15,
+            'RV extra cross radius base' : 0.1,
+            'Ventricular septum thickness' : 0.1,
+            'Ventricular septum base radial displacement' : 0.15,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements surface' : 1,
@@ -66,8 +66,8 @@ class MeshType_3d_heartventricles2:
             'RV free wall thickness',
             'RV width',
             'RV extra cross radius base',
-            'Septum thickness',
-            'Septum base radial displacement',
+            'Ventricular septum thickness',
+            'Ventricular septum base radial displacement',
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
@@ -101,8 +101,8 @@ class MeshType_3d_heartventricles2:
             'RV free wall thickness',
             'RV width',
             'RV extra cross radius base',
-            'Septum thickness',
-            'Septum base radial displacement']:
+            'Ventricular septum thickness',
+            'Ventricular septum base radial displacement']:
             if options[key] < 0.0:
                 options[key] = 0.0
         if options['RV height'] > 0.99*options['Total height']:
@@ -125,7 +125,9 @@ class MeshType_3d_heartventricles2:
         elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
         elementsCountUpApex = options['Number of elements up apex']
         elementsCountUpSeptum = options['Number of elements up septum']
-        elementsCountUp = elementsCountUpApex + elementsCountUpSeptum
+        elementsCountUpLV = elementsCountUpApex + elementsCountUpSeptum
+        elementsCountUpRV = elementsCountUpSeptum + 1
+        elementsCountAroundRV = elementsCountAroundSeptum + 2
         totalHeight = options['Total height']
         lvOuterRadius = options['LV outer radius']
         lvFreeWallThickness = options['LV free wall thickness']
@@ -135,8 +137,8 @@ class MeshType_3d_heartventricles2:
         rvFreeWallThickness = options['RV free wall thickness']
         rvWidth = options['RV width']
         rvExtraCrossRadiusBase = options['RV extra cross radius base']
-        septumThickness = options['Septum thickness']
-        septumBaseRadialDisplacement = options['Septum base radial displacement']
+        vSeptumThickness = options['Ventricular septum thickness']
+        vSeptumBaseRadialDisplacement = options['Ventricular septum base radial displacement']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -161,7 +163,7 @@ class MeshType_3d_heartventricles2:
 
         # LV nodes
 
-        rvOuterWidthBase = rvWidth - septumBaseRadialDisplacement + septumThickness - lvFreeWallThickness + rvFreeWallThickness
+        rvOuterWidthBase = rvWidth - vSeptumBaseRadialDisplacement + vSeptumThickness - lvFreeWallThickness + rvFreeWallThickness
 
         # get element spacing up
         # approximate correction to move up to next inner node, since bottom of RV is halfway up element
@@ -173,11 +175,11 @@ class MeshType_3d_heartventricles2:
         lvArcAroundRadians = 2.0*math.pi - rvArcAroundRadians
 
         norl = elementsCountAroundLV
-        nowl = elementsCountUp*elementsCountAroundLV + 1
+        nowl = elementsCountUpLV*elementsCountAroundLV + 1
         for n3 in range(2):
             a = totalHeight
             b = lvOuterRadius
-            bVS = lvOuterRadius - lvFreeWallThickness + septumThickness
+            bVS = lvOuterRadius - lvFreeWallThickness + vSeptumThickness
             if n3 == 0:
                 a -= lvApexThickness
                 b -= lvFreeWallThickness
@@ -208,7 +210,7 @@ class MeshType_3d_heartventricles2:
             nodeIdentifier = nodeIdentifier + 1
 
             radiansUp = 0.0
-            for n2 in range(elementsCountUp):
+            for n2 in range(elementsCountUpLV):
 
                 if n2 < elementsCountUpApex:
                     arcLengthUp = elementSizeUpApex
@@ -220,7 +222,7 @@ class MeshType_3d_heartventricles2:
                         arcLengthUp = elementSizeUpSeptum
                     dArcLengthUp = elementSizeUpSeptum
                 radiansUp = updateEllipseAngleByArcLength(a, b, radiansUp, arcLengthUp)
-                if n2 == (elementsCountUp - 1):
+                if n2 == (elementsCountUpLV - 1):
                     radiansUp = 0.5*math.pi
                 #print(n3, n2, ' -> ', math.degrees(radiansUp), 'dArcLengthUp', dArcLengthUp)
                 cosRadiansUp = math.cos(radiansUp)
@@ -229,16 +231,16 @@ class MeshType_3d_heartventricles2:
                 radius = b*sinRadiansUp
                 bSeptum = b
                 if (n3 == 1) and (n2 >= elementsCountUpApex):
-                    bSeptum -= (lvFreeWallThickness - septumThickness)
+                    bSeptum -= (lvFreeWallThickness - vSeptumThickness)
                 radiusSeptum = bSeptum*sinRadiansUp
 
-                elementSizeCrossSeptum = 0.5*(radius*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*sinRadiansUp)
+                elementSizeCrossSeptum = 0.5*(radius*lvArcAroundRadians/elementsCountAroundLVFreeWall + vSeptumThickness*sinRadiansUp)
                 elementSizeAroundLVFreeWall = (radius*lvArcAroundRadians - elementSizeCrossSeptum)/(elementsCountAroundLVFreeWall - 1)
                 elementSizeAroundLVFreeWallTransition = 0.5*(elementSizeAroundLVFreeWall + elementSizeCrossSeptum)
 
                 # get radial displacement of centre of septum, a function of radiansUp
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
-                radialDisplacement = interpolateCubicHermite([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
+                radialDisplacement = interpolateCubicHermite([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
 
                 radiansAround = -0.5*rvArcAroundRadians
                 cosRadiansAround = math.cos(radiansAround)
@@ -267,14 +269,14 @@ class MeshType_3d_heartventricles2:
                 if (n3 == 1) and (n2 < elementsCountUpApex):
                     # Follow RV on outside below septum
                     radiansUpPlus = radiansUp + math.sqrt(dz*dz + dr*dr)/ds_dRadiansUp
-                    dEndMag = 0.5*((radius + dr)*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*math.sin(radiansUpPlus))
+                    dEndMag = 0.5*((radius + dr)*lvArcAroundRadians/elementsCountAroundLVFreeWall + vSeptumThickness*math.sin(radiansUpPlus))
                     xiUpZPlus = 1.0 + (z + dz)/rvOuterHeight
                     xiUpCross = 1.0 + (z + dz)/rvCrossHeight
                     rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZPlus, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
                     tx, td1 = getRvOuterPoints(rvArcAroundRadians, radius + dr, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundSeptum, dEndMag, z + dz, xiUpCross)
                 else:
                     dxiUp_dxi = ds_dxi/(ds_dRadiansUp*(0.5*math.pi - radialDisplacementStartRadiansUp))
-                    dRadialDisplacement = dxi*dxiUp_dxi*interpolateCubicHermiteDerivative([0.0], [0.0], [septumBaseRadialDisplacement], [0.0], xiUp)[0]
+                    dRadialDisplacement = dxi*dxiUp_dxi*interpolateCubicHermiteDerivative([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
                     tx, td1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z + dz, n3)
                 # true values for LV freewall
                 dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
@@ -333,8 +335,6 @@ class MeshType_3d_heartventricles2:
         # RV nodes
 
         nidr = nodeIdentifier
-        elementsCountUpRV = elementsCountUpSeptum + 1
-        elementsCountAroundRV = elementsCountAroundSeptum + 2
 
         rxOuter = []
         rd1Outer = []
@@ -362,7 +362,7 @@ class MeshType_3d_heartventricles2:
             lvOuterRadius = b*math.sin(radiansUp)
             ax = [ lvOuterRadius*cosRadiansAround, lvOuterRadius*sinRadiansAround, -a*cosRadiansUp ]
             z = ax[2]
-            elementSizeCrossSeptum = 0.5*(lvOuterRadius*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*sinRadiansUp)
+            elementSizeCrossSeptum = 0.5*(lvOuterRadius*lvArcAroundRadians/elementsCountAroundLVFreeWall + vSeptumThickness*sinRadiansUp)
             dEndMag = elementSizeCrossSeptum
             ad2 = [ b*cosRadiansUp*cosRadiansAround, b*cosRadiansUp*sinRadiansAround, a*sinRadiansUp ]
             scale = elementSizeUpRv/vector.magnitude(ad2)
@@ -391,7 +391,7 @@ class MeshType_3d_heartventricles2:
                 dz = dxi*ds_dxi*dzr_ds[0]
                 dr = dxi*ds_dxi*dzr_ds[1]
                 radiansUpPlus = radiansUp + math.sqrt(dz*dz + dr*dr)/ds_dRadiansUp
-                dEndMagPlus = 0.5*(lvOuterRadiusPlus*lvArcAroundRadians/elementsCountAroundLVFreeWall + septumThickness*math.sin(radiansUpPlus))
+                dEndMagPlus = 0.5*(lvOuterRadiusPlus*lvArcAroundRadians/elementsCountAroundLVFreeWall + vSeptumThickness*math.sin(radiansUpPlus))
                 xiUpZPlus = 1.0 + xPlus[2]/rvOuterHeight
                 xiUpCross = 1.0 + xPlus[2]/rvCrossHeight
                 rvAddWidthRadiusPlus, rvAddCrossRadiusPlus = getRVOuterSize(xiUpZPlus, xiUpCross, rvOuterWidthBase, rvExtraCrossRadiusBase)
@@ -627,7 +627,7 @@ class MeshType_3d_heartventricles2:
             radiansPerElementAroundSeptum = radiansPerElementAroundSeptumTransition = rvArcAroundRadians/elementsCountAroundSeptum
         radiansAround = -0.5*rvArcAroundRadians
 
-        for e2 in range(elementsCountUp):
+        for e2 in range(elementsCountUpLV):
 
             for e1 in range(elementsCountAroundLV):
 
@@ -844,14 +844,14 @@ class MeshType_3d_heartventricles2:
         elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
         elementsCountUpApex = options['Number of elements up apex']
         elementsCountUpSeptum = options['Number of elements up septum']
-        elementsCountUp = elementsCountUpApex + elementsCountUpSeptum
+        elementsCountUpLV = elementsCountUpApex + elementsCountUpSeptum
+        elementsCountUpRV = elementsCountUpSeptum + 1
+        elementsCountAroundRV = elementsCountAroundSeptum + 2
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
         refineElementsCountThroughRVWall = options['Refine number of elements through RV wall']
 
-        elementsCountUpRV = elementsCountUpSeptum + 1
-        elementsCountAroundRV = elementsCountAroundSeptum + 2
-        startRvElementIdentifier = elementsCountAroundLV*elementsCountUp + 1
+        startRvElementIdentifier = elementsCountAroundLV*elementsCountUpLV + 1
         limitRvElementIdentifier = startRvElementIdentifier + elementsCountUpRV*elementsCountAroundRV - 2
 
         element = meshrefinement._sourceElementiterator.next()
