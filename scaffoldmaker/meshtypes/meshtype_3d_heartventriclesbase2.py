@@ -30,12 +30,12 @@ class MeshType_3d_heartventriclesbase2(object):
         options = MeshType_3d_heartventricles2.getDefaultOptions()
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
-        options['Number of elements around septum'] = 7
+        options['Number of elements around septum'] = 6
         # works best with particular numbers of elements up
         options['Number of elements up apex'] = 1
         options['Number of elements up septum'] = 3
         # additional options
-        options['Number of elements around atria'] = 8
+        options['Number of elements around atria'] = 7
         options['Atrial septum thickness'] = 0.075
         options['Atria major axis rotation degrees'] = 30.0
         options['Base height'] = 0.1
@@ -75,8 +75,8 @@ class MeshType_3d_heartventriclesbase2(object):
     def checkOptions(options):
         MeshType_3d_heartventricles2.checkOptions(options)
         # only works with particular numbers of elements around
-        options['Number of elements around LV free wall'] = 5
-        options['Number of elements around septum'] = 7
+        #options['Number of elements around LV free wall'] = 5
+        #options['Number of elements around septum'] = 6
         # need even number of refine surface elements for elements with hanging nodes to conform
         #if (options['Refine number of elements surface'] % 2) == 1:
         #    options['Refine number of elements surface'] += 1
@@ -113,7 +113,7 @@ class MeshType_3d_heartventriclesbase2(object):
         elementsCountUpLV = elementsCountUpApex + elementsCountUpSeptum
         elementsCountUpRV = elementsCountUpSeptum + 1
         elementsCountAroundRV = elementsCountAroundSeptum + 2
-        elementsCountAtrialSeptum = elementsCountAroundSeptum - 5
+        elementsCountAtrialSeptum = 2  # elementsCountAroundSeptum - 5
         elementsCountAroundAtria = options['Number of elements around atria']
         totalHeight = options['Total height']
         lvOuterRadius = options['LV outer radius']
@@ -173,7 +173,7 @@ class MeshType_3d_heartventriclesbase2(object):
         elementsCountAroundOutlet = 6
         # GRC Set properly:
         defaultOutletScale3 = 0.5
-        node = nodes.findNodeByIdentifier(nidl + elementsCountAtrialSeptum + 1)
+        node = nodes.findNodeByIdentifier(nidl + nowl + elementsCountAroundSeptum - 1)
         cache.setNode(node)
         result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         node = nodes.findNodeByIdentifier(nidl)
@@ -185,9 +185,12 @@ class MeshType_3d_heartventriclesbase2(object):
         bx = [ 0.5*(ax[i] + bx[i]) for i in range(2) ]
         bx.append(ax[2])
         ax = [ (bx[c] - cx[c]) for c in range(3) ]
-        axMag = vector.magnitude(ax)
         ax = vector.normalise(ax)
         baseRotationRadians = math.atan2(ax[1], ax[0])
+        # get crux location
+        pulmonaryToCruxOffset = outletSpacing + 2.0*lvOutletRadius
+        cx = [ (cx[c] + ax[c]*pulmonaryToCruxOffset) for c in range(3) ]
+
         #print('baseRotationRadians', baseRotationRadians)
 
         cosOutletInclineRadians = math.cos(outletInclineRadians)
@@ -398,6 +401,9 @@ class MeshType_3d_heartventriclesbase2(object):
         raCentreX = cruxCentre[0] - laCentreModX*cosRotRadians + laCentreModY*-sinRotRadians
         raCentreY = cruxCentre[1] - laCentreModX*sinRotRadians + laCentreModY*cosRotRadians
 
+        aCentreOuterZ = cruxRight[2] + atriumInletSlopeHeight
+        aCentreInnerZ = cruxRight[2]
+
         atrialPerimeterLength = getApproximateEllipsePerimeter(aOuterMajorMag, aOuterMinorMag)
         atrialSeptumCentreToCruxLeftLength = getEllipseArcLength(aOuterMajorMag, aOuterMinorMag, laSeptumRadians, laCruxLeftRadians)
         atrialSeptumElementLength = atrialSeptumCentreToCruxLeftLength/(1.0 + elementsCountAtrialSeptum*0.5)
@@ -473,11 +479,11 @@ class MeshType_3d_heartventriclesbase2(object):
                 inner = [
                     laCentreX + cosRadiansAround*laInnerMajor[0] + sinRadiansAround*laInnerMinor[0],
                     laCentreY + cosRadiansAround*laInnerMajor[1] + sinRadiansAround*laInnerMinor[1],
-                    cruxCentre[2] - atriumInletSlopeHeight ]
+                    aCentreInnerZ ]
                 outer = [
                     laCentreX + cosRadiansAround*laOuterMajor[0] + sinRadiansAround*laOuterMinor[0],
                     laCentreY + cosRadiansAround*laOuterMajor[1] + sinRadiansAround*laOuterMinor[1],
-                    cruxCentre[2] ]
+                    aCentreOuterZ ]
 
                 if (n3 == 1) and ((n1 <= lan1CruxLimit) or (n1 > (lan1SeptumLimit + 2))):
                     continue  # already have a node from crux or will get from right atrial septum
@@ -501,7 +507,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 dx_ds1 = [ d*scale1 for d in dx_ds1 ]
                 dx_ds3 = [ outer[0] - inner[0], outer[1] - inner[1], outer[2] - inner[2] ]
                 if n1 == 0:
-                    dx_ds2 = [ 0.0, 0.0, cruxCentre[2] - atriumInletSlopeHeight ]
+                    dx_ds2 = [ 0.0, 0.0, aCentreInnerZ ]
                 else:
                     dx_ds2 = [
                         dx_ds3[1]*dx_ds1[2] - dx_ds3[2]*dx_ds1[1],
@@ -519,18 +525,18 @@ class MeshType_3d_heartventriclesbase2(object):
             # show axes of left atrium
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ laCentreX, laCentreY, cruxCentre[2] - atriumInletSlopeHeight ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ laCentreX, laCentreY, aCentreInnerZ ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ laInnerMajor[0], laInnerMajor[1], 0.0 ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ laInnerMinor[0], laInnerMinor[1], 0.0 ])
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, cruxCentre[2] ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, aCentreInnerZ ])
             nodeIdentifier += 1
 
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ laCentreX, laCentreY, cruxCentre[2] ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ laCentreX, laCentreY, aCentreOuterZ ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ laOuterMajor[0], laOuterMajor[1], 0.0 ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ laOuterMinor[0], laOuterMinor[1], 0.0 ])
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, cruxCentre[2] ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, aCentreOuterZ ])
             nodeIdentifier += 1
 
         ran1SeptumLimit = elementsCountAtrialSeptum//2
@@ -548,11 +554,11 @@ class MeshType_3d_heartventriclesbase2(object):
                 inner = [
                     raCentreX + cosRadiansAround*raInnerMajor[0] + sinRadiansAround*raInnerMinor[0],
                     raCentreY + cosRadiansAround*raInnerMajor[1] + sinRadiansAround*raInnerMinor[1],
-                    cruxCentre[2] - atriumInletSlopeHeight ]
+                    aCentreInnerZ ]
                 outer = [
                     raCentreX + cosRadiansAround*raOuterMajor[0] + sinRadiansAround*raOuterMinor[0],
                     raCentreY + cosRadiansAround*raOuterMajor[1] + sinRadiansAround*raOuterMinor[1],
-                    cruxCentre[2] ]
+                    aCentreOuterZ ]
 
                 if (n3 == 1) and ((n1 < ran1SeptumLimit) or (n1 >= ran1CruxLimit)):
                     continue  # already have a node from crux or will get from left atrial septum
@@ -576,7 +582,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 dx_ds1 = [ d*scale1 for d in dx_ds1 ]
                 dx_ds3 = [ outer[0] - inner[0], outer[1] - inner[1], outer[2] - inner[2] ]
                 if n1 == 0:
-                    dx_ds2 = [ 0.0, 0.0, cruxCentre[2] - atriumInletSlopeHeight ]
+                    dx_ds2 = [ 0.0, 0.0, aCentreInnerZ ]
                 else:
                     dx_ds2 = [
                         dx_ds3[1]*dx_ds1[2] - dx_ds3[2]*dx_ds1[1],
@@ -594,28 +600,28 @@ class MeshType_3d_heartventriclesbase2(object):
             # show axes of right atrium
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ raCentreX, raCentreY, cruxCentre[2] - atriumInletSlopeHeight ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ raCentreX, raCentreY, aCentreInnerZ ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ raInnerMajor[0], raInnerMajor[1], 0.0 ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ raInnerMinor[0], raInnerMinor[1], 0.0 ])
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, cruxCentre[2] ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, aCentreInnerZ ])
             nodeIdentifier += 1
 
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ raCentreX, raCentreY, cruxCentre[2] ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ raCentreX, raCentreY, aCentreOuterZ ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ raOuterMajor[0], raOuterMajor[1], 0.0 ])
             result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ raOuterMinor[0], raOuterMinor[1], 0.0 ])
-            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, cruxCentre[2] ])
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, aCentreOuterZ ])
             nodeIdentifier += 1
 
         laNodeId[1][0] = raNodeId[0][0]
         laNodeId[1][1] = lvOutletNodeId[ 0]
         laNodeId[1][2] = lvOutletNodeId[-1]
 
-        print('laNodeId[0]', laNodeId[0])
-        print('laNodeId[1]', laNodeId[1])
-        print('raNodeId[0]', raNodeId[0])
-        print('raNodeId[1]', raNodeId[1])
+        #print('laNodeId[0]', laNodeId[0])
+        #print('laNodeId[1]', laNodeId[1])
+        #print('raNodeId[0]', raNodeId[0])
+        #print('raNodeId[1]', raNodeId[1])
 
         # compute dx_ds3 around atria from differences of nodes
         for i in range(2):
@@ -664,16 +670,22 @@ class MeshType_3d_heartventriclesbase2(object):
 
         # LV base elements
 
+        nedl = nidl + elementsCountAroundLV
+
         nids = [
             # regular atrial septum elements
             [ nidl +  0, nidl +  1, laNodeId[0][-1],   laNodeId[0][ 0], nidr        +  0, nidl + nowl +  1, raNodeId[0][ 1], laNodeId[1][ 0] ],
             [ nidl +  1, nidl +  2, laNodeId[0][ 0],   laNodeId[0][ 1], nidl + nowl +  1, nidl + nowl +  2, laNodeId[1][ 0], raNodeId[0][-1] ],
             # 7-node collapsed crux element
             [ nidl +  2, nidl +  3, laNodeId[0][ 1], lvOutletNodeId[0], nidl + nowl +  2, nidl + nowl +  3, raNodeId[0][-1] ],
+            # 6-node collapsed septum elements
+            [ nidl +  3, nidl +  4, lvOutletNodeId[0], lvOutletNodeId[1], nidl + nowl +  3, nidl + nowl +  4 ],
+            [ nidl +  4, nidl +  5, lvOutletNodeId[1], lvOutletNodeId[2], nidl + nowl +  4, nidl + nowl +  5 ],
+            [ nidl +  5, nidl +  6, lvOutletNodeId[2], lvOutletNodeId[3], nidl + nowl +  5, (nidr + norr -  1) if (elementsCountAroundSeptum == 6) else (nidl + nowl +  6) ],
             # regular LV free wall - atria elements
-            [ nidl +  9, nidl + 10, laNodeId[0][-4],   laNodeId[0][-3], nidl + nowl +  9, nidl + nowl + 10, laNodeId[1][-4], laNodeId[1][-3] ],
-            [ nidl + 10, nidl + 11, laNodeId[0][-3],   laNodeId[0][-2], nidl + nowl + 10, nidl + nowl + 11, laNodeId[1][-3], laNodeId[1][-2] ],
-            [ nidl + 11, nidl +  0, laNodeId[0][-2],   laNodeId[0][-1], nidl + nowl + 11, nidl + nowl +  0, laNodeId[1][-2], laNodeId[1][-1] ]
+            [ nedl -  3, nedl -  2, laNodeId[0][-4],   laNodeId[0][-3], nedl + nowl -  3, nedl + nowl -  2, laNodeId[1][-4], laNodeId[1][-3] ],
+            [ nedl -  2, nedl -  1, laNodeId[0][-3],   laNodeId[0][-2], nedl + nowl -  2, nedl + nowl -  1, laNodeId[1][-3], laNodeId[1][-2] ],
+            [ nedl -  1, nidl +  0, laNodeId[0][-2],   laNodeId[0][-1], nedl + nowl -  1, nidl + nowl +  0, laNodeId[1][-2], laNodeId[1][-1] ]
         ]
 
         for e in range(len(nids)):
@@ -700,14 +712,23 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                #remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, [ ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                # was: remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
                 ln_map = [ 1, 2, 3, 4, 5, 6, 7, 4 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
+            elif e <= 5:
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                # remap parameters before collapsing nodes
+                remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS3, [ ])
+                remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                ln_map = [ 1, 2, 3, 4, 5, 6, 3, 4 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
