@@ -220,11 +220,10 @@ class MeshType_3d_heartventriclesbase2(object):
                 x[c] = lvOutletCentre[c] + loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround
                 dx_ds1[c] = radiansPerElementAroundOutlet*(loAxis1[c]*-sinRadiansAround + loAxis2[c]*cosRadiansAround)
                 dx_ds3[c] = outletScale3*(loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround)
-            #if n1 == 4:
-            #    d3inclineRadians = math.pi/6.0
-            #    dx_ds3 = [ dx_ds1[0]*math.cos(d3inclineRadians),
-            #               dx_ds1[1]*math.cos(d3inclineRadians),
-            #               dx_ds1[2]*math.sin(d3inclineRadians) ]
+            if n1 in [ 2, 4 ]:
+                dx_ds3[2] = -dx_ds3[2]
+                scale = radiansPerElementAroundOutlet*rvOutletRadius/vector.magnitude(dx_ds3)
+                dx_ds3 = [ d*scale for d in dx_ds3 ]
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             lvOutletNodeId.append(nodeIdentifier)
             cache.setNode(node)
@@ -263,11 +262,10 @@ class MeshType_3d_heartventriclesbase2(object):
                 x[c] = rvOutletCentre[c] + roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround
                 dx_ds1[c] = radiansPerElementAroundOutlet*(roAxis1[c]*-sinRadiansAround + roAxis2[c]*cosRadiansAround)
                 dx_ds3[c] = outletScale3*(roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround)
-            #if (n1 == 1) or (n1 == (elementsCountAroundOutlet - 1)):
-            #    d3inclineRadians = math.pi/6.0
-            #    dx_ds3 = [ dx_ds1[0]*math.cos(d3inclineRadians),
-            #               dx_ds1[1]*math.cos(d3inclineRadians),
-            #               dx_ds1[2]*math.sin(d3inclineRadians) ]
+            if n1 in [ 1, 5 ]:
+                dx_ds3[2] = -dx_ds3[2]
+                scale = radiansPerElementAroundOutlet*lvOutletRadius/vector.magnitude(dx_ds3)
+                dx_ds3 = [ d*scale for d in dx_ds3 ]
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             rvOutletNodeId.append(nodeIdentifier)
             cache.setNode(node)
@@ -659,6 +657,50 @@ class MeshType_3d_heartventriclesbase2(object):
         dx_ds3 = [ d*scale for d in dx_ds3 ]
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3 )
 
+        # create nodes on bottom and top of supraventricular crest
+        #print('sv crest interpolated from nodes', nidr + nowr + 4, lvOutletNodeId[2])
+        node = nodes.findNodeByIdentifier(nidr + nowr + 4)
+        cache.setNode(node)
+        result, xa = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+        result, d1a = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
+        result, d2a = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3 )
+        node = nodes.findNodeByIdentifier(lvOutletNodeId[2])
+        cache.setNode(node)
+        result, xb = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+        result, d1b = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
+        result, d2b = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3 )
+        d2b = [ -2.0*d for d in d2b ]
+        scale = 4.0*(baseHeight + baseThickness)/vector.magnitude(d2a)
+        d2a = [ scale*d for d in d2a ]
+        xi = 0.5
+        x = list(interpolateCubicHermite(xa, d2a, xb, d2b, xi))
+        dx_ds1 = [ 0.5*(d1a[c] + d1b[c]) for c in range(3) ]
+        dx_ds2 = interpolateCubicHermiteDerivative(xa, d2a, xb, d2b, xi)
+        dx_ds2 = [ 0.5*d for d in dx_ds2 ]
+        radialVector = vector.normalise(vector.crossproduct3(dx_ds1, dx_ds2))
+        dx_ds3 = [ baseThickness*d for d in radialVector ]
+
+        x_inner = [ (x[c] - dx_ds3[c]) for c in range(3) ]
+        curvatureScale = 1.0 - baseThickness*getCubicHermiteCurvature(xa, d2a, x, dx_ds2, radialVector, 1.0)
+        dx_ds2_inner = [ curvatureScale*d for d in dx_ds2 ]
+
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x_inner)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2_inner)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        crest_nid1 = nodeIdentifier
+        nodeIdentifier += 1
+
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        crest_nid2 = nodeIdentifier
+        nodeIdentifier += 1
 
         #################
         # Create elements
@@ -795,7 +837,12 @@ class MeshType_3d_heartventriclesbase2(object):
             # regular rv free wall elements
             [ nidr        + 0, nidr + 1, raNodeId[0][ 1], raNodeId[0][ 2], nidr + nowr + 0, nidr + nowr + 1, raNodeId[1][ 1], raNodeId[1][ 2] ],
             [ nidr        + 1, nidr + 2, raNodeId[0][ 2], raNodeId[0][ 3], nidr + nowr + 1, nidr + nowr + 2, raNodeId[1][ 2], raNodeId[1][ 3] ],
-            [ nidr        + 2, nidr + 3, raNodeId[0][ 3], raNodeId[0][ 4], nidr + nowr + 2, nidr + nowr + 3, raNodeId[1][ 3], raNodeId[1][ 4] ]
+            [ nidr        + 2, nidr + 3, raNodeId[0][ 3], raNodeId[0][ 4], nidr + nowr + 2, nidr + nowr + 3, raNodeId[1][ 3], raNodeId[1][ 4] ],
+            # sv crest outer 1
+            [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      crest_nid2 ],
+            # sv crest inner 1
+            [ raNodeId[0][-3], crest_nid1, nidl + nowl + 3, nidl + nowl +  4, raNodeId[1][-3], crest_nid2, lvOutletNodeId[1], lvOutletNodeId[2] ]
+
         ]
 
         for e in range(len(nids)):
@@ -805,6 +852,29 @@ class MeshType_3d_heartventriclesbase2(object):
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            elif e == 3:
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+            elif e == 4:
+                # supraventricular crest outer 1
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []) ])
+            elif e == 5:
+                # supraventricular crest inner 1, by RA-LV outlet junction
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                #remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)

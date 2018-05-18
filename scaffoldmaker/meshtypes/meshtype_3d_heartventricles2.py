@@ -5,7 +5,6 @@ Generates 3-D Left and Right ventricles mesh starting from modified sphere shell
 from __future__ import division
 import math
 import scaffoldmaker.utils.vector as vector
-from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
