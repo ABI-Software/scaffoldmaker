@@ -13,6 +13,7 @@ from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+import scaffoldmaker.utils.vector as vector
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -40,8 +41,10 @@ class MeshType_3d_heartventriclesbase2(object):
         options['Atria major axis rotation degrees'] = 40.0
         options['Base height'] = 0.1
         options['Base thickness'] = 0.05
-        options['LV outlet outer diameter'] = 0.35
-        options['RV outlet outer diameter'] = 0.35
+        options['LV outlet inner diameter'] = 0.3
+        options['LV outlet wall thickness'] = 0.03
+        options['RV outlet inner diameter'] = 0.3
+        options['RV outlet wall thickness'] = 0.03
         options['Outlet element length'] = 0.1
         options['Outlet incline degrees'] = 10.0
         options['Outlet spacing'] = 0.03
@@ -56,8 +59,10 @@ class MeshType_3d_heartventriclesbase2(object):
             'Atria major axis rotation degrees',
             'Base height',
             'Base thickness',
-            'LV outlet outer diameter',
-            'RV outlet outer diameter',
+            'LV outlet inner diameter',
+            'LV outlet wall thickness',
+            'RV outlet inner diameter',
+            'RV outlet wall thickness',
             'Outlet element length',
             'Outlet incline degrees',
             'Outlet spacing']
@@ -86,8 +91,10 @@ class MeshType_3d_heartventriclesbase2(object):
             'Atrial septum thickness',
             'Base height',
             'Base thickness',
-            'LV outlet outer diameter',
-            'RV outlet outer diameter',
+            'LV outlet inner diameter',
+            'LV outlet wall thickness',
+            'RV outlet inner diameter',
+            'RV outlet wall thickness',
             'Outlet element length',
             'Outlet spacing']:
             if options[key] < 0.0:
@@ -131,8 +138,12 @@ class MeshType_3d_heartventriclesbase2(object):
         aSeptumThickness = options['Atrial septum thickness']
         baseHeight = options['Base height']
         baseThickness = options['Base thickness']
-        lvOutletRadius = options['LV outlet outer diameter']*0.5
-        rvOutletRadius = options['RV outlet outer diameter']*0.5
+        lvOutletInnerRadius = options['LV outlet inner diameter']*0.5
+        rvOutletInnerRadius = options['RV outlet inner diameter']*0.5
+        lvOutletWallThickness = options['LV outlet wall thickness']*0.5
+        rvOutletWallThickness = options['RV outlet wall thickness']*0.5
+        lvOutletOuterRadius = lvOutletInnerRadius + lvOutletWallThickness
+        rvOutletOuterRadius = rvOutletInnerRadius + rvOutletWallThickness
         outletElementLength = options['Outlet element length']
         outletInclineRadians = math.radians(options['Outlet incline degrees'])
         outletSpacing = options['Outlet spacing']
@@ -156,6 +167,12 @@ class MeshType_3d_heartventriclesbase2(object):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        # nodes used only in bicubic-linear elements do not have D_DS3 parameters
+        nodetemplateLinearS3 = nodes.createNodetemplate()
+        nodetemplateLinearS3.defineField(coordinates)
+        nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
         nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
 
@@ -173,9 +190,14 @@ class MeshType_3d_heartventriclesbase2(object):
         elementsCountAroundOutlet = 6
         # GRC Set properly:
         defaultOutletScale3 = 0.5
-        node = nodes.findNodeByIdentifier(nidl + nowl + elementsCountAroundSeptum - 1)
-        cache.setNode(node)
-        result, cx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        nidca = nidl + nowl + elementsCountAroundSeptum - 1
+        nidcb = nidr + elementsCountAroundSeptum - 1
+        #print('px nodes', nidca, nidcb)
+        cache.setNode(nodes.findNodeByIdentifier(nidca))
+        result, pxa = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        cache.setNode(nodes.findNodeByIdentifier(nidcb))
+        result, pxb = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        px = [ 0.5*(pxa[c] + pxb[c]) for c in range(3) ]
         node = nodes.findNodeByIdentifier(nidl)
         cache.setNode(node)
         result, ax = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -184,136 +206,104 @@ class MeshType_3d_heartventriclesbase2(object):
         result, bx = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         bx = [ 0.5*(ax[i] + bx[i]) for i in range(2) ]
         bx.append(ax[2])
-        ax = [ (bx[c] - cx[c]) for c in range(3) ]
+        ax = [ (bx[c] - px[c]) for c in range(3) ]
         ax = vector.normalise(ax)
         baseRotationRadians = math.atan2(ax[1], ax[0])
         # get crux location
-        pulmonaryToCruxOffset = outletSpacing + 2.0*lvOutletRadius
-        cx = [ (cx[c] + ax[c]*pulmonaryToCruxOffset) for c in range(3) ]
+        cruxOffset = rvOutletOuterRadius + outletSpacing + 2.0*lvOutletOuterRadius + outletSpacing
+        cx = [ (px[c] + ax[c]*cruxOffset) for c in range(3) ]
 
         #print('baseRotationRadians', baseRotationRadians)
 
         cosOutletInclineRadians = math.cos(outletInclineRadians)
         sinOutletInclineRadians = math.sin(outletInclineRadians)
         lvOutletCentre = [
-            cx[0] - ax[0]*lvOutletRadius,
-            cx[1] - ax[1]*lvOutletRadius,
-            baseHeight + baseThickness + sinOutletInclineRadians*lvOutletRadius ]
-        loAxis1 = [ lvOutletRadius*ax[c] for c in range(3) ]
-        loAxis2 = [ -loAxis1[1]*cosOutletInclineRadians, loAxis1[0]*cosOutletInclineRadians, -lvOutletRadius*sinOutletInclineRadians ]
-        loAxis3 = vector.crossproduct3(loAxis1, loAxis2)
-        scale = outletElementLength/vector.magnitude(loAxis3)
-        loAxis3 = [ v*scale for v in loAxis3 ]
+            cx[0] - ax[0]*lvOutletOuterRadius,
+            cx[1] - ax[1]*lvOutletOuterRadius,
+            baseHeight + baseThickness + sinOutletInclineRadians*lvOutletOuterRadius ]
 
         radiansPerElementAroundOutlet = 2.0*math.pi/elementsCountAroundOutlet
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ 0.0, 0.0, 0.0 ]
-        dx_ds2 = loAxis3
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         lvOutletNodeId = []
-        for n1 in range(elementsCountAroundOutlet):
-            radiansAround = n1*radiansPerElementAroundOutlet
-            cosRadiansAround = math.cos(radiansAround)
-            sinRadiansAround = math.sin(radiansAround)
-            outletScale3 = outletSpacing/lvOutletRadius if (n1 == 3) else defaultOutletScale3
-            for c in range(3):
-                x[c] = lvOutletCentre[c] + loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround
-                dx_ds1[c] = radiansPerElementAroundOutlet*(loAxis1[c]*-sinRadiansAround + loAxis2[c]*cosRadiansAround)
-                dx_ds3[c] = outletScale3*(loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround)
-            if n1 in [ 2, 4 ]:
-                dx_ds3[2] = -dx_ds3[2]
-                scale = radiansPerElementAroundOutlet*rvOutletRadius/vector.magnitude(dx_ds3)
-                dx_ds3 = [ d*scale for d in dx_ds3 ]
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            lvOutletNodeId.append(nodeIdentifier)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-            if n1 == 0:
-                cruxCentreNodeId = nodeIdentifier
-                cruxCentre = [ x[0], x[1], x[2] ]
-            elif n1 == 1:
-                cruxRightNodeId = nodeIdentifier
-                cruxRight = [ x[0], x[1], x[2] ]
-            elif n1 == (elementsCountAroundOutlet - 1):
-                cruxLeftNodeId = nodeIdentifier
-                cruxLeft = [ x[0], x[1], x[2] ]
-            nodeIdentifier += 1
+        for n3 in range(2):
+            radius = lvOutletInnerRadius if (n3 == 0) else lvOutletOuterRadius
+            loAxis1 = [ radius*ax[c] for c in range(3) ]
+            loAxis2 = [ -loAxis1[1]*cosOutletInclineRadians, loAxis1[0]*cosOutletInclineRadians, -radius*sinOutletInclineRadians ]
+            loAxis3 = vector.crossproduct3(loAxis1, loAxis2)
+            scale = outletElementLength/vector.magnitude(loAxis3)
+            dx_ds2 = [ v*scale for v in loAxis3 ]
+            outletNodeId = []
+            for n1 in range(elementsCountAroundOutlet):
+                radiansAround = n1*radiansPerElementAroundOutlet
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                outletScale3 = outletSpacing/radius if (n1 == 3) else defaultOutletScale3
+                for c in range(3):
+                    x[c] = lvOutletCentre[c] + loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround
+                    dx_ds1[c] = radiansPerElementAroundOutlet*(loAxis1[c]*-sinRadiansAround + loAxis2[c]*cosRadiansAround)
+                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3 if (n3 == 0) else nodetemplate)
+                outletNodeId.append(nodeIdentifier)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                if n3 == 1:
+                    dx_ds3 = [ outletScale3*(loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround) for c in range(3) ]
+                    if n1 in [ 2, 4 ]:
+                        dx_ds3[2] = -dx_ds3[2]
+                        scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/vector.magnitude(dx_ds3)
+                        dx_ds3 = [ d*scale for d in dx_ds3 ]
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                    if n1 == 0:
+                        cruxCentreNodeId = nodeIdentifier
+                        cruxCentre = [ x[0], x[1], x[2] ]
+                    elif n1 == 1:
+                        cruxRightNodeId = nodeIdentifier
+                        cruxRight = [ x[0], x[1], x[2] ]
+                    elif n1 == (elementsCountAroundOutlet - 1):
+                        cruxLeftNodeId = nodeIdentifier
+                        cruxLeft = [ x[0], x[1], x[2] ]
+                nodeIdentifier += 1
+            lvOutletNodeId.append(outletNodeId)
 
         # RV outlet - for bicubic-linear tube connection
-        outletCentreSpacing = lvOutletRadius + outletSpacing + rvOutletRadius
+        outletCentreSpacing = lvOutletOuterRadius + outletSpacing + rvOutletOuterRadius
         rvOutletCentre = [ (lvOutletCentre[c] - outletCentreSpacing*ax[c]) for c in range(3) ]
-        roAxis1 = [ rvOutletRadius*ax[c] for c in range(3) ]
-        roAxis2 = [ -roAxis1[1]*cosOutletInclineRadians, roAxis1[0]*cosOutletInclineRadians, rvOutletRadius*sinOutletInclineRadians ]
-        roAxis3 = vector.crossproduct3(roAxis1, roAxis2)
-        scale = outletElementLength/vector.magnitude(roAxis3)
-        roAxis3 = [ v*scale for v in roAxis3 ]
 
-        dx_ds2 = roAxis3
         rvOutletNodeId = []
-        for n1 in range(elementsCountAroundOutlet):
-            radiansAround = n1*radiansPerElementAroundOutlet
-            cosRadiansAround = math.cos(radiansAround)
-            sinRadiansAround = math.sin(radiansAround)
-            outletScale3 = outletSpacing/rvOutletRadius if (n1 == 0) else defaultOutletScale3
-            for c in range(3):
-                x[c] = rvOutletCentre[c] + roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround
-                dx_ds1[c] = radiansPerElementAroundOutlet*(roAxis1[c]*-sinRadiansAround + roAxis2[c]*cosRadiansAround)
-                dx_ds3[c] = outletScale3*(roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround)
-            if n1 in [ 1, 5 ]:
-                dx_ds3[2] = -dx_ds3[2]
-                scale = radiansPerElementAroundOutlet*lvOutletRadius/vector.magnitude(dx_ds3)
-                dx_ds3 = [ d*scale for d in dx_ds3 ]
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            rvOutletNodeId.append(nodeIdentifier)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-            nodeIdentifier += 1
-
-        if False:
-            # create node mid septum
-            nid1 = nowl*2 - norl + 5
-            nid2 = lvOutletNodeId[1][2]
-            for n in range(1):
-                node = nodes.findNodeByIdentifier(nid1 + n)
+        for n3 in range(2):
+            radius = rvOutletInnerRadius if (n3 == 0) else rvOutletOuterRadius
+            roAxis1 = [ radius*ax[c] for c in range(3) ]
+            roAxis2 = [ -roAxis1[1]*cosOutletInclineRadians, roAxis1[0]*cosOutletInclineRadians, radius*sinOutletInclineRadians ]
+            roAxis3 = vector.crossproduct3(roAxis1, roAxis2)
+            scale = outletElementLength/vector.magnitude(roAxis3)
+            dx_ds2 = [ v*scale for v in roAxis3 ]
+            outletNodeId = []
+            for n1 in range(elementsCountAroundOutlet):
+                radiansAround = n1*radiansPerElementAroundOutlet
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                outletScale3 = outletSpacing/radius if (n1 == 0) else defaultOutletScale3
+                for c in range(3):
+                    x[c] = rvOutletCentre[c] + roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround
+                    dx_ds1[c] = radiansPerElementAroundOutlet*(roAxis1[c]*-sinRadiansAround + roAxis2[c]*cosRadiansAround)
+                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3 if (n3 == 0) else nodetemplate)
+                outletNodeId.append(nodeIdentifier)
                 cache.setNode(node)
-                result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-                result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-                result, dx_ds2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
-                result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
-                mag2 = math.sqrt(dx_ds2[0]*dx_ds2[0] + dx_ds2[1]*dx_ds2[1] + dx_ds2[2]*dx_ds2[2])
-                node = nodes.findNodeByIdentifier(nid2 + n)
-                cache.setNode(node)
-                result, x2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                midseptum_nid = nodeIdentifier
-                cache.setNode(node)
-                r1 = 0.5*(baseHeight + baseThickness)/mag2
-                r2 = 0.25
-                r1d = r1
-                r2d = 0.5
-                x_s = [
-                    x1[0] + r1*dx_ds2[0] + r2*dx_ds3[0],
-                    x1[1] + r1*dx_ds2[1] + r2*dx_ds3[1],
-                    x1[2] + r1*dx_ds2[2] + r2*dx_ds3[2]
-                ]
-                dx_ds1_s  = dx_ds1
-                dx_ds2_s = [
-                    r1d*dx_ds2[0] + r2d*dx_ds3[0],
-                    r1d*dx_ds2[1] + r2d*dx_ds3[1],
-                    r1d*dx_ds2[2] + r2d*dx_ds3[2]
-                ]
-                dx_ds3_s = [ x_s[0] - x2[0], x_s[1] - x2[1], x_s[2] - x2[2] ]
-                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x_s)
-                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1_s)
-                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2_s)
-                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3_s)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                if n3 == 1:
+                    dx_ds3 = [ outletScale3*(roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround) for c in range(3) ]
+                    if n1 in [ 1, 5 ]:
+                        dx_ds3[2] = -dx_ds3[2]
+                        scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/vector.magnitude(dx_ds3)
+                        dx_ds3 = [ d*scale for d in dx_ds3 ]
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 nodeIdentifier += 1
+            rvOutletNodeId.append(outletNodeId)
 
         # Atria nodes
 
@@ -325,8 +315,8 @@ class MeshType_3d_heartventriclesbase2(object):
         atriumInletSlopeHeight = rvFreeWallThickness*math.tan(atriumInletSlopeRadians)
 
         # GRC revisit:
-        aInnerMajorMag = 0.85*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
-        aInnerMinorMag = 1.0*(lvOuterRadius - lvFreeWallThickness - lvOutletRadius)
+        aInnerMajorMag = 0.8*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
+        aInnerMinorMag = 1.0*(lvOuterRadius - lvFreeWallThickness - lvOutletOuterRadius)
         #print('inner mag major', aInnerMajorMag, 'minor', aInnerMinorMag)
         aOuterMajorMag = aInnerMajorMag + atriumInletSlopeLength
         aOuterMinorMag = aInnerMinorMag + atriumInletSlopeLength
@@ -542,8 +532,8 @@ class MeshType_3d_heartventriclesbase2(object):
         ran1CruxLimit = elementsCountAroundAtria - ran1SeptumLimit - 1
         raNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
         raNodeId[1][0] = laNodeId[0][0]
-        raNodeId[1][-2] = lvOutletNodeId[1]
-        raNodeId[1][-1] = lvOutletNodeId[0]
+        raNodeId[1][-2] = lvOutletNodeId[1][1]
+        raNodeId[1][-1] = lvOutletNodeId[1][0]
 
         for n3 in range(2):
             for n1 in range(elementsCountAroundAtria):
@@ -614,8 +604,8 @@ class MeshType_3d_heartventriclesbase2(object):
             nodeIdentifier += 1
 
         laNodeId[1][0] = raNodeId[0][0]
-        laNodeId[1][1] = lvOutletNodeId[ 0]
-        laNodeId[1][2] = lvOutletNodeId[-1]
+        laNodeId[1][1] = lvOutletNodeId[1][ 0]
+        laNodeId[1][2] = lvOutletNodeId[1][-1]
 
         #print('laNodeId[0]', laNodeId[0])
         #print('laNodeId[1]', laNodeId[1])
@@ -658,13 +648,13 @@ class MeshType_3d_heartventriclesbase2(object):
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3 )
 
         # create nodes on bottom and top of supraventricular crest
-        #print('sv crest interpolated from nodes', nidr + nowr + 4, lvOutletNodeId[2])
+        #print('sv crest interpolated from nodes', nidr + nowr + 4, lvOutletNodeId[1][2])
         node = nodes.findNodeByIdentifier(nidr + nowr + 4)
         cache.setNode(node)
         result, xa = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
         result, d1a = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
         result, d2a = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3 )
-        node = nodes.findNodeByIdentifier(lvOutletNodeId[2])
+        node = nodes.findNodeByIdentifier(lvOutletNodeId[1][2])
         cache.setNode(node)
         result, xb = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
         result, d1b = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
@@ -724,13 +714,13 @@ class MeshType_3d_heartventriclesbase2(object):
             [ nidl +  0, nidl +  1, laNodeId[0][-1],   laNodeId[0][ 0], nidr        +  0, nidl + nowl +  1, raNodeId[0][ 1], laNodeId[1][ 0] ],
             [ nidl +  1, nidl +  2, laNodeId[0][ 0],   laNodeId[0][ 1], nidl + nowl +  1, nidl + nowl +  2, laNodeId[1][ 0], raNodeId[0][-1] ],
             # 5-node pyramid crux element
-            [ nidl +  2, lvOutletNodeId[0], laNodeId[0][ 1], nidl + nowl +  2, raNodeId[0][-1] ],
+            [ nidl +  2, lvOutletNodeId[1][0], laNodeId[0][ 1], nidl + nowl +  2, raNodeId[0][-1] ],
             # 6 node collapsed septum-ra shim element
-            [ lvOutletNodeId[0], lvOutletNodeId[1], nidl + nowl + 2, nidl + nowl + 3, raNodeId[0][-1], raNodeId[0][-2] ],
+            [ lvOutletNodeId[1][0], lvOutletNodeId[1][1], nidl + nowl + 2, nidl + nowl + 3, raNodeId[0][-1], raNodeId[0][-2] ],
             # 6-node collapsed septum elements
-            [ nidl +  2, nidl +  3, lvOutletNodeId[0], lvOutletNodeId[1], nidl + nowl +  2, nidl + nowl +  3 ],
-            [ nidl +  3, nidl +  4, lvOutletNodeId[1], lvOutletNodeId[2], nidl + nowl +  3, nidl + nowl +  4 ],
-            [ nidl +  4, nidl +  5, lvOutletNodeId[2], lvOutletNodeId[3], nidl + nowl +  4, nidl + nowl +  5 ],  # (nidr + norr -  1) if (elementsCountAroundSeptum == 6) else (nidl + nowl +  6) ],
+            [ nidl +  2, nidl +  3, lvOutletNodeId[1][0], lvOutletNodeId[1][1], nidl + nowl +  2, nidl + nowl +  3 ],
+            [ nidl +  3, nidl +  4, lvOutletNodeId[1][1], lvOutletNodeId[1][2], nidl + nowl +  3, nidl + nowl +  4 ],
+            [ nidl +  4, nidl +  5, lvOutletNodeId[1][2], lvOutletNodeId[1][3], nidl + nowl +  4, nidl + nowl +  5 ],  # (nidr + norr -  1) if (elementsCountAroundSeptum == 6) else (nidl + nowl +  6) ],
             # regular LV free wall - atria elements
             [ nedl -  3, nedl -  2, laNodeId[0][-4],   laNodeId[0][-3], nedl + nowl -  3, nedl + nowl -  2, laNodeId[1][-4], laNodeId[1][-3] ],
             [ nedl -  2, nedl -  1, laNodeId[0][-3],   laNodeId[0][-2], nedl + nowl -  2, nedl + nowl -  1, laNodeId[1][-3], laNodeId[1][-2] ],
@@ -841,7 +831,7 @@ class MeshType_3d_heartventriclesbase2(object):
             # sv crest outer 1
             [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      crest_nid2 ],
             # sv crest inner 1
-            [ raNodeId[0][-3], crest_nid1, nidl + nowl + 3, nidl + nowl +  4, raNodeId[1][-3], crest_nid2, lvOutletNodeId[1], lvOutletNodeId[2] ]
+            [ raNodeId[0][-3], crest_nid1, nidl + nowl + 3, nidl + nowl +  4, raNodeId[1][-3], crest_nid2, lvOutletNodeId[1][1], lvOutletNodeId[1][2] ]
 
         ]
 
