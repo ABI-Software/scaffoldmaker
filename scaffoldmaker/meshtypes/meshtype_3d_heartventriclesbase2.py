@@ -42,19 +42,19 @@ class MeshType_3d_heartventriclesbase2(object):
         options['Base height'] = 0.1
         options['Base thickness'] = 0.05
         options['LV outlet inner diameter'] = 0.3
-        options['LV outlet wall thickness'] = 0.03
+        options['LV outlet wall thickness'] = 0.02
         options['RV outlet inner diameter'] = 0.3
-        options['RV outlet wall thickness'] = 0.03
+        options['RV outlet wall thickness'] = 0.02
         options['Outlet element length'] = 0.1
         options['Outlet incline degrees'] = 10.0
-        options['Outlet spacing'] = 0.03
+        options['Outlet spacing'] = 0.02
         return options
 
     @staticmethod
     def getOrderedOptionNames():
         optionNames = MeshType_3d_heartventricles2.getOrderedOptionNames()
+        optionNames.insert(4, 'Number of elements around atria')
         optionNames += [
-            'Number of elements around atria',
             'Atrial septum thickness',
             'Atria major axis rotation degrees',
             'Base height',
@@ -139,10 +139,10 @@ class MeshType_3d_heartventriclesbase2(object):
         baseHeight = options['Base height']
         baseThickness = options['Base thickness']
         lvOutletInnerRadius = options['LV outlet inner diameter']*0.5
-        rvOutletInnerRadius = options['RV outlet inner diameter']*0.5
-        lvOutletWallThickness = options['LV outlet wall thickness']*0.5
-        rvOutletWallThickness = options['RV outlet wall thickness']*0.5
+        lvOutletWallThickness = options['LV outlet wall thickness']
         lvOutletOuterRadius = lvOutletInnerRadius + lvOutletWallThickness
+        rvOutletInnerRadius = options['RV outlet inner diameter']*0.5
+        rvOutletWallThickness = options['RV outlet wall thickness']
         rvOutletOuterRadius = rvOutletInnerRadius + rvOutletWallThickness
         outletElementLength = options['Outlet element length']
         outletInclineRadians = math.radians(options['Outlet incline degrees'])
@@ -210,7 +210,10 @@ class MeshType_3d_heartventriclesbase2(object):
         ax = vector.normalise(ax)
         baseRotationRadians = math.atan2(ax[1], ax[0])
         # get crux location
-        cruxOffset = rvOutletOuterRadius + outletSpacing + 2.0*lvOutletOuterRadius
+        outletSpacingRadians = 0.25*math.pi  # GRC make option?
+        outletSpacingHorizontal = outletSpacing*math.cos(outletSpacingRadians)
+        outletSpacingVertical = outletSpacing*math.sin(outletSpacingRadians)
+        cruxOffset = rvOutletOuterRadius + outletSpacingHorizontal + 2.0*lvOutletOuterRadius
         cx = [ (px[c] + ax[c]*cruxOffset) for c in range(3) ]
 
         #print('baseRotationRadians', baseRotationRadians)
@@ -265,12 +268,19 @@ class MeshType_3d_heartventriclesbase2(object):
                     elif n1 == (elementsCountAroundOutlet - 1):
                         cruxLeftNodeId = nodeIdentifier
                         cruxLeft = [ x[0], x[1], x[2] ]
+                    elif n1 == 3:
+                        lvOutletOuterSpaceX = [ x[0], x[1], x[2] ]
                 nodeIdentifier += 1
             lvOutletNodeId.append(outletNodeId)
 
         # RV outlet - for bicubic-linear tube connection
-        outletCentreSpacing = lvOutletOuterRadius + outletSpacing + rvOutletOuterRadius
+        outletCentreSpacing = lvOutletOuterRadius + outletSpacingHorizontal + rvOutletOuterRadius
         rvOutletCentre = [ (lvOutletCentre[c] - outletCentreSpacing*ax[c]) for c in range(3) ]
+        # add outletSpacingVertical rotated by outletInclineRadians
+        unitCrossX = vector.normalise([-ax[1], ax[0]])
+        rvOutletCentre[0] -= outletSpacingVertical*sinOutletInclineRadians*unitCrossX[0]
+        rvOutletCentre[1] -= outletSpacingVertical*sinOutletInclineRadians*unitCrossX[1]
+        rvOutletCentre[2] += outletSpacingVertical*cosOutletInclineRadians
 
         rvOutletNodeId = []
         for n3 in range(2):
@@ -302,8 +312,17 @@ class MeshType_3d_heartventriclesbase2(object):
                         scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/vector.magnitude(dx_ds3)
                         dx_ds3 = [ d*scale for d in dx_ds3 ]
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                    if n1 == 0:
+                        rvOutletOuterSpaceX = [ x[0], x[1], x[2] ]
                 nodeIdentifier += 1
             rvOutletNodeId.append(outletNodeId)
+
+        # fix derivative 3 between lv, rv outlets
+        cache.setNode(nodes.findNodeByIdentifier(lvOutletNodeId[1][3]))
+        dx_ds3 = [ (rvOutletOuterSpaceX[c] - lvOutletOuterSpaceX[c]) for c in range(3)]
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        cache.setNode(nodes.findNodeByIdentifier(rvOutletNodeId[1][0]))
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ -d for d in dx_ds3])
 
         # Atria nodes
 
@@ -577,8 +596,14 @@ class MeshType_3d_heartventriclesbase2(object):
                         dx_ds3[1]*dx_ds1[2] - dx_ds3[2]*dx_ds1[1],
                         dx_ds3[2]*dx_ds1[0] - dx_ds3[0]*dx_ds1[2],
                         dx_ds3[0]*dx_ds1[1] - dx_ds3[1]*dx_ds1[0] ]
-                    # GRC check scaling here:
-                    scale2 = inner[2]/vector.magnitude(dx_ds2)
+                    if n1 == (ran1CruxLimit - 1):
+                        # make derivative 2 on sv crest larger and less inclined
+                        dx_ds2[2] *= 0.5 if (n3 == 0) else 0.25
+                        mag2 = 1.5*(baseHeight + baseThickness)
+                    else:
+                        # GRC check scaling here:
+                        mag2 = inner[2]
+                    scale2 = mag2/vector.magnitude(dx_ds2)
                     dx_ds2 = [ d*scale2 for d in dx_ds2 ]
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -706,30 +731,13 @@ class MeshType_3d_heartventriclesbase2(object):
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         # LV base elements
-
         nedl = nidl + elementsCountAroundLV
-
-        nids = [
-            # regular atrial septum elements
-            [ nidl +  0, nidl +  1, laNodeId[0][-1],   laNodeId[0][ 0], nidr        +  0, nidl + nowl +  1, raNodeId[0][ 1], laNodeId[1][ 0] ],
-            [ nidl +  1, nidl +  2, laNodeId[0][ 0],   laNodeId[0][ 1], nidl + nowl +  1, nidl + nowl +  2, laNodeId[1][ 0], raNodeId[0][-1] ],
-            # 6-node crux element, multiple collapses
-            [ nidl +  2, lvOutletNodeId[0][0], laNodeId[0][ 1], lvOutletNodeId[1][0], nidl + nowl +  2, raNodeId[0][-1] ],
-            # 6 node collapsed septum-ra shim element
-            [ lvOutletNodeId[1][0], lvOutletNodeId[1][1], nidl + nowl + 2, nidl + nowl + 3, raNodeId[0][-1], raNodeId[0][-2] ],
-            # regular septum elements
-            [ nidl +  2, nidl +  3, lvOutletNodeId[0][0], lvOutletNodeId[0][1], nidl + nowl +  2, nidl + nowl +  3, lvOutletNodeId[1][0], lvOutletNodeId[1][1] ],
-            [ nidl +  3, nidl +  4, lvOutletNodeId[0][1], lvOutletNodeId[0][2], nidl + nowl +  3, nidl + nowl +  4, lvOutletNodeId[1][1], lvOutletNodeId[1][2] ],
-            [ nidl +  4, nidl +  5, lvOutletNodeId[0][2], lvOutletNodeId[0][3], nidl + nowl +  4, nidl + nowl +  5, lvOutletNodeId[1][2], lvOutletNodeId[1][3] ],
-            # regular LV free wall - atria elements
-            [ nedl -  3, nedl -  2, laNodeId[0][-4],   laNodeId[0][-3], nedl + nowl -  3, nedl + nowl -  2, laNodeId[1][-4], laNodeId[1][-3] ],
-            [ nedl -  2, nedl -  1, laNodeId[0][-3],   laNodeId[0][-2], nedl + nowl -  2, nedl + nowl -  1, laNodeId[1][-3], laNodeId[1][-2] ],
-            [ nedl -  1, nidl +  0, laNodeId[0][-2],   laNodeId[0][-1], nedl + nowl -  1, nidl + nowl +  0, laNodeId[1][-2], laNodeId[1][-1] ]
-        ]
-
-        for e in range(len(nids)):
+        for e in range(10):
             eft1 = eft
+            nids = None
             if e == 0:
+                # 8-node atrial septum element 1
+                nids = [ nidl +  0, nidl +  1, laNodeId[0][-1],   laNodeId[0][ 0], nidr        +  0, nidl + nowl +  1, raNodeId[0][ 1], laNodeId[1][ 0] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
@@ -738,6 +746,8 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                 scaleEftNodeValueLabels(eft1, [ 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
             elif e == 1:
+                # 8-node atrial septum element 2
+                nids = [ nidl +  1, nidl +  2, laNodeId[0][ 0],   laNodeId[0][ 1], nidl + nowl +  1, nidl + nowl +  2, laNodeId[1][ 0], raNodeId[0][-1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -746,6 +756,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
             elif e == 2:
                 # 6-node crux element, multiple collapses
+                nids = [ nidl +  2, lvOutletNodeId[0][0], laNodeId[0][ 1], lvOutletNodeId[1][0], nidl + nowl +  2, raNodeId[0][-1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 # remap parameters before collapsing nodes
@@ -770,7 +781,8 @@ class MeshType_3d_heartventriclesbase2(object):
                 ln_map = [ 1, 2, 3, 4, 5, 4, 6, 4 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
             elif e == 3:
-                # 6 node collapsed septum-ra shim element
+                # 6 node collapsed vs-ra shim element
+                nids = [ lvOutletNodeId[1][0], lvOutletNodeId[1][1], nidl + nowl + 2, nidl + nowl + 3, raNodeId[0][-1], raNodeId[0][-2] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS2, [ ])
@@ -786,7 +798,9 @@ class MeshType_3d_heartventriclesbase2(object):
                 ln_map = [ 1, 2, 1, 2, 3, 4, 5, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
             elif e <= 6:
-                # regular septum elements
+                # 8-node ventricular septum elements
+                n = e - 4
+                nids = [ nidl + n + 2, nidl + n + 3, lvOutletNodeId[0][n], lvOutletNodeId[0][n + 1], nidl + nowl + n + 2, nidl + nowl + n + 3, lvOutletNodeId[1][n], lvOutletNodeId[1][n + 1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
@@ -801,44 +815,52 @@ class MeshType_3d_heartventriclesbase2(object):
                 #remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 #remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+            elif e == 7:
+                # regular LV free wall - atria element
+                nids = [ nedl -  3, nedl -  2, laNodeId[0][-4],   laNodeId[0][-3], nedl + nowl -  3, nedl + nowl -  2, laNodeId[1][-4], laNodeId[1][-3] ]
+            elif e == 8:
+                # regular LV free wall - atria element
+                nids = [ nedl -  2, nedl -  1, laNodeId[0][-3],   laNodeId[0][-2], nedl + nowl -  2, nedl + nowl -  1, laNodeId[1][-3], laNodeId[1][-2] ]
+            elif e == 9:
+                # regular LV free wall - atria element
+                nids = [ nedl -  1, nidl +  0, laNodeId[0][-2],   laNodeId[0][-1], nedl + nowl -  1, nidl + nowl +  0, laNodeId[1][-2], laNodeId[1][-1] ]
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
-            result2 = element.setNodesByIdentifier(eft1, nids[e])
+            result2 = element.setNodesByIdentifier(eft1, nids)
             if eft1.getNumberOfLocalScaleFactors() == 1:
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
-            print('create element lv', elementIdentifier, result, result2, result3, nids[e])
+            print('create element lv', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
         # RV base elements
-        nids = [
-            # lv-rv junction
-            [ nidl        + 0, nidr + 0, laNodeId[0][-1], raNodeId[0][ 1], nidl + nowl + 0, nidr + nowr + 0, laNodeId[1][-1], raNodeId[1][ 1] ],
-            # regular rv free wall elements
-            [ nidr        + 0, nidr + 1, raNodeId[0][ 1], raNodeId[0][ 2], nidr + nowr + 0, nidr + nowr + 1, raNodeId[1][ 1], raNodeId[1][ 2] ],
-            [ nidr        + 1, nidr + 2, raNodeId[0][ 2], raNodeId[0][ 3], nidr + nowr + 1, nidr + nowr + 2, raNodeId[1][ 2], raNodeId[1][ 3] ],
-            [ nidr        + 2, nidr + 3, raNodeId[0][ 3], raNodeId[0][ 4], nidr + nowr + 2, nidr + nowr + 3, raNodeId[1][ 3], raNodeId[1][ 4] ],
-            # sv crest outer 1
-            [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      crest_nid2 ],
-            # 7-node collapsed sv crest inner 1
-            [ raNodeId[0][-3], nidl + nowl +  4, raNodeId[0][-2], nidl + nowl + 3, raNodeId[1][-3], lvOutletNodeId[1][2], lvOutletNodeId[1][1] ]
-        ]
 
-        for e in range(len(nids)):
+        for e in range(7):
             eft1 = eft
+            nids = None
             if e == 0:
+                # lv-rv junction
+                nids = [ nidl + 0, nidr + 0, laNodeId[0][-1], raNodeId[0][ 1], nidl + nowl + 0, nidr + nowr + 0, laNodeId[1][-1], raNodeId[1][ 1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            elif e == 1:
+                # regular rv free wall element 1
+                nids = [ nidr        + 0, nidr + 1, raNodeId[0][ 1], raNodeId[0][ 2], nidr + nowr + 0, nidr + nowr + 1, raNodeId[1][ 1], raNodeId[1][ 2] ]
+            elif e == 2:
+                # regular rv free wall element 2
+                nids = [ nidr        + 1, nidr + 2, raNodeId[0][ 2], raNodeId[0][ 3], nidr + nowr + 1, nidr + nowr + 2, raNodeId[1][ 2], raNodeId[1][ 3] ]
             elif e == 3:
+                # 8-node rv free wall element 3
+                nids = [ nidr        + 2, nidr + 3, raNodeId[0][ 3], raNodeId[0][ 4], nidr + nowr + 2, nidr + nowr + 3, raNodeId[1][ 3], raNodeId[1][ 4] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 4:
                 # supraventricular crest outer 1
+                nids = [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      crest_nid2 ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
@@ -846,7 +868,8 @@ class MeshType_3d_heartventriclesbase2(object):
                 #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 5:
-                # supraventricular crest inner 1, by RA-LV outlet junction
+                # 7-node collapsed sv crest inner 1, by RA-LV outlet junction
+                nids = [ raNodeId[0][-3], nidl + nowl +  4, raNodeId[0][-2], nidl + nowl + 3, raNodeId[1][-3], lvOutletNodeId[1][2], lvOutletNodeId[1][1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
@@ -867,15 +890,40 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                 ln_map = [ 1, 2, 3, 4, 5, 6, 7, 7 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
+            elif e == 6:
+                # 8-node sv crest inner RV-outlet
+                nids = [ nidl + nowl +  4, rvOutletNodeId[0][1], nidl + nowl +  5, rvOutletNodeId[0][0], lvOutletNodeId[1][2], rvOutletNodeId[1][1], lvOutletNodeId[1][3], rvOutletNodeId[1][0] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                tricubichermite.setEftLinearDerivative(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS3, 2, 6, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary, to swap with D_DS2
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])  # must do before following
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # swap from above
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary, to swap with D_DS2
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
-            result2 = element.setNodesByIdentifier(eft1, nids[e])
+            result2 = element.setNodesByIdentifier(eft1, nids)
             if eft1.getNumberOfLocalScaleFactors() == 1:
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
             else:
                 result3 = 1
-            print('create element rv', elementIdentifier, result, result2, result3, nids[e])
+            print('create element rv', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
         fm.endChange()
