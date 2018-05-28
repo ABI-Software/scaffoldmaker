@@ -31,19 +31,19 @@ class MeshType_3d_heartventriclesbase2(object):
         options = MeshType_3d_heartventricles2.getDefaultOptions()
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
-        options['Number of elements around septum'] = 6
+        options['Number of elements around septum'] = 7
         # works best with particular numbers of elements up
         options['Number of elements up apex'] = 1
         options['Number of elements up septum'] = 4
         # additional options
-        options['Number of elements around atria'] = 7
+        options['Number of elements around atria'] = 8
         options['Atrial septum thickness'] = 0.06
         options['Atria major axis rotation degrees'] = 40.0
         options['Base height'] = 0.1
         options['Base thickness'] = 0.06
-        options['LV outlet inner diameter'] = 0.3
+        options['LV outlet inner diameter'] = 0.32
         options['LV outlet wall thickness'] = 0.02
-        options['RV outlet inner diameter'] = 0.3
+        options['RV outlet inner diameter'] = 0.32
         options['RV outlet wall thickness'] = 0.02
         options['Outlet element length'] = 0.1
         options['Outlet incline degrees'] = 15.0
@@ -180,6 +180,9 @@ class MeshType_3d_heartventriclesbase2(object):
         norl = elementsCountAroundLV
         nowl = 1 + elementsCountUpLV*norl
         nidl = nowl - norl + 1
+        # make constants for end of septum and LV
+        nsdl = nidl + elementsCountAroundSeptum
+        nedl = nidl + elementsCountAroundLV
         # node offsets for row, wall in RV, plus first RV node on inside top
         norr = elementsCountAroundRV - 1
         nowr = elementsCountUpRV*norr
@@ -255,7 +258,10 @@ class MeshType_3d_heartventriclesbase2(object):
                 if n3 == 1:
                     dx_ds3 = [ outletScale3*(loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround) for c in range(3) ]
                     if n1 in [ 2, 4 ]:
-                        dx_ds3[2] = -dx_ds3[2]
+                        if n1 == 2:
+                            dx_ds3[2] = -dx_ds3[2]
+                        else:
+                            dx_ds3[2] = -2.0*dx_ds3[2]
                         scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/vector.magnitude(dx_ds3)
                         dx_ds3 = [ d*scale for d in dx_ds3 ]
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
@@ -308,8 +314,13 @@ class MeshType_3d_heartventriclesbase2(object):
                 if n3 == 1:
                     dx_ds3 = [ outletScale3*(roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround) for c in range(3) ]
                     if n1 in [ 1, 5 ]:
-                        dx_ds3[2] = -dx_ds3[2]
-                        scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/vector.magnitude(dx_ds3)
+                        if n1 == 1:
+                            dx_ds3[2] = -dx_ds3[2]
+                        else:
+                            dx_ds3[2] = 4.0*dx_ds3[2]
+                            dx_ds3 = [ (dx_ds1[c] + dx_ds3[c]) for c in range(3) ]
+                        mag3 = radiansPerElementAroundOutlet*rvOutletOuterRadius
+                        scale = mag3/vector.magnitude(dx_ds3)
                         dx_ds3 = [ d*scale for d in dx_ds3 ]
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                     if n1 == 0:
@@ -334,7 +345,7 @@ class MeshType_3d_heartventriclesbase2(object):
         atriumInletSlopeHeight = rvFreeWallThickness*math.tan(atriumInletSlopeRadians)
 
         # GRC revisit:
-        aInnerMajorMag = 0.8*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
+        aInnerMajorMag = 0.9*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
         aInnerMinorMag = 1.0*(lvOuterRadius - lvFreeWallThickness - lvOutletOuterRadius)
         #print('inner mag major', aInnerMajorMag, 'minor', aInnerMinorMag)
         aOuterMajorMag = aInnerMajorMag + atriumInletSlopeLength
@@ -521,8 +532,14 @@ class MeshType_3d_heartventriclesbase2(object):
                         dx_ds3[1]*dx_ds1[2] - dx_ds3[2]*dx_ds1[1],
                         dx_ds3[2]*dx_ds1[0] - dx_ds3[0]*dx_ds1[2],
                         dx_ds3[0]*dx_ds1[1] - dx_ds3[1]*dx_ds1[0] ]
-                    # GRC check scaling here:
-                    scale2 = inner[2]/vector.magnitude(dx_ds2)
+                    if n1 == (lan1CruxLimit + 1):
+                        # make derivative 2 on lv crest larger and less inclined
+                        dx_ds2[2] *= 0.5 if (n3 == 0) else 0.25
+                        mag2 = 1.5*(baseHeight + baseThickness)
+                    else:
+                        # GRC check scaling here:
+                        mag2 = inner[2]
+                    scale2 = mag2/vector.magnitude(dx_ds2)
                     dx_ds2 = [ d*scale2 for d in dx_ds2 ]
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -672,14 +689,53 @@ class MeshType_3d_heartventriclesbase2(object):
         dx_ds3 = [ d*scale for d in dx_ds3 ]
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3 )
 
-        # create nodes on bottom and top of supraventricular crest
-        #print('sv crest interpolated from nodes', nidr + nowr + 4, lvOutletNodeId[1][2])
-        node = nodes.findNodeByIdentifier(nidr + nowr + 4)
+        # create nodes on top of lv 'crest'
+        nida = nsdl + nowl
+        nidb = lvOutletNodeId[1][-2]
+        #print('lv crest 1 interpolated from nodes', nida, nidb)
+        node1 = nodes.findNodeByIdentifier(nida)
+        node2 = nodes.findNodeByIdentifier(nidb)
+        x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.4, baseThickness, \
+            node1, Node.VALUE_LABEL_D_DS2,  1.0, Node.VALUE_LABEL_D_DS1, 1.0, \
+            node2, Node.VALUE_LABEL_D_DS3, -1.0, Node.VALUE_LABEL_D_DS1, 1.0)
+
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        lv_crest_nid1 = nodeIdentifier
+        nodeIdentifier += 1
+
+        nida = nsdl + nowl + 1
+        nidb = laNodeId[1][3]
+        #print('lv crest 2 interpolated from nodes', nida, nidb)
+        node1 = nodes.findNodeByIdentifier(nida)
+        node2 = nodes.findNodeByIdentifier(nidb)
+        x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.5, baseThickness, \
+            node1, Node.VALUE_LABEL_D_DS2, 1.0, Node.VALUE_LABEL_D_DS1, 1.0, \
+            node2, Node.VALUE_LABEL_D_DS2, 1.0, Node.VALUE_LABEL_D_DS1, 1.0)
+
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+        lv_crest_nid2 = nodeIdentifier
+        nodeIdentifier += 1
+
+        # create nodes on bottom and top of rv supraventricular crest
+        nida = nidr + nowr + 4
+        nidb = lvOutletNodeId[1][2]
+        #print('rv crest interpolated from nodes', nida, nidb)
+        node = nodes.findNodeByIdentifier(nida)
         cache.setNode(node)
         result, xa = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
         result, d1a = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
         result, d2a = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3 )
-        node = nodes.findNodeByIdentifier(lvOutletNodeId[1][2])
+        node = nodes.findNodeByIdentifier(nidb)
         cache.setNode(node)
         result, xb = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
         result, d1b = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
@@ -688,10 +744,11 @@ class MeshType_3d_heartventriclesbase2(object):
         scale = 4.0*(baseHeight + baseThickness)/vector.magnitude(d2a)
         d2a = [ scale*d for d in d2a ]
         xi = 0.5
+        xr = 1.0 - xi
         x = list(interpolateCubicHermite(xa, d2a, xb, d2b, xi))
-        dx_ds1 = [ 0.5*(d1a[c] + d1b[c]) for c in range(3) ]
+        dx_ds1 = [ (xr*d1a[c] + xi*d1b[c]) for c in range(3) ]
         dx_ds2 = interpolateCubicHermiteDerivative(xa, d2a, xb, d2b, xi)
-        dx_ds2 = [ 0.5*d for d in dx_ds2 ]
+        dx_ds2 = [ xr*d for d in dx_ds2 ]
         radialVector = vector.normalise(vector.crossproduct3(dx_ds1, dx_ds2))
         dx_ds3 = [ baseThickness*d for d in radialVector ]
 
@@ -705,7 +762,7 @@ class MeshType_3d_heartventriclesbase2(object):
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2_inner)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-        crest_nid1 = nodeIdentifier
+        rv_crest_nid1 = nodeIdentifier
         nodeIdentifier += 1
 
         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -714,7 +771,7 @@ class MeshType_3d_heartventriclesbase2(object):
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-        crest_nid2 = nodeIdentifier
+        rv_crest_nid2 = nodeIdentifier
         nodeIdentifier += 1
 
         #################
@@ -731,8 +788,7 @@ class MeshType_3d_heartventriclesbase2(object):
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         # LV base elements
-        nedl = nidl + elementsCountAroundLV
-        for e in range(10):
+        for e in range(15):
             eft1 = eft
             nids = None
             if e == 0:
@@ -800,28 +856,96 @@ class MeshType_3d_heartventriclesbase2(object):
             elif e <= 6:
                 # 8-node ventricular septum elements
                 n = e - 4
-                nids = [ nidl + n + 2, nidl + n + 3, lvOutletNodeId[0][n], lvOutletNodeId[0][n + 1], nidl + nowl + n + 2, nidl + nowl + n + 3, lvOutletNodeId[1][n], lvOutletNodeId[1][n + 1] ]
+                nids = [ nidl        + n + 2, nidl        + n + 3, lvOutletNodeId[0][n], lvOutletNodeId[0][n + 1], nidl + nowl + n + 2, nidl + nowl + n + 3, lvOutletNodeId[1][n], lvOutletNodeId[1][n + 1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                # remap parameters before collapsing nodes
                 if e == 4:
                     # the following will not be overridden by following remappings on the same node x value
                     remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                    #remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                #remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
             elif e == 7:
+                # 8-node ventricular septum element past lo-ro junction
+                nids = [ nidl + 5, nidl + 6, lvOutletNodeId[0][3], lvOutletNodeId[0][4], nidl + nowl + 5, nidl + nowl + 6, lvOutletNodeId[1][3], lvOutletNodeId[1][4] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                #remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+            elif e == 8:
+                # 7-node collapsed final ventricular septum element by rv junction past lo-ro junction, triangle on inside
+                nids = [ nidl + 6, nidl + 7, lvOutletNodeId[0][4], nidl + nowl + 6, nidr + norr - 1, lvOutletNodeId[1][4], lv_crest_nid1 ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                ln_map = [ 1, 2, 3, 2, 4, 5, 6, 7 ]
+                remapEftLocalNodes(eft1, 7, ln_map)
+            elif e == 9:
+                # 5-node multiple collapse element junction of rv, septum at ro
+                nids = [ nidr + norr - 1, nsdl, lv_crest_nid1, nidr + nowr + norr - 1, nsdl + nowl ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS3, [1]) ]) # GRC
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, [ ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                ln_map = [ 1, 2, 3, 2, 4, 5, 3, 5 ]
+                remapEftLocalNodes(eft1, 5, ln_map)
+            elif e == 10:
+                # 5-node wedge LV free wall, joining lv crest
+                nids = [ nedl - 5, nedl - 4, lv_crest_nid1, lv_crest_nid2, nedl + nowl - 5, nedl + nowl - 4 ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS3, [ ])
+                remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 2, 3, 4, 5, 6, 3, 4 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
+            #elif e == 11:
+                # 7-node collapsed LV free wall - atria element, joining lv crest
+                #nids = [ nedl - 4, nedl - 3, lv_crest_nid2, laNodeId[0][-4], nedl + nowl - 4, nedl + nowl - 3, laNodeId[1][-5], laNodeId[1][-4] ]
+                #eft1 = tricubichermite.createEftNoCrossDerivatives()
+                #setEftScaleFactorIds(eft1, [1], [])
+                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []) ])
+                #ln_map = [ 1, 2, 3, 4, 5, 6, 3, 4 ]
+                #remapEftLocalNodes(eft1, 6, ln_map)
+            elif e == 11:
+                # regular LV free wall - atria element
+                nids = [ nedl -  4, nedl -  3, laNodeId[0][-5],   laNodeId[0][-4], nedl + nowl -  4, nedl + nowl -  3, laNodeId[1][-5], laNodeId[1][-4] ]
+            elif e == 12:
                 # regular LV free wall - atria element
                 nids = [ nedl -  3, nedl -  2, laNodeId[0][-4],   laNodeId[0][-3], nedl + nowl -  3, nedl + nowl -  2, laNodeId[1][-4], laNodeId[1][-3] ]
-            elif e == 8:
+            elif e == 13:
                 # regular LV free wall - atria element
                 nids = [ nedl -  2, nedl -  1, laNodeId[0][-3],   laNodeId[0][-2], nedl + nowl -  2, nedl + nowl -  1, laNodeId[1][-3], laNodeId[1][-2] ]
-            elif e == 9:
+            elif e == 14:
                 # regular LV free wall - atria element
                 nids = [ nedl -  1, nidl +  0, laNodeId[0][-2],   laNodeId[0][-1], nedl + nowl -  1, nidl + nowl +  0, laNodeId[1][-2], laNodeId[1][-1] ]
 
@@ -836,9 +960,7 @@ class MeshType_3d_heartventriclesbase2(object):
             elementIdentifier += 1
 
         # RV base elements
-        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
-
-        for e in range(12):
+        for e in range(14):
             eft1 = eft
             nids = None
             if e == 0:
@@ -855,51 +977,46 @@ class MeshType_3d_heartventriclesbase2(object):
                 # regular rv free wall element 2
                 nids = [ nidr        + 1, nidr + 2, raNodeId[0][ 2], raNodeId[0][ 3], nidr + nowr + 1, nidr + nowr + 2, raNodeId[1][ 2], raNodeId[1][ 3] ]
             elif e == 3:
-                # 8-node rv free wall element 3
+                # regular rv free wall element 3
                 nids = [ nidr        + 2, nidr + 3, raNodeId[0][ 3], raNodeId[0][ 4], nidr + nowr + 2, nidr + nowr + 3, raNodeId[1][ 3], raNodeId[1][ 4] ]
-                eft1 = tricubichermite.createEftNoCrossDerivatives()
-                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                #eft1 = tricubichermite.createEftNoCrossDerivatives()
+                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 4:
                 # supraventricular crest outer 1
-                nids = [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      crest_nid2 ]
+                nids = [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      rv_crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      rv_crest_nid2 ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 5:
-                # supraventricular crest outer 2, infundibulum
-                # 1st of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
-                nids = [ nidr + 4, nidr + 5, crest_nid1, rvOutletNodeId[0][2], nidr + nowr + 4, nidr + nowr + 5, crest_nid2, rvOutletNodeId[1][2] ]
+                # supraventricular crest outer 2, outer infundibulum 1
+                nids = [ nidr + 4, nidr + 5, rv_crest_nid1, rvOutletNodeId[0][2], nidr + nowr + 4, nidr + nowr + 5, rv_crest_nid2, rvOutletNodeId[1][2] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
-                tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
-                tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])  # must do before following
-                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])  # must do before following
             elif e == 6:
-                # infundibulum
-                # 2nd of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
-                nids = [ nidr + 4, nidr + 5, rvOutletNodeId[0][2], rvOutletNodeId[0][3], nidr + nowr + 4, nidr + nowr + 5, rvOutletNodeId[1][2], rvOutletNodeId[1][3] ]
+                # outer infundibulum 2
+                nids = [ nidr + 5, nidr + 6, rvOutletNodeId[0][2], rvOutletNodeId[0][3], nidr + nowr + 5, nidr + nowr + 6, rvOutletNodeId[1][2], rvOutletNodeId[1][3] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
-                tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4, 5])
-                tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4, 5])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 7:
-                # infundibulum
-                nids = [ nidr        + 5, nidr + 6, rvOutletNodeId[0][3], rvOutletNodeId[0][4], nidr + nowr + 5, nidr + nowr + 6, rvOutletNodeId[1][3], rvOutletNodeId[1][4] ]
+                # outer infundibulum 3
+                nids = [ nidr        + 6, nidr + 7, rvOutletNodeId[0][3], rvOutletNodeId[0][4], nidr + nowr + 6, nidr + nowr + 7, rvOutletNodeId[1][3], rvOutletNodeId[1][4] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 #remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 8:
-                # 7-node collapsed sv crest inner 1, by RA-LV outlet junction
+                # 7-node collapsed rv crest inner 1, by RA-LV outlet junction
                 nids = [ raNodeId[0][-3], nidl + nowl +  4, raNodeId[0][-2], nidl + nowl + 3, raNodeId[1][-3], lvOutletNodeId[1][2], lvOutletNodeId[1][1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
@@ -922,38 +1039,38 @@ class MeshType_3d_heartventriclesbase2(object):
                 ln_map = [ 1, 2, 3, 4, 5, 6, 7, 7 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
             elif e == 9:
-                # 6-node wedge sv crest inner 2
-                nids = [ raNodeId[0][-3], crest_nid1, nidl + nowl +  4, raNodeId[1][-3], crest_nid2, lvOutletNodeId[1][2] ]
+                # 8-node rv crest inner 2
+                nids = [ raNodeId[0][-4], rv_crest_nid1, raNodeId[0][-3], nidl + nowl +  4, raNodeId[1][-4], rv_crest_nid2, raNodeId[1][-3], lvOutletNodeId[1][2] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS2, [])
-                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])  # must do before following
+                remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] )])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                ln_map = [ 1, 2, 1, 3, 4, 5, 4, 6 ]
-                remapEftLocalNodes(eft1, 6, ln_map)
+                #ln_map = [ 1, 2, 1, 3, 4, 5, 4, 6 ]
+                #remapEftLocalNodes(eft1, 6, ln_map)
             elif e == 10:
-                # 8-node wedge sv crest inner 3
-                nids = [ crest_nid1, rvOutletNodeId[0][2], nidl + nowl +  4, rvOutletNodeId[0][1], crest_nid2, rvOutletNodeId[1][2], lvOutletNodeId[1][2], rvOutletNodeId[1][1] ]
+                # 8-node wedge rv crest inner 3
+                nids = [ rv_crest_nid1, rvOutletNodeId[0][2], nidl + nowl +  4, rvOutletNodeId[0][1], rv_crest_nid2, rvOutletNodeId[1][2], lvOutletNodeId[1][2], rvOutletNodeId[1][1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS3, 2, 6, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                remapEftNodeValueLabel(eft1, [ 2, 3, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])  # must do before following
                 remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                #remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 11:
-                # 8-node sv crest inner 4 by rv outlet
+                # 8-node rv crest inner 4 by rv outlet
                 nids = [ nidl + nowl +  4, rvOutletNodeId[0][1], nidl + nowl +  5, rvOutletNodeId[0][0], lvOutletNodeId[1][2], rvOutletNodeId[1][1], lvOutletNodeId[1][3], rvOutletNodeId[1][0] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
@@ -978,14 +1095,49 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+            # GRC renumber from here!
+            elif e == 12:
+                # 8-node ro-septum 1 past lo-ro junction
+                nids = [ nidl + nowl + 6, nidl + nowl + 5, rvOutletNodeId[0][-1], rvOutletNodeId[0][0], \
+                         lvOutletNodeId[1][4], lvOutletNodeId[1][3], rvOutletNodeId[1][-1], rvOutletNodeId[1][0] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary, to swap with D_DS2
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # swap from above
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            elif e == 13:
+                # 8-node ro-septum 2 past lo-ro junction
+                nids = [ nidr + elementsCountAroundSeptum, nidl + nowl + 6, rvOutletNodeId[0][-2], rvOutletNodeId[0][-1],
+                         lv_crest_nid1, lvOutletNodeId[1][4], rvOutletNodeId[1][-2], rvOutletNodeId[1][-1] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids)
             if eft1.getNumberOfLocalScaleFactors() == 1:
                 result3 = element.setScaleFactors(eft1, [ -1.0 ])
-            elif eft1.getNumberOfLocalScaleFactors() == 5:
-                result3 = element.setScaleFactors(eft1, scalefactors5hanging)
             else:
                 result3 = 1
             print('create element rv', elementIdentifier, result, result2, result3, nids)

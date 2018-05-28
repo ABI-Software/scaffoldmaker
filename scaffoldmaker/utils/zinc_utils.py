@@ -6,6 +6,9 @@ Created on Jan 4, 2018
 '''
 
 from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
+from scaffoldmaker.utils.interpolation import *
+import scaffoldmaker.utils.vector as vector
 
 def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=3):
     '''
@@ -73,4 +76,51 @@ def getMaximumElementIdentifier(mesh):
             maximumElementId = id
         element = elementiterator.next()
     return maximumElementId
-   
+
+def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
+        node1, derivative1, scale1, cross_derivative1, cross_scale1, \
+        node2, derivative2, scale2, cross_derivative2, cross_scale2):
+    """
+    Interpolates position and first derivative with cubic Hermite basis.
+    Interpolates cross derivative linearly.
+    :param cache: Field cache to evaluate in.
+    :param coordinates: Coordinates field.
+    :param xi: Element coordinate to interpolate at.
+    :param normal_scale: Magnitude of normal derivative to return.
+    :param node1, node2: Start and end nodes.
+    :param derivative1, derivative2: Node value label for derivatives.
+    :param scale1, scale2: Real value scaling derivatives, to reverse if needed.
+    :param cross_derivative1, cross_derivative2: Node value label for cross derivatives.
+    :param cross_scale1, cross_scale2: Real value scaling cross_derivatives, to reverse if needed.
+    :return: x, dx_ds, dx_ds_cross, dx_ds_normal
+    """
+    cache.setNode(node1)
+    result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+    result, d1 = coordinates.getNodeParameters(cache, -1, derivative1, 1, 3 )
+    result, d1c = coordinates.getNodeParameters(cache, -1, cross_derivative1, 1, 3 )
+    d1 = [ scale1*d for d in d1 ]
+    d1c = [ cross_scale1*d for d in d1c ]
+    cache.setNode(node2)
+    result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+    result, d2 = coordinates.getNodeParameters(cache, -1, derivative2, 1, 3 )
+    result, d2c = coordinates.getNodeParameters(cache, -1, cross_derivative2, 1, 3 )
+    d2 = [ scale2*d for d in d2 ]
+    d2c = [ cross_scale1*d for d in d2c ]
+
+    arcLength = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+    mag = arcLength/vector.magnitude(d1)
+    d1 = [ mag*d for d in d1 ]
+    mag = arcLength/vector.magnitude(d2)
+    d2 = [ mag*d for d in d2 ]
+
+    xr = 1.0 - xi
+    x = list(interpolateCubicHermite(v1, d1, v2, d2, xi))
+    dx_ds = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+    scale = min(xi, xr)
+    dx_ds = [ scale*d for d in dx_ds ]
+    dx_ds_cross = [ (xr*d1c[c] + xi*d2c[c]) for c in range(3) ]
+
+    radialVector = vector.normalise(vector.crossproduct3(dx_ds_cross, dx_ds))
+    dx_ds_normal = [ normal_scale*d for d in radialVector ]
+
+    return x, dx_ds, dx_ds_cross, dx_ds_normal
