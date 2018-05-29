@@ -6,6 +6,7 @@ from __future__ import division
 import math
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.zinc_utils import *
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -71,14 +72,7 @@ class MeshType_3d_box1(object):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = fm.createFieldFiniteElement(3)
-        coordinates.setName('coordinates')
-        coordinates.setManaged(True)
-        coordinates.setTypeCoordinate(True)
-        coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-        coordinates.setComponentName(1, 'x')
-        coordinates.setComponentName(2, 'y')
-        coordinates.setComponentName(3, 'z')
+        coordinates = getOrCreateCoordinateField(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
