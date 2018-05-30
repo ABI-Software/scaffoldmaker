@@ -32,18 +32,18 @@ class MeshType_3d_heartventriclesbase2(object):
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around septum'] = 7
+        options['Number of elements around atria'] = 8
         # works best with particular numbers of elements up
         options['Number of elements up apex'] = 1
         options['Number of elements up septum'] = 4
         # additional options
-        options['Number of elements around atria'] = 8
         options['Atrial septum thickness'] = 0.06
         options['Atria major axis rotation degrees'] = 40.0
         options['Base height'] = 0.1
         options['Base thickness'] = 0.06
-        options['LV outlet inner diameter'] = 0.32
+        options['LV outlet inner diameter'] = 0.35
         options['LV outlet wall thickness'] = 0.02
-        options['RV outlet inner diameter'] = 0.32
+        options['RV outlet inner diameter'] = 0.31
         options['RV outlet wall thickness'] = 0.02
         options['Outlet element length'] = 0.1
         options['Outlet incline degrees'] = 15.0
@@ -80,10 +80,9 @@ class MeshType_3d_heartventriclesbase2(object):
     def checkOptions(options):
         MeshType_3d_heartventricles2.checkOptions(options)
         # only works with particular numbers of elements around
-        #options['Number of elements around LV free wall'] = 5
-        #options['Number of elements around septum'] = 6
-        if options['Number of elements around atria'] < 6:
-            options['Number of elements around atria'] = 6
+        options['Number of elements around LV free wall'] = 5
+        options['Number of elements around septum'] = 7
+        options['Number of elements around atria'] = 8
         for key in [
             'Atrial septum thickness',
             'Base height',
@@ -100,9 +99,6 @@ class MeshType_3d_heartventriclesbase2(object):
             options['Atria major axis rotation degrees'] = -75.0
         elif options['Atria major axis rotation degrees'] > 75.0:
             options['Atria major axis rotation degrees'] = 75.0
-        # need even number of refine surface elements for elements with hanging nodes to conform
-        if (options['Refine number of elements surface'] % 2) == 1:
-            options['Refine number of elements surface'] += 1
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -1008,6 +1004,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 ln_map = [ 1, 2, 1, 3, 4, 5, 4, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
@@ -1248,26 +1245,14 @@ class MeshType_3d_heartventriclesbase2(object):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
-
-        elementsCountAround = options['Number of elements around']
-        elementsCountUp = options['Number of elements up']
-        elementsCountThroughLVWall = options['Number of elements through LV wall']
-        elementsCountAcrossSeptum = options['Number of elements across septum']
-        elementsCountBelowSeptum = options['Number of elements below septum']
-
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
         refineElementsCountThroughRVWall = options['Refine number of elements through RV wall']
-
         MeshType_3d_heartventricles2.refineMesh(meshrefinement, options)
         element = meshrefinement._sourceElementiterator.next()
         startBaseLvElementIdentifier = element.getIdentifier()
-        startBaseRvElementIdentifier = startBaseLvElementIdentifier + 16
-        startLvOutletElementIdentifier = startBaseRvElementIdentifier + 11
-        limitLvOutletElementIdentifier = startLvOutletElementIdentifier + 6
-
-        startHangingElementIdentifier = startBaseRvElementIdentifier + 4
-        limitHangingElementIdentifier = startHangingElementIdentifier + 4
+        startBaseRvElementIdentifier = startBaseLvElementIdentifier + 19
+        limitBaseRvElementIdentifier = startBaseRvElementIdentifier + 15
 
         while element.isValid():
             numberInXi1 = refineElementsCountSurface
@@ -1275,15 +1260,11 @@ class MeshType_3d_heartventriclesbase2(object):
             elementId = element.getIdentifier()
             if elementId < startBaseRvElementIdentifier:
                 numberInXi3 = refineElementsCountThroughLVWall
-            elif elementId < startLvOutletElementIdentifier:
+            else:  # elif elementId < limitLvOutletElementIdentifier:
                 numberInXi3 = refineElementsCountThroughRVWall
-                if (elementId >= startHangingElementIdentifier) and (elementId < limitHangingElementIdentifier):
-                    numberInXi1 //= 2
-            elif elementId < limitLvOutletElementIdentifier:
-                numberInXi3 = 1
             meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
-            if elementId == (limitLvOutletElementIdentifier - 1):
-                return  # finish on last so can continue in ventriclesbase
+            if elementId == (limitBaseRvElementIdentifier - 1):
+                return  # finish on last so can continue in full heart mesh
             element = meshrefinement._sourceElementiterator.next()
 
     @staticmethod
