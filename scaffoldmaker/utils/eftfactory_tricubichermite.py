@@ -383,30 +383,19 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftTubeSeptumInner2:  Failed to validate eft'
         return eft
 
-    def setEftLinearDerivativeXi1(self, eft, basisNode1, basisNode2, localNode1, localNode2, minus1scaleFactorIndex):
+    def setEftLinearDerivative(self, eft, basisNodes, derivative, localNode1, localNode2, minus1scaleFactorIndex):
         '''
-        Makes the derivative in Xi1 for basisNode1 and basisNode2 equal to the difference in
+        Makes the derivative in xiIndex for basisNodes equal to the difference in
         the value parameter at localNode2 - localNode1. This makes the basis equivalent to linear Lagrange.
         Note! Cross derivatives are not handled and are currently unmodified.
+        :basisNodes: List of basis nodes to set derivative at, numbering from 1.
+        :param xiIndex:  Xi derivative to set: 1, 2 or 3.
         :param minus1scaleFactorIndex: Local scale factor index for general value -1.0
         '''
-        for n in [basisNode1 - 1, basisNode2 - 1]:
-            f = n*8 + 2
-            eft.setFunctionNumberOfTerms(f, 2)
-            eft.setTermNodeParameter(f, 1, localNode2, Node.VALUE_LABEL_VALUE, 1)
-            eft.setTermScaling(f, 1, [])
-            eft.setTermNodeParameter(f, 2, localNode1, Node.VALUE_LABEL_VALUE, 1)
-            eft.setTermScaling(f, 2, [minus1scaleFactorIndex])
-
-    def setEftLinearDerivativeXi3(self, eft, basisNode1, basisNode2, localNode1, localNode2, minus1scaleFactorIndex):
-        '''
-        Makes the derivative in Xi3 for basisNode1 and basisNode2 equal to the difference in
-        the value parameter at localNode2 - localNode1. This makes the basis equivalent to linear Lagrange.
-        Note! Cross derivatives are not handled and are currently unmodified.
-        :param minus1scaleFactorIndex: Local scale factor index for general value -1.0
-        '''
-        for n in [basisNode1 - 1, basisNode2 - 1]:
-            f = n*8 + 5
+        assert derivative in [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ], 'setEftLinearDerivative.  Invalid derivative'
+        nodeFunctionIndex = derivative - Node.VALUE_LABEL_VALUE + 1
+        for n in basisNodes:
+            f = (n - 1)*8 + nodeFunctionIndex
             eft.setFunctionNumberOfTerms(f, 2)
             eft.setTermNodeParameter(f, 1, localNode2, Node.VALUE_LABEL_VALUE, 1)
             eft.setTermScaling(f, 1, [])

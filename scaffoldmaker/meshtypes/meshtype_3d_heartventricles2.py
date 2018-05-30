@@ -5,7 +5,6 @@ Generates 3-D Left and Right ventricles mesh starting from modified sphere shell
 from __future__ import division
 import math
 import scaffoldmaker.utils.vector as vector
-from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -37,7 +36,7 @@ class MeshType_3d_heartventricles2:
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
             'RV height' : 0.8,
-            'RV arc around degrees' : 180.0,
+            'RV arc around degrees' : 200.0,
             'RV free wall thickness' : 0.04,
             'RV width' : 0.4,
             'RV extra cross radius base' : 0.1,
