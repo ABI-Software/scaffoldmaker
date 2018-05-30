@@ -105,7 +105,7 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
     result, d2 = coordinates.getNodeParameters(cache, -1, derivative2, 1, 3 )
     result, d2c = coordinates.getNodeParameters(cache, -1, cross_derivative2, 1, 3 )
     d2 = [ scale2*d for d in d2 ]
-    d2c = [ cross_scale1*d for d in d2c ]
+    d2c = [ cross_scale2*d for d in d2c ]
 
     arcLength = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
     mag = arcLength/vector.magnitude(d1)

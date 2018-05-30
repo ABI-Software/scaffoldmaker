@@ -36,7 +36,7 @@ class MeshType_3d_heartventricles2:
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
             'RV height' : 0.8,
-            'RV arc around degrees' : 180.0,
+            'RV arc around degrees' : 200.0,
             'RV free wall thickness' : 0.04,
             'RV width' : 0.4,
             'RV extra cross radius base' : 0.1,
