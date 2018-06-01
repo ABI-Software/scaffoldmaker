@@ -1266,17 +1266,17 @@ class MeshType_3d_heartventriclesbase2(object):
                 return  # finish on last so can continue in full heart mesh
             element = meshrefinement._sourceElementiterator.next()
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         """
         if not options['Refine']:
-            MeshType_3d_heartventriclesbase2.generateBaseMesh(region, options)
+            cls.generateBaseMesh(region, options)
             return
         baseRegion = region.createRegion()
-        MeshType_3d_heartventriclesbase2.generateBaseMesh(baseRegion, options)
+        cls.generateBaseMesh(baseRegion, options)
         meshrefinement = MeshRefinement(baseRegion, region)
-        MeshType_3d_heartventriclesbase2.refineMesh(meshrefinement, options)
+        cls.refineMesh(meshrefinement, options)
