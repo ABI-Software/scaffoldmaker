@@ -4,6 +4,7 @@ Generates 3-D Left and Right ventricles mesh starting from modified sphere shell
 
 from __future__ import division
 import math
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 import scaffoldmaker.utils.vector as vector
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
@@ -16,10 +17,11 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
 
-class MeshType_3d_heartventricles2:
+class MeshType_3d_heartventricles2(object):
     '''
     classdocs
     '''
+
     @staticmethod
     def getName():
         return '3D Heart Ventricles 2'
@@ -117,7 +119,7 @@ class MeshType_3d_heartventricles2:
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup
         """
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundSeptum = options['Number of elements around septum']
@@ -144,6 +146,11 @@ class MeshType_3d_heartventricles2:
         fm.beginChange()
         coordinates = getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
+
+        lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
+        rvGroup = AnnotationGroup(region, 'right ventricle', FMANumber = 7098, lyphID = 'Lyph ID unknown')
+        septumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
+        annotationGroups = [ lvGroup, rvGroup, septumGroup ]
 
         #################
         # Create nodes
@@ -603,6 +610,11 @@ class MeshType_3d_heartventricles2:
         #################
 
         mesh = fm.findMeshByDimension(3)
+
+        lvMeshGroup = lvGroup.getMeshGroup(mesh)
+        rvMeshGroup = rvGroup.getMeshGroup(mesh)
+        septumMeshGroup = septumGroup.getMeshGroup(mesh)
+
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
         eft = tricubichermite.createEftNoCrossDerivatives()
@@ -632,6 +644,8 @@ class MeshType_3d_heartventricles2:
 
                 eft1 = eft
                 scalefactors = None
+                meshGroups = [ lvMeshGroup ]
+
                 if e2 == 0:
                     # create bottom apex elements, varying eft scale factor identifiers around apex
                     # scale factor identifiers follow convention of offsetting by 100 for each 'version'
@@ -667,6 +681,7 @@ class MeshType_3d_heartventricles2:
                     nids = [ bnil       , bnjl       , bnil + norl       , bnjl + norl, \
                              bnil + nowl, bnjl + nowl, bnil + norl + nowl, bnjl + norl + nowl ]
                     if (e2 >= elementsCountUpApex) and (e1 < elementsCountAroundSeptum):
+                        meshGroups += [ rvMeshGroup, septumMeshGroup ]
                         if (e2 == elementsCountUpApex) or (e1 == 0):
                             nids[4] = nidr + norr*(e2 - elementsCountUpApex) + e1
                         if e1 == 0:
@@ -734,6 +749,9 @@ class MeshType_3d_heartventricles2:
                 #print('create element lv', elementIdentifier, result, result2, result3, nids)
                 elementIdentifier = elementIdentifier + 1
 
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
         # RV elements
 
         nidl = 2 + (elementsCountUpApex - 1)*norl
@@ -744,8 +762,10 @@ class MeshType_3d_heartventricles2:
 
                 eft1 = eft
                 scalefactors = None
+                meshGroups = [ rvMeshGroup ]
 
                 if e2 == 0:
+                    meshGroups += [ lvMeshGroup ]
                     if (e1 == 0) or (e1 == (elementsCountAroundRV - 1)):
                         # skip as two fewer elements on bottom row
                         continue
@@ -775,6 +795,7 @@ class MeshType_3d_heartventricles2:
                              bnil + nowl, bnjl + nowl, bnir + nowr, bnjr + nowr ]
                 else:
                     if e1 == 0:
+                        meshGroups += [ lvMeshGroup ]
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
@@ -792,6 +813,7 @@ class MeshType_3d_heartventricles2:
                         nids = [ bnil       , bnir       , bnil + norl       , bnir + norr, \
                                  bnil + nowl, bnir + nowr, bnil + norl + nowl, bnir + norr + nowr ]
                     elif e1 == (elementsCountAroundRV - 1):
+                        meshGroups += [ lvMeshGroup ]
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         if e2 == 1:
@@ -825,8 +847,11 @@ class MeshType_3d_heartventricles2:
                 #print('create element rv', elementIdentifier, result, result2, result3, nids)
                 elementIdentifier = elementIdentifier + 1
 
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
 
         fm.endChange()
+        return annotationGroups
 
 
     @staticmethod
@@ -867,20 +892,21 @@ class MeshType_3d_heartventricles2:
                 return  # finish on last so can continue in ventriclesbase
             element = meshrefinement._sourceElementiterator.next()
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
+        :return: list of AnnotationGroup for mesh.
         """
         if not options['Refine']:
-            MeshType_3d_heartventricles2.generateBaseMesh(region, options)
-            return
+            return cls.generateBaseMesh(region, options)
         baseRegion = region.createRegion()
-        MeshType_3d_heartventricles2.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region)
-        MeshType_3d_heartventricles2.refineMesh(meshrefinement, options)
+        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
+        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
+        cls.refineMesh(meshrefinement, options)
+        return meshrefinement.getAnnotationGroups()
 
 
 def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundSeptum, z, n3):

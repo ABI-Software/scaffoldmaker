@@ -168,15 +168,15 @@ class MeshType_3d_tube1(object):
 
         fm.endChange()
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         """
         if not options['Refine']:
-            MeshType_3d_tube1.generateBaseMesh(region, options)
+            cls.generateBaseMesh(region, options)
             return
 
         refineElementsCountAround = options['Refine number of elements around']
@@ -184,7 +184,7 @@ class MeshType_3d_tube1(object):
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
-        MeshType_3d_tube1.generateBaseMesh(baseRegion, options)
+        cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
