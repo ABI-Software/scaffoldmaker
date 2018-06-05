@@ -5,6 +5,7 @@ Created on April 4, 2018
 @author: Richard Christie
 '''
 
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.octree import Octree
 from scaffoldmaker.utils.zinc_utils import *
 from opencmiss.zinc.element import Element, Elementbasis
@@ -17,9 +18,11 @@ class MeshRefinement:
     Class for refining a mesh from one region to another.
     '''
 
-    def __init__(self, sourceRegion, targetRegion):
+    def __init__(self, sourceRegion, targetRegion, sourceAnnotationGroups = []):
         '''
         Assumes targetRegion is empty.
+        :param sourceAnnotationGroups: List of AnnotationGroup for source mesh in sourceRegion.
+        A copy containing the refined elements is created by the MeshRefinement.
         '''
         self._sourceRegion = sourceRegion
         self._sourceFm = sourceRegion.getFieldmodule()
@@ -67,10 +70,27 @@ class MeshRefinement:
         self._nodeIdentifier = 1
         self._elementIdentifier = 1
 
+        self._annotationGroups = []
+        self._sourceAndTargetMeshGroups = []
+        for sourceAnnotationGroup in sourceAnnotationGroups:
+            sourceMeshGroup = sourceAnnotationGroup.getMeshGroup(self._sourceMesh)
+            targetAnnotationGroup = AnnotationGroup(self._targetRegion, \
+                sourceAnnotationGroup.getName(), sourceAnnotationGroup.getFMANumber(), sourceAnnotationGroup.getLyphID())
+            targetMeshGroup = targetAnnotationGroup.getMeshGroup(self._targetMesh)
+            self._annotationGroups.append(targetAnnotationGroup)
+            self._sourceAndTargetMeshGroups.append( ( sourceMeshGroup, targetMeshGroup) )
+
     def __del__(self):
         self._targetFm.endChange()
 
+    def getAnnotationGroups(self):
+        return self._annotationGroups
+
     def refineElementCubeStandard3d(self, sourceElement, numberInXi1, numberInXi2, numberInXi3):
+        meshGroups = []
+        for sourceAndTargetMeshGroup in self._sourceAndTargetMeshGroups:
+            if sourceAndTargetMeshGroup[0].containsElement(sourceElement):
+                meshGroups.append(sourceAndTargetMeshGroup[1])
         # create nodes
         nids = []
         xi = [ 0.0, 0.0, 0.0 ]
@@ -105,6 +125,10 @@ class MeshRefinement:
                     #if result != ZINC_OK:
                     #print('Element', self._elementIdentifier, result, enids)
                     self._elementIdentifier += 1
+
+                    for meshGroup in meshGroups:
+                        meshGroup.addElement(element)
+
 
     def refineAllElementsCubeStandard3d(self, numberInXi1, numberInXi2, numberInXi3):
         element = self._sourceElementiterator.next()

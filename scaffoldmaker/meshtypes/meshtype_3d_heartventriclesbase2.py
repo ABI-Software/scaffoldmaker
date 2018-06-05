@@ -6,6 +6,7 @@ pulmonary trunk and their valves regions.
 
 from __future__ import division
 import math
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_heartventricles2
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
@@ -145,7 +146,12 @@ class MeshType_3d_heartventriclesbase2(object):
         outletSpacing = options['Outlet spacing']
 
         # generate heartventricles2 model to add base plane to
-        MeshType_3d_heartventricles2.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_heartventricles2.generateBaseMesh(region, options)
+        lvGroup = findAnnotationGroupByName(annotationGroups, 'left ventricle')
+        rvGroup = findAnnotationGroupByName(annotationGroups, 'right ventricle')
+        septumGroup = findAnnotationGroupByName(annotationGroups, 'interventricular septum')
+        conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
+        annotationGroups += [ conusArteriosusGroup ]
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -788,6 +794,12 @@ class MeshType_3d_heartventriclesbase2(object):
         #################
 
         mesh = fm.findMeshByDimension(3)
+
+        lvMeshGroup = lvGroup.getMeshGroup(mesh)
+        rvMeshGroup = rvGroup.getMeshGroup(mesh)
+        septumMeshGroup = septumGroup.getMeshGroup(mesh)
+        conusArteriosusMeshGroup = conusArteriosusGroup.getMeshGroup(mesh)
+
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
 
@@ -800,6 +812,8 @@ class MeshType_3d_heartventriclesbase2(object):
         for e in range(19):
             eft1 = eft
             nids = None
+            meshGroups = [ lvMeshGroup ]
+
             if e == 0:
                 # 8-node atrial septum element 1
                 nids = [ nidl +  0, nidl +  1, laNodeId[0][-1],   laNodeId[0][ 0], nidr        +  0, nidl + nowl +  1, raNodeId[0][ 1], laNodeId[1][ 0] ]
@@ -810,6 +824,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                 scaleEftNodeValueLabels(eft1, [ 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e == 1:
                 # 8-node atrial septum element 2
                 nids = [ nidl +  1, nidl +  2, laNodeId[0][ 0],   laNodeId[0][ 1], nidl + nowl +  1, nidl + nowl +  2, laNodeId[1][ 0], raNodeId[0][-1] ]
@@ -819,6 +834,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 scaleEftNodeValueLabels(eft1, [ 7 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e == 2:
                 # 6-node crux element, multiple collapses
                 nids = [ nidl +  2, lvOutletNodeId[0][0], laNodeId[0][ 1], lvOutletNodeId[1][0], nidl + nowl +  2, raNodeId[0][-1] ]
@@ -845,6 +861,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
                 ln_map = [ 1, 2, 3, 4, 5, 4, 6, 4 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e == 3:
                 # 6 node collapsed vs-ra shim element
                 nids = [ lvOutletNodeId[1][0], lvOutletNodeId[1][1], nidl + nowl + 2, nidl + nowl + 3, raNodeId[0][-1], raNodeId[0][-2] ]
@@ -861,6 +878,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 scaleEftNodeValueLabels(eft1, [ 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                 ln_map = [ 1, 2, 1, 2, 3, 4, 5, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e <= 6:
                 # 8-node ventricular septum elements
                 n = e - 4
@@ -875,6 +893,7 @@ class MeshType_3d_heartventriclesbase2(object):
                     remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e == 7:
                 # 8-node ventricular septum element past lo-ro junction
                 nids = [ nidl + 5, nidl + 6, lvOutletNodeId[0][3], lvOutletNodeId[0][4], nidl + nowl + 5, nidl + nowl + 6, lvOutletNodeId[1][3], lvOutletNodeId[1][4] ]
@@ -882,12 +901,9 @@ class MeshType_3d_heartventriclesbase2(object):
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                #remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e == 8:
                 # 7-node collapsed final ventricular septum element by rv junction past lo-ro junction, triangle on top & outside
                 nids = [ nidl + 6, nidl + 7, lvOutletNodeId[0][4], lv_crest_nid1, nidl + nowl + 6, nidr + norr - 1, lvOutletNodeId[1][4] ]
@@ -910,6 +926,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 ln_map = [ 1, 2, 3, 4, 5, 6, 7, 4 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
+                meshGroups += [ rvMeshGroup, septumMeshGroup ]
             elif e == 9:
                 # 5-node multiple collapse element junction of rv, septum at ro
                 nids = [ nidr + norr - 1, nsdl, nidr + nowr + norr - 1, nsdl + nowl, lv_crest_nid1 ]
@@ -926,6 +943,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 ln_map = [ 1, 2, 1, 2, 3, 4, 5, 5 ]
                 remapEftLocalNodes(eft1, 5, ln_map)
+                meshGroups += [ rvMeshGroup ]
             elif e == 10:
                 # 7-node collapsed LV free wall element 1, by lv crest and la
                 nids = [ nsdl, nsdl + 1, laNodeId[0][3], nsdl + nowl, nsdl + nowl + 1, lv_crest_nid1, laNodeId[1][3] ]
@@ -1036,10 +1054,15 @@ class MeshType_3d_heartventriclesbase2(object):
             #print('create element lv', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
         # RV base elements
         for e in range(15):
             eft1 = eft
             nids = None
+            meshGroups = [ rvMeshGroup ]
+
             if e == 0:
                 # lv-rv junction
                 nids = [ nidl + 0, nidr + 0, laNodeId[0][-1], raNodeId[0][ 1], nidl + nowl + 0, nidr + nowr + 0, laNodeId[1][-1], raNodeId[1][ 1] ]
@@ -1047,6 +1070,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                meshGroups += [ lvMeshGroup ]
             elif e == 1:
                 # regular rv free wall element 1
                 nids = [ nidr        + 0, nidr + 1, raNodeId[0][ 1], raNodeId[0][ 2], nidr + nowr + 0, nidr + nowr + 1, raNodeId[1][ 1], raNodeId[1][ 2] ]
@@ -1056,17 +1080,12 @@ class MeshType_3d_heartventriclesbase2(object):
             elif e == 3:
                 # regular rv free wall element 3
                 nids = [ nidr        + 2, nidr + 3, raNodeId[0][ 3], raNodeId[0][ 4], nidr + nowr + 2, nidr + nowr + 3, raNodeId[1][ 3], raNodeId[1][ 4] ]
-                #eft1 = tricubichermite.createEftNoCrossDerivatives()
-                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 4:
                 # supraventricular crest outer 1
                 nids = [ nidr        + 3, nidr + 4, raNodeId[0][ 4],      rv_crest_nid1, nidr + nowr + 3, nidr + nowr + 4, raNodeId[1][ 4],      rv_crest_nid2 ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
-                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
             elif e == 5:
                 # supraventricular crest outer 2, outer infundibulum 1
                 nids = [ nidr + 4, nidr + 5, rv_crest_nid1, rvOutletNodeId[0][2], nidr + nowr + 4, nidr + nowr + 5, rv_crest_nid2, rvOutletNodeId[1][2] ]
@@ -1074,8 +1093,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])  # must do before following
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 6:
                 # outer infundibulum 2
                 nids = [ nidr + 5, nidr + 6, rvOutletNodeId[0][2], rvOutletNodeId[0][3], nidr + nowr + 5, nidr + nowr + 6, rvOutletNodeId[1][2], rvOutletNodeId[1][3] ]
@@ -1083,7 +1101,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 7:
                 # outer infundibulum 3
                 nids = [ nidr        + 6, nidr + 7, rvOutletNodeId[0][3], rvOutletNodeId[0][4], nidr + nowr + 6, nidr + nowr + 7, rvOutletNodeId[1][3], rvOutletNodeId[1][4] ]
@@ -1091,7 +1109,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                #remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 8:
                 # 7-node collapsed rv crest inner 1, by RA-LV outlet junction
                 nids = [ raNodeId[0][-3], nidl + nowl +  4, raNodeId[0][-2], nidl + nowl + 3, raNodeId[1][-3], lvOutletNodeId[1][2], lvOutletNodeId[1][1] ]
@@ -1139,12 +1157,12 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 2, 3, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])  # must do before following
                 remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 11:
                 # 8-node rv crest inner 4 by rv outlet
                 nids = [ nidl + nowl +  4, rvOutletNodeId[0][1], nidl + nowl +  5, rvOutletNodeId[0][0], lvOutletNodeId[1][2], rvOutletNodeId[1][1], lvOutletNodeId[1][3], rvOutletNodeId[1][0] ]
@@ -1162,7 +1180,6 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary, to swap with D_DS2
@@ -1171,6 +1188,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 12:
                 # 8-node ro-septum 1 past lo-ro junction
                 nids = [ nidl + nowl + 6, nidl + nowl + 5, rvOutletNodeId[0][-1], rvOutletNodeId[0][0], \
@@ -1188,6 +1206,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # swap from above
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 13:
                 # 8-node ro-septum 2 past lo-ro junction
                 nids = [ nidr + elementsCountAroundSeptum, nidl + nowl + 6, rvOutletNodeId[0][-2], rvOutletNodeId[0][-1],
@@ -1207,6 +1226,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 14:
                 # 5-node collapsed 'open corner of book' ro closure
                 nids = [ nidr + elementsCountAroundSeptum, rvOutletNodeId[0][-2], nidr + nowr + elementsCountAroundSeptum, lv_crest_nid1, rvOutletNodeId[1][-2] ]
@@ -1223,6 +1243,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 ln_map = [ 1, 1, 2, 2, 3, 4, 5, 5 ]
                 remapEftLocalNodes(eft1, 5, ln_map)
+                meshGroups += [ conusArteriosusMeshGroup ]
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
@@ -1234,7 +1255,11 @@ class MeshType_3d_heartventriclesbase2(object):
             #print('create element rv', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
         fm.endChange()
+        return annotationGroups
 
     @staticmethod
     def refineMesh(meshrefinement, options):
@@ -1272,11 +1297,12 @@ class MeshType_3d_heartventriclesbase2(object):
         Generate base or refined mesh.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
+        :return: list of AnnotationGroup for mesh.
         """
         if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
+            return cls.generateBaseMesh(region, options)
         baseRegion = region.createRegion()
-        cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region)
+        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
+        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         cls.refineMesh(meshrefinement, options)
+        return meshrefinement.getAnnotationGroups()
