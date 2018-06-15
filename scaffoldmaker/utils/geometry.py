@@ -24,7 +24,7 @@ def getEllipseArcLength(a, b, angle1Radians, angle2Radians):
     :param b: Minor axis length.(On y, PI/2, 3PI/2).
     :param angle1Radians: First angle anticlockwise from major axis.
     :param angle2Radians: Second angle anticlockwise from major axis.
-    :return: Perimeter lenge, positive if anticlockwise, otherwise negative.
+    :return: Perimeter length, positive if anticlockwise, otherwise negative.
     '''
     angle1 = min(angle1Radians, angle2Radians)
     angle2 = max(angle1Radians, angle2Radians)
@@ -57,7 +57,7 @@ def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
     angle = inAngleRadians
     lengthMoved = 0.0
     lengthTol = (a + b)*1.0E-4  # broader tolerance due to reliance on inexact getEllipseArcLength()
-    #print('inAngleRadians', inAngleRadians, ', arcLength', arcLength)
+    #print('updateEllipseAngleByArcLength', a, b, 'inAngleRadians', inAngleRadians, ', arcLength', arcLength)
     while math.fabs(arcLength - lengthMoved) > lengthTol:
         t = ( -a*math.sin(angle), b*math.cos(angle) )
         dlength_dangle = math.sqrt(t[0]*t[0] + t[1]*t[1])
@@ -66,3 +66,32 @@ def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
         #print('lengthMoved', lengthMoved)
     #print('updateEllipseAngleByArcLength a', a, 'b', b, ', angle', inAngleRadians, ', arcLength', arcLength, ' -> ', angle)
     return angle
+
+def getEllipseRadiansToX(ax, bx, dx, initialTheta):
+    '''
+    Iteratively compute theta in ax*cos(theta) + bx*sin(theta) = dx
+    from initialTheta. Uses Newton's method.
+    :param ax: x component of major axis.
+    :param bx: x component of minor axis.
+    :param dx: x distance from centre of ellipse.
+    :param initialTheta: Initial value of theta needed since multi-valued.
+    :return: theta in radians
+    '''
+    theta = initialTheta
+    iters = 0
+    fTol = math.sqrt(ax*ax + bx*bx)*1.0E-10
+    while True:
+        cosAngle = math.cos(theta)
+        sinAngle = math.sin(theta)
+        f = ax*cosAngle + bx*sinAngle - dx
+        if math.fabs(f) < fTol:
+            break;
+        df = -ax*sinAngle + bx*cosAngle
+        #print(iters, '. theta', theta, 'f', f,'df',df,'-->',theta - f/df)
+        theta -= f/df
+        iters += 1
+        if iters == 100:
+            print('getEllipseRadiansToX: did not converge!')
+            break
+    return theta
+

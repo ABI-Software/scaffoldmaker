@@ -1,7 +1,7 @@
 """
 Generates a 3-D heart ventricles with base plane model, ready to attach the
 atria, mitral and tricuspid valves, with LV + RV outlets ready to attach aorta and
-pulmonary trunk and their valves regions.
+pulmonary trunk and their valve regions.
 """
 
 from __future__ import division
@@ -21,8 +21,11 @@ from opencmiss.zinc.node import Node
 
 class MeshType_3d_heartventriclesbase2(object):
     '''
-    classdocs
+    Generates a 3-D heart ventricles with base plane model, ready to attach the
+    atria, mitral and tricuspid valves, with LV + RV outlets ready to attach
+    aorta and pulmonary trunk and their valve regions.
     '''
+
     @staticmethod
     def getName():
         return '3D Heart Ventricles with Base 2'
@@ -32,23 +35,27 @@ class MeshType_3d_heartventriclesbase2(object):
         options = MeshType_3d_heartventricles2.getDefaultOptions()
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
-        options['Number of elements around septum'] = 7
+        options['Number of elements around ventricular septum'] = 7
         options['Number of elements around atria'] = 8
         # works best with particular numbers of elements up
-        options['Number of elements up apex'] = 1
-        options['Number of elements up septum'] = 4
+        options['Number of elements up LV apex'] = 1
+        options['Number of elements up ventricular septum'] = 4
         # additional options
-        options['Atrial septum thickness'] = 0.06
+        options['Atria base inner major axis length'] = 0.5  # 0.549
+        options['Atria base inner minor axis length'] = 0.35  # 0.37
         options['Atria major axis rotation degrees'] = 40.0
+        options['Atrial septum thickness'] = 0.06
+        options['Atrial base wall thickness'] = 0.05
+        options['Atrial base slope degrees'] = 30.0
         options['Base height'] = 0.1
         options['Base thickness'] = 0.06
         options['LV outlet inner diameter'] = 0.35
         options['LV outlet wall thickness'] = 0.02
         options['RV outlet inner diameter'] = 0.31
         options['RV outlet wall thickness'] = 0.02
-        options['Outlet element length'] = 0.1
-        options['Outlet incline degrees'] = 15.0
-        options['Outlet spacing'] = 0.04
+        options['Ventricles outlet element length'] = 0.1
+        options['Ventricles outlet incline degrees'] = 15.0
+        options['Ventricles outlet spacing'] = 0.04
         return options
 
     @staticmethod
@@ -56,17 +63,21 @@ class MeshType_3d_heartventriclesbase2(object):
         optionNames = MeshType_3d_heartventricles2.getOrderedOptionNames()
         optionNames.insert(4, 'Number of elements around atria')
         optionNames += [
-            'Atrial septum thickness',
+            'Atria base inner major axis length',
+            'Atria base inner minor axis length',
             'Atria major axis rotation degrees',
+            'Atrial septum thickness',
+            'Atrial base wall thickness',
+            'Atrial base slope degrees',
             'Base height',
             'Base thickness',
             'LV outlet inner diameter',
             'LV outlet wall thickness',
             'RV outlet inner diameter',
             'RV outlet wall thickness',
-            'Outlet element length',
-            'Outlet incline degrees',
-            'Outlet spacing']
+            'Ventricles outlet element length',
+            'Ventricles outlet incline degrees',
+            'Ventricles outlet spacing']
         # want refinement options last
         for optionName in [
             'Refine',
@@ -82,18 +93,22 @@ class MeshType_3d_heartventriclesbase2(object):
         MeshType_3d_heartventricles2.checkOptions(options)
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
-        options['Number of elements around septum'] = 7
+        options['Number of elements around ventricular septum'] = 7
         options['Number of elements around atria'] = 8
         for key in [
+            'Atria base inner major axis length',
+            'Atria base inner minor axis length',
             'Atrial septum thickness',
+            'Atrial base wall thickness',
+            'Atrial base slope degrees',
             'Base height',
             'Base thickness',
             'LV outlet inner diameter',
             'LV outlet wall thickness',
             'RV outlet inner diameter',
             'RV outlet wall thickness',
-            'Outlet element length',
-            'Outlet spacing']:
+            'Ventricles outlet element length',
+            'Ventricles outlet spacing']:
             if options[key] < 0.0:
                 options[key] = 0.0
         if options['Atria major axis rotation degrees'] < -75.0:
@@ -107,23 +122,23 @@ class MeshType_3d_heartventriclesbase2(object):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup
         """
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
-        elementsCountAroundSeptum = options['Number of elements around septum']
-        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundSeptum
-        elementsCountUpApex = options['Number of elements up apex']
-        elementsCountUpSeptum = options['Number of elements up septum']
-        elementsCountUpLV = elementsCountUpApex + elementsCountUpSeptum
-        elementsCountUpRV = elementsCountUpSeptum + 1
-        elementsCountAroundRV = elementsCountAroundSeptum + 2
-        elementsCountAtrialSeptum = 2  # elementsCountAroundSeptum - 5
+        elementsCountAroundVSeptum = options['Number of elements around ventricular septum']
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundVSeptum
+        elementsCountUpLVApex = options['Number of elements up LV apex']
+        elementsCountUpVSeptum = options['Number of elements up ventricular septum']
+        elementsCountUpLV = elementsCountUpLVApex + elementsCountUpVSeptum
+        elementsCountUpRV = elementsCountUpVSeptum + 1
+        elementsCountAroundRV = elementsCountAroundVSeptum + 2
+        elementsCountAtrialSeptum = 2  # elementsCountAroundVSeptum - 5
         elementsCountAroundAtria = options['Number of elements around atria']
-        totalHeight = options['Total height']
+        lvOuterHeight = options['LV outer height']
         lvOuterRadius = options['LV outer radius']
         lvFreeWallThickness = options['LV free wall thickness']
         lvApexThickness = options['LV apex thickness']
-        rvHeight = options['RV height']
+        rvHeight = options['RV inner height']
         rvArcAroundRadians = math.radians(options['RV arc around degrees'])
         rvFreeWallThickness = options['RV free wall thickness']
         rvWidth = options['RV width']
@@ -131,8 +146,12 @@ class MeshType_3d_heartventriclesbase2(object):
         vSeptumThickness = options['Ventricular septum thickness']
         vSeptumBaseRadialDisplacement = options['Ventricular septum base radial displacement']
         useCrossDerivatives = options['Use cross derivatives']
+        aBaseInnerMajorMag = 0.5*options['Atria base inner major axis length']
+        aBaseInnerMinorMag = 0.5*options['Atria base inner minor axis length']
         aMajorAxisRadians = math.radians(options['Atria major axis rotation degrees'])
         aSeptumThickness = options['Atrial septum thickness']
+        aBaseWallThickness = options['Atrial base wall thickness']
+        aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
         baseHeight = options['Base height']
         baseThickness = options['Base thickness']
         lvOutletInnerRadius = options['LV outlet inner diameter']*0.5
@@ -141,9 +160,9 @@ class MeshType_3d_heartventriclesbase2(object):
         rvOutletInnerRadius = options['RV outlet inner diameter']*0.5
         rvOutletWallThickness = options['RV outlet wall thickness']
         rvOutletOuterRadius = rvOutletInnerRadius + rvOutletWallThickness
-        outletElementLength = options['Outlet element length']
-        outletInclineRadians = math.radians(options['Outlet incline degrees'])
-        outletSpacing = options['Outlet spacing']
+        vOutletElementLength = options['Ventricles outlet element length']
+        vOutletInclineRadians = math.radians(options['Ventricles outlet incline degrees'])
+        vOutletSpacing = options['Ventricles outlet spacing']
 
         # generate heartventricles2 model to add base plane to
         annotationGroups = MeshType_3d_heartventricles2.generateBaseMesh(region, options)
@@ -169,7 +188,7 @@ class MeshType_3d_heartventriclesbase2(object):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        # nodes used only in bicubic-linear elements do not have D_DS3 parameters
+        # LV/RV outlet elements are linear through the wall, hence their nodes do not have D_DS3 parameters
         nodetemplateLinearS3 = nodes.createNodetemplate()
         nodetemplateLinearS3.defineField(coordinates)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -183,7 +202,7 @@ class MeshType_3d_heartventriclesbase2(object):
         nowl = 1 + elementsCountUpLV*norl
         nidl = nowl - norl + 1
         # make constants for end of septum and LV
-        nsdl = nidl + elementsCountAroundSeptum
+        nsdl = nidl + elementsCountAroundVSeptum
         nedl = nidl + elementsCountAroundLV
         # node offsets for row, wall in RV, plus first RV node on inside top
         norr = elementsCountAroundRV - 1
@@ -195,8 +214,8 @@ class MeshType_3d_heartventriclesbase2(object):
         elementsCountAroundOutlet = 6
         # GRC Set properly:
         defaultOutletScale3 = 0.5
-        nidca = nidl + nowl + elementsCountAroundSeptum - 1
-        nidcb = nidr + elementsCountAroundSeptum - 1
+        nidca = nidl + nowl + elementsCountAroundVSeptum - 1
+        nidcb = nidr + elementsCountAroundVSeptum - 1
         #print('px nodes', nidca, nidcb)
         cache.setNode(nodes.findNodeByIdentifier(nidca))
         result, pxa = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -216,15 +235,15 @@ class MeshType_3d_heartventriclesbase2(object):
         baseRotationRadians = math.atan2(ax[1], ax[0])
         # get crux location
         outletSpacingRadians = 0.25*math.pi  # GRC make option?
-        outletSpacingHorizontal = outletSpacing*math.cos(outletSpacingRadians)
-        outletSpacingVertical = outletSpacing*math.sin(outletSpacingRadians)
+        outletSpacingHorizontal = vOutletSpacing*math.cos(outletSpacingRadians)
+        outletSpacingVertical = vOutletSpacing*math.sin(outletSpacingRadians)
         cruxOffset = rvOutletOuterRadius + outletSpacingHorizontal + 2.0*lvOutletOuterRadius
         cx = [ (px[c] + ax[c]*cruxOffset) for c in range(3) ]
 
         #print('baseRotationRadians', baseRotationRadians)
 
-        cosOutletInclineRadians = math.cos(outletInclineRadians)
-        sinOutletInclineRadians = math.sin(outletInclineRadians)
+        cosOutletInclineRadians = math.cos(vOutletInclineRadians)
+        sinOutletInclineRadians = math.sin(vOutletInclineRadians)
         lvOutletCentre = [
             cx[0] - ax[0]*lvOutletOuterRadius,
             cx[1] - ax[1]*lvOutletOuterRadius,
@@ -240,14 +259,14 @@ class MeshType_3d_heartventriclesbase2(object):
             loAxis1 = [ radius*ax[c] for c in range(3) ]
             loAxis2 = [ -loAxis1[1]*cosOutletInclineRadians, loAxis1[0]*cosOutletInclineRadians, -radius*sinOutletInclineRadians ]
             loAxis3 = vector.crossproduct3(loAxis1, loAxis2)
-            scale = outletElementLength/vector.magnitude(loAxis3)
+            scale = vOutletElementLength/vector.magnitude(loAxis3)
             dx_ds2 = [ v*scale for v in loAxis3 ]
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
                 radiansAround = n1*radiansPerElementAroundOutlet
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
-                outletScale3 = outletSpacing/radius if (n1 == 3) else defaultOutletScale3
+                outletScale3 = vOutletSpacing/radius if (n1 == 3) else defaultOutletScale3
                 for c in range(3):
                     x[c] = lvOutletCentre[c] + loAxis1[c]*cosRadiansAround + loAxis2[c]*sinRadiansAround
                     dx_ds1[c] = radiansPerElementAroundOutlet*(loAxis1[c]*-sinRadiansAround + loAxis2[c]*cosRadiansAround)
@@ -284,7 +303,7 @@ class MeshType_3d_heartventriclesbase2(object):
         # RV outlet - for bicubic-linear tube connection
         outletCentreSpacing = lvOutletOuterRadius + outletSpacingHorizontal + rvOutletOuterRadius
         rvOutletCentre = [ (lvOutletCentre[c] - outletCentreSpacing*ax[c]) for c in range(3) ]
-        # add outletSpacingVertical rotated by outletInclineRadians
+        # add outletSpacingVertical rotated by vOutletInclineRadians
         unitCrossX = vector.normalise([-ax[1], ax[0]])
         rvOutletCentre[0] -= outletSpacingVertical*sinOutletInclineRadians*unitCrossX[0]
         rvOutletCentre[1] -= outletSpacingVertical*sinOutletInclineRadians*unitCrossX[1]
@@ -296,14 +315,14 @@ class MeshType_3d_heartventriclesbase2(object):
             roAxis1 = [ radius*ax[c] for c in range(3) ]
             roAxis2 = [ -roAxis1[1]*cosOutletInclineRadians, roAxis1[0]*cosOutletInclineRadians, radius*sinOutletInclineRadians ]
             roAxis3 = vector.crossproduct3(roAxis1, roAxis2)
-            scale = outletElementLength/vector.magnitude(roAxis3)
+            scale = vOutletElementLength/vector.magnitude(roAxis3)
             dx_ds2 = [ v*scale for v in roAxis3 ]
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
                 radiansAround = n1*radiansPerElementAroundOutlet
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
-                outletScale3 = outletSpacing/radius if (n1 == 0) else defaultOutletScale3
+                outletScale3 = vOutletSpacing/radius if (n1 == 0) else defaultOutletScale3
                 for c in range(3):
                     x[c] = rvOutletCentre[c] + roAxis1[c]*cosRadiansAround + roAxis2[c]*sinRadiansAround
                     dx_ds1[c] = radiansPerElementAroundOutlet*(roAxis1[c]*-sinRadiansAround + roAxis2[c]*cosRadiansAround)
@@ -340,19 +359,17 @@ class MeshType_3d_heartventriclesbase2(object):
 
         # Atria nodes
 
-        #print('\nelementsCountAroundAtria = ',elementsCountAroundAtria)
-        # GRC parameter?
-        atriumInletSlopeRadians = math.pi/6.0
-        # GRC change rvFreeWallThickness to new parameter?
-        atriumInletSlopeLength = rvFreeWallThickness
-        atriumInletSlopeHeight = rvFreeWallThickness*math.tan(atriumInletSlopeRadians)
+        aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
+        aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
 
-        # GRC revisit:
-        aInnerMajorMag = 0.9*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
-        aInnerMinorMag = 1.0*(lvOuterRadius - lvFreeWallThickness - lvOutletOuterRadius)
+        # Previously computed these:
+        #aInnerMajorMag = 0.9*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
+        #aInnerMinorMag = 1.0*(lvOuterRadius - lvFreeWallThickness - lvOutletOuterRadius)
+        aInnerMajorMag = aBaseInnerMajorMag
+        aInnerMinorMag = aBaseInnerMinorMag
         #print('inner mag major', aInnerMajorMag, 'minor', aInnerMinorMag)
-        aOuterMajorMag = aInnerMajorMag + atriumInletSlopeLength
-        aOuterMinorMag = aInnerMinorMag + atriumInletSlopeLength
+        aOuterMajorMag = aInnerMajorMag + aBaseSlopeLength
+        aOuterMinorMag = aInnerMinorMag + aBaseSlopeLength
         #print('outer mag major', aOuterMajorMag, 'minor', aOuterMinorMag)
 
         laMajorAxisRadians = baseRotationRadians + 0.5*math.pi - aMajorAxisRadians
@@ -389,26 +406,7 @@ class MeshType_3d_heartventriclesbase2(object):
         byMod = aOuterMinorMag*math.cos(aMajorAxisRadians)
         #print('Outer axMod', axMod, 'bxMod', bxMod)
 
-        dX = cruxLeftModX - laCentreModX
-        #print('laCentreModX', laCentreModX, 'cruxLeftModX', cruxLeftModX, 'dX', dX)
-        # iterate with Newton's method to get laCruxLeftRadians
-        laCruxLeftRadians = math.pi*0.5
-        iters = 0
-        fTol = aOuterMajorMag*1.0E-10
-        while True:
-            cosAngle = math.cos(laCruxLeftRadians)
-            sinAngle = math.sin(laCruxLeftRadians)
-            f = axMod*cosAngle + bxMod*sinAngle - dX
-            if math.fabs(f) < fTol:
-                break;
-            df = -axMod*sinAngle + bxMod*cosAngle
-            #print(iters, '. theta', laCruxLeftRadians, 'f', f,'df',df,'-->',laCruxLeftRadians - f/df)
-            laCruxLeftRadians -= f/df
-            iters += 1
-            if iters == 100:
-                print('No convergence!')
-                break
-        #print(iters,'iters : laCruxLeftRadians', laCruxLeftRadians)
+        laCruxLeftRadians = getEllipseRadiansToX(axMod, bxMod, cruxLeftModX - laCentreModX, math.pi*0.5)
         laCentreModY = cruxLeftModY - ayMod*math.cos(laCruxLeftRadians) - byMod*math.sin(laCruxLeftRadians)
 
         #print('laCentreMod', laCentreModX, laCentreModY)
@@ -420,9 +418,9 @@ class MeshType_3d_heartventriclesbase2(object):
         raCentreY = cruxCentre[1] - laCentreModX*sinRotRadians + laCentreModY*cosRotRadians
 
         aCentreOuterZ = cruxRight[2]
-        aCentreInnerZ = cruxRight[2] - atriumInletSlopeHeight
+        aCentreInnerZ = cruxRight[2] - aBaseSlopeHeight
         #aCentreOuterZ = cruxCentre[2]
-        #aCentreInnerZ = aCentreOuterZ - atriumInletSlopeHeight
+        #aCentreInnerZ = aCentreOuterZ - aBaseSlopeHeight
         #if aCentreInnerZ > cruxRight[2]:
         #    aCentreInnerZ == cruxRight[2]
 
@@ -1209,7 +1207,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 13:
                 # 8-node ro-septum 2 past lo-ro junction
-                nids = [ nidr + elementsCountAroundSeptum, nidl + nowl + 6, rvOutletNodeId[0][-2], rvOutletNodeId[0][-1],
+                nids = [ nidr + elementsCountAroundVSeptum, nidl + nowl + 6, rvOutletNodeId[0][-2], rvOutletNodeId[0][-1],
                          lv_crest_nid1, lvOutletNodeId[1][4], rvOutletNodeId[1][-2], rvOutletNodeId[1][-1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
@@ -1229,7 +1227,7 @@ class MeshType_3d_heartventriclesbase2(object):
                 meshGroups += [ conusArteriosusMeshGroup ]
             elif e == 14:
                 # 5-node collapsed 'open corner of book' ro closure
-                nids = [ nidr + elementsCountAroundSeptum, rvOutletNodeId[0][-2], nidr + nowr + elementsCountAroundSeptum, lv_crest_nid1, rvOutletNodeId[1][-2] ]
+                nids = [ nidr + elementsCountAroundVSeptum, rvOutletNodeId[0][-2], nidr + nowr + elementsCountAroundVSeptum, lv_crest_nid1, rvOutletNodeId[1][-2] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
