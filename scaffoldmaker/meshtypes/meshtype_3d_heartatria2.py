@@ -345,7 +345,7 @@ class MeshType_3d_heartatria2(object):
                         nextArcLength = finalArcLength
                     else:
                         nextArcLength = getEllipseArcLength(aMajorMag, aMinorMag, laRadians[n1], laRadians[n1 + 1])
-                    if (n1 < lan1CruxLimit) or (n1 >= lan1SeptumLimit):
+                    if (n1 <= lan1CruxLimit) or (n1 > lan1SeptumLimit):
                         arcLength = min(prevArcLength, nextArcLength)
                     else:
                         arcLength = max(prevArcLength, nextArcLength)
