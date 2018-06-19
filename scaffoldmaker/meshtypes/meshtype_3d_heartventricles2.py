@@ -149,8 +149,8 @@ class MeshType_3d_heartventricles2(object):
 
         lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
         rvGroup = AnnotationGroup(region, 'right ventricle', FMANumber = 7098, lyphID = 'Lyph ID unknown')
-        septumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
-        annotationGroups = [ lvGroup, rvGroup, septumGroup ]
+        vSeptumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
+        annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         #################
         # Create nodes
@@ -613,7 +613,7 @@ class MeshType_3d_heartventricles2(object):
 
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
-        septumMeshGroup = septumGroup.getMeshGroup(mesh)
+        vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
@@ -681,7 +681,7 @@ class MeshType_3d_heartventricles2(object):
                     nids = [ bnil       , bnjl       , bnil + norl       , bnjl + norl, \
                              bnil + nowl, bnjl + nowl, bnil + norl + nowl, bnjl + norl + nowl ]
                     if (e2 >= elementsCountUpLVApex) and (e1 < elementsCountAroundVSeptum):
-                        meshGroups += [ rvMeshGroup, septumMeshGroup ]
+                        meshGroups += [ rvMeshGroup, vSeptumMeshGroup ]
                         if (e2 == elementsCountUpLVApex) or (e1 == 0):
                             nids[4] = nidr + norr*(e2 - elementsCountUpLVApex) + e1
                         if e1 == 0:

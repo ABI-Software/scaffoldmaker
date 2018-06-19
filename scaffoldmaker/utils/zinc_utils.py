@@ -124,3 +124,31 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
     dx_ds_normal = [ normal_scale*d for d in radialVector ]
 
     return x, dx_ds, dx_ds_cross, dx_ds_normal
+
+def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1, scale1, node2, scale2):
+    """
+    Computes the derivative at node2 from quadratic Hermite-Lagrange interpolation of
+    node1 value and derivative1 to node2 value.
+    :param cache: Field cache to evaluate in.
+    :param coordinates: Coordinates field.
+    :param node1, node2: Start and end nodes.
+    :param derivative1: Node value label for derivative at node1.
+    :param scale1, scale2: Scaling to apply to derivatives at nodes, e.g. -1.0 to reverse.
+    :return: dx_dxi at node2
+    """
+    cache.setNode(node1)
+    result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+    result, d1 = coordinates.getNodeParameters(cache, -1, derivative1, 1, 3 )
+    d1 = [ d*scale1 for d in d1 ]
+    cache.setNode(node2)
+    result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+    xi = 1.0
+    #phi1 = 1 - xi*xi
+    #phi2 = xi - xi*xi
+    #phi3 = xi*xi
+    dphi1 = -2.0*xi
+    dphi2 = 1 - 2.0*xi
+    dphi3 = 2.0*xi
+    d2 = [ (v1[c]*dphi1 + d1[c]*dphi2 + v2[c]*dphi3) for c in range(3) ]
+    d2 = [ d*scale2 for d in d2 ]
+    return d2

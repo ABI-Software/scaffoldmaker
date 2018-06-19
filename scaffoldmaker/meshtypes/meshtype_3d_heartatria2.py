@@ -88,6 +88,8 @@ class MeshType_3d_heartatria2(object):
             options['Number of elements around atria'] = 6
         if options['Number of elements around atrial septum'] < 1:
             options['Number of elements around atrial septum'] = 1
+        elif options['Number of elements around atrial septum'] > (options['Number of elements around atria'] - 4):
+            options['Number of elements around atrial septum'] = options['Number of elements around atria'] - 4
         if options['Number of elements up atria'] < 2:
             options['Number of elements up atria'] = 2
         if options['Number of elements radial atrial septum'] < 1:
@@ -228,6 +230,9 @@ class MeshType_3d_heartatria2(object):
 
         aOuterScaleZ = aOuterHeight/(1.0 - math.cos(aOuterMinorArcUpRadians))
         aInnerScaleZ = (aOuterHeight - aFreeWallThickness)/(1.0 - math.cos(aOuterMinorArcUpRadians))
+        aOuterMajorScaleZ = aOuterHeight/(1.0 - math.cos(aOuterMajorArcUpRadians))
+        aInnerMajorScaleZ = (aOuterHeight - aFreeWallThickness)/(1.0 - math.cos(aOuterMajorArcUpRadians))
+        zOffset = aOuterHeight - aOuterScaleZ  # so base outer is at z = 0
 
         aMinorToMajorRadians = aOuterMajorArcUpRadians/aOuterMinorArcUpRadians
 
@@ -276,30 +281,57 @@ class MeshType_3d_heartatria2(object):
         for n3 in range(2):
 
             aScaleZ = aInnerScaleZ if (n3 == 0) else aOuterScaleZ
+            aMajorScaleZ = aInnerMajorScaleZ if (n3 == 0) else aOuterMajorScaleZ
             aEquatorMajorMag = aEquatorInnerMajorMag if (n3 == 0) else aEquatorOuterMajorMag
             aEquatorMinorMag = aEquatorInnerMinorMag if (n3 == 0) else aEquatorOuterMinorMag
             distanceUpMinor = getEllipseArcLength(aScaleZ, aEquatorMinorMag, 0, aOuterMinorArcUpRadians)
             elementSizeUpMinor = distanceUpMinor/elementsCountUpAtria
             radiansUp = -aOuterMinorArcUpRadians
 
+            radiansUpMinor = []
+            radiansUpMajor = []
+            derivativesUpMajor = []
+            radiansUpPrev = updateEllipseAngleByArcLength(aScaleZ, aEquatorMinorMag, radiansUp, -elementSizeUpMinor)
+            zPrev = aScaleZ*math.cos(radiansUpPrev)
+            aMajorOffsetZ = aMajorScaleZ - aScaleZ
+            radiansUpMajorPrev = getEllipseRadiansToX(aMajorScaleZ, 0.0, aMajorOffsetZ + zPrev, radiansUpPrev*aMinorToMajorRadians)
+            for n2 in range(elementsCountUpAtria):
+                radiansUpMinor.append(radiansUp)
+                z = aScaleZ*math.cos(radiansUp)
+                if n2 == 0:
+                    radiansUpMajorCurr = getEllipseRadiansToX(aMajorScaleZ, 0.0, aMajorOffsetZ + z, radiansUp*aMinorToMajorRadians)
+                radiansUpMajor.append(radiansUpMajorCurr)
+                radiansUp = updateEllipseAngleByArcLength(aScaleZ, aEquatorMinorMag, radiansUp, elementSizeUpMinor)
+                zNext = aScaleZ*math.cos(radiansUp)
+                radiansUpMajorNext = getEllipseRadiansToX(aMajorScaleZ, 0.0, aMajorOffsetZ + zNext, radiansUp*aMinorToMajorRadians)
+                derivativeUpMajor = 0.5*getEllipseArcLength(aMajorScaleZ, aEquatorMajorMag, radiansUpMajorPrev, radiansUpMajorNext)
+                derivativesUpMajor.append(derivativeUpMajor)
+                radiansUpMajorPrev = radiansUpMajorCurr
+                radiansUpMajorCurr = radiansUpMajorNext
+
+            #if n3 == 1:
+            #    print('\nradiansUpMinor', radiansUpMinor)
+            #    print('radiansUpMajor', radiansUpMajor)
+            #    print('derivativesUpMajor', derivativesUpMajor)
+
             for n2 in range(elementsCountUpAtria):
 
+                radiansUp = radiansUpMinor[n2]
                 cosRadiansUp = math.cos(radiansUp)
                 sinRadiansUp = math.sin(radiansUp)
 
-                radiansUpMajor = radiansUp*aMinorToMajorRadians
-                cosRadiansUpMajor = math.cos(radiansUpMajor)
-                sinRadiansUpMajor = math.sin(radiansUpMajor)
+                # radiansUpMajor = radiansUpMajor[ # radiansUp*aMinorToMajorRadians
+                cosRadiansUpMajor = math.cos(radiansUpMajor[n2])
+                sinRadiansUpMajor = math.sin(radiansUpMajor[n2])
 
                 if (n3 == 0) and (n2 == 0):
-                    # GRC need to fix derivative 2 for this case:
                     aMajorMag = aBaseInnerMajorMag
                     aMinorMag = aBaseInnerMinorMag
                 else:
                     aMajorMag = -aEquatorMajorMag*sinRadiansUpMajor
                     aMinorMag = -aEquatorMinorMag*sinRadiansUp
 
-                #print('n', n3, n2, 'radiansUp', radiansUp, 'radiansUpMajor', radiansUpMajor)
+                #print('n', n3, n2, 'radiansUp', radiansUp, 'radiansUpMajor', radiansUpMajor[n2])
                 #print('aMajorMag',aMajorMag,'aMinorMag',aMinorMag)
 
                 laDerivatives = []
@@ -319,9 +351,9 @@ class MeshType_3d_heartatria2(object):
                 raDerivatives = [ laDerivatives[-n1] for n1 in range(elementsCountAroundAtria)]
 
                 if (n3 == 0) and (n2 == 0):
-                    z = aOuterScaleZ*math.cos(aOuterMinorArcUpRadians) - aBaseSlopeHeight
+                    z = zOffset + aOuterScaleZ*math.cos(aOuterMinorArcUpRadians) - aBaseSlopeHeight
                 else:
-                    z = aScaleZ*cosRadiansUp
+                    z = zOffset + aScaleZ*cosRadiansUp
 
                 laLayerNodeId = [-1]*elementsCountAroundAtria
                 laNodeId[n3].append(laLayerNodeId)
@@ -346,10 +378,12 @@ class MeshType_3d_heartatria2(object):
                         aDerivatives = raDerivatives
                         aLayerNodeId = raLayerNodeId
 
-                    aMajorX =  aMajorMag*math.cos(majorAxisRadians)
-                    aMajorY =  aMajorMag*math.sin(majorAxisRadians)
-                    aMinorX = -aMinorMag*math.sin(majorAxisRadians)
-                    aMinorY =  aMinorMag*math.cos(majorAxisRadians)
+                    sinMajorAxisRadians = math.sin(majorAxisRadians)
+                    cosMajorAxisRadians = math.cos(majorAxisRadians)
+                    aMajorX =  aMajorMag*cosMajorAxisRadians
+                    aMajorY =  aMajorMag*sinMajorAxisRadians
+                    aMinorX = -aMinorMag*sinMajorAxisRadians
+                    aMinorY =  aMinorMag*cosMajorAxisRadians
                     #print('aMajor', aMajorX, aMajorY,'aMinor',aMinorX,aMinorY)
 
                     for n1 in range(elementsCountAroundAtria):
@@ -370,16 +404,23 @@ class MeshType_3d_heartatria2(object):
                         scale1 = aDerivatives[n1]/math.sqrt(d1x*d1x + d1y*d1y)
                         dx_ds1 = [ d1x*scale1, d1y*scale1, 0.0 ]
 
-                        d2xMinor = cosRadiansUp*aMinorX
-                        d2yMinor = cosRadiansUp*aMinorY
-                        d2zMinor = -sinRadiansUp*aScaleZ
-                        d2xMajor = cosRadiansUpMajor*aMajorX
-                        d2yMajor = cosRadiansUpMajor*aMajorY
-                        d2zMajor = -sinRadiansUpMajor*aScaleZ
+                        d2Minor = [
+                             cosRadiansUp*aEquatorMinorMag*sinMajorAxisRadians,
+                            -cosRadiansUp*aEquatorMinorMag*cosMajorAxisRadians,
+                            -sinRadiansUp*aScaleZ ]
+                        minorScale = elementSizeUpMinor/vector.magnitude(d2Minor)
+                        d2Minor = [ d*minorScale for d in d2Minor ]
+                        d2Major = [
+                            -cosRadiansUpMajor*aEquatorMajorMag*cosMajorAxisRadians,
+                            -cosRadiansUpMajor*aEquatorMajorMag*sinMajorAxisRadians,
+                            -sinRadiansUpMajor*aMajorScaleZ ]
+                        majorScale = derivativesUpMajor[n2]/vector.magnitude(d2Major)
+                        d2Major = [ d*majorScale for d in d2Major ]
+
                         dx_ds2 = [
-                            cosRadiansAround*d2xMajor + sinRadiansAround*d2xMinor,
-                            cosRadiansAround*d2yMajor - sinRadiansAround*d2yMinor,
-                            cosRadiansAround*d2zMajor + sinRadiansAround*d2zMinor ]
+                            cosRadiansAround*d2Major[0] + sinRadiansAround*d2Minor[0],
+                            cosRadiansAround*d2Major[1] + sinRadiansAround*d2Minor[1],
+                            cosRadiansAround*cosRadiansAround*d2Major[2] + sinRadiansAround*sinRadiansAround*d2Minor[2] ]
 
                         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
@@ -387,9 +428,15 @@ class MeshType_3d_heartatria2(object):
                         # derivative 3 is set later
                         nodeIdentifier += 1
 
-                radiansUp = updateEllipseAngleByArcLength(aScaleZ, aEquatorMinorMag, radiansUp, elementSizeUpMinor)
-
-        # GRC fix inner bottom derivatives
+        # fix inner base derivatives to fit incline
+        for i in range(2):
+            aNodeId = laNodeId[0] if (i == 0) else raNodeId[0]
+            for n1 in range(elementsCountAroundAtria):
+                node1 = nodes.findNodeByIdentifier(aNodeId[0][n1])
+                node2 = nodes.findNodeByIdentifier(aNodeId[1][n1])
+                dx_ds2 = computeNodeDerivativeHermiteLagrange(cache, coordinates, node2, Node.VALUE_LABEL_D_DS2, -1.0, node1, -1.0)
+                cache.setNode(node1)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
 
         # transfer inner septum nodes to outer on opposite side, set derivative 3 to be node difference
         for n2 in range(elementsCountUpAtria):
@@ -420,6 +467,10 @@ class MeshType_3d_heartatria2(object):
 
         mesh = fm.findMeshByDimension(3)
 
+        laMeshGroup = laGroup.getMeshGroup(mesh)
+        raMeshGroup = raGroup.getMeshGroup(mesh)
+        aSeptumMeshGroup = aSeptumGroup.getMeshGroup(mesh)
+
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
@@ -427,6 +478,82 @@ class MeshType_3d_heartatria2(object):
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplate.defineField(coordinates, -1, eft)
+
+        elementtemplateX = mesh.createElementtemplate()
+        elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        e1FreeWallStart = elementsCountAroundAtrialSeptum + 2
+        e1n1FreeWallStart = (elementsCountAroundAtrialSeptum//2) - e1FreeWallStart
+        for e2 in range(elementsCountUpAtria - 1):
+
+            for i in range(2):
+
+                aNodeId, bNodeId = ( laNodeId, raNodeId ) if (i == 0) else ( raNodeId, laNodeId )
+
+                for e1 in range(elementsCountAroundAtria + 2):
+                    eft1 = eft
+                    elementtemplate1 = elementtemplate
+                    nids = None
+
+                    if e1 < e1FreeWallStart:
+                        if i == 1:
+                            continue  # already made in left atrium loop
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        if (e1 == 0) or (e1 == (e1FreeWallStart - 1)):
+                            meshGroups = [ laMeshGroup, raMeshGroup ]
+                            if e1 == 0:
+                                n1 = e1 + e1n1FreeWallStart + 2
+                                nids = [ aNodeId[0][e2][n1], bNodeId[0][e2][-n1], aNodeId[0][e2 + 1][n1], bNodeId[0][e2 + 1][-n1], \
+                                         aNodeId[1][e2][n1], bNodeId[1][e2][-n1], aNodeId[1][e2 + 1][n1], bNodeId[1][e2 + 1][-n1] ]
+                            else:
+                                n1 = e1 + e1n1FreeWallStart + 1
+                                nids = [ bNodeId[0][e2][-n1], aNodeId[0][e2][n1], bNodeId[0][e2 + 1][-n1], aNodeId[0][e2 + 1][n1], \
+                                         bNodeId[1][e2][-n1], aNodeId[1][e2][n1], bNodeId[1][e2 + 1][-n1], aNodeId[1][e2 + 1][n1] ]
+                            remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        else:
+                            meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+                            n1 = e1 + e1n1FreeWallStart + 1
+                            n2 = n1 + 1
+                            nids = [ aNodeId[0][e2][n1], aNodeId[0][e2][n2], aNodeId[0][e2 + 1][n1], aNodeId[0][e2 + 1][n2], \
+                                     bNodeId[0][e2][-n1], bNodeId[0][e2][-n2], bNodeId[0][e2 + 1][-n1], bNodeId[0][e2 + 1][-n2] ]
+                            scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
+                            if e1 == 1:
+                                # 8-node atrial septum element end 1
+                                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                                scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                            elif e1 == (e1FreeWallStart - 2):
+                                # 8-node atrial septum element end 2
+                                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                                scaleEftNodeValueLabels(eft1, [ 5, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                            else:
+                                # 8 node mid-septum
+                                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                        elementtemplateX.defineField(coordinates, -1, eft1)
+                        elementtemplate1 = elementtemplateX
+                    else:
+                        # atrial free wall
+                        meshGroups = [ laMeshGroup ] if (i == 0) else [ raMeshGroup ]
+                        n1 = e1 + e1n1FreeWallStart
+                        n2 = n1 + 1
+                        nids = [ aNodeId[0][e2][n1], aNodeId[0][e2][n2], aNodeId[0][e2 + 1][n1], aNodeId[0][e2 + 1][n2], \
+                                 aNodeId[1][e2][n1], aNodeId[1][e2][n2], aNodeId[1][e2 + 1][n1], aNodeId[1][e2 + 1][n2] ]
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate1)
+                    result2 = element.setNodesByIdentifier(eft1, nids)
+                    if eft1.getNumberOfLocalScaleFactors() == 1:
+                        result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                    else:
+                        result3 = ' '
+                    #print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
+                    elementIdentifier += 1
+
+                    for meshGroup in meshGroups:
+                        meshGroup.addElement(element)
+
 
         fm.endChange()
         return annotationGroups
