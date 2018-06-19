@@ -530,18 +530,17 @@ class MeshType_3d_heartatria2(object):
                                      bNodeId[0][e2][nb1], bNodeId[0][e2][nb2], bNodeId[0][e2 + 1][nb1], bNodeId[0][e2 + 1][nb2] ]
                             scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
                             if e1 == 1:
-                                # 8-node atrial septum element end 1
+                                # septum end 1
                                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                 remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                                scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
-                            elif e1 == (e1FreeWallStart - 2):
-                                # 8-node atrial septum element end 2
-                                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            elif elementsCountAroundAtrialSeptum > 1:
                                 scaleEftNodeValueLabels(eft1, [ 5, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                            if e1 == (e1FreeWallStart - 2):
+                                # septum end 2
+                                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                 remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                            else:
-                                # 8 node mid-septum
-                                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                            elif elementsCountAroundAtrialSeptum > 1:
+                                scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
                         elementtemplateX.defineField(coordinates, -1, eft1)
                         elementtemplate1 = elementtemplateX
                     else:
