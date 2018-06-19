@@ -241,8 +241,9 @@ class MeshType_3d_heartatria2(object):
 
         n1SeptumRange = []
         for n1 in range(elementsCountAroundAtria):
-            if (n1 < (elementsCountAroundAtrialSeptum//2)) or (n1 > (elementsCountAroundAtria - (elementsCountAroundAtrialSeptum//2))):
+            if (n1 < (elementsCountAroundAtrialSeptum//2)) or (n1 > (elementsCountAroundAtria - ((elementsCountAroundAtrialSeptum + 1)//2))):
                 n1SeptumRange.append(n1)
+        #print('n1SeptumRange', n1SeptumRange)
 
         # compute radians around based on base outer major and minor axis sizes
         aBaseOuterMajorMag = aBaseInnerMajorMag + aBaseSlopeLength
@@ -260,8 +261,13 @@ class MeshType_3d_heartatria2(object):
         #    '=', atrialPerimeterLengthTmp, ' VS ', atrialPerimeterLength)
         laRadians = []
         radiansAround = laSeptumRadians
-        if (elementsCountAroundAtrialSeptum % 2) == 1:
+        oddSeptumElementsCount = (elementsCountAroundAtrialSeptum % 2) == 1
+        if oddSeptumElementsCount:
             radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, 0.5*atrialSeptumElementLength)
+            n1la2ra = [ (elementsCountAroundAtria - n1 - 1) for n1 in range(elementsCountAroundAtria) ]
+        else:
+            n1la2ra = [ -n1 for n1 in range(elementsCountAroundAtria) ]
+        #print('n1la2ra', n1la2ra)
         lan1CruxLimit = elementsCountAroundAtrialSeptum//2 + 1
         lan1SeptumLimit = elementsCountAroundAtria - (elementsCountAroundAtrialSeptum + 1)//2 - 1
         #print('lan1CruxLimit', lan1CruxLimit, 'lan1SeptumLimit', lan1SeptumLimit)
@@ -274,9 +280,7 @@ class MeshType_3d_heartatria2(object):
             else:
                 elementLength = atrialFreeWallElementLength
             radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, elementLength)
-        raRadians = [ raSeptumRadians ]  # fix first one so not out by 2pi
-        for n1 in range(1, elementsCountAroundAtria):
-            raRadians.append(2.0*math.pi - laRadians[-n1])
+        raRadians = [ 2.0*math.pi - laRadians[n1la2ra[n1]] for n1 in range(elementsCountAroundAtria) ]
 
         for n3 in range(2):
 
@@ -348,7 +352,7 @@ class MeshType_3d_heartatria2(object):
                     laDerivatives.append(arcLength)
                     prevArcLength = nextArcLength
                 #print('Radians:',[math.degrees(r) for r in laRadians])
-                raDerivatives = [ laDerivatives[-n1] for n1 in range(elementsCountAroundAtria)]
+                raDerivatives = [ laDerivatives[n1la2ra[n1]] for n1 in range(elementsCountAroundAtria)]
 
                 if (n3 == 0) and (n2 == 0):
                     z = zOffset + aOuterScaleZ*math.cos(aOuterMinorArcUpRadians) - aBaseSlopeHeight
@@ -428,7 +432,7 @@ class MeshType_3d_heartatria2(object):
                         # derivative 3 is set later
                         nodeIdentifier += 1
 
-        # fix inner base derivatives to fit incline
+        # fix inner base derivative 2 to fit incline
         for i in range(2):
             aNodeId = laNodeId[0] if (i == 0) else raNodeId[0]
             for n1 in range(elementsCountAroundAtria):
@@ -441,8 +445,10 @@ class MeshType_3d_heartatria2(object):
         # transfer inner septum nodes to outer on opposite side, set derivative 3 to be node difference
         for n2 in range(elementsCountUpAtria):
             for n1 in n1SeptumRange:
-                laNodeId[1][n2][n1] = raNodeId[0][n2][-n1]
-                raNodeId[1][n2][-n1] = laNodeId[0][n2][n1]
+                na1 = n1
+                nb1 = n1la2ra[na1]
+                laNodeId[1][n2][na1] = raNodeId[0][n2][nb1]
+                raNodeId[1][n2][nb1] = laNodeId[0][n2][na1]
             for i in range(2):
                 aNodeId = laNodeId if (i == 0) else raNodeId
                 for n1 in range(elementsCountAroundAtria):
@@ -503,21 +509,25 @@ class MeshType_3d_heartatria2(object):
                         if (e1 == 0) or (e1 == (e1FreeWallStart - 1)):
                             meshGroups = [ laMeshGroup, raMeshGroup ]
                             if e1 == 0:
-                                n1 = e1 + e1n1FreeWallStart + 2
-                                nids = [ aNodeId[0][e2][n1], bNodeId[0][e2][-n1], aNodeId[0][e2 + 1][n1], bNodeId[0][e2 + 1][-n1], \
-                                         aNodeId[1][e2][n1], bNodeId[1][e2][-n1], aNodeId[1][e2 + 1][n1], bNodeId[1][e2 + 1][-n1] ]
+                                na1 = e1 + e1n1FreeWallStart + 2
+                                nb1 = n1la2ra[na1]
+                                nids = [ aNodeId[0][e2][na1], bNodeId[0][e2][nb1], aNodeId[0][e2 + 1][na1], bNodeId[0][e2 + 1][nb1], \
+                                         aNodeId[1][e2][na1], bNodeId[1][e2][nb1], aNodeId[1][e2 + 1][na1], bNodeId[1][e2 + 1][nb1] ]
                             else:
-                                n1 = e1 + e1n1FreeWallStart + 1
-                                nids = [ bNodeId[0][e2][-n1], aNodeId[0][e2][n1], bNodeId[0][e2 + 1][-n1], aNodeId[0][e2 + 1][n1], \
-                                         bNodeId[1][e2][-n1], aNodeId[1][e2][n1], bNodeId[1][e2 + 1][-n1], aNodeId[1][e2 + 1][n1] ]
+                                na1 = e1 + e1n1FreeWallStart + 1
+                                nb1 = n1la2ra[na1]
+                                nids = [ bNodeId[0][e2][nb1], aNodeId[0][e2][na1], bNodeId[0][e2 + 1][nb1], aNodeId[0][e2 + 1][na1], \
+                                         bNodeId[1][e2][nb1], aNodeId[1][e2][na1], bNodeId[1][e2 + 1][nb1], aNodeId[1][e2 + 1][na1] ]
                             remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                         else:
                             meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
-                            n1 = e1 + e1n1FreeWallStart + 1
-                            n2 = n1 + 1
-                            nids = [ aNodeId[0][e2][n1], aNodeId[0][e2][n2], aNodeId[0][e2 + 1][n1], aNodeId[0][e2 + 1][n2], \
-                                     bNodeId[0][e2][-n1], bNodeId[0][e2][-n2], bNodeId[0][e2 + 1][-n1], bNodeId[0][e2 + 1][-n2] ]
+                            na1 = e1 + e1n1FreeWallStart + 1
+                            na2 = na1 + 1
+                            nb1 = n1la2ra[na1]
+                            nb2 = n1la2ra[na2]
+                            nids = [ aNodeId[0][e2][na1], aNodeId[0][e2][na2], aNodeId[0][e2 + 1][na1], aNodeId[0][e2 + 1][na2], \
+                                     bNodeId[0][e2][nb1], bNodeId[0][e2][nb2], bNodeId[0][e2 + 1][nb1], bNodeId[0][e2 + 1][nb2] ]
                             scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
                             if e1 == 1:
                                 # 8-node atrial septum element end 1
@@ -537,10 +547,10 @@ class MeshType_3d_heartatria2(object):
                     else:
                         # atrial free wall
                         meshGroups = [ laMeshGroup ] if (i == 0) else [ raMeshGroup ]
-                        n1 = e1 + e1n1FreeWallStart
-                        n2 = n1 + 1
-                        nids = [ aNodeId[0][e2][n1], aNodeId[0][e2][n2], aNodeId[0][e2 + 1][n1], aNodeId[0][e2 + 1][n2], \
-                                 aNodeId[1][e2][n1], aNodeId[1][e2][n2], aNodeId[1][e2 + 1][n1], aNodeId[1][e2 + 1][n2] ]
+                        na1 = e1 + e1n1FreeWallStart
+                        na2 = na1 + 1
+                        nids = [ aNodeId[0][e2][na1], aNodeId[0][e2][na2], aNodeId[0][e2 + 1][na1], aNodeId[0][e2 + 1][na2], \
+                                 aNodeId[1][e2][na1], aNodeId[1][e2][na2], aNodeId[1][e2 + 1][na1], aNodeId[1][e2 + 1][na2] ]
 
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     result2 = element.setNodesByIdentifier(eft1, nids)
