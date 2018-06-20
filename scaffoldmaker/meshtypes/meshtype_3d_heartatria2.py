@@ -86,6 +86,9 @@ class MeshType_3d_heartatria2(object):
     def checkOptions(options):
         if options['Number of elements around atria'] < 6:
             options['Number of elements around atria'] = 6
+        # need even number of elements around for topology
+        if (options['Number of elements around atria'] % 2) == 1:
+            options['Number of elements around atria'] += 1
         if options['Number of elements around atrial septum'] < 1:
             options['Number of elements around atrial septum'] = 1
         elif options['Number of elements around atrial septum'] > (options['Number of elements around atria'] - 4):
@@ -238,6 +241,8 @@ class MeshType_3d_heartatria2(object):
 
         laNodeId = [ [], [] ]
         raNodeId = [ [], [] ]
+        laApexNodeId = []
+        raApexNodeId = []
 
         n1SeptumRange = []
         for n1 in range(elementsCountAroundAtria):
@@ -312,12 +317,14 @@ class MeshType_3d_heartatria2(object):
                 derivativesUpMajor.append(derivativeUpMajor)
                 radiansUpMajorPrev = radiansUpMajorCurr
                 radiansUpMajorCurr = radiansUpMajorNext
+            apexDerivativeUpMajor = getEllipseArcLength(aMajorScaleZ, aEquatorMajorMag, radiansUpMajorPrev, radiansUpMajorCurr)
 
             #if n3 == 1:
             #    print('\nradiansUpMinor', radiansUpMinor)
             #    print('radiansUpMajor', radiansUpMajor)
             #    print('derivativesUpMajor', derivativesUpMajor)
 
+            # regular nodes up atria
             for n2 in range(elementsCountUpAtria):
 
                 radiansUp = radiansUpMinor[n2]
@@ -431,6 +438,36 @@ class MeshType_3d_heartatria2(object):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                         # derivative 3 is set later
                         nodeIdentifier += 1
+
+            # apex nodes
+            for i in range(2):
+                if i == 0:
+                    # left
+                    centreX = laCentreX
+                    centreY = laCentreY
+                    apexNodeId = laApexNodeId
+                    majorAxisRadians = -aMajorAxisRadians
+                else:
+                    # right
+                    centreX = raCentreX
+                    centreY = raCentreY
+                    apexNodeId = raApexNodeId
+                    majorAxisRadians = math.pi + aMajorAxisRadians
+                sinMajorAxisRadians = math.sin(majorAxisRadians)
+                cosMajorAxisRadians = math.cos(majorAxisRadians)
+
+                x = [ centreX, centreY, aOuterHeight - aFreeWallThickness if (n3 == 0) else aOuterHeight ]
+                dx_ds1 = [ apexDerivativeUpMajor*cosMajorAxisRadians, apexDerivativeUpMajor*sinMajorAxisRadians, 0.0 ]
+                dx_ds2 = [ -elementSizeUpMinor*sinMajorAxisRadians, elementSizeUpMinor*cosMajorAxisRadians, 0.0 ]
+                dx_ds3 = [ 0.0, 0.0, aFreeWallThickness ]
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                apexNodeId.append(nodeIdentifier)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                nodeIdentifier += 1
 
         # fix inner base derivative 2 to fit incline
         for i in range(2):
@@ -562,6 +599,53 @@ class MeshType_3d_heartatria2(object):
 
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
+
+        # create atria roof / apex elements
+        n2 = elementsCountUpAtria - 1
+        for i in range(2):
+            if i == 0:
+                # left
+                nodeId = laNodeId
+                apexNodeId = laApexNodeId
+                aRadians = laRadians
+                aDerivatives = laDerivatives
+            else:
+                # right
+                nodeId = raNodeId
+                apexNodeId = raApexNodeId
+                aRadians = raRadians
+                aDerivatives = raDerivatives
+            aDerivativeMid = 0.5*(min(aDerivatives) + max(aDerivatives))
+
+            # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+            for e1 in range(elementsCountAroundAtria):
+                va = e1
+                vb = (e1 + 1)%elementsCountAroundAtria
+                eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+                elementtemplateX.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplateX)
+                nodeIdentifiers = [ nodeId[0][n2][va], nodeId[0][n2][vb], apexNodeId[0], nodeId[1][n2][va], nodeId[1][n2][vb], apexNodeId[1] ]
+                element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                deltaRadiansPrev = aRadians[va] - aRadians[va - 1]
+                deltaRadiansCurr = aRadians[vb] - aRadians[va]
+                deltaRadiansNext = aRadians[(e1 + 2)%elementsCountAroundAtria] - aRadians[vb]
+                if aDerivatives[va] < aDerivativeMid:
+                    aDeltaRadians = min(deltaRadiansPrev, deltaRadiansCurr)
+                else:
+                    aDeltaRadians = max(deltaRadiansPrev, deltaRadiansCurr)
+                if aDerivatives[vb] < aDerivativeMid:
+                    bDeltaRadians = min(deltaRadiansCurr, deltaRadiansNext)
+                else:
+                    bDeltaRadians = max(deltaRadiansCurr, deltaRadiansNext)
+                scalefactors = [
+                    -1.0,
+                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), aDeltaRadians,
+                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), bDeltaRadians,
+                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), aDeltaRadians,
+                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), bDeltaRadians
+                ]
+                result = element.setScaleFactors(eft1, scalefactors)
+                elementIdentifier = elementIdentifier + 1
 
 
         fm.endChange()
