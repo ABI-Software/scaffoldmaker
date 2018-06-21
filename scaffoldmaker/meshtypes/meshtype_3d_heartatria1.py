@@ -684,7 +684,7 @@ class MeshType_3d_heartatria1(object):
         for elementId in [ ivcElementId, svcElementId ]:
             element = mesh.findElementByIdentifier(elementId)
             vcLength = vcInnerDiameter*0.5
-            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, vcLength, vcInnerDiameter, vcWallThickness)
+            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, vcLength, vcInnerDiameter*0.5, vcWallThickness)
             elementIdentifier += 4
             nodeIdentifier += 8
             mesh.destroyElement(element)
@@ -694,7 +694,7 @@ class MeshType_3d_heartatria1(object):
         for elementId in [ lapvElementId, lppvElementId, rapvElementId, rppvElementId ]:
             element = mesh.findElementByIdentifier(elementId)
             pvLength = pvInnerDiameter*0.5
-            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, pvLength, pvInnerDiameter, pvWallThickness)
+            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, pvLength, pvInnerDiameter*0.5, pvWallThickness)
             elementIdentifier += 4
             nodeIdentifier += 8
             mesh.destroyElement(element)

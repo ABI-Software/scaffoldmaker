@@ -30,7 +30,7 @@ class MeshType_3d_heartatria2(object):
         return {
             'Number of elements around atria' : 8,
             'Number of elements around atrial septum' : 2,
-            'Number of elements up atria' : 4,
+            'Number of elements up atria' : 3,
             'Atria base inner major axis length' : 0.5,  # 0.549
             'Atria base inner minor axis length' : 0.35,  # 0.37
             'Atria major axis rotation degrees' : 40.0,
@@ -42,8 +42,8 @@ class MeshType_3d_heartatria2(object):
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
-            'Left pulmonary vein inner diameter' : 0.07,
-            'Left pulmonary vein wall thickness' : 0.007,
+            'Left pulmonary vein inner diameter' : 0.075,
+            'Left pulmonary vein wall thickness' : 0.0075,
             'Right pulmonary vein inner diameter' : 0.085,
             'Right pulmonary vein wall thickness' : 0.0085,
             'Inferior vena cava inner diameter' : 0.17,
@@ -562,7 +562,7 @@ class MeshType_3d_heartatria2(object):
         result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
         aSeptumBaseCentreY = laCentreY + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians)
-        x2 = [ 0.0, aSeptumBaseCentreY, aOuterSeptumHeight ]
+        x2 = [ 0.0, aSeptumBaseCentreY, aOuterSeptumHeight - aFreeWallThickness ]
         d2 = [ 1.0, 0.0, 0.0 ]
         #print('septum top centre ', x2)
         arcLength = computeCubicHermiteArcLength(x1, d1, x2, d2, True)
@@ -784,6 +784,10 @@ class MeshType_3d_heartatria2(object):
         raMeshGroup = raGroup.getMeshGroup(mesh)
         aSeptumMeshGroup = aSeptumGroup.getMeshGroup(mesh)
         fossaMeshGroup = fossaGroup.getMeshGroup(mesh)
+        lipvMeshGroup = lipvGroup.getMeshGroup(mesh)
+        lspvMeshGroup = lspvGroup.getMeshGroup(mesh)
+        ripvMeshGroup = ripvGroup.getMeshGroup(mesh)
+        rspvMeshGroup = rspvGroup.getMeshGroup(mesh)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
@@ -797,6 +801,8 @@ class MeshType_3d_heartatria2(object):
         elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         e1FreeWallStart = elementsCountAroundAtrialSeptum + 2
+        e1lspv = e1FreeWallStart + (elementsCountAroundAtria - elementsCountAroundAtrialSeptum - 1)//2
+        e1lipv = e1FreeWallStart + (elementsCountAroundAtria - elementsCountAroundAtrialSeptum + 1)//2
         e1n1FreeWallStart = (elementsCountAroundAtrialSeptum//2) - e1FreeWallStart
         for e2 in range(elementsCountUpAtria - 1):
 
@@ -807,13 +813,11 @@ class MeshType_3d_heartatria2(object):
                     aNodeId = laNodeId
                     bNodeId = raNodeId
                     apexNodeId = laApexNodeId
-                    meshGroups = [ laMeshGroup ]
                 else:
                     # right
                     aNodeId = raNodeId
                     bNodeId = laNodeId
                     apexNodeId = raApexNodeId
-                    meshGroups = [ raMeshGroup ]
                 e1Start = e1FreeWallStart + 1
                 e1Limit = e1Start + elementsCountAroundAtria - elementsCountAroundAtrialSeptum - 2
 
@@ -821,6 +825,7 @@ class MeshType_3d_heartatria2(object):
                     eft1 = eft
                     elementtemplate1 = elementtemplate
                     nids = None
+                    meshGroups = []
 
                     if e1 < e1FreeWallStart:
                         if i == 1:
@@ -880,6 +885,7 @@ class MeshType_3d_heartatria2(object):
                         na2 = na1 + 1
                         nids = [ aNodeId[0][e2][na1], aNodeId[0][e2][na2], aNodeId[0][e2 + 1][na1], aNodeId[0][e2 + 1][na2], \
                                  aNodeId[1][e2][na1], aNodeId[1][e2][na2], aNodeId[1][e2 + 1][na1], aNodeId[1][e2 + 1][na2] ]
+                        meshGroups = [ laMeshGroup if (i == 0) else raMeshGroup ]
 
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     result2 = element.setNodesByIdentifier(eft1, nids)
@@ -888,6 +894,11 @@ class MeshType_3d_heartatria2(object):
                     else:
                         result3 = ' '
                     #print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
+                    if (i == 0) and (e2 == (elementsCountUpAtria - 2)):
+                        if e1 == e1lspv:
+                            lspvElementId = elementIdentifier
+                        elif e1 == e1lipv:
+                            lipvElementId = elementIdentifier
                     elementIdentifier += 1
 
                     for meshGroup in meshGroups:
@@ -995,6 +1006,8 @@ class MeshType_3d_heartatria2(object):
                 else:
                     result3 = ' '
                 #print('create element sp arc', element.isValid(), elementIdentifier, result2, result3, nids)
+                if (j == 0) and (e2 == (elementsCountUpAtria - 1)):
+                    ripvElementId = elementIdentifier
                 elementIdentifier += 1
 
                 for meshGroup in meshGroups:
@@ -1036,6 +1049,8 @@ class MeshType_3d_heartatria2(object):
                 else:
                     result3 = ' '
                 #print('create element sa arc', element.isValid(), elementIdentifier, result2, result3, nids)
+                if (j == 0) and (e2 == (elementsCountUpAtria - 1)):
+                    rspvElementId = elementIdentifier
                 elementIdentifier += 1
 
                 for meshGroup in meshGroups:
@@ -1171,6 +1186,22 @@ class MeshType_3d_heartatria2(object):
 
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
+
+        # add left atria inlets (pulmonary veins)
+
+        pvElementIds = [ lipvElementId, lspvElementId, ripvElementId, rspvElementId ]
+        pvMeshGroups = [ lipvMeshGroup, lspvMeshGroup, ripvMeshGroup, rspvMeshGroup ]
+        pvInnerRadii = [ lpvInnerRadius, lpvInnerRadius, rpvInnerRadius, rpvInnerRadius ]
+        pvWallThickesses = [ lpvWallThickness, lpvWallThickness, rpvWallThickness, rpvWallThickness ]
+
+        for i in range(len(pvElementIds)):
+            element = mesh.findElementByIdentifier(pvElementIds[i])
+            pvLength = pvInnerRadii[i]
+            tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, \
+                pvLength, pvInnerRadii[i], pvWallThickesses[i], meshGroups = [ laMeshGroup, pvMeshGroups[i] ], revCorners = ([ 3, 4 ] if (i == 3) else []))
+            elementIdentifier += 4
+            nodeIdentifier += 8
+            mesh.destroyElement(element)
 
         fm.endChange()
         return annotationGroups
