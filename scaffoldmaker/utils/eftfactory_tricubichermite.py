@@ -514,7 +514,7 @@ class eftfactory_tricubichermite:
         '''
         Replace origElement with 4 element X-layout tube inlet.
         Inlet axis is at given length from centre of xi3=0 face, oriented with dx/dxi1.
-        8 new nodes are created.
+        8 new nodes are created. Original element is destroyed.
         :param meshGroups:  Optional list of Zinc MeshGroup for adding new elements to.
         :param revCorners: Optional list of corners to reverse xi1 and xi2 from 1 to 4, indicating local node and local node + 4
         '''
@@ -627,4 +627,132 @@ class eftfactory_tricubichermite:
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
+        self._mesh.destroyElement(origElement)
+        fm.endChange()
+
+    def replaceTwoElementWithInlet6(self, origElement1, origElement2, startElementId, nodetemplate, startNodeId, inletCentre, inletAxis, inletSide, innerRadius, wallThickness, meshGroups = [], revCorners = []):
+        '''
+        Replace origElement1 and origElement2 (on xi2=1 side of origElement1) with 6 element tube inlet.
+        Inlet is centred at inletCentre, inward direction and derivative magnitude given by inletAxis,
+        with inletSide pointing in -ve xi1 direction for both origElements.
+        12 new nodes are created. Original elements are destroyed.
+        :param meshGroups:  Optional list of Zinc MeshGroup for adding new elements to.
+        :param revCorners: Optional list of corners to reverse xi1 and xi2 from 1 to 6, indicating local node and local node + 4
+        '''
+        fm = self._mesh.getFieldmodule()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        fm.beginChange()
+        cache = fm.createFieldcache()
+        coordinates = getOrCreateCoordinateField(fm)
+        a = vector.normalise(inletSide)
+        b = vector.normalise(vector.crossproduct3(inletAxis, inletSide))
+
+        zero = [ 0.0, 0.0, 0.0 ]
+        nodeIdentifier = startNodeId
+        elementsCountAround = 6
+        radiansPerElementAround = math.pi*2.0/elementsCountAround
+        for n3 in range(2):
+            radius = innerRadius + n3*wallThickness
+            for n1 in range(elementsCountAround):
+                radiansAround = (n1 - 1)*radiansPerElementAround
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                x = [ (inletCentre[c] + radius*(cosRadiansAround*a[c] + sinRadiansAround*b[c])) for c in range(3) ]
+                dx_ds1 = [ radiansPerElementAround*radius*(-sinRadiansAround*a[c] + cosRadiansAround*b[c]) for c in range(3) ]
+                dx_ds2 = inletAxis
+                dx_ds3 = [ wallThickness*(cosRadiansAround*a[c] + sinRadiansAround*b[c]) for c in range(3) ]
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                if self._useCrossDerivatives:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+                nodeIdentifier = nodeIdentifier + 1
+
+        eft0 = origElement1.getElementfieldtemplate(coordinates, -1)
+        nids1 = getElementNodeIdentifiers(origElement1, eft0)
+        eft0 = origElement2.getElementfieldtemplate(coordinates, -1)
+        nids2 = getElementNodeIdentifiers(origElement2, eft0)
+        orig_nids = [ nids1[0], nids1[2], nids2[2], nids2[3], nids1[3], nids1[1],
+                      nids1[4], nids1[6], nids2[6], nids2[7], nids1[7], nids1[5] ]
+        #print('orig_nids',orig_nids)
+
+        elementIdentifier = startElementId
+        elementtemplate1 = self._mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        neg1 = [] if (1 in revCorners) else [1]
+        pos1 = [1] if (1 in revCorners) else []
+        neg2 = [] if (2 in revCorners) else [1]
+        pos2 = [1] if (2 in revCorners) else []
+        neg3 = [] if (3 in revCorners) else [1]
+        pos3 = [1] if (3 in revCorners) else []
+        neg4 = [] if (4 in revCorners) else [1]
+        pos4 = [1] if (4 in revCorners) else []
+        neg5 = [] if (5 in revCorners) else [1]
+        pos5 = [1] if (5 in revCorners) else []
+        neg6 = [] if (6 in revCorners) else [1]
+        pos6 = [1] if (6 in revCorners) else []
+
+        for e in range(6):
+            eft1 = self.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            if e == 0:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, neg1), (Node.VALUE_LABEL_D_DS2, neg1) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, pos1) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D2_DS1DS2, []) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, neg3) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS2, pos3) ])  # finish swap
+            elif e == 1:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D2_DS1DS2, []) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, neg3) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS2, pos3) ])  # finish swap
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, neg5), (Node.VALUE_LABEL_D_DS2, pos5) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, pos5) ])
+            elif e == 2:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, neg5), (Node.VALUE_LABEL_D_DS2, pos5) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, pos5) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, pos6), (Node.VALUE_LABEL_D_DS2, pos6) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, pos6) ])
+            elif e == 3:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, pos6), (Node.VALUE_LABEL_D_DS2, pos6) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, neg6) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D2_DS1DS2, []) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, pos4) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS2, neg4) ])  # finish swap
+            elif e == 4:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D2_DS1DS2, []) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, pos4) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS2, neg4) ])  # finish swap
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, pos2), (Node.VALUE_LABEL_D_DS2, neg2) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS2, neg2) ])
+            elif e == 5:
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, pos2), (Node.VALUE_LABEL_D_DS2, neg2) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, neg2) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, neg1), (Node.VALUE_LABEL_D_DS2, neg1) ])
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, neg1) ])
+            ea = e
+            eb = (e + 1) % elementsCountAround
+            ec = ea + elementsCountAround
+            ed = eb + elementsCountAround
+            nids = [
+                startNodeId + ea, startNodeId + eb, orig_nids[ea], orig_nids[eb],
+                startNodeId + ec, startNodeId + ed, orig_nids[ec], orig_nids[ed]
+            ]
+            elementtemplate1.defineField(coordinates, -1, eft1)
+            element = self._mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            result3 = element.setScaleFactors(eft1, [ -1.0 ])
+            #print('create element inlet6', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
+        self._mesh.destroyElement(origElement1)
+        self._mesh.destroyElement(origElement2)
         fm.endChange()

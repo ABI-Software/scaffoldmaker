@@ -687,7 +687,6 @@ class MeshType_3d_heartatria1(object):
             tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, vcLength, vcInnerDiameter*0.5, vcWallThickness)
             elementIdentifier += 4
             nodeIdentifier += 8
-            mesh.destroyElement(element)
 
         # add left atria inlets (pulmonary veins)
 
@@ -697,7 +696,6 @@ class MeshType_3d_heartatria1(object):
             tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, pvLength, pvInnerDiameter*0.5, pvWallThickness)
             elementIdentifier += 4
             nodeIdentifier += 8
-            mesh.destroyElement(element)
 
         fm.endChange()
 

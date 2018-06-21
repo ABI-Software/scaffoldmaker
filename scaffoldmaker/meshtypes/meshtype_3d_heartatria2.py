@@ -42,14 +42,14 @@ class MeshType_3d_heartatria2(object):
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
-            'Left pulmonary vein inner diameter' : 0.075,
-            'Left pulmonary vein wall thickness' : 0.0075,
-            'Right pulmonary vein inner diameter' : 0.085,
-            'Right pulmonary vein wall thickness' : 0.0085,
-            'Inferior vena cava inner diameter' : 0.17,
-            'Inferior vena cava wall thickness' : 0.017,
-            'Superior vena cava inner diameter' : 0.15,
-            'Superior vena cava wall thickness' : 0.015,
+            'Left pulmonary vein inner diameter' : 0.08,
+            'Left pulmonary vein wall thickness' : 0.007,
+            'Right pulmonary vein inner diameter' : 0.09,
+            'Right pulmonary vein wall thickness' : 0.007,
+            'Inferior vena cava inner diameter' : 0.16,
+            'Inferior vena cava wall thickness' : 0.012,
+            'Superior vena cava inner diameter' : 0.14,
+            'Superior vena cava wall thickness' : 0.012,
             'Refine' : False,
             'Refine number of elements surface' : 4,
             'Refine number of elements through atrial wall' : 1,
@@ -788,6 +788,8 @@ class MeshType_3d_heartatria2(object):
         lspvMeshGroup = lspvGroup.getMeshGroup(mesh)
         ripvMeshGroup = ripvGroup.getMeshGroup(mesh)
         rspvMeshGroup = rspvGroup.getMeshGroup(mesh)
+        ivcInletMeshGroup = ivcInletGroup.getMeshGroup(mesh)
+        svcInletMeshGroup = svcInletGroup.getMeshGroup(mesh)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
@@ -894,11 +896,14 @@ class MeshType_3d_heartatria2(object):
                     else:
                         result3 = ' '
                     #print('create element', 'la' if i == 0 else 'ra', element.isValid(), elementIdentifier, result2, result3, nids)
-                    if (i == 0) and (e2 == (elementsCountUpAtria - 2)):
-                        if e1 == e1lspv:
-                            lspvElementId = elementIdentifier
-                        elif e1 == e1lipv:
-                            lipvElementId = elementIdentifier
+                    if i == 0:
+                        if e2 == (elementsCountUpAtria - 2):
+                            if e1 == e1lspv:
+                                lspvElementId = elementIdentifier
+                            elif e1 == e1lipv:
+                                lipvElementId = elementIdentifier
+                    elif (e2 == 0) and (e1 == (e1Start - 1)):
+                        ivcElementId1 = elementIdentifier
                     elementIdentifier += 1
 
                     for meshGroup in meshGroups:
@@ -1008,6 +1013,8 @@ class MeshType_3d_heartatria2(object):
                 #print('create element sp arc', element.isValid(), elementIdentifier, result2, result3, nids)
                 if (j == 0) and (e2 == (elementsCountUpAtria - 1)):
                     ripvElementId = elementIdentifier
+                elif (j == 2) and (e2 == 1):
+                    ivcElementId2 = elementIdentifier
                 elementIdentifier += 1
 
                 for meshGroup in meshGroups:
@@ -1051,6 +1058,11 @@ class MeshType_3d_heartatria2(object):
                 #print('create element sa arc', element.isValid(), elementIdentifier, result2, result3, nids)
                 if (j == 0) and (e2 == (elementsCountUpAtria - 1)):
                     rspvElementId = elementIdentifier
+                elif (j == 2):
+                    if e2 == (elementsCountUpAtria - 2):
+                        svcElementId1 = elementIdentifier
+                    elif e2 == (elementsCountUpAtria - 1):
+                        svcElementId2 = elementIdentifier
                 elementIdentifier += 1
 
                 for meshGroup in meshGroups:
@@ -1201,7 +1213,43 @@ class MeshType_3d_heartatria2(object):
                 pvLength, pvInnerRadii[i], pvWallThickesses[i], meshGroups = [ laMeshGroup, pvMeshGroups[i] ], revCorners = ([ 3, 4 ] if (i == 3) else []))
             elementIdentifier += 4
             nodeIdentifier += 8
-            mesh.destroyElement(element)
+
+        # add right atria inlets: inferior and superior vena cavae
+        #print('ivc elements', ivcElementId1, ivcElementId2, '\nsvc elements', svcElementId1, svcElementId2)
+        ivcElement1 = mesh.findElementByIdentifier(ivcElementId1)
+        ivcElement2 = mesh.findElementByIdentifier(ivcElementId2)
+        svcElement1 = mesh.findElementByIdentifier(svcElementId1)
+        svcElement2 = mesh.findElementByIdentifier(svcElementId2)
+        diff1 = mesh.getChartDifferentialoperator(1, 1)
+        cache.setMeshLocation(ivcElement1, [ 0.5, 1.0, 1.0 ])
+        resultx, ix = coordinates.evaluateReal(cache, 3)
+        resultd, id = coordinates.evaluateDerivative(diff1, cache, 3)
+        cache.setMeshLocation(svcElement1, [ 0.5, 1.0, 1.0 ])
+        resultx, sx = coordinates.evaluateReal(cache, 3)
+        resultd, sd = coordinates.evaluateDerivative(diff1, cache, 3)
+        direction = vector.normalise([ (ix[c] - sx[c]) for c in range(3) ])
+
+        ivcInletScale = -ivcInnerRadius
+        ivcInletAxis = [ d*ivcInletScale for d in direction ]
+        n = vector.crossproduct3(id, ivcInletAxis)
+        ivcInletSide = vector.crossproduct3(n, ivcInletAxis)
+        ivcInletDistance = ivcInnerRadius
+        ivcInletCentre = [ (ix[c] + direction[c]*ivcInletDistance) for c in range(3) ]
+        tricubichermite.replaceTwoElementWithInlet6(ivcElement1, ivcElement2, elementIdentifier, nodetemplate, nodeIdentifier, \
+            ivcInletCentre, ivcInletAxis, ivcInletSide, ivcInnerRadius, ivcWallThickness, meshGroups = [ raMeshGroup, ivcInletMeshGroup ])
+        elementIdentifier += 6
+        nodeIdentifier += 12
+
+        svcInletScale = -svcInnerRadius
+        svcInletAxis = [ -d*svcInletScale for d in direction ]
+        n = vector.crossproduct3(sd, svcInletAxis)
+        svcInletSide = vector.crossproduct3(n, svcInletAxis)
+        svcInletDistance = svcInnerRadius
+        svcInletCentre = [ (sx[c] - direction[c]*svcInletDistance) for c in range(3) ]
+        tricubichermite.replaceTwoElementWithInlet6(svcElement1, svcElement2, elementIdentifier, nodetemplate, nodeIdentifier, \
+            svcInletCentre, svcInletAxis, svcInletSide, svcInnerRadius, svcWallThickness, meshGroups = [ raMeshGroup, svcInletMeshGroup ], revCorners = [ 5, 6 ])
+        elementIdentifier += 6
+        nodeIdentifier += 12
 
         fm.endChange()
         return annotationGroups
