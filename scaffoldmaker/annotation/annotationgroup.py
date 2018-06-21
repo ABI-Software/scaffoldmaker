@@ -64,7 +64,7 @@ class AnnotationGroup(object):
             elementGroup = self._group.getFieldElementGroup(mesh)
             if elementGroup.isValid():
                 meshGroup = elementGroup.getMeshGroup()
-                print('Mesh group:', self._name, ', size', meshGroup.getSize())
+                #print('Mesh group:', self._name, ', size', meshGroup.getSize())
                 meshGroup.addElementsConditional(elementGroup)  # use FieldElementGroup as conditional field
 
 
