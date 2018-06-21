@@ -34,7 +34,7 @@ class MeshType_3d_heartatria2(object):
             'Atria base inner major axis length' : 0.5,  # 0.549
             'Atria base inner minor axis length' : 0.35,  # 0.37
             'Atria major axis rotation degrees' : 40.0,
-            'Atria outer height' : 0.4,
+            'Atria outer height' : 0.35,
             'Atria outer major arc up degrees' : 100.0,
             'Atria outer minor arc up degrees' : 120.0,
             'Atrial crux side offset' : 0.195*math.sin(math.pi/3.0), # from ventriclesbase2 LV outlet inner radius + wall thickness
@@ -86,13 +86,13 @@ class MeshType_3d_heartatria2(object):
     def checkOptions(options):
         if options['Number of elements around atria'] < 6:
             options['Number of elements around atria'] = 6
-        # need even number of elements around for topology
-        if (options['Number of elements around atria'] % 2) == 1:
-            options['Number of elements around atria'] += 1
         if options['Number of elements around atrial septum'] < 1:
             options['Number of elements around atrial septum'] = 1
         elif options['Number of elements around atrial septum'] > (options['Number of elements around atria'] - 4):
             options['Number of elements around atrial septum'] = options['Number of elements around atria'] - 4
+        # need even number of elements around free wall
+        if ((options['Number of elements around atria'] - options['Number of elements around atrial septum']) % 2) == 1:
+            options['Number of elements around atria'] += 1
         if options['Number of elements up atria'] < 2:
             options['Number of elements up atria'] = 2
         if options['Number of elements radial atrial septum'] < 1:
@@ -271,7 +271,7 @@ class MeshType_3d_heartatria2(object):
             radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, 0.5*atrialSeptumElementLength)
             n1la2ra = [ (elementsCountAroundAtria - n1 - 1) for n1 in range(elementsCountAroundAtria) ]
         else:
-            n1la2ra = [ -n1 for n1 in range(elementsCountAroundAtria) ]
+            n1la2ra = [ (-n1 % elementsCountAroundAtria) for n1 in range(elementsCountAroundAtria) ]
         #print('n1la2ra', n1la2ra)
         lan1CruxLimit = elementsCountAroundAtrialSeptum//2 + 1
         lan1SeptumLimit = elementsCountAroundAtria - (elementsCountAroundAtrialSeptum + 1)//2 - 1
@@ -380,6 +380,8 @@ class MeshType_3d_heartatria2(object):
                         aRadians = laRadians
                         aDerivatives = laDerivatives
                         aLayerNodeId = laLayerNodeId
+                        n1Start = lan1CruxLimit - 1
+                        n1Stop = lan1SeptumLimit + 1
                     else:
                         # right
                         centreX = raCentreX
@@ -388,6 +390,8 @@ class MeshType_3d_heartatria2(object):
                         aRadians = raRadians
                         aDerivatives = raDerivatives
                         aLayerNodeId = raLayerNodeId
+                        n1Start = n1la2ra[lan1SeptumLimit + 1]
+                        n1Stop = n1la2ra[lan1CruxLimit - 1]
 
                     sinMajorAxisRadians = math.sin(majorAxisRadians)
                     cosMajorAxisRadians = math.cos(majorAxisRadians)
@@ -396,8 +400,11 @@ class MeshType_3d_heartatria2(object):
                     aMinorX = -aMinorMag*sinMajorAxisRadians
                     aMinorY =  aMinorMag*cosMajorAxisRadians
                     #print('aMajor', aMajorX, aMajorY,'aMinor',aMinorX,aMinorY)
+                    #print('n1 range: ', n1Start, n1Stop)
 
                     for n1 in range(elementsCountAroundAtria):
+                        if (n2 > 1) and ((n1 <= n1Start) or (n1 >= n1Stop)):
+                            continue
                         radiansAround = aRadians[n1]
                         cosRadiansAround = math.cos(radiansAround)
                         sinRadiansAround = math.sin(radiansAround)
@@ -440,29 +447,39 @@ class MeshType_3d_heartatria2(object):
                         nodeIdentifier += 1
 
             # apex nodes
+            n2 = elementsCountUpAtria - 1
             for i in range(2):
                 if i == 0:
                     # left
-                    centreX = laCentreX
-                    centreY = laCentreY
+                    nid1 = laNodeId[n3][n2][lan1SeptumLimit]
+                    nid2 = laNodeId[n3][n2][lan1CruxLimit]
                     apexNodeId = laApexNodeId
-                    majorAxisRadians = -aMajorAxisRadians
                 else:
                     # right
-                    centreX = raCentreX
-                    centreY = raCentreY
+                    nid1 = raNodeId[n3][n2][n1la2ra[lan1SeptumLimit]]
+                    nid2 = raNodeId[n3][n2][n1la2ra[lan1CruxLimit]]
                     apexNodeId = raApexNodeId
-                    majorAxisRadians = math.pi + aMajorAxisRadians
-                sinMajorAxisRadians = math.sin(majorAxisRadians)
-                cosMajorAxisRadians = math.cos(majorAxisRadians)
+                nid3 = (nid1 + nid2)//2
 
-                x = [ centreX, centreY, aOuterHeight - aFreeWallThickness if (n3 == 0) else aOuterHeight ]
-                dx_ds1 = [ apexDerivativeUpMajor*cosMajorAxisRadians, apexDerivativeUpMajor*sinMajorAxisRadians, 0.0 ]
-                dx_ds2 = [ -elementSizeUpMinor*sinMajorAxisRadians, elementSizeUpMinor*cosMajorAxisRadians, 0.0 ]
-                dx_ds3 = [ 0.0, 0.0, aFreeWallThickness ]
+                node1 = nodes.findNodeByIdentifier(nid1)
+                node2 = nodes.findNodeByIdentifier(nid2)
+                x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.5, aFreeWallThickness, \
+                    node1, Node.VALUE_LABEL_D_DS2,  2.0, Node.VALUE_LABEL_D_DS1, 1.0, \
+                    node2, Node.VALUE_LABEL_D_DS2, -2.0, Node.VALUE_LABEL_D_DS1, -1.0)
+                node3 = nodes.findNodeByIdentifier(nid3)
+                cache.setNode(node3)
+                result, x3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                d3 = [ -d for d in d3 ]
+                arcLength = computeCubicHermiteArcLength(x, dx_ds1, x3, d3, True)
+                scale1 = (2.0*arcLength - vector.magnitude(d3))/vector.magnitude(dx_ds1)
+                dx_ds1 = [ d*scale1 for d in dx_ds1 ]
+
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 apexNodeId.append(nodeIdentifier)
                 cache.setNode(node)
+                #print(n3, i, 'project apex', nid1, nid2, nid3, vector.magnitude(dx_ds1))
+                x[2] = aOuterHeight - aFreeWallThickness if (n3 == 0) else aOuterHeight
                 result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -473,6 +490,8 @@ class MeshType_3d_heartatria2(object):
         for i in range(2):
             aNodeId = laNodeId[0] if (i == 0) else raNodeId[0]
             for n1 in range(elementsCountAroundAtria):
+                if n1 in n1SeptumRange:
+                    continue
                 node1 = nodes.findNodeByIdentifier(aNodeId[0][n1])
                 node2 = nodes.findNodeByIdentifier(aNodeId[1][n1])
                 dx_ds2 = computeNodeDerivativeHermiteLagrange(cache, coordinates, node2, Node.VALUE_LABEL_D_DS2, -1.0, node1, -1.0)
@@ -501,6 +520,178 @@ class MeshType_3d_heartatria2(object):
                         dx_ds3 = [ -d for d in dx_ds3 ]
                     cache.setNode(node_o)
                     result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+
+        # left atrial septum posterior/anterior nodeId[n3][n2], also mid (top) septum
+        laspNodeId = [ [ None ]*(elementsCountUpAtria + 1), [ None ]*(elementsCountUpAtria + 1) ]
+        lasaNodeId = [ [ None ]*(elementsCountUpAtria + 1), [ None ]*(elementsCountUpAtria + 1) ]
+        # right atrial septum posterior/anterior nodeId[n3][n2], also mid (top) septum
+        raspNodeId = [ [ None ]*(elementsCountUpAtria + 1), [ None ]*(elementsCountUpAtria + 1) ]
+        rasaNodeId = [ [ None ]*(elementsCountUpAtria + 1), [ None ]*(elementsCountUpAtria + 1) ]
+        na = elementsCountAroundAtrialSeptum//2
+        np = elementsCountAroundAtria - ((elementsCountAroundAtrialSeptum + 1)//2)
+
+        # get atrial septum peak
+        node1 = nodes.findNodeByIdentifier(laApexNodeId[1])
+        cache.setNode(node1)
+        result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        baseSeptumY = laCentreY + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians)
+        # GRC fudge factor:
+        aOuterSeptumHeight = 0.8*aOuterHeight
+        x2 = [ 0.0, baseSeptumY, aOuterSeptumHeight ]
+        d2 = [ 1.0, 0.0, 0.0 ]
+        #print('septum top centre ', x2)
+        arcLength = computeCubicHermiteArcLength(x1, d1, x2, d2, True)
+        scale1 = arcLength/vector.magnitude(d1)
+        d1 = [ d*scale1 for d in d1 ]
+        scale2 = arcLength/vector.magnitude(d2)
+        d2 = [ d*arcLength for d in d2 ]
+        # GRC fudge factor:
+        xi = 0.7
+        lasmx = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+        lasmd1 = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
+        scale1 = (1.0 - xi)*2.0
+        lasmd1 = [ d*scale1 for d in lasmd1 ]
+        lasmd2 = vector.normalise(vector.crossproduct3([0.0, 0.0, 1.0], lasmd1))
+        lasmd3 = vector.crossproduct3(lasmd1, lasmd2)
+        scale3 = aFreeWallThickness/vector.magnitude(lasmd3)
+        lasmd3 = [ d*scale3 for d in lasmd3 ]
+        lasmCurvature1 = -getCubicHermiteCurvature(x1, d1, x2, d2, vector.normalise(lasmd3), xi)
+
+        for n3 in range(2):
+            for n2 in range(2):
+                laspNodeId[n3][n2] = laNodeId[n3][n2][np]
+                lasaNodeId[n3][n2] = laNodeId[n3][n2][na]
+                raspNodeId[n3][n2] = raNodeId[n3][n2][n1la2ra[np]]
+                rasaNodeId[n3][n2] = raNodeId[n3][n2][n1la2ra[na]]
+        n2 = 1
+        cache.setNode(nodes.findNodeByIdentifier(laspNodeId[0][n2]))
+        result, laspx =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, laspd1 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, laspd2 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        result, laspd3 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        cache.setNode(nodes.findNodeByIdentifier(laspNodeId[1][n2]))
+        result, laspd1_outer =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        laspCurvature1 = (vector.magnitude(laspd1_outer)/vector.magnitude(laspd1) - 1.0)/aFreeWallThickness
+        cache.setNode(nodes.findNodeByIdentifier(lasaNodeId[0][n2]))
+        result, lasax =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, lasad1 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, lasad2 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        result, lasad3 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        cache.setNode(nodes.findNodeByIdentifier(lasaNodeId[1][n2]))
+        result, lasad1_outer =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        lasaCurvature1 = (vector.magnitude(lasad1_outer)/vector.magnitude(lasad1) - 1.0)/aFreeWallThickness
+
+        # create points arcing over septum peak
+        for n3 in range(2):
+            #print(str(n3) + '. la septum nodes p', laspNodeId[n3][1],'a', lasaNodeId[n3][1])
+            #print(str(n3) + '. ra septum nodes p', raspNodeId[n3][1],'a', rasaNodeId[n3][1])
+            arcLength = computeCubicHermiteArcLength(laspx, laspd2, lasmx, lasmd2, True)
+            x1 = laspx
+            scale1 = arcLength/vector.magnitude(laspd2)
+            d1 = [ d*scale1 for d in laspd2 ]
+            x2 = lasmx
+            scale2 = arcLength/vector.magnitude(lasmd2)
+            d2 = [ d*scale2 for d in lasmd2 ]
+            derivativeScale = arcLength/(elementsCountUpAtria - 1.0)
+            for n2 in range(2, elementsCountUpAtria + 1):
+                xi = (n2 - 1.0)/(elementsCountUpAtria - 1.0)
+                xr = 1.0 - xi
+                x = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+                dx_ds1 = [ (xi*lasmd1[c] + xr*laspd1[c]) for c in range(3) ]
+                dx_ds2 = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
+                scale2 = derivativeScale/vector.magnitude(dx_ds2)
+                dx_ds2 = [ d*scale2 for d in dx_ds2 ]
+                dx_ds3 = vector.crossproduct3(dx_ds1, dx_ds2)
+                scale3 = aFreeWallThickness/vector.magnitude(dx_ds3)
+                dx_ds3 = [ d*scale3 for d in dx_ds3 ]
+                if n3 == 1:
+                    curvature1 = xi*lasmCurvature1 + xr*laspCurvature1
+                    curvatureScale1 = 1.0 + aFreeWallThickness*curvature1
+                    dx_ds1 = [ d*curvatureScale1 for d in dx_ds1 ]
+                    radialVector = vector.normalise(dx_ds3)
+                    curvature2 = -getCubicHermiteCurvature(x1, d1, x2, d2, radialVector, xi)
+                    curvatureScale2 = 1.0 + aFreeWallThickness*curvature2
+                    dx_ds2 = [ d*curvatureScale2 for d in dx_ds2 ]
+                    x = [ (x[c] + dx_ds3[c]) for c in range(3) ]
+
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                laspNodeId[n3][n2] = nodeIdentifier
+                nodeIdentifier += 1
+
+                # mirror RA about x = 0, then reverse dx_ds1
+                x[0] = -x[0]
+                dx_ds1 = [ dx_ds1[0], -dx_ds1[1], -dx_ds1[2] ]
+                dx_ds2[0] = -dx_ds2[0]
+                dx_ds3[0] = -dx_ds3[0]
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                raspNodeId[n3][n2] = nodeIdentifier
+                nodeIdentifier += 1
+
+            arcLength = computeCubicHermiteArcLength(lasax, lasad2, lasmx, lasmd2, True)
+            x1 = lasax
+            scale1 = arcLength/vector.magnitude(lasad2)
+            d1 = [ d*scale1 for d in lasad2 ]
+            x2 = lasmx
+            scale2 = -arcLength/vector.magnitude(lasmd2)
+            d2 = [ d*scale2 for d in lasmd2 ]
+            derivativeScale = arcLength/(elementsCountUpAtria - 1.0)
+            for n2 in range(2, elementsCountUpAtria):
+                xi = (n2 - 1.0)/(elementsCountUpAtria - 1.0)
+                xr = 1.0 - xi
+                x = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+                dx_ds1 = [ (xi*-lasmd1[c] + xr*lasad1[c]) for c in range(3) ]
+                dx_ds2 = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
+                scale2 = derivativeScale/vector.magnitude(dx_ds2)
+                dx_ds2 = [ d*scale2 for d in dx_ds2 ]
+                dx_ds3 = vector.crossproduct3(dx_ds1, dx_ds2)
+                scale3 = aFreeWallThickness/vector.magnitude(dx_ds3)
+                dx_ds3 = [ d*scale3 for d in dx_ds3 ]
+                if n3 == 1:
+                    curvature1 = xi*lasmCurvature1 + xr*lasaCurvature1
+                    curvatureScale1 = 1.0 + aFreeWallThickness*curvature1
+                    dx_ds1 = [ d*curvatureScale1 for d in dx_ds1 ]
+                    radialVector = vector.normalise(dx_ds3)
+                    curvature2 = -getCubicHermiteCurvature(x1, d1, x2, d2, radialVector, xi)
+                    curvatureScale2 = 1.0 + aFreeWallThickness*curvature2
+                    dx_ds2 = [ d*curvatureScale2 for d in dx_ds2 ]
+                    x = [ (x[c] + dx_ds3[c]) for c in range(3) ]
+
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                lasaNodeId[n3][n2] = nodeIdentifier
+                nodeIdentifier += 1
+
+                # mirror RA about x = 0, then reverse dx_ds1
+                x[0] = -x[0]
+                dx_ds1 = [ dx_ds1[0], -dx_ds1[1], -dx_ds1[2] ]
+                dx_ds2[0] = -dx_ds2[0]
+                dx_ds3[0] = -dx_ds3[0]
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                rasaNodeId[n3][n2] = nodeIdentifier
+                nodeIdentifier += 1
+
+            lasaNodeId[n3][-1] = laspNodeId[n3][-1]
+            rasaNodeId[n3][-1] = raspNodeId[n3][-1]
 
         #################
         # Create elements
@@ -531,7 +722,20 @@ class MeshType_3d_heartatria2(object):
 
             for i in range(2):
 
-                aNodeId, bNodeId = ( laNodeId, raNodeId ) if (i == 0) else ( raNodeId, laNodeId )
+                if i == 0:
+                    # left
+                    aNodeId = laNodeId
+                    bNodeId = raNodeId
+                    apexNodeId = laApexNodeId
+                    meshGroups = [ laMeshGroup ]
+                else:
+                    # right
+                    aNodeId = raNodeId
+                    bNodeId = laNodeId
+                    apexNodeId = raApexNodeId
+                    meshGroups = [ raMeshGroup ]
+                e1Start = e1FreeWallStart + 1
+                e1Limit = e1Start + elementsCountAroundAtria - elementsCountAroundAtrialSeptum - 2
 
                 for e1 in range(elementsCountAroundAtria + 2):
                     eft1 = eft
@@ -541,6 +745,8 @@ class MeshType_3d_heartatria2(object):
                     if e1 < e1FreeWallStart:
                         if i == 1:
                             continue  # already made in left atrium loop
+                        if e2 > 0:
+                            continue
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         if (e1 == 0) or (e1 == (e1FreeWallStart - 1)):
@@ -582,7 +788,8 @@ class MeshType_3d_heartatria2(object):
                         elementtemplate1 = elementtemplateX
                     else:
                         # atrial free wall
-                        meshGroups = [ laMeshGroup ] if (i == 0) else [ raMeshGroup ]
+                        if (e2 > 0) and ((e1 < e1Start) or (e1 >= e1Limit)):
+                            continue
                         na1 = e1 + e1n1FreeWallStart
                         na2 = na1 + 1
                         nids = [ aNodeId[0][e2][na1], aNodeId[0][e2][na2], aNodeId[0][e2 + 1][na1], aNodeId[0][e2 + 1][na2], \
@@ -602,50 +809,151 @@ class MeshType_3d_heartatria2(object):
 
         # create atria roof / apex elements
         n2 = elementsCountUpAtria - 1
+        radiansPerElementAroundApex = math.pi/(lan1SeptumLimit - lan1CruxLimit)
         for i in range(2):
             if i == 0:
                 # left
-                nodeId = laNodeId
+                aNodeId = laNodeId
                 apexNodeId = laApexNodeId
-                aRadians = laRadians
-                aDerivatives = laDerivatives
+                e1Start = lan1CruxLimit
+                e1Limit = lan1SeptumLimit
+                meshGroups = [ laMeshGroup ]
             else:
                 # right
-                nodeId = raNodeId
+                aNodeId = raNodeId
                 apexNodeId = raApexNodeId
-                aRadians = raRadians
-                aDerivatives = raDerivatives
+                e1Start = n1la2ra[lan1SeptumLimit]
+                e1Limit = n1la2ra[lan1CruxLimit]
+                meshGroups = [ raMeshGroup ]
             aDerivativeMid = 0.5*(min(aDerivatives) + max(aDerivatives))
 
             # scale factor identifiers follow convention of offsetting by 100 for each 'version'
-            for e1 in range(elementsCountAroundAtria):
+            radiansAroundApex = -0.5*math.pi if (i == 0) else 0.5*math.pi
+            s = 0
+            for e1 in range(e1Start, e1Limit):
+                radiansAroundNext = radiansAroundApex + radiansPerElementAroundApex
                 va = e1
-                vb = (e1 + 1)%elementsCountAroundAtria
-                eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+                vb = e1 + 1
+                eft1 = tricubichermite.createEftShellApexTop(s*100, (s + 1)*100)
                 elementtemplateX.defineField(coordinates, -1, eft1)
                 element = mesh.createElement(elementIdentifier, elementtemplateX)
-                nodeIdentifiers = [ nodeId[0][n2][va], nodeId[0][n2][vb], apexNodeId[0], nodeId[1][n2][va], nodeId[1][n2][vb], apexNodeId[1] ]
+                nodeIdentifiers = [ aNodeId[0][n2][va], aNodeId[0][n2][vb], apexNodeId[0], aNodeId[1][n2][va], aNodeId[1][n2][vb], apexNodeId[1] ]
                 element.setNodesByIdentifier(eft1, nodeIdentifiers)
-                deltaRadiansPrev = aRadians[va] - aRadians[va - 1]
-                deltaRadiansCurr = aRadians[vb] - aRadians[va]
-                deltaRadiansNext = aRadians[(e1 + 2)%elementsCountAroundAtria] - aRadians[vb]
-                if aDerivatives[va] < aDerivativeMid:
-                    aDeltaRadians = min(deltaRadiansPrev, deltaRadiansCurr)
-                else:
-                    aDeltaRadians = max(deltaRadiansPrev, deltaRadiansCurr)
-                if aDerivatives[vb] < aDerivativeMid:
-                    bDeltaRadians = min(deltaRadiansCurr, deltaRadiansNext)
-                else:
-                    bDeltaRadians = max(deltaRadiansCurr, deltaRadiansNext)
                 scalefactors = [
                     -1.0,
-                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), aDeltaRadians,
-                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), bDeltaRadians,
-                    -math.cos(aRadians[va]), -math.sin(aRadians[va]), aDeltaRadians,
-                    -math.cos(aRadians[vb]), -math.sin(aRadians[vb]), bDeltaRadians
+                    math.cos(radiansAroundApex), math.sin(radiansAroundApex), radiansPerElementAroundApex,
+                    math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAroundApex,
+                    math.cos(radiansAroundApex), math.sin(radiansAroundApex), radiansPerElementAroundApex,
+                    math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAroundApex
                 ]
                 result = element.setScaleFactors(eft1, scalefactors)
                 elementIdentifier = elementIdentifier + 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
+                radiansAroundApex += radiansPerElementAroundApex
+                s += 1
+
+        # create septum arc side elements
+        lna = elementsCountAroundAtrialSeptum//2 + 1
+        rna = n1la2ra[lna]
+        lnp = elementsCountAroundAtria - ((elementsCountAroundAtrialSeptum + 1)//2) - 1
+        rnp = n1la2ra[lnp]
+        for j in range(3):  # left, centre, right
+
+            if j == 0:
+                splNodeId = []
+                salNodeId = []
+                for n3 in range(2):
+                    splNodeId.append([ laNodeId[n3][n2][lnp] for n2 in range(elementsCountUpAtria) ] + [ laApexNodeId[n3] ])
+                    salNodeId.append([ laNodeId[n3][n2][lna] for n2 in range(elementsCountUpAtria) ] + [ laApexNodeId[n3] ])
+                sprNodeId = laspNodeId
+                sarNodeId = lasaNodeId
+                meshGroups = [ laMeshGroup ]
+            elif j == 1:
+                splNodeId = laspNodeId
+                salNodeId = lasaNodeId
+                sprNodeId = raspNodeId
+                sarNodeId = rasaNodeId
+                meshGroups = [ laMeshGroup, raMeshGroup ]
+            else:
+                splNodeId = raspNodeId
+                salNodeId = rasaNodeId
+                sprNodeId = []
+                sarNodeId = []
+                for n3 in range(2):
+                    sprNodeId.append([ raNodeId[n3][n2][rnp] for n2 in range(elementsCountUpAtria) ] + [ raApexNodeId[n3] ])
+                    sarNodeId.append([ raNodeId[n3][n2][rna] for n2 in range(elementsCountUpAtria) ] + [ raApexNodeId[n3] ])
+                meshGroups = [ raMeshGroup ]
+
+            # posterior
+            for e2 in range(1, elementsCountUpAtria):
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+                nids = [ splNodeId[0][e2], sprNodeId[0][e2], splNodeId[0][e2 + 1], sprNodeId[0][e2 + 1],
+                         splNodeId[1][e2], sprNodeId[1][e2], splNodeId[1][e2 + 1], sprNodeId[1][e2 + 1] ]
+
+                if j == 1: # septum
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    elementtemplateX.defineField(coordinates, -1, eft1)
+                    elementtemplate1 = elementtemplateX
+
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if eft1.getNumberOfLocalScaleFactors() == 1:
+                    result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                else:
+                    result3 = ' '
+                #print('create element sp arc', element.isValid(), elementIdentifier, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
+            # anterior
+            for e2 in range(1, elementsCountUpAtria):
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+                nids = [ sarNodeId[0][e2], salNodeId[0][e2], sarNodeId[0][e2 + 1], salNodeId[0][e2 + 1],
+                         sarNodeId[1][e2], salNodeId[1][e2], sarNodeId[1][e2 + 1], salNodeId[1][e2 + 1] ]
+
+                if j == 1: # septum
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    if e2 == (elementsCountUpAtria - 1):
+                        remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        scaleEftNodeValueLabels(eft1, [ 3, 4, 7, 8 ], [ Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                        scaleEftNodeValueLabels(eft1, [ 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+                    else:
+                        remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    elementtemplateX.defineField(coordinates, -1, eft1)
+                    elementtemplate1 = elementtemplateX
+                elif e2 == (elementsCountUpAtria - 1):
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scaleEftNodeValueLabels(eft1, [ 3, 4, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                    elementtemplateX.defineField(coordinates, -1, eft1)
+                    elementtemplate1 = elementtemplateX
+
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if eft1.getNumberOfLocalScaleFactors() == 1:
+                    result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                else:
+                    result3 = ' '
+                #print('create element sa arc', element.isValid(), elementIdentifier, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
 
 
         fm.endChange()
