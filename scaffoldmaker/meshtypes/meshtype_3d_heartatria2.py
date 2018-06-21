@@ -9,6 +9,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis
@@ -49,7 +50,10 @@ class MeshType_3d_heartatria2(object):
             'Inferior vena cava wall thickness' : 0.017,
             'Superior vena cava inner diameter' : 0.15,
             'Superior vena cava wall thickness' : 0.015,
-            'Use cross derivatives' : False
+            'Refine' : False,
+            'Refine number of elements surface' : 4,
+            'Refine number of elements through atrial wall' : 1,
+            'Use cross derivatives' : False,
         }
 
     @staticmethod
@@ -77,6 +81,9 @@ class MeshType_3d_heartatria2(object):
             'Inferior vena cava wall thickness',
             'Superior vena cava inner diameter',
             'Superior vena cava wall thickness',
+            'Refine',
+            'Refine number of elements surface',
+            'Refine number of elements through atrial wall',
             #,'Use cross derivatives'
         ]
 
@@ -126,10 +133,16 @@ class MeshType_3d_heartatria2(object):
                 options[key] = -75.0
             elif options[key] > 75.0:
                 options[key] = 75.0
+        for key in [
+            'Refine number of elements surface',
+            'Refine number of elements through atrial wall']:
+            if options[key] < 1:
+                options[key] = 1
 
     @staticmethod
-    def generateMesh(region, options):
+    def generateBaseMesh(region, options):
         """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup
@@ -1153,7 +1166,7 @@ class MeshType_3d_heartatria2(object):
             element = mesh.createElement(elementIdentifier, elementtemplateX)
             result2 = element.setNodesByIdentifier(eft1, nids)
             result3 = element.setScaleFactors(eft1, [ -1.0 ])
-            print('create element septum', element.isValid(), elementIdentifier, result2, result3, nids)
+            #print('create element septum', element.isValid(), elementIdentifier, result2, result3, nids)
             elementIdentifier = elementIdentifier + 1
 
             for meshGroup in meshGroups:
@@ -1162,3 +1175,22 @@ class MeshType_3d_heartatria2(object):
         fm.endChange()
         return annotationGroups
 
+    @classmethod
+    def generateMesh(cls, region, options):
+        """
+        Generate base or refined mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        :return: list of AnnotationGroup for mesh.
+        """
+        if not options['Refine']:
+            return cls.generateBaseMesh(region, options)
+
+        refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
+
+        baseRegion = region.createRegion()
+        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
+        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountSurface, refineElementsCountSurface, refineElementsCountThroughAtrialWall)
+        return meshrefinement.getAnnotationGroups()
