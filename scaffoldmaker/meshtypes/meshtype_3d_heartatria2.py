@@ -30,7 +30,6 @@ class MeshType_3d_heartatria2(object):
             'Number of elements around atria' : 8,
             'Number of elements around atrial septum' : 2,
             'Number of elements up atria' : 3,
-            'Number of elements radial atrial septum' : 2,
             'Atria base inner major axis length' : 0.5,  # 0.549
             'Atria base inner minor axis length' : 0.35,  # 0.37
             'Atria major axis rotation degrees' : 40.0,
@@ -59,7 +58,6 @@ class MeshType_3d_heartatria2(object):
             'Number of elements around atria',
             'Number of elements around atrial septum',
             'Number of elements up atria',
-            'Number of elements radial atrial septum',
             'Atria base inner major axis length',
             'Atria base inner minor axis length',
             'Atria major axis rotation degrees',
@@ -95,8 +93,6 @@ class MeshType_3d_heartatria2(object):
             options['Number of elements around atria'] += 1
         if options['Number of elements up atria'] < 2:
             options['Number of elements up atria'] = 2
-        if options['Number of elements radial atrial septum'] < 1:
-            options['Number of elements radial atrial septum'] = 1
         for key in [
             'Atria outer major arc up degrees',
             'Atria outer minor arc up degrees']:
@@ -141,7 +137,6 @@ class MeshType_3d_heartatria2(object):
         elementsCountAroundAtria = options['Number of elements around atria']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
         elementsCountUpAtria = options['Number of elements up atria']
-        elementsCountRadialAtrialSeptum = options['Number of elements radial atrial septum']
         aBaseInnerMajorMag = 0.5*options['Atria base inner major axis length']
         aBaseInnerMinorMag = 0.5*options['Atria base inner minor axis length']
         aMajorAxisRadians = math.radians(options['Atria major axis rotation degrees'])
@@ -456,7 +451,7 @@ class MeshType_3d_heartatria2(object):
                                 if nx != x[0]:
                                     x[0] = nx
                                     dx_ds1[0] = 0.0
-                            dx_ds2 = [ 0.0, 0.0, aSeptumBaseRowHeight ]
+                            dx_ds2 = [ 0.0, 0.0, (aSeptumBaseRowHeight + 2.0*aBaseSlopeHeight) if (n2 == 0) else aSeptumBaseRowHeight]
 
                         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
@@ -553,8 +548,8 @@ class MeshType_3d_heartatria2(object):
         cache.setNode(node1)
         result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-        baseSeptumY = laCentreY + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians)
-        x2 = [ 0.0, baseSeptumY, aOuterSeptumHeight ]
+        aSeptumBaseCentreY = laCentreY + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians)
+        x2 = [ 0.0, aSeptumBaseCentreY, aOuterSeptumHeight ]
         d2 = [ 1.0, 0.0, 0.0 ]
         #print('septum top centre ', x2)
         arcLength = computeCubicHermiteArcLength(x1, d1, x2, d2, True)
@@ -709,6 +704,61 @@ class MeshType_3d_heartatria2(object):
             lasaNodeId[n3][-1] = laspNodeId[n3][-1]
             rasaNodeId[n3][-1] = raspNodeId[n3][-1]
 
+        # atrial septum centre nodes and nodes around fossa ovalis
+
+        aSeptumCentreY = lasmx[1]
+        aSeptumCentreZ = 0.5*(lasmx[2] + aSeptumBaseRowHeight)
+        fossaMagY = 0.5*(aSeptumCentreY - laspx[1])
+        fossaMagZ = 0.25*(lasmx[2] - aSeptumBaseRowHeight)
+        elementsCountAroundFossa = elementsCountAroundAtrialSeptum + 2*(elementsCountUpAtria - 1)
+        fossaPerimeterLength = getApproximateEllipsePerimeter(fossaMagY, fossaMagZ)
+        elementSizeAroundFossa = fossaPerimeterLength/elementsCountAroundFossa
+        radiansAround = -0.5*math.pi
+        if (elementsCountAroundFossa%2) == 1:
+            radiansAround = updateEllipseAngleByArcLength(fossaMagY, fossaMagZ, radiansAround, 0.5*elementSizeAroundFossa)
+        fossaRadiansAround = []
+        for n1 in range(elementsCountAroundFossa):
+            fossaRadiansAround.append(radiansAround)
+            radiansAround = updateEllipseAngleByArcLength(fossaMagY, fossaMagZ, radiansAround, elementSizeAroundFossa)
+
+        fossaCentreNodeId = [ -1, -1 ]
+        fossaNodeId = [ [ -1 ]*elementsCountAroundFossa, [ -1 ]*elementsCountAroundFossa ]
+        dx_ds3 = [ aSeptumThickness, 0.0, 0.0 ]
+        for n3 in range(2):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            x = [ aSeptumThickness*(-0.5 if (n3 == 0) else 0.5), aSeptumCentreY, aSeptumCentreZ ]
+            dx_ds1 = [ 0.0, fossaMagY, 0.0 ]
+            dx_ds2 = [ 0.0, 0.0, fossaMagZ ]
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            fossaCentreNodeId[n3] = nodeIdentifier
+            nodeIdentifier += 1
+
+            for n1 in range(elementsCountAroundFossa):
+                radiansAround = fossaRadiansAround[n1]
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                x[1] = aSeptumCentreY + fossaMagY*cosRadiansAround
+                x[2] = aSeptumCentreZ + fossaMagZ*sinRadiansAround
+                dx_ds1[1] = -fossaMagY*sinRadiansAround
+                dx_ds1[2] =  fossaMagZ*cosRadiansAround
+                scale1 = elementSizeAroundFossa/vector.magnitude(dx_ds1)
+                dx_ds1[1] *= scale1
+                dx_ds1[2] *= scale1
+                dx_ds2[1] = -fossaMagY*cosRadiansAround
+                dx_ds2[2] = -fossaMagZ*sinRadiansAround
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                fossaNodeId[n3][n1] = nodeIdentifier
+                nodeIdentifier += 1
+
         #################
         # Create elements
         #################
@@ -720,6 +770,7 @@ class MeshType_3d_heartatria2(object):
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)
         aSeptumMeshGroup = aSeptumGroup.getMeshGroup(mesh)
+        fossaMeshGroup = fossaGroup.getMeshGroup(mesh)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
@@ -976,6 +1027,43 @@ class MeshType_3d_heartatria2(object):
 
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
+
+        # fossa ovalis
+
+        meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup, fossaMeshGroup ]
+        radiansAround0 = fossaRadiansAround[-1] - 2.0*math.pi
+        for e1 in range(elementsCountAroundFossa):
+            va = e1
+            vb = (e1 + 1)%elementsCountAroundFossa
+            eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+            elementtemplateX.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplateX)
+            nids = [ fossaNodeId[0][va], fossaNodeId[0][vb], fossaCentreNodeId[0], fossaNodeId[1][va], fossaNodeId[1][vb], fossaCentreNodeId[1] ]
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            radiansAround1 = fossaRadiansAround[va]
+            radiansAround2 = fossaRadiansAround[vb]
+            if radiansAround2 < radiansAround1:
+                radiansAround2 += 2.0*math.pi
+            radiansAround3 = fossaRadiansAround[vb + 1 - elementsCountAroundFossa]
+            if radiansAround3 < radiansAround2:
+                radiansAround3 += 2.0*math.pi
+            dRadiansAround1 = 0.5*(radiansAround2 - radiansAround0)
+            dRadiansAround2 = 0.5*(radiansAround3 - radiansAround1)
+            #print('dRadians',dRadiansAround1,dRadiansAround2)
+            scalefactors = [
+                -1.0,
+                -math.cos(radiansAround1), -math.sin(radiansAround1), dRadiansAround1,
+                -math.cos(radiansAround2), -math.sin(radiansAround2), dRadiansAround2,
+                -math.cos(radiansAround1), -math.sin(radiansAround1), dRadiansAround1,
+                -math.cos(radiansAround2), -math.sin(radiansAround2), dRadiansAround2
+            ]
+            result3 = element.setScaleFactors(eft1, scalefactors)
+            #print('create element fossa', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier = elementIdentifier + 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            radiansAround0 = radiansAround1
 
 
         fm.endChange()
