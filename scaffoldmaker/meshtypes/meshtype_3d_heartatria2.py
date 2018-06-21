@@ -203,6 +203,11 @@ class MeshType_3d_heartatria2(object):
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
 
+        # GRC fudge factor:
+        aOuterSeptumHeight = 0.8*aOuterHeight
+        # GRC fudge factor:
+        aSeptumBaseRowHeight = 0.2*aOuterHeight
+
         # convert base major/minor sizes to equator using arc up
 
         aEquatorOuterMajorMag = (aBaseInnerMajorMag + aBaseSlopeLength)/math.sin(aOuterMajorArcUpRadians)
@@ -440,6 +445,19 @@ class MeshType_3d_heartatria2(object):
                             cosRadiansAround*d2Major[1] + sinRadiansAround*d2Minor[1],
                             cosRadiansAround*cosRadiansAround*d2Major[2] + sinRadiansAround*sinRadiansAround*d2Minor[2] ]
 
+                        if n1 in n1SeptumRange:
+                            if n2 == 1:
+                                x[2] = aSeptumBaseRowHeight
+                                dx_ds1[2] = 0.0
+                                if i == 0:
+                                    nx = min(x[0], -0.5*aSeptumThickness)
+                                else:
+                                    nx = max(x[0],  0.5*aSeptumThickness)
+                                if nx != x[0]:
+                                    x[0] = nx
+                                    dx_ds1[0] = 0.0
+                            dx_ds2 = [ 0.0, 0.0, aSeptumBaseRowHeight ]
+
                         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -536,8 +554,6 @@ class MeshType_3d_heartatria2(object):
         result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
         baseSeptumY = laCentreY + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians)
-        # GRC fudge factor:
-        aOuterSeptumHeight = 0.8*aOuterHeight
         x2 = [ 0.0, baseSeptumY, aOuterSeptumHeight ]
         d2 = [ 1.0, 0.0, 0.0 ]
         #print('septum top centre ', x2)
@@ -771,19 +787,25 @@ class MeshType_3d_heartatria2(object):
                             nb2 = n1la2ra[na2]
                             nids = [ aNodeId[0][e2][na1], aNodeId[0][e2][na2], aNodeId[0][e2 + 1][na1], aNodeId[0][e2 + 1][na2], \
                                      bNodeId[0][e2][nb1], bNodeId[0][e2][nb2], bNodeId[0][e2 + 1][nb1], bNodeId[0][e2 + 1][nb2] ]
-                            scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
+                            scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
                             if e1 == 1:
                                 # septum end 1
                                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                 remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                             elif elementsCountAroundAtrialSeptum > 1:
                                 scaleEftNodeValueLabels(eft1, [ 5, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                             if e1 == (e1FreeWallStart - 2):
                                 # septum end 2
                                 remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                 remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                             elif elementsCountAroundAtrialSeptum > 1:
                                 scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                         elementtemplateX.defineField(coordinates, -1, eft1)
                         elementtemplate1 = elementtemplateX
                     else:
