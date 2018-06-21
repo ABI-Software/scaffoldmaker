@@ -29,7 +29,7 @@ class MeshType_3d_heartatria2(object):
         return {
             'Number of elements around atria' : 8,
             'Number of elements around atrial septum' : 2,
-            'Number of elements up atria' : 3,
+            'Number of elements up atria' : 4,
             'Atria base inner major axis length' : 0.5,  # 0.549
             'Atria base inner minor axis length' : 0.35,  # 0.37
             'Atria major axis rotation degrees' : 40.0,
@@ -1028,7 +1028,7 @@ class MeshType_3d_heartatria2(object):
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
 
-        # fossa ovalis
+        # fossa ovalis elements
 
         meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup, fossaMeshGroup ]
         radiansAround0 = fossaRadiansAround[-1] - 2.0*math.pi
@@ -1065,6 +1065,99 @@ class MeshType_3d_heartatria2(object):
                 meshGroup.addElement(element)
             radiansAround0 = radiansAround1
 
+        # septum ring outside fossa ovalis
+
+        meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+        n1BaseOffset = -((elementsCountAroundAtrialSeptum + 1)//2)
+        for e1 in range(elementsCountAroundFossa):
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            nids = None
+
+            na1 = (e1 + n1BaseOffset)%elementsCountAroundAtria
+            na2 = (e1 + n1BaseOffset + 1)%elementsCountAroundAtria
+            nb1 = n1la2ra[na1]
+            nb2 = n1la2ra[na2]
+            nf1 = (e1 + n1BaseOffset)%elementsCountAroundFossa
+            nf2 = (e1 + n1BaseOffset + 1)%elementsCountAroundFossa
+
+            if e1 < elementsCountAroundAtrialSeptum:
+                nids = [ laNodeId[0][1][na1], laNodeId[0][1][na2], fossaNodeId[0][nf1], fossaNodeId[0][nf2], \
+                         raNodeId[0][1][nb1], raNodeId[0][1][nb2], fossaNodeId[1][nf1], fossaNodeId[1][nf2] ]
+                if e1 == 0:
+                    # septum end 1
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                elif elementsCountAroundAtrialSeptum > 1:
+                    scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                if e1 == (elementsCountAroundAtrialSeptum - 1):
+                    # septum end 2
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                elif elementsCountAroundAtrialSeptum > 1:
+                    scaleEftNodeValueLabels(eft1, [ 6 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+            elif e1 < (elementsCountAroundAtrialSeptum + elementsCountUpAtria - 1):
+                ns1 = e1 - elementsCountAroundAtrialSeptum + 1
+                ns2 = ns1 + 1
+                nids = [ lasaNodeId[0][ns1], lasaNodeId[0][ns2], fossaNodeId[0][nf1], fossaNodeId[0][nf2], \
+                         rasaNodeId[0][ns1], rasaNodeId[0][ns2], fossaNodeId[1][nf1], fossaNodeId[1][nf2] ]
+                if ns2 < elementsCountUpAtria:
+                    remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            else:
+                ns1 = elementsCountUpAtria - (e1 - elementsCountAroundAtrialSeptum - elementsCountUpAtria + 1)
+                ns2 = ns1 - 1
+                nids = [ laspNodeId[0][ns1], laspNodeId[0][ns2], fossaNodeId[0][nf1], fossaNodeId[0][nf2], \
+                         raspNodeId[0][ns1], raspNodeId[0][ns2], fossaNodeId[1][nf1], fossaNodeId[1][nf2] ]
+                remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])  # finish swap
+                remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])  # finish swap
+                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+
+            elementtemplateX.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplateX)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            result3 = element.setScaleFactors(eft1, [ -1.0 ])
+            print('create element septum', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier = elementIdentifier + 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
 
         fm.endChange()
         return annotationGroups
