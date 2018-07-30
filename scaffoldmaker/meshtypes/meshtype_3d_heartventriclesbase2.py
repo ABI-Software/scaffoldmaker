@@ -12,6 +12,7 @@ from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 import scaffoldmaker.utils.vector as vector
@@ -49,6 +50,7 @@ class MeshType_3d_heartventriclesbase2(object):
         options['Atrial base slope degrees'] = 30.0
         options['Base height'] = 0.1
         options['Base thickness'] = 0.06
+        options['Fibrous ring thickness'] = 0.01
         options['LV outlet inner diameter'] = 0.35
         options['LV outlet wall thickness'] = 0.02
         options['RV outlet inner diameter'] = 0.31
@@ -71,6 +73,7 @@ class MeshType_3d_heartventriclesbase2(object):
             'Atrial base slope degrees',
             'Base height',
             'Base thickness',
+            'Fibrous ring thickness',
             'LV outlet inner diameter',
             'LV outlet wall thickness',
             'RV outlet inner diameter',
@@ -103,6 +106,7 @@ class MeshType_3d_heartventriclesbase2(object):
             'Atrial base slope degrees',
             'Base height',
             'Base thickness',
+            'Fibrous ring thickness',
             'LV outlet inner diameter',
             'LV outlet wall thickness',
             'RV outlet inner diameter',
@@ -154,6 +158,7 @@ class MeshType_3d_heartventriclesbase2(object):
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
         baseHeight = options['Base height']
         baseThickness = options['Base thickness']
+        fibrousRingThickness = options['Fibrous ring thickness']
         lvOutletInnerRadius = options['LV outlet inner diameter']*0.5
         lvOutletWallThickness = options['LV outlet wall thickness']
         lvOutletOuterRadius = lvOutletInnerRadius + lvOutletWallThickness
@@ -170,7 +175,9 @@ class MeshType_3d_heartventriclesbase2(object):
         rvGroup = findAnnotationGroupByName(annotationGroups, 'right ventricle')
         vSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interventricular septum')
         conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
-        annotationGroups += [ conusArteriosusGroup ]
+        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
+        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
+        annotationGroups += [ conusArteriosusGroup, lFibrousRingGroup, rFibrousRingGroup ]
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -242,12 +249,16 @@ class MeshType_3d_heartventriclesbase2(object):
 
         #print('baseRotationRadians', baseRotationRadians)
 
+        # calculate atria base inlet slope
+        aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
+        aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
+
         cosOutletInclineRadians = math.cos(vOutletInclineRadians)
         sinOutletInclineRadians = math.sin(vOutletInclineRadians)
         lvOutletCentre = [
             cx[0] - ax[0]*lvOutletOuterRadius,
             cx[1] - ax[1]*lvOutletOuterRadius,
-            baseHeight + baseThickness + sinOutletInclineRadians*lvOutletOuterRadius ]
+            baseHeight + baseThickness - aBaseSlopeHeight + sinOutletInclineRadians*lvOutletOuterRadius ]
 
         radiansPerElementAroundOutlet = 2.0*math.pi/elementsCountAroundOutlet
         x = [ 0.0, 0.0, 0.0 ]
@@ -359,9 +370,6 @@ class MeshType_3d_heartventriclesbase2(object):
 
         # Atria nodes
 
-        aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
-        aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
-
         # Previously computed these:
         #aInnerMajorMag = 0.9*(lvOuterRadius - lvFreeWallThickness - 0.5*vSeptumBaseRadialDisplacement)
         #aInnerMinorMag = 1.0*(lvOuterRadius - lvFreeWallThickness - lvOutletOuterRadius)
@@ -417,12 +425,8 @@ class MeshType_3d_heartventriclesbase2(object):
         raCentreX = cruxCentre[0] - laCentreModX*cosRotRadians + laCentreModY*-sinRotRadians
         raCentreY = cruxCentre[1] - laCentreModX*sinRotRadians + laCentreModY*cosRotRadians
 
-        aCentreOuterZ = cruxRight[2]
-        aCentreInnerZ = cruxRight[2] - aBaseSlopeHeight
-        #aCentreOuterZ = cruxCentre[2]
-        #aCentreInnerZ = aCentreOuterZ - aBaseSlopeHeight
-        #if aCentreInnerZ > cruxRight[2]:
-        #    aCentreInnerZ == cruxRight[2]
+        aCentreOuterZ = baseHeight + baseThickness
+        aCentreInnerZ = aCentreOuterZ - aBaseSlopeHeight
 
         atrialPerimeterLength = getApproximateEllipsePerimeter(aOuterMajorMag, aOuterMinorMag)
         atrialSeptumCentreToCruxLeftLength = getEllipseArcLength(aOuterMajorMag, aOuterMinorMag, laSeptumRadians, laCruxLeftRadians)
@@ -787,6 +791,51 @@ class MeshType_3d_heartventriclesbase2(object):
         lv_bridge_nid1 = nodeIdentifier
         nodeIdentifier += 1
 
+        # create nodes on top of fibrous ring, between ventricles and atria
+        tlaNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+        traNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+        for n3 in range(2):
+
+            for i in range(2):
+                if i == 0:
+                    baNodeId = laNodeId
+                    taNodeId = tlaNodeId
+                else:
+                    baNodeId = raNodeId
+                    taNodeId = traNodeId
+
+                for n1 in range(elementsCountAroundAtria):
+                    if (n3 == 1) and \
+                        (((i == 0) and ((n1 < (lan1CruxLimit - 1)) or (n1 > (lan1SeptumLimit + 2)))) or \
+                         ((i == 1) and ((n1 < ran1SeptumLimit) or (n1 > ran1CruxLimit)))):
+                        # get node from other side below
+                        continue
+
+                    node = nodes.findNodeByIdentifier(baNodeId[n3][n1])
+                    cache.setNode(node)
+                    result, x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+                    result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
+                    result, dx_ds2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3 )
+                    result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3 )
+                    x[2] += fibrousRingThickness
+                    if (n3 == 1) and (((i == 0) and ((n1 == 1) or (n1 == 2))) or ((i == 1) and (n1 == (elementsCountAroundAtria - 2)))):
+                        dx_ds1 = [ -d for d in dx_ds1 ]
+                        dx_ds3 = [ -d for d in dx_ds3 ]
+
+                    taNodeId[n3][n1] = nodeIdentifier
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                    result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                    result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                    nodeIdentifier += 1
+
+        # tie up overlaps
+        tlaNodeId[1][ 0] = traNodeId[0][0]
+        traNodeId[1][-1] = tlaNodeId[1][1]
+        traNodeId[1][ 0] = tlaNodeId[0][0]
+
         #################
         # Create elements
         #################
@@ -797,6 +846,8 @@ class MeshType_3d_heartventriclesbase2(object):
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
         conusArteriosusMeshGroup = conusArteriosusGroup.getMeshGroup(mesh)
+        lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
+        rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
@@ -1256,6 +1307,111 @@ class MeshType_3d_heartventriclesbase2(object):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
+        #print('blaNodeId', laNodeId)
+        #print('tlaNodeId', tlaNodeId)
+        #print('braNodeId', raNodeId)
+        #print('traNodeId', traNodeId)
+
+        # fibrous ring
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives, linearAxis = 2, d_ds1 = Node.VALUE_LABEL_D_DS1, d_ds2 = Node.VALUE_LABEL_D_DS3)
+        eftFibrousRing = bicubichermitelinear.createEftBasic()
+        for i in range(2):
+            if i == 0:
+                baNodeId = laNodeId
+                taNodeId = tlaNodeId
+                meshGroupsSide = [ lFibrousRingMeshGroup ]
+            else:
+                baNodeId = raNodeId
+                taNodeId = traNodeId
+                meshGroupsSide = [ rFibrousRingMeshGroup ]
+            for e1 in range(elementsCountAroundAtria + 2):
+
+                if (i == 1) and (e1 < 4):
+                    continue
+
+                if e1 < 4:
+                    meshGroups = [ lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
+                else:
+                    meshGroups = meshGroupsSide
+
+                eft1 = eftFibrousRing
+                if (e1 == 0) or (e1 == 3):
+                    eft1 = bicubichermitelinear.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    if e1 == 0:
+                        nids = [ laNodeId[0][-1], raNodeId[0][ 1], tlaNodeId[0][-1], traNodeId[0][ 1], \
+                                 laNodeId[1][-1], raNodeId[1][ 1], tlaNodeId[1][-1], traNodeId[1][ 1] ]
+                    else:
+                        nids = [ raNodeId[0][-1], laNodeId[0][ 1], traNodeId[0][-1], tlaNodeId[0][ 1], \
+                                 laNodeId[1][ 1], tlaNodeId[1][ 1] ]
+                        # 6 node fibrous ring crux, collapse xi1 on xi3 == 1
+                        remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                        remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                        remapEftLocalNodes(eft1, 6, ln_map)
+                elif e1 == 1:
+                    nids = [ laNodeId[0][-1], laNodeId[0][ 0], tlaNodeId[0][-1], tlaNodeId[0][ 0], \
+                                raNodeId[0][ 1], raNodeId[0][ 0], traNodeId[0][ 1], traNodeId[0][ 0] ]
+                    eft1 = bicubichermitelinear.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                elif e1 == 2:
+                    nids = [ laNodeId[0][ 0], laNodeId[0][ 1], tlaNodeId[0][ 0], tlaNodeId[0][ 1], \
+                             raNodeId[0][ 0], raNodeId[0][-1], traNodeId[0][ 0], traNodeId[0][-1] ]
+                    eft1 = bicubichermitelinear.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scaleEftNodeValueLabels(eft1, [ 5, 7 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                else:
+                    ea = e1 - 3
+                    eb = ea + 1 - elementsCountAroundAtria
+                    nids = [ baNodeId[0][ea], baNodeId[0][eb], taNodeId[0][ea], taNodeId[0][eb], \
+                             baNodeId[1][ea], baNodeId[1][eb], taNodeId[1][ea], taNodeId[1][eb] ]
+                    if ((i == 0) and ((e1 == 4) or (e1 == 5))) or ((i == 1) and (e1 >= elementsCountAroundAtria)):
+                        eft1 = bicubichermitelinear.createEftBasic()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        if e1 == 4:
+                            scaleEftNodeValueLabels(eft1, [ 6 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                            remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        elif e1 == 5:
+                            scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                            #remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                        elif e1 == elementsCountAroundAtria:
+                            scaleEftNodeValueLabels(eft1, [ 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                            #remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        else:  # e1 == (elementsCountAroundAtria + 1)
+                            scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                            remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+
+                result = elementtemplate1.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if eft1.getNumberOfLocalScaleFactors() == 1:
+                    result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                else:
+                    result3 = 1
+                #print(i, e1, 'create element fr', elementIdentifier, result, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
         fm.endChange()
         return annotationGroups
 
@@ -1275,17 +1431,20 @@ class MeshType_3d_heartventriclesbase2(object):
         startBaseLvElementIdentifier = element.getIdentifier()
         startBaseRvElementIdentifier = startBaseLvElementIdentifier + 19
         limitBaseRvElementIdentifier = startBaseRvElementIdentifier + 15
-
+        limitFibrousRingElementIdentifier = limitBaseRvElementIdentifier + 16
         while element.isValid():
             numberInXi1 = refineElementsCountSurface
             numberInXi2 = refineElementsCountSurface
             elementId = element.getIdentifier()
             if elementId < startBaseRvElementIdentifier:
                 numberInXi3 = refineElementsCountThroughLVWall
-            else:  # elif elementId < limitLvOutletElementIdentifier:
+            elif elementId < limitBaseRvElementIdentifier:
+                numberInXi3 = refineElementsCountThroughRVWall
+            else:  # elementId < limitFibrousRingElementIdentifier:
+                numberInXi2 = 1
                 numberInXi3 = refineElementsCountThroughRVWall
             meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
-            if elementId == (limitBaseRvElementIdentifier - 1):
+            if elementId == (limitFibrousRingElementIdentifier - 1):
                 return  # finish on last so can continue in full heart mesh
             element = meshrefinement._sourceElementiterator.next()
 
