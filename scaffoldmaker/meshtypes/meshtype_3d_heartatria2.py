@@ -37,11 +37,11 @@ class MeshType_3d_heartatria2(object):
             'Atria outer height' : 0.35,
             'Atria outer major arc up degrees' : 100.0,
             'Atria outer minor arc up degrees' : 120.0,
-            'Atrial crux side offset' : 0.195*math.sin(math.pi/3.0), # from ventriclesbase2 LV outlet inner radius + wall thickness
             'Atrial septum thickness' : 0.06,
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
+            'LV outlet outer diameter' : 0.39,
             'Left pulmonary vein inner diameter' : 0.08,
             'Left pulmonary vein wall thickness' : 0.007,
             'Right pulmonary vein inner diameter' : 0.09,
@@ -68,11 +68,11 @@ class MeshType_3d_heartatria2(object):
             'Atria outer height',
             'Atria outer major arc up degrees',
             'Atria outer minor arc up degrees',
-            'Atrial crux side offset',
             'Atrial septum thickness',
             'Atrial free wall thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
+            'LV outlet outer diameter',
             'Left pulmonary vein inner diameter',
             'Left pulmonary vein wall thickness',
             'Right pulmonary vein inner diameter',
@@ -125,8 +125,8 @@ class MeshType_3d_heartatria2(object):
             'Superior vena cava wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['Atrial crux side offset'] < 0.55*options['Atrial septum thickness']:
-            options['Atrial crux side offset'] = 0.55*options['Atrial septum thickness']
+        if options['LV outlet outer diameter'] < options['Atrial septum thickness']:
+            options['LV outlet outer diameter'] =options['Atrial septum thickness']
         for key in [
             'Atria major axis rotation degrees']:
             if options[key] < -75.0:
@@ -156,7 +156,7 @@ class MeshType_3d_heartatria2(object):
         aOuterMajorArcUpRadians = math.radians(options['Atria outer major arc up degrees'])
         aOuterMinorArcUpRadians = math.radians(options['Atria outer minor arc up degrees'])
         aOuterHeight = options['Atria outer height']
-        aCruxSideOffset = options['Atrial crux side offset']
+        lvOutletOuterDiameter = options['LV outlet outer diameter']
         aSeptumThickness = options['Atrial septum thickness']
         aFreeWallThickness = options['Atrial free wall thickness']
         aBaseWallThickness = options['Atrial base wall thickness']
@@ -230,9 +230,9 @@ class MeshType_3d_heartatria2(object):
         laCentreX = -0.5*aSeptumThickness - axInner*math.cos(laSeptumRadians) - bxInner*math.sin(laSeptumRadians)
         #laCruxLeftRadians = updateEllipseAngleByArcLength(aBaseInnerMajorMag, aBaseInnerMinorMag, laSeptumRadians, \
         #    (aSeptumBaseLength/elementsCountAroundAtrialSeptum)*(0.5*elementsCountAroundAtrialSeptum + 1.0))
-        # calculate crux left from aCruxSideOffset = (lvOutletInnerRadius + lvOutletWallThickness)*math.sin(math.pi/3.0)
         axOuter = (aBaseInnerMajorMag + aBaseSlopeLength)*math.cos(aMajorAxisRadians)
         bxOuter = (aBaseInnerMinorMag + aBaseSlopeLength)*math.sin(aMajorAxisRadians)
+        aCruxSideOffset = 0.5*lvOutletOuterDiameter*math.sin(math.pi/3.0)
         laCruxLeftRadians = getEllipseRadiansToX(axOuter, bxOuter, -aCruxSideOffset - laCentreX, math.pi*0.5)
         #print('axInner',axInner,'bxInner',bxInner,'laCentreX',laCentreX)
         #print('laSeptumRadians',laSeptumRadians,'laCruxLeftRadians',laCruxLeftRadians)
