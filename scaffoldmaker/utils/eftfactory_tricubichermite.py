@@ -510,13 +510,16 @@ class eftfactory_tricubichermite:
         eft.setTermNodeParameter(n*8 + 5, 4, localNode2, Node.VALUE_LABEL_D_DS3, 1)
         eft.setTermScaling(n*8 + 5, 4, [sfneg1, sf0125])
 
-    def replaceElementWithInlet4(self, origElement, startElementId, nodetemplate, startNodeId, tubeLength, innerRadius, wallThickness, meshGroups = [], revCorners = []):
+    def replaceElementWithInlet4(self, origElement, startElementId, nodetemplate, startNodeId, tubeLength, innerRadius, wallThickness, \
+            meshGroups = [], revCorners = [], inclineRadians = -0.25*math.pi, inclineAxis = 2):
         '''
         Replace origElement with 4 element X-layout tube inlet.
         Inlet axis is at given length from centre of xi3=0 face, oriented with dx/dxi1.
         8 new nodes are created. Original element is destroyed.
         :param meshGroups:  Optional list of Zinc MeshGroup for adding new elements to.
         :param revCorners: Optional list of corners to reverse xi1 and xi2 from 1 to 4, indicating local node and local node + 4
+        :param inclineRadians: Angle from centre normal toward positive inclineAxis derivative for inlet orientation.
+        :param inclineAxis: 1 or 2 (surface xi direction)
         '''
         fm = self._mesh.getFieldmodule()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -530,10 +533,16 @@ class eftfactory_tricubichermite:
         resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
         resultb, b = coordinates.evaluateDerivative(diff2, cache, 3)
         n = vector.normalise(vector.crossproduct3(a, b))
+        t = vector.normalise(a if (inclineAxis == 1) else b)
+        n = [ (math.cos(inclineRadians)*n[c] + math.sin(inclineRadians)*t[c]) for c in range(3) ]
         #print(resulta, 'a =', a, ',', resultb, ' b=', b, ' fc=', fc, ' n=',n)
         ic = [ (fc[i] + tubeLength*n[i]) for i in range(3) ]
-        na = vector.normalise(a)
-        nb = vector.normalise(b)
+        if inclineAxis == 2:
+            na = vector.normalise(a)
+            nb = vector.normalise(vector.crossproduct3(n, a))
+        else:
+            nb = vector.normalise(b)
+            na = vector.normalise(vector.crossproduct3(b, n))
         a = vector.normalise([ -(na[i] + nb[i]) for i in range(3) ])
         b = vector.normalise(vector.crossproduct3(a, n))
 

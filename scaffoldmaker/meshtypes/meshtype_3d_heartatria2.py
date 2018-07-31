@@ -1323,12 +1323,16 @@ class MeshType_3d_heartatria2(object):
         pvMeshGroups = [ lipvMeshGroup, lspvMeshGroup, ripvMeshGroup, rspvMeshGroup ]
         pvInnerRadii = [ lpvInnerRadius, lpvInnerRadius, rpvInnerRadius, rpvInnerRadius ]
         pvWallThickesses = [ lpvWallThickness, lpvWallThickness, rpvWallThickness, rpvWallThickness ]
+        pvInclineRadians = [ -0.25*math.pi, -0.25*math.pi, 0.25*math.pi, -0.25*math.pi ]
+        pvInclineAxis = [ 2, 2, 1, 1 ]
 
         for i in range(len(pvElementIds)):
             element = mesh.findElementByIdentifier(pvElementIds[i])
-            pvLength = pvInnerRadii[i]
+            pvLength = pvInnerRadii[i]*2.0
             tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, \
-                pvLength, pvInnerRadii[i], pvWallThickesses[i], meshGroups = [ laMeshGroup, pvMeshGroups[i] ], revCorners = ([ 3, 4 ] if (i == 3) else []))
+                pvLength, pvInnerRadii[i], pvWallThickesses[i], meshGroups = [ laMeshGroup, pvMeshGroups[i] ], \
+                revCorners = ([ 3, 4 ] if (i == 3) else []), inclineRadians = pvInclineRadians[i], \
+                inclineAxis = pvInclineAxis[i])
             elementIdentifier += 4
             nodeIdentifier += 8
 
