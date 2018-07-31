@@ -33,7 +33,7 @@ class MeshType_3d_heartventricles2(object):
             'Number of elements around ventricular septum' : 7,
             'Number of elements up LV apex' : 1,
             'Number of elements up ventricular septum' : 4,
-            'LV outer height' : 1.0,
+            'LV outer height' : 0.95,
             'LV outer radius' : 0.5,
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
@@ -113,8 +113,8 @@ class MeshType_3d_heartventricles2(object):
         elif options['RV arc around degrees'] > 270.0:
             options['RV arc around degrees'] = 270.0
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -853,9 +853,8 @@ class MeshType_3d_heartventricles2(object):
         fm.endChange()
         return annotationGroups
 
-
-    @staticmethod
-    def refineMesh(meshrefinement, options):
+    @classmethod
+    def refineMesh(cls, meshrefinement, options):
         """
         Refine source mesh into separate region, with change of basis.
         Stops at end of ventricles, hence can be called from ventriclesbase.

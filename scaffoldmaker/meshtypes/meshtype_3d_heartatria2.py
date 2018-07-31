@@ -30,26 +30,26 @@ class MeshType_3d_heartatria2(object):
         return {
             'Number of elements around atria' : 8,
             'Number of elements around atrial septum' : 2,
-            'Number of elements up atria' : 3,
-            'Atria base inner major axis length' : 0.5,  # 0.549
-            'Atria base inner minor axis length' : 0.35,  # 0.37
+            'Number of elements up atria' : 4,
+            'Atria base inner major axis length' : 0.55,
+            'Atria base inner minor axis length' : 0.42,
             'Atria major axis rotation degrees' : 40.0,
-            'Atria outer height' : 0.35,
+            'Atria outer height' : 0.4,
             'Atria outer major arc up degrees' : 100.0,
-            'Atria outer minor arc up degrees' : 120.0,
-            'Atrial crux side offset' : 0.195*math.sin(math.pi/3.0), # from ventriclesbase2 LV outlet inner radius + wall thickness
+            'Atria outer minor arc up degrees' : 125.0,
             'Atrial septum thickness' : 0.06,
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
-            'Left pulmonary vein inner diameter' : 0.08,
-            'Left pulmonary vein wall thickness' : 0.007,
-            'Right pulmonary vein inner diameter' : 0.09,
-            'Right pulmonary vein wall thickness' : 0.007,
-            'Inferior vena cava inner diameter' : 0.16,
-            'Inferior vena cava wall thickness' : 0.012,
-            'Superior vena cava inner diameter' : 0.14,
-            'Superior vena cava wall thickness' : 0.012,
+            'LV outlet outer diameter' : 0.35,
+            'Left pulmonary vein inner diameter' : 0.11,
+            'Left pulmonary vein wall thickness' : 0.009,
+            'Right pulmonary vein inner diameter' : 0.12,
+            'Right pulmonary vein wall thickness' : 0.009,
+            'Inferior vena cava inner diameter' : 0.22,
+            'Inferior vena cava wall thickness' : 0.015,
+            'Superior vena cava inner diameter' : 0.2,
+            'Superior vena cava wall thickness' : 0.015,
             'Refine' : False,
             'Refine number of elements surface' : 4,
             'Refine number of elements through atrial wall' : 1,
@@ -68,11 +68,11 @@ class MeshType_3d_heartatria2(object):
             'Atria outer height',
             'Atria outer major arc up degrees',
             'Atria outer minor arc up degrees',
-            'Atrial crux side offset',
             'Atrial septum thickness',
             'Atrial free wall thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
+            'LV outlet outer diameter',
             'Left pulmonary vein inner diameter',
             'Left pulmonary vein wall thickness',
             'Right pulmonary vein inner diameter',
@@ -98,8 +98,8 @@ class MeshType_3d_heartatria2(object):
         # need even number of elements around free wall
         if ((options['Number of elements around atria'] - options['Number of elements around atrial septum']) % 2) == 1:
             options['Number of elements around atria'] += 1
-        if options['Number of elements up atria'] < 2:
-            options['Number of elements up atria'] = 2
+        if options['Number of elements up atria'] < 3:
+            options['Number of elements up atria'] = 3
         for key in [
             'Atria outer major arc up degrees',
             'Atria outer minor arc up degrees']:
@@ -125,8 +125,8 @@ class MeshType_3d_heartatria2(object):
             'Superior vena cava wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['Atrial crux side offset'] < 0.55*options['Atrial septum thickness']:
-            options['Atrial crux side offset'] = 0.55*options['Atrial septum thickness']
+        if options['LV outlet outer diameter'] < options['Atrial septum thickness']:
+            options['LV outlet outer diameter'] =options['Atrial septum thickness']
         for key in [
             'Atria major axis rotation degrees']:
             if options[key] < -75.0:
@@ -139,8 +139,8 @@ class MeshType_3d_heartatria2(object):
             if options[key] < 1:
                 options[key] = 1
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -156,7 +156,7 @@ class MeshType_3d_heartatria2(object):
         aOuterMajorArcUpRadians = math.radians(options['Atria outer major arc up degrees'])
         aOuterMinorArcUpRadians = math.radians(options['Atria outer minor arc up degrees'])
         aOuterHeight = options['Atria outer height']
-        aCruxSideOffset = options['Atrial crux side offset']
+        lvOutletOuterRadius = 0.5*options['LV outlet outer diameter']
         aSeptumThickness = options['Atrial septum thickness']
         aFreeWallThickness = options['Atrial free wall thickness']
         aBaseWallThickness = options['Atrial base wall thickness']
@@ -206,10 +206,13 @@ class MeshType_3d_heartatria2(object):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = 1
+        nodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
 
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
+
+        aBaseOuterMajorMag = aBaseInnerMajorMag + aBaseSlopeLength
+        aBaseOuterMinorMag = aBaseInnerMinorMag + aBaseSlopeLength
 
         # GRC fudge factor:
         aOuterSeptumHeight = 0.8*aOuterHeight
@@ -218,8 +221,8 @@ class MeshType_3d_heartatria2(object):
 
         # convert base major/minor sizes to equator using arc up
 
-        aEquatorOuterMajorMag = (aBaseInnerMajorMag + aBaseSlopeLength)/math.sin(aOuterMajorArcUpRadians)
-        aEquatorOuterMinorMag = (aBaseInnerMinorMag + aBaseSlopeLength)/math.sin(aOuterMinorArcUpRadians)
+        aEquatorOuterMajorMag = aBaseOuterMajorMag/math.sin(aOuterMajorArcUpRadians)
+        aEquatorOuterMinorMag = aBaseOuterMinorMag/math.sin(aOuterMinorArcUpRadians)
         aEquatorInnerMajorMag = aEquatorOuterMajorMag - aFreeWallThickness
         aEquatorInnerMinorMag = aEquatorOuterMinorMag - aFreeWallThickness
 
@@ -230,9 +233,9 @@ class MeshType_3d_heartatria2(object):
         laCentreX = -0.5*aSeptumThickness - axInner*math.cos(laSeptumRadians) - bxInner*math.sin(laSeptumRadians)
         #laCruxLeftRadians = updateEllipseAngleByArcLength(aBaseInnerMajorMag, aBaseInnerMinorMag, laSeptumRadians, \
         #    (aSeptumBaseLength/elementsCountAroundAtrialSeptum)*(0.5*elementsCountAroundAtrialSeptum + 1.0))
-        # calculate crux left from aCruxSideOffset = (lvOutletInnerRadius + lvOutletWallThickness)*math.sin(math.pi/3.0)
-        axOuter = (aBaseInnerMajorMag + aBaseSlopeLength)*math.cos(aMajorAxisRadians)
-        bxOuter = (aBaseInnerMinorMag + aBaseSlopeLength)*math.sin(aMajorAxisRadians)
+        axOuter = aBaseOuterMajorMag*math.cos(aMajorAxisRadians)
+        bxOuter = aBaseOuterMinorMag*math.sin(aMajorAxisRadians)
+        aCruxSideOffset = lvOutletOuterRadius*math.sin(math.pi/3.0)
         laCruxLeftRadians = getEllipseRadiansToX(axOuter, bxOuter, -aCruxSideOffset - laCentreX, math.pi*0.5)
         #print('axInner',axInner,'bxInner',bxInner,'laCentreX',laCentreX)
         #print('laSeptumRadians',laSeptumRadians,'laCruxLeftRadians',laCruxLeftRadians)
@@ -250,6 +253,20 @@ class MeshType_3d_heartatria2(object):
         aInnerMajorScaleZ = (aOuterHeight - aFreeWallThickness)/(1.0 - math.cos(aOuterMajorArcUpRadians))
         zOffset = aOuterHeight - aOuterScaleZ  # so base outer is at z = 0
 
+        cruxLeftX = -aCruxSideOffset
+        #cruxLeftX = laCentreX + math.cos(laCruxLeftRadians)*aBaseOuterMajorMag*math.cos(-aMajorAxisRadians) \
+        #                      + math.sin(laCruxLeftRadians)*aBaseOuterMinorMag*-math.sin(-aMajorAxisRadians)
+        cruxLeftY = laCentreY + math.cos(laCruxLeftRadians)*aBaseOuterMajorMag*math.sin(-aMajorAxisRadians) \
+                              + math.sin(laCruxLeftRadians)*aBaseOuterMinorMag*math.cos(-aMajorAxisRadians)
+        #print('crux left', cruxLeftX, cruxLeftY)
+
+        cruxCentreX = 0.0
+        cruxCentreY = cruxLeftY - lvOutletOuterRadius*(1.0 - math.cos(math.pi/3.0))
+        #node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #cache.setNode(node)
+        #result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ cruxCentreX, cruxCentreY, 0.0 ])
+        #nodeIdentifier += 1
+
         aMinorToMajorRadians = aOuterMajorArcUpRadians/aOuterMinorArcUpRadians
 
         laNodeId = [ [], [] ]
@@ -257,15 +274,16 @@ class MeshType_3d_heartatria2(object):
         laApexNodeId = []
         raApexNodeId = []
 
+        # crux to be collapsed
+        n1CruxL = elementsCountAroundAtrialSeptum//2
+        n1CruxR = elementsCountAroundAtria - ((elementsCountAroundAtrialSeptum + 1)//2)
         n1SeptumRange = []
         for n1 in range(elementsCountAroundAtria):
-            if (n1 < (elementsCountAroundAtrialSeptum//2)) or (n1 > (elementsCountAroundAtria - ((elementsCountAroundAtrialSeptum + 1)//2))):
+            if (n1 < n1CruxL) or (n1 > n1CruxR):
                 n1SeptumRange.append(n1)
         #print('n1SeptumRange', n1SeptumRange)
 
         # compute radians around based on base outer major and minor axis sizes
-        aBaseOuterMajorMag = aBaseInnerMajorMag + aBaseSlopeLength
-        aBaseOuterMinorMag = aBaseInnerMinorMag + aBaseSlopeLength
         atrialPerimeterLength = getApproximateEllipsePerimeter(aBaseOuterMajorMag, aBaseOuterMinorMag)
         atrialSeptumElementLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laSeptumRadians, laCruxLeftRadians) \
             /(0.5*elementsCountAroundAtrialSeptum + 1.0)
@@ -299,6 +317,62 @@ class MeshType_3d_heartatria2(object):
                 elementLength = atrialFreeWallElementLength
             radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, elementLength)
         raRadians = [ 2.0*math.pi - laRadians[n1la2ra[n1]] for n1 in range(elementsCountAroundAtria) ]
+        ran1SeptumLimit = elementsCountAroundAtrialSeptum//2
+        ran1CruxLimit = elementsCountAroundAtria - ran1SeptumLimit - 1
+
+        # detect fibrous ring, means merge with ventriclesbase2
+        laBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+        raBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+        # nodes 3 and 7 of the 3rd fibrous ring element are on base centre of atrial septum
+        leftFibrousRingGroup = fm.findFieldByName('left fibrous ring').castGroup()
+        mergeWithBase = False
+        if leftFibrousRingGroup.isValid():
+            leftFibrousRingMeshGroup = leftFibrousRingGroup.getFieldElementGroup(fm.findMeshByDimension(3)).getMeshGroup()
+            elementiter = leftFibrousRingMeshGroup.createElementiterator()
+            element = elementiter.next()
+            element = elementiter.next()
+            element = elementiter.next()
+            eft1 = element.getElementfieldtemplate(coordinates, -1)
+            aSeptumNode1 = element.getNode(eft1, 3)
+            aSeptumNode2 = element.getNode(eft1, 7)
+            if aSeptumNode1.isValid() and aSeptumNode2.isValid():
+                # transform ventricles and base to align with atria (easier than other way around)
+                cache.setNode(aSeptumNode1)
+                result, sx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                cache.setNode(aSeptumNode2)
+                result, sx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                aSeptumCentreY = laCentreY + math.cos(laSeptumRadians)*aBaseInnerMajorMag*math.sin(-aMajorAxisRadians) \
+                                    + math.sin(laSeptumRadians)*aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)
+                tx1 = [ -0.5*aSeptumThickness, aSeptumCentreY, -aBaseSlopeHeight ]
+                ax1 = vector.normalise([ (sx2[c] - sx1[c]) for c in range(3) ])
+                ax2 = [ -ax1[1], ax1[0], ax1[2] ]
+                ax3 = [ 0.0, 0.0, 1.0 ]
+
+                transmat = fm.createFieldConstant(ax1 + ax2 + ax3)
+                newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, transmat, fm.createFieldSubtract(coordinates, fm.createFieldConstant(sx1))), fm.createFieldConstant(tx1))
+                fieldassignment = coordinates.createFieldassignment(newCoordinates)
+                result = fieldassignment.assign()
+                # get node ids on base to use for first row atria
+                # happen to know last nodes are on fibrous ring, and in which order
+                baseNodeIdentifier = nodeIdentifier
+                for n3 in range(1, -1, -1):
+                    for i in range(1, -1, -1):
+                        aBaseNodeId = laBaseNodeId[n3] if (i == 0) else raBaseNodeId[n3]
+                        for n1 in range(elementsCountAroundAtria - 1, -1, -1):
+                            if (n3 == 1) and \
+                                (((i == 0) and ((n1 < (lan1CruxLimit - 1)) or (n1 > (lan1SeptumLimit + 2)))) or \
+                                 ((i == 1) and ((n1 < ran1SeptumLimit) or (n1 > ran1CruxLimit)))):
+                                # get node from other side below
+                                continue
+                            baseNodeIdentifier -= 1
+                            aBaseNodeId[n1] = baseNodeIdentifier
+                # tie up overlaps - only implemented for elementsCountAroundAtrialSeptum == 2:
+                laBaseNodeId[1][ 0] = raBaseNodeId[0][0]
+                raBaseNodeId[1][-1] = laBaseNodeId[1][1]
+                raBaseNodeId[1][ 0] = laBaseNodeId[0][0]
+                #print('laBaseNodeId', laBaseNodeId)
+                #print('raBaseNodeId', raBaseNodeId)
+                mergeWithBase = True
 
         for n3 in range(2):
 
@@ -395,6 +469,7 @@ class MeshType_3d_heartatria2(object):
                         aLayerNodeId = laLayerNodeId
                         n1Start = lan1CruxLimit - 1
                         n1Stop = lan1SeptumLimit + 1
+                        aBaseNodeId = laBaseNodeId[n3]
                     else:
                         # right
                         centreX = raCentreX
@@ -405,6 +480,7 @@ class MeshType_3d_heartatria2(object):
                         aLayerNodeId = raLayerNodeId
                         n1Start = n1la2ra[lan1SeptumLimit + 1]
                         n1Stop = n1la2ra[lan1CruxLimit - 1]
+                        aBaseNodeId = raBaseNodeId[n3]
 
                     sinMajorAxisRadians = math.sin(majorAxisRadians)
                     cosMajorAxisRadians = math.cos(majorAxisRadians)
@@ -416,57 +492,69 @@ class MeshType_3d_heartatria2(object):
                     #print('n1 range: ', n1Start, n1Stop)
 
                     for n1 in range(elementsCountAroundAtria):
+                        mergeNode = False
+                        if mergeWithBase and (n2 == 0):
+                            aLayerNodeId[n1] = aBaseNodeId[n1]
+                            node = nodes.findNodeByIdentifier(aLayerNodeId[n1])
+                            mergeNode = True
                         if (n2 > 1) and ((n1 <= n1Start) or (n1 >= n1Stop)):
                             continue
                         radiansAround = aRadians[n1]
                         cosRadiansAround = math.cos(radiansAround)
                         sinRadiansAround = math.sin(radiansAround)
-                        if (n3 == 1) and (n1 in n1SeptumRange):
+                        if (n3 == 1) and ((n1 in n1SeptumRange) or ((n2 == 0) and (i == 1) and (n1 == n1CruxR))):
                             continue  # outer septum node created by other side
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        aLayerNodeId[n1] = nodeIdentifier
+                        if not mergeNode:
+                            node = nodes.createNode(nodeIdentifier, nodetemplate)
+                            aLayerNodeId[n1] = nodeIdentifier
                         cache.setNode(node)
-                        x = [
-                            centreX + cosRadiansAround*aMajorX + sinRadiansAround*aMinorX,
-                            centreY + cosRadiansAround*aMajorY + sinRadiansAround*aMinorY,
-                            z ]
-                        d1x = -sinRadiansAround*aMajorX + cosRadiansAround*aMinorX
-                        d1y = -sinRadiansAround*aMajorY + cosRadiansAround*aMinorY
-                        scale1 = aDerivatives[n1]/math.sqrt(d1x*d1x + d1y*d1y)
-                        dx_ds1 = [ d1x*scale1, d1y*scale1, 0.0 ]
+                        if (n3 == 1) and (i == 0) and (n2 == 0) and (n1 == n1CruxL):
+                            x = [ cruxCentreX, cruxCentreY, z ]
+                            dx_ds1 = [ math.pi*lvOutletOuterRadius/-3.0, 0.0, 0.0 ]
+                            dx_ds2 = [ 0.0, 0.0, aSeptumBaseRowHeight + 2.0*aBaseSlopeHeight ]
+                        else:
+                            x = [
+                                centreX + cosRadiansAround*aMajorX + sinRadiansAround*aMinorX,
+                                centreY + cosRadiansAround*aMajorY + sinRadiansAround*aMinorY,
+                                z ]
+                            d1x = -sinRadiansAround*aMajorX + cosRadiansAround*aMinorX
+                            d1y = -sinRadiansAround*aMajorY + cosRadiansAround*aMinorY
+                            scale1 = aDerivatives[n1]/math.sqrt(d1x*d1x + d1y*d1y)
+                            dx_ds1 = [ d1x*scale1, d1y*scale1, 0.0 ]
 
-                        d2Minor = [
-                             cosRadiansUp*aEquatorMinorMag*sinMajorAxisRadians,
-                            -cosRadiansUp*aEquatorMinorMag*cosMajorAxisRadians,
-                            -sinRadiansUp*aScaleZ ]
-                        minorScale = elementSizeUpMinor/vector.magnitude(d2Minor)
-                        d2Minor = [ d*minorScale for d in d2Minor ]
-                        d2Major = [
-                            -cosRadiansUpMajor*aEquatorMajorMag*cosMajorAxisRadians,
-                            -cosRadiansUpMajor*aEquatorMajorMag*sinMajorAxisRadians,
-                            -sinRadiansUpMajor*aMajorScaleZ ]
-                        majorScale = derivativesUpMajor[n2]/vector.magnitude(d2Major)
-                        d2Major = [ d*majorScale for d in d2Major ]
+                            d2Minor = [
+                                 cosRadiansUp*aEquatorMinorMag*sinMajorAxisRadians,
+                                -cosRadiansUp*aEquatorMinorMag*cosMajorAxisRadians,
+                                -sinRadiansUp*aScaleZ ]
+                            minorScale = elementSizeUpMinor/vector.magnitude(d2Minor)
+                            d2Minor = [ d*minorScale for d in d2Minor ]
+                            d2Major = [
+                                -cosRadiansUpMajor*aEquatorMajorMag*cosMajorAxisRadians,
+                                -cosRadiansUpMajor*aEquatorMajorMag*sinMajorAxisRadians,
+                                -sinRadiansUpMajor*aMajorScaleZ ]
+                            majorScale = derivativesUpMajor[n2]/vector.magnitude(d2Major)
+                            d2Major = [ d*majorScale for d in d2Major ]
 
-                        dx_ds2 = [
-                            cosRadiansAround*d2Major[0] + sinRadiansAround*d2Minor[0],
-                            cosRadiansAround*d2Major[1] + sinRadiansAround*d2Minor[1],
-                            cosRadiansAround*cosRadiansAround*d2Major[2] + sinRadiansAround*sinRadiansAround*d2Minor[2] ]
+                            dx_ds2 = [
+                                cosRadiansAround*d2Major[0] + sinRadiansAround*d2Minor[0],
+                                cosRadiansAround*d2Major[1] + sinRadiansAround*d2Minor[1],
+                                cosRadiansAround*cosRadiansAround*d2Major[2] + sinRadiansAround*sinRadiansAround*d2Minor[2] ]
 
-                        if n1 in n1SeptumRange:
-                            if n2 == 1:
-                                x[2] = aSeptumBaseRowHeight
-                                dx_ds1[2] = 0.0
-                                if i == 0:
-                                    nx = min(x[0], -0.5*aSeptumThickness)
-                                else:
-                                    nx = max(x[0],  0.5*aSeptumThickness)
-                                if nx != x[0]:
-                                    x[0] = nx
-                                    dx_ds1[0] = 0.0
-                            dx_ds2 = [ 0.0, 0.0, (aSeptumBaseRowHeight + 2.0*aBaseSlopeHeight) if (n2 == 0) else aSeptumBaseRowHeight]
+                            if n1 in n1SeptumRange:
+                                if n2 == 1:
+                                    x[2] = aSeptumBaseRowHeight
+                                    dx_ds1[2] = 0.0
+                                    if i == 0:
+                                        nx = min(x[0], -0.5*aSeptumThickness)
+                                    else:
+                                        nx = max(x[0],  0.5*aSeptumThickness)
+                                    if nx != x[0]:
+                                        x[0] = nx
+                                        dx_ds1[0] = 0.0
+                                dx_ds2 = [ 0.0, 0.0, (aSeptumBaseRowHeight + 2.0*aBaseSlopeHeight) if (n2 == 0) else aSeptumBaseRowHeight ]
 
-                        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        if not mergeNode:
+                            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                         # derivative 3 is set later
@@ -525,6 +613,7 @@ class MeshType_3d_heartatria2(object):
                 result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
 
         # transfer inner septum nodes to outer on opposite side, set derivative 3 to be node difference
+        raNodeId[1][0][n1CruxR] = laNodeId[1][0][n1CruxL]
         for n2 in range(elementsCountUpAtria):
             for n1 in n1SeptumRange:
                 na1 = n1
@@ -546,6 +635,20 @@ class MeshType_3d_heartatria2(object):
                         dx_ds3 = [ -d for d in dx_ds3 ]
                     cache.setNode(node_o)
                     result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+
+        # fix crux centre dx_ds3:
+        cache.setNode(nodes.findNodeByIdentifier(laNodeId[0][0][n1CruxL]))
+        result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+        cache.setNode(nodes.findNodeByIdentifier(raNodeId[0][0][n1CruxR]))
+        result, x2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+        cache.setNode(nodes.findNodeByIdentifier(laNodeId[1][0][n1CruxL]))
+        result, xc = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
+        d1 = [ (xc[c] - x1[c]) for c in range(3) ]
+        d2 = [ (xc[c] - x2[c]) for c in range(3) ]
+        dx_ds3 = [ d1[0] + d2[0], d1[1] + d2[1], d1[2] + d2[2] ]
+        scale = vector.magnitude(d1)/vector.magnitude(dx_ds3)
+        dx_ds3 = [ d*scale for d in dx_ds3 ]
+        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3 )
 
         # left atrial septum posterior/anterior nodeId[n3][n2], also mid (top) septum
         laspNodeId = [ [ None ]*(elementsCountUpAtria + 1), [ None ]*(elementsCountUpAtria + 1) ]
@@ -776,9 +879,9 @@ class MeshType_3d_heartatria2(object):
         # Create elements
         #################
 
-        elementIdentifier = 1
-
         mesh = fm.findMeshByDimension(3)
+
+        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
 
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)
@@ -838,6 +941,8 @@ class MeshType_3d_heartatria2(object):
                         setEftScaleFactorIds(eft1, [1], [])
                         if (e1 == 0) or (e1 == (e1FreeWallStart - 1)):
                             meshGroups = [ laMeshGroup, raMeshGroup ]
+                            remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                             if e1 == 0:
                                 na1 = e1 + e1n1FreeWallStart + 2
                                 nb1 = n1la2ra[na1]
@@ -847,9 +952,13 @@ class MeshType_3d_heartatria2(object):
                                 na1 = e1 + e1n1FreeWallStart + 1
                                 nb1 = n1la2ra[na1]
                                 nids = [ bNodeId[0][e2][nb1], aNodeId[0][e2][na1], bNodeId[0][e2 + 1][nb1], aNodeId[0][e2 + 1][na1], \
-                                         bNodeId[1][e2][nb1], aNodeId[1][e2][na1], bNodeId[1][e2 + 1][nb1], aNodeId[1][e2 + 1][na1] ]
-                            remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                            remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                                         aNodeId[1][e2][na1], bNodeId[1][e2 + 1][nb1], aNodeId[1][e2 + 1][na1] ]
+                                # 7 node crux collapsed in xi1 on xi2 == 0, xi3 == 1
+                                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [])
+                                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                                ln_map = [ 1, 2, 3, 4, 5, 5, 6, 7 ]
+                                remapEftLocalNodes(eft1, 7, ln_map)
                         else:
                             meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
                             na1 = e1 + e1n1FreeWallStart + 1
@@ -888,6 +997,15 @@ class MeshType_3d_heartatria2(object):
                         nids = [ aNodeId[0][e2][na1], aNodeId[0][e2][na2], aNodeId[0][e2 + 1][na1], aNodeId[0][e2 + 1][na2], \
                                  aNodeId[1][e2][na1], aNodeId[1][e2][na2], aNodeId[1][e2 + 1][na1], aNodeId[1][e2 + 1][na2] ]
                         meshGroups = [ laMeshGroup if (i == 0) else raMeshGroup ]
+                        if (e2 == 0) and (((i == 0) and (e1 == e1FreeWallStart)) or ((i == 1) and (e1 == elementsCountAroundAtria + 1))):
+                            eft1 = tricubichermite.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            if i == 0:
+                                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                            else:
+                                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
 
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     result2 = element.setNodesByIdentifier(eft1, nids)
@@ -1205,12 +1323,16 @@ class MeshType_3d_heartatria2(object):
         pvMeshGroups = [ lipvMeshGroup, lspvMeshGroup, ripvMeshGroup, rspvMeshGroup ]
         pvInnerRadii = [ lpvInnerRadius, lpvInnerRadius, rpvInnerRadius, rpvInnerRadius ]
         pvWallThickesses = [ lpvWallThickness, lpvWallThickness, rpvWallThickness, rpvWallThickness ]
+        pvInclineRadians = [ -0.25*math.pi, -0.25*math.pi, 0.25*math.pi, -0.25*math.pi ]
+        pvInclineAxis = [ 2, 2, 1, 1 ]
 
         for i in range(len(pvElementIds)):
             element = mesh.findElementByIdentifier(pvElementIds[i])
-            pvLength = pvInnerRadii[i]
+            pvLength = pvInnerRadii[i]*2.0
             tricubichermite.replaceElementWithInlet4(element, elementIdentifier, nodetemplate, nodeIdentifier, \
-                pvLength, pvInnerRadii[i], pvWallThickesses[i], meshGroups = [ laMeshGroup, pvMeshGroups[i] ], revCorners = ([ 3, 4 ] if (i == 3) else []))
+                pvLength, pvInnerRadii[i], pvWallThickesses[i], meshGroups = [ laMeshGroup, pvMeshGroups[i] ], \
+                revCorners = ([ 3, 4 ] if (i == 3) else []), inclineRadians = pvInclineRadians[i], \
+                inclineAxis = pvInclineAxis[i])
             elementIdentifier += 4
             nodeIdentifier += 8
 
@@ -1255,6 +1377,21 @@ class MeshType_3d_heartatria2(object):
         return annotationGroups
 
     @classmethod
+    def refineMesh(cls, meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshrefinement, MeshRefinement)
+        refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
+        element = meshrefinement._sourceElementiterator.next()
+        while element.isValid():
+            meshrefinement.refineElementCubeStandard3d(element, refineElementsCountSurface, refineElementsCountSurface, refineElementsCountThroughAtrialWall)
+            element = meshrefinement._sourceElementiterator.next()
+
+    @classmethod
     def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
@@ -1264,12 +1401,8 @@ class MeshType_3d_heartatria2(object):
         """
         if not options['Refine']:
             return cls.generateBaseMesh(region, options)
-
-        refineElementsCountSurface = options['Refine number of elements surface']
-        refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
-
         baseRegion = region.createRegion()
         baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountSurface, refineElementsCountSurface, refineElementsCountThroughAtrialWall)
+        cls.refineMesh(meshrefinement, options)
         return meshrefinement.getAnnotationGroups()

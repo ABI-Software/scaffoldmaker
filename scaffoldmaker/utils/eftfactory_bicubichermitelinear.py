@@ -38,10 +38,11 @@ class eftfactory_bicubichermitelinear:
         self._basis = self._fieldmodule.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
         self._basis.setFunctionType(linearAxis, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
 
-    def _remapDefaultNodeDerivatives(self):
+    def _remapDefaultNodeDerivatives(self, eft):
         '''
         Remap the Hermite node derivatives to those chosen in __init__.
         Use only on first create.
+        :param eft: The element field template to remap.
         '''
         # must do d_ds2 first!
         if self._d_ds2 != Node.VALUE_LABEL_D_DS2:
@@ -60,7 +61,7 @@ class eftfactory_bicubichermitelinear:
         if not self._useCrossDerivatives:
             return self.createEftNoCrossDerivatives()
         eft = self._mesh.createElementfieldtemplate(self._basis)
-        self._remapDefaultNodeDerivatives()
+        self._remapDefaultNodeDerivatives(eft)
         assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftBasic:  Failed to validate eft'
         return eft
 
@@ -73,7 +74,7 @@ class eftfactory_bicubichermitelinear:
         eft = self._mesh.createElementfieldtemplate(self._basis)
         for n in range(8):
             eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-        self._remapDefaultNodeDerivatives()
+        self._remapDefaultNodeDerivatives(eft)
         assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftNoCrossDerivatives:  Failed to validate eft'
         return eft
 
