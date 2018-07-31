@@ -30,26 +30,26 @@ class MeshType_3d_heartatria2(object):
         return {
             'Number of elements around atria' : 8,
             'Number of elements around atrial septum' : 2,
-            'Number of elements up atria' : 3,
-            'Atria base inner major axis length' : 0.5,  # 0.549
-            'Atria base inner minor axis length' : 0.35,  # 0.37
+            'Number of elements up atria' : 4,
+            'Atria base inner major axis length' : 0.55,
+            'Atria base inner minor axis length' : 0.42,
             'Atria major axis rotation degrees' : 40.0,
-            'Atria outer height' : 0.35,
+            'Atria outer height' : 0.4,
             'Atria outer major arc up degrees' : 100.0,
-            'Atria outer minor arc up degrees' : 120.0,
+            'Atria outer minor arc up degrees' : 125.0,
             'Atrial septum thickness' : 0.06,
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
-            'LV outlet outer diameter' : 0.39,
-            'Left pulmonary vein inner diameter' : 0.08,
-            'Left pulmonary vein wall thickness' : 0.007,
-            'Right pulmonary vein inner diameter' : 0.09,
-            'Right pulmonary vein wall thickness' : 0.007,
-            'Inferior vena cava inner diameter' : 0.16,
-            'Inferior vena cava wall thickness' : 0.012,
-            'Superior vena cava inner diameter' : 0.14,
-            'Superior vena cava wall thickness' : 0.012,
+            'LV outlet outer diameter' : 0.35,
+            'Left pulmonary vein inner diameter' : 0.11,
+            'Left pulmonary vein wall thickness' : 0.009,
+            'Right pulmonary vein inner diameter' : 0.12,
+            'Right pulmonary vein wall thickness' : 0.009,
+            'Inferior vena cava inner diameter' : 0.22,
+            'Inferior vena cava wall thickness' : 0.015,
+            'Superior vena cava inner diameter' : 0.2,
+            'Superior vena cava wall thickness' : 0.015,
             'Refine' : False,
             'Refine number of elements surface' : 4,
             'Refine number of elements through atrial wall' : 1,
@@ -321,6 +321,8 @@ class MeshType_3d_heartatria2(object):
         ran1CruxLimit = elementsCountAroundAtria - ran1SeptumLimit - 1
 
         # detect fibrous ring, means merge with ventriclesbase2
+        laBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+        raBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
         # nodes 3 and 7 of the 3rd fibrous ring element are on base centre of atrial septum
         leftFibrousRingGroup = fm.findFieldByName('left fibrous ring').castGroup()
         mergeWithBase = False
@@ -351,8 +353,6 @@ class MeshType_3d_heartatria2(object):
                 fieldassignment = coordinates.createFieldassignment(newCoordinates)
                 result = fieldassignment.assign()
                 # get node ids on base to use for first row atria
-                laBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
-                raBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
                 # happen to know last nodes are on fibrous ring, and in which order
                 baseNodeIdentifier = nodeIdentifier
                 for n3 in range(1, -1, -1):

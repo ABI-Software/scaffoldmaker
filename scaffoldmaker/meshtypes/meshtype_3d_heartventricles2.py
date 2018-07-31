@@ -33,7 +33,7 @@ class MeshType_3d_heartventricles2(object):
             'Number of elements around ventricular septum' : 7,
             'Number of elements up LV apex' : 1,
             'Number of elements up ventricular septum' : 4,
-            'LV outer height' : 1.0,
+            'LV outer height' : 0.95,
             'LV outer radius' : 0.5,
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,

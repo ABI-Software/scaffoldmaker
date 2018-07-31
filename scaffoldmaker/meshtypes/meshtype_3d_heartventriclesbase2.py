@@ -42,19 +42,19 @@ class MeshType_3d_heartventriclesbase2(object):
         options['Number of elements up LV apex'] = 1
         options['Number of elements up ventricular septum'] = 4
         # additional options
-        options['Atria base inner major axis length'] = 0.5  # 0.549
-        options['Atria base inner minor axis length'] = 0.35  # 0.37
+        options['Atria base inner major axis length'] = 0.55
+        options['Atria base inner minor axis length'] = 0.42
         options['Atria major axis rotation degrees'] = 40.0
         options['Atrial septum thickness'] = 0.06
         options['Atrial base wall thickness'] = 0.05
         options['Atrial base slope degrees'] = 30.0
-        options['Base height'] = 0.1
+        options['Base height'] = 0.12
         options['Base thickness'] = 0.06
         options['Fibrous ring thickness'] = 0.01
-        options['LV outlet inner diameter'] = 0.35
-        options['LV outlet wall thickness'] = 0.02
-        options['RV outlet inner diameter'] = 0.31
-        options['RV outlet wall thickness'] = 0.02
+        options['LV outlet inner diameter'] = 0.3
+        options['LV outlet wall thickness'] = 0.025
+        options['RV outlet inner diameter'] = 0.27
+        options['RV outlet wall thickness'] = 0.025
         options['Ventricles outlet element length'] = 0.1
         options['Ventricles outlet incline degrees'] = 15.0
         options['Ventricles outlet spacing'] = 0.04
