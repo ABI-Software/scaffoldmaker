@@ -206,7 +206,7 @@ class MeshType_3d_heartatria2(object):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = 1
+        nodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
 
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
@@ -317,6 +317,36 @@ class MeshType_3d_heartatria2(object):
                 elementLength = atrialFreeWallElementLength
             radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, elementLength)
         raRadians = [ 2.0*math.pi - laRadians[n1la2ra[n1]] for n1 in range(elementsCountAroundAtria) ]
+
+        # detect fibrous ring, means merge with ventriclesbase2
+        # nodes 3 and 7 of the 3rd fibrous ring element are on base centre of atrial septum
+        leftFibrousRingGroup = fm.findFieldByName('left fibrous ring').castGroup()
+        if leftFibrousRingGroup.isValid():
+            leftFibrousRingMeshGroup = leftFibrousRingGroup.getFieldElementGroup(fm.findMeshByDimension(3)).getMeshGroup()
+            elementiter = leftFibrousRingMeshGroup.createElementiterator()
+            element = elementiter.next()
+            element = elementiter.next()
+            element = elementiter.next()
+            eft1 = element.getElementfieldtemplate(coordinates, -1)
+            aSeptumNode1 = element.getNode(eft1, 3)
+            aSeptumNode2 = element.getNode(eft1, 7)
+            if aSeptumNode1.isValid() and aSeptumNode2.isValid():
+                # transform ventricles and base to align with atria (easier than other way around)
+                cache.setNode(aSeptumNode1)
+                result, sx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                cache.setNode(aSeptumNode2)
+                result, sx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                aSeptumCentreY = laCentreY + math.cos(laSeptumRadians)*aBaseInnerMajorMag*math.sin(-aMajorAxisRadians) \
+                                    + math.sin(laSeptumRadians)*aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)
+                tx1 = [ -0.5*aSeptumThickness, aSeptumCentreY, -aBaseSlopeHeight ]
+                ax1 = vector.normalise([ (sx2[c] - sx1[c]) for c in range(3) ])
+                ax2 = [ -ax1[1], ax1[0], ax1[2] ]
+                ax3 = [ 0.0, 0.0, 1.0 ]
+
+                transmat = fm.createFieldConstant(ax1 + ax2 + ax3)
+                newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, transmat, fm.createFieldSubtract(coordinates, fm.createFieldConstant(sx1))), fm.createFieldConstant(tx1))
+                fieldassignment = coordinates.createFieldassignment(newCoordinates)
+                result = fieldassignment.assign()
 
         for n3 in range(2):
 
@@ -814,9 +844,9 @@ class MeshType_3d_heartatria2(object):
         # Create elements
         #################
 
-        elementIdentifier = 1
-
         mesh = fm.findMeshByDimension(3)
+
+        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
 
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)
