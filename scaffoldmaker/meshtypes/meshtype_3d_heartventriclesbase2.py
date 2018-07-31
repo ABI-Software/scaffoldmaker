@@ -120,8 +120,8 @@ class MeshType_3d_heartventriclesbase2(object):
         elif options['Atria major axis rotation degrees'] > 75.0:
             options['Atria major axis rotation degrees'] = 75.0
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -1415,8 +1415,8 @@ class MeshType_3d_heartventriclesbase2(object):
         fm.endChange()
         return annotationGroups
 
-    @staticmethod
-    def refineMesh(meshrefinement, options):
+    @classmethod
+    def refineMesh(cls, meshrefinement, options):
         """
         Refine source mesh into separate region, with change of basis.
         :param meshrefinement: MeshRefinement, which knows source and target region.

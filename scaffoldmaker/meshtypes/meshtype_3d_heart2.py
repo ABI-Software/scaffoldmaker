@@ -48,8 +48,8 @@ class MeshType_3d_heart2(object):
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
-            'Refine number of elements through RV wall']:
-            'Refine number of elements through atrial wall',
+            'Refine number of elements through RV wall',
+            'Refine number of elements through atrial wall']:
             optionNames.remove(optionName)
             optionNames.append(optionName)
         return optionNames
@@ -63,8 +63,8 @@ class MeshType_3d_heart2(object):
         # set dependent outer diameter used in atria2
         options['LV outlet outer diameter'] = options['LV outlet inner diameter'] + 2.0*options['LV outlet wall thickness']
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -86,8 +86,8 @@ class MeshType_3d_heart2(object):
         fm.endChange()
         return annotationGroups
 
-    @staticmethod
-    def refineMesh(meshrefinement, options):
+    @classmethod
+    def refineMesh(cls, meshrefinement, options):
         """
         Refine source mesh into separate region, with change of basis.
         :param meshrefinement: MeshRefinement, which knows source and target region.

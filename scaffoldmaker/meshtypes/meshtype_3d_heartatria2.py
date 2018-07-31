@@ -139,8 +139,8 @@ class MeshType_3d_heartatria2(object):
             if options[key] < 1:
                 options[key] = 1
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -317,10 +317,13 @@ class MeshType_3d_heartatria2(object):
                 elementLength = atrialFreeWallElementLength
             radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, elementLength)
         raRadians = [ 2.0*math.pi - laRadians[n1la2ra[n1]] for n1 in range(elementsCountAroundAtria) ]
+        ran1SeptumLimit = elementsCountAroundAtrialSeptum//2
+        ran1CruxLimit = elementsCountAroundAtria - ran1SeptumLimit - 1
 
         # detect fibrous ring, means merge with ventriclesbase2
         # nodes 3 and 7 of the 3rd fibrous ring element are on base centre of atrial septum
         leftFibrousRingGroup = fm.findFieldByName('left fibrous ring').castGroup()
+        mergeWithBase = False
         if leftFibrousRingGroup.isValid():
             leftFibrousRingMeshGroup = leftFibrousRingGroup.getFieldElementGroup(fm.findMeshByDimension(3)).getMeshGroup()
             elementiter = leftFibrousRingMeshGroup.createElementiterator()
@@ -347,6 +350,29 @@ class MeshType_3d_heartatria2(object):
                 newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, transmat, fm.createFieldSubtract(coordinates, fm.createFieldConstant(sx1))), fm.createFieldConstant(tx1))
                 fieldassignment = coordinates.createFieldassignment(newCoordinates)
                 result = fieldassignment.assign()
+                # get node ids on base to use for first row atria
+                laBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+                raBaseNodeId = [ [-1]*elementsCountAroundAtria, [-1]*elementsCountAroundAtria ]
+                # happen to know last nodes are on fibrous ring, and in which order
+                baseNodeIdentifier = nodeIdentifier
+                for n3 in range(1, -1, -1):
+                    for i in range(1, -1, -1):
+                        aBaseNodeId = laBaseNodeId[n3] if (i == 0) else raBaseNodeId[n3]
+                        for n1 in range(elementsCountAroundAtria - 1, -1, -1):
+                            if (n3 == 1) and \
+                                (((i == 0) and ((n1 < (lan1CruxLimit - 1)) or (n1 > (lan1SeptumLimit + 2)))) or \
+                                 ((i == 1) and ((n1 < ran1SeptumLimit) or (n1 > ran1CruxLimit)))):
+                                # get node from other side below
+                                continue
+                            baseNodeIdentifier -= 1
+                            aBaseNodeId[n1] = baseNodeIdentifier
+                # tie up overlaps - only implemented for elementsCountAroundAtrialSeptum == 2:
+                laBaseNodeId[1][ 0] = raBaseNodeId[0][0]
+                raBaseNodeId[1][-1] = laBaseNodeId[1][1]
+                raBaseNodeId[1][ 0] = laBaseNodeId[0][0]
+                #print('laBaseNodeId', laBaseNodeId)
+                #print('raBaseNodeId', raBaseNodeId)
+                mergeWithBase = True
 
         for n3 in range(2):
 
@@ -443,6 +469,7 @@ class MeshType_3d_heartatria2(object):
                         aLayerNodeId = laLayerNodeId
                         n1Start = lan1CruxLimit - 1
                         n1Stop = lan1SeptumLimit + 1
+                        aBaseNodeId = laBaseNodeId[n3]
                     else:
                         # right
                         centreX = raCentreX
@@ -453,6 +480,7 @@ class MeshType_3d_heartatria2(object):
                         aLayerNodeId = raLayerNodeId
                         n1Start = n1la2ra[lan1SeptumLimit + 1]
                         n1Stop = n1la2ra[lan1CruxLimit - 1]
+                        aBaseNodeId = raBaseNodeId[n3]
 
                     sinMajorAxisRadians = math.sin(majorAxisRadians)
                     cosMajorAxisRadians = math.cos(majorAxisRadians)
@@ -464,6 +492,11 @@ class MeshType_3d_heartatria2(object):
                     #print('n1 range: ', n1Start, n1Stop)
 
                     for n1 in range(elementsCountAroundAtria):
+                        mergeNode = False
+                        if mergeWithBase and (n2 == 0):
+                            aLayerNodeId[n1] = aBaseNodeId[n1]
+                            node = nodes.findNodeByIdentifier(aLayerNodeId[n1])
+                            mergeNode = True
                         if (n2 > 1) and ((n1 <= n1Start) or (n1 >= n1Stop)):
                             continue
                         radiansAround = aRadians[n1]
@@ -471,8 +504,9 @@ class MeshType_3d_heartatria2(object):
                         sinRadiansAround = math.sin(radiansAround)
                         if (n3 == 1) and ((n1 in n1SeptumRange) or ((n2 == 0) and (i == 1) and (n1 == n1CruxR))):
                             continue  # outer septum node created by other side
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        aLayerNodeId[n1] = nodeIdentifier
+                        if not mergeNode:
+                            node = nodes.createNode(nodeIdentifier, nodetemplate)
+                            aLayerNodeId[n1] = nodeIdentifier
                         cache.setNode(node)
                         if (n3 == 1) and (i == 0) and (n2 == 0) and (n1 == n1CruxL):
                             x = [ cruxCentreX, cruxCentreY, z ]
@@ -519,7 +553,8 @@ class MeshType_3d_heartatria2(object):
                                         dx_ds1[0] = 0.0
                                 dx_ds2 = [ 0.0, 0.0, (aSeptumBaseRowHeight + 2.0*aBaseSlopeHeight) if (n2 == 0) else aSeptumBaseRowHeight ]
 
-                        result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        if not mergeNode:
+                            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                         # derivative 3 is set later
@@ -1338,6 +1373,21 @@ class MeshType_3d_heartatria2(object):
         return annotationGroups
 
     @classmethod
+    def refineMesh(cls, meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshrefinement, MeshRefinement)
+        refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
+        element = meshrefinement._sourceElementiterator.next()
+        while element.isValid():
+            meshrefinement.refineElementCubeStandard3d(element, refineElementsCountSurface, refineElementsCountSurface, refineElementsCountThroughAtrialWall)
+            element = meshrefinement._sourceElementiterator.next()
+
+    @classmethod
     def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
@@ -1347,12 +1397,8 @@ class MeshType_3d_heartatria2(object):
         """
         if not options['Refine']:
             return cls.generateBaseMesh(region, options)
-
-        refineElementsCountSurface = options['Refine number of elements surface']
-        refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
-
         baseRegion = region.createRegion()
         baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountSurface, refineElementsCountSurface, refineElementsCountThroughAtrialWall)
+        cls.refineMesh(meshrefinement, options)
         return meshrefinement.getAnnotationGroups()
