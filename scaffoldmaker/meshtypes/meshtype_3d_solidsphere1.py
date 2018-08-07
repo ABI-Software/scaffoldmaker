@@ -145,8 +145,8 @@ class MeshType_3d_solidsphere1:
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, -radius*2/elementsCountUp]) # height of element along central axis
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -radius*2/elementsCountUp])
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
@@ -160,7 +160,6 @@ class MeshType_3d_solidsphere1:
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius+n2*2*radius/elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ cubicArcLengthList[n2]/elementsCountRadial, 0.0, 0.0 ])
-
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, radius*2/elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, cubicArcLengthList[n2]/elementsCountRadial, 0.0 ])
             if useCrossDerivatives:
@@ -175,8 +174,8 @@ class MeshType_3d_solidsphere1:
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, radius*2/elementsCountUp ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, radius*2/elementsCountUp ])
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)

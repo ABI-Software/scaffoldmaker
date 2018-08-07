@@ -267,17 +267,18 @@ class eftfactory_tricubichermite:
 
         # remap parameters on xi3 = 0 before collapsing nodes
         remapEftNodeValueLabel(eft, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS1, [])
-        # reverse D_DS2 at bottom
-        remapEftNodeValueLabel(eft, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS2, [1]) ])
+        # switch D_DS2 and D_DS and negate at bottom
+        remapEftNodeValueLabel(eft, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [1]) ])
         
         for layer in range(2):
             so = layer*10 + 1
             ln = layer*2 + 1
             if layer == 0:
                 # 3 terms for d/dxi3 via general linear map:
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [so + 1, so + 5]), (Node.VALUE_LABEL_D_DS3, [so + 2, so + 5]), (Node.VALUE_LABEL_D_DS2, [1, so + 4]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [so + 1, so + 5]), (Node.VALUE_LABEL_D_DS2, [so + 2, so + 5]), (Node.VALUE_LABEL_D_DS3, [1, so + 4]) ])
                 # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3, so + 5]), (Node.VALUE_LABEL_D_DS3, [so + 1, so + 3, so + 5]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3, so + 5]), (Node.VALUE_LABEL_D_DS2, [so + 1, so + 3, so + 5]) ])
+
             else:
                 # 2 terms for d/dxi3 via general linear map:
                 remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [so + 1]), (Node.VALUE_LABEL_D_DS3, [so + 2]) ])
@@ -292,9 +293,10 @@ class eftfactory_tricubichermite:
             ln = layer*2 + 2
             if layer == 0:
                 # 3 terms for d/dxi3 via general linear map:
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [so + 6, so + 10]), (Node.VALUE_LABEL_D_DS3, [so + 7, so + 10]), (Node.VALUE_LABEL_D_DS2, [1, so + 9]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [so + 6, so + 10]), (Node.VALUE_LABEL_D_DS2, [so + 7, so + 10]), (Node.VALUE_LABEL_D_DS3, [1, so + 9]) ])
                 # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [1, so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS3, [so + 6, so + 8, so + 10]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [1, so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS2, [so + 6, so + 8, so + 10]) ])
+
             else:
                 # 2 terms for d/dxi3 via general linear map:
                 remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, so + 4), (Node.VALUE_LABEL_D_DS3, so + 5) ])
@@ -361,9 +363,10 @@ class eftfactory_tricubichermite:
                 remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3]), (Node.VALUE_LABEL_D_DS3, [so + 1, so + 3]) ])
             else:
                 # 3 terms for d/dxi3 via general linear map:
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [ so + 1, so + 5]), (Node.VALUE_LABEL_D_DS3, [ so + 2, so + 5]), (Node.VALUE_LABEL_D_DS2, [ 1, so + 4]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [ so + 1, so + 5]), (Node.VALUE_LABEL_D_DS2, [ so + 2, so + 5]), (Node.VALUE_LABEL_D_DS3, [ 1, so + 4]) ])
                 # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [ 1, so + 2, so + 3, so + 5]), (Node.VALUE_LABEL_D_DS3, [so + 1, so + 3, so + 5]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [ 1, so + 2, so + 3, so + 5]), (Node.VALUE_LABEL_D_DS2, [so + 1, so + 3, so + 5]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ]) # switch D_DS2 and D_DS3 at top
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [])
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS2DS3, [])
@@ -377,9 +380,10 @@ class eftfactory_tricubichermite:
                 remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [1, so + 5, so + 6]), (Node.VALUE_LABEL_D_DS3, [so + 4, so + 6]) ])
             else:
                 # 3 terms for d/dxi3 via general linear map:
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [ so + 6, so + 10]), (Node.VALUE_LABEL_D_DS3, [ so + 7, so + 10]), (Node.VALUE_LABEL_D_DS2, [ 1, so + 9]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS3, [ (Node.VALUE_LABEL_D_DS1, [ so + 6, so + 10]), (Node.VALUE_LABEL_D_DS2, [ so + 7, so + 10]), (Node.VALUE_LABEL_D_DS3, [ 1, so + 9]) ])
                 # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [ 1, so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS3, [so + 6, so + 8, so + 10]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [ (Node.VALUE_LABEL_D_DS1, [ 1, so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS2, [so + 6, so + 8, so + 10]) ])
+                remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, []) ]) # switch D_DS2 and D_DS3 at top
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [])
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS2DS3, [])
@@ -433,9 +437,9 @@ class eftfactory_tricubichermite:
             so = layer*10 + 1
             ln = layer*4 + 1
             # 3 terms for d/dxi2 via general linear map:
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 1, so + 5]), (Node.VALUE_LABEL_D_DS3, [so + 2, so + 5]), (Node.VALUE_LABEL_D_DS2, [1, so + 4]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 1, so + 5]), (Node.VALUE_LABEL_D_DS2, [so + 2, so + 5]), (Node.VALUE_LABEL_D_DS3, [1, so + 4]) ])
             # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3 , so + 5]), (Node.VALUE_LABEL_D_DS3, [so + 1, so + 3, so + 5]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3 , so + 5]), (Node.VALUE_LABEL_D_DS2, [so + 1, so + 3, so + 5]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS2DS3, [])
@@ -443,9 +447,9 @@ class eftfactory_tricubichermite:
 
             ln = layer*4 + 2
             # 3 terms for d/dxi2 via general linear map:
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 6, so + 10] ), (Node.VALUE_LABEL_D_DS3, [so + 7, so + 10]), (Node.VALUE_LABEL_D_DS2, [1, so + 9]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 6, so + 10] ), (Node.VALUE_LABEL_D_DS2, [so + 7, so + 10]), (Node.VALUE_LABEL_D_DS3, [1, so + 9]) ])
             # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS3, [so + 6, so + 8, so + 10]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS2, [so + 6, so + 8, so + 10]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS2DS3, [])
@@ -494,9 +498,9 @@ class eftfactory_tricubichermite:
             so = layer*10 + 1
             ln = layer*4 + 3
             # 3 terms for d/dxi2 via general linear map:
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 1, so + 5]), (Node.VALUE_LABEL_D_DS3, [1, so + 2, so + 5]), (Node.VALUE_LABEL_D_DS2, [so + 4]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 1, so + 5]), (Node.VALUE_LABEL_D_DS2, [1, so + 2, so + 5]), (Node.VALUE_LABEL_D_DS3, [so + 4]) ])
             # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 2, so + 3 , so + 5]), (Node.VALUE_LABEL_D_DS3, [1, so + 1, so + 3, so + 5]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 2, so + 3 , so + 5]), (Node.VALUE_LABEL_D_DS2, [1, so + 1, so + 3, so + 5]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS2DS3, [])
@@ -504,9 +508,9 @@ class eftfactory_tricubichermite:
 
             ln = layer*4 + 4
             # 3 terms for d/dxi2 via general linear map:
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 6, so + 10] ), (Node.VALUE_LABEL_D_DS3, [1, so + 7, so + 10]), (Node.VALUE_LABEL_D_DS2, [so + 9]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 6, so + 10] ), (Node.VALUE_LABEL_D_DS2, [1, so + 7, so + 10]), (Node.VALUE_LABEL_D_DS3, [so + 9]) ])
             # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
-            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS3, [1, so + 6, so + 8, so + 10]) ])
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 7, so + 8, so + 10]), (Node.VALUE_LABEL_D_DS2, [1, so + 6, so + 8, so + 10]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS2DS3, [])
