@@ -175,7 +175,7 @@ class MeshType_3d_solidsphere1:
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, radius*2/elementsCountUp])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, radius*2/elementsCountUp ])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
@@ -330,58 +330,62 @@ class MeshType_3d_solidsphere1:
         no3 = elementsCountAround*(elementsCountUp - 1)
         rni = (1 + elementsCountUp) - no3 - no2 + 1 # regular node identifier
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
+
         for e3 in range(elementsCountRadial):
-        # Create elements on bottom pole
+            # Create elements on bottom pole
             if e3 == 0:
                 # Create tetrahedron elements on the bottom pole
-                bni1 = elementsCountUp + 2 
+                bni1 = elementsCountUp + 2
+                radiansInclineNext = math.pi*0.5/elementsCountRadial
+
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    eft1 = tricubichermite.createEftTetrahedronBottom(va*100, vb*100)
+                    eft1 = tricubichermite.createEftTetrahedronBottom(va*100, vb*100, 10000 + 2)
                     elementtemplate1.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     nodeIdentifiers = [ 1, 2, bni1 + va, bni1 + vb ]
                     result1 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-                    # print('Tetrahedron bottom element', nodeIdentifiers)
                     # set general linear map coefficients
                     radiansAround = va*radiansPerElementAround
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
                         -1.0,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
                         math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
                         math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
                     ]
                     result2 = element.setScaleFactors(eft1, scalefactors)
-                    print('Tetrahedron Bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
+                    # print('Tetrahedron Bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
                     elementIdentifier = elementIdentifier + 1
 
             else:
                 # Create pyramid elements on the bottom pole
                 bni4 = elementsCountUp + 1 + (e3-1)*no3 + 1
+                radiansIncline = math.pi*0.5*e3/elementsCountRadial
+                radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountRadial
+
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    # eft4 = tricubichermite.createEftPyramidBottom(va*100, vb*100)
-                    # elementtemplate4.defineField(coordinates, -1, eft4)
-                    # element = mesh.createElement(elementIdentifier, elementtemplate4)
+                    eft4 = tricubichermite.createEftPyramidBottom(va*100, vb*100, 100000 + e3*2)
+                    elementtemplate4.defineField(coordinates, -1, eft4)
+                    element = mesh.createElement(elementIdentifier, elementtemplate4)
                     nodeIdentifiers = [ 1, bni4 + va, bni4 + vb, bni4 + no3 + va, bni4 + no3 + vb ]
-                    # result1 = element.setNodesByIdentifier(eft4, nodeIdentifiers)
-                    #print('Pyramid bottom element', elementIdentifier, nodeIdentifiers)
+                    result1 = element.setNodesByIdentifier(eft4, nodeIdentifiers)
                     # set general linear map coefficients
-                    # radiansAround = va*radiansPerElementAround
-                    # radiansAroundNext = vb*radiansPerElementAround
-                    # scalefactors = [
-                    #    -1.0,
-                    #    math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                    #    math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
-                    #    math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                    #   math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
-                    #]
-                    #result2 = element.setScaleFactors(eft4, scalefactors)
-                    #print('pyramid bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
+                    radiansAround = va*radiansPerElementAround
+                    radiansAroundNext = vb*radiansPerElementAround
+                    scalefactors = [
+                       -1.0,
+                       math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
+                       math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
+                       math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
+                      math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext)
+                    ]
+                    result2 = element.setScaleFactors(eft4, scalefactors)
+                    # print('pyramid bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
                     elementIdentifier = elementIdentifier + 1
 
             # create regular radial elements
@@ -408,11 +412,12 @@ class MeshType_3d_solidsphere1:
                             math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
                         ]
                         result2 = element.setScaleFactors(eft2, scalefactors)
-                        print('axis element', elementIdentifier, result1, result2, nodeIdentifiers)
+                        # print('axis element', elementIdentifier, result1, result2, nodeIdentifiers)
                         elementIdentifier = elementIdentifier + 1
                 else:
                     # Regular elements 
                     bni = rni + e3*no3 + e2*no2
+
                     for e1 in range(elementsCountAround):
                         element = mesh.createElement(elementIdentifier, elementtemplate)
                         na = e1
@@ -422,22 +427,23 @@ class MeshType_3d_solidsphere1:
                             bni + no3 + na, bni + no3 + nb, bni + no3 + no2 + na, bni + no3 + no2 + nb
                         ]
                         result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        print('regular element', elementIdentifier, result, nodeIdentifiers)
+                        # print('regular element', elementIdentifier, result, nodeIdentifiers)
                         elementIdentifier = elementIdentifier + 1
 
             # Create elements on top pole
             if e3 == 0:
-                # Create tetrahedron elements on the top pole
+                # # Create tetrahedron elements on the top pole
                 bni3 = elementsCountUp + 1 + (elementsCountUp-2) * no2 + 1
+                radiansInclineNext = math.pi*0.5/elementsCountRadial
+
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    eft3 = tricubichermite.createEftTetrahedronTop(va*100, vb*100)
+                    eft3 = tricubichermite.createEftTetrahedronTop(va*100, vb*100, 100000 + 2)
                     elementtemplate3.defineField(coordinates, -1, eft3)
                     element = mesh.createElement(elementIdentifier, elementtemplate3)
                     nodeIdentifiers = [ elementsCountUp, elementsCountUp + 1, bni3 + va, bni3 + vb ]
                     result1 = element.setNodesByIdentifier(eft3, nodeIdentifiers)
-                    # print('Tetrahedron top element', nodeIdentifiers)
                     # set general linear map coefficients
                     radiansAround = va*radiansPerElementAround
                     radiansAroundNext = vb*radiansPerElementAround
@@ -445,36 +451,39 @@ class MeshType_3d_solidsphere1:
                         -1.0,
                         math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
                         math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext)
                     ]
                     result2 = element.setScaleFactors(eft3, scalefactors)
-                    print('Tetrahedron top element', elementIdentifier, result1, result2, nodeIdentifiers)
+                    # print('Tetrahedron top element', elementIdentifier, result1, result2, nodeIdentifiers)
                     elementIdentifier = elementIdentifier + 1
 
             else:
                 # Create pyramid elements on the top pole
                 bni5 = elementsCountUp + 1 + (e3-1)*no3 + (elementsCountUp-2) * no2 + 1
+                radiansIncline = math.pi*0.5*e3/elementsCountRadial
+                radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountRadial
+
                 for e1 in range(elementsCountAround):
-                    # va = e1
-                    # vb = (e1 + 1)%elementsCountAround
-                    # eft5 = tricubichermite.createEftPyramidTop(va*100, vb*100)
-                    # elementtemplate1.defineField(coordinates, -1, eft5)
-                    # element = mesh.createElement(elementIdentifier, elementtemplate5)
-                    nodeIdentifiers = [ elementsCountUp + 1, bni5 + va, bni5 + vb, bni5 + no3 + va, bni5 + no3 + vb ]
-                    # result1 = element.setNodesByIdentifier(eft5, nodeIdentifiers)
-                    # # print('Pyramid top element', elementIdentifier, nodeIdentifiers)
-                    # # set general linear map coefficients
-                    # radiansAround = va*radiansPerElementAround
-                    # radiansAroundNext = vb*radiansPerElementAround
-                    # scalefactors = [
-                        # -1.0,
-                        # math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                        # math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
-                        # math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                        # math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
-                    # ]
-                    # result2 = element.setScaleFactors(eft5, scalefactors)
+                    va = e1
+                    vb = (e1 + 1)%elementsCountAround
+                    eft5 = tricubichermite.createEftPyramidTop(va*100, vb*100, 100000 + e3*2)
+
+                    elementtemplate5.defineField(coordinates, -1, eft5)
+                    element = mesh.createElement(elementIdentifier, elementtemplate5)
+                    nodeIdentifiers = [ bni5 + va, bni5 + vb, elementsCountUp + 1, bni5 + no3 + va, bni5 + no3 + vb ]
+                    result1 = element.setNodesByIdentifier(eft5, nodeIdentifiers)
+                    # set general linear map coefficients
+                    radiansAround = va*radiansPerElementAround
+                    radiansAroundNext = vb*radiansPerElementAround
+                    scalefactors = [
+                        -1.0,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext)
+                    ]
+                    result2 = element.setScaleFactors(eft5, scalefactors)
                     # print('pyramid top element', elementIdentifier, result1, result2, nodeIdentifiers)
                     elementIdentifier = elementIdentifier + 1
 
