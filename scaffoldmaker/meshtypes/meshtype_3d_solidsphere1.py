@@ -27,7 +27,7 @@ class MeshType_3d_solidsphere1:
             'Number of elements around' : 8,
             'Number of elements up' : 8,
             'Number of elements radial' : 1,
-            'Diameter' : 1,
+            'Diameter' : 1.0,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements around' : 1,
@@ -41,7 +41,7 @@ class MeshType_3d_solidsphere1:
             'Number of elements around',
             'Number of elements up',
             'Number of elements radial',
-            'Diameter',            
+            'Diameter',
             'Use cross derivatives',
             'Refine',
             'Refine number of elements around',
@@ -62,11 +62,11 @@ class MeshType_3d_solidsphere1:
             options['Number of elements up'] = 4
         if options['Number of elements around'] < 4:
             options['Number of elements around'] = 4
-        if options['Diameter'] < 0:
-            options['Diameter'] = 1
+        if options['Diameter'] < 0.0:
+            options['Diameter'] = 1.0
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -78,7 +78,7 @@ class MeshType_3d_solidsphere1:
         elementsCountRadial = options['Number of elements radial']
         useCrossDerivatives = options['Use cross derivatives']
         diameter = options['Diameter']
-        radius = diameter/2
+        radius = diameter/2.0
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -121,7 +121,7 @@ class MeshType_3d_solidsphere1:
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
 
-        cubicArcLengthList = [0]*(elementsCountUp+1)
+        cubicArcLengthList = [0.0]*(elementsCountUp+1)
 
         # Pre-calculate cubicArcLength along elementsCountUp
         for n2 in range(1,elementsCountUp + 1):
@@ -130,14 +130,14 @@ class MeshType_3d_solidsphere1:
             sinRadiansUp = math.sin(radiansUp)
 
             # Calculate cubic hermite arclength linking point on axis to surface on sphere
-            v1 = [0,0,-radius+n2*2*radius/elementsCountUp]
-            d1 = [0,1,0]
+            v1 = [0.0, 0.0, -radius+n2*2.0*radius/elementsCountUp]
+            d1 = [0.0, 1.0, 0.0]
             v2 = [
-                 radius*math.cos(math.pi/2)*sinRadiansUp,
-                 radius*math.sin(math.pi/2)*sinRadiansUp,
+                 radius*math.cos(math.pi/2.0)*sinRadiansUp,
+                 radius*math.sin(math.pi/2.0)*sinRadiansUp,
                  -radius*cosRadiansUp
             ]
-            d2 = [math.cos(math.pi/2)*sinRadiansUp,math.sin(math.pi/2)*sinRadiansUp,-cosRadiansUp]
+            d2 = [math.cos(math.pi/2.0)*sinRadiansUp,math.sin(math.pi/2.0)*sinRadiansUp,-cosRadiansUp]
             cubicArcLengthList[n2] = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
 
         # Create node for bottom pole
@@ -146,7 +146,7 @@ class MeshType_3d_solidsphere1:
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -radius*2/elementsCountUp])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -radius*2.0/elementsCountUp])
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
@@ -158,9 +158,9 @@ class MeshType_3d_solidsphere1:
         for n2 in range(1,elementsCountUp):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius+n2*2*radius/elementsCountUp])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius+n2*2.0*radius/elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ cubicArcLengthList[n2]/elementsCountRadial, 0.0, 0.0 ])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, radius*2/elementsCountUp])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, 0.0, radius*2.0/elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, cubicArcLengthList[n2]/elementsCountRadial, 0.0 ])
             if useCrossDerivatives:
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
@@ -175,7 +175,7 @@ class MeshType_3d_solidsphere1:
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, radius])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, radius*2/elementsCountUp ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, radius*2.0/elementsCountUp ])
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
@@ -186,11 +186,11 @@ class MeshType_3d_solidsphere1:
         # Create other nodes
         for n3 in range(1,elementsCountRadial+1):
             xi = 1/elementsCountRadial*n3
-            radiansUpArcOriginList = [0]*(elementsCountUp)
+            radiansUpArcOriginList = [0.0]*(elementsCountUp)
 
             # Pre-calculate RC for points on vertical arc running between top and bottom poles
-            pt = [0, radius*xi, 0]
-            arcOrigin = (radius*radius - pt[2]*pt[2] - pt[1]*pt[1])/(-2*pt[1])
+            pt = [0.0, radius*xi, 0.0]
+            arcOrigin = (radius*radius - pt[2]*pt[2] - pt[1]*pt[1])/(-2.0*pt[1])
             RC = math.sqrt(arcOrigin*arcOrigin + radius*radius)
 
             radiansUpArcOriginList[0] = math.acos(-radius/RC)
@@ -203,16 +203,16 @@ class MeshType_3d_solidsphere1:
 
                 # Calculate node coordinates on arc using cubic hermite interpolation
                 cubicArcLength = cubicArcLengthList[n2]
-                v1 = [0,0,-radius+n2*2*radius/elementsCountUp]
-                d1 = [math.cos(math.pi/2),math.sin(math.pi/2),0]
+                v1 = [0.0, 0.0, -radius+n2*2.0*radius/elementsCountUp]
+                d1 = [math.cos(math.pi/2.0), math.sin(math.pi/2.0), 0.0]
                 d1 = vector.normalise(d1)
                 d1 = [d*cubicArcLength for d in d1]
                 v2 = [
-                     radius*math.cos(math.pi/2)*sinRadiansUp,
-                     radius*math.sin(math.pi/2)*sinRadiansUp,
+                     radius*math.cos(math.pi/2.0)*sinRadiansUp,
+                     radius*math.sin(math.pi/2.0)*sinRadiansUp,
                      -radius*cosRadiansUp
                     ]     
-                d2 = [math.cos(math.pi/2)*sinRadiansUp,math.sin(math.pi/2)*sinRadiansUp,-cosRadiansUp]
+                d2 = [math.cos(math.pi/2.0)*sinRadiansUp,math.sin(math.pi/2.0)*sinRadiansUp,-cosRadiansUp]
                 d2 = vector.normalise(d2)
                 d2 = [d*cubicArcLength for d in d2]
                 x = list(interpolateCubicHermite(v1, d1, v2, d2, xi))
@@ -232,8 +232,8 @@ class MeshType_3d_solidsphere1:
                     cubicArcLength = cubicArcLengthList[n2]
 
                     # Calculate node coordinates on arc using cubic hermite interpolation
-                    v1 = [0,0,-radius+n2*2*radius/elementsCountUp]
-                    d1 = [cosRadiansAround,sinRadiansAround,0]
+                    v1 = [0.0, 0.0, -radius+n2*2.0*radius/elementsCountUp]
+                    d1 = [cosRadiansAround, sinRadiansAround, 0.0]
                     d1 = vector.normalise(d1)
                     d1 = [d*cubicArcLength for d in d1]
                     v2 = [
@@ -488,15 +488,15 @@ class MeshType_3d_solidsphere1:
 
         fm.endChange()
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         """
         if not options['Refine']:
-            MeshType_3d_solidsphere1.generateBaseMesh(region, options)
+            cls.generateBaseMesh(region, options)
             return
 
         refineElementsCountAround = options['Refine number of elements around']
@@ -504,7 +504,7 @@ class MeshType_3d_solidsphere1:
         refineElementsCountRadial = options['Refine number of elements radial']
 
         baseRegion = region.createRegion()
-        MeshType_3d_solidsphere1.generateBaseMesh(baseRegion, options)
+        cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp, refineElementsCountRadial)

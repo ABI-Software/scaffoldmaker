@@ -98,8 +98,8 @@ def remapEftNodeValueLabel(eft, localNodeIndexes, fromValueLabel, expressionTerm
     :param expressionTerms: List of (valueLabel, scaleFactorIndexesList ) to remap to.
         e.g. [ (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [5, 6]) ]
     '''
-    functionCount = eft.getNumberOfFunctions()    
-    for f in range(1, functionCount + 1):        
+    functionCount = eft.getNumberOfFunctions()
+    for f in range(1, functionCount + 1):
         if eft.getFunctionNumberOfTerms(f) == 1:
             localNodeIndex = eft.getTermLocalNodeIndex(f, 1)
             if (localNodeIndex in localNodeIndexes) and (eft.getTermNodeValueLabel(f, 1) == fromValueLabel) and (not getEftTermScaling(eft, f, 1)):

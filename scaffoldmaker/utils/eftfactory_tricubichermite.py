@@ -246,7 +246,8 @@ class eftfactory_tricubichermite:
         Suggestion is to start at 0 and add 100 for each radial line around axis.
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
-        :param nodeScaleFactorOffsetUp: offset of node scale factors as inclination increases
+        :param nodeScaleFactorOffsetUp: offset of first scale factor for inclination at pole,
+        increase by 2 in each layer away from axis. Suggest starting at 100000 on axis.
         :return: Element field template
         '''
         # start with full tricubic
@@ -331,7 +332,8 @@ class eftfactory_tricubichermite:
         add 100 for each radial line around axis.
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
-        :param nodeScaleFactorOffsetUp: offset of node scale factors as inclination increases
+        :param nodeScaleFactorOffsetUp: offset of first scale factor for inclination at pole,
+        increase by 2 in each layer away from axis. Suggest starting at 100000 on axis.
         :return: Element field template
         '''
         # start with full tricubic
@@ -411,7 +413,8 @@ class eftfactory_tricubichermite:
         add 100 for each radial line around axis.
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
-        :param nodeScaleFactorOffsetUp: offset of node scale factors as inclination increases
+        :param nodeScaleFactorOffsetUp: offset of first scale factor for inclination at pole,
+        increase by 2 in each layer away from axis. Suggest starting at 100000 on axis.
         :return: Element field template
         '''
         # start with full tricubic
@@ -472,7 +475,8 @@ class eftfactory_tricubichermite:
         add 100 for each radial line around axis.
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
-        :param nodeScaleFactorOffsetUp: offset of node scale factors as inclination increases
+        :param nodeScaleFactorOffsetUp: offset of first scale factor for inclination at pole,
+        increase by 2 in each layer away from axis. Suggest starting at 100000 on axis.
         :return: Element field template
         '''
         # start with full tricubic
