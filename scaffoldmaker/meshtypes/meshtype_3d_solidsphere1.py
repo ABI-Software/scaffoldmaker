@@ -63,7 +63,7 @@ class MeshType_3d_solidsphere1:
         if options['Number of elements around'] < 4:
             options['Number of elements around'] = 4
         if options['Diameter'] < 0.0:
-            options['Diameter'] = 1.0
+            options['Diameter'] = 0.0
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -77,8 +77,7 @@ class MeshType_3d_solidsphere1:
         elementsCountUp = options['Number of elements up']
         elementsCountRadial = options['Number of elements radial']
         useCrossDerivatives = options['Use cross derivatives']
-        diameter = options['Diameter']
-        radius = diameter/2.0
+        radius = 0.5*options['Diameter']
 
         fm = region.getFieldmodule()
         fm.beginChange()
