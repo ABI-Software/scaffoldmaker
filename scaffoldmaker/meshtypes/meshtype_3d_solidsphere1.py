@@ -24,8 +24,8 @@ class MeshType_3d_solidsphere1:
     @staticmethod
     def getDefaultOptions():
         return {
-            'Number of elements around' : 8,
-            'Number of elements up' : 8,
+            'Number of elements around' : 4,
+            'Number of elements up' : 4,
             'Number of elements radial' : 1,
             'Diameter' : 1.0,
             'Use cross derivatives' : False,
@@ -58,10 +58,10 @@ class MeshType_3d_solidsphere1:
             'Refine number of elements radial']:
             if options[key] < 1:
                 options[key] = 1
-        if options['Number of elements up'] < 4:
-            options['Number of elements up'] = 4
-        if options['Number of elements around'] < 4:
-            options['Number of elements around'] = 4
+        if options['Number of elements up'] < 2:
+            options['Number of elements up'] = 2
+        if options['Number of elements around'] < 2:
+            options['Number of elements around'] = 2
         if options['Diameter'] < 0.0:
             options['Diameter'] = 0.0
 
