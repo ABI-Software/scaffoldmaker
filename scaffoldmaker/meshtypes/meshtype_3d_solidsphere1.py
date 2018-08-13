@@ -331,16 +331,19 @@ class MeshType_3d_solidsphere1:
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
 
         for e3 in range(elementsCountRadial):
+
             # Create elements on bottom pole
+            radiansIncline = math.pi*0.5*e3/elementsCountRadial
+            radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountRadial
+            
             if e3 == 0:
                 # Create tetrahedron elements on the bottom pole
                 bni1 = elementsCountUp + 2
-                radiansInclineNext = math.pi*0.5/elementsCountRadial
 
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    eft1 = tricubichermite.createEftTetrahedronBottom(va*100, vb*100, 10000 + 2)
+                    eft1 = tricubichermite.createEftTetrahedronBottom(va*100, vb*100, 10000)
                     elementtemplate1.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     nodeIdentifiers = [ 1, 2, bni1 + va, bni1 + vb ]
@@ -350,10 +353,12 @@ class MeshType_3d_solidsphere1:
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
                         -1.0,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
                         math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
                         math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansAround), math.sin(radiansAround),radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
                     ]
                     result2 = element.setScaleFactors(eft1, scalefactors)
                     # print('Tetrahedron Bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
@@ -362,8 +367,6 @@ class MeshType_3d_solidsphere1:
             else:
                 # Create pyramid elements on the bottom pole
                 bni4 = elementsCountUp + 1 + (e3-1)*no3 + 1
-                radiansIncline = math.pi*0.5*e3/elementsCountRadial
-                radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountRadial
 
                 for e1 in range(elementsCountAround):
                     va = e1
@@ -430,15 +433,17 @@ class MeshType_3d_solidsphere1:
                         elementIdentifier = elementIdentifier + 1
 
             # Create elements on top pole
+            radiansIncline = math.pi*0.5*e3/elementsCountRadial
+            radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountRadial
+
             if e3 == 0:
                 # # Create tetrahedron elements on the top pole
                 bni3 = elementsCountUp + 1 + (elementsCountUp-2) * no2 + 1
-                radiansInclineNext = math.pi*0.5/elementsCountRadial
 
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    eft3 = tricubichermite.createEftTetrahedronTop(va*100, vb*100, 100000 + 2)
+                    eft3 = tricubichermite.createEftTetrahedronTop(va*100, vb*100, 100000)
                     elementtemplate3.defineField(coordinates, -1, eft3)
                     element = mesh.createElement(elementIdentifier, elementtemplate3)
                     nodeIdentifiers = [ elementsCountUp, elementsCountUp + 1, bni3 + va, bni3 + vb ]
@@ -448,10 +453,12 @@ class MeshType_3d_solidsphere1:
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
                         -1.0,
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
                         math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext)
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
+                        math.cos(radiansAround), math.sin(radiansAround),radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
                     ]
                     result2 = element.setScaleFactors(eft3, scalefactors)
                     # print('Tetrahedron top element', elementIdentifier, result1, result2, nodeIdentifiers)
@@ -460,8 +467,6 @@ class MeshType_3d_solidsphere1:
             else:
                 # Create pyramid elements on the top pole
                 bni5 = elementsCountUp + 1 + (e3-1)*no3 + (elementsCountUp-2) * no2 + 1
-                radiansIncline = math.pi*0.5*e3/elementsCountRadial
-                radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountRadial
 
                 for e1 in range(elementsCountAround):
                     va = e1
