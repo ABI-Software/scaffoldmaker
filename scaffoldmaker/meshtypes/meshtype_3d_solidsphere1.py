@@ -352,12 +352,12 @@ class MeshType_3d_solidsphere1:
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
                         -1.0,
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAround), math.sin(radiansAround),radiansPerElementAround,
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansInclineNext), math.sin(radiansInclineNext)
                     ]
                     result2 = element.setScaleFactors(eft1, scalefactors)
                     # print('Tetrahedron Bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
@@ -379,11 +379,11 @@ class MeshType_3d_solidsphere1:
                     radiansAround = va*radiansPerElementAround
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
-                       -1.0,
-                       math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                       math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                       math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                      math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext)
+                        -1.0,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansInclineNext), math.sin(radiansInclineNext)
                     ]
                     result2 = element.setScaleFactors(eft4, scalefactors)
                     # print('pyramid bottom element', elementIdentifier, result1, result2, nodeIdentifiers)
@@ -452,12 +452,12 @@ class MeshType_3d_solidsphere1:
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
                         -1.0,
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAround), math.sin(radiansAround),radiansPerElementAround,
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansInclineNext), math.sin(radiansInclineNext)
                     ]
                     result2 = element.setScaleFactors(eft3, scalefactors)
                     # print('Tetrahedron top element', elementIdentifier, result1, result2, nodeIdentifiers)
@@ -481,10 +481,10 @@ class MeshType_3d_solidsphere1:
                     radiansAroundNext = vb*radiansPerElementAround
                     scalefactors = [
                         -1.0,
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansIncline), math.sin(radiansIncline),
-                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext),
-                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround, math.cos(radiansInclineNext), math.sin(radiansInclineNext)
+                        math.cos(radiansAround), math.sin(radiansAround), radiansPerElementAround,
+                        math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansPerElementAround,
+                        math.cos(radiansIncline), math.sin(radiansIncline),
+                        math.cos(radiansInclineNext), math.sin(radiansInclineNext)
                     ]
                     result2 = element.setScaleFactors(eft5, scalefactors)
                     # print('pyramid top element', elementIdentifier, result1, result2, nodeIdentifiers)
