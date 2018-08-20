@@ -18,6 +18,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_spheres
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
+from scaffoldmaker.meshtypes.meshtype_3d_human_stomach import MeshType_3d_human_stomach
 
 class Scaffoldmaker(object):
 
@@ -37,7 +38,8 @@ class Scaffoldmaker(object):
             MeshType_3d_sphereshell1,
             MeshType_3d_sphereshellseptum1,
             MeshType_3d_tube1,
-            MeshType_3d_tubeseptum1
+            MeshType_3d_tubeseptum1,
+            MeshType_3d_human_stomach
             ]
 
     def getMeshTypes(self):
