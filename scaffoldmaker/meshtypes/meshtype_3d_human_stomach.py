@@ -9361,13 +9361,13 @@ Element: 264
         fieldName - coordinate field's name 
         '''
         npts = 200
-        ilengths = np.zeros(npts)
+        ilengths = np.zeros(npts-1)
         def arcLength(x, y, z):
             arc = np.sqrt((x[1] - x[0])**2 + (y[1] - y[0])**2 + (z[1] - z[0])**2)
             ilengths[0] = arc
-            for k in range(1, npts):
-                ilengths[k] = np.sqrt((x[k] - x[k-1])**2 + (y[k] - y[k-1])**2 + (z[k] - z[k-1])**2)
-                arc = arc + ilengths[k]
+            for k in range(2, npts):
+                ilengths[k-1] = np.sqrt((x[k] - x[k-1])**2 + (y[k] - y[k-1])**2 + (z[k] - z[k-1])**2)
+                arc = arc + ilengths[k-1]
             return arc,ilengths                
         
         numLengthNodes = axialElements + 1
@@ -9392,14 +9392,14 @@ Element: 264
                 #Find equi distant segments based on length 
                 uvalues = [0]  
                 cSegLength = ilengths[0]
-                for st in range(1,npts):
+                for st in range(1,npts-1):
                     cSegLength += ilengths[st]
                     if cSegLength >= segmentLength:
                         cSegLength = 0.0
                         uvalues.append(st)
                 uvalues.append(uvalues[0])
                 #Parameter u goes from 0-1, so normalize
-                uvalues = np.array(uvalues)/npts
+                uvalues = np.array(uvalues)/(npts-1)
                 #Determine the new coordinate values and update
                 xs, ys, zs = splev(uvalues, tck, der=0)
                 for nd in range(numCircumferentialNodes):
@@ -9593,9 +9593,10 @@ class MeshType_3d_human_stomach(object):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+        print(options)
         axialElements = options['Number of elements along the axis']
         circumferentialElements = options['Number of elements along the circumference']
-        wallElements= options['Number of elements along the wall']
+        wallElements= options['Number of elements through the wall']
         normalizeCircumferentialSegmentLengths = options['Normalize Circumferential Segment Lengths']
         
         MeshType_3d_human_stomach.hostStomach.generateMesh(region, circumferentialElements,\
