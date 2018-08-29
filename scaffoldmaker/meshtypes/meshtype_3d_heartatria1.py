@@ -262,10 +262,11 @@ class MeshType_3d_heartatria1(object):
                 [ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ],
                 2*elementsCountUpAtria)
             if na == 0:
-                # move collapsed cfb nodes to x = 0, derivative 1 y = 0, derivative 2 x = 0
+                # move collapsed cfb nodes to x = 0, derivative 1 y, z = 0, derivative 2 x = 0
                 for noa in range(n2CfbCollapseTop + 1):
                     ld1[noa][0] += 2.0*lx[noa][0]
                     ld1[noa][1] = 0.0
+                    ld1[noa][2] = 0.0
                     ld2[noa][0] = 0.0
                     lx[noa][0] = 0.0
             for noa in range(1, elementsCountUpAtria*2):
