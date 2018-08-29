@@ -812,7 +812,16 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                 if (n3 == 0) or (n1 > elementsCountAroundAtrialFreeWall):
                     d2 = [ 0.0, 0.0, baseDerivative2Scale ]  # calculated later
                 elif (n1 == elementsCountAroundAtrialFreeWall):
-                    # slope directly back near septum = no x component
+                    # fix crux, outer back base septum:
+                    # reduce indentation and smooth derivative 1
+                    xi = 0.9  # GRC fudge factor
+                    cruxx = [ 0.0, (1.0 - xi)*laBaseOuterx[0][1] + xi*laBaseOuterx[-1][1], 0.0 ]
+                    cruxd1 = [ 1.0, 0.0, 0.0 ]
+                    px, pd1, pd2 = sampleCubicHermiteCurves([ laBaseOuterx[-1], cruxx ], [ laBaseOuterd1[-1], cruxd1 ], [ laBaseOuterd1[-1], cruxd1 ], 2,
+                        addLengthStart = 0.5*vector.magnitude(laBaseOuterd1[-1]), lengthFractionStart = 0.5, lengthFractionEnd = 0.4)
+                    x = px[1]
+                    d1 = pd1[1]
+                    # derivative 2 slopes directly back = no x component
                     d2 = [ 0.0, -baseDerivative2Scale*math.sin(aBaseBackInclineRadians), baseDerivative2Scale*math.cos(aBaseBackInclineRadians) ]
                 else:
                     baseInclineRadians = 0.0
