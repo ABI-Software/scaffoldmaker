@@ -100,3 +100,80 @@ def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     magTangent = vector.magnitude(tangent)
     curvature = radialCurvature/(magTangent*magTangent)
     return curvature
+
+def getHermiteLagrangeEndDerivative(v1, d1, v2):
+    """
+    Computes the derivative at v2 from quadratic Hermite-Lagrange interpolation
+    from v1, d1.
+    :return: d2 (dx/dxi) at v2
+    """
+    xi = 1.0
+    #phi1 = 1 - xi*xi
+    #phi2 = xi - xi*xi
+    #phi3 = xi*xi
+    dphi1 = -2.0*xi
+    dphi2 = 1 - 2.0*xi
+    dphi3 = 2.0*xi
+    d2 = [ (v1[c]*dphi1 + d1[c]*dphi2 + v2[c]*dphi3) for c in range(3) ]
+    return d2
+
+def sampleCubicHermiteCurves(nx, nd1, nd2, elementsCountOut,
+    addLengthStart = 0.0, addLengthEnd = 0.0,
+    lengthFractionStart = 1.0, lengthFractionEnd = 1.0):
+    """
+    Get even-spaced points through cubic Hermite nodes nx with derivatives nd1
+    in line and nd2 across. Derivatives nd1 are rescaled to give arc length
+    scaling across each input element.
+    :param addLengthStart, addLengthEnd: Extra length to add to start and end elements.
+    :param lengthFractionStart, lengthFractionEnd: Fraction of mid element length for
+        start and end elements. Can use in addition to AddLengths: If LengthFraction
+        is 0.5 and AddLength is derivative/2.0 can blend into known derivative at start
+        or end.
+    :return: px[], pd1[], pd2[]
+    """
+    elementsCountIn = len(nx) - 1
+    lengths = [ 0.0 ]
+    nd1a = []
+    nd1b = []
+    length = 0.0
+    for e in range(elementsCountIn):
+        arcLength = computeCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1], rescaleDerivatives = True)
+        length += arcLength
+        lengths.append(length)
+        nd1a.append(vector.setMagnitude(nd1[e], arcLength))
+        nd1b.append(vector.setMagnitude(nd1[e + 1], arcLength))
+    elementLengthMid = (length - addLengthStart - addLengthEnd)/(elementsCountOut - 2.0 + lengthFractionStart + lengthFractionEnd)
+    elementLengthStart = addLengthStart + lengthFractionStart*elementLengthMid
+    elementLengthEnd = addLengthEnd + lengthFractionEnd*elementLengthMid
+    px = [ nx[0] ]
+    pd1 = [ vector.setMagnitude(nd1[0], elementLengthStart*2.0 - elementLengthMid) ]
+    pd2 = [ nd2[0] ]
+    distance = elementLengthStart
+    e = 0
+    for eOut in range(1, elementsCountOut):
+        while e < elementsCountIn:
+            if distance < lengths[e + 1]:
+                xi = (distance - lengths[e])/(lengths[e + 1] - lengths[e])
+                px.append(list(interpolateCubicHermite(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)))
+                pd1.append(vector.setMagnitude(interpolateCubicHermiteDerivative(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi), elementLengthMid))
+                pd2.append([ (nd2[e][c]*(1.0 - xi) + nd2[e + 1][c]*xi) for c in range(3) ])
+                break
+            e += 1
+        distance += elementLengthMid
+    px.append(nx[-1])
+    pd1.append(vector.setMagnitude(nd1[-1], elementLengthEnd*2.0 - elementLengthMid))
+    pd2.append(nd2[-1])
+    return px, pd1, pd2
+
+def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
+    """
+    Get derivative at centre of two cubic curves.
+    :return: Derivative at mx to balance ax, ad1 with bx, bd1.
+    """
+    md1 = [ (bx[c] - ax[c]) for c in range(3) ]
+    arcLengtha = computeCubicHermiteArcLength(ax, ad1, mx, md1, rescaleDerivatives = True)
+    arcLengthb = computeCubicHermiteArcLength(mx, md1, bx, bd1, rescaleDerivatives = True)
+    maga = vector.magnitude(ad1)
+    magb = vector.magnitude(bd1)
+    magm = arcLengtha + arcLengthb - 0.5*(maga + magb)
+    return vector.setMagnitude(md1, magm)

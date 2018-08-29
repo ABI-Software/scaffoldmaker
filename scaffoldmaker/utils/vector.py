@@ -31,3 +31,10 @@ def normalise(v):
     '''
     mag = math.sqrt(sum(c*c for c in v))
     return [ c/mag for c in v ]
+
+def setMagnitude(v, mag):
+    '''
+    return: Vector v with magnitude set to mag.
+    '''
+    scale = mag/math.sqrt(sum(c*c for c in v))
+    return [ c*scale for c in v ]

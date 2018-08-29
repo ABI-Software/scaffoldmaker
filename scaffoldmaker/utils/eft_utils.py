@@ -10,6 +10,7 @@ def mapEftFunction1Node1Term(eft, function, localNode, valueLabel, version, scal
     '''
     Set function of eft to map valueLabel, version from localNode with scaleFactors
     '''
+    eft.setFunctionNumberOfTerms(function, 1)
     eft.setTermNodeParameter(function, 1, localNode, valueLabel, version)
     eft.setTermScaling(function, 1, scaleFactors)
 

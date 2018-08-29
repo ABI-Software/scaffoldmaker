@@ -55,6 +55,51 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftNoCrossDerivatives:  Failed to validate eft'
         return eft
 
+    def createEftShellPole90(self, quadrant):
+        '''
+        Create a 6-node wedge element for around a pole with 90 degrees between sides.
+        Xi1 is around, xi2 is toward pole, xi3 is out of surface.
+        :param quadrant: quadrant from 0 to 3 from +s1 direction around +s2 in first quadrant
+        Element has two global scale factors to set: 1 = -1.0, 90 = math.pi/2.0
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [ 1, 90 ], [])  # global scale factor 90 = pi/2
+        remapEftNodeValueLabel(eft, [ 3, 7, 4, 8 ], Node.VALUE_LABEL_D_DS1, [])
+        if quadrant == 0:
+            remapEftNodeValueLabel(eft, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+            scaleEftNodeValueLabels(eft, [ 4, 8 ], [ Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            crossFix37 = ( Node.VALUE_LABEL_D_DS2, [ 1, 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS1, [ 2 ])
+        elif quadrant == 1:
+            scaleEftNodeValueLabels(eft, [ 3, 7 ], [ Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+            remapEftNodeValueLabel(eft, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+            crossFix37 = ( Node.VALUE_LABEL_D_DS1, [ 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS2, [ 2 ])
+        elif quadrant == 2:
+            remapEftNodeValueLabel(eft, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            crossFix37 = ( Node.VALUE_LABEL_D_DS2, [ 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS1, [ 1, 2 ])
+        elif quadrant == 3:
+            remapEftNodeValueLabel(eft, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+            crossFix37 = ( Node.VALUE_LABEL_D_DS1, [ 1, 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS2, [ 1, 2 ])
+        else:
+            assert False, 'eftfactory_tricubichermite.createEftShellPole90:  Invalid quadrant'
+
+        # 2 terms for cross derivative 1 2 to correct circular apex
+        for ln in [ 3, 7 ]:
+            mapEftFunction1Node1Term(eft, (ln - 1)*8 + 4, ln, crossFix37[0], 1, crossFix37[1])
+        for ln in [ 4, 8 ]:
+            mapEftFunction1Node1Term(eft, (ln - 1)*8 + 4, ln, crossFix48[0], 1, crossFix48[1])
+
+        ln_map = [ 1, 2, 3, 3, 4, 5, 6, 6 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPole90:  Failed to validate eft'
+        return eft
+
     def createEftShellApexBottom(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
         '''
         Create a tricubic hermite element field for closing bottom apex of a shell.
