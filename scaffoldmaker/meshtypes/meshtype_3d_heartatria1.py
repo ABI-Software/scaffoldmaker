@@ -226,30 +226,33 @@ class MeshType_3d_heartatria1(object):
                 lav.append([ None ]*elementsCountAroundAtria)
 
         # GRC fudge factors:
-        aOuterSeptumHeight = 0.7*aOuterHeight
-        aSeptumBaseRowHeight = 0.2*aOuterHeight
-        ridgeSeptumElementLengthFraction = 0.6
+        aOuterSeptumHeight = 0.8*aOuterHeight
+        #aSeptumBaseRowHeight = 0.2*aOuterHeight
+        ridgeSeptumElementLengthFraction = 0.7
 
         # get la ridge points from cubic functions from ax = septum crest centre, to bx = apex, to cx = mid outer LV base
-        aSeptumBaseCentreY = laCentre[2] \
-            + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) \
-            + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians)
-        #ax = [ 0.0, aSeptumBaseCentreY, aOuterSeptumHeight ]
-        ax = [ 0.0, 0.5*(laBaseOuterx[0][1] + laBaseOuterx[elementsCountAroundAtrialFreeWall][1]), aOuterSeptumHeight ]
+        laSeptumBaseCentrex = [
+            -0.5*aSeptumThickness,
+            laCentre[1] + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) \
+                        + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians),
+            -aBaseSlopeHeight ]
+        ax = [ 0.0, laSeptumBaseCentrex[1], aOuterSeptumHeight ]
         ad1 = [ -1.0, 0.0, 0.0 ]
         n1MidFreeWall = elementsCountAroundAtrialFreeWall//2
         cx = laBaseOuterx[n1MidFreeWall]
         cd1 = [ -d for d in laBaseOuterd2[n1MidFreeWall]]
         # 2. apex of left atrium
-        bx = [ laCentre[0], laCentre[1], aOuterHeight ]
-        bd1 = [ cx[0], 0.5*(cx[1] - ax[1]), 0.0 ]
-        rx, rd1, rd2 = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], [ ad1, bd1, cd1 ],
+        #bx = [ laCentre[0], laCentre[1], aOuterHeight ]
+        #bd1 = [ cx[0], 0.5*(cx[1] - ax[1]), 0.0 ]
+        px, pd1, _ = sampleCubicHermiteCurves([ ax, cx ], [ ad1, cd1 ], None, 2, lengthFractionStart = 0.4)
+        bx = [ px[1][0], px[1][1], aOuterHeight ]
+        bd1 = [ pd1[1][0], pd1[1][1], 0.0 ]
+        rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], None,
             elementsCountAroundAtrialFreeWall//2 + 1,
             lengthFractionStart = 0.5*ridgeSeptumElementLengthFraction,
             lengthFractionEnd = 0.9*(0.5*elementsCountAroundAtrialFreeWall - 1.0 + 0.5*ridgeSeptumElementLengthFraction))
         rx.pop(0)
         rd1.pop(0)
-        rd2.pop(0)
 
         # get points on outside arch of left atrium, anterior and posterior
         n2CfbCollapseTop = min(elementsCountUpAtria - 2, elementsCountUpAtria//2)
@@ -290,7 +293,7 @@ class MeshType_3d_heartatria1(object):
         bd1 = [ -d for d in laOuterd1[elementsCountUpAtria][n1MidFreeWall - 1] ]
         endDerivative = vector.magnitude(bd1)
         # following transitions to endDerivative
-        ex, ed2, ed1 = sampleCubicHermiteCurves([ ax, bx ], [ ad1, bd1 ], [ ad1, bd1 ], elementsCountUpAtria,
+        ex, ed2, _ = sampleCubicHermiteCurves([ ax, bx ], [ ad1, bd1 ], None, elementsCountUpAtria,
             addLengthEnd = 0.5*endDerivative, lengthFractionEnd = 0.5)
         for n2 in range(1, elementsCountUpAtria):
             laOuterx[n2][n1MidFreeWall] = ex[n2]
@@ -367,8 +370,11 @@ class MeshType_3d_heartatria1(object):
         md2 = laInnerd2[elementsCountUpAtria][0]
         md3 = laInnerd3[elementsCountUpAtria][0]
         # GRC fudge factors: 1.5x free wall thickness, 2x as steep
-        mx = [ (mx[c] - 0.5*md3[c]) for c in range(3) ]
-        md1[2] *= 2.0
+        #mx = [ (mx[c] - 0.5*md3[c]) for c in range(3) ]
+        #md1[2] *= 2.0
+        # GRC fudge factors: 2x free wall thickness, 3x as steep
+        mx = [ (mx[c] - 1.0*md3[c]) for c in range(3) ]
+        md1 = vector.setMagnitude([md1[0], md1[1], 3.0*md1[2]], vector.magnitude(md1))
         px  = laInnerx [0][elementsCountAroundAtrialFreeWall]
         pd1 = [ -d for d in laInnerd1[0][elementsCountAroundAtrialFreeWall] ]
         pd2 = [ -d for d in laInnerd2[0][elementsCountAroundAtrialFreeWall] ]
@@ -405,10 +411,54 @@ class MeshType_3d_heartatria1(object):
         for n2 in range(n2CfbCollapseTop + 1):
             laOuterd3[n2][0] = [ 0.0, laOuterx[n2][0][1] - laInnerx[n2][0][1], laOuterx[n2][0][2] - laInnerx[n2][0][2] ]
 
-        laNodeId = [ [], [] ]
-        raNodeId = [ [], [] ]
+        # create points around on top of first row of septum elements
+        up = [ 0.0, 0.0, 1.0 ]
+        px, pd1, pd2 = sampleCubicHermiteCurves(
+            [ laSeptumBaseCentrex, laInnerx[elementsCountUpAtria][0] ],
+            [ up, laInnerd1[elementsCountUpAtria][0] ],
+            None, 5,
+            addLengthStart = aBaseSlopeHeight, lengthFractionStart = 1.0,
+            addLengthEnd = 0.5*vector.magnitude(laInnerd1[elementsCountUpAtria][0]), lengthFractionEnd = 0.5)
+        ax = laInnerx[1][elementsCountAroundAtrialFreeWall]
+        ad1 = laInnerd1[1][elementsCountAroundAtrialFreeWall]
+        ad2 = laInnerd2[1][elementsCountAroundAtrialFreeWall]
+        bx  = laInnerx[1][0]
+        bd1 = laInnerd1[1][0]
+        bd2 = laInnerd2[1][0]
+        mx = [ laSeptumBaseCentrex[0], laSeptumBaseCentrex[1], px[1][2] ]
+        # GRC eventually replace with smoothing algorithm:
+        md1 = [ 0.0, vector.magnitude(getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1)), 0.0 ]
+        md2 = [ 0.0, 0.0, px[2][2] - px[1][2] ]
+        if elementsCountAroundAtrialSeptum > 1:
+            cx, cd1, cd2 = sampleCubicHermiteCurves([ ax, mx ], [ ad1, md1 ], [ ad2, md2 ], (elementsCountAroundAtrialSeptum + 1)//2,
+                addLengthStart = 0.5*vector.magnitude(ad1), lengthFractionStart = 0.5,
+                lengthFractionEnd = 0.5 if ((elementsCountAroundAtrialSeptum % 2) == 1) else 1.0)
+            if (elementsCountAroundAtrialSeptum % 2) == 1:
+                sx = cx[1:-1]
+                sd1 = cd1[1:-1]
+                sd2 = cd2[1:-1]
+            else:
+                sx = cx[1:]
+                sd1 = cd1[1:]
+                sd2 = cd2[1:]
+            if elementsCountAroundAtrialSeptum > 2:
+                cx, cd1, cd2 = sampleCubicHermiteCurves([ mx, bx ], [ md1, bd1 ], [ md2, bd2 ], (elementsCountAroundAtrialSeptum + 1)//2,
+                    lengthFractionStart = 0.5 if ((elementsCountAroundAtrialSeptum % 2) == 1) else 1.0,
+                    addLengthEnd = 0.5*vector.magnitude(bd1), lengthFractionEnd = 0.5)
+                sx += cx[1:-1]
+                sd1 += cd1[1:-1]
+                sd2 += cd2[1:-1]
+            for i in range(len(sx)):
+                n1 = elementsCountAroundAtrialFreeWall + i + 1
+                laInnerx[1][n1] = sx[i]
+                laInnerd1[1][n1] = sd1[i]
+                laInnerd2[1][n1] = sd2[i]
+                laInnerd2[0][n1] = getLagrangeHermiteStartDerivative(laBaseInnerx[n1], sx[i], sd2[i])
+                laInnerd3[1][n1] = [ -2.0*sx[i][0], 0.0, 0.0 ]
 
         # Create nodes around atria
+        laNodeId = [ [], [] ]
+        raNodeId = [ [], [] ]
         ran1FreeWallStart = elementsCountAroundAtrialSeptum - 1
         ran1MidFreeWall = ran1FreeWallStart + n1MidFreeWall
         for n3 in range(2):
@@ -635,6 +685,41 @@ class MeshType_3d_heartatria1(object):
 
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
+
+        # create first row of septum elements
+
+        meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+        for e1 in range(elementsCountAroundAtrialSeptum):
+            n1l = elementsCountAroundAtrialFreeWall + e1 - elementsCountAroundAtria
+            n1r = ran1FreeWallStart - e1
+
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            nids = [
+                laNodeId[0][0][n1l], laNodeId[0][0][n1l + 1], laNodeId[0][1][n1l], laNodeId[0][1][n1l + 1],
+                raNodeId[0][0][n1r], raNodeId[0][0][n1r - 1], raNodeId[0][1][n1r], raNodeId[0][1][n1r - 1] ]
+            scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+            if e1 == 0:
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+            elif e1 == (elementsCountAroundAtrialSeptum - 1):
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                scaleEftNodeValueLabels(eft1, [ 5, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+            else:
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+
+            elementtemplateX.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplateX)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if eft1.getNumberOfLocalScaleFactors() == 1:
+                result3 = element.setScaleFactors(eft1, [ -1.0 ])
+            #print('create element septum', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
 
         fm.endChange()
         return annotationGroups
