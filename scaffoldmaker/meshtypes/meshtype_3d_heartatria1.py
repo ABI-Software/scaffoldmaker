@@ -227,7 +227,6 @@ class MeshType_3d_heartatria1(object):
 
         # GRC fudge factors:
         aOuterSeptumHeight = 0.8*aOuterHeight
-        #aSeptumBaseRowHeight = 0.2*aOuterHeight
         ridgeSeptumElementLengthFraction = 0.7
 
         # get la ridge points from cubic functions from ax = septum crest centre, to bx = apex, to cx = mid outer LV base
@@ -520,6 +519,60 @@ class MeshType_3d_heartatria1(object):
                     aNodeId[ran1MidFreeWall] = aNodeId[ran1MidFreeWall + 1]
                 raNodeId[n3].append(aNodeId)
 
+        # fossa ovalis points at centre and around
+
+        fossaCentreY = laSeptumBaseCentrex[1]
+        fossaCentreZ = px[3][2]
+        # fossa width is based on distance from cfb to fossa centre
+        fossaMagY = (laBaseOuterx[0][1] - fossaCentreY)/3.0
+        fossaMagZ = 0.5*(px[3][2] - px[1][2])
+        elementsCountAroundFossa = elementsCountAroundAtrialSeptum + 2*(elementsCountUpAtria - 1)
+        fossaPerimeterLength = getApproximateEllipsePerimeter(fossaMagY, fossaMagZ)
+        elementSizeAroundFossa = fossaPerimeterLength/elementsCountAroundFossa
+        radiansAround = updateEllipseAngleByArcLength(fossaMagY, fossaMagZ, -0.5*math.pi, -0.5*elementsCountAroundAtrialSeptum*elementSizeAroundFossa)
+        fossaRadiansAround = []
+        for n1 in range(elementsCountAroundFossa):
+            fossaRadiansAround.append(radiansAround)
+            radiansAround = updateEllipseAngleByArcLength(fossaMagY, fossaMagZ, radiansAround, elementSizeAroundFossa)
+
+        fossaCentreNodeId = []
+        fossaNodeId = [ [], [] ]
+        dx_ds3 = [ aSeptumThickness, 0.0, 0.0 ]
+        for n3 in range(2):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            x = [ aSeptumThickness*(-0.5 if (n3 == 0) else 0.5), fossaCentreY, fossaCentreZ ]
+            dx_ds1 = [ 0.0, fossaMagY, 0.0 ]
+            dx_ds2 = [ 0.0, 0.0, fossaMagZ ]
+            result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+            fossaCentreNodeId.append(nodeIdentifier)
+            nodeIdentifier += 1
+
+            for n1 in range(elementsCountAroundFossa):
+                radiansAround = fossaRadiansAround[n1]
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                x[1] = fossaCentreY + fossaMagY*cosRadiansAround
+                x[2] = fossaCentreZ + fossaMagZ*sinRadiansAround
+                dx_ds1[1] = -fossaMagY*sinRadiansAround
+                dx_ds1[2] =  fossaMagZ*cosRadiansAround
+                scale1 = elementSizeAroundFossa/vector.magnitude(dx_ds1)
+                dx_ds1[1] *= scale1
+                dx_ds1[2] *= scale1
+                dx_ds2[1] = -fossaMagY*cosRadiansAround
+                dx_ds2[2] = -fossaMagZ*sinRadiansAround
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                fossaNodeId[n3].append(nodeIdentifier)
+                nodeIdentifier += 1
+
         #################
         # Create elements
         #################
@@ -720,6 +773,144 @@ class MeshType_3d_heartatria1(object):
 
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
+
+        # septum ring outside fossa ovalis
+
+        meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+        for e1 in range(elementsCountAroundFossa):
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            nids = None
+            nf1 = e1
+            nf2 = (e1 + 1) % elementsCountAroundFossa
+
+            if e1 < elementsCountAroundAtrialSeptum:
+                n1l = e1 - elementsCountAroundAtrialSeptum
+                n1r = elementsCountAroundAtrialSeptum - e1 - 1
+                nids = [ laNodeId[0][1][n1l], laNodeId[0][1][n1l + 1], fossaNodeId[0][nf1], fossaNodeId[0][nf2], \
+                         raNodeId[0][1][n1r], raNodeId[0][1][n1r - 1], fossaNodeId[1][nf1], fossaNodeId[1][nf2] ]
+                scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ] )
+                if e1 == 0:
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    scaleEftNodeValueLabels(eft1, [ 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                elif e1 == (elementsCountAroundAtrialSeptum - 1):
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+                else:
+                    scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ] )
+            elif e1 < (elementsCountAroundAtrialSeptum + elementsCountUpAtria - 1):
+                n2 = e1 - elementsCountAroundAtrialSeptum + 1
+                n1l = 0
+                n1r = -1
+                nids = [ laNodeId[0][n2][n1l], laNodeId[0][n2 + 1][n1l], fossaNodeId[0][nf1], fossaNodeId[0][nf2], \
+                         raNodeId[0][n2][n1r], raNodeId[0][n2 + 1][n1r], fossaNodeId[1][nf1], fossaNodeId[1][nf2] ]
+                if n2 == 1:
+                    # set derivative 1 after 2 to swap:
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    lnl = [ 2 ]
+                    lnr = [ 6 ]
+                else:
+                    lnl = [ 1, 2 ]
+                    lnr = [ 5, 6 ]
+                # set derivative 1 after 2 to swap:
+                remapEftNodeValueLabel(eft1, lnl, Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, lnl, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, lnr, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                remapEftNodeValueLabel(eft1, lnr, Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, lnr, Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # finish swap
+                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            else:
+                n2 = elementsCountAroundAtrialSeptum + 2*elementsCountUpAtria - e1 - 1
+                n1l = elementsCountAroundAtrialFreeWall
+                n1r = elementsCountAroundAtrialSeptum - 1
+                nids = [ laNodeId[0][n2][n1l], laNodeId[0][n2 - 1][n1l], fossaNodeId[0][nf1], fossaNodeId[0][nf2], \
+                         raNodeId[0][n2][n1r], raNodeId[0][n2 - 1][n1r], fossaNodeId[1][nf1], fossaNodeId[1][nf2] ]
+                if n2 == elementsCountUpAtria:
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])  # temporary to enable swap
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])  # finish swap
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    lnl = [ 2 ]
+                    lnr = [ 6 ]
+                elif n2 == 2:
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    lnl = [ 1 ]
+                    lnr = [ 5 ]
+                else:
+                    lnl = [ 1, 2 ]
+                    lnr = [ 5, 6 ]
+                remapEftNodeValueLabel(eft1, lnl, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, lnl, Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                remapEftNodeValueLabel(eft1, lnl, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, lnr, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, lnr, Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, lnr, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+
+            elementtemplateX.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplateX)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            result3 = element.setScaleFactors(eft1, [ -1.0 ])
+            #print('create element septum ring', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier = elementIdentifier + 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
+        # fossa ovalis elements
+
+        meshGroups = [ laMeshGroup, raMeshGroup, aSeptumMeshGroup, fossaMeshGroup ]
+        radiansAround0 = fossaRadiansAround[-1] - 2.0*math.pi
+        for e1 in range(elementsCountAroundFossa):
+            va = e1
+            vb = (e1 + 1)%elementsCountAroundFossa
+            eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+            elementtemplateX.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplateX)
+            nids = [ fossaNodeId[0][va], fossaNodeId[0][vb], fossaCentreNodeId[0], fossaNodeId[1][va], fossaNodeId[1][vb], fossaCentreNodeId[1] ]
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            radiansAround1 = fossaRadiansAround[va]
+            radiansAround2 = fossaRadiansAround[vb]
+            if radiansAround2 < radiansAround1:
+                radiansAround2 += 2.0*math.pi
+            radiansAround3 = fossaRadiansAround[vb + 1 - elementsCountAroundFossa]
+            if radiansAround3 < radiansAround2:
+                radiansAround3 += 2.0*math.pi
+            dRadiansAround1 = 0.5*(radiansAround2 - radiansAround0)
+            dRadiansAround2 = 0.5*(radiansAround3 - radiansAround1)
+            scalefactors = [
+                -1.0,
+                -math.cos(radiansAround1), -math.sin(radiansAround1), dRadiansAround1,
+                -math.cos(radiansAround2), -math.sin(radiansAround2), dRadiansAround2,
+                -math.cos(radiansAround1), -math.sin(radiansAround1), dRadiansAround1,
+                -math.cos(radiansAround2), -math.sin(radiansAround2), dRadiansAround2
+            ]
+            result3 = element.setScaleFactors(eft1, scalefactors)
+            #print('create element fossa', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier = elementIdentifier + 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            radiansAround0 = radiansAround1
 
         fm.endChange()
         return annotationGroups
