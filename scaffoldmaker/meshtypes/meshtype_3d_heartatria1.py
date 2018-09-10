@@ -28,14 +28,14 @@ class MeshType_3d_heartatria1(object):
     @staticmethod
     def getDefaultOptions():
         return {
-            'Number of elements around atrial free wall' : 6,
-            'Number of elements around atrial septum' : 2,
+            'Number of elements around atrial free wall' : 8,
+            'Number of elements around atrial septum' : 3,
             'Number of elements up atria' : 4,
             'Atria base inner major axis length' : 0.55,
             'Atria base inner minor axis length' : 0.42,
             'Atria major axis rotation degrees' : 40.0,
             'Atria outer height' : 0.4,
-            'Atrial septum thickness' : 0.06,
+            'Atrial septum thickness' : 0.08,
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
@@ -47,8 +47,13 @@ class MeshType_3d_heartatria1(object):
             'Left pulmonary vein wall thickness' : 0.009,
             'Right pulmonary vein inner diameter' : 0.12,
             'Right pulmonary vein wall thickness' : 0.009,
+            'Inferior vena cava position up' : 0.35,
+            'Inferior vena cava angle left degrees' : 0.0,
+            'Inferior vena cava angle up degrees' : 10.0,
             'Inferior vena cava inner diameter' : 0.22,
             'Inferior vena cava wall thickness' : 0.015,
+            'Superior vena cava position up' : 0.75,
+            'Superior vena cava angle up degrees' : 10.0,
             'Superior vena cava inner diameter' : 0.2,
             'Superior vena cava wall thickness' : 0.015,
             'Refine' : False,
@@ -79,8 +84,13 @@ class MeshType_3d_heartatria1(object):
             'Left pulmonary vein wall thickness',
             'Right pulmonary vein inner diameter',
             'Right pulmonary vein wall thickness', 
+            'Inferior vena cava position up',
+            'Inferior vena cava angle up degrees',
+            'Inferior vena cava angle left degrees',
             'Inferior vena cava inner diameter',
             'Inferior vena cava wall thickness',
+            'Superior vena cava position up',
+            'Superior vena cava angle up degrees',
             'Superior vena cava inner diameter',
             'Superior vena cava wall thickness',
             'Refine',
@@ -118,6 +128,13 @@ class MeshType_3d_heartatria1(object):
             'Superior vena cava wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
+        for key in [
+            'Inferior vena cava position up',
+            'Superior vena cava position up']:
+            if options[key] < 0.1:
+                options[key] = 0.1
+            elif options[key] > 0.9:
+                options[key] = 0.9
         if options['Aorta outer diameter'] < options['Atrial septum thickness']:
             options['Aorta outer diameter'] = options['Atrial septum thickness']
         for key in [
@@ -161,8 +178,13 @@ class MeshType_3d_heartatria1(object):
         lpvWallThickness = options['Left pulmonary vein wall thickness']
         rpvInnerRadius = 0.5*options['Right pulmonary vein inner diameter']
         rpvWallThickness = options['Right pulmonary vein wall thickness']
+        ivcPositionUp = options['Inferior vena cava position up']
+        ivcAngleUpRadians = math.radians(options['Inferior vena cava angle up degrees'])
+        ivcAngleLeftRadians = math.radians(options['Inferior vena cava angle left degrees'])
         ivcInnerRadius = 0.5*options['Inferior vena cava inner diameter']
         ivcWallThickness = options['Inferior vena cava wall thickness']
+        svcPositionUp = options['Superior vena cava position up']
+        svcAngleUpRadians = math.radians(options['Superior vena cava angle up degrees'])
         svcInnerRadius = 0.5*options['Superior vena cava inner diameter']
         svcWallThickness = options['Superior vena cava wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
@@ -206,6 +228,8 @@ class MeshType_3d_heartatria1(object):
 
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
+        aBaseOuterMajorMag = aBaseInnerMajorMag + aBaseSlopeLength
+        aBaseOuterMinorMag = aBaseInnerMinorMag + aBaseSlopeLength
 
         laCentre, laSeptumRadians, laBaseInnerx, laBaseInnerd1, laBaseInnerd2, laBaseOuterx, laBaseOuterd1, laBaseOuterd2 = \
             getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountAroundAtrialSeptum,
@@ -474,6 +498,17 @@ class MeshType_3d_heartatria1(object):
                     d2 = [ (d2[c] + fossad1[0][ns - 1][c]) for c in range(3) ]
                 laInnerd2[0][elementsCountAroundAtrialFreeWall + ns] = getLagrangeHermiteStartDerivative(x1, x2, d2)
 
+        # get ranges of nodes/elements to omit where inlets are
+
+        elementsCountUpVC = math.floor(0.7501*elementsCountUpAtria)
+        elementsCountAcrossVC = math.ceil(0.4999*(elementsCountAroundAtrialFreeWall//2))
+        elementsCountAroundVC = (elementsCountAcrossVC + elementsCountUpVC)*2
+        #print('vc', elementsCountAcrossVC, elementsCountUpVC, elementsCountAroundVC)
+        ivce1min = elementsCountAroundAtrialSeptum
+        ivce1max = ivce1min + elementsCountAcrossVC - 1
+        ivce2min = 0
+        ivce2max = ivce2min + elementsCountUpVC - 1
+
         # Create nodes around atria
         laNodeId = [ [], [] ]
         raNodeId = [ [], [] ]
@@ -522,6 +557,8 @@ class MeshType_3d_heartatria1(object):
                         continue  # copy from anterior, below
                     if lax[n1l] is None:
                         continue
+                    #if (n1 >= ivce1min) and (n1 < ivce1max) and (n2 >= ivce2min) and (n2 < ivce2max):
+                    #    continue  # ivc inlet location
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     aNodeId[n1] = nodeIdentifier
                     cache.setNode(node)
@@ -707,6 +744,8 @@ class MeshType_3d_heartatria1(object):
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
                     scaleEftNodeValueLabels(eft1, [ 3, 4, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif (e1 >= 0) and (e1 < elementsCountAcrossVC) and (e2 >= ivce2min) and (e2 <= ivce2max):
+                    continue  # ivc inlet location
 
                 if eft1 is not eft:
                     elementtemplateX.defineField(coordinates, -1, eft1)
@@ -893,6 +932,162 @@ class MeshType_3d_heartatria1(object):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             radiansAround0 = radiansAround1
+
+        # create vena cavae inlets
+
+        # get vena cava inlet positions
+        vcSeptumDistanceFactor = 1.5  # GRC fudgefactor, multiple of outer radius that wall centre is away from septum
+        vcInletLengthFactor = 1.0  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
+        raSeptumModX = -aBaseInnerMajorMag*math.cos(aMajorAxisRadians)*math.cos(-laSeptumRadians) \
+                      + aBaseInnerMinorMag*math.sin(aMajorAxisRadians)*math.sin(-laSeptumRadians)
+        #print('raSeptumModX', raSeptumModX)
+        raOuterMajorx =  [ -aBaseOuterMajorMag*math.cos(aMajorAxisRadians), -aBaseOuterMajorMag*math.sin(aMajorAxisRadians), 0.0 ]
+        raOuterMinorx =  [  aBaseOuterMinorMag*math.sin(aMajorAxisRadians), -aBaseOuterMinorMag*math.cos(aMajorAxisRadians), 0.0 ]
+        ivcdx = raSeptumModX + vcSeptumDistanceFactor*(ivcInnerRadius + ivcWallThickness)
+        ivcBaseRadians = getEllipseRadiansToX(raOuterMajorx[0], raOuterMinorx[0], ivcdx, -laSeptumRadians + 0.5*math.pi)
+        #print('ivcdx', ivcdx, 'ivcBaseDegrees', math.degrees(ivcBaseRadians))
+        svcdx = raSeptumModX + vcSeptumDistanceFactor*(svcInnerRadius + svcWallThickness)
+        svcBaseRadians = getEllipseRadiansToX(raOuterMajorx[0], raOuterMinorx[0], svcdx, -laSeptumRadians - 0.5*math.pi)
+        #print('svcdx', svcdx, 'svcBaseDegrees', math.degrees(svcBaseRadians))
+
+        raCentre = [ -laCentre[0], laCentre[1], laCentre[2] ]
+        ax = [ raCentre[c] + raOuterMajorx[c]*math.cos(svcBaseRadians) + raOuterMinorx[c]*math.sin(svcBaseRadians) for c in range(3) ]
+        ad2 = [ 0.0, math.sin(aBaseFrontInclineRadians), math.cos(aBaseFrontInclineRadians) ]
+        bx = [ raCentre[c] + raOuterMajorx[c]*math.cos(ivcBaseRadians) + raOuterMinorx[c]*math.sin(ivcBaseRadians) for c in range(3) ]
+        bd2 = [ 0.0, math.sin(aBaseBackInclineRadians), -math.cos(aBaseBackInclineRadians) ]
+        # approximate middle point as half way between ax and bx at aOuterHeight
+        mx = [ 0.5*(ax[0] + bx[0]), 0.5*(ax[1] + bx[1]), aOuterHeight ]
+        md2 = [ 0.5*(bx[0] - ax[0]), 0.5*(bx[1] - ax[1]), 0.0 ]
+        vx, vd2, _ = sampleCubicHermiteCurves([ mx, bx ], [ md2, bd2 ], None, 2, lengthFractionStart = (1.0 - ivcPositionUp)/ivcPositionUp)
+        ivcWallx = vx[1]
+        #ivcWalld2 = vd2[1]
+        vx, vd2, _ = sampleCubicHermiteCurves([ ax, mx ], [ ad2, md2 ], None, 2, lengthFractionStart = svcPositionUp/(1.0 - svcPositionUp))
+        svcWallx = vx[1]
+        #svcWalld2 = vd2[1]
+        ivcWalld3 = vector.normalise([ (svcWallx[c] - ivcWallx[c]) for c in range(3) ])
+        ivcWalld1 = vector.normalise([ ivcWalld3[1], -ivcWalld3[0], 0.0 ])
+        ivcWalld2 = vector.crossproduct3(ivcWalld3, ivcWalld1)
+        ivcDistance = vcInletLengthFactor*ivcInnerRadius
+        cosIvcAngleLeftRadians = math.cos(ivcAngleLeftRadians)
+        sinIvcAngleLeftRadians = math.sin(ivcAngleLeftRadians)
+        ivcTempd1 = [ (ivcWalld1[c]*cosIvcAngleLeftRadians - ivcWalld3[c]*sinIvcAngleLeftRadians) for c in range(3) ]
+        ivcTempd2 = ivcWalld2
+        ivcTempd3 = [ (ivcWalld3[c]*cosIvcAngleLeftRadians + ivcWalld1[c]*sinIvcAngleLeftRadians) for c in range(3) ]
+        cosIvcAngleUpRadians = math.cos(ivcAngleUpRadians)
+        sinIvcAngleUpRadians = math.sin(ivcAngleUpRadians)
+        ivcCentred1 = vector.setMagnitude(ivcTempd1, ivcInnerRadius)
+        ivcCentred2 = [ ivcInnerRadius*(ivcTempd2[c]*cosIvcAngleUpRadians - ivcTempd3[c]*sinIvcAngleUpRadians) for c in range(3) ]
+        ivcCentred3 = [ ivcDistance   *(ivcTempd3[c]*cosIvcAngleUpRadians + ivcTempd2[c]*sinIvcAngleUpRadians) for c in range(3) ]
+        ivcCentrex = [ (ivcWallx[c] - ivcCentred3[c]) for c in range(3) ]
+        vcDerivativeFactor = 0.75  # GRC fudge factor
+        ivcCentred3 = [ vcDerivativeFactor*d for d in ivcCentred3 ]
+
+        svcWalld3 = vector.normalise([ (ivcWallx[c] - svcWallx[c]) for c in range(3) ])
+        svcWalld1 = vector.normalise([ svcWalld3[1], -svcWalld3[0], 0.0 ])
+        svcWalld2 = vector.crossproduct3(svcWalld3, svcWalld1)
+        svcDistance = vcInletLengthFactor*svcInnerRadius
+        cosSvcAngleUpRadians = math.cos(svcAngleUpRadians)
+        sinSvcAngleUpRadians = math.sin(svcAngleUpRadians)
+        svcCentred1 = vector.setMagnitude(svcWalld1, svcInnerRadius)
+        svcCentred2 = [ svcInnerRadius*(svcWalld2[c]*cosSvcAngleUpRadians - svcWalld3[c]*sinSvcAngleUpRadians) for c in range(3) ]
+        svcCentred3 = [ svcDistance   *(svcWalld3[c]*cosSvcAngleUpRadians + svcWalld2[c]*sinSvcAngleUpRadians) for c in range(3) ]
+        svcCentrex = [ (svcWallx[c] - svcCentred3[c]) for c in range(3) ]
+        svcCentred3 = [ vcDerivativeFactor*d for d in svcCentred3 ]
+
+        if False:
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ivcCentrex)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ivcCentred1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ivcCentred2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, ivcCentred3)
+            nodeIdentifier += 1
+
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, svcCentrex)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, svcCentred1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, svcCentred2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, svcCentred3)
+            nodeIdentifier += 1
+
+        # create elements
+
+        startRadians = elementsCountUpVC*math.pi/elementsCountAroundVC
+        ivcStartInnerx, ivcStartInnerd1 = createCirclePoints(ivcCentrex, ivcCentred1, ivcCentred2, elementsCountAroundVC, startRadians)
+        ivcStartOuterx, ivcStartOuterd1 = createCirclePoints(ivcCentrex, vector.setMagnitude(ivcCentred1, ivcInnerRadius + ivcWallThickness), \
+            vector.setMagnitude(ivcCentred2, ivcInnerRadius + ivcWallThickness), elementsCountAroundVC, startRadians)
+        ivcStartx  = [ ivcStartInnerx , ivcStartOuterx  ]
+        ivcStartd1 = [ ivcStartInnerd1, ivcStartOuterd1 ]
+        ivcStartd2 = [ [ ivcCentred3 ]*elementsCountAroundVC ]*2
+
+        ivcEndx = [ [], [] ]
+        ivcEndd1 = [ [], [] ]
+        ivcEndd2 = [ [], [] ]
+        ivcEndd3 = [ [], [] ]
+        ivcEndNodeId = [ [], [] ]
+        ivcEndDerivativesMap = []
+        n1lmin = elementsCountAroundAtrialFreeWall - elementsCountAcrossVC
+        n1lmax = elementsCountAroundAtrialFreeWall
+        n1rmin = elementsCountAroundAtrialSeptum - 1
+        n1rmax = n1rmin + elementsCountAcrossVC
+        for n3 in range(2):
+            if n3 == 0:
+                lax  = laInnerx
+                lad1 = laInnerd1
+                lad2 = laInnerd2
+                lad3 = laInnerd3
+            else:
+                lax  = laOuterx
+                lad1 = laOuterd1
+                lad2 = laOuterd2
+                lad3 = laOuterd3
+            for n in range(elementsCountAroundVC):
+                if n < elementsCountAcrossVC:
+                    # left
+                    if n3 == 0:
+                        derivativeMap = [ ( 0, -1 ), ( 1, -1 ), ( -1, 0 ) ] if (n == 0) else [ ( -1, 0 ), ( 0, -1 ) ]
+                    n1l = n1lmin + n
+                    n1r = n1rmax - n
+                    n2 = 0
+                elif n < (elementsCountAcrossVC + elementsCountUpVC):
+                    # up
+                    if n3 == 0:
+                        derivativeMap = [ ( -1, 0 ), ( -1, -1 ), ( 0, 1 ) ] if (n == elementsCountAcrossVC) else [ ( 0, 1 ), ( -1, 0 ) ]
+                    n1l = n1lmax
+                    n1r = n1rmin
+                    n2 = n - elementsCountAcrossVC
+                elif n < (elementsCountAcrossVC*2 + elementsCountUpVC):
+                    # right
+                    n1 = n - (elementsCountAcrossVC + elementsCountUpVC)
+                    if n3 == 0:
+                        derivativeMap = [ ( 0, 1 ), ( -1, 1 ), ( 1, 0 ) ] if (n1 == 0) else [ None, None ]
+                    n1l = n1lmax - n1
+                    n1r = n1rmin + n1
+                    n2 = elementsCountUpVC
+                else:
+                    # down
+                    n2 = elementsCountAroundVC - n
+                    if n3 == 0:
+                        derivativeMap = [ ( 1, 0 ), ( 1, 1 ), ( 0, -1 ) ] if (n2 == elementsCountUpVC) else [ ( 0, -1 ), ( 1, 0 ) ]
+                    n1l = n1lmin
+                    n1r = n1rmax
+                    n2 = elementsCountAroundVC - n
+                # mirror from left to right atrium
+                ivcEndx [n3].append([ -lax [n2][n1l][0],  lax [n2][n1l][1],  lax [n2][n1l][2] ])
+                ivcEndd1[n3].append([  lad1[n2][n1l][0], -lad1[n2][n1l][1], -lad1[n2][n1l][2] ])
+                ivcEndd2[n3].append([ -lad2[n2][n1l][0],  lad2[n2][n1l][1],  lad2[n2][n1l][2] ])
+                ivcEndd3[n3].append([ -lad3[n2][n1l][0],  lad3[n2][n1l][1],  lad3[n2][n1l][2] ])
+                #print('n',n,': n3',n3,'n2',n2,'n1r',n1r)
+                ivcEndNodeId[n3].append(raNodeId[n3][n2][n1r])
+                if n3 == 0:
+                    ivcEndDerivativesMap.append(derivativeMap)
+
+        nodeIdentifier, elementIdentifier = tricubichermite.createAnnulusMesh3d(
+            ivcStartx, ivcStartd1, ivcStartd2, None, None, None,
+            ivcEndx, ivcEndd1, ivcEndd2, ivcEndd2, ivcEndNodeId, ivcEndDerivativesMap,
+            nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
+            elementsCountRadial = 2, meshGroups = [ raMeshGroup, ivcInletMeshGroup ])
 
         fm.endChange()
         return annotationGroups

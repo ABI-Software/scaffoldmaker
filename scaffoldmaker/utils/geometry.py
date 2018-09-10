@@ -5,6 +5,7 @@ Created on Apr 11, 2018
 @author: Richard Christie
 '''
 
+from __future__ import division
 import math
 
 def getApproximateEllipsePerimeter(a, b):
@@ -95,3 +96,25 @@ def getEllipseRadiansToX(ax, bx, dx, initialTheta):
             break
     return theta
 
+def createCirclePoints(cx, axis1, axis2, elementsCountAround, startRadians = 0.0):
+    '''
+    Create circular ring of points centred at cx, from axis1 around through axis2.
+    Assumes axis1 and axis2 are orthogonal and equal magnitude.
+    Dimension 3 only.
+    :param cx: centre
+    :param axis1:  Vector from cx to inside at zero angle
+    :param axis2:  Vector from cx to inside at 90 degree angle.
+    :param wallThickness: Constant wall thickness around.
+    :return: lists px, pd1
+    '''
+    px = []
+    pd1 = []
+    radiansPerElementAround = 2.0*math.pi/elementsCountAround
+    radiansAround = startRadians
+    for n in range(elementsCountAround):
+        cosRadiansAround = math.cos(radiansAround)
+        sinRadiansAround = math.sin(radiansAround)
+        px.append([ (cx[c] + cosRadiansAround*axis1[c] + sinRadiansAround*axis2[c]) for c in range(3) ])
+        pd1.append([ radiansPerElementAround*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
+        radiansAround += radiansPerElementAround
+    return px, pd1

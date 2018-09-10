@@ -134,3 +134,17 @@ def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, express
                     eft.setTermNodeParameter(f, t, expressionTerm[0], expressionTerm[1], version)
                     if expressionTerm[2]:
                         eft.setTermScaling(f, t, expressionTerm[2])
+
+def derivativeSignsToExpressionTerms(valueLabels, signs):
+    '''
+    Return remap expression terms for summing derivative[i]*sign[i]
+    :param valueLabels: List of node value labels to possibly include.
+    :param signs: List of 1 (no scaling), -1 (scale by scale factor 1) or 0 (no term).
+    '''
+    expressionTerms = []
+    for i in range(len(valueLabels)):
+        if signs[i] is 1:
+            expressionTerms.append( ( valueLabels[i], [] ) )
+        elif signs[i] is -1:
+            expressionTerms.append( ( valueLabels[i], [1] ) )
+    return expressionTerms
