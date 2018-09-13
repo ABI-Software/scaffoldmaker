@@ -1175,12 +1175,11 @@ class eftfactory_tricubichermite:
             List array[n3][n1][c] or start/point coordinates and derivatives. To linearise through the wall, pass None to d3.
         :param startNodeId, endNodeId: List array [n3][n1] of existing node identifiers to use at start/end. Pass None for
             argument if no nodes are specified at end. These arguments are 'all or nothing'.
-        :param startDerivativesMap, endDerivativesMap: List array[n1] of mappings for d/dxi1 and d/dxi2 at start/end of form:
-            ( (1, -1), None ) where the first tuple means d/dxi1 = d/ds1 - d/ds2. Only 0, 1 and -1 may be used.
-            None means use default e.g. d/dxi2 = d/ds2. Note mappings are constant for nodes through the wall.
-            Pass None for the entire argument to use the defaults d/dxi1 = d/ds1, d/dxi2 = d/ds2.
-            Pass 3 values in for the 1st and 3rd mappings to apply to d1 on either side of node, otherwise first
-            map applies both sides.
+        :param startDerivativesMap, endDerivativesMap: List array[n3][n1] of mappings for d/dxi1, d/dxi2, d/dxi3 at start/end of form:
+            ( (1, -1, 0), (1, 0, 0), None ) where the first tuple means d/dxi1 = d/ds1 - d/ds2. Only 0, 1 and -1 may be used.
+            None means use default e.g. d/dxi2 = d/ds2.
+            Pass None for the entire argument to use the defaults d/dxi1 = d/ds1, d/dxi2 = d/ds2, d/dxi3 = d/ds3.
+            Pass a 4th mapping to apply to d/dxi1 on other side of node; if not supplied first mapping applies both sides.
         :param nodetemplate: Full tricubic Hermite node template.
         :param nodetemplateLinearS3: Node template to use where linear through-thickness.
         :param nextNodeIdentifier, nextElementIdentifier: Next identifiers to use and increment.
@@ -1196,7 +1195,10 @@ class eftfactory_tricubichermite:
             (len(endPointsx) == nodesCountWall) and (len(endPointsd1) == nodesCountWall) and (len(endPointsd2) == nodesCountWall) and \
             ((endPointsd3 is None) or (len(endPointsd3) == nodesCountWall)) and \
             ((startNodeId is None) or (len(startNodeId) == nodesCountWall)) and \
-            ((endNodeId is None) or (len(endNodeId) == nodesCountWall)), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in number of layers through wall'
+            ((endNodeId is None) or (len(endNodeId) == nodesCountWall)) and \
+            ((startDerivativesMap is None) or (len(startDerivativesMap) == nodesCountWall)) and \
+            ((endDerivativesMap is None) or (len(endDerivativesMap) == nodesCountWall)), \
+            'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in number of layers through wall'
         elementsCountAround = nodesCountAround = len(startPointsx[0])
         assert (nodesCountAround > 1), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Invalid number of points/nodes around annulus'
         for n3 in range(nodesCountWall):
@@ -1205,9 +1207,10 @@ class eftfactory_tricubichermite:
                 (len(endPointsx[n3]) == nodesCountAround) and (len(endPointsd1[n3]) == nodesCountAround) and (len(endPointsd2[n3]) == nodesCountAround) and \
                 ((endPointsd3 is None) or (len(endPointsd3[n3]) == nodesCountAround)) and \
                 ((startNodeId is None) or (len(startNodeId[n3]) == nodesCountAround)) and \
-                ((endNodeId is None) or (len(endNodeId[n3]) == nodesCountAround)), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in number of points/nodes in layers through wall'
-        assert ((startDerivativesMap is None) or (len(startDerivativesMap) == elementsCountAround)), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in size of start derivative map'
-        assert ((endDerivativesMap is None) or (len(endDerivativesMap) == elementsCountAround)), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in size of end derivative map'
+                ((endNodeId is None) or (len(endNodeId[n3]) == nodesCountAround)) and \
+                ((startDerivativesMap is None) or (len(startDerivativesMap[n3]) == nodesCountAround)) and \
+                ((endDerivativesMap is None) or (len(endDerivativesMap[n3]) == nodesCountAround)), \
+                'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in number of points/nodes in layers through wall'
 
         fm = self._mesh.getFieldmodule()
         fm.beginChange()
@@ -1227,41 +1230,71 @@ class eftfactory_tricubichermite:
                         endPointsd3[n3] if (endPointsd3 is not None) else None ]
         if elementsCountRadial > 1:
             # add in-between points
+            startPointsd = [ startPointsd1, startPointsd2, startPointsd3 ]
+            startPointsdslimit = 2 if (startPointsd3 is None) else 3
+            endPointsd = [ endPointsd1, endPointsd2, endPointsd3 ]
+            endPointsdslimit = 2 if (endPointsd3 is None) else 3
             for n3 in range(2):
                 for n2 in range(1, elementsCountRadial):
                     for li in (px[n3], pd1[n3], pd2[n3], pd3[n3]):
                         li.insert(n2, [ None ]*nodesCountAround)
                 for n1 in range(nodesCountAround):
                     ax  = startPointsx [n3][n1]
-                    if (startDerivativesMap is None) or (startDerivativesMap[n1][0] is None):
+                    if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][0] is None):
                         ad1 = startPointsd1[n3][n1]
                     else:
-                        derivativesMap = startDerivativesMap[n1][0]
-                        ad1 = [ (derivativesMap[0]*startPointsd1[n3][n1][c] + derivativesMap[1]*startPointsd2[n3][n1][c]) for c in range(3) ]
-                        if len(startDerivativesMap[n1]) > 2:
+                        derivativesMap = startDerivativesMap[n3][n1][0]
+                        ad1 = [ 0.0, 0.0, 0.0 ]
+                        for ds in range(startPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    ad1[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                        if len(startDerivativesMap[n3][n1]) > 3:
                             # average with d1 map for other side
-                            derivativesMap = startDerivativesMap[n1][2]
-                            ad1 = [ 0.5*(ad1[c] + derivativesMap[0]*startPointsd1[n3][n1][c] + derivativesMap[1]*startPointsd2[n3][n1][c]) for c in range(3) ]
-                    if (startDerivativesMap is None) or (startDerivativesMap[n1][1] is None):
+                            derivativesMap = startDerivativesMap[n3][n1][3]
+                            ad1 = [ 0.5*d for d in ad1 ]
+                            for ds in range(startPointsdslimit):
+                                if derivativesMap[ds] != 0.0:
+                                    for c in range(3):
+                                        ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                    if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][1] is None):
                         ad2 = startPointsd2[n3][n1]
                     else:
-                        derivativesMap = startDerivativesMap[n1][1]
-                        ad2 = [ (derivativesMap[0]*startPointsd1[n3][n1][c] + derivativesMap[1]*startPointsd2[n3][n1][c]) for c in range(3) ]
+                        derivativesMap = startDerivativesMap[n3][n1][1]
+                        ad2 = [ 0.0, 0.0, 0.0 ]
+                        for ds in range(startPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    ad2[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+
                     bx  = endPointsx [n3][n1]
-                    if (endDerivativesMap is None) or (endDerivativesMap[n1][0] is None):
+                    if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][0] is None):
                         bd1 = endPointsd1[n3][n1]
                     else:
-                        derivativesMap = endDerivativesMap[n1][0]
-                        bd1 = [ (derivativesMap[0]*endPointsd1[n3][n1][c] + derivativesMap[1]*endPointsd2[n3][n1][c]) for c in range(3) ]
-                        if len(endDerivativesMap[n1]) > 2:
+                        derivativesMap = endDerivativesMap[n3][n1][0]
+                        bd1 = [ 0.0, 0.0, 0.0 ]
+                        for ds in range(endPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    bd1[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                        if len(endDerivativesMap[n3][n1]) > 3:
                             # average with d1 map for other side
-                            derivativesMap = endDerivativesMap[n1][2]
-                            bd1 = [ 0.5*(ad1[c] + derivativesMap[0]*endPointsd1[n3][n1][c] + derivativesMap[1]*endPointsd2[n3][n1][c]) for c in range(3) ]
-                    if (endDerivativesMap is None) or (endDerivativesMap[n1][1] is None):
+                            derivativesMap = endDerivativesMap[n3][n1][3]
+                            bd1 = [ 0.5*d for d in bd1 ]
+                            for ds in range(endPointsdslimit):
+                                if derivativesMap[ds] != 0.0:
+                                    for c in range(3):
+                                        bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                    if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][1] is None):
                         bd2 = endPointsd2[n3][n1]
                     else:
-                        derivativesMap = endDerivativesMap[n1][1]
-                        bd2 = [ (derivativesMap[0]*endPointsd1[n3][n1][c] + derivativesMap[1]*endPointsd2[n3][n1][c]) for c in range(3) ]
+                        derivativesMap = endDerivativesMap[n3][n1][1]
+                        bd2 = [ 0.0, 0.0, 0.0 ]
+                        for ds in range(endPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+
                     mx, md2, md1 = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], [ ad1, bd1 ], elementsCountRadial,
                         addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
                         addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
@@ -1315,52 +1348,68 @@ class eftfactory_tricubichermite:
         for e2 in range(elementsCountRadial):
             for e1 in range(elementsCountAround):
                 en = (e1 + 1)%elementsCountAround
-                mapStartDerivatives12 = (e2 == 0) and (startDerivativesMap is not None)
+                mapStartDerivatives = (e2 == 0) and (startDerivativesMap is not None)
                 mapStartLinearDerivative3 = (e2 == 0) and (startPointsd3 is None)
-                mapEndDerivatives12 = (e2 == (elementsCountRadial - 1)) and (endDerivativesMap is not None)
+                mapEndDerivatives = (e2 == (elementsCountRadial - 1)) and (endDerivativesMap is not None)
                 mapEndLinearDerivative3 = (e2 == (elementsCountRadial - 1)) and (endPointsd3 is None)
 
-                if mapStartDerivatives12 or mapStartLinearDerivative3 or mapEndDerivatives12 or mapEndLinearDerivative3:
+                if mapStartDerivatives or mapStartLinearDerivative3 or mapEndDerivatives or mapEndLinearDerivative3:
                     eft1 = self.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
-                    if mapStartDerivatives12:
-                        for i in range(2):
-                            lns = [ 1, 5 ] if (i == 0) else [ 2, 6 ]
-                            derivativesMap = startDerivativesMap[e1] if (i == 0) else startDerivativesMap[en]
-                            # handle different d1 on each side of node
-                            d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 3)) else derivativesMap[2]
-                            d2Map = derivativesMap[1]
-                            # use temporary to safely swap DS1 and DS2:
-                            if d1Map is not None:
-                                remapEftNodeValueLabel(eft1, lns, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
-                            if d2Map is not None:
-                                remapEftNodeValueLabel(eft1, lns, Node.VALUE_LABEL_D_DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ), d2Map))
-                            if d1Map is not None:
-                                remapEftNodeValueLabel(eft1, lns, Node.VALUE_LABEL_D2_DS1DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ), d1Map))
                     if mapStartLinearDerivative3:
                         self.setEftLinearDerivative(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS3, 1, 5, 1)
                         self.setEftLinearDerivative(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS3, 2, 6, 1)
-                    if mapEndDerivatives12:
+                    if mapStartDerivatives:
                         for i in range(2):
-                            lns = [ 3, 7 ] if (i == 0) else [ 4, 8 ]
-                            derivativesMap = endDerivativesMap[e1] if (i == 0) else endDerivativesMap[en]
-                            # handle different d1 on each side of node
-                            d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 3)) else derivativesMap[2]
-                            d2Map = derivativesMap[1]
-                            # use temporary to safely swap DS1 and DS2:
-                            if d1Map is not None:
-                                remapEftNodeValueLabel(eft1, lns, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
-                            if d2Map is not None:
-                                remapEftNodeValueLabel(eft1, lns, Node.VALUE_LABEL_D_DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ), d2Map))
-                            if d1Map is not None:
-                                remapEftNodeValueLabel(eft1, lns, Node.VALUE_LABEL_D2_DS1DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ), d1Map))
+                            lns = [ 1, 5 ] if (i == 0) else [ 2, 6 ]
+                            for n3 in range(2):
+                                derivativesMap = startDerivativesMap[n3][e1] if (i == 0) else startDerivativesMap[n3][en]
+                                # handle different d1 on each side of node
+                                d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 4)) else derivativesMap[3]
+                                d2Map = derivativesMap[1]
+                                d3Map = derivativesMap[2]
+                                # use temporary to safely swap DS1 and DS2:
+                                ln = [ lns[n3] ]
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
+                                if d2Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
                     if mapEndLinearDerivative3:
                         self.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                         self.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                    if mapEndDerivatives:
+                        for i in range(2):
+                            lns = [ 3, 7 ] if (i == 0) else [ 4, 8 ]
+                            for n3 in range(2):
+                                derivativesMap = endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]
+                                # handle different d1 on each side of node
+                                d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 4)) else derivativesMap[3]
+                                d2Map = derivativesMap[1]
+                                d3Map = derivativesMap[2]
+                                # use temporary to safely swap DS1 and DS2:
+                                ln = [ lns[n3] ]
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
+                                if d2Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
                 else:
                     eft1 = eftStandard
 
