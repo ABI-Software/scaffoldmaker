@@ -54,37 +54,26 @@ class MeshType_3d_lens1:
                 options[key] = 0.0
 
     @classmethod
-    def generateBaseMesh(cls, region, options):
+    def sphereToLens(cls, region, options):
         """
-        Generate the base tricubic Hermite mesh. See also generateMesh().
-        :param region: Zinc region to define model in. Must be empty.
-        :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        Map coordinates of the sphere within a width limit olim to arcs with radii 
+        rAnt and rPos, respectively. Elements maintain constant size radially and match
+        up at dlim. Outside of olim, affine transformation applied to transform sphere 
+        coordinates to be tangential to morphed spherical surfaces
+        return: lensRC
         """
-
-        options['Diameter'] = 10.0 # Need to change this later
-        radiusSphere = options['Diameter']*0.5
-        radiusAnt = options['Anterior radius of curvature in mm']
-        radiusPos = options['Posterior radius of curvature in mm']
-        lensThickness = options['Axial thickness in mm']
-
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
-
-        # generate solidsphere1 model
-        MeshType_3d_solidsphere1.generateBaseMesh(region, options)
         sphereCoordinates = getOrCreateCoordinateField(fm)
 
-        # Morph sphere surface to lens surface
         # Define constants
         half = fm.createFieldConstant([0.5])
         one = fm.createFieldConstant([1.0])
-        rSphere = fm.createFieldConstant([radiusSphere])
-        rAnt = fm.createFieldConstant([radiusAnt])
-        rPos = fm.createFieldConstant([radiusPos])
-        halfLensThickness = fm.createFieldConstant([lensThickness*0.5])
+        rSphere = fm.createFieldConstant([options['Diameter']*0.5])
+        rAnt = fm.createFieldConstant([options['Anterior radius of curvature in mm']])
+        rPos = fm.createFieldConstant([options['Posterior radius of curvature in mm']])
+        halfLensThickness = fm.createFieldConstant([options['Axial thickness in mm']*0.5])
 
         rLimit = fm.createFieldConstant([4.0])
         psiLimit = fm.createFieldAsin(fm.createFieldDivide(rLimit, rSphere))
@@ -194,8 +183,34 @@ class MeshType_3d_lens1:
             # print(newx)
             # node = nodeiter.next()
 
+        fm.endChange()
+
+        return lensRC
+
+    @classmethod
+    def generateBaseMesh(cls, region, options):
+        """
+        Generate the base tricubic Hermite mesh. See also generateMesh().
+        :param region: Zinc region to define model in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        :return: None
+        """
+
+        options['Diameter'] = 10.0 # Need to change this later
+
+        fm = region.getFieldmodule()
+        fm.beginChange()
+        cache = fm.createFieldcache()
+
+        # generate solidsphere1 model
+        MeshType_3d_solidsphere1.generateBaseMesh(region, options)
+        sphereCoordinates = getOrCreateCoordinateField(fm)
+
+        # Morph sphere surface to lens surface
+        lensRC = cls.sphereToLens(region, options)
+
         # Assign Field
-        fieldassignment = coordinates.createFieldassignment(lensRC)
+        fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
         result = fieldassignment.assign()
         print('fieldassignment', result)
 
