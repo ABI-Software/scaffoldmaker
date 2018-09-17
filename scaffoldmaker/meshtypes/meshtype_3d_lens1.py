@@ -7,7 +7,6 @@ from __future__ import division
 import math
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.numerical_methods import *
 from scaffoldmaker.utils.zinc_utils import *
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
