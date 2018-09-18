@@ -80,6 +80,7 @@ def computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives):
 
 def getCubicHermiteArcLength(v1, d1, v2, d2):
     '''
+    Note this is approximate.
     :return: Arc length of cubic curve using 3 point Gaussian quadrature.
     '''
     arcLength = 0.0
@@ -87,6 +88,17 @@ def getCubicHermiteArcLength(v1, d1, v2, d2):
         dm = interpolateCubicHermiteDerivative(v1, d1, v2, d2, gaussXi3[i])
         arcLength += gaussWt3[i]*math.sqrt(sum(d*d for d in dm))
     return arcLength
+
+def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
+    '''
+    Note this is approximate.
+    :return: Arc length of cubic curve up to given xi coordinate.
+    '''
+    d1m = [ d*xi for d in d1 ]
+    v2m = interpolateCubicHermite(v1, d1, v2, d2, xi)
+    d2m = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+    d2m = [ d*xi for d in d2m ]
+    return getCubicHermiteArcLength(v1, d1m, v2m, d2m)
 
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
@@ -141,6 +153,8 @@ def sampleCubicHermiteCurves(nx, nd1, nd2, elementsCountOut,
     Get even-spaced points through cubic Hermite nodes nx with derivatives nd1
     in line and nd2 across. Derivatives nd1 are rescaled to give arc length
     scaling across each input element.
+    :param nx: Coordinates of nodes along curves.
+    :param nd1: Derivatives of nodes along curves.
     :param nd2: List of cross derivatives to interpolate, or None to ignore.
     :param addLengthStart, addLengthEnd: Extra length to add to start and end elements.
     :param lengthFractionStart, lengthFractionEnd: Fraction of mid element length for
@@ -187,6 +201,49 @@ def sampleCubicHermiteCurves(nx, nd1, nd2, elementsCountOut,
     if pd2 is not None:
         pd2.append(nd2[-1])
     return px, pd1, pd2
+
+def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
+    """
+    Get the coordinates, derivatives at distance along cubic Hermite curves. Note this is approximate.
+    :param nx: Coordinates of nodes along curves.
+    :param nd: Derivatives of nodes along curves.
+    :param distance: Distance along curves.
+    :return: coordinates, derivatives; clamped to first or last nx if distance is beyond curves
+    """
+    elementsCount = len(nx) - 1
+    assert elementsCount > 0, 'getCubicHermiteCurvesPointAtArcDistance.  Invalid number of points'
+    if arcDistance < 0.0:
+        return nx[0], nd[0]
+    length = 0.0
+    xiDelta = 1.0E-6
+    xiTol = 1.0E-6
+    #print('elementsCount',elementsCount,'arcDistance',arcDistance)
+    for e in range(elementsCount):
+        partDistance = arcDistance - length
+        v1 = nx[e]
+        d1 = nd[e]
+        v2 = nx[e + 1]
+        d2 = nd[e + 1]
+        arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+        #print('e',e,'partDistance',partDistance,'arcLength',arcLength)
+        if partDistance <= arcLength:
+            xiLast = 100.0
+            xi = partDistance/arcLength
+            for iter in range(100):
+                xiLast = xi
+                dist = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi)
+                #print('iter',iter,'xi',xi,'--> dist',dist)
+                distp = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi + xiDelta)
+                distm = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi - xiDelta)
+                dxi_ddist = (2.0*xiDelta)/(distp - distm)
+                xi -= dxi_ddist*(dist - partDistance)
+                if math.fabs(xi - xiLast) <= xiTol:
+                    #print('converged xi',xi)
+                    return list(interpolateCubicHermite(v1, d1, v2, d2, xi)), list(interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi))
+            print('getCubicHermiteCurvesPointAtArcDistance Max iters reached:',iter,': e', e, ', xi',xi,', closeness', math.fabs(dist - partDistance))
+            return v2
+        length += arcLength
+    return v2, d2
 
 def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
     """
