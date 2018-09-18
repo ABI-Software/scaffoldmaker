@@ -148,7 +148,8 @@ def getHermiteLagrangeEndDerivative(v1, d1, v2):
 
 def sampleCubicHermiteCurves(nx, nd1, nd2, elementsCountOut,
     addLengthStart = 0.0, addLengthEnd = 0.0,
-    lengthFractionStart = 1.0, lengthFractionEnd = 1.0):
+    lengthFractionStart = 1.0, lengthFractionEnd = 1.0,
+    elementLengthStartEndRatio = 1.0):
     """
     Get even-spaced points through cubic Hermite nodes nx with derivatives nd1
     in line and nd2 across. Derivatives nd1 are rescaled to give arc length
@@ -161,6 +162,9 @@ def sampleCubicHermiteCurves(nx, nd1, nd2, elementsCountOut,
         start and end elements. Can use in addition to AddLengths: If LengthFraction
         is 0.5 and AddLength is derivative/2.0 can blend into known derivative at start
         or end.
+    :param elementLengthStartEndRatio: Start/end element length ratio, with lengths
+        smoothly varying in between. Requires at least 2 elements. Applied in proportion
+        to lengthFractionStart, lengthFractionEnd.
     :return: px[], pd1[], pd2[]
     """
     elementsCountIn = len(nx) - 1
@@ -174,30 +178,57 @@ def sampleCubicHermiteCurves(nx, nd1, nd2, elementsCountOut,
         lengths.append(length)
         nd1a.append(vector.setMagnitude(nd1[e], arcLength))
         nd1b.append(vector.setMagnitude(nd1[e + 1], arcLength))
-    elementLengthMid = (length - addLengthStart - addLengthEnd)/(elementsCountOut - 2.0 + lengthFractionStart + lengthFractionEnd)
-    elementLengthStart = addLengthStart + lengthFractionStart*elementLengthMid
-    elementLengthEnd = addLengthEnd + lengthFractionEnd*elementLengthMid
-    px = [ nx[0] ]
-    pd1 = [ vector.setMagnitude(nd1[0], elementLengthStart*2.0 - elementLengthMid) ]
+    proportionEnd = 2.0/(elementLengthStartEndRatio + 1)
+    proportionStart = elementLengthStartEndRatio*proportionEnd
+    elementLengthMid = (length - addLengthStart - addLengthEnd) / \
+        (elementsCountOut - 2.0 + proportionStart*lengthFractionStart + proportionEnd*lengthFractionEnd)
+    elementLengthProportionStart = proportionStart*lengthFractionStart*elementLengthMid
+    elementLengthProportionEnd = proportionEnd*lengthFractionEnd*elementLengthMid
+    # get smoothly varying element lengths, not accounting for start and end
+    elementLengths = []
+    #cumulativeLengths = [ 0.0 ]
+    for eOut in range(elementsCountOut):
+        xi = eOut/(elementsCountOut - 1)
+        elementLengths.append(((1.0 - xi)*proportionStart + xi*proportionEnd)*elementLengthMid)
+        #cummulativeLengths.append(cummulativeLengths[eOut] + elementLengths[eOut])
+    # get middle derivative magnitudes
+    nodeDerivativeMagnitudes = [ None ]*(elementsCountOut + 1)  # start and end determined below
+    for n in range(1, elementsCountOut):
+        nodeDerivativeMagnitudes[n] = 0.5*(elementLengths[n - 1] + elementLengths[n])
+    # fix end lengths:
+    elementLengths[ 0] = addLengthStart + elementLengthProportionStart
+    elementLengths[-1] = addLengthEnd + elementLengthProportionEnd
+    #print('\nsampleCubicHermiteCurves:')
+    #print('  elementLengths', elementLengths, 'addLengthStart', addLengthStart, 'addLengthEnd', addLengthEnd)
+    #print('  sum lengths', sum(elementLengths), 'vs. length', length, 'diff', sum(elementLengths) - length)
+    # set end derivatives:
+    if elementsCountOut == 1:
+        nodeDerivativeMagnitudes[0] = nodeDerivativeMagnitudes[1] = elementLengths[0]
+    else:
+        nodeDerivativeMagnitudes[0] = elementLengths[ 0]*2.0 - nodeDerivativeMagnitudes[ 1]
+        nodeDerivativeMagnitudes[-1]   = elementLengths[-1]*2.0 - nodeDerivativeMagnitudes[-2]
+
+    px = []
+    pd1 = []
     if nd2 is None:
         pd2 = None
     else:
-        pd2 = [ nd2[0] ]
-    distance = elementLengthStart
+        pd2 = []
+    distance = 0.0
     e = 0
-    for eOut in range(1, elementsCountOut):
+    for eOut in range(elementsCountOut):
         while e < elementsCountIn:
             if distance < lengths[e + 1]:
                 xi = (distance - lengths[e])/(lengths[e + 1] - lengths[e])
                 px.append(list(interpolateCubicHermite(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)))
-                pd1.append(vector.setMagnitude(interpolateCubicHermiteDerivative(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi), elementLengthMid))
+                pd1.append(vector.setMagnitude(interpolateCubicHermiteDerivative(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi), nodeDerivativeMagnitudes[eOut]))
                 if pd2 is not None:
                     pd2.append([ (nd2[e][c]*(1.0 - xi) + nd2[e + 1][c]*xi) for c in range(3) ])
                 break
             e += 1
-        distance += elementLengthMid
+        distance += elementLengths[eOut]
     px.append(nx[-1])
-    pd1.append(vector.setMagnitude(nd1[-1], elementLengthEnd*2.0 - elementLengthMid))
+    pd1.append(vector.setMagnitude(nd1[-1], nodeDerivativeMagnitudes[-1]))
     if pd2 is not None:
         pd2.append(nd2[-1])
     return px, pd1, pd2

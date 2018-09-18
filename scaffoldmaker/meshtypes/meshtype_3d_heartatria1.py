@@ -291,7 +291,7 @@ class MeshType_3d_heartatria1(object):
                 [ laBaseOuterx[na], rx[na], laBaseOuterx[np] ],
                 [ laBaseOuterd2[na], [ -rd1[na][1], rd1[na][0], 0.0 ], [ -d for d in laBaseOuterd2[np]] ],
                 [ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ],
-                2*elementsCountUpAtria)  # , lengthFractionStart = 1.5, lengthFractionEnd = 2.0/3.0)
+                2*elementsCountUpAtria, elementLengthStartEndRatio = 1.5)
             if na == 0:
                 # move collapsed cfb nodes to x = 0, derivative 1 y, z = 0, derivative 2 x = 0
                 for noa in range(n2CfbCollapseTop + 1):
@@ -413,7 +413,7 @@ class MeshType_3d_heartatria1(object):
             [ ax , mx , px  ],
             [ ad2, md2, pd2 ],
             [ ad1, md1, pd1 ],
-            2*elementsCountUpAtria, addLengthStart, addLengthEnd)  #, lengthFractionStart = 1.5, lengthFractionEnd = 2.0/3.0)
+            2*elementsCountUpAtria, addLengthStart, addLengthEnd, elementLengthStartEndRatio = 1.5)
         for noa in range(elementsCountUpAtria*2 + 1):
             nop = elementsCountUpAtria*2 - noa
             if noa <= elementsCountUpAtria:
@@ -506,7 +506,7 @@ class MeshType_3d_heartatria1(object):
         # get ranges of nodes/elements to omit where inlets are
 
         elementsCountAcrossVC = math.ceil(0.49*(elementsCountAroundAtrialFreeWall//2))
-        elementsCountUpIVC = math.ceil(0.58*elementsCountUpAtria)
+        elementsCountUpIVC = math.ceil(0.65*elementsCountUpAtria)
         elementsCountAroundIVC = (elementsCountAcrossVC + elementsCountUpIVC)*2
         ivce1min = 0
         ivce1max = ivce1min + elementsCountAcrossVC - 1
@@ -519,8 +519,8 @@ class MeshType_3d_heartatria1(object):
         svce2max = elementsCountUpAtria - 1
         svce2min = svce2max - elementsCountUpSVC + 1
 
-        elementsCountAcrossRPV = math.ceil(0.45*(elementsCountAroundAtrialFreeWall//2))
-        elementsCountUpRPV = math.ceil(0.45*elementsCountUpAtria)
+        elementsCountAcrossRPV = math.ceil(0.33*(elementsCountAroundAtrialFreeWall//2))
+        elementsCountUpRPV = math.ceil(0.39*elementsCountUpAtria)
         elementsCountAroundRPV = (elementsCountAcrossRPV + elementsCountUpRPV)*2
         ripve1max = elementsCountAroundAtrialFreeWall - 1
         ripve1min = ripve1max - elementsCountAcrossRPV + 1
@@ -1007,7 +1007,7 @@ class MeshType_3d_heartatria1(object):
             nodeIdentifier += 1
 
         # GRC make parameters
-        rcpvPositionUp = 0.9
+        rcpvPositionUp = 0.85
         px, pd1, _ = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], None, 2,
             lengthFractionEnd = rcpvPositionUp/(2.0 - rcpvPositionUp))
         rcpvx = px[1]
@@ -1020,7 +1020,7 @@ class MeshType_3d_heartatria1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rcpvd1)
             nodeIdentifier += 1
 
-        lcpvPositionUp = 0.7
+        lcpvPositionUp = 0.65
         ex, _, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], None, 2, lengthFractionStart = lcpvPositionUp/(1.0 - lcpvPositionUp))
         lcpvx = ex[1]
 
@@ -1030,7 +1030,7 @@ class MeshType_3d_heartatria1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lcpvx)
             nodeIdentifier += 1
 
-        pvSpacingFactor = 1.5
+        pvSpacingFactor = 1.8
         pvInletLengthFactor = 2.0  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
         pvDerivativeFactor = pvInletLengthFactor/elementsCountInlet  # GRC fudge factor
         rcpvWalld3 = vector.normalise([ (lcpvx[c] - rcpvx[c]) for c in range(3) ])
