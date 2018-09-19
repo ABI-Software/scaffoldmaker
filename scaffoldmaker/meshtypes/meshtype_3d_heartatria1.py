@@ -520,6 +520,18 @@ class MeshType_3d_heartatria1(object):
         svce2max = elementsCountUpAtria - 1
         svce2min = svce2max - elementsCountUpSVC + 1
 
+        elementsCountAcrossLPV = math.ceil(0.33*(elementsCountAroundAtrialFreeWall//2))
+        elementsCountUpLPV = math.ceil(0.39*elementsCountUpAtria)
+        elementsCountAroundLPV = (elementsCountAcrossLPV + elementsCountUpLPV)*2
+        lipve1min = elementsCountAroundAtrialFreeWall//2
+        lipve1max = lipve1min + elementsCountAcrossLPV - 1
+        lipve2max = elementsCountUpAtria - 2
+        lipve2min = lipve2max - elementsCountUpLPV + 1
+        lspve1max = elementsCountAroundAtrialFreeWall//2 - 1
+        lspve1min = lspve1max - elementsCountAcrossLPV + 1
+        lspve2max = elementsCountUpAtria - 2
+        lspve2min = lspve2max - elementsCountUpLPV + 1
+
         elementsCountAcrossRPV = math.ceil(0.33*(elementsCountAroundAtrialFreeWall//2))
         elementsCountUpRPV = math.ceil(0.39*elementsCountUpAtria)
         elementsCountAroundRPV = (elementsCountAcrossRPV + elementsCountUpRPV)*2
@@ -560,6 +572,10 @@ class MeshType_3d_heartatria1(object):
                         continue
                     if lax[n1] is None:
                         continue
+                    if (n1 > lipve1min) and (n1 <= lipve1max) and (n2 > lipve2min) and (n2 <= lipve2max):
+                        continue  # lipv inlet location
+                    if (n1 > lspve1min) and (n1 <= lspve1max) and (n2 > lspve2min) and (n2 <= lspve2max):
+                        continue  # lspv inlet location
                     if (n1 > ripve1min) and (n1 <= ripve1max) and (n2 > ripve2min) and (n2 <= ripve2max):
                         continue  # ripv inlet location
                     if (n1 > rspve1min) and (n1 <= rspve1max) and (n2 > rspve2min) and (n2 <= rspve2max):
@@ -669,6 +685,10 @@ class MeshType_3d_heartatria1(object):
                     laNodeId[1][e2][e1], laNodeId[1][e2][e1 + 1], laNodeId[1][e2 + 1][e1], laNodeId[1][e2 + 1][e1 + 1]]
                 meshGroups = [ laMeshGroup ]
 
+                if (e1 >= lipve1min) and (e1 <= lipve1max) and (e2 >= lipve2min) and (e2 <= lipve2max):
+                    continue  # lipv inlet location
+                if (e1 >= lspve1min) and (e1 <= lspve1max) and (e2 >= lspve2min) and (e2 <= lspve2max):
+                    continue  # lspv inlet location
                 if (e1 >= ripve1min) and (e1 <= ripve1max) and (e2 >= ripve2min) and (e2 <= ripve2max):
                     continue  # ripv inlet location
                 if (e1 >= rspve1min) and (e1 <= rspve1max) and (e2 >= rspve2min) and (e2 <= rspve2max):
@@ -1021,7 +1041,7 @@ class MeshType_3d_heartatria1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rcpvd1)
             nodeIdentifier += 1
 
-        lcpvPositionUp = 0.65
+        lcpvPositionUp = 0.6
         ex, _, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], [], 2, lengthFractionStart = lcpvPositionUp/(1.0 - lcpvPositionUp))
         lcpvx = ex[1]
 
@@ -1097,19 +1117,46 @@ class MeshType_3d_heartatria1(object):
 
         # create right pulmonary veins
 
-        elementsCountAcrossInlet = elementsCountAcrossRPV
-        elementsCountUpInlet = elementsCountUpRPV
-        elementsCountAroundInlet = elementsCountAroundRPV
-        inletInnerRadius = rpvInnerRadius
-        inletWallThickness = rpvWallThickness
-        for i in range(2):
-            if i == 0:  # ripv
+        for i in range(4):
+            if i < 2:
+                elementsCountAcrossInlet = elementsCountAcrossLPV
+                elementsCountUpInlet = elementsCountUpLPV
+                elementsCountAroundInlet = elementsCountAroundLPV
+                inletInnerRadius = lpvInnerRadius
+                inletWallThickness = lpvWallThickness
+            else:
+                elementsCountAcrossInlet = elementsCountAcrossRPV
+                elementsCountUpInlet = elementsCountUpRPV
+                elementsCountAroundInlet = elementsCountAroundRPV
+                inletInnerRadius = rpvInnerRadius
+                inletWallThickness = rpvWallThickness
+            if i == 0:  # lipv
+                inletCentrex  = lipvCentrex
+                inletCentred1 = lipvCentred1
+                inletCentred2 = lipvCentred2
+                inletCentred3 = lipvCentred3
+                e1min = lipve1min
+                e2min = lipve2min
+                startRadians = elementsCountUpInlet*math.pi/elementsCountAroundInlet
+                inletMeshGroup = lipvMeshGroup
+            elif i == 1:  # lspv
+                inletCentrex  = lspvCentrex
+                inletCentred1 = lspvCentred1
+                inletCentred2 = lspvCentred2
+                inletCentred3 = lspvCentred3
+                e1min = lspve1min
+                e2min = lspve2min
+                startRadians = elementsCountUpInlet*math.pi/elementsCountAroundInlet
+                inletMeshGroup = lspvMeshGroup
+            elif i == 2:  # ripv
                 inletCentrex  = ripvCentrex
                 inletCentred1 = ripvCentred1
                 inletCentred2 = ripvCentred2
                 inletCentred3 = ripvCentred3
                 e1min = ripve1min
                 e2min = ripve2min
+                startRadians = (2*elementsCountUpInlet + elementsCountAcrossInlet)*math.pi/elementsCountAroundInlet
+                inletMeshGroup = ripvMeshGroup
             else:  # rspv
                 inletCentrex  = rspvCentrex
                 inletCentred1 = rspvCentred1
@@ -1117,8 +1164,9 @@ class MeshType_3d_heartatria1(object):
                 inletCentred3 = rspvCentred3
                 e1min = rspve1min
                 e2min = rspve2min
+                startRadians = -elementsCountUpInlet*math.pi/elementsCountAroundInlet
+                inletMeshGroup = rspvMeshGroup
 
-            startRadians = ((2*elementsCountUpInlet + elementsCountAcrossInlet) if (i == 0) else -elementsCountUpInlet)*math.pi/elementsCountAroundInlet
             inletStartInnerx, inletStartInnerd1 = createCirclePoints(inletCentrex, inletCentred1, inletCentred2, elementsCountAroundInlet, startRadians)
             inletStartOuterx, inletStartOuterd1 = createCirclePoints(inletCentrex, vector.setMagnitude(inletCentred1, inletInnerRadius + inletWallThickness), \
                 vector.setMagnitude(inletCentred2, inletInnerRadius + inletWallThickness), elementsCountAroundInlet, startRadians)
@@ -1168,7 +1216,7 @@ class MeshType_3d_heartatria1(object):
                         derivativesMap = [ ( 1, 0, 0 ), ( 1, 1, 0 ), None, ( 0, -1, 0 ) ] if (n == (elementsCountAcrossInlet*2 + elementsCountUpInlet)) else [ ( 0, -1, 0 ), ( 1, 0, 0 ), None ]
                         n1 = n1max
                         n2 = n2max - (n - (elementsCountAcrossInlet*2 + elementsCountUpInlet))
-                    if (i == 0) and (n2 >= elementsCountUpAtria):
+                    if (i == 2) and (n2 >= elementsCountUpAtria):
                         # reverse derivatives 1 and 2 on ridge
                         derivativesMap[0] = ( -1,  0,  0) if (derivativesMap[0] is None) else ( -derivativesMap[0][0], -derivativesMap[0][1], derivativesMap[0][2])
                         derivativesMap[1] = (  0, -1,  0) if (derivativesMap[1] is None) else ( -derivativesMap[1][0], -derivativesMap[1][1], derivativesMap[1][2])
@@ -1178,7 +1226,7 @@ class MeshType_3d_heartatria1(object):
                         # mirror to get coordinates from anterior
                         n2 -= (n2 - elementsCountUpAtria)
                         n1 = elementsCountAroundAtrialFreeWall - n1
-                    elif (i == 1) and (n3 == 1) and (n1 == n1min) and (n2 < elementsCountUpAtria):
+                    elif (i == 3) and (n3 == 1) and (n1 == n1min) and (n2 < elementsCountUpAtria):
                         # fix rspv derivative 3 mapping adjacent to collapsed nodes maps to -ds1 + ds3
                         derivativesMap[2] = ( -1, 0, 1 )
                     #print('n', n,': n3',n3,'n2', n2,'n1',n1)
@@ -1195,7 +1243,7 @@ class MeshType_3d_heartatria1(object):
                 inletEndx, inletEndd1, inletEndd2, inletEndd3, inletEndNodeId, inletEndDerivativesMap,
                 nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
                 elementsCountRadial = elementsCountInlet, maxEndThickness = aFreeWallThickness,
-                meshGroups = [ laMeshGroup, ripvMeshGroup if (i == 0) else rspvMeshGroup])
+                meshGroups = [ laMeshGroup, inletMeshGroup ])
 
 
         # create vena cavae inlets to right atrium
