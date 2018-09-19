@@ -272,10 +272,10 @@ class MeshType_3d_heartatria1(object):
         # 2. apex of left atrium
         #bx = [ laCentre[0], laCentre[1], aOuterHeight ]
         #bd1 = [ cx[0], 0.5*(cx[1] - ax[1]), 0.0 ]
-        px, pd1, _ = sampleCubicHermiteCurves([ ax, cx ], [ ad1, cd1 ], None, 2, lengthFractionStart = 0.4)
+        px, pd1, _ = sampleCubicHermiteCurves([ ax, cx ], [ ad1, cd1 ], [], 2, lengthFractionStart = 0.4)
         bx = [ px[1][0], px[1][1], aOuterHeight ]
         bd1 = [ pd1[1][0], pd1[1][1], 0.0 ]
-        rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], None,
+        rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], [],
             elementsCountAroundAtrialFreeWall//2 + 1,
             lengthFractionStart = 0.5*ridgeSeptumElementLengthFraction,
             lengthFractionEnd = 0.9*(0.5*elementsCountAroundAtrialFreeWall - 1.0 + 0.5*ridgeSeptumElementLengthFraction))
@@ -287,11 +287,12 @@ class MeshType_3d_heartatria1(object):
         for na in range(n1MidFreeWall):
             np = elementsCountAroundAtrialFreeWall - na
             # sample arch from double cubic through anterior, ridge and posterior points
-            lx, ld2, ld1 = sampleCubicHermiteCurves(
+            lx, ld2, ( ld1, ) = sampleCubicHermiteCurves(
                 [ laBaseOuterx[na], rx[na], laBaseOuterx[np] ],
                 [ laBaseOuterd2[na], [ -rd1[na][1], rd1[na][0], 0.0 ], [ -d for d in laBaseOuterd2[np]] ],
-                [ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ],
+                [ [ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ] ],
                 2*elementsCountUpAtria, elementLengthStartEndRatio = 1.5)
+
             if na == 0:
                 # move collapsed cfb nodes to x = 0, derivative 1 y, z = 0, derivative 2 x = 0
                 for noa in range(n2CfbCollapseTop + 1):
@@ -321,7 +322,7 @@ class MeshType_3d_heartatria1(object):
         red2 = [ -d for d in laOuterd1[elementsCountUpAtria][n1MidFreeWall - 1] ]
         endDerivative = vector.magnitude(red2)
         # following transitions to endDerivative
-        ex, ed2, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], None, elementsCountUpAtria,
+        ex, ed2, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], [], elementsCountUpAtria,
             addLengthEnd = 0.5*endDerivative, lengthFractionEnd = 0.5)
         for n2 in range(1, elementsCountUpAtria):
             laOuterx[n2][n1MidFreeWall] = ex[n2]
@@ -352,10 +353,10 @@ class MeshType_3d_heartatria1(object):
                 curvature = 0.0
                 count = 0
                 if (n1 < elementsCountAroundAtrialFreeWall) and (laOuterx[n2][n1 + 1] is not None):
-                    curvature -= getCubicHermiteCurvature(laOuterx[n2][n1], laOuterx[n2][n1], laOuterx[n2][n1 + 1], laOuterx[n2][n1 + 1], unitRadial, 0.0)
+                    curvature -= getCubicHermiteCurvature(laOuterx[n2][n1], laOuterd1[n2][n1], laOuterx[n2][n1 + 1], laOuterd1[n2][n1 + 1], unitRadial, 0.0)
                     count += 1
                 if (n1 > 0) and (laOuterx[n2][n1 - 1] is not None):
-                    curvature -= getCubicHermiteCurvature(laOuterx[n2][n1 - 1], laOuterx[n2][n1 - 1], laOuterx[n2][n1], laOuterx[n2][n1], unitRadial, 1.0)
+                    curvature -= getCubicHermiteCurvature(laOuterx[n2][n1 - 1], laOuterd1[n2][n1 - 1], laOuterx[n2][n1], laOuterd1[n2][n1], unitRadial, 1.0)
                     count += 1
                 curvature /= count
                 factor = 1.0 - curvature*aFreeWallThickness
@@ -409,10 +410,10 @@ class MeshType_3d_heartatria1(object):
         # get start distance to account for aBaseSlopeRadians
         scale2 = -aBaseSlopeHeight/pd2[2]
         addLengthEnd = vector.magnitude([ pd2[0]*scale2, pd2[1]*scale2, aBaseSlopeHeight ])
-        ix, id2, id1 = sampleCubicHermiteCurves(
+        ix, id2, ( id1, ) = sampleCubicHermiteCurves(
             [ ax , mx , px  ],
             [ ad2, md2, pd2 ],
-            [ ad1, md1, pd1 ],
+            [ [ ad1, md1, pd1 ] ],
             2*elementsCountUpAtria, addLengthStart, addLengthEnd, elementLengthStartEndRatio = 1.5)
         for noa in range(elementsCountUpAtria*2 + 1):
             nop = elementsCountUpAtria*2 - noa
@@ -1008,7 +1009,7 @@ class MeshType_3d_heartatria1(object):
 
         # GRC make parameters
         rcpvPositionUp = 0.85
-        px, pd1, _ = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], None, 2,
+        px, pd1, _ = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], [], 2,
             lengthFractionEnd = rcpvPositionUp/(2.0 - rcpvPositionUp))
         rcpvx = px[1]
         rcpvd1 = pd1[1]
@@ -1021,7 +1022,7 @@ class MeshType_3d_heartatria1(object):
             nodeIdentifier += 1
 
         lcpvPositionUp = 0.65
-        ex, _, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], None, 2, lengthFractionStart = lcpvPositionUp/(1.0 - lcpvPositionUp))
+        ex, _, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], [], 2, lengthFractionStart = lcpvPositionUp/(1.0 - lcpvPositionUp))
         lcpvx = ex[1]
 
         if False:
@@ -1032,7 +1033,7 @@ class MeshType_3d_heartatria1(object):
 
         pvSpacingFactor = 1.8
         pvInletLengthFactor = 2.0  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
-        pvDerivativeFactor = pvInletLengthFactor/elementsCountInlet  # GRC fudge factor
+        pvDerivativeFactor = 1.0*pvInletLengthFactor/elementsCountInlet  # GRC fudge factor
         rcpvWalld3 = vector.normalise([ (lcpvx[c] - rcpvx[c]) for c in range(3) ])
         rcpvWalld2 = vector.normalise(vector.crossproduct3(rcpvd1, rcpvWalld3))
         rcpvWalld1 = vector.crossproduct3(rcpvWalld2, rcpvWalld3)
@@ -1193,7 +1194,8 @@ class MeshType_3d_heartatria1(object):
                 inletStartx, inletStartd1, inletStartd2, None, None, None,
                 inletEndx, inletEndd1, inletEndd2, inletEndd3, inletEndNodeId, inletEndDerivativesMap,
                 nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
-                elementsCountRadial = elementsCountInlet, meshGroups = [ laMeshGroup, ripvMeshGroup if (i == 0) else rspvMeshGroup])
+                elementsCountRadial = elementsCountInlet, maxEndThickness = aFreeWallThickness,
+                meshGroups = [ laMeshGroup, ripvMeshGroup if (i == 0) else rspvMeshGroup])
 
 
         # create vena cavae inlets to right atrium
@@ -1203,7 +1205,7 @@ class MeshType_3d_heartatria1(object):
         ivcSeptumDistanceFactor = 1.5
         svcSeptumDistanceFactor = 1.0
         vcInletLengthFactor = 1.0  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
-        vcDerivativeFactor = vcInletLengthFactor/elementsCountInlet  # GRC fudge factor
+        vcDerivativeFactor = 1.0*vcInletLengthFactor/elementsCountInlet  # GRC fudge factor
         raSeptumModX = -aBaseInnerMajorMag*math.cos(aMajorAxisRadians)*math.cos(-laSeptumRadians) \
                       + aBaseInnerMinorMag*math.sin(aMajorAxisRadians)*math.sin(-laSeptumRadians)
         raOuterMajorx =  [ -aBaseOuterMajorMag*math.cos(aMajorAxisRadians), -aBaseOuterMajorMag*math.sin(aMajorAxisRadians), 0.0 ]
@@ -1223,7 +1225,7 @@ class MeshType_3d_heartatria1(object):
         md2 = [ 0.5*(bx[0] - ax[0]), 0.5*(bx[1] - ax[1]), 0.0 ]
 
         gap = 2.0 - svcPositionUp - ivcPositionUp
-        px, _, _ = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], None, 3, \
+        px, _, _ = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], [], 3, \
             lengthFractionStart = svcPositionUp/gap, lengthFractionEnd = ivcPositionUp/gap)
         svcWallx = px[1]
         ivcWallx = px[2]
@@ -1373,7 +1375,8 @@ class MeshType_3d_heartatria1(object):
                 inletStartx, inletStartd1, inletStartd2, None, None, None,
                 inletEndx, inletEndd1, inletEndd2, inletEndd3, inletEndNodeId, inletEndDerivativesMap,
                 nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
-                elementsCountRadial = elementsCountInlet, meshGroups = [ raMeshGroup, ivcInletMeshGroup if (i == 0) else svcInletMeshGroup])
+                elementsCountRadial = elementsCountInlet, maxEndThickness = aFreeWallThickness,
+                meshGroups = [ raMeshGroup, ivcInletMeshGroup if (i == 0) else svcInletMeshGroup])
 
         fm.endChange()
         return annotationGroups
@@ -1557,7 +1560,7 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                     xi = 0.9  # GRC fudge factor
                     cruxx = [ 0.0, (1.0 - xi)*laBaseOuterx[0][1] + xi*laBaseOuterx[-1][1], 0.0 ]
                     cruxd1 = [ 1.0, 0.0, 0.0 ]
-                    px, pd1, pd2 = sampleCubicHermiteCurves([ laBaseOuterx[-1], cruxx ], [ laBaseOuterd1[-1], cruxd1 ], [ laBaseOuterd1[-1], cruxd1 ], 2,
+                    px, pd1, _ = sampleCubicHermiteCurves([ laBaseOuterx[-1], cruxx ], [ laBaseOuterd1[-1], cruxd1 ], [], 2,
                         addLengthStart = 0.5*vector.magnitude(laBaseOuterd1[-1]), lengthFractionStart = 0.5, lengthFractionEnd = 0.4)
                     x = px[1]
                     d1 = pd1[1]

@@ -1162,6 +1162,7 @@ class eftfactory_tricubichermite:
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
             nodetemplate, nodetemplateLinearS3, nextNodeIdentifier, nextElementIdentifier,
+            maxStartThickness = None, maxEndThickness = None,
             elementsCountRadial = 1, meshGroups = []):
         '''
         Create an annular mesh from a loop of start points/nodes with specified derivative mappings to
@@ -1183,6 +1184,7 @@ class eftfactory_tricubichermite:
         :param nodetemplate: Full tricubic Hermite node template.
         :param nodetemplateLinearS3: Node template to use where linear through-thickness.
         :param nextNodeIdentifier, nextElementIdentifier: Next identifiers to use and increment.
+        :param maxStartThickness, maxEndThickness: Optional maximum override on start/end thicknesses.
         :param elementsCountRadial: Optional number of elements in radial direction between start and end.
         :param meshGroups:  Optional list of Zinc MeshGroup for adding new elements to.
         :return: Final values of nextNodeIdentifier, nextElementIdentifier
@@ -1238,73 +1240,113 @@ class eftfactory_tricubichermite:
                 for n2 in range(1, elementsCountRadial):
                     for li in (px[n3], pd1[n3], pd2[n3], pd3[n3]):
                         li.insert(n2, [ None ]*nodesCountAround)
+            # compute on outside / n3 = 1, then map to inside using thickness
+            thicknesses = []
+            thicknesses.append([ vector.magnitude([ (startPointsx[1][n1][c] - startPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+            if maxStartThickness:
                 for n1 in range(nodesCountAround):
-                    ax  = startPointsx [n3][n1]
-                    if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][0] is None):
-                        ad1 = startPointsd1[n3][n1]
-                    else:
-                        derivativesMap = startDerivativesMap[n3][n1][0]
-                        ad1 = [ 0.0, 0.0, 0.0 ]
+                    thicknesses[0][n1] = min(thicknesses[0][n1], maxStartThickness)
+            for n2 in range(1, elementsCountRadial):
+                thicknesses.append([ None ]*nodesCountAround)
+            thicknesses.append([ vector.magnitude([ (endPointsx[1][n1][c] - endPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+            if maxEndThickness:
+                for n1 in range(nodesCountAround):
+                    thicknesses[-1][n1] = min(thicknesses[-1][n1], maxEndThickness)
+            n3 == 1
+            for n1 in range(nodesCountAround):
+                ax  = startPointsx [n3][n1]
+                if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][0] is None):
+                    ad1 = startPointsd1[n3][n1]
+                else:
+                    derivativesMap = startDerivativesMap[n3][n1][0]
+                    ad1 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(startPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                ad1[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                    if len(startDerivativesMap[n3][n1]) > 3:
+                        # average with d1 map for other side
+                        derivativesMap = startDerivativesMap[n3][n1][3]
+                        ad1 = [ 0.5*d for d in ad1 ]
                         for ds in range(startPointsdslimit):
                             if derivativesMap[ds] != 0.0:
                                 for c in range(3):
-                                    ad1[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
-                        if len(startDerivativesMap[n3][n1]) > 3:
-                            # average with d1 map for other side
-                            derivativesMap = startDerivativesMap[n3][n1][3]
-                            ad1 = [ 0.5*d for d in ad1 ]
-                            for ds in range(startPointsdslimit):
-                                if derivativesMap[ds] != 0.0:
-                                    for c in range(3):
-                                        ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
-                    if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][1] is None):
-                        ad2 = startPointsd2[n3][n1]
-                    else:
-                        derivativesMap = startDerivativesMap[n3][n1][1]
-                        ad2 = [ 0.0, 0.0, 0.0 ]
-                        for ds in range(startPointsdslimit):
-                            if derivativesMap[ds] != 0.0:
-                                for c in range(3):
-                                    ad2[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                                    ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][1] is None):
+                    ad2 = startPointsd2[n3][n1]
+                else:
+                    derivativesMap = startDerivativesMap[n3][n1][1]
+                    ad2 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(startPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                ad2[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
 
-                    bx  = endPointsx [n3][n1]
-                    if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][0] is None):
-                        bd1 = endPointsd1[n3][n1]
-                    else:
-                        derivativesMap = endDerivativesMap[n3][n1][0]
-                        bd1 = [ 0.0, 0.0, 0.0 ]
+                bx  = endPointsx [n3][n1]
+                if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][0] is None):
+                    bd1 = endPointsd1[n3][n1]
+                else:
+                    derivativesMap = endDerivativesMap[n3][n1][0]
+                    bd1 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(endPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                bd1[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                    if len(endDerivativesMap[n3][n1]) > 3:
+                        # average with d1 map for other side
+                        derivativesMap = endDerivativesMap[n3][n1][3]
+                        bd1 = [ 0.5*d for d in bd1 ]
                         for ds in range(endPointsdslimit):
                             if derivativesMap[ds] != 0.0:
                                 for c in range(3):
-                                    bd1[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
-                        if len(endDerivativesMap[n3][n1]) > 3:
-                            # average with d1 map for other side
-                            derivativesMap = endDerivativesMap[n3][n1][3]
-                            bd1 = [ 0.5*d for d in bd1 ]
-                            for ds in range(endPointsdslimit):
-                                if derivativesMap[ds] != 0.0:
-                                    for c in range(3):
-                                        bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
-                    if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][1] is None):
-                        bd2 = endPointsd2[n3][n1]
-                    else:
-                        derivativesMap = endDerivativesMap[n3][n1][1]
-                        bd2 = [ 0.0, 0.0, 0.0 ]
-                        for ds in range(endPointsdslimit):
-                            if derivativesMap[ds] != 0.0:
-                                for c in range(3):
-                                    bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                                    bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][1] is None):
+                    bd2 = endPointsd2[n3][n1]
+                else:
+                    derivativesMap = endDerivativesMap[n3][n1][1]
+                    bd2 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(endPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
 
-                    mx, md2, md1 = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], [ ad1, bd1 ], elementsCountRadial,
-                        addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
-                        addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
-                    for n2 in range(1, elementsCountRadial):
-                        px [n3][n2][n1] = mx [n2]
-                        pd1[n3][n2][n1] = md1[n2]
-                        pd2[n3][n2][n1] = md2[n2]
-                        # get derivative 3 from difference across wall
-                        if n3 == 1:
-                            pd3[1][n2][n1] = pd3[0][n2][n1] = [ (px[1][n2][n1][c] - px[0][n2][n1][c]) for c in range(3) ]
+                mx, md2, ( md1, thi ) = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ],
+                    [ [ ad1, bd1 ], [ thicknesses[0][n1], thicknesses[-1][n1] ] ], elementsCountRadial,
+                    addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
+                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
+                for n2 in range(1, elementsCountRadial):
+                    px [n3][n2][n1] = mx [n2]
+                    pd1[n3][n2][n1] = md1[n2]
+                    pd2[n3][n2][n1] = md2[n2]
+                    thicknesses[n2][n1] = thi[n2]
+
+            # now get inner positions from normal and thickness, derivatives from curvature
+            n3 = 0
+            for n2 in range(1, elementsCountRadial):
+                # first smooth derivative 1 around outer loop
+                smoothCubicHermiteDerivatives(px[1][n2], pd1[1][n2], modifyDirection = True)
+
+                for n1 in range(nodesCountAround):
+                    normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
+                    thickness = thicknesses[n2][n1]
+                    pd3[0][n2][n1] = pd3[1][n2][n1] = [ d*thickness for d in normal ]
+                    px [0][n2][n1] = [ (px [1][n2][n1][c] - pd3[1][n2][n1][c]) for c in range(3) ]
+                    # calculate inner d1 from curvature around
+                    n1m = n1 - 1
+                    n1p = (n1 + 1)%nodesCountAround
+                    curvature = 0.5*(
+                        getCubicHermiteCurvature(px[1][n2][n1m], pd1[1][n2][n1m], px[1][n2][n1 ], pd1[1][n2][n1 ], normal, 1.0) +
+                        getCubicHermiteCurvature(px[1][n2][n1 ], pd1[1][n2][n1 ], px[1][n2][n1p], pd1[1][n2][n1p], normal, 0.0))
+                    factor = 1.0 + curvature*thickness
+                    pd1[0][n2][n1] = [ factor*d for d in pd1[1][n2][n1] ]
+                    # calculate inner d2 from curvature radially
+                    n2m = n2 - 1
+                    n2p = n2 + 1
+                    curvature = 0.5*(
+                        getCubicHermiteCurvature(px[1][n2m][n1], pd2[1][n2m][n1], px[1][n2 ][n1], pd2[1][n2 ][n1], normal, 1.0) +
+                        getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
+                    factor = 1.0 + curvature*thickness
+                    pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
 
         ##############
         # Create nodes
