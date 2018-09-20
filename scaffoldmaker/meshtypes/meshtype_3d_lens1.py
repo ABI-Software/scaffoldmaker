@@ -27,7 +27,8 @@ class MeshType_3d_lens1:
         optionsLens = {
             'Axial thickness in mm' : 4.0,
             'Anterior radius of curvature in mm' : 10.0,
-            'Posterior radius of curvature in mm' : 6.0
+            'Posterior radius of curvature in mm' : 6.0,
+            'Spherical radius fraction' : 0.7
         }
         options.update(optionsLens)
         return options
@@ -37,6 +38,7 @@ class MeshType_3d_lens1:
         optionNames = MeshType_3d_solidsphere1.getOrderedOptionNames()
         optionNames.remove('Diameter')
         for optionName in [
+            'Spherical radius fraction',
             'Posterior radius of curvature in mm',
             'Anterior radius of curvature in mm',
             'Axial thickness in mm']:
@@ -47,18 +49,21 @@ class MeshType_3d_lens1:
     def checkOptions(options):
         MeshType_3d_solidsphere1.checkOptions(options)
         for key in [
+            'Spherical radius fraction',
             'Posterior radius of curvature in mm',
             'Anterior radius of curvature in mm',
             'Axial thickness in mm']:
             if options[key] < 0.0:
                 options[key] = 0.0
+        if options['Spherical radius fraction'] > 1.0:
+            options['Spherical radius fraction'] = 1.0
 
     @classmethod
     def sphereToLens(cls, region, options):
         """
         Map coordinates of the sphere within a width limit olim to arcs with radii 
         rAnt and rPos, respectively. Elements maintain constant size radially and match
-        up at dlim. Outside of olim, affine transformation applied to transform sphere 
+        up at dlim. Outside of rlim, affine transformation applied to transform sphere 
         coordinates to be tangential to morphed spherical surfaces
         return: lensRC
         """
@@ -67,17 +72,39 @@ class MeshType_3d_lens1:
         cache = fm.createFieldcache()
         sphereCoordinates = getOrCreateCoordinateField(fm)
 
+        radiusSphere = options['Diameter']*0.5
+        radiusAnt = options['Anterior radius of curvature in mm']
+        radiusPos = options['Posterior radius of curvature in mm']
+        lensThickness = options['Axial thickness in mm']
+        sphericalRadiusFraction = options['Spherical radius fraction']
+        
+        # Estimate dLim 
+        if lensThickness*0.5 == radiusAnt and lensThickness*0.5 == radiusPos:
+            fm.endChange()
+            return sphereCoordinates
+        A = radiusAnt + radiusPos - lensThickness
+        B = radiusAnt*radiusAnt - (radiusPos*radiusPos - radiusAnt*radiusAnt - A*A)**2/(4*A*A)
+        if B < 0 or A == 0:
+            dLim = min(radiusAnt, radiusPos)
+            # print('math domain error - use min radius of curvature')
+        elif  math.sqrt(B) < 0.2*min(radiusAnt, radiusPos):
+            dLim = min(radiusAnt, radiusPos)
+            # print('small intersection - use min radius')
+        else:
+            dLim = dLim = math.sqrt(B)
+        dLimitConstant = dLim*options['Spherical radius fraction']
+
         # Define constants
         half = fm.createFieldConstant([0.5])
         one = fm.createFieldConstant([1.0])
-        rSphere = fm.createFieldConstant([options['Diameter']*0.5])
-        rAnt = fm.createFieldConstant([options['Anterior radius of curvature in mm']])
-        rPos = fm.createFieldConstant([options['Posterior radius of curvature in mm']])
-        halfLensThickness = fm.createFieldConstant([options['Axial thickness in mm']*0.5])
+        rSphere = fm.createFieldConstant([radiusSphere])
+        rAnt = fm.createFieldConstant([radiusAnt])
+        rPos = fm.createFieldConstant([radiusPos])
+        halfLensThickness = fm.createFieldConstant([lensThickness*0.5])
 
         rLimit = fm.createFieldConstant([4.0])
         psiLimit = fm.createFieldAsin(fm.createFieldDivide(rLimit, rSphere))
-        dLimit = fm.createFieldConstant([3.5])
+        dLimit = fm.createFieldConstant([dLimitConstant])
 
         # Convert to cylindrical coordinates
         sphereCP = fm.createFieldCoordinateTransformation(sphereCoordinates)
@@ -177,7 +204,7 @@ class MeshType_3d_lens1:
         # node = nodeiter.next()
         # print('node.isValid()',node.isValid())
         # while node.isValid():
-            # cache.setNode(node)            
+            # cache.setNode(node)
             # resultnew, newx = lensRC.evaluateReal(cache, 3)
             # #print(node.getIdentifier(), ':', resultold, oldx, '-->', resultnew, newx)
             # print(newx)
@@ -212,7 +239,7 @@ class MeshType_3d_lens1:
         # Assign Field
         fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
         result = fieldassignment.assign()
-        print('fieldassignment', result)
+        # print('fieldassignment', result)
 
         fm.endChange()
 
