@@ -25,9 +25,9 @@ class MeshType_3d_lens1:
         options = MeshType_3d_solidsphere1.getDefaultOptions()
         options['Number of elements around'] = 8
         optionsLens = {
-            'Axial thickness in mm' : 4.0,
-            'Anterior radius of curvature in mm' : 10.0,
-            'Posterior radius of curvature in mm' : 6.0,
+            'Axial thickness' : 4.0,
+            'Anterior radius of curvature' : 10.0,
+            'Posterior radius of curvature' : 6.0,
             'Spherical radius fraction' : 0.7
         }
         options.update(optionsLens)
@@ -39,9 +39,9 @@ class MeshType_3d_lens1:
         optionNames.remove('Diameter')
         for optionName in [
             'Spherical radius fraction',
-            'Posterior radius of curvature in mm',
-            'Anterior radius of curvature in mm',
-            'Axial thickness in mm']:
+            'Posterior radius of curvature',
+            'Anterior radius of curvature',
+            'Axial thickness']:
             optionNames.insert(3, optionName)
         return optionNames
 
@@ -50,9 +50,9 @@ class MeshType_3d_lens1:
         MeshType_3d_solidsphere1.checkOptions(options)
         for key in [
             'Spherical radius fraction',
-            'Posterior radius of curvature in mm',
-            'Anterior radius of curvature in mm',
-            'Axial thickness in mm']:
+            'Posterior radius of curvature',
+            'Anterior radius of curvature',
+            'Axial thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
         if options['Spherical radius fraction'] > 1.0:
@@ -73,9 +73,9 @@ class MeshType_3d_lens1:
         sphereCoordinates = getOrCreateCoordinateField(fm)
 
         radiusSphere = options['Diameter']*0.5
-        radiusAnt = options['Anterior radius of curvature in mm']
-        radiusPos = options['Posterior radius of curvature in mm']
-        lensThickness = options['Axial thickness in mm']
+        radiusAnt = options['Anterior radius of curvature']
+        radiusPos = options['Posterior radius of curvature']
+        lensThickness = options['Axial thickness']
         sphericalRadiusFraction = options['Spherical radius fraction']
         
         # Estimate dLim 
