@@ -102,7 +102,7 @@ class MeshType_3d_lens1:
         rPos = fm.createFieldConstant([radiusPos])
         halfLensThickness = fm.createFieldConstant([lensThickness*0.5])
 
-        rLimit = fm.createFieldConstant([4.0])
+        rLimit = fm.createFieldConstant([0.4])
         psiLimit = fm.createFieldAsin(fm.createFieldDivide(rLimit, rSphere))
         dLimit = fm.createFieldConstant([dLimitConstant])
 
@@ -223,7 +223,7 @@ class MeshType_3d_lens1:
         :return: None
         """
 
-        options['Diameter'] = 10.0 # Need to change this later
+        options['Diameter'] = 1.0
 
         fm = region.getFieldmodule()
         fm.beginChange()
