@@ -79,9 +79,6 @@ class MeshType_3d_lens1:
         sphericalRadiusFraction = options['Spherical radius fraction']
         
         # Estimate dLim 
-        if lensThickness*0.5 == radiusAnt and lensThickness*0.5 == radiusPos:
-            fm.endChange()
-            return sphereCoordinates
         A = radiusAnt + radiusPos - lensThickness
         B = radiusAnt*radiusAnt - (radiusPos*radiusPos - radiusAnt*radiusAnt - A*A)**2/(4*A*A)
         if B < 0 or A == 0:
@@ -222,24 +219,30 @@ class MeshType_3d_lens1:
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-
-        options['Diameter'] = 1.0
+        radiusAnt = options['Anterior radius of curvature']
+        radiusPos = options['Posterior radius of curvature']
+        lensThickness = options['Axial thickness']
 
         fm = region.getFieldmodule()
         fm.beginChange()
         cache = fm.createFieldcache()
+        
+        if lensThickness*0.5 == radiusAnt and lensThickness*0.5 == radiusPos:
+            options['Diameter'] = lensThickness
+            MeshType_3d_solidsphere1.generateBaseMesh(region, options)
+        else:
+            # generate solidsphere with unit diameter
+            options['Diameter'] = 1.0
+            MeshType_3d_solidsphere1.generateBaseMesh(region, options)
+            sphereCoordinates = getOrCreateCoordinateField(fm)
 
-        # generate solidsphere1 model
-        MeshType_3d_solidsphere1.generateBaseMesh(region, options)
-        sphereCoordinates = getOrCreateCoordinateField(fm)
+            # Morph sphere surface to lens surface
+            lensRC = cls.sphereToLens(region, options)
 
-        # Morph sphere surface to lens surface
-        lensRC = cls.sphereToLens(region, options)
-
-        # Assign Field
-        fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
-        result = fieldassignment.assign()
-        # print('fieldassignment', result)
+            # Assign Field
+            fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
+            result = fieldassignment.assign()
+            # print('fieldassignment', result)
 
         fm.endChange()
 
