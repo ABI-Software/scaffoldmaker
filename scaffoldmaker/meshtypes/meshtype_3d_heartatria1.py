@@ -255,36 +255,48 @@ class MeshType_3d_heartatria1(object):
                 lav.append([ None ]*elementsCountAroundAtria)
 
         # GRC fudge factors:
-        aOuterSeptumHeight = 0.8*aOuterHeight
-        ridgeSeptumElementLengthFraction = 0.7
+        aOuterSeptumHeight = 0.85*aOuterHeight
+        iaGrooveDerivative = 0.8*aSeptumThickness
+        n1MidFreeWall = elementsCountAroundAtrialFreeWall//2
+        elementsCountRidgeVenous = math.ceil(0.49*n1MidFreeWall)  # was 0.49
+        ridgeVenousDistance = 0.5*aSeptumThickness + 1.2*(ivcInnerRadius + svcInnerRadius + 2*(ivcWallThickness + svcWallThickness))
 
-        # get la ridge points from cubic functions from ax = septum crest centre, to bx = apex, to cx = mid outer LV base
+        # get la ridge points from cubic functions from ax = septum groove centre to cx at edge of venous atrium, using dx = mid outer LV base
         laSeptumBaseCentrex = [
             -0.5*aSeptumThickness,
             laCentre[1] + aBaseInnerMajorMag*math.sin(-aMajorAxisRadians)*math.cos(laSeptumRadians) \
                         + aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)*math.sin(laSeptumRadians),
             -aBaseSlopeHeight ]
         ax = [ 0.0, laSeptumBaseCentrex[1], aOuterSeptumHeight ]
-        ad1 = [ -1.0, 0.0, 0.0 ]
-        n1MidFreeWall = elementsCountAroundAtrialFreeWall//2
-        cx = laBaseOuterx[n1MidFreeWall]
-        cd1 = [ -d for d in laBaseOuterd2[n1MidFreeWall]]
-        # 2. apex of left atrium
-        #bx = [ laCentre[0], laCentre[1], aOuterHeight ]
-        #bd1 = [ cx[0], 0.5*(cx[1] - ax[1]), 0.0 ]
-        px, pd1, _ = sampleCubicHermiteCurves([ ax, cx ], [ ad1, cd1 ], [], 2, lengthFractionStart = 0.4)
-        bx = [ px[1][0], px[1][1], aOuterHeight ]
-        bd1 = [ pd1[1][0], pd1[1][1], 0.0 ]
-        rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], [],
-            elementsCountAroundAtrialFreeWall//2 + 1,
-            lengthFractionStart = 0.5*ridgeSeptumElementLengthFraction,
-            lengthFractionEnd = 0.9*(0.5*elementsCountAroundAtrialFreeWall - 1.0 + 0.5*ridgeSeptumElementLengthFraction))
-        rx.pop(0)
-        rd1.pop(0)
+        ad1 = [ -iaGrooveDerivative, 0.0, 0.0 ]
+        dx = laBaseOuterx[n1MidFreeWall]
+        dd1 = [ -d for d in laBaseOuterd2[n1MidFreeWall]]
+        # get point on venous peak
+        # GRC fudge factor
+        px, pd1, _ = sampleCubicHermiteCurves([ ax, dx ], [ ad1, dd1 ], [], 2, lengthFractionStart = 0.4)
+        nx = [ ax, [ px[1][0], px[1][1], aOuterHeight ] ]
+        nd1 = [ ad1, [ pd1[1][0], pd1[1][1], 0.0 ] ]
+        smoothCubicHermiteDerivativesLine(nx, nd1, fixStartDerivative = True, fixEndDirection = True)
+        ex = nx[1]
+        ed1 = nd1[1]
+        xi = 0.4
+        # bx = in-between point to get more curvature near septum
+        bx = interpolateCubicHermite(ax, ad1, ex, ed1, xi)
+        bd1 = interpolateCubicHermiteDerivative(ax, ad1, ex, ed1, xi)
+        # cx = limit of venous atrium on ridge
+        cx, cd1 = getCubicHermiteCurvesPointAtArcDistance([ ax, bx, ex, dx ], [ ad1, bd1, ed1, dd1 ], ridgeVenousDistance)
+        if elementsCountRidgeVenous == 1:
+            #rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], [],
+            #    elementsCountRidgeVenous)
+            rx = [ [ ax[0], ax[1], ax[2] ], [ cx[0], cx[1], cx[2] ] ]
+            rd1 = [ [ ad1[0], ad1[1], ad1[2] ], [ cd1[0], cd1[1], cd1[2] ] ]
+        else:
+            rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], [],
+                elementsCountRidgeVenous,
+                lengthFractionStart = 0.5, addLengthStart = 0.5*iaGrooveDerivative)
 
-        # get points on outside arch of left atrium, anterior and posterior
-        n2CfbCollapseTop = elementsCountUpAtria - 1  # min(elementsCountUpAtria - 2, elementsCountUpAtria//2)
-        for na in range(n1MidFreeWall):
+        # get points on outside arch of "venous" left atrium, anterior and posterior
+        for na in range(elementsCountRidgeVenous + 1):
             np = elementsCountAroundAtrialFreeWall - na
             # sample arch from double cubic through anterior, ridge and posterior points
             lx, ld2, ( ld1, ) = sampleCubicHermiteCurves(
@@ -292,15 +304,6 @@ class MeshType_3d_heartatria1(object):
                 [ laBaseOuterd2[na], [ -rd1[na][1], rd1[na][0], 0.0 ], [ -d for d in laBaseOuterd2[np]] ],
                 [ [ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ] ],
                 2*elementsCountUpAtria, elementLengthStartEndRatio = 1.5)
-
-            if na == 0:
-                # move collapsed cfb nodes to x = 0, derivative 1 y, z = 0, derivative 2 x = 0
-                for noa in range(n2CfbCollapseTop + 1):
-                    ld1[noa][0] += 2.0*lx[noa][0]
-                    ld1[noa][1] = 0.0
-                    ld1[noa][2] = 0.0
-                    ld2[noa][0] = 0.0
-                    lx[noa][0] = 0.0
             for noa in range(1, elementsCountUpAtria*2):
                 if noa <= elementsCountUpAtria:
                     laOuterx[noa][na] = lx[noa]
@@ -315,23 +318,37 @@ class MeshType_3d_heartatria1(object):
             laBaseOuterd2[na] = ld2[0]
             laBaseOuterd2[np] = [-d for d in ld2[2*elementsCountUpAtria] ]
 
-        # add end points on ridge
-        rex1 = laBaseOuterx[n1MidFreeWall]
-        red1 = laBaseOuterd2[n1MidFreeWall]
-        rex2 = laOuterx[elementsCountUpAtria][n1MidFreeWall - 1]
-        red2 = [ -d for d in laOuterd1[elementsCountUpAtria][n1MidFreeWall - 1] ]
-        endDerivative = vector.magnitude(red2)
-        # following transitions to endDerivative
-        ex, ed2, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], [], elementsCountUpAtria,
-            addLengthEnd = 0.5*endDerivative, lengthFractionEnd = 0.5)
-        for n2 in range(1, elementsCountUpAtria):
-            laOuterx[n2][n1MidFreeWall] = ex[n2]
-            laOuterd1[n2][n1MidFreeWall] = getDoubleCubicHermiteCurvesMidDerivative(
-                laOuterx[n2][n1MidFreeWall - 1], laOuterd1[n2][n1MidFreeWall - 1],
-                laOuterx[n2][n1MidFreeWall],
-                laOuterx[n2][n1MidFreeWall + 1], laOuterd1[n2][n1MidFreeWall + 1])
-            laOuterd2[n2][n1MidFreeWall] = ed2[n2]
-        laOuterd2[0][n1MidFreeWall] = ed2[0]
+        # add round quarter sphere in LA beyond "RA venous" zone
+        elementsCountAroundEnd = elementsCountAroundAtrialFreeWall - 2*elementsCountRidgeVenous
+        # get apex point at end of "venous" atria
+        vx  = laOuterx[elementsCountUpAtria][elementsCountRidgeVenous]
+        vd1 = laOuterd2[elementsCountUpAtria][elementsCountRidgeVenous]
+        vd2 = [ -d for d in laOuterd1[elementsCountUpAtria][elementsCountRidgeVenous] ]
+        startderivative0 = vector.magnitude(laBaseOuterd2[elementsCountRidgeVenous])
+        startDerivativeN = vector.magnitude(laBaseOuterd2[elementsCountAroundAtrialFreeWall - elementsCountRidgeVenous])
+        radiansPerElementAroundEnd = math.pi/elementsCountAroundEnd
+        for n in range(1, elementsCountAroundEnd):
+            n1 = elementsCountRidgeVenous + n
+            ax = laBaseOuterx[n1]
+            ad1 = laBaseOuterd1[n1]
+            ad2 = laBaseOuterd2[n1]
+            radiansAround = n*radiansPerElementAroundEnd
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            bx = vx
+            bd1 = [ 0.5*(vd1[c]*sinRadiansAround - vd2[c]*cosRadiansAround) for c in range(3) ]
+            bd2 = [ (vd1[c]*cosRadiansAround + vd2[c]*sinRadiansAround) for c in range(3) ]
+            xi = radiansAround/math.pi
+            startDerivative = (1.0 - xi)*startderivative0 + xi*startDerivativeN
+            endDerivative = vector.magnitude(bd2)
+            ex, ed2, ( ed1, ) = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], [ [ ad1, bd1 ] ], elementsCountUpAtria,
+                addLengthStart = 0.5*startDerivative, lengthFractionStart = 0.5,
+                addLengthEnd = 0.5*endDerivative, lengthFractionEnd = 0.5)
+            laOuterd2[0][n1] = ed2[0]
+            for n2 in range(1, elementsCountUpAtria):
+                laOuterx [n2][n1] = ex [n2]
+                laOuterd1[n2][n1] = ed1[n2]
+                laOuterd2[n2][n1] = ed2[n2]
 
         # get inner points
         for n2 in range(1, elementsCountUpAtria + 1):
@@ -387,6 +404,48 @@ class MeshType_3d_heartatria1(object):
         # special fix inner base derivative 2 at cfb = slope of cfbLeft inner derivative 2
         laInnerd2[0][0] = laInnerd2[0][1]
 
+        # calculate fossa positions early to use in smoothing septum
+        # GRC the following 4 variables could be made into options
+        fossaCentreY = laSeptumBaseCentrex[1]
+        fossaCentreZ = 0.5*aOuterSeptumHeight
+        # fossa width is based on distance from cfb to fossa centre
+        fossaMagY = (laBaseOuterx[0][1] - fossaCentreY)*0.36
+        fossaMagZ = 0.2*aOuterSeptumHeight
+
+        ux = [ laSeptumBaseCentrex[0], fossaCentreY, fossaCentreZ ]
+        ud1 = [ 0.0, fossaMagY, 0.0 ]
+        ud2 = [ 0.0, 0.0, fossaMagZ]
+        gx  = laInnerx [elementsCountUpAtria][1]
+        gd1 = laInnerd1[elementsCountUpAtria][1]
+        gd2 = laInnerd2[elementsCountUpAtria][1]
+        gd3 = laInnerd3[elementsCountUpAtria][1]
+        fradians = math.atan2(gx[2] - ux[2], gx[1] - ux[1])
+        fd1 = [ ( ud1[c]*math.cos(fradians) + ud2[c]*math.sin(fradians)) for c in range(3) ]
+        fd2 = [ (-ud1[c]*math.sin(fradians) + ud2[c]*math.cos(fradians)) for c in range(3) ]
+        fx = [ (ux[c] + fd1[c]) for c in range(3) ]
+        tx, td1, ( td2, ) = sampleCubicHermiteCurves([ fx, gx ], [ fd1, gd1 ], [ [ fd2, gd2 ] ], 2,
+            addLengthStart = 0.5*vector.magnitude(fd1), lengthFractionStart = 0.5,
+            addLengthEnd = 0.5*vector.magnitude(gd1), lengthFractionEnd = 0.5)
+        mx  = tx [1]
+        md1 = td1[1]
+        md2 = td2[1]
+
+        if True:
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, fx )
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, fd1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, fd2)
+            nodeIdentifier += 1
+
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, gx )
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, gd1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, gd2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, gd3)
+            nodeIdentifier += 1
+
         # fix inner nodes near septum to thicken wall and transition to septum
         ax  = laInnerx [0][0]
         ad1 = laInnerd1[0][0]
@@ -394,16 +453,6 @@ class MeshType_3d_heartatria1(object):
         # get start distance to account for aBaseSlopeRadians
         scale2 = aBaseSlopeHeight/ad2[2]
         addLengthStart = vector.magnitude([ ad2[0]*scale2, ad2[1]*scale2, aBaseSlopeHeight ])
-        mx  = laInnerx [elementsCountUpAtria][0]
-        md1 = laInnerd1[elementsCountUpAtria][0]
-        md2 = laInnerd2[elementsCountUpAtria][0]
-        md3 = laInnerd3[elementsCountUpAtria][0]
-        # GRC fudge factors: 1.5x free wall thickness, 2x as steep
-        #mx = [ (mx[c] - 0.5*md3[c]) for c in range(3) ]
-        #md1[2] *= 2.0
-        # GRC fudge factors: 2x free wall thickness, 3x as steep
-        mx = [ (mx[c] - 1.0*md3[c]) for c in range(3) ]
-        md1 = vector.setMagnitude([md1[0], md1[1], 3.0*md1[2]], vector.magnitude(md1))
         px  = laInnerx [0][elementsCountAroundAtrialFreeWall]
         pd1 = [ -d for d in laInnerd1[0][elementsCountAroundAtrialFreeWall] ]
         pd2 = [ -d for d in laInnerd2[0][elementsCountAroundAtrialFreeWall] ]
@@ -436,18 +485,15 @@ class MeshType_3d_heartatria1(object):
                 if laOuterx[n2][n1] is None:
                     continue
                 laInnerd3[n2][n1] = laOuterd3[n2][n1] = [ (laOuterx[n2][n1][c] - laInnerx[n2][n1][c]) for c in range(3) ]
-        # fix cfb/aorta centre derivative 3:
-        for n2 in range(n2CfbCollapseTop + 1):
+        # fix cfb-interatrial groove-crux centre derivative 3:
+        for n2 in range(elementsCountUpAtria + 1):
             laOuterd3[n2][0] = [ 0.0, laOuterx[n2][0][1] - laInnerx[n2][0][1], laOuterx[n2][0][2] - laInnerx[n2][0][2] ]
+        for n2 in range(elementsCountUpAtria):
+            laOuterd3[n2][elementsCountAroundAtrialFreeWall] = [ 0.0,
+                laOuterx[n2][elementsCountAroundAtrialFreeWall][1] - laInnerx[n2][elementsCountAroundAtrialFreeWall][1],
+                laOuterx[n2][elementsCountAroundAtrialFreeWall][2] - laInnerx[n2][elementsCountAroundAtrialFreeWall][2] ]
 
         # fossa ovalis points at centre and around
-
-        # GRC the following 4 variables could be made into options
-        fossaCentreY = laSeptumBaseCentrex[1]
-        fossaCentreZ = 0.5*aOuterSeptumHeight
-        # fossa width is based on distance from cfb to fossa centre
-        fossaMagY = (laBaseOuterx[0][1] - fossaCentreY)*0.36
-        fossaMagZ = 0.2*aOuterSeptumHeight
         elementsCountFossaBaseCentre = max(elementsCountAroundAtrialSeptum - 2, 1)
         elementsCountFossaBase = 2 + elementsCountFossaBaseCentre
         elementsCountAroundFossa = elementsCountFossaBaseCentre + 2*(elementsCountUpAtria - 1)
@@ -506,7 +552,7 @@ class MeshType_3d_heartatria1(object):
 
         # get ranges of nodes/elements to omit where inlets are
 
-        elementsCountAcrossVC = math.ceil(0.49*(elementsCountAroundAtrialFreeWall//2))
+        elementsCountAcrossVC = elementsCountRidgeVenous
         elementsCountUpIVC = math.ceil(0.65*elementsCountUpAtria)
         elementsCountAroundIVC = (elementsCountAcrossVC + elementsCountUpIVC)*2
         ivce1min = 0
@@ -520,7 +566,7 @@ class MeshType_3d_heartatria1(object):
         svce2max = elementsCountUpAtria - 1
         svce2min = svce2max - elementsCountUpSVC + 1
 
-        elementsCountAcrossLPV = math.ceil(0.33*(elementsCountAroundAtrialFreeWall//2))
+        elementsCountAcrossLPV = elementsCountRidgeVenous  # was math.ceil(0.33*n1MidFreeWall)
         elementsCountUpLPV = math.ceil(0.39*elementsCountUpAtria)
         elementsCountAroundLPV = (elementsCountAcrossLPV + elementsCountUpLPV)*2
         lipve1min = elementsCountAroundAtrialFreeWall//2
@@ -532,7 +578,7 @@ class MeshType_3d_heartatria1(object):
         lspve2max = elementsCountUpAtria - 2
         lspve2min = lspve2max - elementsCountUpLPV + 1
 
-        elementsCountAcrossRPV = math.ceil(0.33*(elementsCountAroundAtrialFreeWall//2))
+        elementsCountAcrossRPV = elementsCountRidgeVenous  # was math.ceil(0.33*n1MidFreeWall)
         elementsCountUpRPV = math.ceil(0.39*elementsCountUpAtria)
         elementsCountAroundRPV = (elementsCountAcrossRPV + elementsCountUpRPV)*2
         ripve1max = elementsCountAroundAtrialFreeWall - 1
@@ -543,6 +589,8 @@ class MeshType_3d_heartatria1(object):
         rspve1max = rspve1min + elementsCountAcrossRPV - 1
         rspve2max = elementsCountUpAtria - 1
         rspve2min = rspve2max - elementsCountUpRPV + 1
+
+        addInlets = True
 
         # Create nodes around atria
         laNodeId = [ [], [] ]
@@ -561,25 +609,27 @@ class MeshType_3d_heartatria1(object):
                     lad1 = laOuterd1[n2]
                     lad2 = laOuterd2[n2]
                     lad3 = laOuterd3[n2]
+
                 # left atrium
                 aNodeId = [ None ]*elementsCountAroundAtria
                 for n1 in range(elementsCountAroundAtria):
-                    if (n2 == elementsCountUpAtria) and (n1 >= n1MidFreeWall) and (n1 <= elementsCountAroundAtrialFreeWall):
-                        if n1 == n1MidFreeWall:
-                            aNodeId[n1] = aNodeId[n1 - 1]
+                    if (n2 == elementsCountUpAtria) and (n1 > elementsCountRidgeVenous) and (n1 <= elementsCountAroundAtrialFreeWall):
+                        if (n1 < (elementsCountAroundAtrialFreeWall - elementsCountRidgeVenous)):
+                            aNodeId[n1] = aNodeId[elementsCountRidgeVenous]
                         else:
                             aNodeId[n1] = aNodeId[elementsCountAroundAtrialFreeWall - n1]
                         continue
                     if lax[n1] is None:
                         continue
-                    if (n1 > lipve1min) and (n1 <= lipve1max) and (n2 > lipve2min) and (n2 <= lipve2max):
-                        continue  # lipv inlet location
-                    if (n1 > lspve1min) and (n1 <= lspve1max) and (n2 > lspve2min) and (n2 <= lspve2max):
-                        continue  # lspv inlet location
-                    if (n1 > ripve1min) and (n1 <= ripve1max) and (n2 > ripve2min) and (n2 <= ripve2max):
-                        continue  # ripv inlet location
-                    if (n1 > rspve1min) and (n1 <= rspve1max) and (n2 > rspve2min) and (n2 <= rspve2max):
-                        continue  # rspv inlet location
+                    if addInlets:
+                        if (n1 > lipve1min) and (n1 <= lipve1max) and (n2 > lipve2min) and (n2 <= lipve2max):
+                            continue  # lipv inlet location
+                        if (n1 > lspve1min) and (n1 <= lspve1max) and (n2 > lspve2min) and (n2 <= lspve2max):
+                            continue  # lspv inlet location
+                        if (n1 > ripve1min) and (n1 <= ripve1max) and (n2 > ripve2min) and (n2 <= ripve2max):
+                            continue  # ripv inlet location
+                        if (n1 > rspve1min) and (n1 <= rspve1max) and (n2 > rspve2min) and (n2 <= rspve2max):
+                            continue  # rspv inlet location
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     aNodeId[n1] = nodeIdentifier
                     cache.setNode(node)
@@ -589,21 +639,23 @@ class MeshType_3d_heartatria1(object):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lad3[n1])
                     nodeIdentifier += 1
                 laNodeId[n3].append(aNodeId)
+
                 # right atrium
                 aNodeId = [ None ]*elementsCountAroundAtria
                 for n1 in range(elementsCountAroundAtria):
                     n1l = elementsCountAroundAtria - 1 - n1
-                    if (n3 == 1) and (n2 <= n2CfbCollapseTop) and (n1l == 0):
-                        aNodeId[n1] = laNodeId[n3][n2][0]
+                    if (n3 == 1) and ((n1l == 0) or (n1l == elementsCountAroundAtrialFreeWall)):
+                        aNodeId[n1] = laNodeId[n3][n2][n1l]
                         continue
-                    if (n2 == elementsCountUpAtria) and (n1 >= ran1FreeWallStart) and (n1 <= ran1MidFreeWall):
-                        continue  # copy from anterior, below
+                    if (n2 == elementsCountUpAtria) and (n1l > elementsCountRidgeVenous) and (n1l <= elementsCountAroundAtrialFreeWall):
+                        continue  # copy from anterior, below, once created
                     if lax[n1l] is None:
                         continue
-                    if (n1 > (ran1FreeWallStart + ivce1min)) and (n1 <= (ran1FreeWallStart + ivce1max)) and (n2 > ivce2min) and (n2 <= ivce2max):
-                        continue  # ivc inlet location
-                    if (n1 > (ran1FreeWallStart + svce1min)) and (n1 <= (ran1FreeWallStart + svce1max)) and (n2 > svce2min) and (n2 <= svce2max):
-                        continue  # svc inlet location
+                    if addInlets:
+                        if (n1 > (ran1FreeWallStart + ivce1min)) and (n1 <= (ran1FreeWallStart + ivce1max)) and (n2 > ivce2min) and (n2 <= ivce2max):
+                            continue  # ivc inlet location
+                        if (n1 > (ran1FreeWallStart + svce1min)) and (n1 <= (ran1FreeWallStart + svce1max)) and (n2 > svce2min) and (n2 <= svce2max):
+                            continue  # svc inlet location
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     aNodeId[n1] = nodeIdentifier
                     cache.setNode(node)
@@ -613,11 +665,11 @@ class MeshType_3d_heartatria1(object):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ -lad3[n1l][0],  lad3[n1l][1],  lad3[n1l][2] ])
                     nodeIdentifier += 1
                 if n2 == elementsCountUpAtria:
-                    # fix up posterior ridge nodes
-                    for n1 in range(ran1FreeWallStart, ran1MidFreeWall):
-                        n1l = elementsCountAroundAtria - 1 - n1
-                        aNodeId[n1] = aNodeId[n1 + 2*(ran1MidFreeWall - n1)]
-                    aNodeId[ran1MidFreeWall] = aNodeId[ran1MidFreeWall + 1]
+                    # fix up posterior ridge and end nodes
+                    for n1 in range(ran1FreeWallStart, ran1FreeWallStart + elementsCountRidgeVenous + 1):
+                        aNodeId[n1] = aNodeId[elementsCountAroundAtria + ran1FreeWallStart - n1 - 1]
+                    for n1 in range(ran1FreeWallStart + elementsCountRidgeVenous + 1, ran1FreeWallStart + elementsCountAroundAtrialFreeWall - elementsCountRidgeVenous):
+                        aNodeId[n1] = aNodeId[ran1FreeWallStart + elementsCountRidgeVenous]
                 raNodeId[n3].append(aNodeId)
 
         # create fossa ovalis nodes
@@ -683,57 +735,68 @@ class MeshType_3d_heartatria1(object):
                 nids = [
                     laNodeId[0][e2][e1], laNodeId[0][e2][e1 + 1], laNodeId[0][e2 + 1][e1], laNodeId[0][e2 + 1][e1 + 1],
                     laNodeId[1][e2][e1], laNodeId[1][e2][e1 + 1], laNodeId[1][e2 + 1][e1], laNodeId[1][e2 + 1][e1 + 1]]
+                scalefactors = None
                 meshGroups = [ laMeshGroup ]
 
-                if (e1 >= lipve1min) and (e1 <= lipve1max) and (e2 >= lipve2min) and (e2 <= lipve2max):
-                    continue  # lipv inlet location
-                if (e1 >= lspve1min) and (e1 <= lspve1max) and (e2 >= lspve2min) and (e2 <= lspve2max):
-                    continue  # lspv inlet location
-                if (e1 >= ripve1min) and (e1 <= ripve1max) and (e2 >= ripve2min) and (e2 <= ripve2max):
-                    continue  # ripv inlet location
-                if (e1 >= rspve1min) and (e1 <= rspve1max) and (e2 >= rspve2min) and (e2 <= rspve2max):
-                    continue  # rspv inlet location
+                if addInlets:
+                    if (e1 >= lipve1min) and (e1 <= lipve1max) and (e2 >= lipve2min) and (e2 <= lipve2max):
+                        continue  # lipv inlet location
+                    if (e1 >= lspve1min) and (e1 <= lspve1max) and (e2 >= lspve2min) and (e2 <= lspve2max):
+                        continue  # lspv inlet location
+                    if (e1 >= ripve1min) and (e1 <= ripve1max) and (e2 >= ripve2min) and (e2 <= ripve2max):
+                        continue  # ripv inlet location
+                    if (e1 >= rspve1min) and (e1 <= rspve1max) and (e2 >= rspve2min) and (e2 <= rspve2max):
+                        continue  # rspv inlet location
                 if e1 == -1:
-                    # cfb straddles left and right atria
+                    # cfb/anterior interatrial groove straddles left and right atria
                     nids[0] = raNodeId[0][e2][-1]
                     nids[2] = raNodeId[0][e2 + 1][-1]
-                    nids[4] = raNodeId[1][e2][-1]
-                    nids[6] = raNodeId[1][e2 + 1][-1]
+                    # collapsed to 6 element wedge
+                    nids.pop(6)
+                    nids.pop(4)
                     meshGroups += [ raMeshGroup ]
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                    if e2 < n2CfbCollapseTop:
-                        # collapsed to 6 element wedge
-                        nids.pop(6)
-                        nids.pop(4)
-                        remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
-                        remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                        remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                        ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
-                        remapEftLocalNodes(eft1, 6, ln_map)
-                    elif e2 == n2CfbCollapseTop:
-                        # 7 node element, lower face collapsed to triangle
-                        nids.pop(4)
-                        remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [])
-                        #remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
-                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                        #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
-                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                        ln_map = [ 1, 2, 3, 4, 5, 5, 6, 7 ]
-                        remapEftLocalNodes(eft1, 7, ln_map)
-                elif (e1 == 0) and (e2 <= n2CfbCollapseTop):
+                    remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                    remapEftLocalNodes(eft1, 6, ln_map)
+                elif e1 == 0:
                     # general linear map d3 adjacent to collapsed cfb
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
-                    remapEftNodeValueLabel(eft1, [ 5, 7 ] if (e2 < n2CfbCollapseTop) else [ 5 ],
-                        Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                elif (e2 >= (elementsCountUpAtria - 1)) and ((e1 == (elementsCountAroundAtrialFreeWall//2 - 1)) or (e1 == (elementsCountAroundAtrialFreeWall//2))):
-                    # 6 node wedge on outside of atrium
-                    nids.pop(6)
-                    nids.pop(2)
-                    eft1 = tricubichermite.createEftShellPole90(quadrant = 3 if (e1 < elementsCountAroundAtrialFreeWall//2) else 0)
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                elif e1 == (elementsCountAroundAtrialFreeWall - 1):
+                    # general linear map d3 adjacent to collapsed crux
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    if e2 == (elementsCountUpAtria - 1):
+                        # reverse d1 and d2 on ridge
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scaleEftNodeValueLabels(eft1, [ 3, 4, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    else:
+                        remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                elif (e2 == (elementsCountUpAtria - 1)) and (e1 >= elementsCountRidgeVenous) and \
+                        (e1 < (elementsCountAroundAtrialFreeWall - elementsCountRidgeVenous)):
+                    # 6 node pole elements
+                    nids.pop(7)
+                    nids.pop(3)
+                    s = e1 - elementsCountRidgeVenous
+                    radiansAround0 = 0.5*math.pi + s*radiansPerElementAroundEnd
+                    radiansAround1 = radiansAround0 + radiansPerElementAroundEnd
+                    # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+                    eft1 = tricubichermite.createEftShellApexTop(s*100, (s + 1)*100)
+                    scalefactors = [
+                        -1.0,
+                        math.cos(radiansAround0), math.sin(radiansAround0), radiansPerElementAroundEnd,
+                        math.cos(radiansAround1), math.sin(radiansAround1), radiansPerElementAroundEnd,
+                        math.cos(radiansAround0), math.sin(radiansAround0), radiansPerElementAroundEnd,
+                        math.cos(radiansAround1), math.sin(radiansAround1), radiansPerElementAroundEnd
+                    ]
                 elif (e2 == (elementsCountUpAtria - 1)) and (e1 > (elementsCountAroundAtrialFreeWall//2)):
                     # reverse d1 and d2 on ridge
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -746,10 +809,10 @@ class MeshType_3d_heartatria1(object):
 
                 element = mesh.createElement(elementIdentifier, elementtemplate1)
                 result2 = element.setNodesByIdentifier(eft1, nids)
-                if eft1.getNumberOfLocalScaleFactors() == 1:
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                elif eft1.getNumberOfLocalScaleFactors() == 1:
                     result3 = element.setScaleFactors(eft1, [ -1.0 ])
-                elif eft1.getNumberOfLocalScaleFactors() == 2:
-                    result3 = element.setScaleFactors(eft1, [ -1.0, 0.5*math.pi ])
                 else:
                     result3 = ' '
                 #print('create element la', element.isValid(), elementIdentifier, result2, result3, nids)
@@ -766,36 +829,71 @@ class MeshType_3d_heartatria1(object):
                 nids = [
                     raNodeId[0][e2][n1], raNodeId[0][e2][n1 + 1], raNodeId[0][e2 + 1][n1], raNodeId[0][e2 + 1][n1 + 1],
                     raNodeId[1][e2][n1], raNodeId[1][e2][n1 + 1], raNodeId[1][e2 + 1][n1], raNodeId[1][e2 + 1][n1 + 1]]
+                scalefactors = None
                 meshGroups = [ laMeshGroup ]
 
-                if (e1 >= ivce1min) and (e1 <= ivce1max) and (e2 >= ivce2min) and (e2 <= ivce2max):
-                    continue  # ivc inlet location
-                if (e1 >= svce1min) and (e1 <= svce1max) and (e2 >= svce2min) and (e2 <= svce2max):
-                    continue  # svc inlet location
+                if addInlets:
+                    if (e1 >= ivce1min) and (e1 <= ivce1max) and (e2 >= ivce2min) and (e2 <= ivce2max):
+                        continue  # ivc inlet location
+                    if (e1 >= svce1min) and (e1 <= svce1max) and (e2 >= svce2min) and (e2 <= svce2max):
+                        continue  # svc inlet location
                 if e1 == -1:
-                    # cfb straddles left and right atria
+                    # crux/posterior interatrial groove straddles left and right atria
                     nids[0] = laNodeId[0][e2][elementsCountAroundAtrialFreeWall]
                     nids[2] = laNodeId[0][e2 + 1][elementsCountAroundAtrialFreeWall]
-                    nids[4] = laNodeId[1][e2][elementsCountAroundAtrialFreeWall]
-                    nids[6] = laNodeId[1][e2 + 1][elementsCountAroundAtrialFreeWall]
+                    # collapsed to 6 element wedge
+                    nids.pop(6)
+                    nids.pop(4)
                     meshGroups += [ raMeshGroup ]
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                     if e2 == (elementsCountUpAtria - 1):
-                        # reverse D_DS1, D_DS2 on ridge
+                        # reverse D_DS1, D_DS2 on ridge, avoiding scaling D_DS1 by -1 twice at node 8
+                        scaleEftNodeValueLabels(eft1, [ 3, 4, 7 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                        scaleEftNodeValueLabels(eft1, [ 8 ], [ Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    else:
+                        remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                    remapEftLocalNodes(eft1, 6, ln_map)
+                elif e1 == 0:
+                    # general linear map d3 adjacent to collapsed crux
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    if e2 == (elementsCountUpAtria - 1):
+                        # reverse d1 and d2 on ridge, avoiding scaling D_DS1 by -1 twice at node 7
+                        setEftScaleFactorIds(eft1, [1], [])
                         scaleEftNodeValueLabels(eft1, [ 3, 4, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-                elif (e1 == (elementsCountAroundAtrialFreeWall - 1)) and (e2 <= n2CfbCollapseTop):
+                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    else:
+                        remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                elif e1 == (elementsCountAroundAtrialFreeWall - 1):
                     # general linear map d3 adjacent to collapsed cfb
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
-                    remapEftNodeValueLabel(eft1, [ 6, 8 ] if (e2 < n2CfbCollapseTop) else [ 6 ],
-                        Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                elif (e2 >= (elementsCountUpAtria - 1)) and ((e1 == (elementsCountAroundAtrialFreeWall//2 - 1)) or (e1 == (elementsCountAroundAtrialFreeWall//2))):
-                    # 6 node wedge on outside of atrium
-                    nids.pop(6)
-                    nids.pop(2)
-                    eft1 = tricubichermite.createEftShellPole90(quadrant = 1 if (e1 < elementsCountAroundAtrialFreeWall//2) else 2)
+                    remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                elif (e2 == (elementsCountUpAtria - 1)) and (e1 >= elementsCountRidgeVenous) and \
+                        (e1 < (elementsCountAroundAtrialFreeWall - elementsCountRidgeVenous)):
+                    # 6 node pole elements
+                    nids.pop(7)
+                    nids.pop(3)
+                    s = e1 - elementsCountRidgeVenous
+                    radiansAround0 = -0.5*math.pi + s*radiansPerElementAroundEnd
+                    radiansAround1 = radiansAround0 + radiansPerElementAroundEnd
+                    # scale factor identifiers follow convention of offsetting by 100 for each 'version'
+                    eft1 = tricubichermite.createEftShellApexTop(s*100, (s + 1)*100)
+                    scalefactors = [
+                        -1.0,
+                        math.cos(radiansAround0), math.sin(radiansAround0), radiansPerElementAroundEnd,
+                        math.cos(radiansAround1), math.sin(radiansAround1), radiansPerElementAroundEnd,
+                        math.cos(radiansAround0), math.sin(radiansAround0), radiansPerElementAroundEnd,
+                        math.cos(radiansAround1), math.sin(radiansAround1), radiansPerElementAroundEnd
+                    ]
                 elif (e2 == (elementsCountUpAtria - 1)) and (e1 < (elementsCountAroundAtrialFreeWall//2)):
                     # reverse d1 and d2 on ridge
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -808,10 +906,10 @@ class MeshType_3d_heartatria1(object):
 
                 element = mesh.createElement(elementIdentifier, elementtemplate1)
                 result2 = element.setNodesByIdentifier(eft1, nids)
-                if eft1.getNumberOfLocalScaleFactors() == 1:
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                elif eft1.getNumberOfLocalScaleFactors() == 1:
                     result3 = element.setScaleFactors(eft1, [ -1.0 ])
-                elif eft1.getNumberOfLocalScaleFactors() == 2:
-                    result3 = element.setScaleFactors(eft1, [ -1.0, 0.5*math.pi ])
                 else:
                     result3 = ' '
                 #print('create element ra', element.isValid(), elementIdentifier, result2, result3, nids)
@@ -1041,8 +1139,9 @@ class MeshType_3d_heartatria1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rcpvd1)
             nodeIdentifier += 1
 
-        lcpvPositionUp = 0.6
-        ex, _, _ = sampleCubicHermiteCurves([ rex1, rex2 ], [ red1, red2 ], [], 2, lengthFractionStart = lcpvPositionUp/(1.0 - lcpvPositionUp))
+        lcpvPositionUp = 0.5
+        ex, _, _ = sampleCubicHermiteCurves([ laOuterx[0][n1MidFreeWall], vx ],
+            [ laOuterd2[0][n1MidFreeWall], vd2 ], [], 2, lengthFractionStart = lcpvPositionUp/(1.0 - lcpvPositionUp))
         lcpvx = ex[1]
 
         if False:
@@ -1082,7 +1181,7 @@ class MeshType_3d_heartatria1(object):
         rspvCentrex = [ (rcpvx[c] + pvSpacingFactor*rspvCentred1[c] - rspvCentred3[c]) for c in range(3) ]
         rspvCentred3 = [ pvDerivativeFactor*d for d in rspvCentred3 ]
 
-        if True:
+        if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lipvCentrex)
@@ -1115,9 +1214,9 @@ class MeshType_3d_heartatria1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rspvCentred3)
             nodeIdentifier += 1
 
-        # create right pulmonary veins
+        # create left and right pulmonary veins
 
-        for i in range(4):
+        for i in range(4 if addInlets else 0):
             if i < 2:
                 elementsCountAcrossInlet = elementsCountAcrossLPV
                 elementsCountUpInlet = elementsCountUpLPV
@@ -1245,7 +1344,6 @@ class MeshType_3d_heartatria1(object):
                 elementsCountRadial = elementsCountInlet, maxEndThickness = aFreeWallThickness,
                 meshGroups = [ laMeshGroup, inletMeshGroup ])
 
-
         # create vena cavae inlets to right atrium
 
         # get vena cava inlet positions
@@ -1327,7 +1425,7 @@ class MeshType_3d_heartatria1(object):
         # create vena cavae
 
         elementsCountAcrossInlet = elementsCountAcrossVC
-        for i in range(2):
+        for i in range(2 if addInlets else 0):
             if i == 0:  # ivc
                 elementsCountUpInlet = elementsCountUpIVC
                 elementsCountAroundInlet = elementsCountAroundIVC
@@ -1407,7 +1505,10 @@ class MeshType_3d_heartatria1(object):
                         n1l = n1lmin
                         n1r = n1rmax
                         n2 = e2min + elementsCountAroundInlet - n
-                    if (i == 1) and (n3 == 1) and (n1r == n1rmax) and (n2 <= n2CfbCollapseTop):
+                    if (i == 0) and (n3 == 1) and (n1r == n1rmin):
+                        # fix ivc derivative 3 mapping adjacent to collapsed nodes maps to -ds1 + ds3
+                        derivativesMap[2] = ( -1, 0, 1 )
+                    elif (i == 1) and (n3 == 1) and (n1r == n1rmax):
                         # fix svc derivative 3 mapping adjacent to collapsed nodes maps to ds1 + ds3
                         derivativesMap[2] = ( 1, 0, 1 )
                     # mirror from left to right atrium
@@ -1467,7 +1568,7 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
         aortaOuterRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians):
     """
     Get points around left atrium based on an ellipse. Points start from central fibrous body
-    and wind anticlockwise around LA.
+    and wind anticlockwise around LA. Both the cfb and crux are collapsed at the septum.
     :return: laCentre, laSeptumRadians, laBaseInnerx, laBaseInnerd1, laBaseInnerd2, laBaseOuterx, laBaseOuterd1, laBaseOuterd2.
     """
 
@@ -1603,15 +1704,13 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                 if (n3 == 0) or (n1 > elementsCountAroundAtrialFreeWall):
                     d2 = [ 0.0, 0.0, baseDerivative2Scale ]  # calculated later
                 elif (n1 == elementsCountAroundAtrialFreeWall):
-                    # fix crux, outer back base septum:
-                    # reduce indentation and smooth derivative 1
+                    # get collapsed crux (outer back base septum) position and derivative:
                     xi = 0.9  # GRC fudge factor
-                    cruxx = [ 0.0, (1.0 - xi)*laBaseOuterx[0][1] + xi*laBaseOuterx[-1][1], 0.0 ]
-                    cruxd1 = [ 1.0, 0.0, 0.0 ]
-                    px, pd1, _ = sampleCubicHermiteCurves([ laBaseOuterx[-1], cruxx ], [ laBaseOuterd1[-1], cruxd1 ], [], 2,
-                        addLengthStart = 0.5*vector.magnitude(laBaseOuterd1[-1]), lengthFractionStart = 0.5, lengthFractionEnd = 0.4)
-                    x = px[1]
-                    d1 = pd1[1]
+                    nx  = [ laBaseOuterx [-1], [ 0.0, (1.0 - xi)*laBaseOuterx[0][1] + xi*laBaseOuterx[-1][1], 0.0 ] ]
+                    nd1 = [ laBaseOuterd1[-1], [ vector.magnitude(laBaseOuterd1[-1]), 0.0, 0.0 ] ]
+                    smoothCubicHermiteDerivativesLine(nx, nd1, fixStartDerivative = True, fixEndDirection = True )
+                    x = nx[1]
+                    d1 = nd1[1]
                     # derivative 2 slopes directly back = no x component
                     d2 = [ 0.0, -baseDerivative2Scale*math.sin(aBaseBackInclineRadians), baseDerivative2Scale*math.cos(aBaseBackInclineRadians) ]
                 else:
