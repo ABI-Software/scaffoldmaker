@@ -1332,17 +1332,21 @@ class MeshType_3d_heartatria1(object):
                         derivativesMap = [ ( 1, 0, 0 ), ( 1, 1, 0 ), None, ( 0, -1, 0 ) ] if (n == (elementsCountAcrossInlet*2 + elementsCountUpInlet)) else [ ( 0, -1, 0 ), ( 1, 0, 0 ), None ]
                         n1 = n1max
                         n2 = n2max - (n - (elementsCountAcrossInlet*2 + elementsCountUpInlet))
-                    if (i == 2) and (n2 >= elementsCountUpAtria):
-                        # reverse derivatives 1 and 2 on ridge
-                        derivativesMap[0] = ( -1,  0,  0) if (derivativesMap[0] is None) else ( -derivativesMap[0][0], -derivativesMap[0][1], derivativesMap[0][2])
-                        derivativesMap[1] = (  0, -1,  0) if (derivativesMap[1] is None) else ( -derivativesMap[1][0], -derivativesMap[1][1], derivativesMap[1][2])
-                        derivativesMap[2] = None          if (derivativesMap[2] is None) else ( -derivativesMap[2][0], -derivativesMap[2][1], derivativesMap[2][2])
-                        if len(derivativesMap) > 3:
-                            derivativesMap[3] = ( -1,  0,  0) if (derivativesMap[3] is None) else ( -derivativesMap[3][0], -derivativesMap[3][1], derivativesMap[3][2])
-                        # mirror to get coordinates from anterior
-                        n2 -= (n2 - elementsCountUpAtria)
-                        n1 = elementsCountAroundAtrialFreeWall - n1
-                    elif (i == 3) and (n3 == 1) and (n1 == n1min) and (n2 < elementsCountUpAtria):
+                    if i == 2:
+                        if (n3 == 1) and (n1 == n1max):
+                            # fix ripv derivative 3 mapping adjacent to collapsed nodes maps to ds1 + ds3
+                            derivativesMap[2] = ( 1, 0, 1 )
+                        if n2 == elementsCountUpAtria:
+                            # reverse derivatives 1 and 2 on ridge
+                            derivativesMap[0] = ( -1,  0,  0) if (derivativesMap[0] is None) else ( -derivativesMap[0][0], -derivativesMap[0][1], derivativesMap[0][2])
+                            derivativesMap[1] = (  0, -1,  0) if (derivativesMap[1] is None) else ( -derivativesMap[1][0], -derivativesMap[1][1], derivativesMap[1][2])
+                            derivativesMap[2] = None          if (derivativesMap[2] is None) else ( -derivativesMap[2][0], -derivativesMap[2][1], derivativesMap[2][2])
+                            if len(derivativesMap) > 3:
+                                derivativesMap[3] = ( -1,  0,  0) if (derivativesMap[3] is None) else ( -derivativesMap[3][0], -derivativesMap[3][1], derivativesMap[3][2])
+                            # mirror to get coordinates from anterior
+                            n2 -= (n2 - elementsCountUpAtria)
+                            n1 = elementsCountAroundAtrialFreeWall - n1
+                    elif (i == 3) and (n3 == 1) and (n1 == n1min):
                         # fix rspv derivative 3 mapping adjacent to collapsed nodes maps to -ds1 + ds3
                         derivativesMap[2] = ( -1, 0, 1 )
                     #print('n', n,': n3',n3,'n2', n2,'n1',n1)
