@@ -103,8 +103,8 @@ class MeshType_3d_heartatria1(object):
 
     @staticmethod
     def checkOptions(options):
-        if options['Number of elements around atrial free wall'] < 4:
-            options['Number of elements around atrial free wall'] = 4
+        if options['Number of elements around atrial free wall'] < 6:
+            options['Number of elements around atrial free wall'] = 6
         # need even number of elements around free wall
         if (options['Number of elements around atrial free wall'] % 2) == 1:
             options['Number of elements around atrial free wall'] += 1
@@ -275,8 +275,7 @@ class MeshType_3d_heartatria1(object):
         # GRC fudge factor
         px, pd1, _ = sampleCubicHermiteCurves([ ax, dx ], [ ad1, dd1 ], [], 2, lengthFractionStart = 0.4)
         nx = [ ax, [ px[1][0], px[1][1], aOuterHeight ] ]
-        nd1 = [ ad1, [ pd1[1][0], pd1[1][1], 0.0 ] ]
-        smoothCubicHermiteDerivativesLine(nx, nd1, fixStartDerivative = True, fixEndDirection = True)
+        nd1 = smoothCubicHermiteDerivativesLine(nx, [ ad1, [ pd1[1][0], pd1[1][1], 0.0 ] ], fixStartDerivative = True, fixEndDirection = True)
         ex = nx[1]
         ed1 = nd1[1]
         xi = 0.4
@@ -349,6 +348,24 @@ class MeshType_3d_heartatria1(object):
                 laOuterx [n2][n1] = ex [n2]
                 laOuterd1[n2][n1] = ed1[n2]
                 laOuterd2[n2][n1] = ed2[n2]
+
+        # smooth outer derivatives
+        n1Limit = (elementsCountAroundAtrialFreeWall + 1)
+        for n2 in range(1, elementsCountUpAtria):
+            sd1 = smoothCubicHermiteDerivativesLine(laOuterx[n2][:n1Limit], laOuterd1[n2][:n1Limit], \
+                fixStartDerivative = True, fixEndDerivative = True)
+            for n1 in range(1, n1Limit - 1):
+                laOuterd1[n2][n1] = sd1[n1]
+        # top row:
+        n2 = elementsCountUpAtria
+        n1Limit = elementsCountRidgeVenous + 1
+        nx = laOuterx[n2][:n1Limit]
+        nx.append(laOuterx[n2 - 1][n1MidFreeWall])
+        nd1 = laOuterd1[n2][:n1Limit]
+        nd1.append([ -d for d in laOuterd2[n2 - 1][n1MidFreeWall] ])
+        sd1 = smoothCubicHermiteDerivativesLine(nx, nd1, fixStartDerivative = True, fixEndDerivative = True)
+        for n1 in range(1, n1Limit):
+            laOuterd1[n2][n1] = sd1[n1]
 
         # get inner points
         for n2 in range(1, elementsCountUpAtria + 1):
@@ -566,7 +583,7 @@ class MeshType_3d_heartatria1(object):
         svce2max = elementsCountUpAtria - 1
         svce2min = svce2max - elementsCountUpSVC + 1
 
-        elementsCountAcrossLPV = elementsCountRidgeVenous  # was math.ceil(0.33*n1MidFreeWall)
+        elementsCountAcrossLPV = min(elementsCountRidgeVenous, elementsCountAroundEnd//2)
         elementsCountUpLPV = math.ceil(0.39*elementsCountUpAtria)
         elementsCountAroundLPV = (elementsCountAcrossLPV + elementsCountUpLPV)*2
         lipve1min = elementsCountAroundAtrialFreeWall//2
@@ -1707,8 +1724,8 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                     # get collapsed crux (outer back base septum) position and derivative:
                     xi = 0.9  # GRC fudge factor
                     nx  = [ laBaseOuterx [-1], [ 0.0, (1.0 - xi)*laBaseOuterx[0][1] + xi*laBaseOuterx[-1][1], 0.0 ] ]
-                    nd1 = [ laBaseOuterd1[-1], [ vector.magnitude(laBaseOuterd1[-1]), 0.0, 0.0 ] ]
-                    smoothCubicHermiteDerivativesLine(nx, nd1, fixStartDerivative = True, fixEndDirection = True )
+                    nd1 = smoothCubicHermiteDerivativesLine(nx, [ laBaseOuterd1[-1], [ vector.magnitude(laBaseOuterd1[-1]), 0.0, 0.0 ] ],
+                        fixStartDerivative = True, fixEndDirection = True )
                     x = nx[1]
                     d1 = nd1[1]
                     # derivative 2 slopes directly back = no x component

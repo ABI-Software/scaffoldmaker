@@ -1324,7 +1324,7 @@ class eftfactory_tricubichermite:
             n3 = 0
             for n2 in range(1, elementsCountRadial):
                 # first smooth derivative 1 around outer loop
-                smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
+                pd1[1][n2] = smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
 
                 for n1 in range(nodesCountAround):
                     normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
