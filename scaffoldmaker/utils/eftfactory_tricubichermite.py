@@ -1348,6 +1348,19 @@ class eftfactory_tricubichermite:
                     factor = 1.0 + curvature*thickness
                     pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
 
+                # smooth derivative 1 around inner loop
+                pd1[0][n2] = smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
+
+            # smooth derivative 2 radially along inner loop
+            for n1 in range(nodesCountAround):
+                sd2 = smoothCubicHermiteDerivativesLine(
+                    [ px [0][n2][n1] for n2 in range(elementsCountRadial + 1) ],
+                    [ pd2[0][n2][n1] for n2 in range(elementsCountRadial + 1) ],
+                    fixStartDerivative = True, fixEndDerivative = True)
+                for n2 in range(elementsCountRadial + 1):
+                    pd2[0][n2][n1] = sd2[n2]
+
+
         ##############
         # Create nodes
         ##############

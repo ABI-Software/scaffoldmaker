@@ -327,15 +327,16 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         for n in range(1, nodesCount - 1):
             nm = n - 1
             arcLengthmp = arcLengths[nm] + arcLengths[n]
-            if fixAllDirections:
-                md1[n] = vector.setMagnitude(md1[n], 0.5*arcLengthmp)
-            else:
+            wm = arcLengths[n ]/arcLengthmp
+            wp = arcLengths[nm]/arcLengthmp
+            if not fixAllDirections:
+                # average direction, weighted by fraction towards that end
                 np = (n + 1)%nodesCount
-                wm = arcLengths[n ]/arcLengthmp
-                wp = arcLengths[nm]/arcLengthmp
                 dirm = [ (nx[n ][c] - nx[nm][c]) for c in componentRange ]
                 dirp = [ (nx[np][c] - nx[n ][c]) for c in componentRange ]
                 md1[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
+            # average magnitude, weighted by fraction towards that end
+            md1[n] = vector.setMagnitude(md1[n], wm*arcLengths[nm] + wp*arcLengths[n])
         # end
         if not fixEndDerivative:
             if fixAllDirections or fixEndDirection:
@@ -377,15 +378,16 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
         for n in range(nodesCount):
             nm = n - 1
             arcLengthmp = arcLengths[nm] + arcLengths[n]
-            if fixAllDirections:
-                md1[n] = vector.setMagnitude(md1[n], 0.5*arcLengthmp)
-            else:
+            wm = arcLengths[n ]/arcLengthmp
+            wp = arcLengths[nm]/arcLengthmp
+            if not fixAllDirections:
+                # average direction, weighted by fraction towards that end
                 np = (n + 1)%nodesCount
-                wm = arcLengths[n ]/arcLengthmp
-                wp = arcLengths[nm]/arcLengthmp
                 dirm = [ (nx[n ][c] - nx[nm][c]) for c in componentRange ]
                 dirp = [ (nx[np][c] - nx[n ][c]) for c in componentRange ]
                 md1[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
+            # average magnitude, weighted by fraction towards that end
+            md1[n] = vector.setMagnitude(md1[n], wm*arcLengths[nm] + wp*arcLengths[n])
         lastArcLengths = arcLengths
     print('smoothCubicHermiteDerivativesLoop max iters reached:',iter)
     return md1

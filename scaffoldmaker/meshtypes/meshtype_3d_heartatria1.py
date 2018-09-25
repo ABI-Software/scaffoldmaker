@@ -256,10 +256,53 @@ class MeshType_3d_heartatria1(object):
 
         # GRC fudge factors:
         aOuterSeptumHeight = 0.85*aOuterHeight
-        iaGrooveDerivative = 0.8*aSeptumThickness
+        iaGrooveDerivative = 0.25*aSeptumThickness
         n1MidFreeWall = elementsCountAroundAtrialFreeWall//2
         elementsCountRidgeVenous = math.ceil(0.49*n1MidFreeWall)  # was 0.49
+        elementsCountAroundEnd = elementsCountAroundAtrialFreeWall - 2*elementsCountRidgeVenous
         ridgeVenousDistance = 0.5*aSeptumThickness + 1.2*(ivcInnerRadius + svcInnerRadius + 2*(ivcWallThickness + svcWallThickness))
+
+        # get ranges of nodes/elements to omit where inlets are
+
+        elementsCountAcrossVC = elementsCountRidgeVenous
+        elementsCountUpIVC = math.ceil(0.65*elementsCountUpAtria)
+        elementsCountAroundIVC = (elementsCountAcrossVC + elementsCountUpIVC)*2
+        ivce1min = 0
+        ivce1max = ivce1min + elementsCountAcrossVC - 1
+        ivce2min = 0
+        ivce2max = ivce2min + elementsCountUpIVC - 1
+        elementsCountUpSVC = math.ceil(0.58*elementsCountUpAtria)
+        elementsCountAroundSVC = (elementsCountAcrossVC + elementsCountUpSVC)*2
+        svce1max = elementsCountAroundAtrialFreeWall - 1
+        svce1min = svce1max - elementsCountAcrossVC + 1
+        svce2max = elementsCountUpAtria - 1
+        svce2min = svce2max - elementsCountUpSVC + 1
+
+        elementsCountAcrossLPV = min(elementsCountRidgeVenous, elementsCountAroundEnd//2)
+        elementsCountUpLPV = math.ceil(0.39*elementsCountUpAtria)
+        elementsCountAroundLPV = (elementsCountAcrossLPV + elementsCountUpLPV)*2
+        lipve1min = elementsCountAroundAtrialFreeWall//2
+        lipve1max = lipve1min + elementsCountAcrossLPV - 1
+        lipve2max = elementsCountUpAtria - 2
+        lipve2min = lipve2max - elementsCountUpLPV + 1
+        lspve1max = elementsCountAroundAtrialFreeWall//2 - 1
+        lspve1min = lspve1max - elementsCountAcrossLPV + 1
+        lspve2max = elementsCountUpAtria - 2
+        lspve2min = lspve2max - elementsCountUpLPV + 1
+
+        elementsCountAcrossRPV = elementsCountRidgeVenous  # was math.ceil(0.33*n1MidFreeWall)
+        elementsCountUpRPV = math.ceil(0.39*elementsCountUpAtria)
+        elementsCountAroundRPV = (elementsCountAcrossRPV + elementsCountUpRPV)*2
+        ripve1max = elementsCountAroundAtrialFreeWall - 1
+        ripve1min = ripve1max - elementsCountAcrossRPV + 1
+        ripve2max = elementsCountUpAtria - 1
+        ripve2min = ripve2max - elementsCountUpRPV + 1
+        rspve1min = 0
+        rspve1max = rspve1min + elementsCountAcrossRPV - 1
+        rspve2max = elementsCountUpAtria - 1
+        rspve2min = rspve2max - elementsCountUpRPV + 1
+
+        addInlets = True
 
         # get la ridge points from cubic functions from ax = septum groove centre to cx at edge of venous atrium, using dx = mid outer LV base
         laSeptumBaseCentrex = [
@@ -318,7 +361,6 @@ class MeshType_3d_heartatria1(object):
             laBaseOuterd2[np] = [-d for d in ld2[2*elementsCountUpAtria] ]
 
         # add round quarter sphere in LA beyond "RA venous" zone
-        elementsCountAroundEnd = elementsCountAroundAtrialFreeWall - 2*elementsCountRidgeVenous
         # get apex point at end of "venous" atria
         vx  = laOuterx[elementsCountUpAtria][elementsCountRidgeVenous]
         vd1 = laOuterd2[elementsCountUpAtria][elementsCountRidgeVenous]
@@ -366,6 +408,12 @@ class MeshType_3d_heartatria1(object):
         sd1 = smoothCubicHermiteDerivativesLine(nx, nd1, fixStartDerivative = True, fixEndDerivative = True)
         for n1 in range(1, n1Limit):
             laOuterd1[n2][n1] = sd1[n1]
+        # reduce side derivatives on top row to better fit inlets:
+        pvBetweenDerivativeFactor = 0.5  # GRC fudge factor:
+        for n1 in range(elementsCountRidgeVenous + 1):
+            laOuterd2[n2][n1] = [pvBetweenDerivativeFactor*d for d in laOuterd2[n2][n1] ]
+        for n2 in range(max(1, lipve2min), lipve2max + 1):
+            laOuterd2[n2][n1MidFreeWall] = [ pvBetweenDerivativeFactor*d for d in laOuterd2[n2][n1MidFreeWall] ]
 
         # get inner points
         for n2 in range(1, elementsCountUpAtria + 1):
@@ -566,48 +614,6 @@ class MeshType_3d_heartatria1(object):
                 elif ns == (elementsCountAroundAtrialSeptum - 1):
                     d2 = [ (d2[c] + fossad1[0][ns - 1][c]) for c in range(3) ]
                 laInnerd2[0][elementsCountAroundAtrialFreeWall + ns] = getLagrangeHermiteStartDerivative(x1, x2, d2)
-
-        # get ranges of nodes/elements to omit where inlets are
-
-        elementsCountAcrossVC = elementsCountRidgeVenous
-        elementsCountUpIVC = math.ceil(0.65*elementsCountUpAtria)
-        elementsCountAroundIVC = (elementsCountAcrossVC + elementsCountUpIVC)*2
-        ivce1min = 0
-        ivce1max = ivce1min + elementsCountAcrossVC - 1
-        ivce2min = 0
-        ivce2max = ivce2min + elementsCountUpIVC - 1
-        elementsCountUpSVC = math.ceil(0.58*elementsCountUpAtria)
-        elementsCountAroundSVC = (elementsCountAcrossVC + elementsCountUpSVC)*2
-        svce1max = elementsCountAroundAtrialFreeWall - 1
-        svce1min = svce1max - elementsCountAcrossVC + 1
-        svce2max = elementsCountUpAtria - 1
-        svce2min = svce2max - elementsCountUpSVC + 1
-
-        elementsCountAcrossLPV = min(elementsCountRidgeVenous, elementsCountAroundEnd//2)
-        elementsCountUpLPV = math.ceil(0.39*elementsCountUpAtria)
-        elementsCountAroundLPV = (elementsCountAcrossLPV + elementsCountUpLPV)*2
-        lipve1min = elementsCountAroundAtrialFreeWall//2
-        lipve1max = lipve1min + elementsCountAcrossLPV - 1
-        lipve2max = elementsCountUpAtria - 2
-        lipve2min = lipve2max - elementsCountUpLPV + 1
-        lspve1max = elementsCountAroundAtrialFreeWall//2 - 1
-        lspve1min = lspve1max - elementsCountAcrossLPV + 1
-        lspve2max = elementsCountUpAtria - 2
-        lspve2min = lspve2max - elementsCountUpLPV + 1
-
-        elementsCountAcrossRPV = elementsCountRidgeVenous  # was math.ceil(0.33*n1MidFreeWall)
-        elementsCountUpRPV = math.ceil(0.39*elementsCountUpAtria)
-        elementsCountAroundRPV = (elementsCountAcrossRPV + elementsCountUpRPV)*2
-        ripve1max = elementsCountAroundAtrialFreeWall - 1
-        ripve1min = ripve1max - elementsCountAcrossRPV + 1
-        ripve2max = elementsCountUpAtria - 1
-        ripve2min = ripve2max - elementsCountUpRPV + 1
-        rspve1min = 0
-        rspve1max = rspve1min + elementsCountAcrossRPV - 1
-        rspve2max = elementsCountUpAtria - 1
-        rspve2min = rspve2max - elementsCountUpRPV + 1
-
-        addInlets = True
 
         # Create nodes around atria
         laNodeId = [ [], [] ]
@@ -1169,7 +1175,7 @@ class MeshType_3d_heartatria1(object):
 
         pvSpacingFactor = 1.8
         pvInletLengthFactor = 2.0  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
-        pvDerivativeFactor = 1.0*pvInletLengthFactor/elementsCountInlet  # GRC fudge factor
+        pvDerivativeFactor = 0.75*pvInletLengthFactor/elementsCountInlet  # GRC fudge factor
         rcpvWalld3 = vector.normalise([ (lcpvx[c] - rcpvx[c]) for c in range(3) ])
         rcpvWalld2 = vector.normalise(vector.crossproduct3(rcpvd1, rcpvWalld3))
         rcpvWalld1 = vector.crossproduct3(rcpvWalld2, rcpvWalld3)
@@ -1362,7 +1368,7 @@ class MeshType_3d_heartatria1(object):
                 inletStartx, inletStartd1, inletStartd2, None, None, None,
                 inletEndx, inletEndd1, inletEndd2, inletEndd3, inletEndNodeId, inletEndDerivativesMap,
                 nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
-                elementsCountRadial = elementsCountInlet, maxEndThickness = aFreeWallThickness,
+                elementsCountRadial = elementsCountInlet, maxEndThickness = 1.5*aFreeWallThickness,
                 meshGroups = [ laMeshGroup, inletMeshGroup ])
 
         # create vena cavae inlets to right atrium
@@ -1545,7 +1551,7 @@ class MeshType_3d_heartatria1(object):
                 inletStartx, inletStartd1, inletStartd2, None, None, None,
                 inletEndx, inletEndd1, inletEndd2, inletEndd3, inletEndNodeId, inletEndDerivativesMap,
                 nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
-                elementsCountRadial = elementsCountInlet, maxEndThickness = aFreeWallThickness,
+                elementsCountRadial = elementsCountInlet, maxEndThickness = 1.5*aFreeWallThickness,
                 meshGroups = [ raMeshGroup, ivcInletMeshGroup if (i == 0) else svcInletMeshGroup])
 
         fm.endChange()
@@ -1731,7 +1737,8 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                     nd1 = smoothCubicHermiteDerivativesLine(nx, [ laBaseOuterd1[-1], [ vector.magnitude(laBaseOuterd1[-1]), 0.0, 0.0 ] ],
                         fixStartDerivative = True, fixEndDirection = True )
                     x = nx[1]
-                    d1 = nd1[1]
+                    # GRC fudge factor: derivative must be lower to fit inlets:
+                    d1 = [ 0.35*d for d in nd1[1] ]
                     # derivative 2 slopes directly back = no x component
                     d2 = [ 0.0, -baseDerivative2Scale*math.sin(aBaseBackInclineRadians), baseDerivative2Scale*math.cos(aBaseBackInclineRadians) ]
                 else:
