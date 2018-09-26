@@ -1314,6 +1314,7 @@ class eftfactory_tricubichermite:
                     [ [ ad1, bd1 ], [ thicknesses[0][n1], thicknesses[-1][n1] ] ], elementsCountRadial,
                     addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
                     addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
+                md2 = smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
                 for n2 in range(1, elementsCountRadial):
                     px [n3][n2][n1] = mx [n2]
                     pd1[n3][n2][n1] = md1[n2]
@@ -1321,7 +1322,6 @@ class eftfactory_tricubichermite:
                     thicknesses[n2][n1] = thi[n2]
 
             # now get inner positions from normal and thickness, derivatives from curvature
-            n3 = 0
             for n2 in range(1, elementsCountRadial):
                 # first smooth derivative 1 around outer loop
                 pd1[1][n2] = smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
@@ -1351,14 +1351,15 @@ class eftfactory_tricubichermite:
                 # smooth derivative 1 around inner loop
                 pd1[0][n2] = smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
 
-            # smooth derivative 2 radially along inner loop
-            for n1 in range(nodesCountAround):
-                sd2 = smoothCubicHermiteDerivativesLine(
-                    [ px [0][n2][n1] for n2 in range(elementsCountRadial + 1) ],
-                    [ pd2[0][n2][n1] for n2 in range(elementsCountRadial + 1) ],
-                    fixStartDerivative = True, fixEndDerivative = True)
-                for n2 in range(elementsCountRadial + 1):
-                    pd2[0][n2][n1] = sd2[n2]
+            for n3 in range(1, nodesCountWall):
+                # smooth derivative 2 radially/along annulus
+                for n1 in range(nodesCountAround):
+                    sd2 = smoothCubicHermiteDerivativesLine(
+                        [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
+                        [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
+                        fixStartDerivative = True, fixEndDerivative = True)
+                    for n2 in range(elementsCountRadial + 1):
+                        pd2[n3][n2][n1] = sd2[n2]
 
 
         ##############
