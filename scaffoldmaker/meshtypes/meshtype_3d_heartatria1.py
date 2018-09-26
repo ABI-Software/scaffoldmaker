@@ -29,7 +29,7 @@ class MeshType_3d_heartatria1(object):
     def getDefaultOptions():
         return {
             'Number of elements around atrial free wall' : 8,
-            'Number of elements around atrial septum' : 3,
+            'Number of elements around atrial septum' : 2,
             'Number of elements up atria' : 4,
             'Number of elements inlet' : 2,
             'Atria base inner major axis length' : 0.55,
@@ -528,6 +528,9 @@ class MeshType_3d_heartatria1(object):
         px  = laInnerx [0][elementsCountAroundAtrialFreeWall]
         pd1 = [ -d for d in laInnerd1[0][elementsCountAroundAtrialFreeWall] ]
         pd2 = [ -d for d in laInnerd2[0][elementsCountAroundAtrialFreeWall] ]
+        # make steeper and with low x component
+        ad2 = [ 0.5*ad2[0], ad2[1], 1.5*ad2[2] ]
+        pd2 = [ 0.5*pd2[0], pd2[1], 1.5*pd2[2] ]
         # get start distance to account for aBaseSlopeRadians
         scale2 = -aBaseSlopeHeight/pd2[2]
         addLengthEnd = vector.magnitude([ pd2[0]*scale2, pd2[1]*scale2, aBaseSlopeHeight ])
