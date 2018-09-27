@@ -57,10 +57,12 @@ class MeshType_3d_heartatria1(object):
             'Inferior vena cava position up' : 0.3,
             'Inferior vena cava angle left degrees' : 0.0,
             'Inferior vena cava angle up degrees' : 10.0,
+            'Inferior vena cava length factor' : 0.5,  # multiple of inner diameter that inlet center is away from atria wall
             'Inferior vena cava inner diameter' : 0.22,
             'Inferior vena cava wall thickness' : 0.015,
             'Superior vena cava position up' : 0.7,
-            'Superior vena cava angle up degrees' : 10.0,
+            'Superior vena cava angle up degrees' : 20.0,
+            'Superior vena cava length factor' : 0.5,  # multiple of inner diameter that inlet center is away from atria wall
             'Superior vena cava inner diameter' : 0.2,
             'Superior vena cava wall thickness' : 0.015,
             'Refine' : False,
@@ -101,10 +103,12 @@ class MeshType_3d_heartatria1(object):
             'Inferior vena cava position up',
             'Inferior vena cava angle up degrees',
             'Inferior vena cava angle left degrees',
+            'Inferior vena cava length factor',
             'Inferior vena cava inner diameter',
             'Inferior vena cava wall thickness',
             'Superior vena cava position up',
             'Superior vena cava angle up degrees',
+            'Superior vena cava length factor',
             'Superior vena cava inner diameter',
             'Superior vena cava wall thickness',
             'Refine',
@@ -140,8 +144,10 @@ class MeshType_3d_heartatria1(object):
             'Right pulmonary vein length factor',
             'Right pulmonary vein inner diameter',
             'Right pulmonary vein wall thickness',
+            'Inferior vena cava length factor',
             'Inferior vena cava inner diameter',
             'Inferior vena cava wall thickness',
+            'Superior vena cava length factor',
             'Superior vena cava inner diameter',
             'Superior vena cava wall thickness']:
             if options[key] < 0.0:
@@ -208,10 +214,12 @@ class MeshType_3d_heartatria1(object):
         ivcPositionUp = options['Inferior vena cava position up']
         ivcAngleUpRadians = math.radians(options['Inferior vena cava angle up degrees'])
         ivcAngleLeftRadians = math.radians(options['Inferior vena cava angle left degrees'])
+        ivcLengthFactor = options['Inferior vena cava length factor']
         ivcInnerRadius = 0.5*options['Inferior vena cava inner diameter']
         ivcWallThickness = options['Inferior vena cava wall thickness']
         svcPositionUp = options['Superior vena cava position up']
         svcAngleUpRadians = math.radians(options['Superior vena cava angle up degrees'])
+        svcLengthFactor = options['Superior vena cava length factor']
         svcInnerRadius = 0.5*options['Superior vena cava inner diameter']
         svcWallThickness = options['Superior vena cava wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
@@ -1437,8 +1445,7 @@ class MeshType_3d_heartatria1(object):
         # GRC fudgefactors, multiple of inner radius that inlet centre is away from septum
         ivcSeptumDistanceFactor = 1.5
         svcSeptumDistanceFactor = 1.0
-        vcInletLengthFactor = 1.0  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
-        vcInletDerivativeFactor = 1.0*vcInletLengthFactor/elementsCountInlet  # GRC fudge factor
+        vcDerivativeFactor = 1.0/elementsCountInlet  # GRC fudge factor
         raSeptumModX = -aBaseInnerMajorMag*math.cos(aMajorAxisRadians)*math.cos(-laSeptumRadians) \
                       + aBaseInnerMinorMag*math.sin(aMajorAxisRadians)*math.sin(-laSeptumRadians)
         raOuterMajorx =  [ -aBaseOuterMajorMag*math.cos(aMajorAxisRadians), -aBaseOuterMajorMag*math.sin(aMajorAxisRadians), 0.0 ]
@@ -1466,7 +1473,7 @@ class MeshType_3d_heartatria1(object):
         ivcWalld3 = vector.normalise([ (svcWallx[c] - ivcWallx[c]) for c in range(3) ])
         ivcWalld1 = vector.normalise([ ivcWalld3[1], -ivcWalld3[0], 0.0 ])
         ivcWalld2 = vector.crossproduct3(ivcWalld3, ivcWalld1)
-        ivcDistance = vcInletLengthFactor*ivcInnerRadius
+        ivcDistance = 2.0*ivcLengthFactor*ivcInnerRadius
         cosIvcAngleLeftRadians = math.cos(ivcAngleLeftRadians)
         sinIvcAngleLeftRadians = math.sin(ivcAngleLeftRadians)
         ivcTempd1 = [ (ivcWalld1[c]*cosIvcAngleLeftRadians - ivcWalld3[c]*sinIvcAngleLeftRadians) for c in range(3) ]
@@ -1478,19 +1485,19 @@ class MeshType_3d_heartatria1(object):
         ivcCentred2 = [ ivcInnerRadius*(ivcTempd2[c]*cosIvcAngleUpRadians - ivcTempd3[c]*sinIvcAngleUpRadians) for c in range(3) ]
         ivcCentred3 = [ ivcDistance   *(ivcTempd3[c]*cosIvcAngleUpRadians + ivcTempd2[c]*sinIvcAngleUpRadians) for c in range(3) ]
         ivcCentrex = [ (ivcWallx[c] - ivcCentred3[c]) for c in range(3) ]
-        ivcCentred3 = [ vcInletDerivativeFactor*d for d in ivcCentred3 ]
+        ivcCentred3 = [ vcDerivativeFactor*d for d in ivcCentred3 ]
 
         svcWalld3 = vector.normalise([ (ivcWallx[c] - svcWallx[c]) for c in range(3) ])
         svcWalld1 = vector.normalise([ svcWalld3[1], -svcWalld3[0], 0.0 ])
         svcWalld2 = vector.crossproduct3(svcWalld3, svcWalld1)
-        svcDistance = vcInletLengthFactor*svcInnerRadius
+        svcDistance = 2.0*svcLengthFactor*svcInnerRadius
         cosSvcAngleUpRadians = math.cos(svcAngleUpRadians)
         sinSvcAngleUpRadians = math.sin(svcAngleUpRadians)
         svcCentred1 = vector.setMagnitude(svcWalld1, svcInnerRadius)
         svcCentred2 = [ svcInnerRadius*(svcWalld2[c]*cosSvcAngleUpRadians - svcWalld3[c]*sinSvcAngleUpRadians) for c in range(3) ]
         svcCentred3 = [ svcDistance   *(svcWalld3[c]*cosSvcAngleUpRadians + svcWalld2[c]*sinSvcAngleUpRadians) for c in range(3) ]
         svcCentrex = [ (svcWallx[c] - svcCentred3[c]) for c in range(3) ]
-        svcCentred3 = [ vcInletDerivativeFactor*d for d in svcCentred3 ]
+        svcCentred3 = [ vcDerivativeFactor*d for d in svcCentred3 ]
 
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
