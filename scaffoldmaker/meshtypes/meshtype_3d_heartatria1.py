@@ -45,9 +45,13 @@ class MeshType_3d_heartatria1(object):
             'Atrial base back incline degrees' : 30.0,
             'Atrial base side incline degrees' : 10.0,
             'Left pulmonary vein position up' : 0.6,
+            'Left pulmonary vein angle up degrees' : 10.0,
+            'Left pulmonary vein length factor' : 1.0,  # multiple of inner diameter that inlet center is away from atria wall
             'Left pulmonary vein inner diameter' : 0.11,
             'Left pulmonary vein wall thickness' : 0.009,
             'Right pulmonary vein position up' : 0.85,
+            'Right pulmonary vein angle up degrees' : 0.0,
+            'Right pulmonary vein length factor' : 1.0,  # multiple of inner diameter that inlet center is away from atria wall
             'Right pulmonary vein inner diameter' : 0.12,
             'Right pulmonary vein wall thickness' : 0.009,
             'Inferior vena cava position up' : 0.3,
@@ -85,9 +89,13 @@ class MeshType_3d_heartatria1(object):
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
             'Left pulmonary vein position up',
+            'Left pulmonary vein angle up degrees',
+            'Left pulmonary vein length factor',
             'Left pulmonary vein inner diameter',
             'Left pulmonary vein wall thickness',
             'Right pulmonary vein position up',
+            'Right pulmonary vein angle up degrees',
+            'Right pulmonary vein length factor',
             'Right pulmonary vein inner diameter',
             'Right pulmonary vein wall thickness', 
             'Inferior vena cava position up',
@@ -126,8 +134,10 @@ class MeshType_3d_heartatria1(object):
             'Atrial free wall thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
+            'Left pulmonary vein length factor',
             'Left pulmonary vein inner diameter',
             'Left pulmonary vein wall thickness',
+            'Right pulmonary vein length factor',
             'Right pulmonary vein inner diameter',
             'Right pulmonary vein wall thickness',
             'Inferior vena cava inner diameter',
@@ -186,9 +196,13 @@ class MeshType_3d_heartatria1(object):
         aBaseWallThickness = options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
         lpvPositionUp = options['Left pulmonary vein position up']
+        lpvAngleUpRadians = math.radians(options['Left pulmonary vein angle up degrees'])
+        lpvLengthFactor = options['Left pulmonary vein length factor']
         lpvInnerRadius = 0.5*options['Left pulmonary vein inner diameter']
         lpvWallThickness = options['Left pulmonary vein wall thickness']
         rpvPositionUp = options['Right pulmonary vein position up']
+        rpvAngleUpRadians = math.radians(options['Right pulmonary vein angle up degrees'])
+        rpvLengthFactor = options['Right pulmonary vein length factor']
         rpvInnerRadius = 0.5*options['Right pulmonary vein inner diameter']
         rpvWallThickness = options['Right pulmonary vein wall thickness']
         ivcPositionUp = options['Inferior vena cava position up']
@@ -1193,35 +1207,45 @@ class MeshType_3d_heartatria1(object):
             nodeIdentifier += 1
 
         pvSpacingFactor = 2.0
-        pvInletLengthFactor = 2.5  # GRC fudgefactor, multiple of inner radius that inlet center is away from atria wall
-        pvInletDerivativeFactor = 0.5*pvInletLengthFactor/elementsCountInlet  # GRC fudge factor
+        pvDerivativeFactor = 1.0/elementsCountInlet  # GRC fudge factor
         rcpvWalld3 = vector.normalise([ (lcpvx[c] - rcpvx[c]) for c in range(3) ])
         rcpvWalld2 = vector.normalise(vector.crossproduct3(rcpvd1, rcpvWalld3))
         rcpvWalld1 = vector.crossproduct3(rcpvWalld2, rcpvWalld3)
+        lcpvWalld1 = [ -d for d in rcpvWalld1 ]
+        lcpvWalld2 = rcpvWalld2
+        lcpvWalld3 = [ -d for d in rcpvWalld3 ]
+        cosLpvAngleUpRadians = math.cos(lpvAngleUpRadians)
+        sinLpvAngleUpRadians = math.sin(lpvAngleUpRadians)
+        lcpvWalld3 = [ (lcpvWalld3[c]*cosLpvAngleUpRadians + lcpvWalld2[c]*sinLpvAngleUpRadians) for c in range(3) ]
+        lcpvWalld2 = vector.crossproduct3(lcpvWalld3, lcpvWalld1)
+        cosRpvAngleUpRadians = math.cos(rpvAngleUpRadians)
+        sinRpvAngleUpRadians = math.sin(rpvAngleUpRadians)
+        rcpvWalld3 = [ (rcpvWalld3[c]*cosRpvAngleUpRadians + rcpvWalld2[c]*sinRpvAngleUpRadians) for c in range(3) ]
+        rcpvWalld2 = vector.crossproduct3(rcpvWalld3, rcpvWalld1)
 
-        lipvCentred1 = vector.setMagnitude(rcpvWalld1, -lpvInnerRadius)
-        lipvCentred2 = vector.setMagnitude(rcpvWalld2, lpvInnerRadius)
-        lipvCentred3 = vector.setMagnitude(rcpvWalld3, -pvInletLengthFactor*lpvInnerRadius)
+        lipvCentred1 = vector.setMagnitude(lcpvWalld1, lpvInnerRadius)
+        lipvCentred2 = vector.setMagnitude(lcpvWalld2, lpvInnerRadius)
+        lipvCentred3 = vector.setMagnitude(lcpvWalld3, 2.0*lpvLengthFactor*lpvInnerRadius)
         lipvCentrex = [ (lcpvx[c] + pvSpacingFactor*lipvCentred1[c] - lipvCentred3[c]) for c in range(3) ]
-        lipvCentred3 = [ pvInletDerivativeFactor*d for d in lipvCentred3 ]
+        lipvCentred3 = [ pvDerivativeFactor*d for d in lipvCentred3 ]
 
-        lspvCentred1 = vector.setMagnitude(rcpvWalld1, -lpvInnerRadius)
-        lspvCentred2 = vector.setMagnitude(rcpvWalld2, lpvInnerRadius)
-        lspvCentred3 = vector.setMagnitude(rcpvWalld3, -pvInletLengthFactor*lpvInnerRadius)
+        lspvCentred1 = vector.setMagnitude(lcpvWalld1, lpvInnerRadius)
+        lspvCentred2 = vector.setMagnitude(lcpvWalld2, lpvInnerRadius)
+        lspvCentred3 = vector.setMagnitude(lcpvWalld3, 2.0*lpvLengthFactor*lpvInnerRadius)
         lspvCentrex = [ (lcpvx[c] - pvSpacingFactor*lspvCentred1[c] - lspvCentred3[c]) for c in range(3) ]
-        lspvCentred3 = [ pvInletDerivativeFactor*d for d in lspvCentred3 ]
+        lspvCentred3 = [ pvDerivativeFactor*d for d in lspvCentred3 ]
 
         ripvCentred1 = vector.setMagnitude(rcpvWalld1, rpvInnerRadius)
         ripvCentred2 = vector.setMagnitude(rcpvWalld2, rpvInnerRadius)
-        ripvCentred3 = vector.setMagnitude(rcpvWalld3, pvInletLengthFactor*rpvInnerRadius)
+        ripvCentred3 = vector.setMagnitude(rcpvWalld3, 2.0*rpvLengthFactor*rpvInnerRadius)
         ripvCentrex = [ (rcpvx[c] - pvSpacingFactor*ripvCentred1[c] - ripvCentred3[c]) for c in range(3) ]
-        ripvCentred3 = [ pvInletDerivativeFactor*d for d in ripvCentred3 ]
+        ripvCentred3 = [ pvDerivativeFactor*d for d in ripvCentred3 ]
 
         rspvCentred1 = vector.setMagnitude(rcpvWalld1, rpvInnerRadius)
         rspvCentred2 = vector.setMagnitude(rcpvWalld2, rpvInnerRadius)
-        rspvCentred3 = vector.setMagnitude(rcpvWalld3, pvInletLengthFactor*rpvInnerRadius)
+        rspvCentred3 = vector.setMagnitude(rcpvWalld3, 2.0*rpvLengthFactor*rpvInnerRadius)
         rspvCentrex = [ (rcpvx[c] + pvSpacingFactor*rspvCentred1[c] - rspvCentred3[c]) for c in range(3) ]
-        rspvCentred3 = [ pvInletDerivativeFactor*d for d in rspvCentred3 ]
+        rspvCentred3 = [ pvDerivativeFactor*d for d in rspvCentred3 ]
 
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
