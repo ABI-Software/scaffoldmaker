@@ -1443,7 +1443,7 @@ class MeshType_3d_heartatria1(object):
 
         # get vena cava inlet positions
         # GRC fudgefactors, multiple of inner radius that inlet centre is away from septum
-        ivcSeptumDistanceFactor = 1.5
+        ivcSeptumDistanceFactor = 1.0
         svcSeptumDistanceFactor = 1.0
         vcDerivativeFactor = 1.0/elementsCountInlet  # GRC fudge factor
         raSeptumModX = -aBaseInnerMajorMag*math.cos(aMajorAxisRadians)*math.cos(-laSeptumRadians) \
@@ -1474,18 +1474,33 @@ class MeshType_3d_heartatria1(object):
         ivcWalld1 = vector.normalise([ ivcWalld3[1], -ivcWalld3[0], 0.0 ])
         ivcWalld2 = vector.crossproduct3(ivcWalld3, ivcWalld1)
         ivcDistance = 2.0*ivcLengthFactor*ivcInnerRadius
-        cosIvcAngleLeftRadians = math.cos(ivcAngleLeftRadians)
-        sinIvcAngleLeftRadians = math.sin(ivcAngleLeftRadians)
-        ivcTempd1 = [ (ivcWalld1[c]*cosIvcAngleLeftRadians - ivcWalld3[c]*sinIvcAngleLeftRadians) for c in range(3) ]
-        ivcTempd2 = ivcWalld2
-        ivcTempd3 = [ (ivcWalld3[c]*cosIvcAngleLeftRadians + ivcWalld1[c]*sinIvcAngleLeftRadians) for c in range(3) ]
+
         cosIvcAngleUpRadians = math.cos(ivcAngleUpRadians)
         sinIvcAngleUpRadians = math.sin(ivcAngleUpRadians)
-        ivcCentred1 = vector.setMagnitude(ivcTempd1, ivcInnerRadius)
-        ivcCentred2 = [ ivcInnerRadius*(ivcTempd2[c]*cosIvcAngleUpRadians - ivcTempd3[c]*sinIvcAngleUpRadians) for c in range(3) ]
-        ivcCentred3 = [ ivcDistance   *(ivcTempd3[c]*cosIvcAngleUpRadians + ivcTempd2[c]*sinIvcAngleUpRadians) for c in range(3) ]
-        ivcCentrex = [ (ivcWallx[c] - ivcCentred3[c]) for c in range(3) ]
-        ivcCentred3 = [ vcDerivativeFactor*d for d in ivcCentred3 ]
+
+        ivcCentred1 = ivcWalld1
+        ivcCentred2 = [ (ivcWalld2[c]*cosIvcAngleUpRadians - ivcWalld3[c]*sinIvcAngleUpRadians) for c in range(3) ]
+        ivcCentred3 = [ (ivcWalld3[c]*cosIvcAngleUpRadians + ivcWalld2[c]*sinIvcAngleUpRadians) for c in range(3) ]
+
+        if math.fabs(ivcAngleLeftRadians) < 1.0E-6:
+            ivcCentrex = [ (ivcWallx[c] - ivcDistance*ivcCentred3[c]) for c in range(3) ]
+        else:
+            # rotate left is around a circular arc
+            ivcTempd1 = ivcCentred1
+            ivcTempd2 = ivcCentred2
+            ivcTempd3 = ivcCentred3
+            cosIvcAngleLeftRadians = math.cos(ivcAngleLeftRadians)
+            sinIvcAngleLeftRadians = math.sin(ivcAngleLeftRadians)
+            ivcCentred1 = [ (ivcTempd1[c]*cosIvcAngleLeftRadians - ivcTempd3[c]*sinIvcAngleLeftRadians) for c in range(3) ]
+            ivcCentred2 = ivcTempd2
+            ivcCentred3 = [ (ivcTempd3[c]*cosIvcAngleLeftRadians + ivcTempd1[c]*sinIvcAngleLeftRadians) for c in range(3) ]
+            r = ivcDistance/ivcAngleLeftRadians
+            offsetd1 = r*(1.0 - cosIvcAngleLeftRadians)
+            offsetd3 = -r*sinIvcAngleLeftRadians
+            ivcCentrex = [ (ivcWallx[c] + offsetd1*ivcCentred1[c] + offsetd3*ivcCentred3[c]) for c in range(3) ]
+        ivcCentred1 = [ ivcInnerRadius*d for d in ivcCentred1 ]
+        ivcCentred2 = [ ivcInnerRadius*d for d in ivcCentred2 ]
+        ivcCentred3 = [ ivcDistance*vcDerivativeFactor*d for d in ivcCentred3 ]
 
         svcWalld3 = vector.normalise([ (ivcWallx[c] - svcWallx[c]) for c in range(3) ])
         svcWalld1 = vector.normalise([ svcWalld3[1], -svcWalld3[0], 0.0 ])
