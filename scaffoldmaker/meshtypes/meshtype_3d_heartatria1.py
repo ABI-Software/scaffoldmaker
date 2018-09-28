@@ -44,6 +44,7 @@ class MeshType_3d_heartatria1(object):
             'Atrial base front incline degrees' : 30.0,
             'Atrial base back incline degrees' : 30.0,
             'Atrial base side incline degrees' : 10.0,
+            'Atrial element size ratio anterior/posterior' : 1.5,
             'Left pulmonary vein position up' : 0.6,
             'Left pulmonary vein angle up degrees' : 10.0,
             'Left pulmonary vein length factor' : 1.0,  # multiple of inner diameter that inlet center is away from atria wall
@@ -90,6 +91,7 @@ class MeshType_3d_heartatria1(object):
             'Atrial base front incline degrees',
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
+            'Atrial element size ratio anterior/posterior',
             'Left pulmonary vein position up',
             'Left pulmonary vein angle up degrees',
             'Left pulmonary vein length factor',
@@ -152,6 +154,10 @@ class MeshType_3d_heartatria1(object):
             'Superior vena cava wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
+            if options['Atrial element size ratio anterior/posterior'] < 0.1:
+                options['Atrial element size ratio anterior/posterior'] = 0.1
+            elif options['Atrial element size ratio anterior/posterior'] > 10.0:
+                options['Atrial element size ratio anterior/posterior'] = 10.0
         for key in [
             'Left pulmonary vein position up',
             'Right pulmonary vein position up',
@@ -196,6 +202,7 @@ class MeshType_3d_heartatria1(object):
         aBaseFrontInclineRadians = math.radians(options['Atrial base front incline degrees'])
         aBaseSideInclineRadians = math.radians(options['Atrial base side incline degrees'])
         aBaseBackInclineRadians = math.radians(options['Atrial base back incline degrees'])
+        aElementSizeRatioAnteriorPosterior = options['Atrial element size ratio anterior/posterior']
         #aortaAxis = [ 0.0, math.sin(aortaInclineRadians), math.cos(aortaInclineRadians) ]
         aSeptumThickness = options['Atrial septum thickness']
         aFreeWallThickness = options['Atrial free wall thickness']
@@ -375,7 +382,7 @@ class MeshType_3d_heartatria1(object):
                 [ laBaseOuterx[na], rx[na], laBaseOuterx[np] ],
                 [ laBaseOuterd2[na], [ -rd1[na][1], rd1[na][0], 0.0 ], [ -d for d in laBaseOuterd2[np]] ],
                 [ [ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ] ],
-                2*elementsCountUpAtria, elementLengthStartEndRatio = 1.5)
+                2*elementsCountUpAtria, elementLengthStartEndRatio = aElementSizeRatioAnteriorPosterior)
             for noa in range(1, elementsCountUpAtria*2):
                 if noa <= elementsCountUpAtria:
                     laOuterx[noa][na] = lx[noa]
@@ -560,7 +567,7 @@ class MeshType_3d_heartatria1(object):
             [ ax , mx , px  ],
             [ ad2, md2, pd2 ],
             [ [ ad1, md1, pd1 ] ],
-            2*elementsCountUpAtria, addLengthStart, addLengthEnd, elementLengthStartEndRatio = 1.5)
+            2*elementsCountUpAtria, addLengthStart, addLengthEnd, elementLengthStartEndRatio = aElementSizeRatioAnteriorPosterior)
         for noa in range(elementsCountUpAtria*2 + 1):
             nop = elementsCountUpAtria*2 - noa
             if noa <= elementsCountUpAtria:
