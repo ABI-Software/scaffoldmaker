@@ -904,7 +904,7 @@ class MeshType_3d_heartatria1(object):
                     raNodeId[0][e2][n1], raNodeId[0][e2][n1 + 1], raNodeId[0][e2 + 1][n1], raNodeId[0][e2 + 1][n1 + 1],
                     raNodeId[1][e2][n1], raNodeId[1][e2][n1 + 1], raNodeId[1][e2 + 1][n1], raNodeId[1][e2 + 1][n1 + 1]]
                 scalefactors = None
-                meshGroups = [ laMeshGroup ]
+                meshGroups = [ raMeshGroup ]
 
                 if addInlets:
                     if (e1 >= ivce1min) and (e1 <= ivce1max) and (e2 >= ivce2min) and (e2 <= ivce2max):
@@ -918,7 +918,7 @@ class MeshType_3d_heartatria1(object):
                     # collapsed to 6 element wedge
                     nids.pop(6)
                     nids.pop(4)
-                    meshGroups += [ raMeshGroup ]
+                    meshGroups += [ laMeshGroup ]
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
