@@ -5,7 +5,7 @@ Generates a 3-D heart atria model, suitable for attachment to the
 
 from __future__ import division
 import math
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -1657,8 +1657,28 @@ class MeshType_3d_heartatria1(object):
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
         element = meshrefinement._sourceElementiterator.next()
+        sourceFm = meshrefinement._sourceFm
+        coordinates = getOrCreateCoordinateField(sourceFm)
+        annotationGroups = meshrefinement._sourceAnnotationGroups
+        laGroup = findAnnotationGroupByName(annotationGroups, 'left atrium')
+        laElementGroupField = laGroup.getFieldElementGroup(meshrefinement._sourceMesh)
+        raGroup = findAnnotationGroupByName(annotationGroups, 'right atrium')
+        raElementGroupField = raGroup.getFieldElementGroup(meshrefinement._sourceMesh)
+        aSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interatrial septum')
+        aSeptumElementGroupField = aSeptumGroup.getFieldElementGroup(meshrefinement._sourceMesh)
+        isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
+        cache = sourceFm.createFieldcache()
+
+        refineElements2 = refineElementsCountSurface
+        refineElements3 = refineElementsCountThroughAtrialWall
         while element.isValid():
-            meshrefinement.refineElementCubeStandard3d(element, refineElementsCountSurface, refineElementsCountSurface, refineElementsCountThroughAtrialWall)
+            cache.setElement(element)
+            result, isWedge = isSeptumEdgeWedge.evaluateReal(cache, 1)
+            if isWedge:
+                refineElements1 = refineElementsCountThroughAtrialWall
+            else:
+                refineElements1 = refineElementsCountSurface
+            meshrefinement.refineElementCubeStandard3d(element, refineElements1, refineElements2, refineElements3)
             element = meshrefinement._sourceElementiterator.next()
 
     @classmethod

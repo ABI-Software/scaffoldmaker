@@ -45,7 +45,6 @@ class MeshRefinement:
         maximums = [ (maximums[i] + edgeTolerance) for i in range(3) ]
         minimumsField = None
         maximumsField = None
-        self._sourceFm.endChange()
         self._sourceMesh = self._sourceFm.findMeshByDimension(3)
         self._sourceElementiterator = self._sourceMesh.createElementiterator()
         self._octree = Octree(minimums, maximums)
@@ -70,6 +69,7 @@ class MeshRefinement:
         self._nodeIdentifier = 1
         self._elementIdentifier = 1
 
+        self._sourceAnnotationGroups = sourceAnnotationGroups
         self._annotationGroups = []
         self._sourceAndTargetMeshGroups = []
         for sourceAnnotationGroup in sourceAnnotationGroups:
@@ -81,6 +81,7 @@ class MeshRefinement:
             self._sourceAndTargetMeshGroups.append( ( sourceMeshGroup, targetMeshGroup) )
 
     def __del__(self):
+        self._sourceFm.endChange()
         self._targetFm.endChange()
 
     def getAnnotationGroups(self):
