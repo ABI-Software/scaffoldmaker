@@ -607,7 +607,7 @@ class MeshType_3d_heartatria1(object):
         elementSizeAroundFossaBase = (elementSizeAroundFossa*elementsCountFossaBase)/(elementsCountFossaBase - 1)
         elementSizeAroundFossaTransition = 0.5*(elementSizeAroundFossa + elementSizeAroundFossaBase)
 
-        radiansAround = updateEllipseAngleByArcLength(fossaMagY, fossaMagZ, -0.5*math.pi, -0.5*elementsCountFossaBaseCentre*elementSizeAroundFossaBase)
+        radiansAround = updateEllipseAngleByArcLength(fossaMagY, fossaMagZ, fradians - math.pi, -0.5*elementsCountFossaBaseCentre*elementSizeAroundFossaBase)
         fossaRadiansAround = []
         fossaDerivativesAround = []
         for nf in range(elementsCountAroundFossa):
