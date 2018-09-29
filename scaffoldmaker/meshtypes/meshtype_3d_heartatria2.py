@@ -206,7 +206,7 @@ class MeshType_3d_heartatria2(object):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
@@ -881,7 +881,7 @@ class MeshType_3d_heartatria2(object):
 
         mesh = fm.findMeshByDimension(3)
 
-        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)

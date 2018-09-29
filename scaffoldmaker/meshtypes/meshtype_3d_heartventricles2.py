@@ -461,7 +461,7 @@ class MeshType_3d_heartventricles2(object):
 
                 # calculate inner d2 from curvature up
                 curvature = 0.0
-                count = 0.0
+                count = 0
                 if n2 > 0:
                     curvature -= getCubicHermiteCurvature(rxOuter[n2 - 1][n1], rd2Outer[n2 - 1][n1], rx[n1], rd2[n1], unitRadial, 1.0)
                     count += 1

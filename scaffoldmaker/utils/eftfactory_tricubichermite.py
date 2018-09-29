@@ -55,6 +55,51 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftNoCrossDerivatives:  Failed to validate eft'
         return eft
 
+    def createEftShellPole90(self, quadrant):
+        '''
+        Create a 6-node wedge element for around a pole with 90 degrees between sides.
+        Xi1 is around, xi2 is toward pole, xi3 is out of surface.
+        :param quadrant: quadrant from 0 to 3 from +s1 direction around +s2 in first quadrant
+        Element has two global scale factors to set: 1 = -1.0, 90 = math.pi/2.0
+        '''
+        eft = self.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [ 1, 90 ], [])  # global scale factor 90 = pi/2
+        remapEftNodeValueLabel(eft, [ 3, 7, 4, 8 ], Node.VALUE_LABEL_D_DS1, [])
+        if quadrant == 0:
+            remapEftNodeValueLabel(eft, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+            scaleEftNodeValueLabels(eft, [ 4, 8 ], [ Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            crossFix37 = ( Node.VALUE_LABEL_D_DS2, [ 1, 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS1, [ 2 ])
+        elif quadrant == 1:
+            scaleEftNodeValueLabels(eft, [ 3, 7 ], [ Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+            remapEftNodeValueLabel(eft, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+            crossFix37 = ( Node.VALUE_LABEL_D_DS1, [ 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS2, [ 2 ])
+        elif quadrant == 2:
+            remapEftNodeValueLabel(eft, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            crossFix37 = ( Node.VALUE_LABEL_D_DS2, [ 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS1, [ 1, 2 ])
+        elif quadrant == 3:
+            remapEftNodeValueLabel(eft, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+            crossFix37 = ( Node.VALUE_LABEL_D_DS1, [ 1, 2 ])
+            crossFix48 = ( Node.VALUE_LABEL_D_DS2, [ 1, 2 ])
+        else:
+            assert False, 'eftfactory_tricubichermite.createEftShellPole90:  Invalid quadrant'
+
+        # 2 terms for cross derivative 1 2 to correct circular apex
+        for ln in [ 3, 7 ]:
+            mapEftFunction1Node1Term(eft, (ln - 1)*8 + 4, ln, crossFix37[0], 1, crossFix37[1])
+        for ln in [ 4, 8 ]:
+            mapEftFunction1Node1Term(eft, (ln - 1)*8 + 4, ln, crossFix48[0], 1, crossFix48[1])
+
+        ln_map = [ 1, 2, 3, 3, 4, 5, 6, 6 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPole90:  Failed to validate eft'
+        return eft
+
     def createEftShellApexBottom(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
         '''
         Create a tricubic hermite element field for closing bottom apex of a shell.
@@ -1112,3 +1157,334 @@ class eftfactory_tricubichermite:
         self._mesh.destroyElement(origElement1)
         self._mesh.destroyElement(origElement2)
         fm.endChange()
+
+    def createAnnulusMesh3d(self,
+            startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
+            endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
+            nodetemplate, nodetemplateLinearS3, nextNodeIdentifier, nextElementIdentifier,
+            maxStartThickness = None, maxEndThickness = None,
+            elementsCountRadial = 1, meshGroups = []):
+        '''
+        Create an annular mesh from a loop of start points/nodes with specified derivative mappings to
+        a loop of end points/nodes with specified derivative mappings.
+        Derivative d3 is through the wall. Currently limited to single element layer through wall.
+        Points/nodes order cycles fastest around the annulus, then through the wall.
+        Note doesn't support cross derivatives.
+        Arrays are indexed by n3 (node through wall, size 2), n2 (node along/radial), n1 (node around, variable size)
+        and coordinate component c.
+        :param startPointsx, startPointsd1, startPointsd2, startPointsd3, endPointsx, endPointsd1, endPointsd2, endPointsd3:
+            List array[n3][n1][c] or start/point coordinates and derivatives. To linearise through the wall, pass None to d3.
+        :param startNodeId, endNodeId: List array [n3][n1] of existing node identifiers to use at start/end. Pass None for
+            argument if no nodes are specified at end. These arguments are 'all or nothing'.
+        :param startDerivativesMap, endDerivativesMap: List array[n3][n1] of mappings for d/dxi1, d/dxi2, d/dxi3 at start/end of form:
+            ( (1, -1, 0), (1, 0, 0), None ) where the first tuple means d/dxi1 = d/ds1 - d/ds2. Only 0, 1 and -1 may be used.
+            None means use default e.g. d/dxi2 = d/ds2.
+            Pass None for the entire argument to use the defaults d/dxi1 = d/ds1, d/dxi2 = d/ds2, d/dxi3 = d/ds3.
+            Pass a 4th mapping to apply to d/dxi1 on other side of node; if not supplied first mapping applies both sides.
+        :param nodetemplate: Full tricubic Hermite node template.
+        :param nodetemplateLinearS3: Node template to use where linear through-thickness.
+        :param nextNodeIdentifier, nextElementIdentifier: Next identifiers to use and increment.
+        :param maxStartThickness, maxEndThickness: Optional maximum override on start/end thicknesses.
+        :param elementsCountRadial: Optional number of elements in radial direction between start and end.
+        :param meshGroups:  Optional list of Zinc MeshGroup for adding new elements to.
+        :return: Final values of nextNodeIdentifier, nextElementIdentifier
+        '''
+        assert (elementsCountRadial >= 1), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Invalid number of radial elements'
+        elementsCountWall = 1
+        nodesCountWall = elementsCountWall + 1
+        assert (len(startPointsx) == nodesCountWall) and (len(startPointsd1) == nodesCountWall) and (len(startPointsd2) == nodesCountWall) and \
+            ((startPointsd3 is None) or (len(startPointsd3) == nodesCountWall)) and \
+            (len(endPointsx) == nodesCountWall) and (len(endPointsd1) == nodesCountWall) and (len(endPointsd2) == nodesCountWall) and \
+            ((endPointsd3 is None) or (len(endPointsd3) == nodesCountWall)) and \
+            ((startNodeId is None) or (len(startNodeId) == nodesCountWall)) and \
+            ((endNodeId is None) or (len(endNodeId) == nodesCountWall)) and \
+            ((startDerivativesMap is None) or (len(startDerivativesMap) == nodesCountWall)) and \
+            ((endDerivativesMap is None) or (len(endDerivativesMap) == nodesCountWall)), \
+            'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in number of layers through wall'
+        elementsCountAround = nodesCountAround = len(startPointsx[0])
+        assert (nodesCountAround > 1), 'eftfactory_tricubichermite.createAnnulusMesh3d:  Invalid number of points/nodes around annulus'
+        for n3 in range(nodesCountWall):
+            assert (len(startPointsx[n3]) == nodesCountAround) and (len(startPointsd1[n3]) == nodesCountAround) and (len(startPointsd2[n3]) == nodesCountAround) and \
+                ((startPointsd3 is None) or (len(startPointsd3[n3]) == nodesCountAround)) and \
+                (len(endPointsx[n3]) == nodesCountAround) and (len(endPointsd1[n3]) == nodesCountAround) and (len(endPointsd2[n3]) == nodesCountAround) and \
+                ((endPointsd3 is None) or (len(endPointsd3[n3]) == nodesCountAround)) and \
+                ((startNodeId is None) or (len(startNodeId[n3]) == nodesCountAround)) and \
+                ((endNodeId is None) or (len(endNodeId[n3]) == nodesCountAround)) and \
+                ((startDerivativesMap is None) or (len(startDerivativesMap[n3]) == nodesCountAround)) and \
+                ((endDerivativesMap is None) or (len(endDerivativesMap[n3]) == nodesCountAround)), \
+                'eftfactory_tricubichermite.createAnnulusMesh3d:  Mismatch in number of points/nodes in layers through wall'
+
+        fm = self._mesh.getFieldmodule()
+        fm.beginChange()
+        cache = fm.createFieldcache()
+        coordinates = getOrCreateCoordinateField(fm)
+
+        # Build arrays of points from start to end
+        px  = [ [], [] ]
+        pd1 = [ [], [] ]
+        pd2 = [ [], [] ]
+        pd3 = [ [], [] ]
+        for n3 in range(2):
+            px [n3] = [ startPointsx [n3], endPointsx [n3] ]
+            pd1[n3] = [ startPointsd1[n3], endPointsd1[n3] ]
+            pd2[n3] = [ startPointsd2[n3], endPointsd2[n3] ]
+            pd3[n3] = [ startPointsd3[n3] if (startPointsd3 is not None) else None, \
+                        endPointsd3[n3] if (endPointsd3 is not None) else None ]
+        if elementsCountRadial > 1:
+            # add in-between points
+            startPointsd = [ startPointsd1, startPointsd2, startPointsd3 ]
+            startPointsdslimit = 2 if (startPointsd3 is None) else 3
+            endPointsd = [ endPointsd1, endPointsd2, endPointsd3 ]
+            endPointsdslimit = 2 if (endPointsd3 is None) else 3
+            for n3 in range(2):
+                for n2 in range(1, elementsCountRadial):
+                    for li in (px[n3], pd1[n3], pd2[n3], pd3[n3]):
+                        li.insert(n2, [ None ]*nodesCountAround)
+            # compute on outside / n3 = 1, then map to inside using thickness
+            thicknesses = []
+            thicknesses.append([ vector.magnitude([ (startPointsx[1][n1][c] - startPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+            if maxStartThickness:
+                for n1 in range(nodesCountAround):
+                    thicknesses[0][n1] = min(thicknesses[0][n1], maxStartThickness)
+            for n2 in range(1, elementsCountRadial):
+                thicknesses.append([ None ]*nodesCountAround)
+            thicknesses.append([ vector.magnitude([ (endPointsx[1][n1][c] - endPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+            if maxEndThickness:
+                for n1 in range(nodesCountAround):
+                    thicknesses[-1][n1] = min(thicknesses[-1][n1], maxEndThickness)
+            n3 == 1
+            for n1 in range(nodesCountAround):
+                ax  = startPointsx [n3][n1]
+                if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][0] is None):
+                    ad1 = startPointsd1[n3][n1]
+                else:
+                    derivativesMap = startDerivativesMap[n3][n1][0]
+                    ad1 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(startPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                ad1[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                    if len(startDerivativesMap[n3][n1]) > 3:
+                        # average with d1 map for other side
+                        derivativesMap = startDerivativesMap[n3][n1][3]
+                        ad1 = [ 0.5*d for d in ad1 ]
+                        for ds in range(startPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][1] is None):
+                    ad2 = startPointsd2[n3][n1]
+                else:
+                    derivativesMap = startDerivativesMap[n3][n1][1]
+                    ad2 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(startPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                ad2[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+
+                bx  = endPointsx [n3][n1]
+                if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][0] is None):
+                    bd1 = endPointsd1[n3][n1]
+                else:
+                    derivativesMap = endDerivativesMap[n3][n1][0]
+                    bd1 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(endPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                bd1[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                    if len(endDerivativesMap[n3][n1]) > 3:
+                        # average with d1 map for other side
+                        derivativesMap = endDerivativesMap[n3][n1][3]
+                        bd1 = [ 0.5*d for d in bd1 ]
+                        for ds in range(endPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][1] is None):
+                    bd2 = endPointsd2[n3][n1]
+                else:
+                    derivativesMap = endDerivativesMap[n3][n1][1]
+                    bd2 = [ 0.0, 0.0, 0.0 ]
+                    for ds in range(endPointsdslimit):
+                        if derivativesMap[ds] != 0.0:
+                            for c in range(3):
+                                bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+
+                mx, md2, ( md1, thi ) = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ],
+                    [ [ ad1, bd1 ], [ thicknesses[0][n1], thicknesses[-1][n1] ] ], elementsCountRadial,
+                    addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
+                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
+                md2 = smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
+                for n2 in range(1, elementsCountRadial):
+                    px [n3][n2][n1] = mx [n2]
+                    pd1[n3][n2][n1] = md1[n2]
+                    pd2[n3][n2][n1] = md2[n2]
+                    thicknesses[n2][n1] = thi[n2]
+
+            # now get inner positions from normal and thickness, derivatives from curvature
+            for n2 in range(1, elementsCountRadial):
+                # first smooth derivative 1 around outer loop
+                pd1[1][n2] = smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
+
+                for n1 in range(nodesCountAround):
+                    normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
+                    thickness = thicknesses[n2][n1]
+                    pd3[0][n2][n1] = pd3[1][n2][n1] = [ d*thickness for d in normal ]
+                    px [0][n2][n1] = [ (px [1][n2][n1][c] - pd3[1][n2][n1][c]) for c in range(3) ]
+                    # calculate inner d1 from curvature around
+                    n1m = n1 - 1
+                    n1p = (n1 + 1)%nodesCountAround
+                    curvature = 0.5*(
+                        getCubicHermiteCurvature(px[1][n2][n1m], pd1[1][n2][n1m], px[1][n2][n1 ], pd1[1][n2][n1 ], normal, 1.0) +
+                        getCubicHermiteCurvature(px[1][n2][n1 ], pd1[1][n2][n1 ], px[1][n2][n1p], pd1[1][n2][n1p], normal, 0.0))
+                    factor = 1.0 + curvature*thickness
+                    pd1[0][n2][n1] = [ factor*d for d in pd1[1][n2][n1] ]
+                    # calculate inner d2 from curvature radially
+                    n2m = n2 - 1
+                    n2p = n2 + 1
+                    curvature = 0.5*(
+                        getCubicHermiteCurvature(px[1][n2m][n1], pd2[1][n2m][n1], px[1][n2 ][n1], pd2[1][n2 ][n1], normal, 1.0) +
+                        getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
+                    factor = 1.0 + curvature*thickness
+                    pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
+
+                # smooth derivative 1 around inner loop
+                pd1[0][n2] = smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
+
+            for n3 in range(1, nodesCountWall):
+                # smooth derivative 2 radially/along annulus
+                for n1 in range(nodesCountAround):
+                    sd2 = smoothCubicHermiteDerivativesLine(
+                        [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
+                        [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
+                        fixStartDerivative = True, fixEndDerivative = True)
+                    for n2 in range(elementsCountRadial + 1):
+                        pd2[n3][n2][n1] = sd2[n2]
+
+
+        ##############
+        # Create nodes
+        ##############
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = nextNodeIdentifier
+        nodeId = [ [], [] ]
+        for n3 in range(2):
+            for n2 in range(elementsCountRadial + 1):
+                if (n2 == 0) and (startNodeId is not None):
+                    rowNodeId = startNodeId[n3]
+                elif (n2 == elementsCountRadial) and (endNodeId is not None):
+                    rowNodeId = endNodeId[n3]
+                else:
+                    rowNodeId = []
+                    nodetemplate1 = nodetemplate if (pd3[n3][n2] is not None) else nodetemplateLinearS3
+                    for n1 in range(nodesCountAround):
+                        node = nodes.createNode(nodeIdentifier, nodetemplate1)
+                        rowNodeId.append(nodeIdentifier)
+                        cache.setNode(node)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, px[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, pd2[n3][n2][n1])
+                        if nodetemplate1 is nodetemplate:
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, pd3[n3][n2][n1])
+                        nodeIdentifier = nodeIdentifier + 1
+                nodeId[n3].append(rowNodeId)
+
+        #################
+        # Create elements
+        #################
+
+        elementIdentifier = nextElementIdentifier
+
+        eftStandard = self.createEftNoCrossDerivatives()
+
+        elementtemplate1 = self._mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        for e2 in range(elementsCountRadial):
+            for e1 in range(elementsCountAround):
+                en = (e1 + 1)%elementsCountAround
+                mapStartDerivatives = (e2 == 0) and (startDerivativesMap is not None)
+                mapStartLinearDerivative3 = (e2 == 0) and (startPointsd3 is None)
+                mapEndDerivatives = (e2 == (elementsCountRadial - 1)) and (endDerivativesMap is not None)
+                mapEndLinearDerivative3 = (e2 == (elementsCountRadial - 1)) and (endPointsd3 is None)
+
+                if mapStartDerivatives or mapStartLinearDerivative3 or mapEndDerivatives or mapEndLinearDerivative3:
+                    eft1 = self.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    if mapStartLinearDerivative3:
+                        self.setEftLinearDerivative(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS3, 1, 5, 1)
+                        self.setEftLinearDerivative(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS3, 2, 6, 1)
+                    if mapStartDerivatives:
+                        for i in range(2):
+                            lns = [ 1, 5 ] if (i == 0) else [ 2, 6 ]
+                            for n3 in range(2):
+                                derivativesMap = startDerivativesMap[n3][e1] if (i == 0) else startDerivativesMap[n3][en]
+                                # handle different d1 on each side of node
+                                d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 4)) else derivativesMap[3]
+                                d2Map = derivativesMap[1]
+                                d3Map = derivativesMap[2]
+                                # use temporary to safely swap DS1 and DS2:
+                                ln = [ lns[n3] ]
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
+                                if d2Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
+                    if mapEndLinearDerivative3:
+                        self.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                        self.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                    if mapEndDerivatives:
+                        for i in range(2):
+                            lns = [ 3, 7 ] if (i == 0) else [ 4, 8 ]
+                            for n3 in range(2):
+                                derivativesMap = endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]
+                                # handle different d1 on each side of node
+                                d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 4)) else derivativesMap[3]
+                                d2Map = derivativesMap[1]
+                                d3Map = derivativesMap[2]
+                                # use temporary to safely swap DS1 and DS2:
+                                ln = [ lns[n3] ]
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
+                                if d2Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
+                                if d1Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
+                                if d3Map is not None:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
+                                        derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
+                else:
+                    eft1 = eftStandard
+
+                nids = [ nodeId[0][e2][e1], nodeId[0][e2][en], nodeId[0][e2 + 1][e1], nodeId[0][e2 + 1][en],
+                         nodeId[1][e2][e1], nodeId[1][e2][en], nodeId[1][e2 + 1][e1], nodeId[1][e2 + 1][en] ]
+
+                elementtemplate1.defineField(coordinates, -1, eft1)
+                element = self._mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if eft1 is not eftStandard:
+                    result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                else:
+                    result3 = 7
+                #print('create element orifice', element.isValid(), elementIdentifier, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
+        fm.endChange()
+
+        return nodeIdentifier, elementIdentifier
