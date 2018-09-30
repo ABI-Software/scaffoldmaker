@@ -57,6 +57,10 @@ class MeshType_3d_lens1:
                 options[key] = 0.0
         if options['Spherical radius fraction'] > 1.0:
             options['Spherical radius fraction'] = 1.0
+        if options['Posterior radius of curvature'] < options['Axial thickness']*0.5:
+            options['Posterior radius of curvature'] = options['Axial thickness']*0.5
+        if options['Anterior radius of curvature'] < options['Axial thickness']*0.5:
+            options['Anterior radius of curvature'] = options['Axial thickness']*0.5
 
     @classmethod
     def sphereToLens(cls, region, options):
@@ -78,17 +82,15 @@ class MeshType_3d_lens1:
         lensThickness = options['Axial thickness']
         sphericalRadiusFraction = options['Spherical radius fraction']
         
-        # Estimate dLim 
-        A = radiusAnt + radiusPos - lensThickness
-        B = radiusAnt*radiusAnt - (radiusPos*radiusPos - radiusAnt*radiusAnt - A*A)**2/(4*A*A)
-        if B < 0 or A == 0:
-            dLim = min(radiusAnt, radiusPos)
-            # print('math domain error - use min radius of curvature')
-        elif  math.sqrt(B) < 0.2*min(radiusAnt, radiusPos):
-            dLim = min(radiusAnt, radiusPos)
-            # print('small intersection - use min radius')
+        # Estimate dLim
+        rMax = max(radiusAnt, radiusPos)
+        rMin = min(radiusAnt, radiusPos)
+        zMax = rMax - math.sqrt(rMax*rMax - rMin*rMin)
+        if zMax > lensThickness - rMin:
+            thicknessMin = lensThickness*(2*rMax - lensThickness)/(2*(rMax + rMin - lensThickness))
+            dLim = math.sqrt(rMin*rMin - (rMin - thicknessMin)*(rMin - thicknessMin))
         else:
-            dLim = dLim = math.sqrt(B)
+            dLim = rMin
         dLimitConstant = dLim*options['Spherical radius fraction']
 
         # Define constants
@@ -219,30 +221,23 @@ class MeshType_3d_lens1:
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        radiusAnt = options['Anterior radius of curvature']
-        radiusPos = options['Posterior radius of curvature']
-        lensThickness = options['Axial thickness']
 
         fm = region.getFieldmodule()
         fm.beginChange()
         cache = fm.createFieldcache()
-        
-        if lensThickness*0.5 == radiusAnt and lensThickness*0.5 == radiusPos:
-            options['Diameter'] = lensThickness
-            MeshType_3d_solidsphere1.generateBaseMesh(region, options)
-        else:
-            # generate solidsphere with unit diameter
-            options['Diameter'] = 1.0
-            MeshType_3d_solidsphere1.generateBaseMesh(region, options)
-            sphereCoordinates = getOrCreateCoordinateField(fm)
 
-            # Morph sphere surface to lens surface
-            lensRC = cls.sphereToLens(region, options)
+        # generate solidsphere with unit diameter
+        options['Diameter'] = 1.0
+        MeshType_3d_solidsphere1.generateBaseMesh(region, options)
+        sphereCoordinates = getOrCreateCoordinateField(fm)
 
-            # Assign Field
-            fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
-            result = fieldassignment.assign()
-            # print('fieldassignment', result)
+        # Morph sphere surface to lens surface
+        lensRC = cls.sphereToLens(region, options)
+
+        # Assign Field
+        fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
+        result = fieldassignment.assign()
+        # print('fieldassignment', result)
 
         fm.endChange()
 
