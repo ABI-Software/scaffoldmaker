@@ -197,18 +197,6 @@ class MeshType_3d_lens1:
         rGreaterThanRLimit = fm.createFieldGreaterThan(r, rLimit)
         lensRC = fm.createFieldIf(rGreaterThanRLimit, affMapLensRC, sphereMapLensRC)
 
-        # # For debugging
-        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodeiter = nodes.createNodeiterator()
-        # node = nodeiter.next()
-        # print('node.isValid()',node.isValid())
-        # while node.isValid():
-            # cache.setNode(node)
-            # resultnew, newx = lensRC.evaluateReal(cache, 3)
-            # #print(node.getIdentifier(), ':', resultold, oldx, '-->', resultnew, newx)
-            # print(newx)
-            # node = nodeiter.next()
-
         fm.endChange()
 
         return lensRC
@@ -237,7 +225,6 @@ class MeshType_3d_lens1:
         # Assign Field
         fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
         result = fieldassignment.assign()
-        # print('fieldassignment', result)
 
         fm.endChange()
 
