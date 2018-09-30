@@ -142,13 +142,6 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
     d1 = [ d*scale1 for d in d1 ]
     cache.setNode(node2)
     result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
-    xi = 1.0
-    #phi1 = 1 - xi*xi
-    #phi2 = xi - xi*xi
-    #phi3 = xi*xi
-    dphi1 = -2.0*xi
-    dphi2 = 1 - 2.0*xi
-    dphi3 = 2.0*xi
-    d2 = [ (v1[c]*dphi1 + d1[c]*dphi2 + v2[c]*dphi3) for c in range(3) ]
+    d2 = getHermiteLagrangeEndDerivative(v1, d1, v2)
     d2 = [ d*scale2 for d in d2 ]
     return d2

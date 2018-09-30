@@ -42,7 +42,7 @@ class AnnotationGroup(object):
     def getGroup(self):
         return self._group
 
-    def getMeshGroup(self, mesh):
+    def getFieldElementGroup(self, mesh):
         '''
         :param mesh: The Zinc mesh to manage a sub group of.
         :return: The Zinc meshGroup for adding elements of mesh in this AnnotationGroup.
@@ -50,7 +50,14 @@ class AnnotationGroup(object):
         elementGroup = self._group.getFieldElementGroup(mesh)
         if not elementGroup.isValid():
             elementGroup = self._group.createFieldElementGroup(mesh)
-        return elementGroup.getMeshGroup()
+        return elementGroup
+
+    def getMeshGroup(self, mesh):
+        '''
+        :param mesh: The Zinc mesh to manage a sub group of.
+        :return: The Zinc meshGroup for adding elements of mesh in this AnnotationGroup.
+        '''
+        return self.getFieldElementGroup(mesh).getMeshGroup()
 
     def addSubelements(self):
         '''
