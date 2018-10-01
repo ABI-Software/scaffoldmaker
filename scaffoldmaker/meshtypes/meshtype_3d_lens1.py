@@ -14,7 +14,10 @@ from opencmiss.zinc.node import Node
 
 class MeshType_3d_lens1:
     '''
-    classdocs
+    Generates a 3-D spherical lens mesh with variable numbers
+    of elements around, up the central axis, and radially.
+    The spherical lens is created by a function morphing a
+    sphere to a lens
     '''
     @staticmethod
     def getName():
