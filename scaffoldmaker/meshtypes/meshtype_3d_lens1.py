@@ -125,7 +125,7 @@ def getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiu
     with radii rAnt and rPos, respectively. Elements maintain constant size radially
     and match up at dlim. Outside of rlim, affine transformation applied to transform
     sphere coordinates to be tangential to morphed spherical surfaces
-    param sphereCoordinates: Coordinates of a solid sphere with unit diameter
+    param sphereCoordinates: Coordinate field defined over sphere
     param radiusSphere: Radius of solid sphere
     param radiusAnt: Radius of curvature on anterior lens surface
     param radiusPos: Radius of curvature on posterior lens surface
