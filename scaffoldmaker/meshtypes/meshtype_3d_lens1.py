@@ -49,18 +49,18 @@ class MeshType_3d_lens1:
     def checkOptions(options):
         MeshType_3d_solidsphere1.checkOptions(options)
         for key in [
-            'Spherical radius fraction',
-            'Posterior radius of curvature',
-            'Anterior radius of curvature',
-            'Axial thickness']:
+            'Axial thickness',
+            'Spherical radius fraction'
+            ]:
             if options[key] < 0.0:
                 options[key] = 0.0
+        for key in [
+            'Anterior radius of curvature',
+            'Posterior radius of curvature']:
+            if options[key] < options['Axial thickness']*0.5:
+                options[key] = options['Axial thickness']*0.5
         if options['Spherical radius fraction'] > 1.0:
             options['Spherical radius fraction'] = 1.0
-        if options['Posterior radius of curvature'] < options['Axial thickness']*0.5:
-            options['Posterior radius of curvature'] = options['Axial thickness']*0.5
-        if options['Anterior radius of curvature'] < options['Axial thickness']*0.5:
-            options['Anterior radius of curvature'] = options['Axial thickness']*0.5
 
     @classmethod
     def sphereToLens(cls, region, options):
