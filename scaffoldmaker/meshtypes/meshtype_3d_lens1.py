@@ -31,7 +31,8 @@ class MeshType_3d_lens1:
             'Axial thickness' : 4.0,
             'Anterior radius of curvature' : 10.0,
             'Posterior radius of curvature' : 6.0,
-            'Spherical radius fraction' : 0.7
+            'Sphere spherical radius fraction' : 0.8,
+            'Lens spherical radius fraction' : 0.7
         }
         options.update(optionsLens)
         return options
@@ -41,7 +42,8 @@ class MeshType_3d_lens1:
         optionNames = MeshType_3d_solidsphere1.getOrderedOptionNames()
         optionNames.remove('Diameter')
         for optionName in [
-            'Spherical radius fraction',
+            'Lens spherical radius fraction',
+            'Sphere spherical radius fraction',
             'Posterior radius of curvature',
             'Anterior radius of curvature',
             'Axial thickness']:
@@ -53,8 +55,8 @@ class MeshType_3d_lens1:
         MeshType_3d_solidsphere1.checkOptions(options)
         for key in [
             'Axial thickness',
-            'Spherical radius fraction'
-            ]:
+            'Sphere spherical radius fraction',
+            'Lens spherical radius fraction']:
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
@@ -62,8 +64,11 @@ class MeshType_3d_lens1:
             'Posterior radius of curvature']:
             if options[key] < options['Axial thickness']*0.5:
                 options[key] = options['Axial thickness']*0.5
-        if options['Spherical radius fraction'] > 1.0:
-            options['Spherical radius fraction'] = 1.0
+        for key in [
+            'Sphere spherical radius fraction',
+            'Lens spherical radius fraction']:
+            if options[key] > 1.0:
+                options[key] = 1.0
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -78,7 +83,8 @@ class MeshType_3d_lens1:
         radiusAnt = options['Anterior radius of curvature']
         radiusPos = options['Posterior radius of curvature']
         lensThickness = options['Axial thickness']
-        sphericalRadiusFraction = options['Spherical radius fraction']
+        sphereSphericalRadiusFraction = options['Sphere spherical radius fraction']
+        lensSphericalRadiusFraction = options['Lens spherical radius fraction']
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -89,7 +95,8 @@ class MeshType_3d_lens1:
         sphereCoordinates = getOrCreateCoordinateField(fm)
 
         # Morph sphere surface to lens surface
-        lensRC = getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness, sphericalRadiusFraction)
+        lensRC = getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness,
+            sphereSphericalRadiusFraction, lensSphericalRadiusFraction)
 
         # Assign Field
         fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
@@ -118,7 +125,8 @@ class MeshType_3d_lens1:
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp, refineElementsCountRadial)
 
-def getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness, sphericalRadiusFraction):
+def getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness,
+        sphereSphericalRadiusFraction = 0.8, lensSphericalRadiusFraction = 0.7):
     """
     Define a field giving positions on a spherical lens as functions of positions
     in the sphere. Map coordinates of the sphere within a width limit olim to arcs
@@ -130,8 +138,10 @@ def getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiu
     param radiusAnt: Radius of curvature on anterior lens surface
     param radiusPos: Radius of curvature on posterior lens surface
     param lensThickness: Axial thickness of lens
-    param sphericalRadiusFraction: Proportion of lens radius with spherical properties
-    return: lensRC
+    param sphereSphericalRadiusFraction: Proportion of sphere radius mapped to spherical
+    part of lens
+    param lensSphericalRadiusFraction: Proportion of lens radius with spherical shape
+    return: Zinc Field giving lens coordinates
     """
 
     fm = sphereCoordinates.getFieldmodule()
@@ -145,7 +155,7 @@ def getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiu
         dLim = math.sqrt(rMin*rMin - (rMin - thicknessMin)*(rMin - thicknessMin))
     else:
         dLim = rMin
-    dLimitConstant = dLim*sphericalRadiusFraction
+    dLimitConstant = dLim*lensSphericalRadiusFraction
 
     # Define constants
     half = fm.createFieldConstant([0.5])
@@ -155,8 +165,8 @@ def getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiu
     rPos = fm.createFieldConstant([radiusPos])
     halfLensThickness = fm.createFieldConstant([lensThickness*0.5])
 
-    rLimit = fm.createFieldConstant([0.4])
-    psiLimit = fm.createFieldAsin(fm.createFieldDivide(rLimit, rSphere))
+    psiLimit = fm.createFieldConstant([math.asin(sphereSphericalRadiusFraction)])
+    rLimit = fm.createFieldConstant([sphereSphericalRadiusFraction*radiusSphere])
     dLimit = fm.createFieldConstant([dLimitConstant])
 
     # Convert to cylindrical coordinates
