@@ -66,25 +66,24 @@ class MeshType_3d_lens1:
             options['Spherical radius fraction'] = 1.0
 
     @classmethod
-    def sphereToLens(cls, region, options):
+    def getSphereToLensCoordinates(cls, sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness, sphericalRadiusFraction):
         """
-        Map coordinates of the sphere within a width limit olim to arcs with radii 
-        rAnt and rPos, respectively. Elements maintain constant size radially and match
-        up at dlim. Outside of rlim, affine transformation applied to transform sphere 
-        coordinates to be tangential to morphed spherical surfaces
+        Define a field giving positions on a spherical lens as functions of positions
+        in the sphere. Map coordinates of the sphere within a width limit olim to arcs
+        with radii rAnt and rPos, respectively. Elements maintain constant size radially
+        and match up at dlim. Outside of rlim, affine transformation applied to transform
+        sphere coordinates to be tangential to morphed spherical surfaces
+        param sphereCoordinates: Coordinates of a solid sphere with unit diameter
+        param radiusSphere: Radius of solid sphere
+        param radiusAnt: Radius of curvature on anterior lens surface
+        param radiusPos: Radius of curvature on posterior lens surface
+        param lensThickness: Axial thickness of lens
+        param sphericalRadiusFraction: Proportion of lens radius with spherical properties
         return: lensRC
         """
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        cache = fm.createFieldcache()
-        sphereCoordinates = getOrCreateCoordinateField(fm)
 
-        radiusSphere = options['Diameter']*0.5
-        radiusAnt = options['Anterior radius of curvature']
-        radiusPos = options['Posterior radius of curvature']
-        lensThickness = options['Axial thickness']
-        sphericalRadiusFraction = options['Spherical radius fraction']
-        
+        fm = sphereCoordinates.getFieldmodule()
+
         # Estimate dLim
         rMax = max(radiusAnt, radiusPos)
         rMin = min(radiusAnt, radiusPos)
@@ -94,7 +93,7 @@ class MeshType_3d_lens1:
             dLim = math.sqrt(rMin*rMin - (rMin - thicknessMin)*(rMin - thicknessMin))
         else:
             dLim = rMin
-        dLimitConstant = dLim*options['Spherical radius fraction']
+        dLimitConstant = dLim*sphericalRadiusFraction
 
         # Define constants
         half = fm.createFieldConstant([0.5])
@@ -200,8 +199,6 @@ class MeshType_3d_lens1:
         rGreaterThanRLimit = fm.createFieldGreaterThan(r, rLimit)
         lensRC = fm.createFieldIf(rGreaterThanRLimit, affMapLensRC, sphereMapLensRC)
 
-        fm.endChange()
-
         return lensRC
 
     @classmethod
@@ -212,18 +209,23 @@ class MeshType_3d_lens1:
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+        options['Diameter'] = 1.0
+        radiusSphere = options['Diameter']*0.5
+        radiusAnt = options['Anterior radius of curvature']
+        radiusPos = options['Posterior radius of curvature']
+        lensThickness = options['Axial thickness']
+        sphericalRadiusFraction = options['Spherical radius fraction']
 
         fm = region.getFieldmodule()
         fm.beginChange()
         cache = fm.createFieldcache()
 
         # generate solidsphere with unit diameter
-        options['Diameter'] = 1.0
         MeshType_3d_solidsphere1.generateBaseMesh(region, options)
         sphereCoordinates = getOrCreateCoordinateField(fm)
 
         # Morph sphere surface to lens surface
-        lensRC = cls.sphereToLens(region, options)
+        lensRC = cls.getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness, sphericalRadiusFraction)
 
         # Assign Field
         fieldassignment = sphereCoordinates.createFieldassignment(lensRC)
