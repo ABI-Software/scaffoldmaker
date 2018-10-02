@@ -24,7 +24,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 
 
-class Scaffoldmaker(object):
+class Scaffolds(object):
 
     def __init__(self):
         self._allMeshTypes = [
