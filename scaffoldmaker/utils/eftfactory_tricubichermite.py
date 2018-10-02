@@ -100,21 +100,21 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPole90:  Failed to validate eft'
         return eft
 
-    def createEftShellApexBottom(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
+    def createEftShellPoleBottom(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
         '''
-        Create a tricubic hermite element field for closing bottom apex of a shell.
+        Create a tricubic hermite element field for closing bottom pole of a shell.
         Element is collapsed in xi1 on xi2 = 0.
         Each collapsed node has 3 scale factors giving the cos, sin coefficients
         of the radial line from global derivatives, plus the arc subtended by
-        the element in radians, so the apex can be rounded.
-        Need to create a new template for each sector around apex giving common
+        the element in radians, so the pole can be rounded.
+        Need to create a new template for each sector around pole giving common
         nodeScaleFactorOffset values on common faces. Suggestion is to start at 0 and
-        add 100 for each radial line around apex.
-        :param nodeScaleFactorOffset0: offset of node scale factors at apex on xi1=0
-        :param nodeScaleFactorOffset1: offset of node scale factors at apex on xi1=1
+        add 100 for each radial line around pole.
+        :param nodeScaleFactorOffset0: offset of node scale factors at pole on xi1=0
+        :param nodeScaleFactorOffset1: offset of node scale factors at pole on xi1=1
         :return: Element field template
         '''
-        # start with full tricubic to remap D2_DS1DS2 at apex
+        # start with full tricubic to remap D2_DS1DS2 at pole
         eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
         if not self._useCrossDerivatives:
             for n in [ 2, 3, 6, 7 ]:
@@ -136,7 +136,7 @@ class eftfactory_tricubichermite:
             ln = layer*4 + 1
             # 2 terms for d/dxi2 via general linear map:
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 1]), (Node.VALUE_LABEL_D_DS2, [so + 2]) ])
-            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 2, so + 3]), (Node.VALUE_LABEL_D_DS2, [1, so + 1, so + 3]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
@@ -146,7 +146,7 @@ class eftfactory_tricubichermite:
             ln = layer*4 + 2
             # 2 terms for d/dxi2 via general linear map:
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, so + 4), (Node.VALUE_LABEL_D_DS2, so + 5) ])
-            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 5, so + 6]), (Node.VALUE_LABEL_D_DS2, [1, so + 4, so + 6]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
@@ -156,24 +156,24 @@ class eftfactory_tricubichermite:
         ln_map = [ 1, 1, 2, 3, 4, 4, 5, 6 ]
         remapEftLocalNodes(eft, 6, ln_map)
 
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellApexBottom:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPoleBottom:  Failed to validate eft'
         return eft
 
-    def createEftShellApexTop(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
+    def createEftShellPoleTop(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
         '''
-        Create a tricubic hermite element field for closing top apex of a shell.
+        Create a tricubic hermite element field for closing top pole of a shell.
         Element is collapsed in xi1 on xi2 = 1.
         Each collapsed node has 3 scale factors giving the cos, sin coefficients
         of the radial line from global derivatives, plus the arc subtended by
-        the element in radians, so the apex can be rounded.
-        Need to create a new template for each sector around apex giving common
+        the element in radians, so the pole can be rounded.
+        Need to create a new template for each sector around pole giving common
         nodeScaleFactorOffset values on common faces. Suggestion is to start at 0 and
-        add 100 for each radial line around apex.
-        :param nodeScaleFactorOffset0: offset of node scale factors at apex on xi1=0
-        :param nodeScaleFactorOffset1: offset of node scale factors at apex on xi1=1
+        add 100 for each radial line around pole.
+        :param nodeScaleFactorOffset0: offset of node scale factors at pole on xi1=0
+        :param nodeScaleFactorOffset1: offset of node scale factors at pole on xi1=1
         :return: Element field template
         '''
-        # start with full tricubic to remap D2_DS1DS2 at apex
+        # start with full tricubic to remap D2_DS1DS2 at pole
         eft = self._mesh.createElementfieldtemplate(self._tricubicHermiteBasis)
         if not self._useCrossDerivatives:
             for n in [ 0, 1, 4, 5 ]:
@@ -195,7 +195,7 @@ class eftfactory_tricubichermite:
             ln = layer*4 + 3
             # 2 terms for d/dxi2 via general linear map:
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 1]), (Node.VALUE_LABEL_D_DS2, [so + 2]) ])
-            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3]), (Node.VALUE_LABEL_D_DS2, [so + 1, so + 3]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
@@ -205,7 +205,7 @@ class eftfactory_tricubichermite:
             ln = layer*4 + 4
             # 2 terms for d/dxi2 via general linear map:
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, so + 4), (Node.VALUE_LABEL_D_DS2, so + 5) ])
-            # 2 terms for cross derivative 1 2 to correct circular apex: -sin(theta).phi, cos(theta).phi
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 5, so + 6]), (Node.VALUE_LABEL_D_DS2, [so + 4, so + 6]) ])
             # zero other cross derivative parameters
             remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS3, [])
@@ -215,7 +215,7 @@ class eftfactory_tricubichermite:
         ln_map = [ 1, 2, 3, 3, 4, 5, 6, 6 ]
         remapEftLocalNodes(eft, 6, ln_map)
 
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellApexTop:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPoleTop:  Failed to validate eft'
         return eft
 
     def createEftWedgeRadial(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):

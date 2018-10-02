@@ -78,6 +78,102 @@ class eftfactory_bicubichermitelinear:
         assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftNoCrossDerivatives:  Failed to validate eft'
         return eft
 
+    def createEftShellPoleBottom(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
+        '''
+        Create a bicubic hermite linear element field for closing bottom pole of a shell.
+        Element is collapsed in xi1 on xi2 = 0.
+        Each collapsed node has 3 scale factors giving the cos, sin coefficients
+        of the radial line from global derivatives, plus the arc subtended by
+        the element in radians, so the pole can be rounded.
+        Need to create a new template for each sector around pole giving common
+        nodeScaleFactorOffset values on common faces. Suggestion is to start at 0 and
+        add 100 for each radial line around pole.
+        :param nodeScaleFactorOffset0: offset of node scale factors at pole on xi1=0
+        :param nodeScaleFactorOffset1: offset of node scale factors at pole on xi1=1
+        :return: Element field template
+        '''
+        # start with full bicubic hermite linear to remap D2_DS1DS2 at pole
+        eft = self._mesh.createElementfieldtemplate(self._basis)
+        if not self._useCrossDerivatives:
+            for n in [ 2, 3, 6, 7 ]:
+                eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+
+        # GRC: allow scale factor identifier for global -1.0 to be prescribed
+        setEftScaleFactorIds(eft, [1], [
+            nodeScaleFactorOffset0 + 1, nodeScaleFactorOffset0 + 2, nodeScaleFactorOffset0 + 3,
+            nodeScaleFactorOffset1 + 1, nodeScaleFactorOffset1 + 2, nodeScaleFactorOffset1 + 3,
+            nodeScaleFactorOffset0 + 1, nodeScaleFactorOffset0 + 2, nodeScaleFactorOffset0 + 3,
+            nodeScaleFactorOffset1 + 1, nodeScaleFactorOffset1 + 2, nodeScaleFactorOffset1 + 3 ])
+        # remap parameters before collapsing nodes
+        remapEftNodeValueLabel(eft, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [])
+        for layer in range(2):
+            so = layer*6 + 1
+            ln = layer*4 + 1
+            # 2 terms for d/dxi2 via general linear map:
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 1]), (Node.VALUE_LABEL_D_DS2, [so + 2]) ])
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 2, so + 3]), (Node.VALUE_LABEL_D_DS2, [1, so + 1, so + 3]) ])
+
+            ln = layer*4 + 2
+            # 2 terms for d/dxi2 via general linear map:
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 4]), (Node.VALUE_LABEL_D_DS2, [so + 5]) ])
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 5, so + 6]), (Node.VALUE_LABEL_D_DS2, [1, so + 4, so + 6]) ])
+
+        ln_map = [ 1, 1, 2, 3, 4, 4, 5, 6 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPoleBottom:  Failed to validate eft'
+        return eft
+
+    def createEftShellPoleTop(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
+        '''
+        Create a bicubic hermite linear element field for closing top pole of a shell.
+        Element is collapsed in xi1 on xi2 = 1.
+        Each collapsed node has 3 scale factors giving the cos, sin coefficients
+        of the radial line from global derivatives, plus the arc subtended by
+        the element in radians, so the pole can be rounded.
+        Need to create a new template for each sector around pole giving common
+        nodeScaleFactorOffset values on common faces. Suggestion is to start at 0 and
+        add 100 for each radial line around pole.
+        :param nodeScaleFactorOffset0: offset of node scale factors at pole on xi1=0
+        :param nodeScaleFactorOffset1: offset of node scale factors at pole on xi1=1
+        :return: Element field template
+        '''
+        # start with full bicubic hermite linear to remap D2_DS1DS2 at pole
+        eft = self._mesh.createElementfieldtemplate(self._basis)
+        if not self._useCrossDerivatives:
+            for n in [ 0, 1, 4, 5 ]:
+                eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+
+        # GRC: allow scale factor identifier for global -1.0 to be prescribed
+        setEftScaleFactorIds(eft, [1], [
+            nodeScaleFactorOffset0 + 1, nodeScaleFactorOffset0 + 2, nodeScaleFactorOffset0 + 3,
+            nodeScaleFactorOffset1 + 1, nodeScaleFactorOffset1 + 2, nodeScaleFactorOffset1 + 3,
+            nodeScaleFactorOffset0 + 1, nodeScaleFactorOffset0 + 2, nodeScaleFactorOffset0 + 3,
+            nodeScaleFactorOffset1 + 1, nodeScaleFactorOffset1 + 2, nodeScaleFactorOffset1 + 3 ])
+        # remap parameters before collapsing nodes
+        remapEftNodeValueLabel(eft, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+        for layer in range(2):
+            so = layer*6 + 1
+            ln = layer*4 + 3
+            # 2 terms for d/dxi2 via general linear map:
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [so + 1]), (Node.VALUE_LABEL_D_DS2, [so + 2]) ])
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 2, so + 3]), (Node.VALUE_LABEL_D_DS2, [so + 1, so + 3]) ])
+
+            ln = layer*4 + 4
+            # 2 terms for d/dxi2 via general linear map:
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, so + 4), (Node.VALUE_LABEL_D_DS2, so + 5) ])
+            # 2 terms for cross derivative 1 2 to correct circular pole: -sin(theta).phi, cos(theta).phi
+            remapEftNodeValueLabel(eft, [ ln ], Node.VALUE_LABEL_D2_DS1DS2, [ (Node.VALUE_LABEL_D_DS1, [1, so + 5, so + 6]), (Node.VALUE_LABEL_D_DS2, [so + 4, so + 6]) ])
+
+        ln_map = [ 1, 2, 3, 3, 4, 5, 6, 6 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftShellPoleTop:  Failed to validate eft'
+        return eft
+        
     def createEftSplitXi1RightStraight(self):
         '''
         Create an element field template suitable for the inner elements of the
