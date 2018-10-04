@@ -140,11 +140,10 @@ class MeshType_3d_sphereshell1:
         mesh = fm.findMeshByDimension(3)
 
         if useCubicHermiteThroughWall:
-            tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-            eft = tricubichermite.createEftBasic()
+            eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         else:
-            bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-            eft = bicubichermitelinear.createEftBasic()
+            eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eft = eftfactory.createEftBasic()
 
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
@@ -325,9 +324,9 @@ class MeshType_3d_sphereshell1:
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
                     if useCubicHermiteThroughWall:
-                        eft1 = tricubichermite.createEftShellPoleBottom(va*100, vb*100)
+                        eft1 = eftfactory.createEftShellPoleBottom(va*100, vb*100)
                     else:
-                        eft1 = bicubichermitelinear.createEftShellPoleBottom(va*100, vb*100)
+                        eft1 = eftfactory.createEftShellPoleBottom(va*100, vb*100)
                     elementtemplate1.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     bni1 = no + 1
@@ -374,9 +373,9 @@ class MeshType_3d_sphereshell1:
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
                     if useCubicHermiteThroughWall:
-                        eft1 = tricubichermite.createEftShellPoleTop(va*100, vb*100)
+                        eft1 = eftfactory.createEftShellPoleTop(va*100, vb*100)
                     else:
-                        eft1 = bicubichermitelinear.createEftShellPoleTop(va*100, vb*100)
+                        eft1 = eftfactory.createEftShellPoleTop(va*100, vb*100)
                     elementtemplate1.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     bni3 = no + now
