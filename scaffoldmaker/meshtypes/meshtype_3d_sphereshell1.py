@@ -102,7 +102,7 @@ class MeshType_3d_sphereshell1:
         elementsCountUp = options['Number of elements up']
         elementsCountThroughWall = options['Number of elements through wall']
         useCrossDerivatives = options['Use cross derivatives']
-        useCubicHermite = not(options['Use linear through wall'])
+        useCubicHermiteThroughWall = not(options['Use linear through wall'])
         excludeBottomRows = options['Exclude bottom rows']
         excludeTopRows = options['Exclude top rows']
         wallThickness = options['Wall thickness']
@@ -120,7 +120,7 @@ class MeshType_3d_sphereshell1:
         nodetemplateApex.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplateApex.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateApex.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if useCubicHermite:
+        if useCubicHermiteThroughWall:
             nodetemplateApex.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
         if useCrossDerivatives:
             nodetemplate = nodes.createNodetemplate()
@@ -129,7 +129,7 @@ class MeshType_3d_sphereshell1:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-            if useCubicHermite:
+            if useCubicHermiteThroughWall:
                 nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
                 nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
                 nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
@@ -139,7 +139,7 @@ class MeshType_3d_sphereshell1:
 
         mesh = fm.findMeshByDimension(3)
 
-        if useCubicHermite:
+        if useCubicHermiteThroughWall:
             tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
             eft = tricubichermite.createEftBasic()
         else:
@@ -241,7 +241,7 @@ class MeshType_3d_sphereshell1:
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, position[1] ])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, vector2[0], 0.0 ])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ vector2[0], 0.0, 0.0 ])
-                    if useCubicHermite:
+                    if useCubicHermiteThroughWall:
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, vector3[1] ])
                     nodeIdentifier = nodeIdentifier + 1
 
@@ -276,11 +276,11 @@ class MeshType_3d_sphereshell1:
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-                        if useCubicHermite:
+                        if useCubicHermiteThroughWall:
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                         if useCrossDerivatives:
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                            if useCubicHermite:
+                            if useCubicHermiteThroughWall:
                                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
                                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
                                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
@@ -293,7 +293,7 @@ class MeshType_3d_sphereshell1:
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, position[1] ])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ 0.0, vector2[0], 0.0 ])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ -vector2[0], 0.0, 0.0 ])
-                    if useCubicHermite:
+                    if useCubicHermiteThroughWall:
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, vector3[1] ])
                     nodeIdentifier = nodeIdentifier + 1
 
@@ -324,7 +324,7 @@ class MeshType_3d_sphereshell1:
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    if useCubicHermite:
+                    if useCubicHermiteThroughWall:
                         eft1 = tricubichermite.createEftShellPoleBottom(va*100, vb*100)
                     else:
                         eft1 = bicubichermitelinear.createEftShellPoleBottom(va*100, vb*100)
@@ -373,7 +373,7 @@ class MeshType_3d_sphereshell1:
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    if useCubicHermite:
+                    if useCubicHermiteThroughWall:
                         eft1 = tricubichermite.createEftShellPoleTop(va*100, vb*100)
                     else:
                         eft1 = bicubichermitelinear.createEftShellPoleTop(va*100, vb*100)
