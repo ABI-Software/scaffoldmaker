@@ -323,10 +323,7 @@ class MeshType_3d_sphereshell1:
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    if useCubicHermiteThroughWall:
-                        eft1 = eftfactory.createEftShellPoleBottom(va*100, vb*100)
-                    else:
-                        eft1 = eftfactory.createEftShellPoleBottom(va*100, vb*100)
+                    eft1 = eftfactory.createEftShellPoleBottom(va*100, vb*100)
                     elementtemplate1.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     bni1 = no + 1
@@ -372,10 +369,7 @@ class MeshType_3d_sphereshell1:
                 for e1 in range(elementsCountAround):
                     va = e1
                     vb = (e1 + 1)%elementsCountAround
-                    if useCubicHermiteThroughWall:
-                        eft1 = eftfactory.createEftShellPoleTop(va*100, vb*100)
-                    else:
-                        eft1 = eftfactory.createEftShellPoleTop(va*100, vb*100)
+                    eft1 = eftfactory.createEftShellPoleTop(va*100, vb*100)
                     elementtemplate1.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     bni3 = no + now
