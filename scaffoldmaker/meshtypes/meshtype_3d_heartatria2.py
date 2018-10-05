@@ -1054,7 +1054,7 @@ class MeshType_3d_heartatria2(object):
                 radiansAroundNext = radiansAroundApex + radiansPerElementAroundApex
                 va = e1
                 vb = e1 + 1
-                eft1 = tricubichermite.createEftShellApexTop(s*100, (s + 1)*100)
+                eft1 = tricubichermite.createEftShellPoleTop(s*100, (s + 1)*100)
                 elementtemplateX.defineField(coordinates, -1, eft1)
                 element = mesh.createElement(elementIdentifier, elementtemplateX)
                 nodeIdentifiers = [ aNodeId[0][n2][va], aNodeId[0][n2][vb], apexNodeId[0], aNodeId[1][n2][va], aNodeId[1][n2][vb], apexNodeId[1] ]
@@ -1193,7 +1193,7 @@ class MeshType_3d_heartatria2(object):
         for e1 in range(elementsCountAroundFossa):
             va = e1
             vb = (e1 + 1)%elementsCountAroundFossa
-            eft1 = tricubichermite.createEftShellApexTop(va*100, vb*100)
+            eft1 = tricubichermite.createEftShellPoleTop(va*100, vb*100)
             elementtemplateX.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplateX)
             nids = [ fossaNodeId[0][va], fossaNodeId[0][vb], fossaCentreNodeId[0], fossaNodeId[1][va], fossaNodeId[1][vb], fossaCentreNodeId[1] ]

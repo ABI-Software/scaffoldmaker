@@ -653,7 +653,7 @@ class MeshType_3d_heartventricles2(object):
                     vb = (e1 + 1)%elementsCountAroundLV
                     nids = [ 1       , 2 + va       , 2 + vb,
                              1 + nowl, 2 + va + nowl, 2 + vb + nowl ]
-                    eft1 = tricubichermite.createEftShellApexBottom(va*100, vb*100)
+                    eft1 = tricubichermite.createEftShellPoleBottom(va*100, vb*100)
                     # calculate general linear map coefficients
                     if e1 < elementsCountAroundVSeptum:
                         deltaRadians = dRadians1 = dRadians2 = radiansPerElementAroundSeptum
