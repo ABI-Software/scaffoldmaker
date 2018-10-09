@@ -3,12 +3,12 @@ Class for listing and accessing all mesh type scripts supported by scaffoldmaker
 """
 
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
-from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
+from scaffoldmaker.meshtypes.meshtype_3d_ellipticaltube1 import MeshType_3d_ellipticaltube1
 from scaffoldmaker.meshtypes.meshtype_3d_heart2 import MeshType_3d_heart2
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria2 import MeshType_3d_heartatria2
@@ -34,6 +34,7 @@ class Scaffolds(object):
             MeshType_2d_tube1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
+            MeshType_3d_ellipticaltube1,
             MeshType_3d_heart2,
             MeshType_3d_heartatria1,
             MeshType_3d_heartatria2,
