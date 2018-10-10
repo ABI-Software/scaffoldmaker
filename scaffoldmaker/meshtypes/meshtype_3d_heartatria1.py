@@ -68,7 +68,7 @@ class MeshType_3d_heartatria1(object):
             'Superior vena cava wall thickness' : 0.015,
             'Refine' : False,
             'Refine number of elements surface' : 4,
-            'Refine number of elements through atrial wall' : 1,
+            'Refine number of elements through wall' : 1,
             'Use cross derivatives' : False,
         }
 
@@ -115,7 +115,7 @@ class MeshType_3d_heartatria1(object):
             'Superior vena cava wall thickness',
             'Refine',
             'Refine number of elements surface',
-            'Refine number of elements through atrial wall',
+            'Refine number of elements through wall',
             #,'Use cross derivatives'
         ]
 
@@ -154,10 +154,10 @@ class MeshType_3d_heartatria1(object):
             'Superior vena cava wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-            if options['Atrial element size ratio anterior/posterior'] < 0.1:
-                options['Atrial element size ratio anterior/posterior'] = 0.1
-            elif options['Atrial element size ratio anterior/posterior'] > 10.0:
-                options['Atrial element size ratio anterior/posterior'] = 10.0
+        if options['Atrial element size ratio anterior/posterior'] < 0.1:
+            options['Atrial element size ratio anterior/posterior'] = 0.1
+        elif options['Atrial element size ratio anterior/posterior'] > 10.0:
+            options['Atrial element size ratio anterior/posterior'] = 10.0
         for key in [
             'Left pulmonary vein position up',
             'Right pulmonary vein position up',
@@ -177,7 +177,7 @@ class MeshType_3d_heartatria1(object):
                 options[key] = 75.0
         for key in [
             'Refine number of elements surface',
-            'Refine number of elements through atrial wall']:
+            'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
 
@@ -363,7 +363,7 @@ class MeshType_3d_heartatria1(object):
         bx = interpolateCubicHermite(ax, ad1, ex, ed1, xi)
         bd1 = interpolateCubicHermiteDerivative(ax, ad1, ex, ed1, xi)
         # cx = limit of venous atrium on ridge
-        cx, cd1 = getCubicHermiteCurvesPointAtArcDistance([ ax, bx, ex, dx ], [ ad1, bd1, ed1, dd1 ], ridgeVenousDistance)
+        cx, cd1, _, _ = getCubicHermiteCurvesPointAtArcDistance([ ax, bx, ex, dx ], [ ad1, bd1, ed1, dd1 ], ridgeVenousDistance)
         if elementsCountRidgeVenous == 1:
             #rx, rd1, _ = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], [],
             #    elementsCountRidgeVenous)
@@ -802,7 +802,7 @@ class MeshType_3d_heartatria1(object):
 
         for e2 in range(elementsCountUpAtria):
 
-            # left atrium, starting at cfb
+            # left atrium, starting at cfb / anterior interatrial sulcus
             for e1 in range(-1, elementsCountAroundAtrialFreeWall):
                 eft1 = eft
                 elementtemplate1 = elementtemplate
@@ -895,7 +895,7 @@ class MeshType_3d_heartatria1(object):
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
 
-            # right atrium, starting at crux
+            # right atrium, starting at crux / posterior interatrial sulcus
             for e1 in range(-1, elementsCountAroundAtrialFreeWall):
                 n1 = ran1FreeWallStart + e1
                 eft1 = eft
@@ -1164,7 +1164,7 @@ class MeshType_3d_heartatria1(object):
 
         # GRC fudgefactors, multiple of inner radius that inlet centre is away from septum
         rpvSeptumDistanceFactor = 2.0
-        mx, md1 = getCubicHermiteCurvesPointAtArcDistance(rx, rd1, 0.5*aSeptumThickness + rpvSeptumDistanceFactor*rpvInnerRadius + rx[0][0])
+        mx, md1, _, _ = getCubicHermiteCurvesPointAtArcDistance(rx, rd1, 0.5*aSeptumThickness + rpvSeptumDistanceFactor*rpvInnerRadius + rx[0][0])
         laSeptumModX = aBaseInnerMajorMag*math.cos(aMajorAxisRadians)*math.cos(laSeptumRadians) \
                      + aBaseInnerMinorMag*math.sin(aMajorAxisRadians)*math.sin(laSeptumRadians)
         laOuterMajorx =  [ aBaseOuterMajorMag*math.cos(aMajorAxisRadians), -aBaseOuterMajorMag*math.sin(aMajorAxisRadians), 0.0 ]
@@ -1655,7 +1655,7 @@ class MeshType_3d_heartatria1(object):
         """
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountSurface = options['Refine number of elements surface']
-        refineElementsCountThroughAtrialWall = options['Refine number of elements through atrial wall']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
         element = meshrefinement._sourceElementiterator.next()
         sourceFm = meshrefinement._sourceFm
         coordinates = getOrCreateCoordinateField(sourceFm)
@@ -1670,12 +1670,12 @@ class MeshType_3d_heartatria1(object):
         cache = sourceFm.createFieldcache()
 
         refineElements2 = refineElementsCountSurface
-        refineElements3 = refineElementsCountThroughAtrialWall
+        refineElements3 = refineElementsCountThroughWall
         while element.isValid():
             cache.setElement(element)
             result, isWedge = isSeptumEdgeWedge.evaluateReal(cache, 1)
             if isWedge:
-                refineElements1 = refineElementsCountThroughAtrialWall
+                refineElements1 = refineElementsCountThroughWall
             else:
                 refineElements1 = refineElementsCountSurface
             meshrefinement.refineElementCubeStandard3d(element, refineElements1, refineElements2, refineElements3)
