@@ -667,7 +667,7 @@ class MeshType_3d_heartventricles1(object):
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
 
-            else:
+            if e2 >= elementsCountUpLVApex:
 
                 # LV free wall elements starting from -1 = anterior interventricular sulcus collapsed element
 
@@ -690,6 +690,7 @@ class MeshType_3d_heartventricles1(object):
                         meshGroups += [ rvMeshGroup ]
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
                         remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
                         if e2 == elementsCountUpLVApex:
                             # collapsed RV corner uses triangle derivative d/dx1 = -d2; outside d/dxi2 = d1
@@ -723,10 +724,9 @@ class MeshType_3d_heartventricles1(object):
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
 
-                # RV free wall elements starting from -1 = posterior interventricular sulcus collapsed element
+            if e2 >= (elementsCountUpLVApex - 1):
 
-                if e2 < elementsCountUpLVApex:
-                    continue
+                # RV free wall elements starting from -1 = posterior interventricular sulcus collapsed element
 
                 for e1 in range(-1, elementsCountAroundRVFreeWall):
 
@@ -737,9 +737,41 @@ class MeshType_3d_heartventricles1(object):
                     ub = e1 % (2*elementsCountAroundRVFreeWall)
                     va = elementsCountAroundLVFreeWall + e1
                     vb = (va + 1)%elementsCountAroundLV
-                    nids = [ rvInnerNodeId[e2 - 1][ua], rvInnerNodeId[e2 - 1][ub], rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub],
-                             vOuterNodeId [e2 - 1][va], vOuterNodeId [e2 - 1][vb], vOuterNodeId [e2][va], vOuterNodeId [e2][vb] ]
-                    if e1 == -1:
+                    e2m = max(e2 - 1, elementsCountUpLVApex - 1)
+                    nids = [ rvInnerNodeId[e2m][ua], rvInnerNodeId[e2m][ub], rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub],
+                             vOuterNodeId [e2m][va], vOuterNodeId [e2m][vb], vOuterNodeId [e2][va], vOuterNodeId [e2][vb] ]
+                    if e2 == (elementsCountUpLVApex - 1):
+                        if e1 == -1:
+                            continue
+                        nids[0] = lvInnerNodeId[e2m][va]
+                        nids[1] = lvInnerNodeId[e2m][vb]
+                        nids.pop(7)
+                        nids.pop(6)
+                        meshGroups += [ rvMeshGroup ]
+                        # collapsed elements at RV apex
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
+                        remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS2, [])
+                        if e1 == 0:
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                            remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                            remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        elif e1 == (elementsCountAroundVSeptum - 1):
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                            remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                            remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        else:
+                            remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                            remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        ln_map = [ 1, 2, 3, 4, 5, 6, 5, 6 ]
+                        remapEftLocalNodes(eft1, 6, ln_map)
+                    elif e1 == -1:
                         # posterior interventricular sulcus: collapsed to 6 element wedge
                         nids[0] = lvInnerNodeId[e2 - 1][elementsCountAroundLVFreeWall]
                         nids[2] = lvInnerNodeId[e2    ][elementsCountAroundLVFreeWall]
@@ -748,6 +780,7 @@ class MeshType_3d_heartventricles1(object):
                         meshGroups += [ lvMeshGroup ]
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
                         remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
                         if e2 == elementsCountUpLVApex:
                             remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -818,75 +851,74 @@ class MeshType_3d_heartventricles1(object):
 
             # interventricular septum
 
-            if e2 < elementsCountUpLVApex:
-                continue
+            if e2 >= elementsCountUpLVApex:
 
-            for e1 in range(elementsCountAroundVSeptum):
+                for e1 in range(elementsCountAroundVSeptum):
 
-                eft1 = eft
-                scalefactors = None
-                meshGroups = [ lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
+                    eft1 = eft
+                    scalefactors = None
+                    meshGroups = [ lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
 
-                ua = 2*elementsCountAroundRVFreeWall - 1 - e1
-                ub = ua - 1
-                va = elementsCountAroundLVFreeWall + e1
-                vb = (va + 1)%elementsCountAroundLV
-                nids = [ lvInnerNodeId[e2 - 1][va], lvInnerNodeId[e2 - 1][vb], lvInnerNodeId[e2][va], lvInnerNodeId[e2][vb],
-                         rvInnerNodeId[e2 - 1][ua], rvInnerNodeId[e2 - 1][ub], rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub] ]
-                if e2 == elementsCountUpLVApex:
-                    eft1 = tricubichermite.createEftNoCrossDerivatives()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    scalefactors = [ -1.0 ]
-                    if e1 == 0:
-                        remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        # general linear map d3 adjacent to collapsed posterior interventricular sulcus
-                        remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        # collapsed RV corner uses triangle derivative d/dx3 = d2; outside d/dxi2 = -d1
-                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                    elif e1 == (elementsCountAroundVSeptum - 1):
-                        remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                        # collapsed RV corner uses triangle derivative d/dx3 = d2; outside d/dxi2 = d1
-                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                        # general linear map d3 adjacent to collapsed anterior interventricular sulcus
-                        remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    ua = 2*elementsCountAroundRVFreeWall - 1 - e1
+                    ub = ua - 1
+                    va = elementsCountAroundLVFreeWall + e1
+                    vb = (va + 1)%elementsCountAroundLV
+                    nids = [ lvInnerNodeId[e2 - 1][va], lvInnerNodeId[e2 - 1][vb], lvInnerNodeId[e2][va], lvInnerNodeId[e2][vb],
+                             rvInnerNodeId[e2 - 1][ua], rvInnerNodeId[e2 - 1][ub], rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub] ]
+                    if e2 == elementsCountUpLVApex:
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
+                        if e1 == 0:
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            # general linear map d3 adjacent to collapsed posterior interventricular sulcus
+                            remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            # collapsed RV corner uses triangle derivative d/dx3 = d2; outside d/dxi2 = -d1
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        elif e1 == (elementsCountAroundVSeptum - 1):
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                            # collapsed RV corner uses triangle derivative d/dx3 = d2; outside d/dxi2 = d1
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                            # general linear map d3 adjacent to collapsed anterior interventricular sulcus
+                            remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        else:
+                            remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        scaleEftNodeValueLabels(eft1, [ 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                     else:
-                        remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                        remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                    scaleEftNodeValueLabels(eft1, [ 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
-                else:
-                    eft1 = tricubichermite.createEftNoCrossDerivatives()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    scalefactors = [ -1.0 ]
-                    if e1 == 0:
-                        # general linear map d3 adjacent to collapsed posterior interventricular sulcus
-                        remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    elif e1 == (elementsCountAroundRVFreeWall - 1):
-                        # general linear map d3 adjacent to collapsed anterior interventricular sulcus
-                        remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
+                        if e1 == 0:
+                            # general linear map d3 adjacent to collapsed posterior interventricular sulcus
+                            remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        elif e1 == (elementsCountAroundRVFreeWall - 1):
+                            # general linear map d3 adjacent to collapsed anterior interventricular sulcus
+                            remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                        scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
 
-                result1 = elementtemplate1.defineField(coordinates, -1, eft1)
+                    result1 = elementtemplate1.defineField(coordinates, -1, eft1)
 
-                element = mesh.createElement(elementIdentifier, elementtemplate1)
-                result2 = element.setNodesByIdentifier(eft1, nids)
-                if scalefactors:
-                    result3 = element.setScaleFactors(eft1, scalefactors)
-                else:
-                    result3 = 7
-                #print('create element septum', elementIdentifier, result1, result2, result3, nids)
-                elementIdentifier = elementIdentifier + 1
+                    element = mesh.createElement(elementIdentifier, elementtemplate1)
+                    result2 = element.setNodesByIdentifier(eft1, nids)
+                    if scalefactors:
+                        result3 = element.setScaleFactors(eft1, scalefactors)
+                    else:
+                        result3 = 7
+                    #print('create element septum', elementIdentifier, result1, result2, result3, nids)
+                    elementIdentifier = elementIdentifier + 1
 
-                for meshGroup in meshGroups:
-                    meshGroup.addElement(element)
+                    for meshGroup in meshGroups:
+                        meshGroup.addElement(element)
 
         fm.endChange()
         return annotationGroups
@@ -913,7 +945,7 @@ class MeshType_3d_heartventricles1(object):
 
         startPostApexElementIdentifier = elementsCountAroundLV*elementsCountUpLVApex + 1
         elementsCountPostApexLayer = elementsCountAroundLV + 2 + elementsCountAroundVSeptum
-        lastVentriclesElementIdentifier = startPostApexElementIdentifier + elementsCountUpRV*elementsCountPostApexLayer - 1
+        lastVentriclesElementIdentifier = startPostApexElementIdentifier + elementsCountAroundVSeptum + elementsCountUpRV*elementsCountPostApexLayer - 1
 
         element = meshrefinement._sourceElementiterator.next()
         while element.isValid():
@@ -922,13 +954,18 @@ class MeshType_3d_heartventricles1(object):
             numberInXi3 = refineElementsCountThroughLVWall
             elementIdentifier = element.getIdentifier()
             if elementIdentifier >= startPostApexElementIdentifier:
-                n1 = (elementIdentifier - startPostApexElementIdentifier) % elementsCountPostApexLayer
-                if (n1 == 0) or (n1 == (elementsCountAroundLVFreeWall + 1)):
-                    # collapsed elements on posterior or anterior interventricular sulcus:
-                    numberInXi1 = refineElementsCountThroughLVWall
-                    #print(n1,'refine collapse element', elementIdentifier, numberInXi1, numberInXi2, numberInXi3)
-                elif (n1 > (elementsCountAroundLVFreeWall + 1)) and (n1 <= (elementsCountAroundLV + 1)):
-                    numberInXi3 = refineElementsCountThroughRVWall
+                n1 = (elementIdentifier - startPostApexElementIdentifier - elementsCountAroundVSeptum)
+                if n1 < 0:
+                    # collapsed elements at RV apex
+                    numberInXi2 = refineElementsCountThroughLVWall
+                else:
+                    n1 = n1 % elementsCountPostApexLayer
+                    if (n1 == 0) or (n1 == (elementsCountAroundLVFreeWall + 1)):
+                        # collapsed elements on posterior or anterior interventricular sulcus:
+                        numberInXi1 = refineElementsCountThroughLVWall
+                        #print(n1,'refine collapse element', elementIdentifier, numberInXi1, numberInXi2, numberInXi3)
+                    elif (n1 > (elementsCountAroundLVFreeWall + 1)) and (n1 <= (elementsCountAroundLV + 1)):
+                        numberInXi3 = refineElementsCountThroughRVWall
             meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
             if elementIdentifier == lastVentriclesElementIdentifier:
                 return  # finish on last so can continue in ventriclesbase
