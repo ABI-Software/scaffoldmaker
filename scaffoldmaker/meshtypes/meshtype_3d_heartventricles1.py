@@ -177,11 +177,6 @@ class MeshType_3d_heartventricles1(object):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
         nodetemplateApex = nodetemplate
-        nodetemplateNod2 = nodes.createNodetemplate()
-        nodetemplateNod2.defineField(coordinates)
-        nodetemplateNod2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplateNod2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplateNod2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
         nodeIdentifier = 1
 
@@ -494,10 +489,17 @@ class MeshType_3d_heartventricles1(object):
         for n1 in range(1, elementsCountAroundRVFreeWall + 2):
             rvInnerx [n2].append(px [n1])
             rvInnerd1[n2].append(pd1[n1])
-            rvInnerd2[n2].append(pd2[n1])
-            # compute derivative 3 to fit with glm vector on outside row:
             o1 = (elementsCountAroundLVFreeWall + n1 - 1) % elementsCountAroundLV
             d1Factor = 1.0 if (n1 == 1) else (-1.0 if (n1 == (elementsCountAroundRVFreeWall + 1)) else 0.0)
+            if (n1 == 1) or (n1 == elementsCountAroundRVFreeWall + 1):
+                # collapsed RV corner uses triangle derivative d/dx{1|3} = +/-d2; outside d/dxi2 = +/-d1
+                # compute derivative 2 to fit with glm vector on inside row:
+                od2 = [ (d1Factor*lvInnerd1[n2][o1][c] + lvInnerd2[n2][o1][c] + lvInnerd3[n2][o1][c]) for c in range(3) ]
+                id2 = getHermiteLagrangeEndDerivative(lvInnerx[n2][o1], od2, px[n1])
+                rvInnerd2[n2].append(id2)
+            else:
+                rvInnerd2[n2].append(pd2[n1])
+            # compute derivative 3 to fit with glm vector on outside row:
             od3 = [ (d1Factor*vOuterd1[n2][o1][c] + vOuterd2[n2][o1][c] - vOuterd3[n2][o1][c]) for c in range(3) ]
             id3 = getHermiteLagrangeEndDerivative(vOuterx[n2][o1], od3, px[n1])
             rvInnerd3[n2].append([ -d for d in id3 ])
@@ -545,14 +547,11 @@ class MeshType_3d_heartventricles1(object):
             nd3 = rvInnerd3[n2]
             layerNodeId = []
             for n1 in range(len(nx)):
-                nodetemplate1 = nodetemplateNod2 if ((n2 == elementsCountUpLVApex - 1) and (n1 >= (elementsCountAroundRVFreeWall - 1))) else nodetemplate
-                #nodetemplate1 = nodetemplate
-                node = nodes.createNode(nodeIdentifier, nodetemplate1)
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n1])
-                if nodetemplate1 is not nodetemplateNod2:
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, nd2[n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, nd2[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, nd3[n1])
                 layerNodeId.append(nodeIdentifier)
                 nodeIdentifier = nodeIdentifier + 1
@@ -693,8 +692,8 @@ class MeshType_3d_heartventricles1(object):
                         setEftScaleFactorIds(eft1, [1], [])
                         remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
                         if e2 == elementsCountUpLVApex:
-                            # ds2 has been eliminated at local node 1, use ds1
-                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                            # collapsed RV corner uses triangle derivative d/dx1 = -d2; outside d/dxi2 = d1
+                            remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                             remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                             remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -752,9 +751,9 @@ class MeshType_3d_heartventricles1(object):
                         remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
                         if e2 == elementsCountUpLVApex:
                             remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                            # ds2 has been eliminated at local node 2, use -ds1
-                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                            # collapsed RV corner uses triangle derivative d/dx1 = d2; outside d/dxi2 = -d1
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
@@ -773,7 +772,7 @@ class MeshType_3d_heartventricles1(object):
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
                         if e2 == elementsCountUpLVApex:
-                            # ds2 has been eliminated at local node 1, use -ds1
+                            # collapsed RV corner uses outside d/dxi2 = -d1
                             remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                             remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
@@ -788,7 +787,7 @@ class MeshType_3d_heartventricles1(object):
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
                         if e2 == elementsCountUpLVApex:
-                            # ds2 has been eliminated at local node 2, use ds1
+                            # collapsed RV corner uses outside d/dxi2 = d1
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
@@ -843,9 +842,9 @@ class MeshType_3d_heartventricles1(object):
                         remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                         # general linear map d3 adjacent to collapsed posterior interventricular sulcus
                         remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                        # ds2 has been eliminated at local node 5, use -ds1
+                        # collapsed RV corner uses triangle derivative d/dx3 = d2; outside d/dxi2 = -d1
                         remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                         remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                     elif e1 == (elementsCountAroundVSeptum - 1):
@@ -853,9 +852,9 @@ class MeshType_3d_heartventricles1(object):
                         remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                         remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                         remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                        # ds2 has been eliminated at local node 6, use ds1
+                        # collapsed RV corner uses triangle derivative d/dx3 = d2; outside d/dxi2 = d1
                         remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                        remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                         # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                         remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     else:
