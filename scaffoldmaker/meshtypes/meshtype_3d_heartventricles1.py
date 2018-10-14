@@ -39,7 +39,7 @@ class MeshType_3d_heartventricles1(object):
             'LV outer radius' : 0.5,
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
-            'RV height fraction' : 0.9,
+            'RV inner height fraction' : 0.75,
             'RV arc around degrees' : 200.0,
             'RV arc apex fraction' : 0.5,
             'RV free wall thickness' : 0.04,
@@ -66,7 +66,7 @@ class MeshType_3d_heartventricles1(object):
             'LV outer radius',
             'LV free wall thickness',
             'LV apex thickness',
-            'RV height fraction',
+            'RV inner height fraction',
             'RV arc around degrees',
             'RV arc apex fraction',
             'RV free wall thickness',
@@ -103,7 +103,7 @@ class MeshType_3d_heartventricles1(object):
             'LV outer radius',
             'LV free wall thickness',
             'LV apex thickness',
-            'RV height fraction',
+            'RV inner height fraction',
             'RV free wall thickness',
             'RV width',
             'RV extra cross radius base',
@@ -111,8 +111,10 @@ class MeshType_3d_heartventricles1(object):
             'Ventricular septum base radial displacement']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['RV height fraction'] > 0.99:
-            options['RV height fraction'] = 0.99
+        if options['RV inner height fraction'] < 0.1:
+            options['RV inner height fraction'] = 0.1
+        elif options['RV inner height fraction'] > 0.99:
+            options['RV inner height fraction'] = 0.99
         if options['RV arc around degrees'] < 45.0:
             options['RV arc around degrees'] = 45.0
         elif options['RV arc around degrees'] > 270.0:
@@ -145,7 +147,9 @@ class MeshType_3d_heartventricles1(object):
         lvOuterRadius = options['LV outer radius']
         lvFreeWallThickness = options['LV free wall thickness']
         lvApexThickness = options['LV apex thickness']
-        rvHeightFraction = options['RV height fraction']
+        lvInnerHeight = lvOuterHeight - lvApexThickness
+        lvInnerRadius = lvOuterRadius - lvFreeWallThickness
+        rvInnerHeightFraction = options['RV inner height fraction']
         rvArcAroundBaseRadians = math.radians(options['RV arc around degrees'])
         rvArcApexFraction = options['RV arc apex fraction']
         rvFreeWallThickness = options['RV free wall thickness']
@@ -185,24 +189,32 @@ class MeshType_3d_heartventricles1(object):
         # get distance from outside of round outer LV to outside of RV base centre
         rvAddWidthBase = rvWidth - vSeptumBaseRadialDisplacement + vSeptumThickness - lvFreeWallThickness + rvFreeWallThickness
 
-        # get element spacing up
-        rvThetaUp = math.acos(rvHeightFraction)
-        rvOuterHeight = 0.5*lvOuterHeight*(1.0 + rvHeightFraction)
-        rvCrossHeight = rvHeightFraction*lvOuterHeight
+        # optimisation to convert RV inner height fraction to RV outer height using optimi
+        lengthUpInner = 0.25*getApproximateEllipsePerimeter(lvInnerHeight, lvInnerRadius)
+        rvInnerThetaUp = math.acos(rvInnerHeightFraction)
+        rvThetaUp = 0.5*math.pi - (0.5*math.pi - rvInnerThetaUp)*elementsCountUpRV/(elementsCountUpRV - 0.5)
+        for iter in range(100):
+            lengthUpApex = getEllipseArcLength(lvInnerHeight, lvInnerRadius, 0.0, rvThetaUp)
+            rvEstInnerThetaUp = updateEllipseAngleByArcLength(lvInnerHeight, lvInnerRadius, 0.0, lengthUpApex*(1.0 + 0.5/elementsCountUpLVApex))
+            ratio = rvInnerThetaUp/rvEstInnerThetaUp
+            rvThetaUp *= ratio
+            if math.fabs(ratio - 1.0) < 1.0E-6:
+                break
+        else:
+            print('Calculation of RV theta up did not converge after', iter + 1, 'iterations. Final ratio', ratio)
+        rvOuterHeight = 0.5*lvOuterHeight*(1.0 + rvInnerHeightFraction)
+        rvCrossHeight = rvInnerHeightFraction*lvOuterHeight
         radialDisplacementStartRadiansUp = math.acos(rvOuterHeight/lvOuterHeight)
 
         # get LV inner points
 
         lvInnerx  = []
         lvInnerd1 = []
-        lvInnerHeight = lvOuterHeight - lvApexThickness
-        lvInnerRadius = lvOuterRadius - lvFreeWallThickness
-        lengthUp = 0.25*getApproximateEllipsePerimeter(lvInnerHeight, lvInnerRadius)
         lengthUpApex = getEllipseArcLength(lvInnerHeight, lvInnerRadius, 0.0, rvThetaUp)
-        lengthUpRV = lengthUp - lengthUpApex
-        elementSizeUpRV = lengthUpRV/elementsCountUpRV
-        elementSizeUpApex = (lengthUpApex - 0.5*elementSizeUpRV)/(elementsCountUpLVApex - 0.5)
-        elementSizeUpApexTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
+        lengthUpRV = lengthUpInner - lengthUpApex
+        elementSizeUpApex = lengthUpApex/elementsCountUpLVApex
+        elementSizeUpRV = (lengthUpRV - 0.5*elementSizeUpApex)/(elementsCountUpRV - 0.5)
+        elementSizeUpRVTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
         # apex points, noting s1, s2 is x, -y to get out outward s3
         vApexInnerx = [ 0.0, 0.0, -lvInnerHeight ]
         vApexInnerd1 = [ elementSizeUpApex, 0.0, 0.0 ]
@@ -212,10 +224,7 @@ class MeshType_3d_heartventricles1(object):
         lvInnerRadiansUp = []
         radiansUp = 0.0
         for n2 in range(elementsCountUpLV):
-            if n2 < elementsCountUpLVApex:
-                arcLengthUp = elementSizeUpApex if (n2 < (elementsCountUpLVApex - 1)) else elementSizeUpApexTransition
-            else:
-                arcLengthUp = elementSizeUpRV
+            arcLengthUp = elementSizeUpApex if (n2 < elementsCountUpLVApex) else (elementSizeUpRVTransition if (n2 == elementsCountUpLVApex) else elementSizeUpRV)
             radiansUp = updateEllipseAngleByArcLength(lvInnerHeight, lvInnerRadius, radiansUp, arcLengthUp)
             if n2 == (elementsCountUpLV - 1):
                 radiansUp = 0.5*math.pi
@@ -243,12 +252,12 @@ class MeshType_3d_heartventricles1(object):
 
         vOuterx  = []
         vOuterd1 = []
-        lengthUp = 0.25*getApproximateEllipsePerimeter(lvOuterHeight, lvOuterRadius)
+        lengthUpOuter = 0.25*getApproximateEllipsePerimeter(lvOuterHeight, lvOuterRadius)
         lengthUpApex = getEllipseArcLength(lvOuterHeight, lvOuterRadius, 0.0, rvThetaUp)
-        lengthUpRV = lengthUp - lengthUpApex
-        elementSizeUpRV = lengthUpRV/elementsCountUpRV
-        elementSizeUpApex = (lengthUpApex - 0.5*elementSizeUpRV)/(elementsCountUpLVApex - 0.5)
-        elementSizeUpApexTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
+        lengthUpRV = lengthUpOuter - lengthUpApex
+        elementSizeUpApex = lengthUpApex/elementsCountUpLVApex
+        elementSizeUpRV = (lengthUpRV - 0.5*elementSizeUpApex)/(elementsCountUpRV - 0.5)
+        elementSizeUpRVTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
         # apex points, noting s1, s2 is x, -y to get out outward s3
         vApexOuterx = [ 0.0, 0.0, -lvOuterHeight ]
         vApexOuterd1 = [ elementSizeUpApex, 0.0, 0.0 ]
@@ -258,10 +267,7 @@ class MeshType_3d_heartventricles1(object):
         lvOuterRadiansUp = []
         radiansUp = 0.0
         for n2 in range(elementsCountUpLV):
-            if n2 < elementsCountUpLVApex:
-                arcLengthUp = elementSizeUpApex if (n2 < (elementsCountUpLVApex - 1)) else elementSizeUpApexTransition
-            else:
-                arcLengthUp = elementSizeUpRV
+            arcLengthUp = elementSizeUpApex if (n2 < elementsCountUpLVApex) else (elementSizeUpRVTransition if (n2 == elementsCountUpLVApex) else elementSizeUpRV)
             radiansUp = updateEllipseAngleByArcLength(lvOuterHeight, lvOuterRadius, radiansUp, arcLengthUp)
             if n2 == (elementsCountUpLV - 1):
                 radiansUp = 0.5*math.pi
