@@ -753,7 +753,7 @@ class MeshType_3d_heartventricles1(object):
                         nids[1] = lvInnerNodeId[e2m][vb]
                         nids.pop(7)
                         nids.pop(6)
-                        meshGroups += [ rvMeshGroup ]
+                        meshGroups += [ lvMeshGroup ]
                         # collapsed elements at RV apex
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
