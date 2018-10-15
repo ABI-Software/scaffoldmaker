@@ -41,10 +41,12 @@ class MeshType_3d_heartventricles1(object):
             'LV apex thickness' : 0.06,
             'RV inner height fraction' : 0.75,
             'RV arc around degrees' : 200.0,
-            'RV arc apex fraction' : 0.5,
+            'RV arc apex fraction' : 0.6,
             'RV free wall thickness' : 0.04,
             'RV width' : 0.4,
-            'RV extra cross radius base' : 0.15,
+            'RV width growth factor' : 0.5,
+            'RV side extension' : 0.15,
+            'RV side extension growth factor' : 0.5,
             'Ventricular septum thickness' : 0.1,
             'Ventricular septum base radial displacement' : 0.15,
             'Use cross derivatives' : False,
@@ -71,7 +73,9 @@ class MeshType_3d_heartventricles1(object):
             'RV arc apex fraction',
             'RV free wall thickness',
             'RV width',
-            'RV extra cross radius base',
+            'RV width growth factor',
+            'RV side extension',
+            'RV side extension growth factor',
             'Ventricular septum thickness',
             'Ventricular septum base radial displacement',
             'Refine',
@@ -103,18 +107,21 @@ class MeshType_3d_heartventricles1(object):
             'LV outer radius',
             'LV free wall thickness',
             'LV apex thickness',
-            'RV inner height fraction',
             'RV free wall thickness',
             'RV width',
-            'RV extra cross radius base',
+            'RV side extension',
             'Ventricular septum thickness',
             'Ventricular septum base radial displacement']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['RV inner height fraction'] < 0.1:
-            options['RV inner height fraction'] = 0.1
-        elif options['RV inner height fraction'] > 0.99:
-            options['RV inner height fraction'] = 0.99
+        for key in [
+            'RV inner height fraction',
+            'RV width growth factor',
+            'RV side extension growth factor']:
+            if options[key] < 0.001:
+                options[key] = 0.001
+            elif options[key] > 0.999:
+                options[key] = 0.999
         if options['RV arc around degrees'] < 45.0:
             options['RV arc around degrees'] = 45.0
         elif options['RV arc around degrees'] > 270.0:
@@ -154,7 +161,9 @@ class MeshType_3d_heartventricles1(object):
         rvArcApexFraction = options['RV arc apex fraction']
         rvFreeWallThickness = options['RV free wall thickness']
         rvWidth = options['RV width']
-        rvExtraCrossRadiusBase = options['RV extra cross radius base']
+        rvWidthGrowthFactor = options['RV width growth factor']
+        rvSideExtension = options['RV side extension']
+        rvSideExtensionGrowthFactor = options['RV side extension growth factor']
         vSeptumThickness = options['Ventricular septum thickness']
         vSeptumBaseRadialDisplacement = options['Ventricular septum base radial displacement']
         useCrossDerivatives = options['Use cross derivatives']
@@ -203,7 +212,7 @@ class MeshType_3d_heartventricles1(object):
         else:
             print('Calculation of RV theta up did not converge after', iter + 1, 'iterations. Final ratio', ratio)
         rvOuterHeight = 0.5*lvOuterHeight*(1.0 + rvInnerHeightFraction)
-        rvCrossHeight = rvInnerHeightFraction*lvOuterHeight
+        rvSideHeight = rvInnerHeightFraction*lvOuterHeight
         radialDisplacementStartRadiansUp = math.acos(rvOuterHeight/lvOuterHeight)
 
         # get LV inner points
@@ -283,9 +292,9 @@ class MeshType_3d_heartventricles1(object):
             rvArcAroundZRadians = rvArcAroundBaseRadians*(1.0 + (1.0 - rvArcApexFraction)*z/lvOuterHeight)
 
             # get size of RV at z
-            xiUpZ = 1.0 + z/rvOuterHeight
-            xiUpCross = 1.0 + z/rvCrossHeight
-            rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpZ, xiUpCross, rvAddWidthBase, rvExtraCrossRadiusBase)
+            xiUpWidth = 1.0 + z/rvOuterHeight
+            xiUpSide = 1.0 + z/rvSideHeight
+            rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpWidth, xiUpSide, rvAddWidthBase, rvWidthGrowthFactor, rvSideExtension, rvSideExtensionGrowthFactor)
 
             nx, nd1 = getVentriclesOuterPoints(lvRadius, rvAddWidthRadius, rvAddCrossRadius, rvArcAroundZRadians, z, \
                 elementsCountAroundLVFreeWall, elementsCountAroundRVFreeWall, ivSulcusDerivativeFactor)
@@ -1202,15 +1211,19 @@ def getVentriclesOuterPoints(lvRadius, rvAddWidthRadius, rvAddCrossRadius, rvArc
     return nx, nd
 
 
-def getRVOuterSize(xiUpWidth, xiUpCross, rvWidthRadius, rvExtraCrossRadiusBase):
+def getRVOuterSize(xiUpWidth, xiUpSide, rvWidth, rvWidthGrowthFactor, rvSideExtension, rvSideExtensionGrowthFactor):
+    '''
+    :return: widthExtension, sideExtension
+    '''
     if xiUpWidth < 0.0:
-        #print('getRVOuterSize NEGATIVE xiUpWidth', xiUpWidth)
         return 0.0, 0.0
-    if xiUpCross < 0.0:
-        xiUpCross = 0.0
-    xiUpFast = 1.0 - (1.0 - xiUpWidth)*(1.0 - xiUpWidth)
-    xiUpSlow = xiUpCross
-    rvAddWidthRadius = interpolateCubicHermite([0.0], [0.0], [rvWidthRadius], [0.0], xiUpFast)[0]
-    rvAddCrossRadius = interpolateCubicHermite([0.0], [0.0], [rvExtraCrossRadiusBase], [0.0], xiUpSlow)[0]
-    #print('getRVOuterSize xiUpWidth', xiUpWidth, ', addWidth', rvAddWidthRadius, ', addCross', rvAddCrossRadius)
-    return rvAddWidthRadius, rvAddCrossRadius
+    _, _, _, xiUpWidthRaw = getCubicHermiteCurvesPointAtArcDistance([ [ 0.0 ], [ 1.0 ] ],
+        [ [ 2.0*(1.0 - rvWidthGrowthFactor) ] , [ 2.0*rvWidthGrowthFactor ] ],
+        xiUpWidth)
+    xiUpWidthMod = 1.0 - (1.0 - xiUpWidthRaw)*(1.0 - xiUpWidthRaw)
+    _, _, _, xiUpSideMod = getCubicHermiteCurvesPointAtArcDistance([ [ 0.0 ], [ 1.0 ] ],
+        [ [ 2.0*(1.0 - rvSideExtensionGrowthFactor) ] , [ 2.0*rvSideExtensionGrowthFactor ] ],
+        max(xiUpSide, 0.0))
+    widthExtension = interpolateCubicHermite([0.0], [0.0], [rvWidth], [0.0], xiUpWidthMod)[0]
+    sideExtension = interpolateCubicHermite([0.0], [0.0], [rvSideExtension], [0.0], xiUpSideMod)[0]
+    return widthExtension, sideExtension
