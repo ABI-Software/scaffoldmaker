@@ -444,10 +444,10 @@ class MeshType_3d_heartventricles1(object):
                 # extract septum points, reversing order and derivative
                 nx = [ layerInnerx [-1] ] + nx [-1:-numberAround:-1] + [ layerInnerx [1 - elementsCountAroundRVFreeWall] ]
                 nd1 = [ layerInnerd1[-1] ] + [ ([-d for d in nd1[n1] ]) for n1 in range(-1, -numberAround, -1) ] + [ layerInnerd1[1 - elementsCountAroundRVFreeWall] ]
-                px, pd1, _ = sampleCubicHermiteCurves(nx, nd1, [], elementsCountAroundVSeptum + 2,
+                px, pd1 = sampleCubicHermiteCurves(nx, nd1, elementsCountAroundVSeptum + 2,
                     addLengthStart = 0.5*vector.magnitude(nd1[ 0]), lengthFractionStart = 0.5,
                     addLengthEnd = 0.5*vector.magnitude(nd1[-1]), lengthFractionEnd = 0.5,
-                    arcLengthDerivatives = False)
+                    arcLengthDerivatives = False)[0:2]
                 for n1 in range(elementsCountAroundVSeptum + 1):
                     lvx = lvInnerx[n2][-n1]
                     rvx = px[n1 + 1]
@@ -487,11 +487,11 @@ class MeshType_3d_heartventricles1(object):
             bx = rvInnerx[n2][n1]
             bd1 = rvInnerd1[n2][n1]
             bd2 = [ dFactor*d for d in rvInnerd2[n2][n1] ]
-            px, pd2, ( pd1, ) = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], [ [ ad1, bd1 ] ], elementsCountOut = 2,
+            px, pd2, pe, pxi = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountOut = 2,
                 addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
                 addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)
             sx .append(px[1])
-            sd1.append(pd1[1])
+            sd1.append(interpolateSampleLinear([ ad1, bd1 ], pe[1:2], pxi[1:2])[0])
             sd2.append(pd2[1])
         n1 = 2*elementsCountAroundRVFreeWall - 1
         ax  = rvInnerx [n2][n1]
@@ -501,9 +501,10 @@ class MeshType_3d_heartventricles1(object):
         bx  = rvInnerx [n2][n1]
         bd1 = [ -d for d in rvInnerd1[n2][n1] ]
         bd2 = rvInnerd2[n2][n1]
-        px, pd1, ( pd2, ) = sampleCubicHermiteCurves([ ax ] + sx + [ bx ], [ ad2 ] + sd1 + [ bd2 ], [ [ ad1 ] + sd2 + [ bd1 ] ], elementsCountAroundRVFreeWall + 2,
+        px, pd1, pe, pxi = sampleCubicHermiteCurves([ ax ] + sx + [ bx ], [ ad2 ] + sd1 + [ bd2 ], elementsCountAroundRVFreeWall + 2,
             addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
             addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = True)
+        pd2 = interpolateSampleLinear([ ad1 ] + sd2 + [ bd1 ], pe, pxi)
         n2 = elementsCountUpLVApex - 1
         for n1 in range(1, elementsCountAroundRVFreeWall + 2):
             rvInnerx [n2].append(px [n1])
@@ -1023,9 +1024,9 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
     cubicLength = computeCubicHermiteArcLength(x1, d1, x2, d2, False)
     elementLengthMid = (2.0*cubicLength - lvRadius*radiansPerElementAroundLVFreeWall)/(elementsCountAroundVSeptum + n3 - 1)
     odd = elementsCountAroundVSeptum % 2
-    sx, sd1, _ = sampleCubicHermiteCurves([ x1, x2 ], [ d1, d2 ], [], elementsCountAroundVSeptum//2 + odd,
+    sx, sd1 = sampleCubicHermiteCurves([ x1, x2 ], [ d1, d2 ], elementsCountAroundVSeptum//2 + odd,
         lengthFractionStart = 0.5 if odd else 1.0,
-        addLengthEnd = cubicLength - 0.5*elementsCountAroundVSeptum*elementLengthMid)
+        addLengthEnd = cubicLength - 0.5*elementsCountAroundVSeptum*elementLengthMid)[0:2]
     if odd:
         sx = sx[1:]
         sd1 = sd1[1:]
@@ -1223,13 +1224,13 @@ def getRVOuterSize(xiUpWidth, xiUpSide, rvWidth, rvWidthGrowthFactor, rvSideExte
     '''
     if xiUpWidth < 0.0:
         return 0.0, 0.0
-    _, _, _, xiUpWidthRaw = getCubicHermiteCurvesPointAtArcDistance([ [ 0.0 ], [ 1.0 ] ],
+    xiUpWidthRaw = getCubicHermiteCurvesPointAtArcDistance([ [ 0.0 ], [ 1.0 ] ],
         [ [ 2.0*(1.0 - rvWidthGrowthFactor) ] , [ 2.0*rvWidthGrowthFactor ] ],
-        xiUpWidth)
+        xiUpWidth)[3]
     xiUpWidthMod = 1.0 - (1.0 - xiUpWidthRaw)*(1.0 - xiUpWidthRaw)
-    _, _, _, xiUpSideMod = getCubicHermiteCurvesPointAtArcDistance([ [ 0.0 ], [ 1.0 ] ],
+    xiUpSideMod = getCubicHermiteCurvesPointAtArcDistance([ [ 0.0 ], [ 1.0 ] ],
         [ [ 2.0*(1.0 - rvSideExtensionGrowthFactor) ] , [ 2.0*rvSideExtensionGrowthFactor ] ],
-        max(xiUpSide, 0.0))
+        max(xiUpSide, 0.0))[3]
     widthExtension = interpolateCubicHermite([0.0], [0.0], [rvWidth], [0.0], xiUpWidthMod)[0]
     sideExtension = interpolateCubicHermite([0.0], [0.0], [rvSideExtension], [0.0], xiUpSideMod)[0]
     return widthExtension, sideExtension

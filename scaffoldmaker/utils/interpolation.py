@@ -168,17 +168,15 @@ def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     df3 = -1.0 + 2.0*xi
     return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
 
-def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
+def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     addLengthStart = 0.0, addLengthEnd = 0.0,
     lengthFractionStart = 1.0, lengthFractionEnd = 1.0,
     elementLengthStartEndRatio = 1.0, arcLengthDerivatives = True):
     """
-    Get even-spaced points through cubic Hermite nodes nx with derivatives nd1
-    in line and nd2 across.
+    Get systematically spaced points and derivatives over cubic Hermite interpolated
+    curves with nodes nx and derivatives nd1. The first element uses the first two nodes.
     :param nx: Coordinates of nodes along curves.
     :param nd1: Derivatives of nodes along curves.
-    :param lnv: List of lists of other node variables to linearly interpolate, scalar
-        real or collections.Sequence of real.
     :param addLengthStart, addLengthEnd: Extra length to add to start and end elements.
     :param lengthFractionStart, lengthFractionEnd: Fraction of mid element length for
         start and end elements. Can use in addition to AddLengths: If LengthFraction
@@ -189,7 +187,8 @@ def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
         to lengthFractionStart, lengthFractionEnd.
     :param arcLengthDerivatives: If True (default) each cubic section is rescaled to
     arc length. If False, derivatives and distances are used as supplied.
-    :return: px[], pd1[], lpv[]
+    :return: px[], pd1[], pe[], pxi[] where pe[] and pxi[] are lists of element indices and
+    xi locations in the 'in' elements to pass to partner interpolateSample functions.
     """
     elementsCountIn = len(nx) - 1
     lengths = [ 0.0 ]
@@ -213,11 +212,9 @@ def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
     elementLengthProportionEnd = proportionEnd*lengthFractionEnd*elementLengthMid
     # get smoothly varying element lengths, not accounting for start and end
     elementLengths = []
-    #cumulativeLengths = [ 0.0 ]
     for eOut in range(elementsCountOut):
         xi = eOut/(elementsCountOut - 1)
         elementLengths.append(((1.0 - xi)*proportionStart + xi*proportionEnd)*elementLengthMid)
-        #cummulativeLengths.append(cummulativeLengths[eOut] + elementLengths[eOut])
     # get middle derivative magnitudes
     nodeDerivativeMagnitudes = [ None ]*(elementsCountOut + 1)  # start and end determined below
     for n in range(1, elementsCountOut):
@@ -237,11 +234,8 @@ def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
 
     px = []
     pd1 = []
-    nvCount = len(lnv)
-    nvLen = [ (len(lnv[nv][0]) if isinstance(lnv[nv][0], collections.Sequence) else 0) for nv in range(nvCount) ]
-    lpv = []
-    for nv in range(nvCount):
-        lpv.append([])
+    pe = []
+    pxi = []
     distance = 0.0
     e = 0
     for eOut in range(elementsCountOut):
@@ -253,22 +247,49 @@ def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
                     x = interpolateCubicHermite(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)
                     d = interpolateCubicHermiteDerivative(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)
                 else:
-                    x, d, _, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
+                    x, d, eIn, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
                 px.append(x)
                 pd1.append(vector.setMagnitude(d, nodeDerivativeMagnitudes[eOut]))
-                for nv in range(nvCount):
-                    if nvLen[nv]:
-                        lpv[nv].append([ (lnv[nv][e][c]*(1.0 - xi) + lnv[nv][e + 1][c]*xi) for c in range(nvLen[nv]) ])
-                    else:
-                        lpv[nv].append(lnv[nv][e]*(1.0 - xi) + lnv[nv][e + 1]*xi)
+                pe.append(e)
+                pxi.append(xi)
                 break
             e += 1
         distance += elementLengths[eOut]
     px.append(nx[-1])
     pd1.append(vector.setMagnitude(nd1[-1], nodeDerivativeMagnitudes[-1]))
-    for nv in range(nvCount):
-        lpv[nv].append(lnv[nv][-1])
-    return px, pd1, lpv
+    pe.append(elementsCountIn - 1)
+    pxi.append(1.0)
+    return px, pd1, pe, pxi
+
+def interpolateSampleLinear(v, pe, pxi):
+    '''
+    Partner function to sampleCubicHermiteCurves for linearly interpolating additional variables based on the 
+    element indexes and element xi coordinates returned from that function.
+    :param v: List of scalar values or sequence-of-values to interpolate. len(v) == number of elements in + 1.
+    :param pe, pxi: List if integer element indexes and real xi coordinates giving sample positions into v to
+    interpolate linearly. len(pe) == len(pxi) == number of values out.
+    Indexes in pe start at 0, and are not checked; sampleCubicHermiteCurves() guarantees these are valid for same
+    number of elements passed to it, 
+    :return: List of interpolated values, scalar or vector as for v.
+    '''
+    assert len(v) > 1, 'interpolateSampleLinear. Invalid values v: not enough data'
+    valuesCountOut = len(pe)
+    assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleLinear. Invalid element, xi'
+    vOut = []
+    if isinstance(v[0], collections.Sequence):
+        vLen = len(v[0])
+        for n in range(valuesCountOut):
+            wp = pxi[n]
+            wm = 1.0 - wp
+            vp = v[pe[n] + 1]
+            vm = v[pe[n]]
+            vOut.append([ (wm*vm[c] + wp*vp[c]) for c in range(vLen) ])
+    else:
+        for n in range(valuesCountOut):
+            wp = pxi[n]
+            wm = 1.0 - wp
+            vOut.append(wm*v[pe[n]] + wp*v[pe[n] + 1])
+    return vOut
 
 def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
     """
