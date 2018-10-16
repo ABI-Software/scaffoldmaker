@@ -40,12 +40,12 @@ class MeshType_3d_heartventricles1(object):
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
             'RV inner height fraction' : 0.75,
-            'RV arc around degrees' : 200.0,
+            'RV arc around degrees' : 180.0,
             'RV arc apex fraction' : 0.6,
             'RV free wall thickness' : 0.04,
             'RV width' : 0.4,
             'RV width growth factor' : 0.5,
-            'RV side extension' : 0.15,
+            'RV side extension' : 0.12,
             'RV side extension growth factor' : 0.5,
             'Ventricular septum thickness' : 0.1,
             'Ventricular septum base radial displacement' : 0.15,
@@ -195,8 +195,11 @@ class MeshType_3d_heartventricles1(object):
 
         # LV nodes
 
-        # get distance from outside of round outer LV to outside of RV base centre
+        # get distance from outside of round outer LV to outside of RV at base centre
         rvAddWidthBase = rvWidth - vSeptumBaseRadialDisplacement + vSeptumThickness - lvFreeWallThickness + rvFreeWallThickness
+        rvBaseJoinX = lvOuterRadius*math.cos(0.5*rvArcAroundBaseRadians)
+        joinFactor = 2.0
+        rvAddWidthRadiusBase = rvAddWidthBase - rvBaseJoinX - joinFactor*rvSideExtension
 
         # optimisation to convert RV inner height fraction to RV outer height using optimi
         lengthUpInner = 0.25*getApproximateEllipsePerimeter(lvInnerHeight, lvInnerRadius)
@@ -294,9 +297,10 @@ class MeshType_3d_heartventricles1(object):
             # get size of RV at z
             xiUpWidth = 1.0 + z/rvOuterHeight
             xiUpSide = 1.0 + z/rvSideHeight
-            rvAddWidthRadius, rvAddCrossRadius = getRVOuterSize(xiUpWidth, xiUpSide, rvAddWidthBase, rvWidthGrowthFactor, rvSideExtension, rvSideExtensionGrowthFactor)
+            widthExtension, sideExtension = getRVOuterSize(xiUpWidth, xiUpSide, rvAddWidthBase, rvWidthGrowthFactor, rvSideExtension, rvSideExtensionGrowthFactor)
+            addWidthRadius = interpolateHermiteLagrange([ 0.0 ], [ 0.0 ], [ rvAddWidthRadiusBase ], xiUpSide)[0]
 
-            nx, nd1 = getVentriclesOuterPoints(lvRadius, rvAddWidthRadius, rvAddCrossRadius, rvArcAroundZRadians, z, \
+            nx, nd1 = getVentriclesOuterPoints(lvRadius, widthExtension, sideExtension, addWidthRadius, rvArcAroundZRadians, z, \
                 elementsCountAroundLVFreeWall, elementsCountAroundRVFreeWall, ivSulcusDerivativeFactor)
 
             vOuterx.append(nx)
@@ -435,7 +439,7 @@ class MeshType_3d_heartventricles1(object):
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
                 midSeptumDisplacement = interpolateCubicHermite([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
 
-                numberAround = 12
+                numberAround = 8
                 nx, nd1 = getLeftVentricleInnerPoints(lvRadius, midSeptumDisplacement, rvArcAroundZRadians, z, numberAround, numberAround)
                 # extract septum points, reversing order and derivative
                 nx = [ layerInnerx [-1] ] + nx [-1:-numberAround:-1] + [ layerInnerx [1 - elementsCountAroundRVFreeWall] ]
@@ -1112,15 +1116,17 @@ def getLeftVentricleInnerPoints(lvRadius, midSeptumDisplacement, septumArcAround
     return nx, nd
 
 
-def getVentriclesOuterPoints(lvRadius, rvAddWidthRadius, rvAddCrossRadius, rvArcAroundRadians, z,
+def getVentriclesOuterPoints(lvRadius, widthExtension, sideExtension, addWidthRadius, rvArcAroundRadians, z,
         elementsCountAroundLVFreeWall, elementsCountAroundRVFreeWall, ivSulcusDerivativeFactor = 1.0):
     '''
     Get array of points and derivatives around outside of ventricles anticlockwise starting from
     anterior interventricular sulcus.
     LV is assumed to be circular, centred at x, y = (0,0)
     :param lvRadius: Radius of the LV.
-    :param rvAddWidthRadius: Radius to add to LV to get RV width at centre.
-    :param rvAddCrossRadius: Additional radius to add only laterally around septum.
+    :param widthExtension: Amount to add to LV to get RV width at centre.
+    :param sideExtension: Additional radius to add only laterally around septum.
+    :param addWidthRadius: Amount to add to width radius without affecting RV width, varying
+        from zero with zero derivative to max at base.
     :param rvArcAroundRadians: Angle in radians around outside of RV to tangent nodes where it meets LV.
     :param z: Coordinate to give to all x[2]. All d1[2] are zero.
     :param elementsCountAroundLVFreeWall: Number of elements around LV part of outer wall.
@@ -1133,9 +1139,9 @@ def getVentriclesOuterPoints(lvRadius, rvAddWidthRadius, rvAddCrossRadius, rvArc
     lvLength = lvArcAroundRadians*lvRadius
     elementSizeLV = lvLength/(elementsCountAroundLVFreeWall + ivSulcusDerivativeFactor - 1.0)
     elementSizeLVTransition = 0.5*elementSizeLV*(1.0 + ivSulcusDerivativeFactor)
-    a = lvRadius
-    b = lvRadius + rvAddCrossRadius  # cross radius
-    ellipseCentrex = lvRadius + rvAddWidthRadius - a
+    a = lvRadius + addWidthRadius  # width radius
+    b = lvRadius + sideExtension   # side radius
+    ellipseCentrex = lvRadius + widthExtension - a
     joinRadians = -0.5*max(math.pi, rvArcAroundRadians)
     x1 = [ lvRadius*math.cos(joinRadians), lvRadius*math.sin(joinRadians) ]
     d1 = [ -math.sin(joinRadians), math.cos(joinRadians) ]
