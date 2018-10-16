@@ -741,7 +741,7 @@ class MeshType_3d_heartventriclesbase2(object):
         d2a = [ scale*d for d in d2a ]
         xi = 0.5
         xr = 1.0 - xi
-        x = list(interpolateCubicHermite(xa, d2a, xb, d2b, xi))
+        x = interpolateCubicHermite(xa, d2a, xb, d2b, xi)
         dx_ds1 = [ (xr*d1a[c] + xi*d1b[c]) for c in range(3) ]
         dx_ds2 = interpolateCubicHermiteDerivative(xa, d2a, xb, d2b, xi)
         dx_ds2 = [ xr*d for d in dx_ds2 ]

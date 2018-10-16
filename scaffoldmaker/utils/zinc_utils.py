@@ -114,7 +114,7 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
     d2 = [ mag*d for d in d2 ]
 
     xr = 1.0 - xi
-    x = list(interpolateCubicHermite(v1, d1, v2, d2, xi))
+    x = interpolateCubicHermite(v1, d1, v2, d2, xi)
     dx_ds = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     scale = min(xi, xr)
     dx_ds = [ scale*d for d in dx_ds ]
@@ -142,6 +142,6 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
     d1 = [ d*scale1 for d in d1 ]
     cache.setNode(node2)
     result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
-    d2 = getHermiteLagrangeEndDerivative(v1, d1, v2)
+    d2 = interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
     d2 = [ d*scale2 for d in d2 ]
     return d2
