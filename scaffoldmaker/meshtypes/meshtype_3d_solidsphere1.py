@@ -214,7 +214,7 @@ class MeshType_3d_solidsphere1:
                 d2 = [math.cos(math.pi/2.0)*sinRadiansUp,math.sin(math.pi/2.0)*sinRadiansUp,-cosRadiansUp]
                 d2 = vector.normalise(d2)
                 d2 = [d*cubicArcLength for d in d2]
-                x = list(interpolateCubicHermite(v1, d1, v2, d2, xi))
+                x = interpolateCubicHermite(v1, d1, v2, d2, xi)
 
                 # Calculate radiansUp for each point wrt arcOrigin
                 radiansUpArcOriginList[n2] = math.acos(x[2]/RC)
@@ -243,7 +243,7 @@ class MeshType_3d_solidsphere1:
                     d2 = [cosRadiansAround*sinRadiansUp,sinRadiansAround*sinRadiansUp,-cosRadiansUp]
                     d2 = vector.normalise(d2)
                     d2 = [d*cubicArcLength for d in d2]
-                    x = list(interpolateCubicHermite(v1, d1, v2, d2, xi))
+                    x = interpolateCubicHermite(v1, d1, v2, d2, xi)
 
                     # For dx_ds1 - Calculate radius wrt origin where interpolated points lie on
                     orthoRadius = vector.magnitude(x)
@@ -269,7 +269,7 @@ class MeshType_3d_solidsphere1:
                         -RC*sinRadiansUpArcOrigin*radiansPerElementUpArcOrigin
                     ]
 
-                    dx_ds3 = list(interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi))
+                    dx_ds3 = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
                     dx_ds3 = vector.normalise(dx_ds3)
                     dx_ds3 = [d*cubicArcLength/elementsCountRadial for d in dx_ds3]
 

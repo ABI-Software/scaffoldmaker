@@ -16,8 +16,11 @@ gaussWt3 = ( 5.0/18.0, 4.0/9.0, 5.0/18.0 )
 
 def interpolateCubicHermite(v1, d1, v2, d2, xi):
     """
-    Return cubic Hermite interpolated value of tuples v1, d1 (end 1) to v2, d2 (end 2) for xi in [0,1]
-    :return: tuple containing result
+    Get values of cubic Hermite interpolated from v1, d1 to v2, d2.
+    :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
+    :param d1, d2: Derivatives w.r.t. xi at xi = 0.0 and xi = 1.0, respectively.
+    :param xi: Position in curve, nominally in [0.0, 1.0].
+    :return: List of interpolated values at xi.
     """
     xi2 = xi*xi
     xi3 = xi2*xi
@@ -25,30 +28,36 @@ def interpolateCubicHermite(v1, d1, v2, d2, xi):
     f2 = xi - 2.0*xi2 + xi3
     f3 = 3.0*xi2 - 2.0*xi3
     f4 = -xi2 + xi3
-    return tuple([ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ])
+    return [ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ]
 
 def interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi):
     """
-    Return cubic Hermite interpolated derivatives of tuples v1, d1 (end 1) to v2, d2 (end 2) for xi in [0,1]
-    :return: tuple containing result
+    Get derivatives of cubic Hermite interpolated from v1, d1 to v2, d2.
+    :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
+    :param d1, d2: Derivatives w.r.t. xi at xi = 0.0 and xi = 1.0, respectively.
+    :param xi: Position in curve, nominally in [0.0, 1.0].
+    :return: List of interpolated derivatives at xi.
     """
     xi2 = xi*xi
     f1 = -6.0*xi + 6.0*xi2
     f2 = 1.0 - 4.0*xi + 3.0*xi2
     f3 = 6.0*xi - 6.0*xi2
     f4 = -2.0*xi + 3.0*xi2
-    return tuple([ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ])
+    return [ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ]
 
 def interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi):
     """
-    Return cubic Hermite interpolated second derivatives of tuples v1, d1 (end 1) to v2, d2 (end 2) for xi in [0,1]
-    :return: tuple containing result
+    Get second derivatives of cubic Hermite interpolated from v1, d1 to v2, d2.
+    :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
+    :param d1, d2: Derivatives w.r.t. xi at xi = 0.0 and xi = 1.0, respectively.
+    :param xi: Position in curve, nominally in [0.0, 1.0].
+    :return: List of interpolated second derivatives at xi.
     """
     f1 = -6.0 + 12.0*xi
     f2 = -4.0 +  6.0*xi
     f3 =  6.0 - 12.0*xi
     f4 = -2.0 +  6.0*xi
-    return tuple([ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ])
+    return [ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ]
 
 def computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives):
     """
@@ -104,7 +113,10 @@ def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
 
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
+    :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
+    :param d1, d2: Derivatives w.r.t. xi at xi = 0.0 and xi = 1.0, respectively.
     :param radialVector: Radial direction, assumed unit normal to curve tangent at point.
+    :param xi: Position in curve, nominally in [0.0, 1.0].
     :return: Scalar curvature (1/R) of the 1-D cubic Hermite curve.
     """
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
@@ -116,37 +128,45 @@ def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     curvature = radialCurvature/(magTangent*magTangent)
     return curvature
 
-def getLagrangeHermiteStartDerivative(v1, v2, d2):
+def interpolateHermiteLagrange(v1, d1, v2, xi):
     """
-    Computes the derivative at v2 from quadratic Hermite-Lagrange interpolation
-    from v1 to v2, d2.
-    :return: d1 (dx/dxi) at v1
+    Get value at xi for quadratic Hermite-Lagrange interpolation from v1, d1 to v2.
+    :return: List of values at xi.
     """
-    xi = 0.0
-    #phi1 = 1 - 2.0*xi + xi*xi
-    #phi2 = 2.0*xi - xi*xi
-    #phi3 = -xi + xi*xi
-    dphi1 = -2.0 + 2.0*xi
-    dphi2 = 2.0 - 2.0*xi
-    dphi3 = -1.0 + 2.0*xi
-    d1 = [ (v1[c]*dphi1 + v2[c]*dphi2 + d2[c]*dphi3) for c in range(3) ]
-    return d1
+    f1 = 1 - xi*xi
+    f2 = xi - xi*xi
+    f3 = xi*xi
+    return [ (v1[c]*f1 + d1[c]*f2 + v2[c]*f3) for c in range(len(v1)) ]
 
-def getHermiteLagrangeEndDerivative(v1, d1, v2):
+def interpolateHermiteLagrangeDerivative(v1, d1, v2, xi):
     """
-    Computes the derivative at v2 from quadratic Hermite-Lagrange interpolation
-    from v1, d1.
-    :return: d2 (dx/dxi) at v2
+    Get derivative at xi for quadratic Hermite-Lagrange interpolation from v1, d1 to v2.
+    :return: List of derivatives w.r.t. xi at xi.
     """
-    xi = 1.0
-    #phi1 = 1 - xi*xi
-    #phi2 = xi - xi*xi
-    #phi3 = xi*xi
-    dphi1 = -2.0*xi
-    dphi2 = 1 - 2.0*xi
-    dphi3 = 2.0*xi
-    d2 = [ (v1[c]*dphi1 + d1[c]*dphi2 + v2[c]*dphi3) for c in range(3) ]
-    return d2
+    df1 = -2.0*xi
+    df2 = 1 - 2.0*xi
+    df3 = 2.0*xi
+    return [ (v1[c]*df1 + d1[c]*df2 + v2[c]*df3) for c in range(len(v1)) ]
+
+def interpolateLagrangeHermite(v1, v2, d2, xi):
+    """
+    Get value at xi for quadratic Lagrange-Hermite interpolation from v1 to v2, d2.
+    :return: List of values at xi.
+    """
+    f1 = 1 - 2.0*xi + xi*xi
+    f2 = 2.0*xi - xi*xi
+    f3 = -xi + xi*xi
+    return [ (v1[c]*f1 + d1[c]*f2 + v2[c]*f3) for c in range(len(v1)) ]
+
+def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
+    """
+    Get derivative at xi for quadratic Lagrange-Hermite interpolation to from v1 to v2, d2.
+    :return: List of derivatives w.r.t. xi at xi.
+    """
+    df1 = -2.0 + 2.0*xi
+    df2 = 2.0 - 2.0*xi
+    df3 = -1.0 + 2.0*xi
+    return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
 
 def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
     addLengthStart = 0.0, addLengthEnd = 0.0,
@@ -230,7 +250,7 @@ def sampleCubicHermiteCurves(nx, nd1, lnv, elementsCountOut,
                 partDistance = distance - lengths[e]
                 if arcLengthDerivatives:
                     xi = partDistance/(lengths[e + 1] - lengths[e])
-                    x = list(interpolateCubicHermite(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi))
+                    x = interpolateCubicHermite(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)
                     d = interpolateCubicHermiteDerivative(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)
                 else:
                     x, d, _, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
@@ -289,7 +309,7 @@ def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
                 xi -= dxi_ddist*(dist - partDistance)
                 if math.fabs(xi - xiLast) <= xiTol:
                     #print('converged xi',xi)
-                    return list(interpolateCubicHermite(v1, d1, v2, d2, xi)), list(interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)), e, xi
+                    return interpolateCubicHermite(v1, d1, v2, d2, xi), interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi), e, xi
             print('getCubicHermiteCurvesPointAtArcDistance Max iters reached:',iter,': e', e, ', xi',xi,', closeness', math.fabs(dist - partDistance))
             return v2, d2, e, xi
         length += arcLength
@@ -334,7 +354,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
             if fixAllDirections or fixStartDirection:
                 md1[0] = vector.setMagnitude(md1[0], 2.0*arcLengths[0] - vector.magnitude(md1[1]))
             else:
-                md1[0] = getLagrangeHermiteStartDerivative(nx[0], nx[1], md1[1])
+                md1[0] = interpolateLagrangeHermiteDerivative(nx[0], nx[1], md1[1], 0.0)
         # middle
         for n in range(1, nodesCount - 1):
             nm = n - 1
@@ -354,7 +374,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
             if fixAllDirections or fixEndDirection:
                 md1[-1] = vector.setMagnitude(md1[-1], 2.0*arcLengths[-1] - vector.magnitude(md1[-2]))
             else:
-                md1[-1] = getHermiteLagrangeEndDerivative(nx[-2], md1[-2], nx[-1])
+                md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], md1[-2], nx[-1], 1.0)
         lastArcLengths = arcLengths
     print('smoothCubicHermiteDerivativesLine max iters reached:',iter)
     return md1

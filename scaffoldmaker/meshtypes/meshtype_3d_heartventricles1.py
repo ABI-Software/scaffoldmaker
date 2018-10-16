@@ -510,13 +510,13 @@ class MeshType_3d_heartventricles1(object):
                 # collapsed RV corner uses triangle derivative d/dx{1|3} = +/-d2; outside d/dxi2 = +/-d1
                 # compute derivative 2 to fit with glm vector on inside row:
                 od2 = [ (d1Factor*lvInnerd1[n2][o1][c] + lvInnerd2[n2][o1][c] + lvInnerd3[n2][o1][c]) for c in range(3) ]
-                id2 = getHermiteLagrangeEndDerivative(lvInnerx[n2][o1], od2, px[n1])
+                id2 = interpolateHermiteLagrangeDerivative(lvInnerx[n2][o1], od2, px[n1], 1.0)
                 rvInnerd2[n2].append(id2)
             else:
                 rvInnerd2[n2].append(pd2[n1])
             # compute derivative 3 to fit with glm vector on outside row:
             od3 = [ (d1Factor*vOuterd1[n2][o1][c] + vOuterd2[n2][o1][c] - vOuterd3[n2][o1][c]) for c in range(3) ]
-            id3 = getHermiteLagrangeEndDerivative(vOuterx[n2][o1], od3, px[n1])
+            id3 = interpolateHermiteLagrangeDerivative(vOuterx[n2][o1], od3, px[n1], 1.0)
             rvInnerd3[n2].append([ -d for d in id3 ])
         for li in [ rvInnerx[n2], rvInnerd1[n2], rvInnerd2[n2], rvInnerd3[n2] ]:
             li.append(li.pop(0))
@@ -1167,7 +1167,7 @@ def getVentriclesOuterPoints(lvRadius, rvAddWidthRadius, rvAddCrossRadius, rvArc
             d = [ -math.sin(angleRadians), math.cos(angleRadians) ]
         elif distance < cubicLimit:
             xi = (distance - circleLimit)/cubicLength
-            x = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+            x = interpolateCubicHermite(x1, d1, x2, d2, xi)
             d = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
         else:
             angleRadians = updateEllipseAngleByArcLength(a, b, -0.5*math.pi, distance - cubicLimit)

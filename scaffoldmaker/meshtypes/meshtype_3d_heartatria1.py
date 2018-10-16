@@ -500,7 +500,7 @@ class MeshType_3d_heartatria1(object):
 
         # fix inner base derivative 2 to fit incline
         for n1 in range(1, elementsCountAroundAtrialFreeWall + 1):
-            d2 = getHermiteLagrangeEndDerivative(laInnerx[1][n1], [ -d for d in laInnerd2[1][n1] ], laInnerx[0][n1])
+            d2 = interpolateHermiteLagrangeDerivative(laInnerx[1][n1], [ -d for d in laInnerd2[1][n1] ], laInnerx[0][n1], 1.0)
             laInnerd2[0][n1] = [ -d for d in d2 ]
         # special fix inner base derivative 2 at cfb = slope of cfbLeft inner derivative 2
         laInnerd2[0][0] = laInnerd2[0][1]
@@ -652,7 +652,7 @@ class MeshType_3d_heartatria1(object):
                     d2 = [ (d2[c] - fossad1[0][ns - 1][c]) for c in range(3) ]
                 elif ns == (elementsCountAroundAtrialSeptum - 1):
                     d2 = [ (d2[c] + fossad1[0][ns - 1][c]) for c in range(3) ]
-                laInnerd2[0][elementsCountAroundAtrialFreeWall + ns] = getLagrangeHermiteStartDerivative(x1, x2, d2)
+                laInnerd2[0][elementsCountAroundAtrialFreeWall + ns] = interpolateLagrangeHermiteDerivative(x1, x2, d2, 0.0)
 
         # Create nodes around atria
         pvEdgeDerivativeFactor1 = 0.25  # GRC fudge factor: factor reducing derivatives between pvs
