@@ -493,7 +493,7 @@ class MeshType_3d_heartventricles2(object):
                 bd1 = [ 2.0*d for d in bd1 ]
                 if n1 > 0:
                     ax, ad1, ad2, bx, bd1, bd2 = bx, bd1, bd2, ax, ad1, ad2
-                x = list(interpolateCubicHermite(ax, ad1, bx, bd1, 0.5))
+                x = interpolateCubicHermite(ax, ad1, bx, bd1, 0.5)
                 dx_ds1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
                 dx_ds1 = [ 0.5*d for d in dx_ds1 ]
                 dx_ds2 = [ 0.5*(ad2[c] + bd2[c]) for c in range(3) ]
@@ -530,7 +530,7 @@ class MeshType_3d_heartventricles2(object):
             bd2 = rd2Inner[0][n1]
             ad2 = [ 1.5*d for d in ad2 ]
             bd2 = [ 1.5*d for d in bd2 ]
-            x = list(interpolateCubicHermite(ax, ad2, bx, bd2, 0.5))
+            x = interpolateCubicHermite(ax, ad2, bx, bd2, 0.5)
             dx_ds1 = [ 0.5*(ad1[c] + bd1[c]) for c in range(3) ]
             dx_ds2 = interpolateCubicHermiteDerivative(ax, ad2, bx, bd2, 0.5)
             dx_ds2 = [ (1.0/3.0)*d for d in dx_ds2 ]
@@ -557,7 +557,7 @@ class MeshType_3d_heartventricles2(object):
                 ax, ad1, bx, bd1 = bx, bd1, ax, ad1
             ad1 = [ 1.5*d for d in ad1 ]
             bd1 = [ 1.5*d for d in bd1 ]
-            x = list(interpolateCubicHermite(ax, ad1, bx, bd1, 0.5))
+            x = interpolateCubicHermite(ax, ad1, bx, bd1, 0.5)
             dx_ds1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
             dx_ds1 = [ (1.0/3.0)*d for d in dx_ds1 ]
             if n1 == 0:

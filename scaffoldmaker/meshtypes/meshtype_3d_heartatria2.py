@@ -675,7 +675,7 @@ class MeshType_3d_heartatria2(object):
         d2 = [ d*arcLength for d in d2 ]
         # GRC fudge factor:
         xi = 0.7
-        lasmx = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+        lasmx = interpolateCubicHermite(x1, d1, x2, d2, xi)
         lasmd1 = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
         scale1 = (1.0 - xi)*2.0
         lasmd1 = [ d*scale1 for d in lasmd1 ]
@@ -724,7 +724,7 @@ class MeshType_3d_heartatria2(object):
             for n2 in range(2, elementsCountUpAtria + 1):
                 xi = (n2 - 1.0)/(elementsCountUpAtria - 1.0)
                 xr = 1.0 - xi
-                x = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+                x = interpolateCubicHermite(x1, d1, x2, d2, xi)
                 dx_ds1 = [ (xi*lasmd1[c] + xr*laspd1[c]) for c in range(3) ]
                 dx_ds2 = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
                 scale2 = derivativeScale/vector.magnitude(dx_ds2)
@@ -776,7 +776,7 @@ class MeshType_3d_heartatria2(object):
             for n2 in range(2, elementsCountUpAtria):
                 xi = (n2 - 1.0)/(elementsCountUpAtria - 1.0)
                 xr = 1.0 - xi
-                x = list(interpolateCubicHermite(x1, d1, x2, d2, xi))
+                x = interpolateCubicHermite(x1, d1, x2, d2, xi)
                 dx_ds1 = [ (xi*-lasmd1[c] + xr*lasad1[c]) for c in range(3) ]
                 dx_ds2 = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
                 scale2 = derivativeScale/vector.magnitude(dx_ds2)
