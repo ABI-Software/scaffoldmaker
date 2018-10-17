@@ -489,7 +489,7 @@ class MeshType_3d_heartventricles1(object):
             bd2 = [ dFactor*d for d in rvInnerd2[n2][n1] ]
             px, pd2, pe, pxi = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountOut = 2,
                 addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
-                addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)
+                addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
             sx .append(px[1])
             sd1.append(interpolateSampleLinear([ ad1, bd1 ], pe[1:2], pxi[1:2])[0])
             sd2.append(pd2[1])
@@ -503,7 +503,7 @@ class MeshType_3d_heartventricles1(object):
         bd2 = rvInnerd2[n2][n1]
         px, pd1, pe, pxi = sampleCubicHermiteCurves([ ax ] + sx + [ bx ], [ ad2 ] + sd1 + [ bd2 ], elementsCountAroundRVFreeWall + 2,
             addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
-            addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = True)
+            addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
         pd2 = interpolateSampleLinear([ ad1 ] + sd2 + [ bd1 ], pe, pxi)
         n2 = elementsCountUpLVApex - 1
         for n1 in range(1, elementsCountAroundRVFreeWall + 2):
@@ -1026,7 +1026,7 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
     odd = elementsCountAroundVSeptum % 2
     sx, sd1 = sampleCubicHermiteCurves([ x1, x2 ], [ d1, d2 ], elementsCountAroundVSeptum//2 + odd,
         lengthFractionStart = 0.5 if odd else 1.0,
-        addLengthEnd = cubicLength - 0.5*elementsCountAroundVSeptum*elementLengthMid)[0:2]
+        addLengthEnd = cubicLength - 0.5*elementsCountAroundVSeptum*elementLengthMid, arcLengthDerivatives = True)[0:2]
     if odd:
         sx = sx[1:]
         sd1 = sd1[1:]

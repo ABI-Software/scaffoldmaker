@@ -353,7 +353,7 @@ class MeshType_3d_heartatria1(object):
         dd1 = [ -d for d in laBaseOuterd2[n1MidFreeWall]]
         # get point on venous peak
         # GRC fudge factor
-        px, pd1 = sampleCubicHermiteCurves([ ax, dx ], [ ad1, dd1 ], elementsCountOut = 2, lengthFractionStart = 0.4)[0:2]
+        px, pd1 = sampleCubicHermiteCurves([ ax, dx ], [ ad1, dd1 ], elementsCountOut = 2, lengthFractionStart = 0.4, arcLengthDerivatives = True)[0:2]
         nx = [ ax, [ px[1][0], px[1][1], aOuterHeight ] ]
         nd1 = smoothCubicHermiteDerivativesLine(nx, [ ad1, [ pd1[1][0], pd1[1][1], 0.0 ] ], fixStartDerivative = True, fixEndDirection = True)
         ex = nx[1]
@@ -369,7 +369,8 @@ class MeshType_3d_heartatria1(object):
             rd1 = [ [ ad1[0], ad1[1], ad1[2] ], [ cd1[0], cd1[1], cd1[2] ] ]
         else:
             rx, rd1 = sampleCubicHermiteCurves([ ax, bx, cx ], [ ad1, bd1, cd1 ], elementsCountRidgeVenous,
-                lengthFractionStart = 0.5, addLengthStart = 0.5*iaGrooveDerivative)[0:2]
+                lengthFractionStart = 0.5, addLengthStart = 0.5*iaGrooveDerivative,
+                arcLengthDerivatives = True)[0:2]
 
         # get points on outside arch of "venous" left atrium, anterior and posterior
         for na in range(elementsCountRidgeVenous + 1):
@@ -378,7 +379,8 @@ class MeshType_3d_heartatria1(object):
             lx, ld2, le, lxi = sampleCubicHermiteCurves(
                 [ laBaseOuterx[na], rx[na], laBaseOuterx[np] ],
                 [ laBaseOuterd2[na], [ -rd1[na][1], rd1[na][0], 0.0 ], [ -d for d in laBaseOuterd2[np]] ],
-                2*elementsCountUpAtria, elementLengthStartEndRatio = aElementSizeRatioAnteriorPosterior)
+                2*elementsCountUpAtria, elementLengthStartEndRatio = aElementSizeRatioAnteriorPosterior,
+                arcLengthDerivatives = True)[0:4]
             ld1 = interpolateSampleLinear([ laBaseOuterd1[na], rd1[na], [ -d for d in laBaseOuterd1[np]] ], le, lxi)
 
             for noa in range(1, elementsCountUpAtria*2):
@@ -424,7 +426,7 @@ class MeshType_3d_heartatria1(object):
             endDerivative = vector.magnitude(bd2)
             ex, ed2, ee, exi = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountUpAtria,
                 addLengthStart = 0.5*startDerivative, lengthFractionStart = 0.5,
-                addLengthEnd = 0.5*endDerivative, lengthFractionEnd = 0.5)
+                addLengthEnd = 0.5*endDerivative, lengthFractionEnd = 0.5, arcLengthDerivatives = True)[0:4]
             ed1 = interpolateSampleLinear([ ad1, bd1 ], ee, exi)
             laOuterd2[0][n1] = ed2[0]
             for n2 in range(1, elementsCountUpAtria):
@@ -525,7 +527,7 @@ class MeshType_3d_heartatria1(object):
         fx = [ (ux[c] + fd1[c]) for c in range(3) ]
         tx, td1, te, txi = sampleCubicHermiteCurves([ fx, gx ], [ fd1, gd1 ], elementsCountOut = 2,
             addLengthStart = 0.5*vector.magnitude(fd1), lengthFractionStart = 0.5,
-            addLengthEnd = 0.5*vector.magnitude(gd1), lengthFractionEnd = 0.5)
+            addLengthEnd = 0.5*vector.magnitude(gd1), lengthFractionEnd = 0.5, arcLengthDerivatives = True)[0:4]
         td2 = interpolateSampleLinear([ fd2, gd2 ], te, txi)
         mx  = tx [1]
         md1 = td1[1]
@@ -564,7 +566,7 @@ class MeshType_3d_heartatria1(object):
         scale2 = -aBaseSlopeHeight/pd2[2]
         addLengthEnd = vector.magnitude([ pd2[0]*scale2, pd2[1]*scale2, aBaseSlopeHeight ])
         ix, id2, ie, ixi = sampleCubicHermiteCurves([ ax , mx , px  ], [ ad2, md2, pd2 ], 2*elementsCountUpAtria,
-            addLengthStart, addLengthEnd, elementLengthStartEndRatio = aElementSizeRatioAnteriorPosterior)
+            addLengthStart, addLengthEnd, elementLengthStartEndRatio = aElementSizeRatioAnteriorPosterior, arcLengthDerivatives = True)[0:4]
         id1 = interpolateSampleLinear([ ad1, md1, pd1 ], ie, ixi)
         for noa in range(elementsCountUpAtria*2 + 1):
             nop = elementsCountUpAtria*2 - noa
@@ -1198,7 +1200,7 @@ class MeshType_3d_heartatria1(object):
             nodeIdentifier += 1
 
         px, pd1 = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], 2,
-            lengthFractionEnd = rpvPositionUp/(2.0 - rpvPositionUp))[0:2]
+            lengthFractionEnd = rpvPositionUp/(2.0 - rpvPositionUp), arcLengthDerivatives = True)[0:2]
         rcpvx = px[1]
         rcpvd1 = pd1[1]
 
@@ -1211,7 +1213,7 @@ class MeshType_3d_heartatria1(object):
 
         ex = sampleCubicHermiteCurves([ laOuterx[0][n1MidFreeWall], vx ],
             [ laOuterd2[0][n1MidFreeWall], vd2 ], elementsCountOut = 2,
-            lengthFractionStart = lpvPositionUp/(1.0 - lpvPositionUp))[0]
+            lengthFractionStart = lpvPositionUp/(1.0 - lpvPositionUp), arcLengthDerivatives = True)[0]
         lcpvx = ex[1]
 
         if False:
@@ -1472,7 +1474,7 @@ class MeshType_3d_heartatria1(object):
 
         gap = 2.0 - svcPositionUp - ivcPositionUp
         px = sampleCubicHermiteCurves([ ax, mx, bx ], [ ad2, md2, bd2 ], elementsCountOut = 3, \
-            lengthFractionStart = svcPositionUp/gap, lengthFractionEnd = ivcPositionUp/gap)[0]
+            lengthFractionStart = svcPositionUp/gap, lengthFractionEnd = ivcPositionUp/gap, arcLengthDerivatives = True)[0]
         svcWallx = px[1]
         ivcWallx = px[2]
 

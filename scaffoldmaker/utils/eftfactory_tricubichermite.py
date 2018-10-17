@@ -1312,7 +1312,7 @@ class eftfactory_tricubichermite:
 
                 mx, md2, me, mxi = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountRadial,
                     addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
-                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
+                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5, arcLengthDerivatives = True)[0:4]
                 md1 = interpolateSampleLinear([ ad1, bd1 ], me, mxi)
                 thi = interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
                 md2 = smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
