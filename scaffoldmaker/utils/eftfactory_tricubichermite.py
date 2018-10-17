@@ -1352,13 +1352,14 @@ class eftfactory_tricubichermite:
                 # smooth derivative 1 around inner loop
                 pd1[0][n2] = smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
 
-            for n3 in range(1, nodesCountWall):
+            for n3 in range(0, nodesCountWall):
                 # smooth derivative 2 radially/along annulus
                 for n1 in range(nodesCountAround):
                     sd2 = smoothCubicHermiteDerivativesLine(
                         [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
                         [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
-                        fixStartDerivative = True, fixEndDerivative = True)
+                        fixStartDerivative = True, fixEndDerivative = True,
+                        magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
                     for n2 in range(elementsCountRadial + 1):
                         pd2[n3][n2][n1] = sd2[n2]
 
