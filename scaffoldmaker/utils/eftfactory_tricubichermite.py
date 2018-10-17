@@ -1310,10 +1310,11 @@ class eftfactory_tricubichermite:
                             for c in range(3):
                                 bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
 
-                mx, md2, ( md1, thi ) = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ],
-                    [ [ ad1, bd1 ], [ thicknesses[0][n1], thicknesses[-1][n1] ] ], elementsCountRadial,
+                mx, md2, me, mxi = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountRadial,
                     addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
-                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5)
+                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5, arcLengthDerivatives = True)[0:4]
+                md1 = interpolateSampleLinear([ ad1, bd1 ], me, mxi)
+                thi = interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
                 md2 = smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
                 for n2 in range(1, elementsCountRadial):
                     px [n3][n2][n1] = mx [n2]
