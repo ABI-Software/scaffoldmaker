@@ -39,8 +39,8 @@ class MeshType_3d_heartatria1(object):
             'Atrial septum thickness' : 0.08,
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
-            'Atrial base slope degrees' : 30.0,
-            'Aorta outer diameter' : 0.35,
+            'Atrial base slope degrees' : 15.0,
+            'Aorta outer plus diameter' : 0.35,
             'Atrial base front incline degrees' : 30.0,
             'Atrial base back incline degrees' : 30.0,
             'Atrial base side incline degrees' : 10.0,
@@ -87,7 +87,7 @@ class MeshType_3d_heartatria1(object):
             'Atrial free wall thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
-            'Aorta outer diameter',
+            'Aorta outer plus diameter',
             'Atrial base front incline degrees',
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
@@ -167,8 +167,8 @@ class MeshType_3d_heartatria1(object):
                 options[key] = 0.1
             elif options[key] > 0.9:
                 options[key] = 0.9
-        if options['Aorta outer diameter'] < options['Atrial septum thickness']:
-            options['Aorta outer diameter'] = options['Atrial septum thickness']
+        if options['Aorta outer plus diameter'] < options['Atrial septum thickness']:
+            options['Aorta outer plus diameter'] = options['Atrial septum thickness']
         for key in [
             'Atria major axis rotation degrees']:
             if options[key] < -75.0:
@@ -198,7 +198,7 @@ class MeshType_3d_heartatria1(object):
         aBaseInnerMinorMag = 0.5*options['Atria base inner minor axis length']
         aMajorAxisRadians = math.radians(options['Atria major axis rotation degrees'])
         aOuterHeight = options['Atria outer height']
-        aortaOuterRadius = 0.5*options['Aorta outer diameter']
+        aortaOuterPlusRadius = 0.5*options['Aorta outer plus diameter']
         aBaseFrontInclineRadians = math.radians(options['Atrial base front incline degrees'])
         aBaseSideInclineRadians = math.radians(options['Atrial base side incline degrees'])
         aBaseBackInclineRadians = math.radians(options['Atrial base back incline degrees'])
@@ -277,7 +277,7 @@ class MeshType_3d_heartatria1(object):
             getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountAroundAtrialSeptum,
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumThickness,
-                aortaOuterRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians)
+                aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians)
 
         laInnerx = [ laBaseInnerx ]
         laInnerd1 = [ laBaseInnerd1 ]
@@ -1702,7 +1702,7 @@ class MeshType_3d_heartatria1(object):
 def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountAroundAtrialSeptum,
         aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
         aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumThickness,
-        aortaOuterRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians):
+        aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians):
     """
     Get points around left atrium based on an ellipse. Points start from central fibrous body
     and wind anticlockwise around LA. Both the cfb and crux are collapsed at the septum.
@@ -1724,32 +1724,28 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
     #    (aSeptumBaseLength/elementsCountAroundAtrialSeptum)*(0.5*elementsCountAroundAtrialSeptum + 1.0))
     axOuter = aBaseOuterMajorMag*math.cos(aMajorAxisRadians)
     bxOuter = aBaseOuterMinorMag*math.sin(aMajorAxisRadians)
-    cfbSideOffset = aortaOuterRadius*math.sin(math.pi/3.0)
-    laCfbLeftRadians = getEllipseRadiansToX(axOuter, bxOuter, -cfbSideOffset - laCentreX, math.pi*0.5)
-    #print('axInner',axInner,'bxInner',bxInner,'laCentreX',laCentreX)
-    #print('laSeptumRadians',laSeptumRadians,'laCfbLeftRadians',laCfbLeftRadians)
-    laCentreY = 0.0
-    laCentreZ = 0.0
 
     # get points on central fibrous body centre and cfbLeft (60 degrees clockwise around aorta)
-    # incline rotates about cfb-Left-Right axis, so cfb centre goes up
-    cfbLeftX = -cfbSideOffset
-    cfbLeftY = laCentreY + math.cos(laCfbLeftRadians)*aBaseOuterMajorMag*math.sin(-aMajorAxisRadians) \
-                         + math.sin(laCfbLeftRadians)*aBaseOuterMinorMag*math.cos(-aMajorAxisRadians)
-    cfbLeftZ = 0.0
+    # rotates about centre of aorta by aBaseFrontInclineRadians
     cosFrontInclineRadians = math.cos(aBaseFrontInclineRadians)
     sinFrontInclineRadians = math.sin(aBaseFrontInclineRadians)
-    r = aortaOuterRadius*(1.0 - math.cos(math.pi/3.0))
-    cfbX = 0.0
-    cfbY = cfbLeftY - r*math.cos(lvOutletFrontInclineRadians)
-    cfbZ = cfbLeftZ + r*math.sin(lvOutletFrontInclineRadians)
-
     pi_3 = math.pi/3.0
-    lvOutletDerivativeAround = aortaOuterRadius*pi_3
-    cfbLeftDerivative1 = [ \
-        -lvOutletDerivativeAround*math.cos(pi_3),
-        lvOutletDerivativeAround*math.sin(pi_3)*cosFrontInclineRadians,
-        -lvOutletDerivativeAround*math.sin(pi_3)*sinFrontInclineRadians ]
+    cosPi_3 = math.cos(pi_3)
+    sinPi_3 = math.sin(pi_3)
+    cfbSideOffset = aortaOuterPlusRadius*sinPi_3
+    rLeft = aortaOuterPlusRadius*cosPi_3
+    cfbLeftX = -cfbSideOffset
+    cfbLeftY = -rLeft*cosFrontInclineRadians
+    cfbLeftZ = rLeft*sinFrontInclineRadians
+    cfbX = 0.0
+    cfbY = -aortaOuterPlusRadius*cosFrontInclineRadians
+    cfbZ = aortaOuterPlusRadius*sinFrontInclineRadians
+    lvOutletDerivativeAround = aortaOuterPlusRadius*pi_3
+    laCfbLeftRadians = getEllipseRadiansToX(axOuter, bxOuter, cfbLeftX - laCentreX, math.pi*0.5)
+    aBaseOuterMinorMagPlus = aBaseOuterMinorMag + 0.5*aBaseSlopeLength  # GRC fudge factor
+    laCentreY = cfbLeftY - math.cos(laCfbLeftRadians)*aBaseOuterMajorMag*math.sin(-aMajorAxisRadians) \
+                         - math.sin(laCfbLeftRadians)*aBaseOuterMinorMagPlus*math.cos(-aMajorAxisRadians)
+    laCentreZ = 0.0
 
     # compute radians around based on base outer major and minor axis sizes
     atrialPerimeterLength = getApproximateEllipsePerimeter(aBaseOuterMajorMag, aBaseOuterMinorMag)
@@ -1782,7 +1778,7 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
     laBaseOuterd1 = []
     laBaseOuterd2 = []
 
-    baseDerivative2Scale = aortaOuterRadius
+    baseDerivative2Scale = aortaOuterPlusRadius
     sinMajorAxisRadians = math.sin(-aMajorAxisRadians)
     cosMajorAxisRadians = math.cos(-aMajorAxisRadians)
 
@@ -1802,7 +1798,8 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
         aMinorX = -aMinorMag*sinMajorAxisRadians
         aMinorY =  aMinorMag*cosMajorAxisRadians
 
-        finalArcLength = prevArcLength = getEllipseArcLength(aMajorMag, aMinorMag, laRadians[-1] - 2.0*math.pi, laRadians[0])
+        twoPi = 2.0*math.pi
+        finalArcLength = prevArcLength = getEllipseArcLength(aMajorMag, aMinorMag, laRadians[-1] - twoPi, laRadians[0])
         n1Limit = elementsCountAroundAtrium if (n3 == 0) else (elementsCountAroundAtrialFreeWall + 1)
         for n1 in range(n1Limit):
             radiansAround = laRadians[n1]
@@ -1826,7 +1823,7 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                 d2 = [ 0.0, baseDerivative2Scale*sinFrontInclineRadians, baseDerivative2Scale*cosFrontInclineRadians ]
             elif (n3 == 1) and (n1 == 1):
                 x = [ cfbLeftX, cfbLeftY, cfbLeftZ ]
-                d1 = cfbLeftDerivative1
+                d1 = [ -lvOutletDerivativeAround*cosPi_3, lvOutletDerivativeAround*sinPi_3*cosFrontInclineRadians, -lvOutletDerivativeAround*sinPi_3*sinFrontInclineRadians ]
                 d2 = [ 0.0, baseDerivative2Scale*sinFrontInclineRadians, baseDerivative2Scale*cosFrontInclineRadians ]
             else:
                 x = [
