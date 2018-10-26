@@ -40,15 +40,15 @@ class MeshType_3d_heartventricles1(object):
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
             'RV inner height fraction' : 0.75,
-            'RV arc around degrees' : 180.0,
+            'RV arc around degrees' : 155.0,
             'RV arc apex fraction' : 0.6,
             'RV free wall thickness' : 0.04,
-            'RV width' : 0.4,
+            'RV width' : 0.45,
             'RV width growth factor' : 0.5,
             'RV side extension' : 0.12,
             'RV side extension growth factor' : 0.5,
             'Ventricular septum thickness' : 0.1,
-            'Ventricular septum base radial displacement' : 0.15,
+            'Ventricular septum base radial displacement' : 0.1,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements surface' : 4,
@@ -110,8 +110,7 @@ class MeshType_3d_heartventricles1(object):
             'RV free wall thickness',
             'RV width',
             'RV side extension',
-            'Ventricular septum thickness',
-            'Ventricular septum base radial displacement']:
+            'Ventricular septum thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [

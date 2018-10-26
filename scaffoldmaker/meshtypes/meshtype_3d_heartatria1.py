@@ -41,7 +41,7 @@ class MeshType_3d_heartatria1(object):
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 15.0,
             'Aorta outer plus diameter' : 0.35,
-            'Atrial base front incline degrees' : 30.0,
+            'Atrial base front incline degrees' : 15.0,
             'Atrial base back incline degrees' : 30.0,
             'Atrial base side incline degrees' : 10.0,
             'Atrial element size ratio anterior/posterior' : 1.5,
