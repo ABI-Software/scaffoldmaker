@@ -38,14 +38,14 @@ class MeshType_3d_heartventriclesbase1(object):
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
-        options['Number of elements around atrial free wall'] = 8
+        options['Number of elements around atrial free wall'] = 6
         options['Number of elements around atrial septum'] = 2
         # works best with particular numbers of elements up
         options['Number of elements up LV apex'] = 1
         options['Number of elements up RV'] = 4
         # additional options
         options['Atria base inner major axis length'] = 0.55
-        options['Atria base inner minor axis length'] = 0.42
+        options['Atria base inner minor axis length'] = 0.45
         options['Atria major axis rotation degrees'] = 40.0
         options['Atrial septum thickness'] = 0.06
         options['Atrial base wall thickness'] = 0.05
@@ -153,7 +153,9 @@ class MeshType_3d_heartventriclesbase1(object):
         """
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
         elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
+        elementsCountAroundRV = 2*elementsCountAroundRVFreeWall
         elementsCountUpLVApex = options['Number of elements up LV apex']
         elementsCountUpRV = options['Number of elements up RV']
         elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
@@ -207,6 +209,8 @@ class MeshType_3d_heartventriclesbase1(object):
 
         # generate heartventricles1 model to add base plane to
         annotationGroups = MeshType_3d_heartventricles1.generateBaseMesh(region, options)
+
+        # find/add annotation groups
         lvGroup = findAnnotationGroupByName(annotationGroups, 'left ventricle')
         rvGroup = findAnnotationGroupByName(annotationGroups, 'right ventricle')
         vSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interventricular septum')
@@ -252,6 +256,30 @@ class MeshType_3d_heartventriclesbase1(object):
         fieldassignment = None
         newCoordinates = None
         ventriclesOffset = None
+
+        # discover ventricles top LV inner, RV inner, V Outer nodes, coordinates and derivatives
+        startLVInnerNodeId = 2 + (elementsCountUpLV - 1)*elementsCountAroundLV
+        lvInnerNodeId = [ (startLVInnerNodeId + n1) for n1 in range(elementsCountAroundLV) ]
+        startRVInnerNodeId = startLVInnerNodeId + elementsCountAroundLV + elementsCountAroundRVFreeWall + 1 + elementsCountAroundRV*(elementsCountUpRV - 1)
+        rvInnerNodeId = [ (startRVInnerNodeId + n1) for n1 in range(elementsCountAroundRV) ]
+        startVOuterNodeId = startRVInnerNodeId + elementsCountAroundRV + 1 + (elementsCountUpLV - 1)*elementsCountAroundLV
+        vOuterNodeId = [ (startVOuterNodeId + n1) for n1 in range(elementsCountAroundLV) ]
+        for nodeId in [ lvInnerNodeId, rvInnerNodeId, vOuterNodeId ]:
+            vx  = []
+            vd2 = []
+            for n1 in range(len(nodeId)):
+                node = nodes.findNodeByIdentifier(nodeId[n1])
+                cache.setNode(node)
+                result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                vx .append(x)
+                vd2.append(d2)
+            if nodeId is lvInnerNodeId:
+                lvInnerx, lvInnerd2 = vx, vd2
+            elif nodeId is rvInnerNodeId:
+                rvInnerx, rvInnerd2 = vx, vd2
+            else:
+                vOuterx, vOuterd2 = vx, vd2
 
         # LV outlet points
         elementsCountAroundOutlet = 6
@@ -305,7 +333,6 @@ class MeshType_3d_heartventriclesbase1(object):
         # fix cfb, crux centre derivative 3, code duplicated from atria1:
         for n1 in [ 0, elementsCountAroundAtrialFreeWall ]:
             laBaseOuterd3[n1] = [ 0.0, laBaseOuterx[n1][1] - laBaseInnerx[n1][1], laBaseOuterx[n1][2] - laBaseInnerx[n1][2] ]
-
         # displace to get bottom points
         zero = [ 0.0, 0.0, 0.0 ]
         lavInnerx  = [ [], laBaseInnerx ]
@@ -355,6 +382,26 @@ class MeshType_3d_heartventriclesbase1(object):
                     ravOuterd1[n2].append(None)
                     ravOuterd2[n2].append(None)
                     ravOuterd3[n2].append(None)
+        # get av bottom derivative 2 from Hermite-Lagrange interpolation from top row of ventricles
+        elementsCountLVFreeWallRegular = elementsCountAroundAtrialFreeWall//2
+        elementsCountRVFreeWallRegular = elementsCountAroundAtrialFreeWall//2
+        for n1 in range(elementsCountLVFreeWallRegular + 1):
+            noa = elementsCountAroundAtrialFreeWall - elementsCountLVFreeWallRegular + n1
+            nov = elementsCountAroundLVFreeWall - elementsCountLVFreeWallRegular + n1
+            lavInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
+            lavOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], lavOuterx[0][noa], 1.0)
+        for n1 in range(1, elementsCountRVFreeWallRegular + 1):
+            noa = elementsCountAroundAtrialSeptum + n1 - 1
+            nov = elementsCountAroundLVFreeWall + n1
+            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[n1 - 1], rvInnerd2[n1 - 1], ravInnerx[0][noa], 1.0)
+            ravOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], ravOuterx[0][noa], 1.0)
+        for n1 in range(elementsCountAroundAtrialSeptum + 1):
+            noa = (elementsCountAroundAtrialFreeWall + n1)%elementsCountAroundAtria
+            nov = elementsCountAroundLVFreeWall + n1
+            lavInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
+            noa = (elementsCountAroundAtrialSeptum - 1 + elementsCountAroundAtria - n1)%elementsCountAroundAtria
+            nov = elementsCountAroundRV - n1 - 1
+            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
 
         # LV outlet nodes
         lvOutletNodeId = [ [], [] ]
@@ -459,6 +506,134 @@ class MeshType_3d_heartventriclesbase1(object):
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        # LV base elements starting at anterior interventricular sulcus
+        for e in range(-1, elementsCountAroundLVFreeWall):
+            eft1 = eft
+            nids = None
+            scalefactors = None
+            meshGroups = [ lvMeshGroup ]
+
+            if e < (elementsCountAroundLVFreeWall - elementsCountLVFreeWallRegular):
+                continue
+            else: # regular elements between LV free wall and left atrium
+                noa = elementsCountAroundAtrialFreeWall - elementsCountAroundLVFreeWall + e
+                nov = e
+                nids = [ lvInnerNodeId[nov], lvInnerNodeId[nov + 1], lavInnerNodeId[0][noa], lavInnerNodeId[0][noa + 1],
+                          vOuterNodeId[nov],  vOuterNodeId[nov + 1], lavOuterNodeId[0][noa], lavOuterNodeId[0][noa + 1] ]
+                if e == (elementsCountAroundLVFreeWall - 1):
+                    # general linear map d3 adjacent to collapsed crux, transition to atria
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft1, scalefactors)
+            else:
+                result3 = 7
+            #print('create element lv base', elementIdentifier, result, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
+        # RV base elements, starting at crux / posterior interventricular sulcus
+        for e in range(-1, elementsCountAroundRVFreeWall):
+            eft1 = eft
+            nids = None
+            scalefactors = None
+            meshGroups = [ rvMeshGroup ]
+
+            noa = elementsCountAroundAtrialSeptum - 1 + e
+            niv = e - 1
+            nov = elementsCountAroundLVFreeWall + e
+            if e == -1:
+                # crux / posterior interventricular sulcus: collapsed to 6 element wedge
+                nids = [ lvInnerNodeId[elementsCountAroundLVFreeWall], rvInnerNodeId[niv + 1], lavInnerNodeId[0][elementsCountAroundAtrialFreeWall], ravInnerNodeId[0][noa + 1],
+                          vOuterNodeId[nov + 1], ravOuterNodeId[0][noa + 1] ]
+                meshGroups += [ lvMeshGroup ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])  # from ventricles
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
+            elif e < elementsCountRVFreeWallRegular:
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[niv + 1], ravInnerNodeId[0][noa], ravInnerNodeId[0][noa + 1],
+                          vOuterNodeId[nov],  vOuterNodeId[nov + 1], ravOuterNodeId[0][noa], ravOuterNodeId[0][noa + 1] ]
+                if e == 0:
+                    # general linear map d3 adjacent to collapsed crux, transition to atria
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+            else:
+                continue
+
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft1, scalefactors)
+            else:
+                result3 = 7
+            #print('create element rv base', elementIdentifier, result, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
+        # interventricular septum elements
+        for e in range(elementsCountAroundAtrialSeptum):
+            eft1 = eft
+            nids = None
+            scalefactors = None
+            meshGroups = [ lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
+
+            lv1 = elementsCountAroundLVFreeWall + e
+            lv2 = (lv1 + 1)%elementsCountAroundLV
+            la1 = elementsCountAroundAtrialFreeWall + e
+            la2 = (la1 + 1)%elementsCountAroundAtria
+            rv1 = elementsCountAroundRV - 1 - e
+            rv2 = rv1 - 1
+            ra1 = elementsCountAroundAtrialSeptum - 1 - e
+            ra2 = ra1 - 1
+            nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lavInnerNodeId[0][la1], lavInnerNodeId[0][la2],
+                     rvInnerNodeId[rv1], rvInnerNodeId[rv2], ravInnerNodeId[0][ra1], ravInnerNodeId[0][ra2] ]
+
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            scalefactors = [ -1.0 ]
+            if e == 0:
+                # general linear map d3 adjacent to collapsed posterior interventricular sulcus
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            else:
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft1, scalefactors)
+            else:
+                result3 = 7
+            #print('create element sp base', elementIdentifier, result, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
 
         fm.endChange()
         return annotationGroups
