@@ -20,11 +20,8 @@ class MeshType_3d_ellipticaltube1(object):
     def getDefaultOptions():
         return {
             'Number of elements around' : 8,
-            'Number of elements along' : 1,
+            'Number of elements along' : 6,
             'Number of elements through wall' : 1,
-            'Major axis length of inner ellipse': 2.0,
-            'Minor axis length of inner ellipse': 1.0,
-            'Wall thickness': 0.25,
             'Use cross derivatives' : False,
             'Use linear through wall' : False,
             'Refine' : False,
@@ -39,9 +36,6 @@ class MeshType_3d_ellipticaltube1(object):
             'Number of elements around',
             'Number of elements along',
             'Number of elements through wall',
-            'Major axis length of inner ellipse',
-            'Minor axis length of inner ellipse',
-            'Wall thickness',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -62,12 +56,6 @@ class MeshType_3d_ellipticaltube1(object):
                 options[key] = 1
         if (options['Number of elements around'] < 2) :
             options['Number of elements around'] = 2
-        for key in [
-            'Major axis length of inner ellipse',
-            'Minor axis length of inner ellipse',
-            'Wall thickness']:
-            if options[key] < 0.0:
-                options[key] = 0.0
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -80,14 +68,47 @@ class MeshType_3d_ellipticaltube1(object):
         elementsCountAround = options['Number of elements around']
         elementsCountAlong = options['Number of elements along']
         elementsCountThroughWall = options['Number of elements through wall']
-        a = options['Major axis length of inner ellipse']
-        b = options['Minor axis length of inner ellipse']
-        wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
 
+        # # Straight tube
+        # cx = [[1.0, 3.0, 0.0], [ 2.0, 0.0, 4.0 ] ] #[[1.0, 0.0, 0.0], [ 2.0, 0.0, 0.0]] #
+        # cd1 = [[ 1.0, -3.0, 4.0 ], [ 1.0, -3.0, 4.0 ]] #[[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]] # 
+        # cd2 = [ [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ]]
+        # cd3 = [ [ 0.0, 0.0, 0.25 ], [ 0.0, 0.0, 0.25 ]]
+
+        # # thickness in cd2 and cd3 directions and derivatives (rate of change)
+        # t2 = [ 0.25, 0.25 ]
+        # t2d = [ 0.0, 0.0 ]
+        # t3 = [ 0.25, 0.25]
+        # t3d = [ 0.0, 0.0 ]
+
+        # Curved tube 1
+        cx = [ [ 0.0, 0.0, 0.0], [1.0, 1.0, 0.0], [ 2.0, 0.0, 0.0 ] ]
+        cd1 = [ [ 1.0, 1.0, 0.0 ], [ 1.0, 0.0, 0.0 ], [1.0, -1.0, 0.0] ]
+        cd2 = [ [ 0.0, 0.1, 0.0 ], [ 0.0, 0.1, 0.0 ], [ 0.0, 0.1, 0.0 ] ]
+        cd3 = [ [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2] ]
+
+        # thickness in cd2 and cd3 directions and derivatives (rate of change)
+        t2 = [ 0.1, 0.1, 0.1 ]
+        t2d = [ 0.0, 0.0, 0.0 ]
+        t3 = [ 0.1, 0.1, 0.1 ]
+        t3d = [ 0.0, 0.0, 0.0 ]
+
+        # Curved tube 2
+        # cx = [ [ 0.0, 0.0, 1.0], [1.0, 1.0, 2.0], [ 2.0, 0.0, 4.0 ] ]
+        # cd1 = [ [ 1.0, 1.0, 1.0 ], [ 1.0, 0.0, 2.0 ], [1.0, -1.0, 2.0] ]
+        # cd2 = [ [ 0.0, 0.2, 0.0 ], [ 0.0, 0.2, 0.0 ], [ 0.0, 0.2, 0.0 ] ]
+        # cd3 = [ [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2] ]
+
+        # # thickness in cd2 and cd3 directions and derivatives (rate of change)
+        # t2 = [ 0.1, 0.1, 0.1 ]
+        # t2d = [ 0.0, 0.0, 0.0 ]
+        # t3 = [ 0.1, 0.1, 0.1 ]
+        # t3d = [ 0.0, 0.0, 0.0 ]
+
         nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAlong, elementsCountAround, elementsCountThroughWall, 
-            a, b, wallThickness, useCrossDerivatives, useCubicHermiteThroughWall)
+            cx, cd1, cd2, cd3, t2, t2d, t3, t3d, useCrossDerivatives, useCubicHermiteThroughWall)
 
     @classmethod
     def generateMesh(cls, region, options):
