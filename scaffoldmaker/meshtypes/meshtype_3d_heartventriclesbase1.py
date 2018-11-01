@@ -39,7 +39,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
         options['Number of elements around atrial free wall'] = 6
-        options['Number of elements around atrial septum'] = 2
+        options['Number of elements around atrial septum'] = 3
         # works best with particular numbers of elements up
         options['Number of elements up LV apex'] = 1
         options['Number of elements up RV'] = 4
@@ -50,7 +50,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Atrial septum thickness'] = 0.06
         options['Atrial base wall thickness'] = 0.05
         options['Atrial base slope degrees'] = 15.0
-        options['Base height'] = 0.14
+        options['Base height'] = 0.1
         options['Base thickness'] = 0.06
         options['Fibrous ring thickness'] = 0.01
         options['LV outlet front incline degrees'] = 15.0
@@ -60,11 +60,11 @@ class MeshType_3d_heartventriclesbase1(object):
         options['RV outlet inner diameter'] = 0.27
         options['RV outlet wall thickness'] = 0.025
         options['Ventricles outlet element length'] = 0.1
-        options['Ventricles outlet spacing y'] = 0.04
+        options['Ventricles outlet spacing y'] = 0.02
         options['Ventricles outlet spacing z'] = 0.14
-        options['Ventricles rotation degrees'] = 20.0
+        options['Ventricles rotation degrees'] = 16.0
         options['Ventricles translation x'] = -0.22
-        options['Ventricles translation y'] = -0.2
+        options['Ventricles translation y'] = -0.22
         return options
 
     @staticmethod
@@ -293,6 +293,8 @@ class MeshType_3d_heartventriclesbase1(object):
         lvOutletOuterx, lvOutletOuterd1 = createCirclePoints(lvOutletCentre,
             vector.setMagnitude(axis1, lvOutletOuterRadius), vector.setMagnitude(axis2, lvOutletOuterRadius), elementsCountAroundOutlet)
         lvOutletd2 = [ 0.0, vOutletElementLength*sinLvOutletFrontInclineRadians, vOutletElementLength*cosLvOutletFrontInclineRadians ]
+        zero = [ 0.0, 0.0, 0.0 ]
+        lvOutletOuterd3 = [ vector.setMagnitude([ (lvOutletOuterx[n1][c] - lvOutletCentre[c]) for c in range(3) ], vSeptumThickness) for n1 in range(elementsCountAroundOutlet) ]
 
         # RV outlet points
         cosRvOutletLeftInclineRadians = math.cos(rvOutletLeftInclineRadians)
@@ -308,6 +310,14 @@ class MeshType_3d_heartventriclesbase1(object):
         rvOutletOuterx, rvOutletOuterd1 = createCirclePoints(rvOutletCentre,
             vector.setMagnitude(axis1, rvOutletOuterRadius), vector.setMagnitude(axis2, rvOutletOuterRadius), elementsCountAroundOutlet)
         rvOutletd2 = [ vOutletElementLength*axis3[c] for c in range(3) ]
+        rvOutletOuterd3 = [ None ]*elementsCountAroundOutlet
+
+        # fix derivative 3 between lv, rv outlets
+        lx = lvOutletOuterx[elementsCountAroundOutlet//2]
+        rx = rvOutletOuterx[0]
+        d3 = [ (rx[c] - lx[c]) for c in range(3) ]
+        lvOutletOuterd3[elementsCountAroundOutlet//2] = d3
+        rvOutletOuterd3[0] = [ -d for d in d3 ]
 
         # Left av fibrous ring points
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
@@ -334,7 +344,6 @@ class MeshType_3d_heartventriclesbase1(object):
         for n1 in [ 0, elementsCountAroundAtrialFreeWall ]:
             laBaseOuterd3[n1] = [ 0.0, laBaseOuterx[n1][1] - laBaseInnerx[n1][1], laBaseOuterx[n1][2] - laBaseInnerx[n1][2] ]
         # displace to get bottom points
-        zero = [ 0.0, 0.0, 0.0 ]
         lavInnerx  = [ [], laBaseInnerx ]
         for n1 in range(elementsCountAroundAtria):
             lavInnerx[0].append([ laBaseInnerx[n1][0], laBaseInnerx[n1][1], laBaseInnerx[n1][2] - fibrousRingThickness ])
@@ -403,23 +412,32 @@ class MeshType_3d_heartventriclesbase1(object):
             nov = elementsCountAroundRV - n1 - 1
             ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
 
+        # copy derivative 3 from av points to LV outlet at centre, left and right cfb:
+        lvOutletOuterd3[0] = lavOuterd3[0][0]
+        lvOutletOuterd3[1] = [ -d for d in ravOuterd3[0][-2] ]
+        lvOutletOuterd3[-1] = [ -d for d in lavOuterd3[0][1] ]
+
         # LV outlet nodes
         lvOutletNodeId = [ [], [] ]
         for n3 in range(2):
             if n3 == 0:
                 lvOutletx  = lvOutletInnerx
                 lvOutletd1 = lvOutletInnerd1
+                lvOutletd3 = None
             else:
                 lvOutletx  = lvOutletOuterx
                 lvOutletd1 = lvOutletOuterd1
+                lvOutletd3 = lvOutletOuterd3
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
-                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)  # if (n3 == 0) else nodetemplate)
+                node = nodes.createNode(nodeIdentifier, nodetemplate if lvOutletd3 else nodetemplateLinearS3)
                 lvOutletNodeId[n3].append(nodeIdentifier)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletx[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lvOutletd1[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lvOutletd2)
+                if lvOutletd3:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lvOutletd3[n1])
                 nodeIdentifier += 1
 
         # RV outlet nodes
@@ -428,17 +446,21 @@ class MeshType_3d_heartventriclesbase1(object):
             if n3 == 0:
                 rvOutletx  = rvOutletInnerx
                 rvOutletd1 = rvOutletInnerd1
+                rvOutletd3 = None
             else:
                 rvOutletx  = rvOutletOuterx
                 rvOutletd1 = rvOutletOuterd1
+                rvOutletd3 = rvOutletOuterd3
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
-                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)  # if (n3 == 0) else nodetemplate)
+                node = nodes.createNode(nodeIdentifier, nodetemplate if (rvOutletd3 and rvOutletd3[n1]) else nodetemplateLinearS3)
                 rvOutletNodeId[n3].append(nodeIdentifier)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletx[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rvOutletd1[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rvOutletd2)
+                if (rvOutletd3 and rvOutletd3[n1]):
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rvOutletd3[n1])
                 nodeIdentifier += 1
 
         # AV fibrous ring nodes
@@ -447,7 +469,7 @@ class MeshType_3d_heartventriclesbase1(object):
         ravInnerNodeId = [ [], [] ]
         ravOuterNodeId = [ [], [] ]
         for n3 in range(2):
-            for n2 in range(2):
+            for n2 in range(1): # 2):
                 for i in range(2):
                     if n3 == 0:
                         if i == 0:
@@ -470,9 +492,8 @@ class MeshType_3d_heartventriclesbase1(object):
                         if n3 == 1:
                             if (n2 == 0) and (((i == 0) and (n1 <= 1)) or ((i == 1) and (n1 >= (elementsCountAroundAtria - 2)))):
                                 # substitute LV outlet node around cfb / fibrous trigones
-                                #avNodeId.append(lvOutletNodeId[1][0] if (n1 == 0) else (lvOutletNodeId[1][-1] if (n1 == 1) else lvOutletNodeId[1][1]))
-                                #continue
-                                pass
+                                avNodeId.append(lvOutletNodeId[1][0] if (n1 == 0) else (lvOutletNodeId[1][-1] if (n1 == 1) else lvOutletNodeId[1][1]))
+                                continue
                             if (i == 1) and ((n1 == (elementsCountAroundAtrialSeptum - 1)) or (n1 == (elementsCountAroundAtria - 1))):
                                 # find common nodes on right at cfb and crux
                                 avNodeId.append(lavOuterNodeId[n2][elementsCountAroundAtria - 1 - n1])
@@ -593,7 +614,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 meshGroup.addElement(element)
 
         # interventricular septum elements
-        for e in range(elementsCountAroundAtrialSeptum):
+        for e in range(elementsCountAroundVSeptum + 1):
             eft1 = eft
             nids = None
             scalefactors = None
@@ -601,26 +622,81 @@ class MeshType_3d_heartventriclesbase1(object):
 
             lv1 = elementsCountAroundLVFreeWall + e
             lv2 = (lv1 + 1)%elementsCountAroundLV
-            la1 = elementsCountAroundAtrialFreeWall + e
-            la2 = (la1 + 1)%elementsCountAroundAtria
             rv1 = elementsCountAroundRV - 1 - e
             rv2 = rv1 - 1
-            ra1 = elementsCountAroundAtrialSeptum - 1 - e
-            ra2 = ra1 - 1
-            nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lavInnerNodeId[0][la1], lavInnerNodeId[0][la2],
-                     rvInnerNodeId[rv1], rvInnerNodeId[rv2], ravInnerNodeId[0][ra1], ravInnerNodeId[0][ra2] ]
 
             eft1 = tricubichermite.createEftNoCrossDerivatives()
             setEftScaleFactorIds(eft1, [1], [])
             scalefactors = [ -1.0 ]
-            if e == 0:
-                # general linear map d3 adjacent to collapsed posterior interventricular sulcus
-                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
-                scaleEftNodeValueLabels(eft1, [ 5, 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
-                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            if e < elementsCountAroundAtrialSeptum:
+                la1 = (elementsCountAroundAtrialFreeWall + e)%elementsCountAroundAtria
+                la2 = (la1 + 1)%elementsCountAroundAtria
+                ra1 = elementsCountAroundAtrialSeptum - 1 - e
+                ra2 = ra1 - 1
+                nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lavInnerNodeId[0][la1], lavInnerNodeId[0][la2],
+                         rvInnerNodeId[rv1], rvInnerNodeId[rv2], ravInnerNodeId[0][ra1], ravInnerNodeId[0][ra2] ]
+                if e == 0:
+                    # general linear map d3 adjacent to collapsed posterior interventricular sulcus
+                    scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+                    scaleEftNodeValueLabels(eft1, [ 5, 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                elif e == (elementsCountAroundAtrialSeptum - 1):
+                    # general linear map d3 adjacent to cfb
+                    scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+                    scaleEftNodeValueLabels(eft1, [ 5, 6, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                else:
+                    scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+            elif e == elementsCountAroundAtrialSeptum:
+                # cfb: 6 node inclined wedge element
+                la1 = (elementsCountAroundAtrialFreeWall + e)%elementsCountAroundAtria
+                ra1 = elementsCountAroundAtrialSeptum - 1 - e
+                nids = [ lvInnerNodeId[lv1], lvOutletNodeId[0][0], lavInnerNodeId[0][la1], lvOutletNodeId[1][0],
+                         rvInnerNodeId[rv1], ravInnerNodeId[0][ra1] ]
+                scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                tricubichermite.setEftLinearDerivative(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, 2, 4, 1)
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS3, [])
+                #remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                tricubichermite.setEftLinearDerivative(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS2, 2, 4, 1)
+                ln_map = [ 1, 2, 3, 4, 5, 2, 6, 4 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
             else:
-                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                # wedge elements along remainder of interventricular septum
+                lv1 -= 1
+                lv2 -= 1
+                rv1 += 1
+                rv2 += 1
+                lo1 = e - elementsCountAroundAtrialSeptum - 1
+                lo2 = lo1 + 1
+                nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lvOutletNodeId[0][lo1], lvOutletNodeId[0][lo2],
+                         rvInnerNodeId[rv1], rvInnerNodeId[rv2] ]
+                scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS3, [])
+                if lo1 == 0:
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                    #remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                elif lv2 == 0:
+                    # general linear map d3 adjacent to collapsed anterior interventricular sulcus
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                else:
+                    #remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                    pass
+                ln_map = [ 1, 2, 3, 4, 5, 6, 3, 4 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
@@ -629,7 +705,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 result3 = element.setScaleFactors(eft1, scalefactors)
             else:
                 result3 = 7
-            #print('create element sp base', elementIdentifier, result, result2, result3, nids)
+            print('create element sp base', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
             for meshGroup in meshGroups:
