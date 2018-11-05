@@ -1,5 +1,5 @@
 """
-Generates a 3-D elliptical tube mesh from a central line
+Generates a 3-D tubular mesh from a central line
 with variable numbers of elements around, along and
 through wall, with variable major and minor axis length and
 wall thickness.
@@ -8,13 +8,16 @@ wall thickness.
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 
-class MeshType_3d_ellipticaltube1(object):
+class MeshType_3d_centrallinetube1(object):
     '''
-    classdocs
+    Generates a 3-D tubular mesh with variable numbers
+    of elements around, along the central line, and through wall.
+    The ellipsoidal tube is created from a central line and
+    lateral axes data
     '''
     @staticmethod
     def getName():
-        return '3D Elliptical Tube 1'
+        return '3D Central Line Tube 1'
 
     @staticmethod
     def getDefaultOptions():
@@ -22,6 +25,7 @@ class MeshType_3d_ellipticaltube1(object):
             'Number of elements around' : 8,
             'Number of elements along' : 6,
             'Number of elements through wall' : 1,
+            'Tube type' : 1,
             'Use cross derivatives' : False,
             'Use linear through wall' : False,
             'Refine' : False,
@@ -36,6 +40,7 @@ class MeshType_3d_ellipticaltube1(object):
             'Number of elements around',
             'Number of elements along',
             'Number of elements through wall',
+            'Tube type',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -56,6 +61,8 @@ class MeshType_3d_ellipticaltube1(object):
                 options[key] = 1
         if (options['Number of elements around'] < 2) :
             options['Number of elements around'] = 2
+        if (options['Tube type'] < 1 or options['Tube type'] > 3 ) :
+            options['Tube type'] = 1
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -68,44 +75,48 @@ class MeshType_3d_ellipticaltube1(object):
         elementsCountAround = options['Number of elements around']
         elementsCountAlong = options['Number of elements along']
         elementsCountThroughWall = options['Number of elements through wall']
+        tubeType = options['Tube type']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
 
-        # # Straight tube
-        # cx = [[1.0, 3.0, 0.0], [ 2.0, 0.0, 4.0 ] ] #[[1.0, 0.0, 0.0], [ 2.0, 0.0, 0.0]] #
-        # cd1 = [[ 1.0, -3.0, 4.0 ], [ 1.0, -3.0, 4.0 ]] #[[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]] # 
-        # cd2 = [ [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ]]
-        # cd3 = [ [ 0.0, 0.0, 0.25 ], [ 0.0, 0.0, 0.25 ]]
+        if tubeType == 1:
+            # Straight tube
+            cx = [[1.0, 3.0, 0.0], [ 2.0, 0.0, 4.0 ] ]
+            cd1 = [[ 1.0, -3.0, 4.0 ], [ 1.0, -3.0, 4.0 ]]
+            cd2 = [ [ 0.0, 0.3, 0.0 ], [ 0.0, 0.3, 0.0 ]]
+            cd3 = [ [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5 ]]
 
-        # # thickness in cd2 and cd3 directions and derivatives (rate of change)
-        # t2 = [ 0.25, 0.25 ]
-        # t2d = [ 0.0, 0.0 ]
-        # t3 = [ 0.25, 0.25]
-        # t3d = [ 0.0, 0.0 ]
+            # thickness in cd2 and cd3 directions and derivatives (rate of change)
+            t2 = [ 0.5, 0.5 ]
+            t2d = [ 0.0, 0.0 ]
+            t3 = [ 0.5, 0.5 ]
+            t3d = [ 0.0, 0.0 ]
 
-        # Curved tube 1
-        cx = [ [ 0.0, 0.0, 0.0], [1.0, 1.0, 0.0], [ 2.0, 0.0, 0.0 ] ]
-        cd1 = [ [ 1.0, 1.0, 0.0 ], [ 1.0, 0.0, 0.0 ], [1.0, -1.0, 0.0] ]
-        cd2 = [ [ 0.0, 0.1, 0.0 ], [ 0.0, 0.1, 0.0 ], [ 0.0, 0.1, 0.0 ] ]
-        cd3 = [ [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2] ]
+        elif tubeType == 2:
+            # Curved tube 1
+            cx = [ [ 0.0, 0.0, 0.0], [1.0, 1.0, 0.0], [ 2.0, 0.0, 0.0 ] ]
+            cd1 = [ [ 1.0, 1.0, 0.0 ], [ 1.0, 0.0, 0.0 ], [1.0, -1.0, 0.0] ]
+            cd2 = [ [ 0.0, 0.1, 0.0 ], [ 0.0, 0.1, 0.0 ], [ 0.0, 0.1, 0.0 ] ]
+            cd3 = [ [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2] ]
 
-        # thickness in cd2 and cd3 directions and derivatives (rate of change)
-        t2 = [ 0.1, 0.1, 0.1 ]
-        t2d = [ 0.0, 0.0, 0.0 ]
-        t3 = [ 0.1, 0.1, 0.1 ]
-        t3d = [ 0.0, 0.0, 0.0 ]
+            # thickness in cd2 and cd3 directions and derivatives (rate of change)
+            t2 = [ 0.1, 0.1, 0.1 ]
+            t2d = [ 0.0, 0.0, 0.0 ]
+            t3 = [ 0.1, 0.1, 0.1 ]
+            t3d = [ 0.0, 0.0, 0.0 ]
 
-        # Curved tube 2
-        # cx = [ [ 0.0, 0.0, 1.0], [1.0, 1.0, 2.0], [ 2.0, 0.0, 4.0 ] ]
-        # cd1 = [ [ 1.0, 1.0, 1.0 ], [ 1.0, 0.0, 2.0 ], [1.0, -1.0, 2.0] ]
-        # cd2 = [ [ 0.0, 0.2, 0.0 ], [ 0.0, 0.2, 0.0 ], [ 0.0, 0.2, 0.0 ] ]
-        # cd3 = [ [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2] ]
+        elif tubeType == 3:
+            # Curved tube 2
+            cx = [ [ 0.0, 0.0, 1.0], [1.0, 1.0, 2.0], [ 2.0, 0.0, 4.0 ] ]
+            cd1 = [ [ 1.0, 1.0, 1.0 ], [ 1.0, 0.0, 2.0 ], [1.0, -1.0, 2.0] ]
+            cd2 = [ [ 0.0, 0.2, 0.0 ], [ 0.0, 0.2, 0.0 ], [ 0.0, 0.2, 0.0 ] ]
+            cd3 = [ [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, 0.2] ]
 
-        # # thickness in cd2 and cd3 directions and derivatives (rate of change)
-        # t2 = [ 0.1, 0.1, 0.1 ]
-        # t2d = [ 0.0, 0.0, 0.0 ]
-        # t3 = [ 0.1, 0.1, 0.1 ]
-        # t3d = [ 0.0, 0.0, 0.0 ]
+            # thickness in cd2 and cd3 directions and derivatives (rate of change)
+            t2 = [ 0.1, 0.1, 0.1 ]
+            t2d = [ 0.0, 0.0, 0.0 ]
+            t3 = [ 0.1, 0.1, 0.1 ]
+            t3d = [ 0.0, 0.0, 0.0 ]
 
         nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAlong, elementsCountAround, elementsCountThroughWall, 
             cx, cd1, cd2, cd3, t2, t2d, t3, t3d, useCrossDerivatives, useCubicHermiteThroughWall)

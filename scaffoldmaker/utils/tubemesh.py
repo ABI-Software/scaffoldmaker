@@ -1,5 +1,5 @@
 '''
-Utility functions for generating tubular mesh.
+Utility function for generating tubular mesh from a central line.
 Created on Oct 9, 2018
 
 @author: Mabelle Lin
@@ -27,16 +27,16 @@ def generatetubemesh(region,
     ):
     '''
     Generates a 3-D tubular mesh with variable numbers of elements
-    around, along the central axis, and radially through wall.
-    The tubular mesh follows the profile of a central line and 
-    has a elliptical cross-section.
+    around, along the central axis, and radially through wall. The
+    ellipsoidal tubular mesh is created from central line and lateral
+    axes data
     :param elementsCountAlong: number of elements along tube
     :param elementsCountAround: number of elements around tube
     :param elementsCountThroughWall: number of elements through wall thickness
     :param cx: coordinates on central line
     :param cd1: derivative 1 along central line
-    :param cd2: derivative 2 to the side
-    :param cd3: derivative 3 to the side, perpendicular to direction of cd2
+    :param cd2: derivative 2 to the lateral axis
+    :param cd3: derivative 3 to the lateral axis perpendicular to direction of cd2
     :param t2: wall thickness in cd2 direction
     :param t2d: wall thickness derivative in cd2 direction (rate of change)
     :param t3: wall thickness in cd3 direction
@@ -62,30 +62,33 @@ def generatetubemesh(region,
     sBinormal = []
 
     # Set up normal and binormal for first frame
-    firstUnitTangent = normalise(sd1[0])
-    if magnitude(crossproduct3(firstUnitTangent,[0.0, 0.0, 1.0])) > 0.0:
-        firstBinormal = crossproduct3(firstUnitTangent,[0.0, 0.0, 1.0])
+    prevUnitTangent = normalise(sd1[0])
+    if magnitude(crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])) > 0.0:
+        prevBinormal = crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])
     else:
-        firstBinormal = crossproduct3(firstUnitTangent,[0.0, -1.0, 0.0])
-    firstUnitBinormal = [c/magnitude(firstBinormal) for c in firstBinormal]
-    firstUnitNormal = crossproduct3(firstUnitBinormal, firstUnitTangent)
-    sNormal.append(firstUnitNormal)
-    sBinormal.append(firstUnitBinormal)
+        prevBinormal = crossproduct3(prevUnitTangent,[0.0, -1.0, 0.0])
+    prevUnitBinormal = normalise(prevBinormal)
+    prevUnitNormal = crossproduct3(prevUnitBinormal, prevUnitTangent)
+    sNormal.append(prevUnitNormal)
+    sBinormal.append(prevUnitBinormal)
 
-    # Step through central line and rotate axes to align tangent to tangent from first frame
+    # Step through central line and rotate central line axes to align tangent 
+    # to tangent from previous frame
     for n in range(1, elementsCountAlong+1):
         unitTangent = normalise(sd1[n])
-        cp = crossproduct3(firstUnitTangent, unitTangent)
+        cp = crossproduct3(prevUnitTangent, unitTangent)
         if magnitude(cp)> 0.0:
-            axisRot = [c/magnitude(cp) for c in cp]
-            thetaRot = math.acos(dotproduct(firstUnitTangent, unitTangent))
+            axisRot = normalise(cp)
+            thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
             rotFrame = rotationMatrixAboutAxis(axisRot, thetaRot)
-            rotNormal = [rotFrame[j][0]*firstUnitNormal[0] + rotFrame[j][1]*firstUnitNormal[1] + rotFrame[j][2]*firstUnitNormal[2] for j in range(3)]
-            unitNormal = [c/magnitude(rotNormal) for c in rotNormal]
+            rotNormal = [rotFrame[j][0]*prevUnitNormal[0] + rotFrame[j][1]*prevUnitNormal[1] + rotFrame[j][2]*prevUnitNormal[2] for j in range(3)]
+            unitNormal = normalise(rotNormal)
             unitBinormal = crossproduct3(unitTangent, unitNormal)
+            prevUnitTangent = unitTangent
+            prevUnitNormal = unitNormal
         else:
-            unitBinormal = firstUnitBinormal
-            unitNormal = firstUnitNormal
+            unitBinormal = prevUnitBinormal
+            unitNormal = prevUnitNormal
         sNormal.append(unitNormal)
         sBinormal.append(unitBinormal)
 
@@ -129,10 +132,8 @@ def generatetubemesh(region,
     dx_ds3 = [ 0.0, 0.0, 0.0 ]
 
     for n3 in range(elementsCountThroughWall + 1):
-
         for n2 in range(elementsCountAlong+1):
-
-            aThroughWallElement = sd2[n2][1] + st2[n2]*(n3/elementsCountThroughWall) # Check sd2, sd3
+            aThroughWallElement = sd2[n2][1] + st2[n2]*(n3/elementsCountThroughWall)
             bThroughWallElement = sd3[n2][2] + st3[n2]*(n3/elementsCountThroughWall)
             perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement, bThroughWallElement)
             arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
@@ -140,10 +141,9 @@ def generatetubemesh(region,
             st2PerWallElement = st2[n2]/elementsCountThroughWall
             st3PerWallElement = st3[n2]/elementsCountThroughWall
 
-            # Pre-calculate next node downstream for arclength calculation
             if n2 < elementsCountAlong:
-                aThroughWallElementNext = sd2[n2][1] + st2[n2]*(n3/elementsCountThroughWall) # Check sd2, sd3 
-                bThroughWallElementNext = sd3[n2][2] + st3[n2]*(n3/elementsCountThroughWall)
+                aThroughWallElementNext = sd2[n2+1][1] + st2[n2+1]*(n3/elementsCountThroughWall)
+                bThroughWallElementNext = sd3[n2+1][2] + st3[n2+1]*(n3/elementsCountThroughWall)
                 perimeterAroundWallElementNext = getApproximateEllipsePerimeter(aThroughWallElementNext, bThroughWallElementNext)
                 arcLengthPerElementAroundNext = perimeterAroundWallElementNext / elementsCountAround
 
@@ -152,20 +152,52 @@ def generatetubemesh(region,
                 radiansAround = -1*updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement, 0.0, arcLengthAround)
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
-
                 x = [sx[n2][j] + aThroughWallElement*cosRadiansAround*sBinormal[n2][j] + bThroughWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)]
                 dx_ds1 = [(radiansAround - prevRadiansAround)*(aThroughWallElement*-sinRadiansAround*sBinormal[n2][j] + bThroughWallElement*cosRadiansAround*sNormal[n2][j]) for j in range(3)]
 
+                # Calculate curvature to find d1 for node
+                unitNormal = normalise([aThroughWallElement*cosRadiansAround*sBinormal[n2][j] + bThroughWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)])
+                if n2 == 0:
+                    curvature = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormal, 0.0)
+                elif n2 == elementsCountAlong:
+                    curvature = getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], unitNormal, 1.0)
+                else:
+                    curvature = 0.5*(
+                    getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], unitNormal, 1.0) +
+                    getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormal, 0.0))
+                wallDistance = magnitude([aThroughWallElement*cosRadiansAround*sBinormal[n2][j] + bThroughWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)])
+                factor = 1.0 - curvature*wallDistance
+                d1Wall = [ factor*c for c in sd1[n2]]
+
+                # Calculate curvature to find d1 for downstream node
                 if n2 < elementsCountAlong:
                     arcLengthAroundNext = n1*arcLengthPerElementAroundNext
                     radiansAroundNext = -1*updateEllipseAngleByArcLength(aThroughWallElementNext, bThroughWallElementNext, 0.0, arcLengthAroundNext)
                     cosRadiansAroundNext = math.cos(radiansAroundNext)
                     sinRadiansAroundNext = math.sin(radiansAroundNext)
                     xNext = [sx[n2+1][j] + aThroughWallElementNext*cosRadiansAroundNext*sBinormal[n2+1][j] + bThroughWallElementNext*sinRadiansAroundNext*sNormal[n2+1][j] for j in range(3)]
-                    cubicArcLength = computeCubicHermiteArcLength(x, sd1[n2], xNext, sd1[n2+1], True)
-                dx_ds2 = [cubicArcLength*sd1[n2][j]/magnitude(sd1[n2]) for j in range(3)]
+                    unitNormalNext = normalise([aThroughWallElementNext*cosRadiansAroundNext*sBinormal[n2+1][j] + bThroughWallElementNext*sinRadiansAroundNext*sNormal[n2+1][j] for j in range(3)])
+                    if n2 + 1 == elementsCountAlong:
+                        curvatureNext = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormalNext, 1.0)
+                    else:
+                        curvatureNext = 0.5*(
+                        getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormalNext, 1.0) +
+                        getCubicHermiteCurvature(sx[n2+1], sd1[n2+1], sx[n2+2], sd1[n2+2], unitNormalNext, 0.0))
+                    wallDistanceNext = magnitude([aThroughWallElementNext*cosRadiansAroundNext*sBinormal[n2+1][j] + bThroughWallElementNext*sinRadiansAroundNext*sNormal[n2+1][j] for j in range(3)])
+                    factorNext = 1.0 - curvatureNext*wallDistanceNext
+                    d1WallNext = [ factorNext*c for c in sd1[n2+1] ]
+                    arcLength = computeCubicHermiteArcLength(x, d1Wall, xNext, d1WallNext, True)
+                    dx_ds2 = [arcLength*c for c in normalise(d1Wall)]
+                    if n2 == elementsCountAlong - 1:
+                        secondLastX = x
+                        secondLastd1Wall = d1Wall
+                        lastX = xNext
+                        lastd1Wall = d1WallNext
+                else:
+                    arcLength = computeCubicHermiteArcLength(secondLastX, secondLastd1Wall, lastX, lastd1Wall, True)
+                    dx_ds2 = [arcLength*c for c in normalise(lastd1Wall)]
 
-                dx_ds3 = [ st2PerWallElement*cosRadiansAround*sBinormal[n2][j] + st3PerWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)] # Double check if correct
+                dx_ds3 = [ st2PerWallElement*cosRadiansAround*sBinormal[n2][j] + st3PerWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)] # Modify later to calculate with interpolation
 
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
@@ -213,6 +245,12 @@ def generatetubemesh(region,
     return nodeIdentifier, elementIdentifier
 
 def rotationMatrixAboutAxis(rotAxis, theta):
+    """
+    Generate the rotation matrix for rotation about an axis.
+    :param rotAxis: axis of rotation
+    :param theta: angle of rotation
+    :return: rotation matrix
+    """
     cosTheta = math.cos(theta)
     sinTheta = math.sin(theta)
     C = 1 - cosTheta
