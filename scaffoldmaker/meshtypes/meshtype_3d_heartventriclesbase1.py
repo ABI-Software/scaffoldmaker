@@ -324,7 +324,7 @@ class MeshType_3d_heartventriclesbase1(object):
         px, pd1 = sampleCubicHermiteCurves([ lvOutletOuterx[3], vOuterx[0] ], [ [ 2.0*d for d in lvOutletOuterd1[3] ], fd2 ], 2, arcLengthDerivatives=True)[0:2]
         pd1 = smoothCubicHermiteDerivativesLine(px, [ lvOutletOuterd1[3], pd1[1], fd2 ], fixStartDerivative=True, fixEndDerivative=True)
         pd3 = smoothCubicHermiteDerivativesLine([ lvOutletOuterx[4], px[1], rvOutletOuterx[-1] ], [ lvOutletOuterd3[4], zero, rvOutletd2 ], fixEndDerivative=True)
-        n1 = elementsCountAroundRVFreeWall - 1
+        n1 = elementsCountAroundRVFreeWall
         d3 = vector.crossproduct3(pd3[1], pd1[1])
         sx = [ 0.5*(lvInnerx[0][c] + rvInnerx[n1][c]) for c in range(3) ]
         sd2 = [ 0.5*(lvInnerd2[0][c] + rvInnerd2[n1][c]) for c in range(3) ]
@@ -418,14 +418,14 @@ class MeshType_3d_heartventriclesbase1(object):
         for n1 in range(1, elementsCountRVFreeWallRegular + 1):
             noa = elementsCountAroundAtrialSeptum + n1 - 1
             nov = elementsCountAroundLVFreeWall + n1
-            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[n1 - 1], rvInnerd2[n1 - 1], ravInnerx[0][noa], 1.0)
+            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[n1], rvInnerd2[n1], ravInnerx[0][noa], 1.0)
             ravOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], ravOuterx[0][noa], 1.0)
         for n1 in range(elementsCountAroundAtrialSeptum + 1):
             noa = (elementsCountAroundAtrialFreeWall + n1)%elementsCountAroundAtria
             nov = elementsCountAroundLVFreeWall + n1
             lavInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
             noa = (elementsCountAroundAtrialSeptum - 1 + elementsCountAroundAtria - n1)%elementsCountAroundAtria
-            nov = elementsCountAroundRV - n1 - 1
+            nov = -n1
             ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
 
         # copy derivative 3 from av points to LV outlet at centre, left and right cfb:
@@ -594,7 +594,7 @@ class MeshType_3d_heartventriclesbase1(object):
             meshGroups = [ rvMeshGroup ]
 
             noa = elementsCountAroundAtrialSeptum - 1 + e
-            niv = e - 1
+            niv = e
             nov = elementsCountAroundLVFreeWall + e
             if e == -1:
                 # crux / posterior interventricular sulcus: collapsed to 6 element wedge
@@ -648,7 +648,7 @@ class MeshType_3d_heartventriclesbase1(object):
 
             lv1 = elementsCountAroundLVFreeWall + e
             lv2 = (lv1 + 1)%elementsCountAroundLV
-            rv1 = elementsCountAroundRV - 1 - e
+            rv1 = -e
             rv2 = rv1 - 1
 
             eft1 = tricubichermite.createEftNoCrossDerivatives()
