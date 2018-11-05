@@ -8,6 +8,7 @@ Created on Nov 15, 2017
 from __future__ import division
 import collections
 import copy
+from enum import Enum
 import math
 import scaffoldmaker.utils.vector as vector
 
@@ -388,26 +389,37 @@ def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
         length += arcLength
     return nx[-1], nd[-1], elementsCount - 1, 1.0
 
+class DerivativeScalingMode(Enum):
+    ARITHMETIC_MEAN = 1  # derivative is half of sum of arclengths on either side
+    HARMONIC_MEAN   = 2  # derivative is reciprocal of arithmetic mean of reciprocals of arclengths = arc lengths weighted by proportion from other side
+
 def smoothCubicHermiteDerivativesLine(nx, nd1,
         fixAllDirections = False,
         fixStartDerivative = False, fixEndDerivative = False,
-        fixStartDirection = False, fixEndDirection = False):
+        fixStartDirection = False, fixEndDirection = False,
+        magnitudeScalingMode = DerivativeScalingMode.ARITHMETIC_MEAN):
     """
     Modifies derivatives nd1 to be smoothly varying and near arc length.
     Values are treated as being in a line.
     Assumes initial derivatives are zero or reasonable.
+    Where directions are smoothed the weighted/harmonic mean is used.
     :param nx: List of coordinates of nodes along curves.
     :param nd1: List of derivatives of nodes along curves.
     :param fixAllDirections: Set to True to only smooth magnitudes, otherwise both direction and magnitude are adjusted.
     :param fixStartDerivative, fixEndDerivative: Set to True to fix derivative direction and magnitude at respective end.
     :param fixStartDirection, fixEndDirection: Set to True to fix direction at respective end.
     Redundant if fixAllDirections or respective fixStart/EndDerivative is True.
+    :param magnitudeScalingMode: A value from enum DerivativeScalingMode specifying
+    expression used to get derivative magnitude from adjacent arc lengths.
     :return: Modified nd1
     """
     nodesCount = len(nx)
     elementsCount = nodesCount - 1
     assert elementsCount > 0, 'smoothCubicHermiteDerivativesLine.  Too few nodes/elements'
     assert len(nd1) == nodesCount, 'smoothCubicHermiteDerivativesLine.  Mismatched number of derivatives'
+    arithmeticMeanMagnitude = magnitudeScalingMode is DerivativeScalingMode.ARITHMETIC_MEAN
+    assert arithmeticMeanMagnitude or (magnitudeScalingMode is DerivativeScalingMode.HARMONIC_MEAN), \
+        'smoothCubicHermiteDerivativesLine. Invalid magnitude scaling mode'
     md1 = copy.copy(nd1)
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
@@ -431,17 +443,21 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         # middle
         for n in range(1, nodesCount - 1):
             nm = n - 1
-            arcLengthmp = arcLengths[nm] + arcLengths[n]
-            wm = arcLengths[n ]/arcLengthmp
-            wp = arcLengths[nm]/arcLengthmp
             if not fixAllDirections:
-                # average direction, weighted by fraction towards that end
-                np = (n + 1)%nodesCount
+                # get mean of directions from point n to points (n - 1) and (n + 1)
+                np = n + 1
                 dirm = [ (nx[n ][c] - nx[nm][c]) for c in componentRange ]
                 dirp = [ (nx[np][c] - nx[n ][c]) for c in componentRange ]
+                # mean weighted by fraction towards that end, equivalent to harmonic mean
+                arcLengthmp = arcLengths[nm] + arcLengths[n]
+                wm = arcLengths[n ]/arcLengthmp
+                wp = arcLengths[nm]/arcLengthmp
                 md1[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
-            # harmonic mean of magnitude
-            md1[n] = vector.setMagnitude(md1[n], wm*arcLengths[nm] + wp*arcLengths[n])
+            if arithmeticMeanMagnitude:
+                mag = 0.5*(arcLengths[nm] + arcLengths[n])
+            else: # harmonicMeanMagnitude
+                mag = 2.0/(1.0/arcLengths[nm] + 1.0/arcLengths[n])
+            md1[n] = vector.setMagnitude(md1[n], mag)
         # end
         if not fixEndDerivative:
             if fixAllDirections or fixEndDirection:
@@ -453,19 +469,26 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     return md1
 
 def smoothCubicHermiteDerivativesLoop(nx, nd1,
-        fixAllDirections = False):
+        fixAllDirections = False,
+        magnitudeScalingMode = DerivativeScalingMode.ARITHMETIC_MEAN):
     """
     Modifies derivatives nd1 to be smoothly varying and near arc length.
     Values are treated as being in a loop, so the first point follows the last.
     Assumes initial derivatives are zero or reasonable.
+    Where directions are smoothed the weighted/harmonic mean is used.
     :param nx: List of coordinates of nodes along curves.
     :param nd1: List of derivatives of nodes along curves.
     :param fixAllDirections: Set to True to only smooth magnitudes, otherwise both direction and magnitude are adjusted.
+    :param magnitudeScalingMode: A value from enum DerivativeScalingMode specifying
+    expression used to get derivative magnitude from adjacent arc lengths.
     :return: Modified nd1
     """
     nodesCount = elementsCount = len(nx)
     assert elementsCount > 1, 'smoothCubicHermiteDerivativesLoop.  Too few nodes/elements'
     assert len(nd1) == elementsCount, 'smoothCubicHermiteDerivativesLoop.  Mismatched number of derivatives'
+    arithmeticMeanMagnitude = magnitudeScalingMode is DerivativeScalingMode.ARITHMETIC_MEAN
+    assert arithmeticMeanMagnitude or (magnitudeScalingMode is DerivativeScalingMode.HARMONIC_MEAN), \
+        'smoothCubicHermiteDerivativesLine. Invalid magnitude scaling mode'
     md1 = copy.copy(nd1)
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
@@ -482,17 +505,21 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
                 return md1
         for n in range(nodesCount):
             nm = n - 1
-            arcLengthmp = arcLengths[nm] + arcLengths[n]
-            wm = arcLengths[n ]/arcLengthmp
-            wp = arcLengths[nm]/arcLengthmp
             if not fixAllDirections:
-                # average direction, weighted by fraction towards that end
+                # get mean of directions from point n to points (n - 1) and (n + 1)
                 np = (n + 1)%nodesCount
                 dirm = [ (nx[n ][c] - nx[nm][c]) for c in componentRange ]
                 dirp = [ (nx[np][c] - nx[n ][c]) for c in componentRange ]
+                # mean weighted by fraction towards that end, equivalent to harmonic mean
+                arcLengthmp = arcLengths[nm] + arcLengths[n]
+                wm = arcLengths[n ]/arcLengthmp
+                wp = arcLengths[nm]/arcLengthmp
                 md1[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
-            # harmonic mean of magnitude
-            md1[n] = vector.setMagnitude(md1[n], wm*arcLengths[nm] + wp*arcLengths[n])
+            if arithmeticMeanMagnitude:
+                mag = 0.5*(arcLengths[nm] + arcLengths[n])
+            else: # harmonicMeanMagnitude
+                mag = 2.0/(1.0/arcLengths[nm] + 1.0/arcLengths[n])
+            md1[n] = vector.setMagnitude(md1[n], mag)
         lastArcLengths = arcLengths
     print('smoothCubicHermiteDerivativesLoop max iters reached:',iter)
     return md1
