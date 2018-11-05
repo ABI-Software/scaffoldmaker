@@ -29,7 +29,7 @@ class MeshType_3d_heartatria1(object):
     def getDefaultOptions():
         return {
             'Number of elements around atrial free wall' : 8,
-            'Number of elements around atrial septum' : 2,
+            'Number of elements around atrial septum' : 3,
             'Number of elements up atria' : 4,
             'Number of elements inlet' : 2,
             'Atria base inner major axis length' : 0.55,

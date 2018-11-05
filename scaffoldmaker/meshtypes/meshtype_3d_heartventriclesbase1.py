@@ -50,7 +50,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Atrial septum thickness'] = 0.06
         options['Atrial base wall thickness'] = 0.05
         options['Atrial base slope degrees'] = 15.0
-        options['Base height'] = 0.1
+        options['Base height'] = 0.12
         options['Base thickness'] = 0.06
         options['Fibrous ring thickness'] = 0.01
         options['LV outlet front incline degrees'] = 15.0
@@ -319,6 +319,22 @@ class MeshType_3d_heartventriclesbase1(object):
         lvOutletOuterd3[elementsCountAroundOutlet//2] = d3
         rvOutletOuterd3[0] = [ -d for d in d3 ]
 
+        # create point above anterior ventricular septum end
+        fd2 = [ -d for d in vOuterd2[0] ]
+        px, pd1 = sampleCubicHermiteCurves([ lvOutletOuterx[3], vOuterx[0] ], [ [ 2.0*d for d in lvOutletOuterd1[3] ], fd2 ], 2, arcLengthDerivatives=True)[0:2]
+        pd1 = smoothCubicHermiteDerivativesLine(px, [ lvOutletOuterd1[3], pd1[1], fd2 ], fixStartDerivative=True, fixEndDerivative=True)
+        pd3 = smoothCubicHermiteDerivativesLine([ lvOutletOuterx[4], px[1], rvOutletOuterx[-1] ], [ lvOutletOuterd3[4], zero, rvOutletd2 ], fixEndDerivative=True)
+        n1 = elementsCountAroundRVFreeWall - 1
+        d3 = vector.crossproduct3(pd3[1], pd1[1])
+        sx = [ 0.5*(lvInnerx[0][c] + rvInnerx[n1][c]) for c in range(3) ]
+        sd2 = [ 0.5*(lvInnerd2[0][c] + rvInnerd2[n1][c]) for c in range(3) ]
+        pd2 = smoothCubicHermiteDerivativesLine([ sx, px[1] ], [ sd2, d3 ], fixStartDerivative=True, fixEndDirection=True)
+        avsx = px[1]
+        avsd1 = pd1[1]
+        avsd2 = pd2[1]
+        avsd3 = pd3[1]
+        lvOutletOuterd3[4] = pd3[0]
+
         # Left av fibrous ring points
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
@@ -462,6 +478,16 @@ class MeshType_3d_heartventriclesbase1(object):
                 if (rvOutletd3 and rvOutletd3[n1]):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rvOutletd3[n1])
                 nodeIdentifier += 1
+
+        # Node above above anterior ventricular septum end
+        avsNodeId = nodeIdentifier
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, avsx)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, avsd1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, avsd2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, avsd3)
+        nodeIdentifier += 1
 
         # AV fibrous ring nodes
         lavInnerNodeId = [ [], [] ]
@@ -650,13 +676,12 @@ class MeshType_3d_heartventriclesbase1(object):
                 else:
                     scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
             elif e == elementsCountAroundAtrialSeptum:
-                # cfb: 6 node inclined wedge element
+                # cfb: 5 node inclined pyramid element
                 la1 = (elementsCountAroundAtrialFreeWall + e)%elementsCountAroundAtria
                 ra1 = elementsCountAroundAtrialSeptum - 1 - e
-                nids = [ lvInnerNodeId[lv1], lvOutletNodeId[0][0], lavInnerNodeId[0][la1], lvOutletNodeId[1][0],
-                         rvInnerNodeId[rv1], ravInnerNodeId[0][ra1] ]
+                nids = [ lvInnerNodeId[lv1], lvOutletNodeId[1][0], lavInnerNodeId[0][la1], rvInnerNodeId[rv1], ravInnerNodeId[0][ra1] ]
                 scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
-                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 tricubichermite.setEftLinearDerivative(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, 2, 4, 1)
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
@@ -670,8 +695,8 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 tricubichermite.setEftLinearDerivative(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS2, 2, 4, 1)
-                ln_map = [ 1, 2, 3, 4, 5, 2, 6, 4 ]
-                remapEftLocalNodes(eft1, 6, ln_map)
+                ln_map = [ 1, 2, 3, 2, 4, 2, 5, 2 ]
+                remapEftLocalNodes(eft1, 5, ln_map)
             else:
                 # wedge elements along remainder of interventricular septum
                 lv1 -= 1
@@ -680,21 +705,27 @@ class MeshType_3d_heartventriclesbase1(object):
                 rv2 += 1
                 lo1 = e - elementsCountAroundAtrialSeptum - 1
                 lo2 = lo1 + 1
-                nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lvOutletNodeId[0][lo1], lvOutletNodeId[0][lo2],
+                nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lvOutletNodeId[1][lo1], lvOutletNodeId[1][lo2],
                          rvInnerNodeId[rv1], rvInnerNodeId[rv2] ]
                 scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                 remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS3, [])
                 if lo1 == 0:
-                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                     #remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
                 elif lv2 == 0:
+                    nids[3] = avsNodeId
+                    remapEftNodeValueLabel(eft1, [ 1, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                     remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 else:
+                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     #remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
-                    pass
                 ln_map = [ 1, 2, 3, 4, 5, 6, 3, 4 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
 
