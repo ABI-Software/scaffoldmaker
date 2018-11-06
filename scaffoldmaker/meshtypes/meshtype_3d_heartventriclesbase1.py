@@ -605,8 +605,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])  # from ventricles
+                remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
                 remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
@@ -621,7 +620,6 @@ class MeshType_3d_heartventriclesbase1(object):
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
                     scalefactors = [ -1.0 ]
-                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
             else:
                 continue
@@ -664,9 +662,9 @@ class MeshType_3d_heartventriclesbase1(object):
                 if e == 0:
                     # general linear map d3 adjacent to collapsed posterior interventricular sulcus
                     scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
-                    scaleEftNodeValueLabels(eft1, [ 5, 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                    scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 elif e == (elementsCountAroundAtrialSeptum - 1):
                     # general linear map d3 adjacent to cfb
                     scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
@@ -686,7 +684,6 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS3, [])
-                #remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -707,25 +704,27 @@ class MeshType_3d_heartventriclesbase1(object):
                 lo2 = lo1 + 1
                 nids = [ lvInnerNodeId[lv1], lvInnerNodeId[lv2], lvOutletNodeId[1][lo1], lvOutletNodeId[1][lo2],
                          rvInnerNodeId[rv1], rvInnerNodeId[rv2] ]
-                scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
                 remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS3, [])
                 if lo1 == 0:
+                    scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                     remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
-                    #remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
-                elif lv2 == 0:
+                elif lv2 == 0:  # final element on v septum
                     nids[3] = avsNodeId
-                    remapEftNodeValueLabel(eft1, [ 1, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    #remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                     remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                     remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 else:
+                    scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    #remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
                 ln_map = [ 1, 2, 3, 4, 5, 6, 3, 4 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
 
@@ -753,12 +752,45 @@ class MeshType_3d_heartventriclesbase1(object):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
+        elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
+        elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
+        elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
+        elementsCountAroundRV = 2*elementsCountAroundRVFreeWall
+        elementsCountUpLVApex = options['Number of elements up LV apex']
+        elementsCountUpRV = options['Number of elements up RV']
+        elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
+        elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
+        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        elementsCountLVFreeWallRegular = elementsCountAroundAtrialFreeWall//2
+        elementsCountRVFreeWallRegular = elementsCountAroundAtrialFreeWall//2
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
         MeshType_3d_heartventricles1.refineMesh(meshrefinement, options)
         element = meshrefinement._sourceElementiterator.next()
-        startBaseElementIdentifier = element.getIdentifier()
+        startBaseLvElementIdentifier = element.getIdentifier()
+        startBaseRvElementIdentifier = startBaseLvElementIdentifier + elementsCountLVFreeWallRegular
+        startBaseSeptumElementIdentifier = startBaseRvElementIdentifier + 1 + elementsCountRVFreeWallRegular
+        limitBaseElementIdentifier = startBaseSeptumElementIdentifier + elementsCountAroundVSeptum + 1
+        #print(startBaseLvElementIdentifier, startBaseRvElementIdentifier, startBaseSeptumElementIdentifier, limitBaseElementIdentifier)
+        while element.isValid():
+            numberInXi1 = refineElementsCountSurface
+            numberInXi2 = refineElementsCountSurface
+            numberInXi3 = refineElementsCountThroughLVWall
+            elementId = element.getIdentifier()
+            if elementId < startBaseRvElementIdentifier:
+                pass
+            elif elementId == startBaseRvElementIdentifier:
+                # collapsed elements on posterior or anterior interventricular sulcus:
+                numberInXi1 = refineElementsCountThroughLVWall
+            elif elementId < startBaseSeptumElementIdentifier:
+                numberInXi3 = refineElementsCountThroughWall
+            meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+            if elementId == (limitBaseElementIdentifier - 1):
+                return  # finish on last so can continue in full heart mesh
+            element = meshrefinement._sourceElementiterator.next()
 
     @classmethod
     def generateMesh(cls, region, options):
