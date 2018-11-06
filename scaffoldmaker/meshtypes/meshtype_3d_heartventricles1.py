@@ -438,14 +438,17 @@ class MeshType_3d_heartventricles1(object):
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
                 midSeptumDisplacement = interpolateCubicHermite([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
 
-                numberAround = 8
+                numberAround = 10
                 nx, nd1 = getLeftVentricleInnerPoints(lvRadius, midSeptumDisplacement, rvArcAroundZRadians, z, numberAround, numberAround)
                 # extract septum points, reversing order and derivative
                 nx = [ layerInnerx [-1] ] + nx [-1:-numberAround:-1] + [ layerInnerx [1 - elementsCountAroundRVFreeWall] ]
                 nd1 = [ layerInnerd1[-1] ] + [ ([-d for d in nd1[n1] ]) for n1 in range(-1, -numberAround, -1) ] + [ layerInnerd1[1 - elementsCountAroundRVFreeWall] ]
+                scale = 2.0
+                for n1 in [ -1, 0 ]:
+                    nd1[n1] = [ scale*d for d in nd1[n1] ]
                 px, pd1 = sampleCubicHermiteCurves(nx, nd1, elementsCountAroundVSeptum + 2,
-                    addLengthStart = 0.5*vector.magnitude(nd1[ 0]), lengthFractionStart = 0.5,
-                    addLengthEnd = 0.5*vector.magnitude(nd1[-1]), lengthFractionEnd = 0.5,
+                    addLengthStart = (0.5/scale)*vector.magnitude(nd1[ 0]), lengthFractionStart = 0.5,
+                    addLengthEnd = (0.5/scale)*vector.magnitude(nd1[-1]), lengthFractionEnd = 0.5,
                     arcLengthDerivatives = False)[0:2]
                 for n1 in range(elementsCountAroundVSeptum + 1):
                     # d3 at ends of septum is toward adjacent interventricular sulcus, inside septum is across septum to lvInner
