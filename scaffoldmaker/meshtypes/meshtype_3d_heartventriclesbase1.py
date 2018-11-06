@@ -64,7 +64,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Ventricles outlet spacing z'] = 0.14
         options['Ventricles rotation degrees'] = 16.0
         options['Ventricles translation x'] = -0.22
-        options['Ventricles translation y'] = -0.22
+        options['Ventricles translation y'] = -0.2
         return options
 
     @staticmethod
@@ -320,10 +320,12 @@ class MeshType_3d_heartventriclesbase1(object):
         rvOutletOuterd3[0] = [ -d for d in d3 ]
 
         # create point above anterior ventricular septum end
+        sd2 = lvOutletOuterd1[3]
         fd2 = [ -d for d in vOuterd2[0] ]
-        px, pd1 = sampleCubicHermiteCurves([ lvOutletOuterx[3], vOuterx[0] ], [ [ 2.0*d for d in lvOutletOuterd1[3] ], fd2 ], 2, arcLengthDerivatives=True)[0:2]
-        pd1 = smoothCubicHermiteDerivativesLine(px, [ lvOutletOuterd1[3], pd1[1], fd2 ], fixStartDerivative=True, fixEndDerivative=True)
-        pd3 = smoothCubicHermiteDerivativesLine([ lvOutletOuterx[4], px[1], rvOutletOuterx[-1] ], [ lvOutletOuterd3[4], zero, rvOutletd2 ], fixEndDerivative=True)
+        px, pd1 = sampleCubicHermiteCurves([ lvOutletOuterx[3], vOuterx[0] ], [ [ 2.0*d for d in sd2 ], fd2 ], 2, arcLengthDerivatives=True)[0:2]
+        pd1 = smoothCubicHermiteDerivativesLine(px, [ sd2, pd1[1], fd2 ], fixStartDerivative=True, fixEndDerivative=True)
+        pd3 = smoothCubicHermiteDerivativesLine([ lvOutletOuterx[4], px[1], rvOutletOuterx[-1] ], [ lvOutletOuterd3[4], zero, rvOutletd2 ],
+            fixEndDerivative=True, magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
         n1 = elementsCountAroundRVFreeWall
         d3 = vector.crossproduct3(pd3[1], pd1[1])
         sx = [ 0.5*(lvInnerx[0][c] + rvInnerx[n1][c]) for c in range(3) ]
@@ -684,7 +686,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS3, [])
-                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
@@ -710,7 +712,7 @@ class MeshType_3d_heartventriclesbase1(object):
                     scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                     remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                 elif lv2 == 0:  # final element on v septum
                     nids[3] = avsNodeId
