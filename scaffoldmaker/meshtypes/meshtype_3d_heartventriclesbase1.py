@@ -49,7 +49,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Atria major axis rotation degrees'] = 40.0
         options['Atrial septum thickness'] = 0.06
         options['Atrial base wall thickness'] = 0.05
-        options['Atrial base slope degrees'] = 15.0
+        options['Atrial base slope degrees'] = 30.0
         options['Base height'] = 0.12
         options['Base thickness'] = 0.06
         options['Fibrous ring thickness'] = 0.01
@@ -429,11 +429,51 @@ class MeshType_3d_heartventriclesbase1(object):
             noa = (elementsCountAroundAtrialSeptum - 1 + elementsCountAroundAtria - n1)%elementsCountAroundAtria
             nov = -n1
             ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
+        # special fix for right cfb
+        noa = elementsCountAroundAtria - 2
+        nov = -elementsCountAroundAtrialSeptum
+        ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
+
+        # set d2 at ra node mid supraventricular crest to be normal to surface; smooth to get final magnitude later
+        ravsvcn1 = elementsCountAroundAtria - 3
+        mag = baseHeight + baseThickness
+        ravInnerd2[0][ravsvcn1] = vector.setMagnitude(vector.crossproduct3(ravInnerd3[0][ravsvcn1], ravInnerd1[0][ravsvcn1]), mag)
+        ravOuterd2[0][ravsvcn1] = vector.setMagnitude(vector.crossproduct3(ravOuterd3[0][ravsvcn1], ravOuterd1[0][ravsvcn1]), mag)
 
         # copy derivative 3 from av points to LV outlet at centre, left and right cfb:
         lvOutletOuterd3[0] = lavOuterd3[0][0]
         lvOutletOuterd3[1] = [ -d for d in ravOuterd3[0][-2] ]
         lvOutletOuterd3[-1] = [ -d for d in lavOuterd3[0][1] ]
+
+        # create points on bottom and top of RV supraventricular crest
+        ns = (elementsCountAroundRVFreeWall + 1)//2
+        nf = elementsCountAroundRVFreeWall + 2
+        xis = 0.55
+        xif = 1.0 - xis
+        mx = [ xis*rvInnerx[ns][0] + xif*rvInnerx[nf][0], xis*rvInnerx[ns][1] + xif*rvInnerx[nf][1], -(fibrousRingThickness + baseThickness) ]
+        md2 = [ (rvInnerx[nf][c] - rvInnerx[ns][c]) for c in range(3) ]
+        pd1 = smoothCubicHermiteDerivativesLine([ ravInnerx[0][ravsvcn1], mx, rvOutletInnerx[1] ], [ [ -d for d in ravInnerd2[0][ravsvcn1] ], zero, rvOutletd2 ],
+            fixStartDirection=True, fixEndDerivative = True)
+        pd2 = smoothCubicHermiteDerivativesLine([ rvInnerx[ns], mx, rvInnerx[nf] ], [ rvInnerd2[ns], md2, [ -d for d in rvInnerd2[nf] ] ],
+            fixStartDerivative = True, fixEndDerivative = True)
+        svcix = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
+        svcid1 = pd1[1]
+        svcid2 = pd2[1]
+        svcid3 = vector.setMagnitude(vector.crossproduct3(svcid1, svcid2), baseThickness)
+        ravInnerd2[0][ravsvcn1] = [ -d for d in pd1[0] ]
+
+        mx = [ (mx[c] + svcid3[c]) for c in range(3) ]
+        md2 = svcid2
+        nf = 2
+        pd1 = smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn1], mx, rvOutletOuterx[1] ], [ [ -d for d in ravOuterd2[0][ravsvcn1] ], zero, rvOutletd2 ],
+            fixStartDirection=True, fixEndDerivative = True)
+        pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, [ -d for d in lvOutletOuterd3[nf] ] ], fixStartDirection=True)
+        svcox = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
+        svcod1 = pd1[1]
+        svcod2 = pd2[0]
+        svcod3 = svcid3
+        ravOuterd2[0][ravsvcn1] = [ -d for d in pd1[0] ]
+        lvOutletOuterd3[nf] = [ -d for d in pd2[1] ]
 
         # LV outlet nodes
         lvOutletNodeId = [ [], [] ]
@@ -534,6 +574,24 @@ class MeshType_3d_heartventriclesbase1(object):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, avd2[n1])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, avd3[n1])
                         nodeIdentifier += 1
+
+        # nodes on bottom and top of RV supraventricular crest
+        svciNodeId = nodeIdentifier
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, svcix)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, svcid1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, svcid2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, svcid3)
+        nodeIdentifier += 1
+        svcoNodeId = nodeIdentifier
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, svcox)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, svcod1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, svcod2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, svcod3)
+        nodeIdentifier += 1
 
         #################
         # Create elements

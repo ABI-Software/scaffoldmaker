@@ -39,7 +39,7 @@ class MeshType_3d_heartatria1(object):
             'Atrial septum thickness' : 0.08,
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
-            'Atrial base slope degrees' : 15.0,
+            'Atrial base slope degrees' : 30.0,
             'Aorta outer plus diameter' : 0.35,
             'Atrial base front incline degrees' : 15.0,
             'Atrial base back incline degrees' : 30.0,
