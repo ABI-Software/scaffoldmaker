@@ -48,7 +48,7 @@ class MeshType_3d_heartventricles1(object):
             'RV side extension' : 0.12,
             'RV side extension growth factor' : 0.5,
             'Ventricular septum thickness' : 0.1,
-            'Ventricular septum base radial displacement' : 0.1,
+            'Ventricular septum base radial displacement' : 0.05,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements surface' : 4,

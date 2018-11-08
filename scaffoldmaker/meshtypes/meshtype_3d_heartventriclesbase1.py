@@ -448,7 +448,7 @@ class MeshType_3d_heartventriclesbase1(object):
         # create points on bottom and top of RV supraventricular crest
         ns = (elementsCountAroundRVFreeWall + 1)//2
         nf = elementsCountAroundRVFreeWall + 2
-        xis = 0.55
+        xis = 0.6
         xif = 1.0 - xis
         mx = [ xis*rvInnerx[ns][0] + xif*rvInnerx[nf][0], xis*rvInnerx[ns][1] + xif*rvInnerx[nf][1], -(fibrousRingThickness + baseThickness) ]
         md2 = [ (rvInnerx[nf][c] - rvInnerx[ns][c]) for c in range(3) ]
@@ -647,7 +647,9 @@ class MeshType_3d_heartventriclesbase1(object):
                 meshGroup.addElement(element)
 
         # RV base elements, starting at crux / posterior interventricular sulcus
-        for e in range(-1, elementsCountAroundRVFreeWall):
+        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
+        elementsCountRVHanging = 1
+        for e in range(-1, elementsCountAroundRVFreeWall + elementsCountRVHanging):
             eft1 = eft
             nids = None
             scalefactors = None
@@ -655,11 +657,15 @@ class MeshType_3d_heartventriclesbase1(object):
 
             noa = elementsCountAroundAtrialSeptum - 1 + e
             niv = e
-            nov = elementsCountAroundLVFreeWall + e
+            if e > (elementsCountAroundRVFreeWall + elementsCountRVHanging - 3):
+                niv -= 1
+            nivp = niv + 1
+            nov = elementsCountAroundLVFreeWall + niv
+            novp = (nov + 1)%elementsCountAroundLV
             if e == -1:
                 # crux / posterior interventricular sulcus: collapsed to 6 element wedge
-                nids = [ lvInnerNodeId[elementsCountAroundLVFreeWall], rvInnerNodeId[niv + 1], lavInnerNodeId[0][elementsCountAroundAtrialFreeWall], ravInnerNodeId[0][noa + 1],
-                          vOuterNodeId[nov + 1], ravOuterNodeId[0][noa + 1] ]
+                nids = [ lvInnerNodeId[elementsCountAroundLVFreeWall], rvInnerNodeId[nivp], lavInnerNodeId[0][elementsCountAroundAtrialFreeWall], ravInnerNodeId[0][noa + 1],
+                          vOuterNodeId[novp], ravOuterNodeId[0][noa + 1] ]
                 meshGroups += [ lvMeshGroup ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
@@ -673,14 +679,73 @@ class MeshType_3d_heartventriclesbase1(object):
                 ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
             elif e < elementsCountRVFreeWallRegular:
-                nids = [ rvInnerNodeId[niv], rvInnerNodeId[niv + 1], ravInnerNodeId[0][noa], ravInnerNodeId[0][noa + 1],
-                          vOuterNodeId[nov],  vOuterNodeId[nov + 1], ravOuterNodeId[0][noa], ravOuterNodeId[0][noa + 1] ]
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], ravInnerNodeId[0][noa], ravInnerNodeId[0][noa + 1],
+                          vOuterNodeId[nov],  vOuterNodeId[novp], ravOuterNodeId[0][noa], ravOuterNodeId[0][noa + 1] ]
                 if e == 0:
                     # general linear map d3 adjacent to collapsed crux, transition to atria
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                     setEftScaleFactorIds(eft1, [1], [])
                     scalefactors = [ -1.0 ]
                     remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+            elif e == elementsCountRVFreeWallRegular:
+                # supraventricular crest outer 1
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], ravInnerNodeId[0][noa], svciNodeId,
+                          vOuterNodeId[nov],  vOuterNodeId[novp], ravOuterNodeId[0][noa], svcoNodeId ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+            elif e == (elementsCountRVFreeWallRegular + 1):
+                # supraventricular crest outer 2, outer infundibulum 1
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], svciNodeId, rvOutletNodeId[0][2],
+                          vOuterNodeId[nov],  vOuterNodeId[novp], svcoNodeId, rvOutletNodeId[1][2] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
+            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging - 3):
+                # supraventricular crest outer 3, outer infundibulum 2
+                # 1st of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], rvOutletNodeId[0][2], rvOutletNodeId[0][3],
+                          vOuterNodeId[nov],  vOuterNodeId[novp], rvOutletNodeId[1][2], rvOutletNodeId[1][3] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                scalefactors = scalefactors5hanging
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                #tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])  # must do before following
+                #remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
+            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging - 2):
+                # outer infundibulum 3
+                # 2nd of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], rvOutletNodeId[0][3], rvOutletNodeId[0][4],
+                          vOuterNodeId[nov],  vOuterNodeId[novp], rvOutletNodeId[1][3], rvOutletNodeId[1][4] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                scalefactors = scalefactors5hanging
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4, 5])
+                tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4, 5])
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                meshGroups += [ conusArteriosusMeshGroup ]
+            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging - 1):
+                # outer infundibulum 4
+                nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], rvOutletNodeId[0][4], rvOutletNodeId[0][5],
+                          vOuterNodeId[nov],  vOuterNodeId[novp], rvOutletNodeId[1][4], rvOutletNodeId[1][5] ]
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ 1.0 ]
+                tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+                tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                meshGroups += [ conusArteriosusMeshGroup ]
             else:
                 continue
 
@@ -795,7 +860,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 result3 = element.setScaleFactors(eft1, scalefactors)
             else:
                 result3 = 7
-            print('create element sp base', elementIdentifier, result, result2, result3, nids)
+            #print('create element sp base', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
             for meshGroup in meshGroups:
@@ -832,7 +897,8 @@ class MeshType_3d_heartventriclesbase1(object):
         element = meshrefinement._sourceElementiterator.next()
         startBaseLvElementIdentifier = element.getIdentifier()
         startBaseRvElementIdentifier = startBaseLvElementIdentifier + elementsCountLVFreeWallRegular
-        startBaseSeptumElementIdentifier = startBaseRvElementIdentifier + 1 + elementsCountRVFreeWallRegular
+        elementsCountRVHanging = 1
+        startBaseSeptumElementIdentifier = startBaseRvElementIdentifier + elementsCountAroundRVFreeWall + elementsCountRVHanging + 1
         limitBaseElementIdentifier = startBaseSeptumElementIdentifier + elementsCountAroundVSeptum + 1
         #print(startBaseLvElementIdentifier, startBaseRvElementIdentifier, startBaseSeptumElementIdentifier, limitBaseElementIdentifier)
         while element.isValid():
