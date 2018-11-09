@@ -310,14 +310,10 @@ class MeshType_3d_heartventriclesbase1(object):
         rvOutletOuterx, rvOutletOuterd1 = createCirclePoints(rvOutletCentre,
             vector.setMagnitude(axis1, rvOutletOuterRadius), vector.setMagnitude(axis2, rvOutletOuterRadius), elementsCountAroundOutlet)
         rvOutletd2 = [ vOutletElementLength*axis3[c] for c in range(3) ]
-        rvOutletOuterd3 = [ None ]*elementsCountAroundOutlet
 
-        # fix derivative 3 between lv, rv outlets
-        lx = lvOutletOuterx[elementsCountAroundOutlet//2]
-        rx = rvOutletOuterx[0]
-        d3 = [ (rx[c] - lx[c]) for c in range(3) ]
-        lvOutletOuterd3[elementsCountAroundOutlet//2] = d3
-        rvOutletOuterd3[0] = [ -d for d in d3 ]
+        # fix derivative 3 on lv outlet adjacent to rv outlet
+        n1 = elementsCountAroundOutlet//2
+        lvOutletOuterd3[n1] = interpolateLagrangeHermiteDerivative(lvOutletOuterx[n1], rvOutletOuterx[0], rvOutletd2, 0.0)
 
         # create point above anterior ventricular septum end
         sd2 = lvOutletOuterd1[3]
@@ -507,21 +503,17 @@ class MeshType_3d_heartventriclesbase1(object):
             if n3 == 0:
                 rvOutletx  = rvOutletInnerx
                 rvOutletd1 = rvOutletInnerd1
-                rvOutletd3 = None
             else:
                 rvOutletx  = rvOutletOuterx
                 rvOutletd1 = rvOutletOuterd1
-                rvOutletd3 = rvOutletOuterd3
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
-                node = nodes.createNode(nodeIdentifier, nodetemplate if (rvOutletd3 and rvOutletd3[n1]) else nodetemplateLinearS3)
+                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
                 rvOutletNodeId[n3].append(nodeIdentifier)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletx[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rvOutletd1[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rvOutletd2)
-                if (rvOutletd3 and rvOutletd3[n1]):
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rvOutletd3[n1])
                 nodeIdentifier += 1
 
         # Node above above anterior ventricular septum end
@@ -997,8 +989,8 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 meshGroups += [ conusArteriosusMeshGroup ]
             else:
                 continue
