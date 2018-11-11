@@ -297,7 +297,7 @@ class MeshType_3d_heartventriclesbase1(object):
             vector.setMagnitude(axis1, lvOutletOuterRadius), vector.setMagnitude(axis2, lvOutletOuterRadius), elementsCountAroundOutlet)
         lvOutletd2 = [ 0.0, vOutletElementLength*sinLvOutletFrontInclineRadians, vOutletElementLength*cosLvOutletFrontInclineRadians ]
         zero = [ 0.0, 0.0, 0.0 ]
-        lvOutletOuterd3 = [ vector.setMagnitude([ (lvOutletOuterx[n1][c] - lvOutletCentre[c]) for c in range(3) ], vSeptumThickness) for n1 in range(elementsCountAroundOutlet) ]
+        lvOutletOuterd3 = [ None ]*elementsCountAroundOutlet
 
         # RV outlet points
         cosRvOutletLeftInclineRadians = math.cos(rvOutletLeftInclineRadians)
@@ -444,8 +444,6 @@ class MeshType_3d_heartventriclesbase1(object):
         avsd2 = pd2[1]
         sf = math.cos(math.pi*0.25)
         avsd3 = interpolateHermiteLagrangeDerivative(lvInnerx[0], lvInnerd2[0], avsx, 1.0)
-        # GRC temp:
-        avsd1, avsd2, avsd3 = [ -d for d in avsd2 ], avsd3, [ -d for d in avsd1 ]
 
         # create points on bottom and top of RV supraventricular crest
         ns = elementsCountAroundRVFreeWall//2 + 1
@@ -469,7 +467,7 @@ class MeshType_3d_heartventriclesbase1(object):
         nf = 2
         pd1 = smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn1], mx, rvOutletOuterx[1] ], [ [ -d for d in ravOuterd2[0][ravsvcn1] ], zero, rvOutletd2 ],
             fixStartDirection=True, fixEndDerivative = True)
-        pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, [ -d for d in lvOutletOuterd3[nf] ] ], fixStartDirection=True)
+        pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)
         svcox = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
         svcod1 = pd1[1]
         svcod2 = pd2[0]
@@ -490,13 +488,13 @@ class MeshType_3d_heartventriclesbase1(object):
                 lvOutletd3 = lvOutletOuterd3
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
-                node = nodes.createNode(nodeIdentifier, nodetemplate if lvOutletd3 else nodetemplateLinearS3)
+                node = nodes.createNode(nodeIdentifier, nodetemplate if (lvOutletd3 and lvOutletd3[n1]) else nodetemplateLinearS3)
                 lvOutletNodeId[n3].append(nodeIdentifier)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletx[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lvOutletd1[n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lvOutletd2)
-                if lvOutletd3:
+                if (lvOutletd3 and lvOutletd3[n1]):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lvOutletd3[n1])
                 nodeIdentifier += 1
 
@@ -634,9 +632,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, []) ])
-                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, []), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, []), ( Node.VALUE_LABEL_D_DS3, []) ])
                 ln_map = [ 1, 2, 1, 2, 3, 3, 4, 4 ]
                 remapEftLocalNodes(eft1, 4, ln_map)
                 meshGroups += [ rvMeshGroup ]
@@ -655,9 +651,6 @@ class MeshType_3d_heartventriclesbase1(object):
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS2, [])
                     remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                     remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS3, [1]) ])
-                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                     remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                     ln_map = [ 1, 2, 1, 3, 4, 5, 6, 7 ]
                     remapEftLocalNodes(eft1, 7, ln_map)
@@ -774,10 +767,9 @@ class MeshType_3d_heartventriclesbase1(object):
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D2_DS1DS2, []) ])  # swap begin
-                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, []) ])
-                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS3, []) ])  # swap end
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, []), ( Node.VALUE_LABEL_D_DS3, []) ])
                 ln_map = [ 1, 1, 2, 3, 4, 5, 6, 7 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
                 meshGroups += [ conusArteriosusMeshGroup ]
@@ -792,10 +784,13 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
-                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1]) ])
-                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D2_DS1DS2, []) ])  # swap begin
-                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, []) ])
-                remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS3, []) ])  # swap end
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1]), ( Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, []), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D2_DS1DS2, []) ])  # swap begin
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, []) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS3, []) ])  # swap end
                 meshGroups += [ conusArteriosusMeshGroup ]
             else:
                 continue
@@ -895,9 +890,11 @@ class MeshType_3d_heartventriclesbase1(object):
                     remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     # general linear map d3 adjacent to collapsed anterior interventricular sulcus
-                    remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ (Node.VALUE_LABEL_D_DS1, [] ), (Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS2, [ (Node.VALUE_LABEL_D_DS1, [] ), (Node.VALUE_LABEL_D_DS3, [] ) ])
                 else:
                     scaleEftNodeValueLabels(eft1, [ 5, 6 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -1085,12 +1082,14 @@ class MeshType_3d_heartventriclesbase1(object):
             numberInXi2 = refineElementsCountSurface
             numberInXi3 = None
             elementId = element.getIdentifier()
-            if elementId < startBaseRvElementIdentifier:
+            if elementId == startBaseLvElementIdentifier:
+                # collapsed element on anterior interventricular sulcus:
+                numberInXi1 = numberInXi3 = refineElementsCountThroughLVWall
+            elif elementId < startBaseRvElementIdentifier:
                 numberInXi3 = refineElementsCountThroughLVWall
             elif elementId == startBaseRvElementIdentifier:
-                # collapsed elements on posterior or anterior interventricular sulcus:
-                numberInXi1 = refineElementsCountThroughLVWall
-                numberInXi3 = refineElementsCountThroughLVWall
+                # collapsed element on posterior interventricular sulcus:
+                numberInXi1 = numberInXi3 = refineElementsCountThroughLVWall
             elif elementId < startBaseSeptumElementIdentifier:
                 numberInXi3 = refineElementsCountThroughWall
             elif elementId < startBaseRv2ElementIdentifier:
