@@ -398,6 +398,11 @@ class MeshType_3d_heartventriclesbase1(object):
             nov = elementsCountAroundLVFreeWall - elementsCountLVFreeWallRegular + n1
             lavInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
             lavOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], lavOuterx[0][noa], 1.0)
+            if n1 == 0:
+                # add d1 to d2 since subtracted in use:
+                for c in range(3):
+                    lavInnerd2[0][noa][c] += lavInnerd1[0][noa][c]
+                    lavOuterd2[0][noa][c] += lavOuterd1[0][noa][c]
         for n1 in range(1, elementsCountRVFreeWallRegular + 1):
             noa = elementsCountAroundAtrialSeptum + n1 - 1
             nov = elementsCountAroundLVFreeWall + n1
@@ -432,20 +437,19 @@ class MeshType_3d_heartventriclesbase1(object):
         lvOutletOuterd3[-1] = [ -d for d in lavOuterd3[0][1] ]
 
         # create point above anterior ventricular septum end
-        xi = 0.6
+        xi = 0.5
         fd2 = [ (lvOutletOuterx[4][c] - vOuterx[1][c]) for c in range(3) ]
         mag = 1.0*vector.magnitude(fd2)
         fd2 = vector.setMagnitude([ fd2[0], fd2[1], 0.0 ], mag)
         x = interpolateCubicHermite(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
         d2 = interpolateCubicHermiteDerivative(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
         pd2 = smoothCubicHermiteDerivativesLine([ vOuterx[0], x, lvOutletOuterx[4] ], [ vOuterd2[0], d2, lvOutletd2 ], fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True)
-        fd1 = [ (lavOuterd1[0][2][c] + lavOuterd2[0][2][c]) for c in range(3) ]
-        pd1 = smoothCubicHermiteDerivativesLine([ rvOutletOuterx[-1], x, lavOuterx[0][2] ], [ [ -d for d in rvOutletd2 ], zero, fd1 ], fixStartDerivative=True, fixEndDerivative=True, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+        pd1 = smoothCubicHermiteDerivativesLine([ rvOutletOuterx[-1], x, lavOuterx[0][2] ], [ [ -d for d in rvOutletd2 ], zero, lavOuterd2[0][2] ], fixStartDerivative=True, fixEndDirection=True, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
         avsx = x
         avsd1 = pd1[1]
         avsd2 = pd2[1]
-        sf = math.cos(math.pi*0.25)
         avsd3 = interpolateHermiteLagrangeDerivative(lvInnerx[0], lvInnerd2[0], avsx, 1.0)
+        lavOuterd2[0][2] = pd1[2]
 
         # create points on bottom and top of RV supraventricular crest
         ns = elementsCountAroundRVFreeWall//2 + 1
@@ -653,9 +657,15 @@ class MeshType_3d_heartventriclesbase1(object):
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS2, [])
                     remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                     remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, []) ])
                     ln_map = [ 1, 2, 1, 3, 4, 5, 6, 7 ]
                     remapEftLocalNodes(eft1, 7, ln_map)
+                elif e == 1:
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                 elif e == (elementsCountAroundLVFreeWall - 1):
                     # general linear map d3 adjacent to collapsed crux, transition to atria
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -946,9 +956,10 @@ class MeshType_3d_heartventriclesbase1(object):
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
-                remapEftNodeValueLabel(eft1, [ 1, 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 remapEftNodeValueLabel(eft1, [ 3, 4, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
@@ -962,9 +973,8 @@ class MeshType_3d_heartventriclesbase1(object):
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
-                # GRC fix d1 and d2 are colinear:
                 remapEftNodeValueLabel(eft1, [ 1, 2, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
