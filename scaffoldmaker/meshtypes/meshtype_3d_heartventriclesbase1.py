@@ -52,7 +52,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Atrial base slope degrees'] = 30.0
         options['Base height'] = 0.15
         options['Base thickness'] = 0.06
-        options['Fibrous ring thickness'] = 0.01
+        options['Fibrous ring thickness'] = 0.005
         options['LV outlet front incline degrees'] = 15.0
         options['LV outlet inner diameter'] = 0.3
         options['LV outlet wall thickness'] = 0.025
@@ -207,6 +207,11 @@ class MeshType_3d_heartventriclesbase1(object):
         vTranslationy = options['Ventricles translation y']
         useCrossDerivatives = False
 
+        fm = region.getFieldmodule()
+        fm.beginChange()
+        coordinates = getOrCreateCoordinateField(fm)
+        cache = fm.createFieldcache()
+
         # generate heartventricles1 model to add base plane to
         annotationGroups = MeshType_3d_heartventricles1.generateBaseMesh(region, options)
 
@@ -215,20 +220,17 @@ class MeshType_3d_heartventriclesbase1(object):
         rvGroup = findAnnotationGroupByName(annotationGroups, 'right ventricle')
         vSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interventricular septum')
         conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
+        annotationGroups += [ conusArteriosusGroup ]
+        # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
-        annotationGroups += [ conusArteriosusGroup, lFibrousRingGroup, rFibrousRingGroup ]
-
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
-        cache = fm.createFieldcache()
 
         #################
         # Create nodes
         #################
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -568,10 +570,14 @@ class MeshType_3d_heartventriclesbase1(object):
                             avNodeId.append(None)
                             continue
                         if n3 == 1:
-                            if (n2 == 0) and (((i == 0) and (n1 <= 1)) or ((i == 1) and (n1 >= (elementsCountAroundAtria - 2)))):
+                            if n2 == 0:
                                 # substitute LV outlet node around cfb / fibrous trigones
-                                avNodeId.append(lvOutletNodeId[1][0] if (n1 == 0) else (lvOutletNodeId[1][-1] if (n1 == 1) else lvOutletNodeId[1][1]))
-                                continue
+                                if (i == 0) and (n1 <= 1):
+                                    avNodeId.append(lvOutletNodeId[1][0] if (n1 == 0) else lvOutletNodeId[1][-1])
+                                    continue
+                                elif (i == 1) and (n1 >= (elementsCountAroundAtria - 2)):
+                                    avNodeId.append(lvOutletNodeId[1][0] if (n1 == (elementsCountAroundAtria - 1)) else lvOutletNodeId[1][1])
+                                    continue
                             if (i == 1) and ((n1 == (elementsCountAroundAtrialSeptum - 1)) or (n1 == (elementsCountAroundAtria - 1))):
                                 # find common nodes on right at cfb and crux
                                 avNodeId.append(lavOuterNodeId[n2][elementsCountAroundAtria - 1 - n1])
@@ -584,6 +590,20 @@ class MeshType_3d_heartventriclesbase1(object):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, avd2[n1])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, avd3[n1])
                         nodeIdentifier += 1
+
+        # add nodes to left/right fibrous ring groups so heart1 can find them
+        for i in range(2):
+            fibrousRingGroup = lFibrousRingGroup if (i == 0) else rFibrousRingGroup
+            fibrousRingNodesetGroup = fibrousRingGroup.getNodesetGroup(nodes)
+            for n3 in range(2):
+                if n3 == 0:
+                    avNodeId = lavInnerNodeId[0] if (i == 0) else ravInnerNodeId[0]
+                else:
+                    avNodeId = lavOuterNodeId[0] if (i == 0) else ravOuterNodeId[0]
+                for n1 in range(elementsCountAroundAtria):
+                    if avNodeId[n1]:
+                        node = nodes.findNodeByIdentifier(avNodeId[n1])
+                        fibrousRingNodesetGroup.addNode(node)
 
         # nodes on bottom and top of RV supraventricular crest
         svciNodeId = nodeIdentifier
@@ -613,8 +633,6 @@ class MeshType_3d_heartventriclesbase1(object):
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
         conusArteriosusMeshGroup = conusArteriosusGroup.getMeshGroup(mesh)
-        lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
-        rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
@@ -708,7 +726,7 @@ class MeshType_3d_heartventriclesbase1(object):
             nov = elementsCountAroundLVFreeWall + niv
             novp = (nov + 1)%elementsCountAroundLV
             if e == -1:
-                # crux / posterior interventricular sulcus: collapsed to 6 element wedge
+                # crux / posterior interventricular sulcus, collapsed to 6 node wedge
                 nids = [ lvInnerNodeId[elementsCountAroundLVFreeWall], rvInnerNodeId[nivp], lavInnerNodeId[0][elementsCountAroundAtrialFreeWall], ravInnerNodeId[0][noa + 1],
                           vOuterNodeId[novp], ravOuterNodeId[0][noa + 1] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -1043,7 +1061,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 result3 = element.setScaleFactors(eft1, scalefactors)
             else:
                 result3 = 7
-            print('create element lv base r2', elementIdentifier, result, result2, result3, nids)
+            #print('create element lv base r2', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
 
             for meshGroup in meshGroups:

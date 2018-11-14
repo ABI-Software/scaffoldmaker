@@ -706,7 +706,7 @@ class MeshType_3d_heartventricles1(object):
                     nids = [ lvInnerNodeId[e2 - 1][va], lvInnerNodeId[e2 - 1][vb], lvInnerNodeId[e2][va], lvInnerNodeId[e2][vb],
                              vOuterNodeId [e2 - 1][va], vOuterNodeId [e2 - 1][vb], vOuterNodeId [e2][va], vOuterNodeId [e2][vb] ]
                     if e1 == -1:
-                        # anterior interventricular sulcus: collapsed to 6 element wedge
+                        # anterior interventricular sulcus, collapsed to 6 node wedge
                         nids[0] = rvInnerNodeId[e2 - 1][elementsCountAroundRVFreeWall]
                         nids[2] = rvInnerNodeId[e2    ][elementsCountAroundRVFreeWall]
                         nids.pop(6)
@@ -794,7 +794,7 @@ class MeshType_3d_heartventricles1(object):
                         ln_map = [ 1, 2, 3, 4, 5, 6, 5, 6 ]
                         remapEftLocalNodes(eft1, 6, ln_map)
                     elif e1 == -1:
-                        # posterior interventricular sulcus: collapsed to 6 element wedge
+                        # posterior interventricular sulcus, collapsed to 6 node wedge
                         nids[0] = lvInnerNodeId[e2 - 1][elementsCountAroundLVFreeWall]
                         nids[2] = lvInnerNodeId[e2    ][elementsCountAroundLVFreeWall]
                         nids.pop(6)

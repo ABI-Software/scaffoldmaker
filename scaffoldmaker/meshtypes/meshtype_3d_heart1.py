@@ -7,8 +7,13 @@ import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
+from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from opencmiss.zinc.element import Element
+#from opencmiss.zinc.field import Field
+#from opencmiss.zinc.node import Node
 
 class MeshType_3d_heart1(object):
     '''
@@ -75,6 +80,10 @@ class MeshType_3d_heart1(object):
         """
         # set dependent outer diameter used in atria2
         options['Aorta outer plus diameter'] = options['LV outlet inner diameter'] + 2.0*options['LV outlet wall thickness']
+        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
+        elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
+        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        useCrossDerivatives = False
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -84,6 +93,258 @@ class MeshType_3d_heart1(object):
         # generate heartventriclesbase2 model and put atria2 on it
         annotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         annotationGroups += MeshType_3d_heartatria1.generateBaseMesh(region, options)
+        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
+        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
+        annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
+
+        ##############
+        # Create nodes
+        ##############
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        # discover left and right fibrous ring nodes from ventricles and atria
+        # because nodes are iterated in identifier order, the lowest and first are on the lv outlet cfb, right and left on lower outer layers
+        lavInnerNodeId = [ [], [] ]  # [n2][n1]
+        lavOuterNodeId = [ [], [] ]  # [n2][n1]
+        iter = lFibrousRingGroup.getNodesetGroup(nodes).createNodeiterator()
+        cfbNodeId = iter.next().getIdentifier()
+        cfbLeftNodeId = iter.next().getIdentifier()
+        for n1 in range(elementsCountAroundAtria):
+            lavInnerNodeId[0].append(iter.next().getIdentifier())
+        lavOuterNodeId[0].append(cfbNodeId)
+        lavOuterNodeId[0].append(cfbLeftNodeId)
+        for n1 in range(elementsCountAroundAtrialFreeWall - 1):
+            lavOuterNodeId[0].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundAtrialSeptum - 1):
+            lavOuterNodeId[0].append(None)
+        for n1 in range(elementsCountAroundAtria):
+            lavInnerNodeId[1].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundAtrialFreeWall + 1):
+            lavOuterNodeId[1].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundAtrialSeptum - 1):
+            lavOuterNodeId[1].append(None)
+        ravInnerNodeId = [ [], [] ]  # [n2][n1]
+        ravOuterNodeId = [ [], [] ]  # [n2][n1]
+        iter = rFibrousRingGroup.getNodesetGroup(nodes).createNodeiterator()
+        cfbNodeId = iter.next().getIdentifier()
+        cfbRightNodeId = iter.next().getIdentifier()
+        for n1 in range(elementsCountAroundAtria):
+            ravInnerNodeId[0].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundAtrialSeptum - 1):
+            ravOuterNodeId[0].append(None)
+        for n1 in range(elementsCountAroundAtrialFreeWall - 1):
+            ravOuterNodeId[0].append(iter.next().getIdentifier())
+        ravOuterNodeId[0].append(cfbRightNodeId)
+        ravOuterNodeId[0].append(cfbNodeId)
+        for n1 in range(elementsCountAroundAtria):
+            ravInnerNodeId[1].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundAtrialSeptum - 1):
+            ravOuterNodeId[1].append(None)
+        cfbUpperNodeId = iter.next().getIdentifier()  # cfb from left will be first
+        for n1 in range(elementsCountAroundAtrialFreeWall):
+            ravOuterNodeId[1].append(iter.next().getIdentifier())
+        ravOuterNodeId[1].append(cfbUpperNodeId)
+
+        #for n2 in range(2):
+        #    print('n2', n2)
+        #    print('lavInnerNodeId', lavInnerNodeId[n2])
+        #    print('lavOuterNodeId', lavOuterNodeId[n2])
+        #    print('ravInnerNodeId', ravInnerNodeId[n2])
+        #    print('ravOuterNodeId', ravOuterNodeId[n2])
+
+        #################
+        # Create elements
+        #################
+
+        mesh = fm.findMeshByDimension(3)
+
+        lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
+        rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
+
+        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        # create fibrous ring elements
+
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives, linearAxis = 2, d_ds1 = Node.VALUE_LABEL_D_DS1, d_ds2 = Node.VALUE_LABEL_D_DS3)
+        eftFibrousRing = bicubichermitelinear.createEftBasic()
+
+        # left fibrous ring, starting at crux / collapsed posterior interatrial sulcus
+        for e in range(-1, elementsCountAroundAtrialFreeWall):
+            eft1 = eftFibrousRing
+            n1 = e
+            nids = [
+                lavInnerNodeId[0][n1], lavInnerNodeId[0][n1 + 1], lavInnerNodeId[1][n1], lavInnerNodeId[1][n1 + 1],
+                lavOuterNodeId[0][n1], lavOuterNodeId[0][n1 + 1], lavOuterNodeId[1][n1], lavOuterNodeId[1][n1 + 1]]
+            scalefactors = None
+            meshGroups = [ lFibrousRingMeshGroup ]
+
+            if e == -1:
+                # interatrial groove straddles left and right atria, collapsed to 6 node wedge
+                nids[0] = ravInnerNodeId[0][-1]
+                nids[2] = ravInnerNodeId[1][-1]
+                nids.pop(6)
+                nids.pop(4)
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                # reverse d3 on cfb:
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [0] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
+                meshGroups += [ rFibrousRingMeshGroup ]
+            elif e == 0:
+                # general linear map d3 adjacent to collapsed sulcus
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                # reverse d1, d3 on cfb, left cfb:
+                scaleEftNodeValueLabels(eft1, [ 6 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+            elif e == 1:
+                # reverse d1, d3 on left cfb:
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1]) ])
+            elif e == (elementsCountAroundAtrialFreeWall - 1):
+                # general linear map d3 adjacent to collapsed sulcus
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft1, scalefactors)
+            else:
+                result3 = 7
+            #print('create element fibrous ring left', elementIdentifier, result, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
+        # right fibrous ring, starting at crux / collapsed posterior interatrial sulcus
+        ran1FreeWallStart = elementsCountAroundAtrialSeptum - 1
+        for e in range(-1, elementsCountAroundAtrialFreeWall):
+            eft1 = eftFibrousRing
+            n1 = ran1FreeWallStart + e
+            nids = [
+                ravInnerNodeId[0][n1], ravInnerNodeId[0][n1 + 1], ravInnerNodeId[1][n1], ravInnerNodeId[1][n1 + 1],
+                ravOuterNodeId[0][n1], ravOuterNodeId[0][n1 + 1], ravOuterNodeId[1][n1], ravOuterNodeId[1][n1 + 1]]
+            scalefactors = None
+            meshGroups = [ rFibrousRingMeshGroup ]
+
+            if e == -1:
+                # interatrial groove straddles left and right atria, collapsed to 6 node wedge
+                nids[0] = lavInnerNodeId[0][elementsCountAroundAtrialFreeWall]
+                nids[2] = lavInnerNodeId[1][elementsCountAroundAtrialFreeWall]
+                nids.pop(6)
+                nids.pop(4)
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                remapEftLocalNodes(eft1, 6, ln_map)
+                meshGroups += [ lFibrousRingMeshGroup ]
+            elif e == 0:
+                # general linear map d3 adjacent to collapsed crux/posterior sulcus
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+            elif e == (elementsCountAroundAtrialFreeWall - 2):
+                # reverse d1, d3 on right cfb:
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1]) ])
+            elif e == (elementsCountAroundAtrialFreeWall - 1):
+                # general linear map d3 adjacent to collapsed cfb/anterior sulcus
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+                # reverse d1, d3 on right cfb, cfb:
+                scaleEftNodeValueLabels(eft1, [ 5 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
+                remapEftNodeValueLabel(eft1, [ 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft1, scalefactors)
+            else:
+                result3 = 7
+            #print('create element fibrous ring right', elementIdentifier, result, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
+        # fibrous ring septum:
+        meshGroups = [ lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
+        for e in range(elementsCountAroundAtrialSeptum):
+            eft1 = eftFibrousRing
+            nlm = elementsCountAroundAtrialFreeWall + e
+            nlp = (nlm + 1)%elementsCountAroundAtria
+            nrm = elementsCountAroundAtrialSeptum - 1 - e
+            nrp = nrm - 1
+            nids = [ lavInnerNodeId[0][nlm], lavInnerNodeId[0][nlp], lavInnerNodeId[1][nlm], lavInnerNodeId[1][nlp],
+                     ravInnerNodeId[0][nrm], ravInnerNodeId[0][nrp], ravInnerNodeId[1][nrm], ravInnerNodeId[1][nrp] ]
+
+            eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            scalefactors = [ -1.0 ]
+            if e == 0:
+                # general linear map d3 adjacent to collapsed posterior interventricular sulcus
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+                scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            elif e == (elementsCountAroundAtrialSeptum - 1):
+                # general linear map d3 adjacent to cfb
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
+                scaleEftNodeValueLabels(eft1, [ 5, 7 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+            else:
+                scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
+
+            result = elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft1, scalefactors)
+            else:
+                result3 = 7
+            #print('create element fibrous ring septum', elementIdentifier, result, result2, result3, nids)
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
 
         fm.endChange()
         return annotationGroups
@@ -96,8 +357,29 @@ class MeshType_3d_heart1(object):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
+        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
+        elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
+        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
         MeshType_3d_heartventriclesbase1.refineMesh(meshrefinement, options)
         MeshType_3d_heartatria1.refineMesh(meshrefinement, options)
+        element = meshrefinement._sourceElementiterator.next()
+        startFibrousRingElementIdentifier = element.getIdentifier()
+        lastFibrousRingElementIdentifier = startFibrousRingElementIdentifier + 2*elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum + 1
+        i = -1
+        while element.isValid():
+            numberInXi1 = refineElementsCountSurface
+            numberInXi2 = 1  # since fibrous ring is thin
+            numberInXi3 = refineElementsCountThroughWall
+            elementIdentifier = element.getIdentifier()
+            if i in [ -1, elementsCountAroundAtrialFreeWall ]:
+                numberInXi1 = refineElementsCountThroughWall
+            meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+            if elementIdentifier == lastFibrousRingElementIdentifier:
+                return  # finish on last so can continue elsewhere
+            element = meshrefinement._sourceElementiterator.next()
+            i += 1
 
     @classmethod
     def generateMesh(cls, region, options):

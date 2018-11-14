@@ -247,12 +247,16 @@ class MeshType_3d_heartatria1(object):
         ivcInletGroup = AnnotationGroup(region, 'inferior vena cava inlet', FMANumber = 10951, lyphID = 'Lyph ID unknown')
         svcInletGroup = AnnotationGroup(region, 'superior vena cava inlet', FMANumber = 4720, lyphID = 'Lyph ID unknown')
         annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, lipvGroup, lspvGroup, ripvGroup, rspvGroup, ivcInletGroup, svcInletGroup ]
+        # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
+        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
+        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
         ##############
         # Create nodes
         ##############
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -746,6 +750,17 @@ class MeshType_3d_heartatria1(object):
                         aNodeId[n1] = aNodeId[ran1FreeWallStart + elementsCountRidgeVenous]
                 raNodeId[n3].append(aNodeId)
 
+        # add nodes to left/right fibrous ring groups so heart1 can find them
+        for i in range(2):
+            fibrousRingGroup = lFibrousRingGroup if (i == 0) else rFibrousRingGroup
+            fibrousRingNodesetGroup = fibrousRingGroup.getNodesetGroup(nodes)
+            for n3 in range(2):
+                aNodeId = laNodeId[n3][0] if (i == 0) else raNodeId[n3][0]
+                for n1 in range(elementsCountAroundAtria):
+                    if aNodeId[n1]:
+                        node = nodes.findNodeByIdentifier(aNodeId[n1])
+                        fibrousRingNodesetGroup.addNode(node)
+
         # create fossa ovalis nodes
         fossaCentreNodeId = []
         fossaNodeId = [ [], [] ]
@@ -822,10 +837,9 @@ class MeshType_3d_heartatria1(object):
                     if (e1 >= rspve1min) and (e1 <= rspve1max) and (e2 >= rspve2min) and (e2 <= rspve2max):
                         continue  # rspv inlet location
                 if e1 == -1:
-                    # cfb/anterior interatrial groove straddles left and right atria
+                    # cfb/anterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                     nids[0] = raNodeId[0][e2][-1]
                     nids[2] = raNodeId[0][e2 + 1][-1]
-                    # collapsed to 6 element wedge
                     nids.pop(6)
                     nids.pop(4)
                     meshGroups += [ raMeshGroup ]
@@ -912,10 +926,9 @@ class MeshType_3d_heartatria1(object):
                     if (e1 >= svce1min) and (e1 <= svce1max) and (e2 >= svce2min) and (e2 <= svce2max):
                         continue  # svc inlet location
                 if e1 == -1:
-                    # crux/posterior interatrial groove straddles left and right atria
+                    # crux/posterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                     nids[0] = laNodeId[0][e2][elementsCountAroundAtrialFreeWall]
                     nids[2] = laNodeId[0][e2 + 1][elementsCountAroundAtrialFreeWall]
-                    # collapsed to 6 element wedge
                     nids.pop(6)
                     nids.pop(4)
                     meshGroups += [ laMeshGroup ]
@@ -1655,11 +1668,15 @@ class MeshType_3d_heartatria1(object):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
+        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
+        elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
+        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        elementsCountUpAtria = options['Number of elements up atria']
+        elementsCountInlet = options['Number of elements inlet']
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
         element = meshrefinement._sourceElementiterator.next()
         sourceFm = meshrefinement._sourceFm
-        coordinates = getOrCreateCoordinateField(sourceFm)
         annotationGroups = meshrefinement._sourceAnnotationGroups
         laGroup = findAnnotationGroupByName(annotationGroups, 'left atrium')
         laElementGroupField = laGroup.getFieldElementGroup(meshrefinement._sourceMesh)
@@ -1668,11 +1685,22 @@ class MeshType_3d_heartatria1(object):
         aSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interatrial septum')
         aSeptumElementGroupField = aSeptumGroup.getFieldElementGroup(meshrefinement._sourceMesh)
         isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
+        # last atria element is last element in svc inlet group:
+        svcInletGroup = findAnnotationGroupByName(annotationGroups, 'superior vena cava inlet')
+        svcInletMeshGroup = svcInletGroup.getMeshGroup(meshrefinement._sourceMesh)
+        lastSvcInletElementIdentifier = -1
+        elementIter = svcInletMeshGroup.createElementiterator()
+        tmpElement = elementIter.next()
+        while tmpElement.isValid():
+            lastSvcInletElementIdentifier = tmpElement.getIdentifier()
+            tmpElement = elementIter.next()
+
         cache = sourceFm.createFieldcache()
 
         refineElements2 = refineElementsCountSurface
         refineElements3 = refineElementsCountThroughWall
         while element.isValid():
+            elementIdentifier = element.getIdentifier()
             cache.setElement(element)
             result, isWedge = isSeptumEdgeWedge.evaluateReal(cache, 1)
             if isWedge:
@@ -1680,6 +1708,8 @@ class MeshType_3d_heartatria1(object):
             else:
                 refineElements1 = refineElementsCountSurface
             meshrefinement.refineElementCubeStandard3d(element, refineElements1, refineElements2, refineElements3)
+            if elementIdentifier == lastSvcInletElementIdentifier:
+                return  # finish on last so can continue elsewhere
             element = meshrefinement._sourceElementiterator.next()
 
     @classmethod
