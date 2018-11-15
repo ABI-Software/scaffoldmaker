@@ -56,12 +56,13 @@ class MeshType_3d_heart2(object):
 
     @staticmethod
     def checkOptions(options):
-        MeshType_3d_heartventriclesbase2.checkOptions(options)
-        MeshType_3d_heartatria2.checkOptions(options)
+        dependentChanges = MeshType_3d_heartventriclesbase2.checkOptions(options) \
+            or MeshType_3d_heartatria2.checkOptions(options)
         # only works with particular numbers of elements around
         options['Number of elements around atrial septum'] = 2
         # set dependent outer diameter used in atria2
         options['LV outlet outer diameter'] = options['LV outlet inner diameter'] + 2.0*options['LV outlet wall thickness']
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):

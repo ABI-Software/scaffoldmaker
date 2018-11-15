@@ -121,6 +121,10 @@ class MeshType_3d_heartatria1(object):
 
     @staticmethod
     def checkOptions(options):
+        '''
+        :return:  True if dependent options changed, otherwise False.
+        '''
+        dependentChanges = False
         if options['Number of elements around atrial free wall'] < 6:
             options['Number of elements around atrial free wall'] = 6
         # need even number of elements around free wall
@@ -180,6 +184,7 @@ class MeshType_3d_heartatria1(object):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):

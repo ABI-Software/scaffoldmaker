@@ -63,12 +63,15 @@ class MeshType_3d_heart1(object):
 
     @staticmethod
     def checkOptions(options):
-        MeshType_3d_heartventriclesbase1.checkOptions(options)
-        MeshType_3d_heartatria1.checkOptions(options)
-        # only works with particular numbers of elements around
-        #options['Number of elements around atrial septum'] = 2
+        '''
+        :return:  True if dependent options changed, otherwise False. This
+        happens where two or more options must change together to be valid.
+        '''
+        dependentChanges = MeshType_3d_heartventriclesbase1.checkOptions(options) \
+            or MeshType_3d_heartatria1.checkOptions(options)
         # set dependent outer diameter used in atria2
         options['Aorta outer plus diameter'] = options['LV outlet inner diameter'] + 2.0*options['LV outlet wall thickness']
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):

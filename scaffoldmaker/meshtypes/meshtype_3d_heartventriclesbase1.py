@@ -106,20 +106,28 @@ class MeshType_3d_heartventriclesbase1(object):
 
     @staticmethod
     def checkOptions(options):
-        MeshType_3d_heartventricles1.checkOptions(options)
+        '''
+        :return:  True if dependent options changed, otherwise False. This
+        happens where two or more options must change together to be valid.
+        Here the number of elements around LV free wall is dependent on
+        number of elements around atrial free wall.
+        '''
+        dependentChanges = MeshType_3d_heartventricles1.checkOptions(options)
         # only works with particular numbers of elements around
-        #options['Number of elements around LV free wall'] = 5
-        #options['Number of elements around RV free wall'] = 7
-        #options['Number of elements around atrial free wall'] = 8
-        #options['Number of elements around atrial septum'] = 2
-        # while editing, restrict to limitations of atria:
-        if options['Number of elements around atrial free wall'] < 6:
+        options['Number of elements around RV free wall'] = 7
+        # Supports only 6 or 8 elements around atrial free wall:
+        if options['Number of elements around atrial free wall'] <= 6:
             options['Number of elements around atrial free wall'] = 6
-        # need even number of elements around free wall
-        if (options['Number of elements around atrial free wall'] % 2) == 1:
-            options['Number of elements around atrial free wall'] += 1
-        if options['Number of elements around atrial septum'] < 2:
-            options['Number of elements around atrial septum'] = 2
+            requiredElementsCountAroundLVFreeWall = 5
+        else:
+            options['Number of elements around atrial free wall'] = 8
+            requiredElementsCountAroundLVFreeWall = 7
+        if options['Number of elements around LV free wall'] != requiredElementsCountAroundLVFreeWall:
+            options['Number of elements around LV free wall'] = requiredElementsCountAroundLVFreeWall
+            dependentChanges = True
+        #if options['Number of elements around atrial septum'] < 2:
+        #    options['Number of elements around atrial septum'] = 2
+        options['Number of elements around atrial septum'] = 3
         for key in [
             'Atria base inner major axis length',
             'Atria base inner minor axis length',
@@ -142,6 +150,7 @@ class MeshType_3d_heartventriclesbase1(object):
             options['Atria major axis rotation degrees'] = -75.0
         elif options['Atria major axis rotation degrees'] > 75.0:
             options['Atria major axis rotation degrees'] = 75.0
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
