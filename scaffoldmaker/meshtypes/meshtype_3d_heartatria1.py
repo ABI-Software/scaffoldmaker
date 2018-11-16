@@ -29,7 +29,7 @@ class MeshType_3d_heartatria1(object):
     def getDefaultOptions():
         return {
             'Number of elements around atrial free wall' : 8,
-            'Number of elements around atrial septum' : 2,
+            'Number of elements around atrial septum' : 3,
             'Number of elements up atria' : 4,
             'Number of elements inlet' : 2,
             'Atria base inner major axis length' : 0.55,
@@ -40,8 +40,8 @@ class MeshType_3d_heartatria1(object):
             'Atrial free wall thickness' : 0.02,
             'Atrial base wall thickness' : 0.05,
             'Atrial base slope degrees' : 30.0,
-            'Aorta outer diameter' : 0.35,
-            'Atrial base front incline degrees' : 30.0,
+            'Aorta outer plus diameter' : 0.35,
+            'Atrial base front incline degrees' : 15.0,
             'Atrial base back incline degrees' : 30.0,
             'Atrial base side incline degrees' : 10.0,
             'Atrial element size ratio anterior/posterior' : 1.5,
@@ -87,7 +87,7 @@ class MeshType_3d_heartatria1(object):
             'Atrial free wall thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
-            'Aorta outer diameter',
+            'Aorta outer plus diameter',
             'Atrial base front incline degrees',
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
@@ -121,6 +121,10 @@ class MeshType_3d_heartatria1(object):
 
     @staticmethod
     def checkOptions(options):
+        '''
+        :return:  True if dependent options changed, otherwise False.
+        '''
+        dependentChanges = False
         if options['Number of elements around atrial free wall'] < 6:
             options['Number of elements around atrial free wall'] = 6
         # need even number of elements around free wall
@@ -167,8 +171,8 @@ class MeshType_3d_heartatria1(object):
                 options[key] = 0.1
             elif options[key] > 0.9:
                 options[key] = 0.9
-        if options['Aorta outer diameter'] < options['Atrial septum thickness']:
-            options['Aorta outer diameter'] = options['Atrial septum thickness']
+        if options['Aorta outer plus diameter'] < options['Atrial septum thickness']:
+            options['Aorta outer plus diameter'] = options['Atrial septum thickness']
         for key in [
             'Atria major axis rotation degrees']:
             if options[key] < -75.0:
@@ -180,6 +184,7 @@ class MeshType_3d_heartatria1(object):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -198,7 +203,7 @@ class MeshType_3d_heartatria1(object):
         aBaseInnerMinorMag = 0.5*options['Atria base inner minor axis length']
         aMajorAxisRadians = math.radians(options['Atria major axis rotation degrees'])
         aOuterHeight = options['Atria outer height']
-        aortaOuterRadius = 0.5*options['Aorta outer diameter']
+        aortaOuterPlusRadius = 0.5*options['Aorta outer plus diameter']
         aBaseFrontInclineRadians = math.radians(options['Atrial base front incline degrees'])
         aBaseSideInclineRadians = math.radians(options['Atrial base side incline degrees'])
         aBaseBackInclineRadians = math.radians(options['Atrial base back incline degrees'])
@@ -247,12 +252,16 @@ class MeshType_3d_heartatria1(object):
         ivcInletGroup = AnnotationGroup(region, 'inferior vena cava inlet', FMANumber = 10951, lyphID = 'Lyph ID unknown')
         svcInletGroup = AnnotationGroup(region, 'superior vena cava inlet', FMANumber = 4720, lyphID = 'Lyph ID unknown')
         annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, lipvGroup, lspvGroup, ripvGroup, rspvGroup, ivcInletGroup, svcInletGroup ]
+        # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
+        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
+        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
         ##############
         # Create nodes
         ##############
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -277,7 +286,7 @@ class MeshType_3d_heartatria1(object):
             getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountAroundAtrialSeptum,
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumThickness,
-                aortaOuterRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians)
+                aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians)
 
         laInnerx = [ laBaseInnerx ]
         laInnerd1 = [ laBaseInnerd1 ]
@@ -746,6 +755,17 @@ class MeshType_3d_heartatria1(object):
                         aNodeId[n1] = aNodeId[ran1FreeWallStart + elementsCountRidgeVenous]
                 raNodeId[n3].append(aNodeId)
 
+        # add nodes to left/right fibrous ring groups so heart1 can find them
+        for i in range(2):
+            fibrousRingGroup = lFibrousRingGroup if (i == 0) else rFibrousRingGroup
+            fibrousRingNodesetGroup = fibrousRingGroup.getNodesetGroup(nodes)
+            for n3 in range(2):
+                aNodeId = laNodeId[n3][0] if (i == 0) else raNodeId[n3][0]
+                for n1 in range(elementsCountAroundAtria):
+                    if aNodeId[n1]:
+                        node = nodes.findNodeByIdentifier(aNodeId[n1])
+                        fibrousRingNodesetGroup.addNode(node)
+
         # create fossa ovalis nodes
         fossaCentreNodeId = []
         fossaNodeId = [ [], [] ]
@@ -822,10 +842,9 @@ class MeshType_3d_heartatria1(object):
                     if (e1 >= rspve1min) and (e1 <= rspve1max) and (e2 >= rspve2min) and (e2 <= rspve2max):
                         continue  # rspv inlet location
                 if e1 == -1:
-                    # cfb/anterior interatrial groove straddles left and right atria
+                    # cfb/anterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                     nids[0] = raNodeId[0][e2][-1]
                     nids[2] = raNodeId[0][e2 + 1][-1]
-                    # collapsed to 6 element wedge
                     nids.pop(6)
                     nids.pop(4)
                     meshGroups += [ raMeshGroup ]
@@ -912,10 +931,9 @@ class MeshType_3d_heartatria1(object):
                     if (e1 >= svce1min) and (e1 <= svce1max) and (e2 >= svce2min) and (e2 <= svce2max):
                         continue  # svc inlet location
                 if e1 == -1:
-                    # crux/posterior interatrial groove straddles left and right atria
+                    # crux/posterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                     nids[0] = laNodeId[0][e2][elementsCountAroundAtrialFreeWall]
                     nids[2] = laNodeId[0][e2 + 1][elementsCountAroundAtrialFreeWall]
-                    # collapsed to 6 element wedge
                     nids.pop(6)
                     nids.pop(4)
                     meshGroups += [ laMeshGroup ]
@@ -1655,11 +1673,15 @@ class MeshType_3d_heartatria1(object):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
+        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
+        elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
+        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        elementsCountUpAtria = options['Number of elements up atria']
+        elementsCountInlet = options['Number of elements inlet']
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
         element = meshrefinement._sourceElementiterator.next()
         sourceFm = meshrefinement._sourceFm
-        coordinates = getOrCreateCoordinateField(sourceFm)
         annotationGroups = meshrefinement._sourceAnnotationGroups
         laGroup = findAnnotationGroupByName(annotationGroups, 'left atrium')
         laElementGroupField = laGroup.getFieldElementGroup(meshrefinement._sourceMesh)
@@ -1668,11 +1690,22 @@ class MeshType_3d_heartatria1(object):
         aSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interatrial septum')
         aSeptumElementGroupField = aSeptumGroup.getFieldElementGroup(meshrefinement._sourceMesh)
         isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
+        # last atria element is last element in svc inlet group:
+        svcInletGroup = findAnnotationGroupByName(annotationGroups, 'superior vena cava inlet')
+        svcInletMeshGroup = svcInletGroup.getMeshGroup(meshrefinement._sourceMesh)
+        lastSvcInletElementIdentifier = -1
+        elementIter = svcInletMeshGroup.createElementiterator()
+        tmpElement = elementIter.next()
+        while tmpElement.isValid():
+            lastSvcInletElementIdentifier = tmpElement.getIdentifier()
+            tmpElement = elementIter.next()
+
         cache = sourceFm.createFieldcache()
 
         refineElements2 = refineElementsCountSurface
         refineElements3 = refineElementsCountThroughWall
         while element.isValid():
+            elementIdentifier = element.getIdentifier()
             cache.setElement(element)
             result, isWedge = isSeptumEdgeWedge.evaluateReal(cache, 1)
             if isWedge:
@@ -1680,6 +1713,8 @@ class MeshType_3d_heartatria1(object):
             else:
                 refineElements1 = refineElementsCountSurface
             meshrefinement.refineElementCubeStandard3d(element, refineElements1, refineElements2, refineElements3)
+            if elementIdentifier == lastSvcInletElementIdentifier:
+                return  # finish on last so can continue elsewhere
             element = meshrefinement._sourceElementiterator.next()
 
     @classmethod
@@ -1702,7 +1737,7 @@ class MeshType_3d_heartatria1(object):
 def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountAroundAtrialSeptum,
         aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
         aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumThickness,
-        aortaOuterRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians):
+        aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians):
     """
     Get points around left atrium based on an ellipse. Points start from central fibrous body
     and wind anticlockwise around LA. Both the cfb and crux are collapsed at the septum.
@@ -1724,32 +1759,28 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
     #    (aSeptumBaseLength/elementsCountAroundAtrialSeptum)*(0.5*elementsCountAroundAtrialSeptum + 1.0))
     axOuter = aBaseOuterMajorMag*math.cos(aMajorAxisRadians)
     bxOuter = aBaseOuterMinorMag*math.sin(aMajorAxisRadians)
-    cfbSideOffset = aortaOuterRadius*math.sin(math.pi/3.0)
-    laCfbLeftRadians = getEllipseRadiansToX(axOuter, bxOuter, -cfbSideOffset - laCentreX, math.pi*0.5)
-    #print('axInner',axInner,'bxInner',bxInner,'laCentreX',laCentreX)
-    #print('laSeptumRadians',laSeptumRadians,'laCfbLeftRadians',laCfbLeftRadians)
-    laCentreY = 0.0
-    laCentreZ = 0.0
 
     # get points on central fibrous body centre and cfbLeft (60 degrees clockwise around aorta)
-    # incline rotates about cfb-Left-Right axis, so cfb centre goes up
-    cfbLeftX = -cfbSideOffset
-    cfbLeftY = laCentreY + math.cos(laCfbLeftRadians)*aBaseOuterMajorMag*math.sin(-aMajorAxisRadians) \
-                         + math.sin(laCfbLeftRadians)*aBaseOuterMinorMag*math.cos(-aMajorAxisRadians)
-    cfbLeftZ = 0.0
+    # rotates about centre of aorta by aBaseFrontInclineRadians
     cosFrontInclineRadians = math.cos(aBaseFrontInclineRadians)
     sinFrontInclineRadians = math.sin(aBaseFrontInclineRadians)
-    r = aortaOuterRadius*(1.0 - math.cos(math.pi/3.0))
-    cfbX = 0.0
-    cfbY = cfbLeftY - r*math.cos(lvOutletFrontInclineRadians)
-    cfbZ = cfbLeftZ + r*math.sin(lvOutletFrontInclineRadians)
-
     pi_3 = math.pi/3.0
-    lvOutletDerivativeAround = aortaOuterRadius*pi_3
-    cfbLeftDerivative1 = [ \
-        -lvOutletDerivativeAround*math.cos(pi_3),
-        lvOutletDerivativeAround*math.sin(pi_3)*cosFrontInclineRadians,
-        -lvOutletDerivativeAround*math.sin(pi_3)*sinFrontInclineRadians ]
+    cosPi_3 = math.cos(pi_3)
+    sinPi_3 = math.sin(pi_3)
+    cfbSideOffset = aortaOuterPlusRadius*sinPi_3
+    rLeft = aortaOuterPlusRadius*cosPi_3
+    cfbLeftX = -cfbSideOffset
+    cfbLeftY = -rLeft*cosFrontInclineRadians
+    cfbLeftZ = rLeft*sinFrontInclineRadians
+    cfbX = 0.0
+    cfbY = -aortaOuterPlusRadius*cosFrontInclineRadians
+    cfbZ = aortaOuterPlusRadius*sinFrontInclineRadians
+    lvOutletDerivativeAround = aortaOuterPlusRadius*pi_3
+    laCfbLeftRadians = getEllipseRadiansToX(axOuter, bxOuter, cfbLeftX - laCentreX, math.pi*0.5)
+    aBaseOuterMinorMagPlus = aBaseOuterMinorMag + 0.5*aBaseSlopeLength  # GRC fudge factor
+    laCentreY = cfbLeftY - math.cos(laCfbLeftRadians)*aBaseOuterMajorMag*math.sin(-aMajorAxisRadians) \
+                         - math.sin(laCfbLeftRadians)*aBaseOuterMinorMagPlus*math.cos(-aMajorAxisRadians)
+    laCentreZ = 0.0
 
     # compute radians around based on base outer major and minor axis sizes
     atrialPerimeterLength = getApproximateEllipsePerimeter(aBaseOuterMajorMag, aBaseOuterMinorMag)
@@ -1782,7 +1813,7 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
     laBaseOuterd1 = []
     laBaseOuterd2 = []
 
-    baseDerivative2Scale = aortaOuterRadius
+    baseDerivative2Scale = aortaOuterPlusRadius
     sinMajorAxisRadians = math.sin(-aMajorAxisRadians)
     cosMajorAxisRadians = math.cos(-aMajorAxisRadians)
 
@@ -1802,7 +1833,8 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
         aMinorX = -aMinorMag*sinMajorAxisRadians
         aMinorY =  aMinorMag*cosMajorAxisRadians
 
-        finalArcLength = prevArcLength = getEllipseArcLength(aMajorMag, aMinorMag, laRadians[-1] - 2.0*math.pi, laRadians[0])
+        twoPi = 2.0*math.pi
+        finalArcLength = prevArcLength = getEllipseArcLength(aMajorMag, aMinorMag, laRadians[-1] - twoPi, laRadians[0])
         n1Limit = elementsCountAroundAtrium if (n3 == 0) else (elementsCountAroundAtrialFreeWall + 1)
         for n1 in range(n1Limit):
             radiansAround = laRadians[n1]
@@ -1826,7 +1858,7 @@ def getLeftAtriumBasePoints(elementsCountAroundAtrialFreeWall, elementsCountArou
                 d2 = [ 0.0, baseDerivative2Scale*sinFrontInclineRadians, baseDerivative2Scale*cosFrontInclineRadians ]
             elif (n3 == 1) and (n1 == 1):
                 x = [ cfbLeftX, cfbLeftY, cfbLeftZ ]
-                d1 = cfbLeftDerivative1
+                d1 = [ -lvOutletDerivativeAround*cosPi_3, lvOutletDerivativeAround*sinPi_3*cosFrontInclineRadians, -lvOutletDerivativeAround*sinPi_3*sinFrontInclineRadians ]
                 d2 = [ 0.0, baseDerivative2Scale*sinFrontInclineRadians, baseDerivative2Scale*cosFrontInclineRadians ]
             else:
                 x = [

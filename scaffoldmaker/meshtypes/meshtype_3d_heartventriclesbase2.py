@@ -38,6 +38,7 @@ class MeshType_3d_heartventriclesbase2(object):
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around ventricular septum'] = 7
         options['Number of elements around atria'] = 8
+        options['Number of elements around atrial septum'] = 2
         # works best with particular numbers of elements up
         options['Number of elements up LV apex'] = 1
         options['Number of elements up ventricular septum'] = 4
@@ -64,6 +65,7 @@ class MeshType_3d_heartventriclesbase2(object):
     def getOrderedOptionNames():
         optionNames = MeshType_3d_heartventricles2.getOrderedOptionNames()
         optionNames.insert(4, 'Number of elements around atria')
+        optionNames.insert(5, 'Number of elements around atrial septum')
         optionNames += [
             'Atria base inner major axis length',
             'Atria base inner minor axis length',
@@ -93,11 +95,15 @@ class MeshType_3d_heartventriclesbase2(object):
 
     @staticmethod
     def checkOptions(options):
-        MeshType_3d_heartventricles2.checkOptions(options)
+        '''
+        :return:  True if dependent options changed, otherwise False.
+        '''
+        dependentChanges = MeshType_3d_heartventricles2.checkOptions(options)
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around ventricular septum'] = 7
         options['Number of elements around atria'] = 8
+        options['Number of elements around atrial septum'] = 2
         for key in [
             'Atria base inner major axis length',
             'Atria base inner minor axis length',
@@ -119,6 +125,7 @@ class MeshType_3d_heartventriclesbase2(object):
             options['Atria major axis rotation degrees'] = -75.0
         elif options['Atria major axis rotation degrees'] > 75.0:
             options['Atria major axis rotation degrees'] = 75.0
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -136,8 +143,8 @@ class MeshType_3d_heartventriclesbase2(object):
         elementsCountUpLV = elementsCountUpLVApex + elementsCountUpVSeptum
         elementsCountUpRV = elementsCountUpVSeptum + 1
         elementsCountAroundRV = elementsCountAroundVSeptum + 2
-        elementsCountAtrialSeptum = 2  # elementsCountAroundVSeptum - 5
         elementsCountAroundAtria = options['Number of elements around atria']
+        elementsCountAtrialSeptum = options['Number of elements around atrial septum']
         lvOuterHeight = options['LV outer height']
         lvOuterRadius = options['LV outer radius']
         lvFreeWallThickness = options['LV free wall thickness']

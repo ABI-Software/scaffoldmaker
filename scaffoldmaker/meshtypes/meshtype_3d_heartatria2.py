@@ -89,6 +89,14 @@ class MeshType_3d_heartatria2(object):
 
     @staticmethod
     def checkOptions(options):
+        '''
+        :return:  True if dependent options changed, otherwise False. This
+        happens where two or more options must change together to be valid.
+        Here the number of elements around atrial free wall must be an even number,
+        but the parameter is number of elements around atria, which depends on
+        number of elements around atrial septum.
+        '''
+        dependentChanges = False
         if options['Number of elements around atria'] < 6:
             options['Number of elements around atria'] = 6
         if options['Number of elements around atrial septum'] < 1:
@@ -98,6 +106,7 @@ class MeshType_3d_heartatria2(object):
         # need even number of elements around free wall
         if ((options['Number of elements around atria'] - options['Number of elements around atrial septum']) % 2) == 1:
             options['Number of elements around atria'] += 1
+            dependentChanges = True
         if options['Number of elements up atria'] < 3:
             options['Number of elements up atria'] = 3
         for key in [
@@ -138,6 +147,7 @@ class MeshType_3d_heartatria2(object):
             'Refine number of elements through atrial wall']:
             if options[key] < 1:
                 options[key] = 1
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):

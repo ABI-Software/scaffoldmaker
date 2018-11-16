@@ -77,6 +77,10 @@ class MeshType_3d_heartventricles2(object):
 
     @staticmethod
     def checkOptions(options):
+        '''
+        :return:  True if dependent options changed, otherwise False.
+        '''
+        dependentChanges = False
         for key in [
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
@@ -112,6 +116,7 @@ class MeshType_3d_heartventricles2(object):
             options['RV arc around degrees'] = 45.0
         elif options['RV arc around degrees'] > 270.0:
             options['RV arc around degrees'] = 270.0
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
