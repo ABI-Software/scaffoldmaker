@@ -61,7 +61,7 @@ class MeshType_3d_heartventriclesbase1(object):
         options['RV outlet wall thickness'] = 0.025
         options['Ventricles outlet element length'] = 0.1
         options['Ventricles outlet spacing y'] = 0.02
-        options['Ventricles outlet spacing z'] = 0.12
+        options['Ventricles outlet spacing z'] = 0.1
         options['Ventricles rotation degrees'] = 16.0
         options['Ventricles translation x'] = -0.19
         options['Ventricles translation y'] = -0.2
@@ -277,25 +277,26 @@ class MeshType_3d_heartventriclesbase1(object):
         vOuterNodeId = [ (startVOuterNodeId + n1) for n1 in range(elementsCountAroundLV) ]
         for nodeId in [ lvInnerNodeId, rvInnerNodeId, vOuterNodeId ]:
             vx  = []
-            #vd1 = []
+            vd1 = [] if (nodeId is rvInnerNodeId) else None
             vd2 = []
-            #vd3 = []
+            #vd3 = [] if False else None
             for n1 in range(len(nodeId)):
                 node = nodes.findNodeByIdentifier(nodeId[n1])
                 cache.setNode(node)
                 result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
                 vx.append(x)
+                if vd1 is not None:
+                    result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                    vd1.append(d1)
                 result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
                 vd2.append(d2)
-                #if nodeId is lvInnerNodeId:
-                #    result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-                #    vd1.append(d1)
+                #if vd3:
                 #    result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
                 #    vd3.append(d3)
             if nodeId is lvInnerNodeId:
                 lvInnerx, lvInnerd2 = vx, vd2
             elif nodeId is rvInnerNodeId:
-                rvInnerx, rvInnerd2 = vx, vd2
+                rvInnerx, rvInnerd1, rvInnerd2 = vx, vd1, vd2
             else:
                 vOuterx, vOuterd2 = vx, vd2
 
@@ -407,7 +408,6 @@ class MeshType_3d_heartventriclesbase1(object):
                     ravOuterd3[n2].append(None)
         # get av bottom derivative 2 from Hermite-Lagrange interpolation from top row of ventricles
         elementsCountLVFreeWallRegular = elementsCountAroundLVFreeWall - 1
-        elementsCountRVFreeWallRegular = 3
         for n1 in range(elementsCountLVFreeWallRegular + 1):
             noa = elementsCountAroundAtrialFreeWall - elementsCountLVFreeWallRegular + n1
             nov = elementsCountAroundLVFreeWall - elementsCountLVFreeWallRegular + n1
@@ -418,11 +418,35 @@ class MeshType_3d_heartventriclesbase1(object):
                 for c in range(3):
                     lavInnerd2[0][noa][c] += lavInnerd1[0][noa][c]
                     lavOuterd2[0][noa][c] += lavOuterd1[0][noa][c]
-        for n1 in range(1, elementsCountRVFreeWallRegular + 1):
+        elementsCountRVHanging = 2 if (elementsCountAroundAtrialFreeWall == 8) else 0
+        elementsCountRVFreeWallRegular = 3 + elementsCountRVHanging
+        for n1 in range(elementsCountRVFreeWallRegular + 1):
             noa = elementsCountAroundAtrialSeptum + n1 - 1
+            niv = n1
             nov = elementsCountAroundLVFreeWall + n1
-            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[n1], rvInnerd2[n1], ravInnerx[0][noa], 1.0)
-            ravOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], ravOuterx[0][noa], 1.0)
+            if elementsCountRVHanging:
+                if n1 > 1:
+                    niv -= 1
+                    nov -= 1
+                if n1 > 3:
+                    niv -= 1
+                    nov -= 1
+            if elementsCountRVHanging and ((n1 == 2) or (n1 == 4)):
+                six  = interpolateCubicHermite(rvInnerx[niv], rvInnerd1[niv], rvInnerx[niv + 1], rvInnerd1[niv + 1], 0.5)
+                sox  = interpolateCubicHermite( vOuterx[nov],  vOuterd2[nov],  vOuterx[nov + 1],  vOuterd2[nov + 1], 0.5)
+                sid2 = [ 0.5*(rvInnerd2[niv][c] + rvInnerd2[niv + 1][c]) for c in range(3) ]
+                sod2 = [ 0.5*( vOuterd2[nov][c] +  vOuterd2[nov + 1][c]) for c in range(3) ]
+            else:
+                six, sid2 = rvInnerx[niv], rvInnerd2[niv]
+                sox, sod2 = vOuterx[nov], vOuterd2[nov]
+            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(six, sid2, ravInnerx[0][noa], 1.0)
+            ravOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(sox, sod2, ravOuterx[0][noa], 1.0)
+        if elementsCountRVHanging:
+            # subtract d1 on last point, later map to d1 + d2
+            noa = elementsCountAroundAtrialSeptum + 4
+            for c in range(3):
+                ravInnerd2[0][noa][c] -= ravInnerd1[0][noa][c]
+                ravOuterd2[0][noa][c] -= ravOuterd1[0][noa][c]
         for n1 in range(elementsCountAroundAtrialSeptum + 1):
             noa = (elementsCountAroundAtrialFreeWall + n1)%elementsCountAroundAtria
             nov = elementsCountAroundLVFreeWall + n1
@@ -449,6 +473,7 @@ class MeshType_3d_heartventriclesbase1(object):
         mag = baseHeight + baseThickness
         ravInnerd2[0][ravsvcn1] = vector.setMagnitude(vector.crossproduct3(ravInnerd3[0][ravsvcn1], ravInnerd1[0][ravsvcn1]), mag)
         ravOuterd2[0][ravsvcn1] = vector.setMagnitude(vector.crossproduct3(ravOuterd3[0][ravsvcn1], ravOuterd1[0][ravsvcn1]), mag)
+        ravsvcn2 = elementsCountAroundAtria - 4
 
         # copy derivative 3 from av points to LV outlet at centre, left and right cfb; negate as d1 is reversed:
         lvOutletOuterd3[0] = [ -d for d in lavOuterd3[0][0] ]
@@ -473,32 +498,50 @@ class MeshType_3d_heartventriclesbase1(object):
         # create points on bottom and top of RV supraventricular crest
         ns = elementsCountAroundRVFreeWall//2 + 1
         nf = elementsCountAroundRVFreeWall + 2
-        xis = 0.6
+        xis = 0.667
         xif = 1.0 - xis
         mx = [ xis*rvInnerx[ns][0] + xif*rvInnerx[nf][0], xis*rvInnerx[ns][1] + xif*rvInnerx[nf][1], -(fibrousRingThickness + baseThickness) ]
         md2 = [ (rvInnerx[nf][c] - rvInnerx[ns][c]) for c in range(3) ]
-        pd1 = smoothCubicHermiteDerivativesLine([ ravInnerx[0][ravsvcn1], mx, rvOutletInnerx[1] ], [ [ -d for d in ravInnerd2[0][ravsvcn1] ], zero, rvOutletd2 ],
-            fixStartDirection=True, fixEndDerivative = True)
+        sd1 = [ -d for d in ravInnerd2[0][ravsvcn2] ]
+        if elementsCountRVHanging == 0:
+            for c in range(3):
+                sd1[c] += ravInnerd1[0][ravsvcn2][c]
+        fd1 = [ (rvOutletInnerd1[2][c] + rvOutletd2[c]) for c in range(3) ]
+        pd1 = smoothCubicHermiteDerivativesLine([ ravInnerx[0][ravsvcn2], mx, rvOutletInnerx[1] ], [ sd1, zero, fd1 ],
+            fixStartDerivative=True, fixEndDerivative = True)
         pd2 = smoothCubicHermiteDerivativesLine([ rvInnerx[ns], mx, rvInnerx[nf] ], [ rvInnerd2[ns], md2, [ -d for d in rvInnerd2[nf] ] ],
             fixStartDerivative = True, fixEndDerivative = True)
         svcix = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
         svcid1 = pd1[1]
         svcid2 = pd2[1]
         svcid3 = vector.setMagnitude(vector.crossproduct3(svcid1, svcid2), baseThickness)
-        ravInnerd2[0][ravsvcn1] = [ -d for d in pd1[0] ]
+        sd2 = [ (svcid2[c] - svcid1[c]) for c in range(3) ]
+        pd2 = smoothCubicHermiteDerivativesLine([ mx, ravInnerx[0][ravsvcn1] ], [ sd2, ravInnerd2[0][ravsvcn1] ],
+            fixStartDerivative=True, fixEndDirection = True)
+        ravInnerd2[0][ravsvcn1] = pd2[1]
+
+        #ravInnerd2[0][ravsvcn1] = [ -d for d in pd1[0] ]
 
         mx = [ (mx[c] + svcid3[c]) for c in range(3) ]
         md2 = svcid2
         nf = 2
-        pd1 = smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn1], mx, rvOutletOuterx[1] ], [ [ -d for d in ravOuterd2[0][ravsvcn1] ], zero, rvOutletd2 ],
-            fixStartDirection=True, fixEndDerivative = True)
+        sd1 = [ -d for d in ravOuterd2[0][ravsvcn2] ]
+        if elementsCountRVHanging == 0:
+            for c in range(3):
+                sd1[c] += ravOuterd1[0][ravsvcn2][c]
+        fd1 = [ (rvOutletOuterd1[2][c] + rvOutletd2[c]) for c in range(3) ]
+        pd1 = smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn2], mx, rvOutletOuterx[1] ], [ sd1, zero, fd1 ],
+            fixStartDerivative=True, fixEndDerivative = True)
         pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)
         svcox = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
         svcod1 = pd1[1]
         svcod2 = pd2[0]
         svcod3 = svcid3
-        ravOuterd2[0][ravsvcn1] = [ -d for d in pd1[0] ]
         lvOutletOuterd3[nf] = [ -d for d in pd2[1] ]
+        sd2 = [ (svcod2[c] - svcod1[c]) for c in range(3) ]
+        pd2 = smoothCubicHermiteDerivativesLine([ mx, ravOuterx[0][ravsvcn1] ], [ sd2, ravOuterd2[0][ravsvcn1] ],
+            fixStartDerivative=True, fixEndDirection = True)
+        ravOuterd2[0][ravsvcn1] = pd2[1]
 
         # LV outlet nodes
         lvOutletNodeId = [ [], [] ]
@@ -720,8 +763,8 @@ class MeshType_3d_heartventriclesbase1(object):
                 meshGroup.addElement(element)
 
         # RV base elements row 1, starting at crux / posterior interventricular sulcus
-        elementsCountRVHanging = 1
-        for e in range(-1, elementsCountAroundRVFreeWall + elementsCountRVHanging + 1):
+        eInfundibulumStart = elementsCountAroundRVFreeWall + elementsCountRVHanging - 3
+        for e in range(-1, elementsCountAroundRVFreeWall + elementsCountRVHanging + 2):
             eft1 = eft
             nids = None
             scalefactors = None
@@ -729,8 +772,11 @@ class MeshType_3d_heartventriclesbase1(object):
 
             noa = elementsCountAroundAtrialSeptum - 1 + e
             niv = e
-            #if e > (elementsCountAroundRVFreeWall + elementsCountRVHanging - 2):
-            #    niv -= 1
+            if elementsCountRVHanging:
+                if e > 1:
+                    niv -= 1
+                if e > 3:
+                    niv -= 1
             nivp = niv + 1
             nov = elementsCountAroundLVFreeWall + niv
             novp = (nov + 1)%elementsCountAroundLV
@@ -759,6 +805,20 @@ class MeshType_3d_heartventriclesbase1(object):
                     setEftScaleFactorIds(eft1, [1], [])
                     scalefactors = [ -1.0 ]
                     remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                elif elementsCountRVHanging:
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                    scalefactors = scalefactors5hanging
+                    if e in [ 1, 3 ]:
+                        # 1st of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
+                    else:  # e in [ 2, 4 ]:
+                        # 2nd of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4, 5])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4, 5])
+                        if e == 4:
+                            remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
             elif e == elementsCountRVFreeWallRegular:
                 # supraventricular crest outer 1
                 nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], ravInnerNodeId[0][noa], svciNodeId,
@@ -766,8 +826,12 @@ class MeshType_3d_heartventriclesbase1(object):
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
-                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-            elif e == (elementsCountRVFreeWallRegular + 1):
+                if elementsCountRVHanging:
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+            elif e == eInfundibulumStart:
                 # supraventricular crest outer 2, outer infundibulum 1
                 nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], svciNodeId, rvOutletNodeId[0][2],
                           vOuterNodeId[nov],  vOuterNodeId[novp], svcoNodeId, rvOutletNodeId[1][2] ]
@@ -777,7 +841,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 meshGroups += [ conusArteriosusMeshGroup ]
-            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging - 3):
+            elif e == (eInfundibulumStart + 1):
                 # supraventricular crest outer 3, outer infundibulum 2
                 nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], rvOutletNodeId[0][2], rvOutletNodeId[0][3],
                           vOuterNodeId[nov],  vOuterNodeId[novp], rvOutletNodeId[1][2], rvOutletNodeId[1][3] ]
@@ -787,7 +851,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 meshGroups += [ conusArteriosusMeshGroup ]
-            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging - 2):
+            elif e == (eInfundibulumStart + 2):
                 # outer infundibulum 3
                 nids = [ rvInnerNodeId[niv], rvInnerNodeId[nivp], rvOutletNodeId[0][3], rvOutletNodeId[0][4],
                           vOuterNodeId[nov],  vOuterNodeId[novp], rvOutletNodeId[1][3], rvOutletNodeId[1][4] ]
@@ -799,7 +863,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 meshGroups += [ conusArteriosusMeshGroup ]
-            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging - 1):
+            elif e == (eInfundibulumStart + 3):
                 # outer infundibulum 4, above septum end
                 # 7 node collapsed element above tetrahedral septum end
                 nids = [ rvInnerNodeId[niv],            rvOutletNodeId[0][4], rvOutletNodeId[0][5],
@@ -820,7 +884,7 @@ class MeshType_3d_heartventriclesbase1(object):
                 ln_map = [ 1, 1, 2, 3, 4, 5, 6, 7 ]
                 remapEftLocalNodes(eft1, 7, ln_map)
                 meshGroups += [ conusArteriosusMeshGroup ]
-            elif e == (elementsCountAroundRVFreeWall + elementsCountRVHanging):
+            elif e == (eInfundibulumStart + 4):
                 # outer infundibulum 5, above septum
                 nids = [ rvInnerNodeId[niv - 1],   rvInnerNodeId[niv], rvOutletNodeId[0][5], rvOutletNodeId[0][0],
                                       avsNodeId, lvOutletNodeId[1][3], rvOutletNodeId[1][5], rvOutletNodeId[1][0] ]
@@ -839,8 +903,6 @@ class MeshType_3d_heartventriclesbase1(object):
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, []) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D2_DS1DS2, [ ( Node.VALUE_LABEL_D_DS3, []) ])  # swap end
                 meshGroups += [ conusArteriosusMeshGroup ]
-            else:
-                continue
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
@@ -1131,7 +1193,11 @@ class MeshType_3d_heartventriclesbase1(object):
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
-                remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])  # must do before following
+                if elementsCountRVHanging:
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] )])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                 remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
@@ -1226,7 +1292,6 @@ class MeshType_3d_heartventriclesbase1(object):
         elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
         elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
-        elementsCountRVFreeWallRegular = 3
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
@@ -1234,8 +1299,8 @@ class MeshType_3d_heartventriclesbase1(object):
         element = meshrefinement._sourceElementiterator.next()
         startBaseLvElementIdentifier = element.getIdentifier()
         startBaseRvElementIdentifier = startBaseLvElementIdentifier + elementsCountAroundLVFreeWall + 1
-        elementsCountRVHanging = 1
-        startBaseSeptumElementIdentifier = startBaseRvElementIdentifier + elementsCountAroundRVFreeWall + elementsCountRVHanging + 2
+        elementsCountRVHanging = 2 if (elementsCountAroundAtrialFreeWall == 8) else 0
+        startBaseSeptumElementIdentifier = startBaseRvElementIdentifier + elementsCountAroundRVFreeWall + elementsCountRVHanging + 3
         startBaseLv2ElementIdentifier = startBaseSeptumElementIdentifier + elementsCountAroundVSeptum + 1
         startBaseRv2ElementIdentifier = startBaseLv2ElementIdentifier + 8
         limitBaseElementIdentifier = startBaseRv2ElementIdentifier + 5

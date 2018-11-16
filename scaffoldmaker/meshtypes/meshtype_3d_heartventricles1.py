@@ -43,7 +43,7 @@ class MeshType_3d_heartventricles1(object):
             'RV arc around degrees' : 155.0,
             'RV arc apex fraction' : 0.6,
             'RV free wall thickness' : 0.04,
-            'RV width' : 0.45,
+            'RV width' : 0.42,
             'RV width growth factor' : 0.5,
             'RV side extension' : 0.12,
             'RV side extension growth factor' : 0.5,
