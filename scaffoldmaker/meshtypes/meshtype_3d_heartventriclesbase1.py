@@ -234,6 +234,16 @@ class MeshType_3d_heartventriclesbase1(object):
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
+        # annotation points
+        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = getOrCreateLabelField(fm, 'data_label')
+        #dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+
+        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        datapointTemplateExternal = datapoints.createNodetemplate()
+        datapointTemplateExternal.defineField(dataCoordinates)
+        datapointTemplateExternal.defineField(dataLabel)
+
         #################
         # Create nodes
         #################
@@ -315,6 +325,11 @@ class MeshType_3d_heartventriclesbase1(object):
         zero = [ 0.0, 0.0, 0.0 ]
         lvOutletOuterd3 = [ None ]*elementsCountAroundOutlet
 
+        datapoint = datapoints.createNode(-1, datapointTemplateExternal)
+        cache.setNode(datapoint)
+        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletCentre)
+        dataLabel.assignString(cache, 'aortic valve ctr')
+
         # RV outlet points
         cosRvOutletLeftInclineRadians = math.cos(rvOutletLeftInclineRadians)
         sinRvOutletLeftInclineRadians = math.sin(rvOutletLeftInclineRadians)
@@ -330,6 +345,11 @@ class MeshType_3d_heartventriclesbase1(object):
             vector.setMagnitude(axis1, rvOutletOuterRadius), vector.setMagnitude(axis2, rvOutletOuterRadius), elementsCountAroundOutlet)
         rvOutletd2 = [ vOutletElementLength*axis3[c] for c in range(3) ]
 
+        datapoint = datapoints.createNode(-1, datapointTemplateExternal)
+        cache.setNode(datapoint)
+        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletCentre)
+        dataLabel.assignString(cache, 'pulmonary valve ctr')
+
         # fix derivative 3 on lv outlet adjacent to rv outlet
         n1 = elementsCountAroundOutlet//2
         lvOutletOuterd3[n1] = interpolateLagrangeHermiteDerivative(lvOutletOuterx[n1], rvOutletOuterx[0], rvOutletd2, 0.0)
@@ -344,6 +364,8 @@ class MeshType_3d_heartventriclesbase1(object):
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumThickness,
                 aortaOuterRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians = 0.0, aBaseBackInclineRadians = 0.0)
+        laCentre[2] -= (aBaseSlopeHeight + fibrousRingThickness)
+
         # get d3 from inner-outer difference
         laBaseInnerd3 = []
         laBaseOuterd3 = []
@@ -468,6 +490,16 @@ class MeshType_3d_heartventriclesbase1(object):
         pd2 = smoothCubicHermiteDerivativesLine([ rvInnerx[nov], ravInnerx[0][noa]], [ rvInnerd2[nov], d2 ], fixStartDerivative=True, fixEndDirection=True)
         ravInnerd2[0][noa] = pd2[1]
 
+        datapoint = datapoints.createNode(-1, datapointTemplateExternal)
+        cache.setNode(datapoint)
+        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laCentre)
+        dataLabel.assignString(cache, 'mitral valve ctr')
+
+        datapoint = datapoints.createNode(-1, datapointTemplateExternal)
+        cache.setNode(datapoint)
+        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ -laCentre[0], laCentre[1], laCentre[2] ])
+        dataLabel.assignString(cache, 'tricuspid valve ctr')
+
         # set d2 at ra node mid supraventricular crest to be normal to surface; smooth to get final magnitude later
         ravsvcn1 = elementsCountAroundAtria - 3
         mag = baseHeight + baseThickness
@@ -519,8 +551,6 @@ class MeshType_3d_heartventriclesbase1(object):
         pd2 = smoothCubicHermiteDerivativesLine([ mx, ravInnerx[0][ravsvcn1] ], [ sd2, ravInnerd2[0][ravsvcn1] ],
             fixStartDerivative=True, fixEndDirection = True)
         ravInnerd2[0][ravsvcn1] = pd2[1]
-
-        #ravInnerd2[0][ravsvcn1] = [ -d for d in pd1[0] ]
 
         mx = [ (mx[c] + svcid3[c]) for c in range(3) ]
         md2 = svcid2

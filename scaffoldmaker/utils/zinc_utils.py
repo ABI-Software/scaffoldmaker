@@ -38,6 +38,50 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
     fieldmodule.endChange()
     return coordinates
 
+def getOrCreateElementXiField(fieldmodule, name='label', mesh=None):
+    '''
+    Finds or creates a stored mesh location field for storing locations in the
+    supplied mesh e.g. for defining on annotation points with mesh locations.
+    Raises exception if existing field of name is not stored mesh location type.
+    Note can't currently verify existing field stores locations in the supplied mesh.
+    :param fieldmodule:  Zinc fieldmodule to find or create field in.
+    :param name:  Name of field to find or create.
+    :param mesh:  Mesh to store locations in.
+    '''
+    if mesh is None:
+        mesh = fieldmodule.findMeshByDimension(3)
+    assert mesh.isValid(), 'getOrCreateElementXiField.  Invalid mesh'
+    elementXiField = fieldmodule.findFieldByName(name)
+    if elementXiField.isValid():
+        elementXiField = elementXiField.castStoredMeshLocation()
+        assert elementXiField.isValid(), 'getOrCreateElementXiField.  Existing field \'' + name + '\' is not stored mesh location type'
+        return elementXiField
+    fieldmodule.beginChange()
+    elementXiField = fieldmodule.createFieldStoredMeshLocation(mesh)
+    elementXiField.setName(name)
+    elementXiField.setManaged(True)
+    fieldmodule.endChange()
+    return elementXiField
+
+def getOrCreateLabelField(fieldmodule, name='label'):
+    '''
+    Finds or creates a stored string field for defining labels on nodes, e.g. annotation points.
+    Raises exception if existing field of name is not string-valued.
+    Note can't currently distinguish stored string from constant string fields.
+    :param fieldmodule:  Zinc fieldmodule to find or create field in.
+    :param name:  Name of field to find or create.
+    '''
+    labelField = fieldmodule.findFieldByName(name)
+    if labelField.isValid():
+        assert labelField.getValueType() == Field.VALUE_TYPE_STRING, 'getOrCreateLabelField.  Existing field \'' + name + '\' is not string valued'
+        return labelField
+    fieldmodule.beginChange()
+    labelField = fieldmodule.createFieldStoredString()
+    labelField.setName(name)
+    labelField.setManaged(True)
+    fieldmodule.endChange()
+    return labelField
+
 def getElementNodeIdentifiers(element, eft):
     '''
     Get identifiers of all nodes used by eft in element.

@@ -12,8 +12,6 @@ from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicub
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element
-#from opencmiss.zinc.field import Field
-#from opencmiss.zinc.node import Node
 
 class MeshType_3d_heart1(object):
     '''
@@ -100,6 +98,16 @@ class MeshType_3d_heart1(object):
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
+        # annotation points
+        #dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = getOrCreateLabelField(fm, 'data_label')
+        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+
+        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        datapointTemplateInternal = datapoints.createNodetemplate()
+        datapointTemplateInternal.defineField(dataLabel)
+        datapointTemplateInternal.defineField(dataElementXi)
+
         ##############
         # Create nodes
         ##############
@@ -176,6 +184,7 @@ class MeshType_3d_heart1(object):
         eftFibrousRing = bicubichermitelinear.createEftBasic()
 
         # left fibrous ring, starting at crux / collapsed posterior interatrial sulcus
+        cruxElementId = None
         for e in range(-1, elementsCountAroundAtrialFreeWall):
             eft1 = eftFibrousRing
             n1 = e
@@ -270,6 +279,7 @@ class MeshType_3d_heart1(object):
                 ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
                 meshGroups += [ lFibrousRingMeshGroup ]
+                cruxElementId = elementIdentifier
             elif e == 0:
                 # general linear map d3 adjacent to collapsed crux/posterior sulcus
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
@@ -348,6 +358,14 @@ class MeshType_3d_heart1(object):
 
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
+
+        # annotation points
+        cruxElement = mesh.findElementByIdentifier(cruxElementId)
+        datapoint = datapoints.createNode(-1, datapointTemplateInternal)
+        cache.setNode(datapoint)
+        #dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, vApexInnerx)
+        dataLabel.assignString(cache, 'crux')
+        dataElementXi.assignMeshLocation(cache, cruxElement, [ 0.0, 0.5, 1.0 ])
 
         fm.endChange()
         return annotationGroups
