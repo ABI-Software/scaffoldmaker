@@ -34,17 +34,18 @@ class MeshType_3d_heartventricles1(object):
             'Number of elements around RV free wall' : 7,
             'Number of elements up LV apex' : 1,
             'Number of elements up RV' : 4,
+            'Unit scale' : 1.0,
             'Interventricular sulcus derivative factor' : 0.5,
             'LV outer height' : 1.0,
-            'LV outer radius' : 0.5,
+            'LV outer diameter' : 1.0,
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
-            'RV inner height fraction' : 0.75,
+            'RV inner height fraction' : 0.8,
             'RV arc around degrees' : 155.0,
             'RV arc apex fraction' : 0.6,
-            'RV free wall thickness' : 0.04,
-            'RV width' : 0.42,
-            'RV width growth factor' : 0.5,
+            'RV free wall thickness' : 0.05,
+            'RV width' : 0.4,
+            'RV width growth factor' : 0.65,
             'RV side extension' : 0.12,
             'RV side extension growth factor' : 0.5,
             'Ventricular septum thickness' : 0.1,
@@ -63,9 +64,10 @@ class MeshType_3d_heartventricles1(object):
             'Number of elements around RV free wall',
             'Number of elements up LV apex',
             'Number of elements up RV',
+            'Unit scale',
             'Interventricular sulcus derivative factor',
             'LV outer height',
-            'LV outer radius',
+            'LV outer diameter',
             'LV free wall thickness',
             'LV apex thickness',
             'RV inner height fraction',
@@ -107,8 +109,9 @@ class MeshType_3d_heartventricles1(object):
             if options[key] < 3:
                 options[key] = 3
         for key in [
+            'Unit scale',
             'LV outer height',
-            'LV outer radius',
+            'LV outer diameter',
             'LV free wall thickness',
             'LV apex thickness',
             'RV free wall thickness',
@@ -153,23 +156,25 @@ class MeshType_3d_heartventricles1(object):
         elementsCountUpLVApex = options['Number of elements up LV apex']
         elementsCountUpRV = options['Number of elements up RV']
         elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        unitScale = options['Unit scale']
         ivSulcusDerivativeFactor = options['Interventricular sulcus derivative factor']
-        lvOuterHeight = options['LV outer height']
-        lvOuterRadius = options['LV outer radius']
-        lvFreeWallThickness = options['LV free wall thickness']
-        lvApexThickness = options['LV apex thickness']
+
+        lvOuterHeight = unitScale*options['LV outer height']
+        lvOuterRadius = unitScale*0.5*options['LV outer diameter']
+        lvFreeWallThickness = unitScale*options['LV free wall thickness']
+        lvApexThickness = unitScale*options['LV apex thickness']
         lvInnerHeight = lvOuterHeight - lvApexThickness
         lvInnerRadius = lvOuterRadius - lvFreeWallThickness
         rvInnerHeightFraction = options['RV inner height fraction']
         rvArcAroundBaseRadians = math.radians(options['RV arc around degrees'])
         rvArcApexFraction = options['RV arc apex fraction']
-        rvFreeWallThickness = options['RV free wall thickness']
-        rvWidth = options['RV width']
+        rvFreeWallThickness = unitScale*options['RV free wall thickness']
+        rvWidth = unitScale*options['RV width']
         rvWidthGrowthFactor = options['RV width growth factor']
-        rvSideExtension = options['RV side extension']
+        rvSideExtension = unitScale*options['RV side extension']
         rvSideExtensionGrowthFactor = options['RV side extension growth factor']
-        vSeptumThickness = options['Ventricular septum thickness']
-        vSeptumBaseRadialDisplacement = options['Ventricular septum base radial displacement']
+        vSeptumThickness = unitScale*options['Ventricular septum thickness']
+        vSeptumBaseRadialDisplacement = unitScale*options['Ventricular septum base radial displacement']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()

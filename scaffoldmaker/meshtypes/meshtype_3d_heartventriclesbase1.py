@@ -43,12 +43,14 @@ class MeshType_3d_heartventriclesbase1(object):
         # works best with particular numbers of elements up
         options['Number of elements up LV apex'] = 1
         options['Number of elements up RV'] = 4
+        # reduce LV outer height from default as adding to it
+        options['LV outer height'] = 0.9
         # additional options
         options['Atria base inner major axis length'] = 0.55
         options['Atria base inner minor axis length'] = 0.45
         options['Atria major axis rotation degrees'] = 40.0
-        options['Atrial septum thickness'] = 0.06
-        options['Atrial base wall thickness'] = 0.05
+        options['Atrial septum thickness'] = 0.07
+        options['Atrial base wall thickness'] = 0.07
         options['Atrial base slope degrees'] = 30.0
         options['Base height'] = 0.15
         options['Base thickness'] = 0.06
@@ -171,49 +173,33 @@ class MeshType_3d_heartventriclesbase1(object):
         elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
         elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
-        # from heartventricles1:
-        ivSulcusDerivativeFactor = options['Interventricular sulcus derivative factor']
-        lvOuterHeight = options['LV outer height']
-        lvOuterRadius = options['LV outer radius']
-        lvFreeWallThickness = options['LV free wall thickness']
-        #lvApexThickness = options['LV apex thickness']
-        #lvInnerHeight = lvOuterHeight - lvApexThickness
-        lvInnerRadius = lvOuterRadius - lvFreeWallThickness
-        #rvInnerHeightFraction = options['RV inner height fraction']
-        rvArcAroundBaseRadians = math.radians(options['RV arc around degrees'])
-        #rvArcApexFraction = options['RV arc apex fraction']
-        rvFreeWallThickness = options['RV free wall thickness']
-        rvWidth = options['RV width']
-        #rvWidthGrowthFactor = options['RV width growth factor']
-        rvSideExtension = options['RV side extension']
-        #rvSideExtensionGrowthFactor = options['RV side extension growth factor']
-        vSeptumThickness = options['Ventricular septum thickness']
-        vSeptumBaseRadialDisplacement = options['Ventricular septum base radial displacement']
+        # from heartventricles1 and heartatria1:
+        unitScale = options['Unit scale']
         # from heartatria1:
-        aBaseInnerMajorMag = 0.5*options['Atria base inner major axis length']
-        aBaseInnerMinorMag = 0.5*options['Atria base inner minor axis length']
+        aBaseInnerMajorMag = unitScale*0.5*options['Atria base inner major axis length']
+        aBaseInnerMinorMag = unitScale*0.5*options['Atria base inner minor axis length']
         aMajorAxisRadians = math.radians(options['Atria major axis rotation degrees'])
-        aSeptumThickness = options['Atrial septum thickness']
-        aBaseWallThickness = options['Atrial base wall thickness']
+        aSeptumThickness = unitScale*options['Atrial septum thickness']
+        aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
         # new:
-        baseHeight = options['Base height']
-        baseThickness = options['Base thickness']
-        fibrousRingThickness = options['Fibrous ring thickness']
+        baseHeight = unitScale*options['Base height']
+        baseThickness = unitScale*options['Base thickness']
+        fibrousRingThickness = unitScale*options['Fibrous ring thickness']
         lvOutletFrontInclineRadians = math.radians(options['LV outlet front incline degrees'])
-        lvOutletInnerRadius = 0.5*options['LV outlet inner diameter']
-        lvOutletWallThickness = options['LV outlet wall thickness']
+        lvOutletInnerRadius = unitScale*0.5*options['LV outlet inner diameter']
+        lvOutletWallThickness = unitScale*options['LV outlet wall thickness']
         lvOutletOuterRadius = lvOutletInnerRadius + lvOutletWallThickness
         rvOutletLeftInclineRadians = math.radians(options['RV outlet left incline degrees'])
-        rvOutletInnerRadius = 0.5*options['RV outlet inner diameter']
-        rvOutletWallThickness = options['RV outlet wall thickness']
+        rvOutletInnerRadius = unitScale*0.5*options['RV outlet inner diameter']
+        rvOutletWallThickness = unitScale*options['RV outlet wall thickness']
         rvOutletOuterRadius = rvOutletInnerRadius + rvOutletWallThickness
-        vOutletElementLength = options['Ventricles outlet element length']
-        vOutletSpacingy = options['Ventricles outlet spacing y']
-        vOutletSpacingz = options['Ventricles outlet spacing z']
+        vOutletElementLength = unitScale*options['Ventricles outlet element length']
+        vOutletSpacingy = unitScale*options['Ventricles outlet spacing y']
+        vOutletSpacingz = unitScale*options['Ventricles outlet spacing z']
         vRotationRadians = math.radians(options['Ventricles rotation degrees'])
-        vTranslationx = options['Ventricles translation x']
-        vTranslationy = options['Ventricles translation y']
+        vTranslationx = unitScale*options['Ventricles translation x']
+        vTranslationy = unitScale*options['Ventricles translation y']
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
