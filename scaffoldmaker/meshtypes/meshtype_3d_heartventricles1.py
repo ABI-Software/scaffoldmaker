@@ -182,6 +182,16 @@ class MeshType_3d_heartventricles1(object):
         vSeptumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
+        # annotation points
+        #dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = getOrCreateLabelField(fm, 'data_label')
+        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+
+        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        datapointTemplateInternal = datapoints.createNodetemplate()
+        datapointTemplateInternal.defineField(dataLabel)
+        datapointTemplateInternal.defineField(dataElementXi)
+
         #################
         # Create nodes
         #################
@@ -953,6 +963,17 @@ class MeshType_3d_heartventricles1(object):
 
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
+
+        # apex annotation points
+        element1 = mesh.findElementByIdentifier(1)
+        datapoint = datapoints.createNode(-1, datapointTemplateInternal)
+        cache.setNode(datapoint)
+        dataLabel.assignString(cache, 'apex endo')
+        dataElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
+        datapoint = datapoints.createNode(-1, datapointTemplateInternal)
+        cache.setNode(datapoint)
+        dataLabel.assignString(cache, 'apex epi')
+        dataElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
         fm.endChange()
         return annotationGroups
