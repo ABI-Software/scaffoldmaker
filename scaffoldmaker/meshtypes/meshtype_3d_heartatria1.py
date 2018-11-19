@@ -32,6 +32,7 @@ class MeshType_3d_heartatria1(object):
             'Number of elements around atrial septum' : 3,
             'Number of elements up atria' : 4,
             'Number of elements inlet' : 2,
+            'Unit scale' : 1.0,
             'Atria base inner major axis length' : 0.55,
             'Atria base inner minor axis length' : 0.45,
             'Atria major axis rotation degrees' : 40.0,
@@ -79,6 +80,7 @@ class MeshType_3d_heartatria1(object):
             'Number of elements around atrial septum',
             'Number of elements up atria',
             'Number of elements inlet',
+            'Unit scale',
             'Atria base inner major axis length',
             'Atria base inner minor axis length',
             'Atria major axis rotation degrees',
@@ -137,6 +139,7 @@ class MeshType_3d_heartatria1(object):
         if options['Number of elements inlet'] < 1:
             options['Number of elements inlet'] = 1
         for key in [
+            'Unit scale',
             'Atria base inner major axis length',
             'Atria base inner minor axis length',
             'Atria outer height',
@@ -199,41 +202,42 @@ class MeshType_3d_heartatria1(object):
         elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
         elementsCountUpAtria = options['Number of elements up atria']
         elementsCountInlet = options['Number of elements inlet']
-        aBaseInnerMajorMag = 0.5*options['Atria base inner major axis length']
-        aBaseInnerMinorMag = 0.5*options['Atria base inner minor axis length']
+        unitScale = options['Unit scale']
+
+        aBaseInnerMajorMag = unitScale*0.5*options['Atria base inner major axis length']
+        aBaseInnerMinorMag = unitScale*0.5*options['Atria base inner minor axis length']
         aMajorAxisRadians = math.radians(options['Atria major axis rotation degrees'])
-        aOuterHeight = options['Atria outer height']
-        aortaOuterPlusRadius = 0.5*options['Aorta outer plus diameter']
+        aOuterHeight = unitScale*options['Atria outer height']
+        aortaOuterPlusRadius = unitScale*0.5*options['Aorta outer plus diameter']
         aBaseFrontInclineRadians = math.radians(options['Atrial base front incline degrees'])
         aBaseSideInclineRadians = math.radians(options['Atrial base side incline degrees'])
         aBaseBackInclineRadians = math.radians(options['Atrial base back incline degrees'])
         aElementSizeRatioAnteriorPosterior = options['Atrial element size ratio anterior/posterior']
-        #aortaAxis = [ 0.0, math.sin(aortaInclineRadians), math.cos(aortaInclineRadians) ]
-        aSeptumThickness = options['Atrial septum thickness']
-        aFreeWallThickness = options['Atrial free wall thickness']
-        aBaseWallThickness = options['Atrial base wall thickness']
+        aSeptumThickness = unitScale*options['Atrial septum thickness']
+        aFreeWallThickness = unitScale*options['Atrial free wall thickness']
+        aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
         lpvPositionUp = options['Left pulmonary vein position up']
         lpvAngleUpRadians = math.radians(options['Left pulmonary vein angle up degrees'])
         lpvLengthFactor = options['Left pulmonary vein length factor']
-        lpvInnerRadius = 0.5*options['Left pulmonary vein inner diameter']
-        lpvWallThickness = options['Left pulmonary vein wall thickness']
+        lpvInnerRadius = unitScale*0.5*options['Left pulmonary vein inner diameter']
+        lpvWallThickness = unitScale*options['Left pulmonary vein wall thickness']
         rpvPositionUp = options['Right pulmonary vein position up']
         rpvAngleUpRadians = math.radians(options['Right pulmonary vein angle up degrees'])
         rpvLengthFactor = options['Right pulmonary vein length factor']
-        rpvInnerRadius = 0.5*options['Right pulmonary vein inner diameter']
-        rpvWallThickness = options['Right pulmonary vein wall thickness']
+        rpvInnerRadius = unitScale*0.5*options['Right pulmonary vein inner diameter']
+        rpvWallThickness = unitScale*options['Right pulmonary vein wall thickness']
         ivcPositionUp = options['Inferior vena cava position up']
         ivcAngleUpRadians = math.radians(options['Inferior vena cava angle up degrees'])
         ivcAngleLeftRadians = math.radians(options['Inferior vena cava angle left degrees'])
         ivcLengthFactor = options['Inferior vena cava length factor']
-        ivcInnerRadius = 0.5*options['Inferior vena cava inner diameter']
-        ivcWallThickness = options['Inferior vena cava wall thickness']
+        ivcInnerRadius = unitScale*0.5*options['Inferior vena cava inner diameter']
+        ivcWallThickness = unitScale*options['Inferior vena cava wall thickness']
         svcPositionUp = options['Superior vena cava position up']
         svcAngleUpRadians = math.radians(options['Superior vena cava angle up degrees'])
         svcLengthFactor = options['Superior vena cava length factor']
-        svcInnerRadius = 0.5*options['Superior vena cava inner diameter']
-        svcWallThickness = options['Superior vena cava wall thickness']
+        svcInnerRadius = unitScale*0.5*options['Superior vena cava inner diameter']
+        svcWallThickness = unitScale*options['Superior vena cava wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
