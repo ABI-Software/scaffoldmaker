@@ -36,7 +36,7 @@ class MeshType_3d_heartarterialroot1(object):
             'Inner depth' : 0.2,
             'Cusp height' : 0.6,
             'Inner diameter': 1.0,
-            'Sinus radial displacement': 0.05,
+            'Sinus radial displacement': 0.1,
             'Wall thickness': 0.1,
             'Cusp thickness' : 0.02,
             'Aortic not pulmonary' : True,
@@ -278,6 +278,7 @@ class MeshType_3d_heartarterialroot1(object):
 
         # Create nodes
 
+        lowerNodeId = [ [], [] ]
         for n3 in range(2):
             for n1 in range(elementsCountAround):
                 node = nodes.createNode(nodeIdentifier, nodetemplate if (lowerd3[n3] and lowerd3[n3][n1]) else nodetemplateLinearS3)
@@ -287,18 +288,23 @@ class MeshType_3d_heartarterialroot1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lowerd2[n3][n1])
                 if lowerd3[n3] and lowerd3[n3][n1]:
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lowerd3[n3][n1])
+                lowerNodeId[n3].append(nodeIdentifier)
                 nodeIdentifier += 1
 
+        sinusNodeId = []
         for n1 in range(elementsCountAround*2):
             if ((n1 - nMidCusp*2)%4) == 2:
+                sinusNodeId.append(None)
                 continue
             node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sinusx [n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sinusd1[n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sinusd2[n1])
+            sinusNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
 
+        noduleNodeId = [ [], [] ]
         for n3 in range(2):
             for n1 in range(3):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -307,8 +313,10 @@ class MeshType_3d_heartarterialroot1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, noduled1[n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, noduled2[n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, noduled3[n3][n1])
+                noduleNodeId[n3].append(nodeIdentifier)
                 nodeIdentifier += 1
 
+        upperNodeId = [ [], [] ]
         for n3 in range(2):
             for n1 in range(len(upperx[n3])):
                 node = nodes.createNode(nodeIdentifier, nodetemplate if (upperd3[n3] and upperd3[n3][n1]) else nodetemplateLinearS3)
@@ -318,7 +326,10 @@ class MeshType_3d_heartarterialroot1(object):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, upperd2[n3][n1])
                 if upperd3[n3] and upperd3[n3][n1]:
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, upperd3[n3][n1])
+                upperNodeId[n3].append(nodeIdentifier)
                 nodeIdentifier += 1
+
+
 
         #################
         # Create elements
@@ -332,14 +343,64 @@ class MeshType_3d_heartarterialroot1(object):
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eft = bicubichermitelinear.createEftNoCrossDerivatives()
 
-        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        #tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
 
-        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
+        # wall elements
+        for cusp in range(3):
+            n1 = cusp*2 - 1 + nMidCusp
+            n2 = n1*2
+            for e in range(6):
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+
+                if (e == 0) or (e == 5):
+                    # 6 node collapsed wedge element expanding from zero width on outer wall of root, attaching to vertical part of cusp
+                    if e == 0:
+                        nids = [ lowerNodeId[0][n1], sinusNodeId[n2 + 1], upperNodeId[0][n2], upperNodeId[0][n2 + 1], lowerNodeId[1][n1], upperNodeId[1][n1] ]
+                        remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                    else:
+                        nids = [ sinusNodeId[n2 + 3], lowerNodeId[0][n1 - 4], upperNodeId[0][n2 + 3], upperNodeId[0][n2 - 8], lowerNodeId[1][n1 - 4], upperNodeId[1][n1 - 4] ]
+                        remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1]) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                    ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
+                    remapEftLocalNodes(eft1, 6, ln_map)
+                elif (e == 1) or (e == 4):
+                    # 6 node collapsed wedge element on lower wall
+                    if e == 1:
+                        nids = [ lowerNodeId[0][n1], lowerNodeId[0][n1 + 1], sinusNodeId[n2 + 1], sinusNodeId[n2 + 2], lowerNodeId[1][n1], lowerNodeId[1][n1 + 1] ]
+                        remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                    else:
+                        nids = [ lowerNodeId[0][n1 + 1], lowerNodeId[0][n1 - 4], sinusNodeId[n2 + 2], sinusNodeId[n2 + 3], lowerNodeId[1][n1 + 1], lowerNodeId[1][n1 - 4] ]
+                        remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS2, [])
+                    ln_map = [ 1, 2, 3, 4, 5, 6, 5, 6 ]
+                    remapEftLocalNodes(eft1, 6, ln_map)
+                else:
+                    if e == 2:
+                        nids = [ sinusNodeId[n2 + 1], sinusNodeId[n2 + 2], upperNodeId[0][n2 + 1], upperNodeId[0][n2 + 2],
+                                 lowerNodeId[1][n1], lowerNodeId[1][n1 + 1], upperNodeId[1][n1], upperNodeId[1][n1 + 1] ]
+                    else:
+                        nids = [ sinusNodeId[n2 + 2], sinusNodeId[n2 + 3], upperNodeId[0][n2 + 2], upperNodeId[0][n2 + 3],
+                                 lowerNodeId[1][n1 + 1], lowerNodeId[1][n1 - 4], upperNodeId[1][n1 + 1], upperNodeId[1][n1 - 4] ]
+
+                result = elementtemplate1.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = 7
+                print('create arterial root wall', cusp, e, 'element',elementIdentifier, result, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in allMeshGroups:
+                    meshGroup.addElement(element)
 
         fm.endChange()
         return annotationGroups
@@ -353,13 +414,17 @@ class MeshType_3d_heartarterialroot1(object):
         """
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountSurface = options['Refine number of elements surface']
-        MeshType_3d_heartventricles1.refineMesh(meshrefinement, options)
-        numberInXi1 = refineElementsCountSurface
-        numberInXi2 = refineElementsCountSurface
-        numberInXi3 = 1
-        for i in range(0):  # eventually: (24):  # fixed number of elements
-            element = meshrefinement._sourceElementiterator.next()
-            meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+        for cusp in range(3):
+            for e in range(6):
+                element = meshrefinement._sourceElementiterator.next()
+                numberInXi1 = refineElementsCountSurface
+                numberInXi2 = refineElementsCountSurface
+                numberInXi3 = 1
+                if (e == 0) or (e == 5):
+                    numberInXi1 = 1
+                elif (e == 1) or (e == 4):
+                    numberInXi2 = 1
+                meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
 
     @classmethod
     def generateMesh(cls, region, options):
