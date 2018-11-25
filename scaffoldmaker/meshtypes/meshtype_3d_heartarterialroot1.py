@@ -34,11 +34,11 @@ class MeshType_3d_heartarterialroot1(object):
             'Unit scale' : 1.0,
             'Outer height' : 0.5,
             'Inner depth' : 0.2,
-            'Cusp height' : 0.5,
+            'Cusp height' : 0.6,
             'Inner diameter': 1.0,
             'Sinus radial displacement': 0.05,
             'Wall thickness': 0.1,
-            'Cusp thickness' : 0.04,
+            'Cusp thickness' : 0.02,
             'Aortic not pulmonary' : True,
             'Refine' : False,
             'Refine number of elements surface' : 4,
@@ -153,10 +153,14 @@ class MeshType_3d_heartarterialroot1(object):
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
         axisSide2 = vector.crossproduct3(axisUp, axisSide1)
         outerRadius = innerRadius + wallThickness
-        cuspLowerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius, cuspHeight)
-        cuspLowerInnerArcLength = cuspLowerLength2*innerRadius/(innerRadius + cuspHeight)
-        cuspNoduleArcLength = cuspLowerLength2 - cuspLowerInnerArcLength
-        cuspUpperInnerd3 = interpolateHermiteLagrangeDerivative([ 0.0, 0.0 ], [ innerRadius, 0.0 ], [ innerRadius, outerHeight + innerDepth - cuspHeight ], 1.0)
+        cuspOuterLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius, cuspHeight)
+        cuspOuterWallArcLength = cuspOuterLength2*innerRadius/(innerRadius + cuspHeight)
+        noduleOuterAxialArcLength = cuspOuterLength2 - cuspOuterWallArcLength
+        noduleOuterRadialArcLength = innerRadius
+        cuspOuterWalld3 = interpolateHermiteLagrangeDerivative([ 0.0, 0.0 ], [ innerRadius, 0.0 ], [ innerRadius, outerHeight + innerDepth - cuspHeight ], 1.0)
+        cuspInnerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius - 2.0*cuspThickness, cuspHeight - cuspThickness)
+        noduleInnerAxialArcLength = cuspInnerLength2*(cuspHeight - cuspThickness)/(innerRadius + cuspHeight - 3.0*cuspThickness)
+        noduleInnerRadialArcLength = innerRadius - cuspThickness/math.tan(math.pi/3.0)
 
         # lower points
         ix, id1 = createCirclePoints([ (baseCentre[c] - axisUp[c]*innerDepth) for c in range(3) ],
@@ -195,9 +199,9 @@ class MeshType_3d_heartarterialroot1(object):
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
             if (n1 % 2) == nMidCusp:
-                lowerd3[0][n1] = [ cuspLowerInnerArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ]
+                lowerd3[0][n1] = [ cuspOuterWallArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ]
             else:
-                upperd3[0][n1*2] = [ (cuspUpperInnerd3[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + cuspUpperInnerd3[1]*axisUp[c]) for c in range(3) ]
+                upperd3[0][n1*2] = [ (cuspOuterWalld3[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + cuspOuterWalld3[1]*axisUp[c]) for c in range(3) ]
 
         # inner-wall mid sinus points
         midDistance = 0.5*(outerHeight - innerDepth)
@@ -245,6 +249,34 @@ class MeshType_3d_heartarterialroot1(object):
             sinusd2[n1] = [ (rf*md2r*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + md2a*axisUp[c]) for c in range(3) ]
 
         # cusp nodule points
+        noduleCentre = [ (baseCentre[c] + axisUp[c]*(cuspHeight - innerDepth)) for c in range(3) ]
+        nodulex  = [ [], [] ]
+        noduled1 = [ [], [] ]
+        noduled2 = [ [], [] ]
+        noduled3 = [ [], [] ]
+        for i in range(3):
+            nodulex[0].append(noduleCentre)
+            n1 = i*2 + nMidCusp
+            radiansAround = n1*radiansPerElementAround
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            nodulex[1].append([ (noduleCentre[c] + 2.0*cuspThickness*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c])) for c in range(3) ])
+            n1 = i*2 - 1 + nMidCusp
+            radiansAround = n1*radiansPerElementAround
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            noduled1[0].append([ noduleOuterRadialArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ])
+            noduled1[1].append(vector.setMagnitude(noduled1[0][i], noduleInnerRadialArcLength))
+            n1 = i*2 + 1 + nMidCusp
+            radiansAround = n1*radiansPerElementAround
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            noduled2[0].append([ noduleOuterRadialArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ])
+            noduled2[1].append(vector.setMagnitude(noduled2[0][i], noduleInnerRadialArcLength))
+            noduled3[0].append([ -noduleOuterAxialArcLength*axisUp[c] for c in range(3) ])
+            noduled3[1].append([ -noduleInnerAxialArcLength*axisUp[c] for c in range(3) ])
+
+        # Create nodes
 
         for n3 in range(2):
             for n1 in range(elementsCountAround):
@@ -266,6 +298,16 @@ class MeshType_3d_heartarterialroot1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sinusd1[n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sinusd2[n1])
             nodeIdentifier += 1
+
+        for n3 in range(2):
+            for n1 in range(3):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nodulex [n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, noduled1[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, noduled2[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, noduled3[n3][n1])
+                nodeIdentifier += 1
 
         for n3 in range(2):
             for n1 in range(len(upperx[n3])):
