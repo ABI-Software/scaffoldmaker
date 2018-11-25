@@ -96,20 +96,28 @@ class MeshRefinement:
         nids = []
         xi = [ 0.0, 0.0, 0.0 ]
         for k in range(numberInXi3 + 1):
+            kExterior = (k == 0) or (k == numberInXi3)
             xi[2] = k/numberInXi3
             for j in range(numberInXi2 + 1):
+                jExterior = kExterior or (j == 0) or (j == numberInXi2)
                 xi[1] = j/numberInXi2
                 for i in range(numberInXi1 + 1):
+                    iExterior = jExterior or (i == 0) or (i == numberInXi1)
                     xi[0] = i/numberInXi1
                     self._sourceCache.setMeshLocation(sourceElement, xi)
                     result, x = self._sourceCoordinates.evaluateReal(self._sourceCache, 3)
-                    nodeId = self._octree.findObjectByCoordinates(x)
+                    # only exterior points are ever common:
+                    if iExterior:
+                        nodeId = self._octree.findObjectByCoordinates(x)
+                    else:
+                        nodeId = None
                     if nodeId is None:
                         node = self._targetNodes.createNode(self._nodeIdentifier, self._nodetemplate)
                         self._targetCache.setNode(node)
                         result = self._targetCoordinates.setNodeParameters(self._targetCache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         nodeId = self._nodeIdentifier
-                        self._octree.addObjectAtCoordinates(x, nodeId)
+                        if iExterior:
+                            self._octree.addObjectAtCoordinates(x, nodeId)
                         self._nodeIdentifier += 1
                     nids.append(nodeId)
         # create elements
