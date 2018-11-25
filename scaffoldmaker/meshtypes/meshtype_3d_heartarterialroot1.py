@@ -150,41 +150,133 @@ class MeshType_3d_heartarterialroot1(object):
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         elementsCountAround = 6
+        radiansPerElementAround = 2.0*math.pi/elementsCountAround
         axisSide2 = vector.crossproduct3(axisUp, axisSide1)
-        startRadians = (math.pi/3.0) if aorticNotPulmonary else 0.0
         outerRadius = innerRadius + wallThickness
+        cuspLowerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius, cuspHeight)
+        cuspLowerInnerArcLength = cuspLowerLength2*innerRadius/(innerRadius + cuspHeight)
+        cuspNoduleArcLength = cuspLowerLength2 - cuspLowerInnerArcLength
+        cuspUpperInnerd3 = interpolateHermiteLagrangeDerivative([ 0.0, 0.0 ], [ innerRadius, 0.0 ], [ innerRadius, outerHeight + innerDepth - cuspHeight ], 1.0)
 
         # lower points
-        lowerx, lowerd1 = getArterialRootLowerPoints(baseCentre, axisSide1, axisSide2, axisUp, innerRadius, outerRadius, innerDepth, sinusRadialDisplacement, startRadians, elementsCountAround)
+        ix, id1 = createCirclePoints([ (baseCentre[c] - axisUp[c]*innerDepth) for c in range(3) ],
+            [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
+            elementsCountAround)
+        ox, od1 = getSemilunarValveSinusPoints(baseCentre, axisSide1, axisSide2, outerRadius, sinusRadialDisplacement,
+            startMidCusp=aorticNotPulmonary)
+        lowerx, lowerd1 = [ ix, ox ], [ id1, od1 ]
 
         # upper points
         topCentre = [ (baseCentre[c] + axisUp[c]*outerHeight) for c in range(3) ]
+        # twice as many on inner:
         ix, id1 = createCirclePoints(topCentre,
             [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
-            elementsCountAround, startRadians)
+            elementsCountAround*2)
         ox, od1 = createCirclePoints(topCentre,
             [ axisSide1[c]*outerRadius for c in range(3) ], [ axisSide2[c]*outerRadius for c in range(3) ],
-            elementsCountAround, startRadians)
+            elementsCountAround)
         upperx, upperd1 = [ ix, ox ], [ id1, od1 ]
+
+        # get lower and upper derivative 2
+        zero = [ 0.0, 0.0, 0.0 ]
+        nMidCusp = 0 if aorticNotPulmonary else 1
+        upperd2factor = outerHeight*(2.0/3.0)
+        upd2 = [ d*upperd2factor for d in axisUp ]
+        lowerOuterd2 = smoothCubicHermiteDerivativesLine([ lowerx[1][nMidCusp], upperx[1][nMidCusp] ], [ upd2, upd2 ],
+            fixStartDirection=True, fixEndDerivative=True)[0]
+        lowerd2 = [ [ upd2 ]*elementsCountAround, [ lowerOuterd2 ]*elementsCountAround ]  # lowerd2[0] to be fitted below
+        upperd2 = [ [ upd2 ]*(elementsCountAround*2), [ upd2 ]*elementsCountAround ]
+
+        # get lower and upper derivative 3 for points which have them
+        lowerd3 = [ [ None ]*elementsCountAround, None ]
+        upperd3 = [ [ None ]*(elementsCountAround*2), None ]
+        for n1 in range(elementsCountAround):
+            radiansAround = n1*radiansPerElementAround
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            if (n1 % 2) == nMidCusp:
+                lowerd3[0][n1] = [ cuspLowerInnerArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ]
+            else:
+                upperd3[0][n1*2] = [ (cuspUpperInnerd3[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + cuspUpperInnerd3[1]*axisUp[c]) for c in range(3) ]
+
+        # inner-wall mid sinus points
+        midDistance = 0.5*(outerHeight - innerDepth)
+        outerArcLength2 = getCubicHermiteArcLength(lowerx[1][nMidCusp], lowerd2[1][nMidCusp], upperx[1][nMidCusp], upperd2[1][nMidCusp])
+        outerArcLength2Part = outerArcLength2*midDistance/outerHeight
+        mx, md2 = getCubicHermiteCurvesPointAtArcDistance([ lowerx[1][nMidCusp], upperx[1][nMidCusp] ], [ lowerd2[1][nMidCusp], upperd2[1][nMidCusp] ], outerArcLength2Part)[0:2]
+        mn = vector.setMagnitude(vector.crossproduct3(lowerd1[1][nMidCusp], md2), wallThickness)
+        mx = [ (mx[c] - mn[c]) for c in range(3) ]
+        id2 = smoothCubicHermiteDerivativesLine([ lowerx[0][nMidCusp], mx, upperx[0][nMidCusp] ], [ lowerd2[0][nMidCusp], md2, upperd2[0][nMidCusp] ],
+            fixAllDirections=True, fixEndDerivative=True)
+        lowerd2[0] = [ id2[0] ]*elementsCountAround
+
+        startRadians = 0.0 if aorticNotPulmonary else math.pi/3.0
+        cosStartRadians = math.cos(startRadians)
+        sinStartRadians = math.sin(startRadians)
+        axisRadial = [ (cosStartRadians*axisSide1[c] + sinStartRadians*axisSide2[c]) for c in range(3) ]
+        mr = vector.dotproduct([ (mx[c] - baseCentre[c]) for c in range(3) ], axisRadial)
+        mc = [ (mx[c] - mr*axisRadial[c]) for c in range(3) ]
+        md2a = vector.dotproduct(id2[1], axisUp)
+        md2r = vector.dotproduct(id2[1], axisRadial)
+        ix, id1 = getSemilunarValveSinusPoints(mc, axisSide1, axisSide2, innerRadius, mr - innerRadius,
+            startMidCusp=aorticNotPulmonary)
+        # resample to double number of points, halving derivative size:
+        jx  = []
+        jd1 = []
+        xi = 0.5
+        for n1 in range(elementsCountAround):
+            np = (n1 + 1)%elementsCountAround
+            jx .append(interpolateCubicHermite          (ix[n1], id1[n1], ix[np], id1[np], xi))
+            jd1.append(interpolateCubicHermiteDerivative(ix[n1], id1[n1], ix[np], id1[np], xi))
+        sinusx = []
+        sinusd1 = []
+        for n1 in range(elementsCountAround):
+            sinusx .append(ix [n1])
+            sinusx .append(jx [n1])
+            sinusd1.append([ 0.5*d for d in id1[n1]])
+            sinusd1.append([ 0.5*d for d in jd1[n1]])
+        sinusd2 = [ None ]*(elementsCountAround*2)
+        for n1 in range(elementsCountAround*2):
+            radiansAround = 0.5*n1*radiansPerElementAround
+            cosRadiansAround = math.cos(radiansAround)
+            sinRadiansAround = math.sin(radiansAround)
+            n1Cusp = (n1 - nMidCusp*2)%4
+            rf = 0.0 if (n1Cusp == 2) else (1.0 if (n1Cusp == 0) else 0.5)
+            sinusd2[n1] = [ (rf*md2r*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + md2a*axisUp[c]) for c in range(3) ]
+
+        # cusp nodule points
 
         for n3 in range(2):
             for n1 in range(elementsCountAround):
-                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
+                node = nodes.createNode(nodeIdentifier, nodetemplate if (lowerd3[n3] and lowerd3[n3][n1]) else nodetemplateLinearS3)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lowerx [n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lowerd1[n3][n1])
-                #coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lowerd2[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lowerd2[n3][n1])
+                if lowerd3[n3] and lowerd3[n3][n1]:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lowerd3[n3][n1])
                 nodeIdentifier += 1
 
+        for n1 in range(elementsCountAround*2):
+            if ((n1 - nMidCusp*2)%4) == 2:
+                continue
+            node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sinusx [n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sinusd1[n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sinusd2[n1])
+            nodeIdentifier += 1
+
         for n3 in range(2):
-            for n1 in range(elementsCountAround):
-                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
+            for n1 in range(len(upperx[n3])):
+                node = nodes.createNode(nodeIdentifier, nodetemplate if (upperd3[n3] and upperd3[n3][n1]) else nodetemplateLinearS3)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, upperx [n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, upperd1[n3][n1])
-                #coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, upperd2[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, upperd2[n3][n1])
+                if upperd3[n3] and upperd3[n3][n1]:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, upperd3[n3][n1])
                 nodeIdentifier += 1
-
 
         #################
         # Create elements
@@ -244,35 +336,30 @@ class MeshType_3d_heartarterialroot1(object):
         return meshrefinement.getAnnotationGroups()
 
 
-def getArterialRootLowerPoints(baseCentre, axisSide1, axisSide2, axisUp, innerRadius, outerRadius, innerDepth, sinusRadialDisplacement,
-        startRadians, elementsCountAround = 6):
+def getSemilunarValveSinusPoints(centre, axisSide1, axisSide2, radius, sinusRadialDisplacement, startMidCusp, elementsCountAround = 6):
     '''
-    :param startRadians: Angle from axisSide1 toward axisSide2 where first cusp begins.
-    :return: Coordinates, derivatives x[2][6], d1[2][6] for inner:outer and 6 around.
+    Get points around a circle of radius with every second point displaced radially.
+    :return: x[], d1[] for 6 points around
     '''
     assert elementsCountAround == 6, 'getArterialRootLowerPoints.  Only supports 6 elements around'
-    ix, id1 = createCirclePoints([ (baseCentre[c] - axisUp[c]*innerDepth) for c in range(3) ],
-        [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
-        elementsCountAround, startRadians)
-
+    px = []
+    pd1 = []
     # every second outer points is displaced by sinusRadialDisplacement to make sinus dilatation
-    ox = []
-    od1 = []
-    outerRadiusPlus = outerRadius + sinusRadialDisplacement
+    nMidCusp = 0 if startMidCusp else 1
+    radiusPlus = radius + sinusRadialDisplacement
     radiansPerElementAround = 2.0*math.pi/elementsCountAround
-    radiansAround = startRadians
     for n in range(elementsCountAround):
-        radius = outerRadiusPlus if (n % 2) else outerRadius
-        rcosRadiansAround = radius*math.cos(radiansAround)
-        rsinRadiansAround = radius*math.sin(radiansAround)
-        ox.append([ (baseCentre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ])
-        od1.append([ radiansPerElementAround*(-rsinRadiansAround*axisSide1[c] + rcosRadiansAround*axisSide2[c]) for c in range(3) ])
-        radiansAround += radiansPerElementAround
+        radiansAround = n*radiansPerElementAround
+        midCusp = (n % 2) == nMidCusp
+        r = radiusPlus if midCusp else radius
+        rcosRadiansAround = r*math.cos(radiansAround)
+        rsinRadiansAround = r*math.sin(radiansAround)
+        px.append([ (centre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ])
+        pd1.append([ radiansPerElementAround*(-rsinRadiansAround*axisSide1[c] + rcosRadiansAround*axisSide2[c]) for c in range(3) ])
     # smooth to get derivative in sinus
-    pd1 = smoothCubicHermiteDerivativesLine(ox[0:2], od1[0:2], fixStartDerivative=True, fixEndDirection=True)
-    od1[1] = pd1[1]
-    magSinus = vector.magnitude(pd1[1])
-    for n in range(3, elementsCountAround, 2):
-        od1[n] = vector.setMagnitude(od1[n], magSinus)
+    sd1 = smoothCubicHermiteDerivativesLine(px[1 - nMidCusp:3 - nMidCusp], pd1[1 - nMidCusp:3 - nMidCusp], fixStartDerivative=True, fixEndDirection=True)
+    magSinus = vector.magnitude(sd1[1])
+    for n in range(nMidCusp, elementsCountAround, 2):
+        pd1[n] = vector.setMagnitude(pd1[n], magSinus)
 
-    return [ ix, ox ], [ id1, od1 ]
+    return px, pd1
