@@ -547,7 +547,7 @@ class MeshType_3d_heartventriclesbase1(object):
         fd1 = [ (rvOutletOuterd1[2][c] + rvOutletd2[c]) for c in range(3) ]
         pd1 = smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn2], mx, rvOutletOuterx[1] ], [ sd1, zero, fd1 ],
             fixStartDerivative=True, fixEndDerivative = True)
-        pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)
+        pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)  # , instrument=True)
         svcox = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
         svcod1 = pd1[1]
         svcod2 = pd2[0]

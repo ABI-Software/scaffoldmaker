@@ -397,7 +397,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         fixAllDirections = False,
         fixStartDerivative = False, fixEndDerivative = False,
         fixStartDirection = False, fixEndDirection = False,
-        magnitudeScalingMode = DerivativeScalingMode.ARITHMETIC_MEAN):
+        magnitudeScalingMode = DerivativeScalingMode.ARITHMETIC_MEAN, instrument=False):
     """
     Modifies derivatives nd1 to be smoothly varying and near arc length.
     Values are treated as being in a line.
@@ -424,22 +424,19 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
     tol = 1.0E-6
-    lastArcLengths = None
+    # special case where equal derivatives at each end are sought
+    equalDerivatives = (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative)
+    if instrument:
+        print('iter 0', md1)
     for iter in range(100):
+        lastmd1 = copy.copy(md1)
         arcLengths = [ getCubicHermiteArcLength(nx[e], md1[e], nx[e + 1], md1[e + 1]) for e in range(elementsCount) ]
-        if lastArcLengths:
-            for n in range(elementsCount):
-                if (arcLengths[n] - lastArcLengths[n]) > (tol*arcLengths[n]):
-                    break
-            else:
-                #print('smoothCubicHermiteDerivativesLine converged after iter:',iter)
-                return md1
         # start
         if not fixStartDerivative:
             if fixAllDirections or fixStartDirection:
-                md1[0] = vector.setMagnitude(md1[0], 2.0*arcLengths[0] - vector.magnitude(md1[1]))
+                md1[0] = vector.setMagnitude(lastmd1[0], 2.0*arcLengths[0] - vector.magnitude(lastmd1[1]))
             else:
-                md1[0] = interpolateLagrangeHermiteDerivative(nx[0], nx[1], md1[1], 0.0)
+                md1[0] = interpolateLagrangeHermiteDerivative(nx[0], nx[1], lastmd1[1], 0.0)
         # middle
         for n in range(1, nodesCount - 1):
             nm = n - 1
@@ -461,16 +458,34 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         # end
         if not fixEndDerivative:
             if fixAllDirections or fixEndDirection:
-                md1[-1] = vector.setMagnitude(md1[-1], 2.0*arcLengths[-1] - vector.magnitude(md1[-2]))
+                md1[-1] = vector.setMagnitude(lastmd1[-1], 2.0*arcLengths[-1] - vector.magnitude(lastmd1[-2]))
             else:
-                md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], md1[-2], nx[-1], 1.0)
-        lastArcLengths = arcLengths
+                md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], lastmd1[-2], nx[-1], 1.0)
+        if equalDerivatives:
+            mag = getCubicHermiteArcLength(nx[0], md1[0], nx[1], md1[1])
+            md1[0] = vector.setMagnitude(md1[0], mag)
+            md1[1] = vector.setMagnitude(md1[1], mag)
+        if instrument:
+            print('iter', iter + 1, md1)
+        dtol = tol*sum(arcLengths)/len(arcLengths)
+        for n in range(nodesCount):
+            for c in componentRange:
+                if math.fabs(md1[n][c] - lastmd1[n][c]) > dtol:
+                    break
+            else:
+                continue
+            break
+        else:
+            if instrument:
+                print('smoothCubicHermiteDerivativesLine converged after iter:',iter)
+            return md1
+
     print('smoothCubicHermiteDerivativesLine max iters reached:',iter)
     return md1
 
 def smoothCubicHermiteDerivativesLoop(nx, nd1,
         fixAllDirections = False,
-        magnitudeScalingMode = DerivativeScalingMode.ARITHMETIC_MEAN):
+        magnitudeScalingMode = DerivativeScalingMode.ARITHMETIC_MEAN, instrument=False):
     """
     Modifies derivatives nd1 to be smoothly varying and near arc length.
     Values are treated as being in a loop, so the first point follows the last.
@@ -493,16 +508,11 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
     tol = 1.0E-6
-    lastArcLengths = None
+    if instrument:
+        print('iter 0', md1)
     for iter in range(100):
+        lastmd1 = copy.copy(md1)
         arcLengths = [ getCubicHermiteArcLength(nx[e], md1[e], nx[(e + 1)%elementsCount], md1[(e + 1)%elementsCount]) for e in range(elementsCount) ]
-        if lastArcLengths:
-            for n in range(nodesCount):
-                if (arcLengths[n] - lastArcLengths[n]) > (tol*arcLengths[n]):
-                    break
-            else:
-                #print('smoothCubicHermiteDerivativesLoop converged after iter:',iter)
-                return md1
         for n in range(nodesCount):
             nm = n - 1
             if not fixAllDirections:
@@ -520,7 +530,21 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
             else: # harmonicMeanMagnitude
                 mag = 2.0/(1.0/arcLengths[nm] + 1.0/arcLengths[n])
             md1[n] = vector.setMagnitude(md1[n], mag)
-        lastArcLengths = arcLengths
+        if instrument:
+            print('iter', iter + 1, md1)
+        dtol = tol*sum(arcLengths)/len(arcLengths)
+        for n in range(nodesCount):
+            for c in componentRange:
+                if math.fabs(md1[n][c] - lastmd1[n][c]) > dtol:
+                    break
+            else:
+                continue
+            break
+        else:
+            if instrument:
+                print('smoothCubicHermiteDerivativesLoop converged after iter:',iter)
+            return md1
+
     print('smoothCubicHermiteDerivativesLoop max iters reached:',iter)
     return md1
 
