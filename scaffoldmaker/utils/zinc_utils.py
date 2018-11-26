@@ -38,7 +38,7 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
     fieldmodule.endChange()
     return coordinates
 
-def getOrCreateElementXiField(fieldmodule, name='label', mesh=None):
+def getOrCreateElementXiField(fieldmodule, name='element_xi', mesh=None):
     '''
     Finds or creates a stored mesh location field for storing locations in the
     supplied mesh e.g. for defining on annotation points with mesh locations.
