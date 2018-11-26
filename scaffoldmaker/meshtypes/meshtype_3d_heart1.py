@@ -99,12 +99,13 @@ class MeshType_3d_heart1(object):
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
         # annotation points
-        #dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
         dataLabel = getOrCreateLabelField(fm, 'data_label')
         dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateInternal = datapoints.createNodetemplate()
+        datapointTemplateInternal.defineField(dataCoordinates)
         datapointTemplateInternal.defineField(dataLabel)
         datapointTemplateInternal.defineField(dataElementXi)
 
@@ -361,11 +362,14 @@ class MeshType_3d_heart1(object):
 
         # annotation points
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
+        cruxXi = [ 0.0, 0.5, 1.0 ]
+        cache.setMeshLocation(cruxElement, cruxXi)
+        result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
         datapoint = datapoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
-        #dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, vApexInnerx)
+        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
         dataLabel.assignString(cache, 'crux')
-        dataElementXi.assignMeshLocation(cache, cruxElement, [ 0.0, 0.5, 1.0 ])
+        dataElementXi.assignMeshLocation(cache, cruxElement, cruxXi)
 
         fm.endChange()
         return annotationGroups

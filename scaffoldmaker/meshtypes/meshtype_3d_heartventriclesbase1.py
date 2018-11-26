@@ -19,6 +19,7 @@ import scaffoldmaker.utils.vector as vector
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from opencmiss.zinc.result import RESULT_OK as ZINC_OK
 
 class MeshType_3d_heartventriclesbase1(object):
     '''
@@ -222,7 +223,7 @@ class MeshType_3d_heartventriclesbase1(object):
         # annotation points
         dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
         dataLabel = getOrCreateLabelField(fm, 'data_label')
-        #dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
@@ -258,10 +259,26 @@ class MeshType_3d_heartventriclesbase1(object):
         ventriclesOffset = fm.createFieldConstant([ vTranslationx, vTranslationy, -(fibrousRingThickness + baseHeight + baseThickness)])
         newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, coordinates), ventriclesOffset)
         fieldassignment = coordinates.createFieldassignment(newCoordinates)
+        fieldassignment.setNodeset(nodes)
+        fieldassignment.assign()
+        # also transform data point coordinates and/or re-evaluate from embedded locations
+        newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, dataCoordinates), ventriclesOffset)
+        fieldassignment = dataCoordinates.createFieldassignment(newCoordinates)
+        fieldassignment.setNodeset(datapoints)
         fieldassignment.assign()
         fieldassignment = None
         newCoordinates = None
         ventriclesOffset = None
+        dataHostCoordinates = fm.createFieldEmbedded(coordinates, dataElementXi)
+        iter = datapoints.createNodeiterator()
+        datapoint = iter.next()
+        while datapoint.isValid():
+            cache.setNode(datapoint)
+            result, datax = dataHostCoordinates.evaluateReal(cache, 3)
+            if result == ZINC_OK:
+                dataCoordinates.assignReal(cache, datax)
+            datapoint = iter.next()
+        dataHostCoordinates = None
 
         # discover ventricles top LV inner, RV inner, V Outer nodes, coordinates and derivatives
         startLVInnerNodeId = 2 + (elementsCountUpLV - 1)*elementsCountAroundLV

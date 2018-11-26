@@ -188,12 +188,13 @@ class MeshType_3d_heartventricles1(object):
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation points
-        #dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
         dataLabel = getOrCreateLabelField(fm, 'data_label')
         dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateInternal = datapoints.createNodetemplate()
+        datapointTemplateInternal.defineField(dataCoordinates)
         datapointTemplateInternal.defineField(dataLabel)
         datapointTemplateInternal.defineField(dataElementXi)
 
@@ -246,11 +247,11 @@ class MeshType_3d_heartventricles1(object):
         elementSizeUpApex = lengthUpApex/elementsCountUpLVApex
         elementSizeUpRV = (lengthUpRV - 0.5*elementSizeUpApex)/(elementsCountUpRV - 0.5)
         elementSizeUpRVTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
-        # apex points, noting s1, s2 is x, -y to get out outward s3
-        vApexInnerx = [ 0.0, 0.0, -lvInnerHeight ]
-        vApexInnerd1 = [ elementSizeUpApex, 0.0, 0.0 ]
-        vApexInnerd2 = [ 0.0, -elementSizeUpApex, 0.0, 0.0 ]
-        vApexInnerd3 = [ 0.0, 0.0, -lvApexThickness ]
+        # LV apex points, noting s1, s2 is x, -y to get out outward s3
+        lvApexInnerx = [ 0.0, 0.0, -lvInnerHeight ]
+        lvApexInnerd1 = [ elementSizeUpApex, 0.0, 0.0 ]
+        lvApexInnerd2 = [ 0.0, -elementSizeUpApex, 0.0, 0.0 ]
+        lvApexInnerd3 = [ 0.0, 0.0, -lvApexThickness ]
 
         lvInnerRadiansUp = []
         radiansUp = 0.0
@@ -290,10 +291,10 @@ class MeshType_3d_heartventricles1(object):
         elementSizeUpRV = (lengthUpRV - 0.5*elementSizeUpApex)/(elementsCountUpRV - 0.5)
         elementSizeUpRVTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
         # apex points, noting s1, s2 is x, -y to get out outward s3
-        vApexOuterx = [ 0.0, 0.0, -lvOuterHeight ]
-        vApexOuterd1 = [ elementSizeUpApex, 0.0, 0.0 ]
-        vApexOuterd2 = [ 0.0, -elementSizeUpApex, 0.0, 0.0 ]
-        vApexOuterd3 = [ 0.0, 0.0, -lvApexThickness ]
+        lvApexOuterx = [ 0.0, 0.0, -lvOuterHeight ]
+        lvApexOuterd1 = [ elementSizeUpApex, 0.0, 0.0 ]
+        lvApexOuterd2 = [ 0.0, -elementSizeUpApex, 0.0, 0.0 ]
+        lvApexOuterd3 = [ 0.0, 0.0, -lvApexThickness ]
 
         lvOuterRadiansUp = []
         radiansUp = 0.0
@@ -356,8 +357,8 @@ class MeshType_3d_heartventricles1(object):
         for n1 in range(pointsCountAroundOuter):
             cosRadiansAround = math.cos(apexRadiansAround[n1])
             sinRadiansAround = math.sin(apexRadiansAround[n1])
-            apexd2 = [ (vApexOuterd1[c]*cosRadiansAround + vApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
-            nx = [ vApexOuterx ]
+            apexd2 = [ (lvApexOuterd1[c]*cosRadiansAround + lvApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
+            nx = [ lvApexOuterx ]
             nd2 = [ apexd2 ]
             for n2 in range(elementsCountUpLV):
                 nx.append(lvInnerx[n2][n1])
@@ -375,8 +376,8 @@ class MeshType_3d_heartventricles1(object):
         for n1 in range(pointsCountAroundOuter):
             cosRadiansAround = math.cos(apexRadiansAround[n1])
             sinRadiansAround = math.sin(apexRadiansAround[n1])
-            apexd2 = [ (vApexOuterd1[c]*cosRadiansAround + vApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
-            nx = [ vApexOuterx ]
+            apexd2 = [ (lvApexOuterd1[c]*cosRadiansAround + lvApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
+            nx = [ lvApexOuterx ]
             nd2 = [ apexd2 ]
             for n2 in range(elementsCountUpLV):
                 nx.append(vOuterx[n2][n1])
@@ -555,10 +556,10 @@ class MeshType_3d_heartventricles1(object):
 
         node = nodes.createNode(nodeIdentifier, nodetemplateApex)
         cache.setNode(node)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, vApexInnerx)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, vApexInnerd1)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, vApexInnerd2)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, vApexInnerd3)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvApexInnerx)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lvApexInnerd1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lvApexInnerd2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lvApexInnerd3)
         apexNodeId[1] = nodeIdentifier
         nodeIdentifier = nodeIdentifier + 1
 
@@ -610,10 +611,10 @@ class MeshType_3d_heartventricles1(object):
 
         node = nodes.createNode(nodeIdentifier, nodetemplateApex)
         cache.setNode(node)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, vApexOuterx)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, vApexOuterd1)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, vApexOuterd2)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, vApexOuterd3)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvApexOuterx)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lvApexOuterd1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lvApexOuterd2)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lvApexOuterd3)
         apexNodeId[1] = nodeIdentifier
         nodeIdentifier = nodeIdentifier + 1
 
@@ -973,10 +974,12 @@ class MeshType_3d_heartventricles1(object):
         element1 = mesh.findElementByIdentifier(1)
         datapoint = datapoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
+        dataCoordinates.assignReal(cache, lvApexInnerx)
         dataLabel.assignString(cache, 'apex endo')
         dataElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
         datapoint = datapoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
+        dataCoordinates.assignReal(cache, lvApexOuterx)
         dataLabel.assignString(cache, 'apex epi')
         dataElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
