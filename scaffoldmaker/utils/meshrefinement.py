@@ -87,14 +87,32 @@ class MeshRefinement:
     def getAnnotationGroups(self):
         return self._annotationGroups
 
-    def refineElementCubeStandard3d(self, sourceElement, numberInXi1, numberInXi2, numberInXi3):
+    def refineElementCubeStandard3d(self, sourceElement, numberInXi1, numberInXi2, numberInXi3,
+            addNewNodesToOctree=True, shareNodeIds=None, shareNodeCoordinates=None):
+        '''
+        Refine cube sourceElement to numberInXi1*numberInXi2*numberInXi3 linear cube
+        sub-elements, evenly spaced in xi.
+        :param addNewNodesToOctree: If True (default) add newly created nodes to
+        octree to be found when refining later elements. Set to False when nodes are at the
+        same location and not intended to be shared.
+        :param shareNodeIds, shareNodeCoordinates: Arrays of identifiers and coordinates of
+        nodes which may be shared in refining this element. If supplied, these are preferentially
+        used ahead of points in the octree. Used to control merging with known nodes, e.g.
+        those returned by this function for elements which used addNewNodesToOctree=False.
+        :return: Node identifiers, node coordinates used in refinement of sourceElement.
+        '''
+        assert (shareNodeIds and shareNodeCoordinates) or (not shareNodeIds and not shareNodeCoordinates), \
+            'refineElementCubeStandard3d.  Must supply both of shareNodeIds and shareNodeCoordinates, or neither'
+        shareNodesCount = len(shareNodeIds) if shareNodeIds else 0
         meshGroups = []
         for sourceAndTargetMeshGroup in self._sourceAndTargetMeshGroups:
             if sourceAndTargetMeshGroup[0].containsElement(sourceElement):
                 meshGroups.append(sourceAndTargetMeshGroup[1])
         # create nodes
         nids = []
+        nx = []
         xi = [ 0.0, 0.0, 0.0 ]
+        tol = self._octree._tolerance
         for k in range(numberInXi3 + 1):
             kExterior = (k == 0) or (k == numberInXi3)
             xi[2] = k/numberInXi3
@@ -107,19 +125,27 @@ class MeshRefinement:
                     self._sourceCache.setMeshLocation(sourceElement, xi)
                     result, x = self._sourceCoordinates.evaluateReal(self._sourceCache, 3)
                     # only exterior points are ever common:
+                    nodeId = None
                     if iExterior:
-                        nodeId = self._octree.findObjectByCoordinates(x)
-                    else:
-                        nodeId = None
+                        if shareNodeIds:
+                            for n in range(shareNodesCount):
+                                if (math.fabs(shareNodeCoordinates[n][0] - x[0]) <= tol) and \
+                                   (math.fabs(shareNodeCoordinates[n][1] - x[1]) <= tol) and \
+                                   (math.fabs(shareNodeCoordinates[n][2] - x[2]) <= tol):
+                                    nodeId = shareNodeIds[n]
+                                    break
+                        if nodeId is None:
+                            nodeId = self._octree.findObjectByCoordinates(x)
                     if nodeId is None:
                         node = self._targetNodes.createNode(self._nodeIdentifier, self._nodetemplate)
                         self._targetCache.setNode(node)
                         result = self._targetCoordinates.setNodeParameters(self._targetCache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         nodeId = self._nodeIdentifier
-                        if iExterior:
+                        if iExterior and addNewNodesToOctree:
                             self._octree.addObjectAtCoordinates(x, nodeId)
                         self._nodeIdentifier += 1
                     nids.append(nodeId)
+                    nx.append(x)
         # create elements
         for k in range(numberInXi3):
             ok = (numberInXi2 + 1)*(numberInXi1 + 1)
@@ -137,7 +163,7 @@ class MeshRefinement:
 
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
-
+        return nids, nx
 
     def refineAllElementsCubeStandard3d(self, numberInXi1, numberInXi2, numberInXi3):
         element = self._sourceElementiterator.next()

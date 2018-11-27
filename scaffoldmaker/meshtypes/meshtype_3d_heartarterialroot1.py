@@ -33,15 +33,16 @@ class MeshType_3d_heartarterialroot1(object):
         return {
             'Unit scale' : 1.0,
             'Outer height' : 0.5,
-            'Inner depth' : 0.2,
+            'Inner depth' : 0.15,
             'Cusp height' : 0.6,
             'Inner diameter': 1.0,
             'Sinus radial displacement': 0.1,
-            'Wall thickness': 0.1,
+            'Wall thickness': 0.06,
             'Cusp thickness' : 0.02,
             'Aortic not pulmonary' : True,
             'Refine' : False,
             'Refine number of elements surface' : 4,
+            'Refine number of elements through wall' : 1,
             'Use cross derivatives' : False
         }
 
@@ -58,7 +59,8 @@ class MeshType_3d_heartarterialroot1(object):
             'Cusp thickness',
             'Aortic not pulmonary',
             'Refine',
-            'Refine number of elements surface'
+            'Refine number of elements surface',
+            'Refine number of elements through wall'
         ]
 
     @staticmethod
@@ -79,7 +81,8 @@ class MeshType_3d_heartarterialroot1(object):
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
-            'Refine number of elements surface']:
+            'Refine number of elements surface',
+            'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
         return dependentChanges
@@ -115,9 +118,9 @@ class MeshType_3d_heartarterialroot1(object):
         if aorticNotPulmonary:
             arterialRootGroup = AnnotationGroup(region, 'root of aorta', FMANumber = 3740, lyphID = 'Lyph ID unknown')
             cuspGroups = [
+                AnnotationGroup(region, 'posterior cusp of aortic valve', FMANumber = 7253, lyphID = 'Lyph ID unknown'),
                 AnnotationGroup(region, 'right cusp of aortic valve',     FMANumber = 7252, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'left cusp of aortic valve',      FMANumber = 7251, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'posterior cusp of aortic valve', FMANumber = 7253, lyphID = 'Lyph ID unknown') ]
+                AnnotationGroup(region, 'left cusp of aortic valve',      FMANumber = 7251, lyphID = 'Lyph ID unknown') ]
         else:
             arterialRootGroup = AnnotationGroup(region, 'root of pulmonary trunk', FMANumber = 8612, lyphID = 'Lyph ID unknown')
             cuspGroups = [
@@ -127,6 +130,16 @@ class MeshType_3d_heartarterialroot1(object):
 
         allGroups = [ arterialRootGroup ]  # groups that all elements in scaffold will go in
         annotationGroups = allGroups + cuspGroups
+
+        # annotation points
+        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = getOrCreateLabelField(fm, 'data_label')
+        #dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+
+        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        datapointTemplateExternal = datapoints.createNodetemplate()
+        datapointTemplateExternal.defineField(dataCoordinates)
+        datapointTemplateExternal.defineField(dataLabel)
 
         #################
         # Create nodes
@@ -146,6 +159,11 @@ class MeshType_3d_heartarterialroot1(object):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        # several only have a DS1 derivative
+        nodetemplateLinearS2S3 = nodes.createNodetemplate()
+        nodetemplateLinearS2S3.defineField(coordinates)
+        nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
@@ -157,10 +175,15 @@ class MeshType_3d_heartarterialroot1(object):
         cuspOuterWallArcLength = cuspOuterLength2*innerRadius/(innerRadius + cuspHeight)
         noduleOuterAxialArcLength = cuspOuterLength2 - cuspOuterWallArcLength
         noduleOuterRadialArcLength = innerRadius
-        cuspOuterWalld3 = interpolateHermiteLagrangeDerivative([ 0.0, 0.0 ], [ innerRadius, 0.0 ], [ innerRadius, outerHeight + innerDepth - cuspHeight ], 1.0)
-        cuspInnerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius - 2.0*cuspThickness, cuspHeight - cuspThickness)
-        noduleInnerAxialArcLength = cuspInnerLength2*(cuspHeight - cuspThickness)/(innerRadius + cuspHeight - 3.0*cuspThickness)
+        cuspOuterWalld1 = interpolateLagrangeHermiteDerivative([ innerRadius, outerHeight + innerDepth - cuspHeight ], [ 0.0, 0.0 ], [ -innerRadius, 0.0 ], 0.0)
+
+        sin60 = math.sin(math.pi/3.0)
+        cuspThicknessLowerFactor = 4.5  # GRC fudge factor
+        cuspInnerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius - cuspThickness/sin60, cuspHeight - cuspThicknessLowerFactor*cuspThickness)
+
+        noduleInnerAxialArcLength = cuspInnerLength2*(cuspHeight - cuspThicknessLowerFactor*cuspThickness)/(innerRadius - cuspThickness/sin60 + cuspHeight - cuspThicknessLowerFactor*cuspThickness)
         noduleInnerRadialArcLength = innerRadius - cuspThickness/math.tan(math.pi/3.0)
+        nMidCusp = 0 if aorticNotPulmonary else 1
 
         # lower points
         ix, id1 = createCirclePoints([ (baseCentre[c] - axisUp[c]*innerDepth) for c in range(3) ],
@@ -176,6 +199,30 @@ class MeshType_3d_heartarterialroot1(object):
         ix, id1 = createCirclePoints(topCentre,
             [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
             elementsCountAround*2)
+        # tweak inner points so elements attached to cusps are narrower
+        cuspRadiansFactor = 0.25  # GRC fudge factor
+        midDerivativeFactor = 1.0 + 0.5*(1.0 - cuspRadiansFactor)  # GRC test compromise
+        cuspAttachmentRadians = cuspRadiansFactor*radiansPerElementAround
+        cuspAttachmentRadialDisplacement = wallThickness*0.333  # GRC fudge factor
+        cuspAttachmentRadius = innerRadius - cuspAttachmentRadialDisplacement
+        for cusp in range(3):
+            n1 = cusp*2 - 1 + nMidCusp
+            n2 = n1*2
+            id1[n2 + 2] = [ 2.0*d for d in id1[n2 + 2] ]
+            # side 1
+            radiansAround = n1*radiansPerElementAround + cuspAttachmentRadians
+            rcosRadiansAround = cuspAttachmentRadius*math.cos(radiansAround)
+            rsinRadiansAround = cuspAttachmentRadius*math.sin(radiansAround)
+            ix[n2 + 1] = [ (topCentre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ]
+            id1[n2 + 1] = interpolateLagrangeHermiteDerivative(ix[n2 + 1], ix[n2 + 2], id1[n2 + 2], 0.0)
+            # side 2
+            n1 = ((cusp + 1)*2 - 1 + nMidCusp)%elementsCountAround
+            n2 = n1*2
+            radiansAround = n1*radiansPerElementAround - cuspAttachmentRadians
+            rcosRadiansAround = cuspAttachmentRadius*math.cos(radiansAround)
+            rsinRadiansAround = cuspAttachmentRadius*math.sin(radiansAround)
+            ix[n2 - 1] = [ (topCentre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ]
+            id1[n2 - 1] = interpolateHermiteLagrangeDerivative(ix[n2 - 2], id1[n2 - 2], ix[n2 - 1], 1.0)
         ox, od1 = createCirclePoints(topCentre,
             [ axisSide1[c]*outerRadius for c in range(3) ], [ axisSide2[c]*outerRadius for c in range(3) ],
             elementsCountAround)
@@ -183,70 +230,66 @@ class MeshType_3d_heartarterialroot1(object):
 
         # get lower and upper derivative 2
         zero = [ 0.0, 0.0, 0.0 ]
-        nMidCusp = 0 if aorticNotPulmonary else 1
-        upperd2factor = outerHeight*(2.0/3.0)
+        upperd2factor = outerHeight
         upd2 = [ d*upperd2factor for d in axisUp ]
         lowerOuterd2 = smoothCubicHermiteDerivativesLine([ lowerx[1][nMidCusp], upperx[1][nMidCusp] ], [ upd2, upd2 ],
             fixStartDirection=True, fixEndDerivative=True)[0]
-        lowerd2 = [ [ upd2 ]*elementsCountAround, [ lowerOuterd2 ]*elementsCountAround ]  # lowerd2[0] to be fitted below
+        lowerd2factor = 2.0*(outerHeight + innerDepth) - upperd2factor
+        lowerInnerd2 = [ d*lowerd2factor for d in axisUp ]
+        lowerd2 = [ [ lowerInnerd2 ]*elementsCountAround, [ lowerOuterd2 ]*elementsCountAround ]  # some lowerd2[0] to be fitted below
         upperd2 = [ [ upd2 ]*(elementsCountAround*2), [ upd2 ]*elementsCountAround ]
 
-        # get lower and upper derivative 3 for points which have them
-        lowerd3 = [ [ None ]*elementsCountAround, None ]
-        upperd3 = [ [ None ]*(elementsCountAround*2), None ]
+        # get lower and upper derivative 1 or 2 pointing to/from cusps
         for n1 in range(elementsCountAround):
             radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
             if (n1 % 2) == nMidCusp:
-                lowerd3[0][n1] = [ cuspOuterWallArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ]
+                lowerd2[0][n1] = [ -cuspOuterWallArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ]
             else:
-                upperd3[0][n1*2] = [ (cuspOuterWalld3[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + cuspOuterWalld3[1]*axisUp[c]) for c in range(3) ]
+                upperd1[0][n1*2] = [ (cuspOuterWalld1[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + cuspOuterWalld1[1]*axisUp[c]) for c in range(3) ]
 
-        # inner-wall mid sinus points
-        midDistance = 0.5*(outerHeight - innerDepth)
-        outerArcLength2 = getCubicHermiteArcLength(lowerx[1][nMidCusp], lowerd2[1][nMidCusp], upperx[1][nMidCusp], upperd2[1][nMidCusp])
-        outerArcLength2Part = outerArcLength2*midDistance/outerHeight
-        mx, md2 = getCubicHermiteCurvesPointAtArcDistance([ lowerx[1][nMidCusp], upperx[1][nMidCusp] ], [ lowerd2[1][nMidCusp], upperd2[1][nMidCusp] ], outerArcLength2Part)[0:2]
-        mn = vector.setMagnitude(vector.crossproduct3(lowerd1[1][nMidCusp], md2), wallThickness)
-        mx = [ (mx[c] - mn[c]) for c in range(3) ]
-        id2 = smoothCubicHermiteDerivativesLine([ lowerx[0][nMidCusp], mx, upperx[0][nMidCusp] ], [ lowerd2[0][nMidCusp], md2, upperd2[0][nMidCusp] ],
-            fixAllDirections=True, fixEndDerivative=True)
-        lowerd2[0] = [ id2[0] ]*elementsCountAround
-
-        startRadians = 0.0 if aorticNotPulmonary else math.pi/3.0
-        cosStartRadians = math.cos(startRadians)
-        sinStartRadians = math.sin(startRadians)
-        axisRadial = [ (cosStartRadians*axisSide1[c] + sinStartRadians*axisSide2[c]) for c in range(3) ]
-        mr = vector.dotproduct([ (mx[c] - baseCentre[c]) for c in range(3) ], axisRadial)
-        mc = [ (mx[c] - mr*axisRadial[c]) for c in range(3) ]
-        md2a = vector.dotproduct(id2[1], axisUp)
-        md2r = vector.dotproduct(id2[1], axisRadial)
-        ix, id1 = getSemilunarValveSinusPoints(mc, axisSide1, axisSide2, innerRadius, mr - innerRadius,
-            startMidCusp=aorticNotPulmonary)
-        # resample to double number of points, halving derivative size:
-        jx  = []
-        jd1 = []
-        xi = 0.5
-        for n1 in range(elementsCountAround):
-            np = (n1 + 1)%elementsCountAround
-            jx .append(interpolateCubicHermite          (ix[n1], id1[n1], ix[np], id1[np], xi))
-            jd1.append(interpolateCubicHermiteDerivative(ix[n1], id1[n1], ix[np], id1[np], xi))
-        sinusx = []
-        sinusd1 = []
-        for n1 in range(elementsCountAround):
-            sinusx .append(ix [n1])
-            sinusx .append(jx [n1])
-            sinusd1.append([ 0.5*d for d in id1[n1]])
-            sinusd1.append([ 0.5*d for d in jd1[n1]])
-        sinusd2 = [ None ]*(elementsCountAround*2)
-        for n1 in range(elementsCountAround*2):
-            radiansAround = 0.5*n1*radiansPerElementAround
+        # inner wall and mid sinus points; only every second one is used
+        sinusDepth = innerDepth - cuspThicknessLowerFactor*cuspThickness  # GRC test
+        sinusCentre = [ (baseCentre[c] - sinusDepth*axisUp[c]) for c in range(3) ]
+        sinusx, sinusd1 = createCirclePoints(sinusCentre,
+            [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
+            elementsCountAround)
+        # get sinusd2, parallel to lower inclined lines
+        sd2 = smoothCubicHermiteDerivativesLine([ [ innerRadius, -sinusDepth ], [ innerRadius, outerHeight ] ],
+            [ [ wallThickness + sinusRadialDisplacement, innerDepth ], [ 0.0, upperd2factor ] ],
+            fixStartDirection=True, fixEndDerivative=True)[0]
+        sinusd2 = [ None ]*elementsCountAround
+        for cusp in range(3):
+            n1 = cusp*2 + nMidCusp
+            radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
-            n1Cusp = (n1 - nMidCusp*2)%4
-            rf = 0.0 if (n1Cusp == 2) else (1.0 if (n1Cusp == 0) else 0.5)
-            sinusd2[n1] = [ (rf*md2r*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + md2a*axisUp[c]) for c in range(3) ]
+            sinusd2[n1] = [ (sd2[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + sd2[1]*axisUp[c]) for c in range(3) ]
+
+        # get points on arc between mid sinus and upper cusp points
+        arcx = []
+        arcd1 = []
+        scaled1 = 2.5  # GRC fudge factor
+        for cusp in range(3):
+            n1 = cusp*2 + nMidCusp
+            n1m = n1 - 1
+            n1p = (n1 + 1)%elementsCountAround
+            n2m = n1m*2 + 1
+            n2p = n1p*2 - 1
+            ax, ad1 = sampleCubicHermiteCurves([ upperx[0][n2m], sinusx[n1] ], [ [ -scaled1*d for d in upperd2[0][n2m] ], [ scaled1*d for d in sinusd1[n1] ] ],
+                elementsCountOut=2, addLengthStart=0.5*vector.magnitude(upperd2[0][n2m]), lengthFractionStart=0.5,
+                addLengthEnd=0.5*vector.magnitude(sinusd1[n1]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
+            arcx .append(ax [1])
+            arcd1.append(ad1[1])
+            ax, ad1 = sampleCubicHermiteCurves([ sinusx[n1], upperx[0][n2p], ], [ [ scaled1*d for d in sinusd1[n1] ], [ scaled1*d for d in upperd2[0][n2p] ] ],
+                elementsCountOut=2, addLengthStart=0.5*vector.magnitude(sinusd1[n1]), lengthFractionStart=0.5,
+                addLengthEnd=0.5*vector.magnitude(upperd2[0][n2p]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
+            arcx .append(ax [1])
+            arcd1.append(ad1[1])
+        if nMidCusp == 0:
+            arcx .append(arcx .pop(0))
+            arcd1.append(arcd1.pop(0))
 
         # cusp nodule points
         noduleCentre = [ (baseCentre[c] + axisUp[c]*(cuspHeight - innerDepth)) for c in range(3) ]
@@ -254,13 +297,14 @@ class MeshType_3d_heartarterialroot1(object):
         noduled1 = [ [], [] ]
         noduled2 = [ [], [] ]
         noduled3 = [ [], [] ]
+        cuspRadialThickness = cuspThickness/sin60
         for i in range(3):
             nodulex[0].append(noduleCentre)
             n1 = i*2 + nMidCusp
             radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
-            nodulex[1].append([ (noduleCentre[c] + 2.0*cuspThickness*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c])) for c in range(3) ])
+            nodulex[1].append([ (noduleCentre[c] + cuspRadialThickness*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c])) for c in range(3) ])
             n1 = i*2 - 1 + nMidCusp
             radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
@@ -273,27 +317,25 @@ class MeshType_3d_heartarterialroot1(object):
             sinRadiansAround = math.sin(radiansAround)
             noduled2[0].append([ noduleOuterRadialArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ])
             noduled2[1].append(vector.setMagnitude(noduled2[0][i], noduleInnerRadialArcLength))
-            noduled3[0].append([ -noduleOuterAxialArcLength*axisUp[c] for c in range(3) ])
-            noduled3[1].append([ -noduleInnerAxialArcLength*axisUp[c] for c in range(3) ])
+            noduled3[0].append([ noduleOuterAxialArcLength*axisUp[c] for c in range(3) ])
+            noduled3[1].append([ noduleInnerAxialArcLength*axisUp[c] for c in range(3) ])
 
         # Create nodes
 
         lowerNodeId = [ [], [] ]
         for n3 in range(2):
             for n1 in range(elementsCountAround):
-                node = nodes.createNode(nodeIdentifier, nodetemplate if (lowerd3[n3] and lowerd3[n3][n1]) else nodetemplateLinearS3)
+                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lowerx [n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lowerd1[n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lowerd2[n3][n1])
-                if lowerd3[n3] and lowerd3[n3][n1]:
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lowerd3[n3][n1])
                 lowerNodeId[n3].append(nodeIdentifier)
                 nodeIdentifier += 1
 
         sinusNodeId = []
-        for n1 in range(elementsCountAround*2):
-            if ((n1 - nMidCusp*2)%4) == 2:
+        for n1 in range(elementsCountAround):
+            if (n1%2) != nMidCusp:
                 sinusNodeId.append(None)
                 continue
             node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
@@ -302,6 +344,15 @@ class MeshType_3d_heartarterialroot1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sinusd1[n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sinusd2[n1])
             sinusNodeId.append(nodeIdentifier)
+            nodeIdentifier += 1
+
+        arcNodeId = []
+        for n1 in range(elementsCountAround):
+            node = nodes.createNode(nodeIdentifier, nodetemplateLinearS2S3)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, arcx [n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, arcd1[n1])
+            arcNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
 
         noduleNodeId = [ [], [] ]
@@ -319,16 +370,13 @@ class MeshType_3d_heartarterialroot1(object):
         upperNodeId = [ [], [] ]
         for n3 in range(2):
             for n1 in range(len(upperx[n3])):
-                node = nodes.createNode(nodeIdentifier, nodetemplate if (upperd3[n3] and upperd3[n3][n1]) else nodetemplateLinearS3)
+                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, upperx [n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, upperd1[n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, upperd2[n3][n1])
-                if upperd3[n3] and upperd3[n3][n1]:
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, upperd3[n3][n1])
                 upperNodeId[n3].append(nodeIdentifier)
                 nodeIdentifier += 1
-
 
 
         #################
@@ -340,10 +388,14 @@ class MeshType_3d_heartarterialroot1(object):
         allMeshGroups = [ allGroup.getMeshGroup(mesh) for allGroup in allGroups ]
         cuspMeshGroups = [ cuspGroup.getMeshGroup(mesh) for cuspGroup in cuspGroups ]
 
-        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = bicubichermitelinear.createEftNoCrossDerivatives()
+        linearHermiteLinearBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
+        linearHermiteLinearBasis.setFunctionType(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
-        #tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        hermiteLinearLinearBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
+        hermiteLinearLinearBasis.setFunctionType(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eftDefault = bicubichermitelinear.createEftNoCrossDerivatives()
 
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
@@ -355,39 +407,47 @@ class MeshType_3d_heartarterialroot1(object):
             n1 = cusp*2 - 1 + nMidCusp
             n2 = n1*2
             for e in range(6):
-                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1], [])
-                scalefactors = [ -1.0 ]
+                eft1 = None
+                scalefactors = None
 
                 if (e == 0) or (e == 5):
-                    # 6 node collapsed wedge element expanding from zero width on outer wall of root, attaching to vertical part of cusp
+                    # 6 node linear-hermite-linear collapsed wedge element expanding from zero width on outer wall of root, attaching to vertical part of cusp
+                    eft1 = mesh.createElementfieldtemplate(linearHermiteLinearBasis)
+                    # switch mappings to use DS2 instead of default DS1
+                    remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4, 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                     if e == 0:
-                        nids = [ lowerNodeId[0][n1], sinusNodeId[n2 + 1], upperNodeId[0][n2], upperNodeId[0][n2 + 1], lowerNodeId[1][n1], upperNodeId[1][n1] ]
-                        remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                        nids = [ lowerNodeId[0][n1], arcNodeId[n1], upperNodeId[0][n2], upperNodeId[0][n2 + 1], lowerNodeId[1][n1], upperNodeId[1][n1] ]
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
+                        remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     else:
-                        nids = [ sinusNodeId[n2 + 3], lowerNodeId[0][n1 - 4], upperNodeId[0][n2 + 3], upperNodeId[0][n2 - 8], lowerNodeId[1][n1 - 4], upperNodeId[1][n1 - 4] ]
-                        remapEftNodeValueLabel(eft1, [ 1, 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1]) ])
-                    remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [])
+                        nids = [ arcNodeId[n1 + 1], lowerNodeId[0][n1 - 4], upperNodeId[0][n2 + 3], upperNodeId[0][n2 - 8], lowerNodeId[1][n1 - 4], upperNodeId[1][n1 - 4] ]
+                        remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                     ln_map = [ 1, 2, 3, 4, 5, 5, 6, 6 ]
                     remapEftLocalNodes(eft1, 6, ln_map)
                 elif (e == 1) or (e == 4):
-                    # 6 node collapsed wedge element on lower wall
+                    # 6 node hermite-linear-linear collapsed wedge element on lower wall
+                    eft1 = mesh.createElementfieldtemplate(hermiteLinearLinearBasis)
                     if e == 1:
-                        nids = [ lowerNodeId[0][n1], lowerNodeId[0][n1 + 1], sinusNodeId[n2 + 1], sinusNodeId[n2 + 2], lowerNodeId[1][n1], lowerNodeId[1][n1 + 1] ]
-                        remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                        nids = [ lowerNodeId[0][n1], lowerNodeId[0][n1 + 1], arcNodeId[n1], sinusNodeId[n1 + 1], lowerNodeId[1][n1], lowerNodeId[1][n1 + 1] ]
                     else:
-                        nids = [ lowerNodeId[0][n1 + 1], lowerNodeId[0][n1 - 4], sinusNodeId[n2 + 2], sinusNodeId[n2 + 3], lowerNodeId[1][n1 + 1], lowerNodeId[1][n1 - 4] ]
-                        remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
-                    remapEftNodeValueLabel(eft1, [ 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS2, [])
+                        nids = [ lowerNodeId[0][n1 + 1], lowerNodeId[0][n1 - 4], sinusNodeId[n1 + 1], arcNodeId[n1 + 1], lowerNodeId[1][n1 + 1], lowerNodeId[1][n1 - 4] ]
                     ln_map = [ 1, 2, 3, 4, 5, 6, 5, 6 ]
                     remapEftLocalNodes(eft1, 6, ln_map)
                 else:
+                    # 8 node elements with wedges on two sides
                     if e == 2:
-                        nids = [ sinusNodeId[n2 + 1], sinusNodeId[n2 + 2], upperNodeId[0][n2 + 1], upperNodeId[0][n2 + 2],
+                        eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [ -1.0 ]
+                        nids = [ arcNodeId[n1], sinusNodeId[n1 + 1], upperNodeId[0][n2 + 1], upperNodeId[0][n2 + 2],
                                  lowerNodeId[1][n1], lowerNodeId[1][n1 + 1], upperNodeId[1][n1], upperNodeId[1][n1 + 1] ]
+                        remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     else:
-                        nids = [ sinusNodeId[n2 + 2], sinusNodeId[n2 + 3], upperNodeId[0][n2 + 2], upperNodeId[0][n2 + 3],
+                        eft1 = eftDefault
+                        nids = [ sinusNodeId[n1 + 1], arcNodeId[n1 + 1], upperNodeId[0][n2 + 2], upperNodeId[0][n2 + 3],
                                  lowerNodeId[1][n1 + 1], lowerNodeId[1][n1 - 4], upperNodeId[1][n1 + 1], upperNodeId[1][n1 - 4] ]
+                        remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
 
                 result = elementtemplate1.defineField(coordinates, -1, eft1)
                 element = mesh.createElement(elementIdentifier, elementtemplate1)
@@ -396,11 +456,58 @@ class MeshType_3d_heartarterialroot1(object):
                     result3 = element.setScaleFactors(eft1, scalefactors)
                 else:
                     result3 = 7
-                print('create arterial root wall', cusp, e, 'element',elementIdentifier, result, result2, result3, nids)
+                #print('create arterial root wall', cusp, e, 'element',elementIdentifier, result, result2, result3, nids)
                 elementIdentifier += 1
 
                 for meshGroup in allMeshGroups:
                     meshGroup.addElement(element)
+
+        # cusps (leaflets)
+        for cusp in range(3):
+            n1 = cusp*2 - 1 + nMidCusp
+            n2 = n1*2
+            meshGroups = allMeshGroups + [ cuspMeshGroups[cusp] ]
+            for e in range(2):
+                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
+
+                if e == 0:
+                    nids = [ lowerNodeId[0][n1], lowerNodeId[0][n1 + 1], upperNodeId[0][n2], noduleNodeId[0][cusp],
+                             arcNodeId[n1], sinusNodeId[n1 + 1], upperNodeId[0][n2 + 1], noduleNodeId[1][cusp] ]
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                else:
+                    nids = [ lowerNodeId[0][n1 + 1], lowerNodeId[0][n1 - 4], noduleNodeId[0][cusp], upperNodeId[0][n2 - 8], 
+                             sinusNodeId[n1 + 1], arcNodeId[n1 + 1], noduleNodeId[1][cusp], upperNodeId[0][n2 + 3] ]
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+
+                result = elementtemplate1.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = 7
+                #print('create semilunar cusp', cusp, e, 'element',elementIdentifier, result, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
+        # create annotation points
+
+        datapoint = datapoints.createNode(-1, datapointTemplateExternal)
+        cache.setNode(datapoint)
+        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
+        dataLabel.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
 
         fm.endChange()
         return annotationGroups
@@ -414,17 +521,30 @@ class MeshType_3d_heartarterialroot1(object):
         """
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountSurface = options['Refine number of elements surface']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
+        # arterial wall
         for cusp in range(3):
             for e in range(6):
                 element = meshrefinement._sourceElementiterator.next()
                 numberInXi1 = refineElementsCountSurface
                 numberInXi2 = refineElementsCountSurface
-                numberInXi3 = 1
+                numberInXi3 = refineElementsCountThroughWall
                 if (e == 0) or (e == 5):
-                    numberInXi1 = 1
+                    numberInXi1 = refineElementsCountThroughWall
                 elif (e == 1) or (e == 4):
-                    numberInXi2 = 1
+                    numberInXi2 = refineElementsCountThroughWall
                 meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+        # semilunar cusps
+        # Avoid merging nodes on separate cusps where they are coincident along commissures
+        numberInXi1 = refineElementsCountSurface
+        numberInXi2 = refineElementsCountSurface
+        numberInXi3 = refineElementsCountThroughWall
+        for cusp in range(3):
+            lastShareNodeIds = lastShareNodeCoordinates = None
+            for e in range(2):
+                element = meshrefinement._sourceElementiterator.next()
+                lastShareNodeIds, lastShareNodeCoordinates = meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3,
+                    addNewNodesToOctree=False, shareNodeIds=lastShareNodeIds, shareNodeCoordinates=lastShareNodeCoordinates)
 
     @classmethod
     def generateMesh(cls, region, options):
