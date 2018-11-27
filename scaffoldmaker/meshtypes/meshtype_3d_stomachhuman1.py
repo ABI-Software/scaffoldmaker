@@ -9548,7 +9548,7 @@ Element: 264
         fieldModule.endChange()
             
 
-class MeshType_3d_human_stomach(object):
+class MeshType_3d_stomachhuman1(object):
     '''
     Human stomach mesh generator wrapper for ScaffoldMaker
     Uses data from fitted mesh, which can be refined globally or along lattitude and longitude
@@ -9557,7 +9557,7 @@ class MeshType_3d_human_stomach(object):
     
     @staticmethod
     def getName():
-        return '3D Human stomach'
+        return '3D Stomach Human 1'
 
     @staticmethod
     def getDefaultOptions():
@@ -9586,8 +9586,8 @@ class MeshType_3d_human_stomach(object):
         if (options['Number of elements along the axis'] < 6) :
             options['Number of elements along the axis'] = 6
             
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateMesh(cls, region, options):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
@@ -9599,6 +9599,5 @@ class MeshType_3d_human_stomach(object):
         wallElements= options['Number of elements through the wall']
         normalizeCircumferentialSegmentLengths = options['Normalize Circumferential Segment Lengths']
         
-        MeshType_3d_human_stomach.hostStomach.generateMesh(region, circumferentialElements,\
-                                                            axialElements, wallElements, \
-                                                            normalizeCircumferentialSegmentLengths,{}, {})
+        cls.hostStomach.generateMesh(region, circumferentialElements,
+            axialElements, wallElements, normalizeCircumferentialSegmentLengths,{}, {})
