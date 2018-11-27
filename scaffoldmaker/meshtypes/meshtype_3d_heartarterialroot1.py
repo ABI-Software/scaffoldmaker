@@ -531,13 +531,16 @@ class MeshType_3d_heartarterialroot1(object):
                     numberInXi2 = refineElementsCountThroughWall
                 meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
         # semilunar cusps
+        # Avoid merging nodes on separate cusps where they are coincident along commissures
         numberInXi1 = refineElementsCountSurface
         numberInXi2 = refineElementsCountSurface
         numberInXi3 = refineElementsCountThroughWall
         for cusp in range(3):
+            lastShareNodeIds = lastShareNodeCoordinates = None
             for e in range(2):
                 element = meshrefinement._sourceElementiterator.next()
-                meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+                lastShareNodeIds, lastShareNodeCoordinates = meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3,
+                    addNewNodesToOctree=False, shareNodeIds=lastShareNodeIds, shareNodeCoordinates=lastShareNodeCoordinates)
 
     @classmethod
     def generateMesh(cls, region, options):
