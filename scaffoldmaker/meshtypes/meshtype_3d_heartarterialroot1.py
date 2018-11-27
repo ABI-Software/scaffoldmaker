@@ -42,6 +42,7 @@ class MeshType_3d_heartarterialroot1(object):
             'Aortic not pulmonary' : True,
             'Refine' : False,
             'Refine number of elements surface' : 4,
+            'Refine number of elements through wall' : 1,
             'Use cross derivatives' : False
         }
 
@@ -58,7 +59,8 @@ class MeshType_3d_heartarterialroot1(object):
             'Cusp thickness',
             'Aortic not pulmonary',
             'Refine',
-            'Refine number of elements surface'
+            'Refine number of elements surface',
+            'Refine number of elements through wall'
         ]
 
     @staticmethod
@@ -79,7 +81,8 @@ class MeshType_3d_heartarterialroot1(object):
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
-            'Refine number of elements surface']:
+            'Refine number of elements surface',
+            'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
         return dependentChanges
@@ -514,7 +517,7 @@ class MeshType_3d_heartarterialroot1(object):
         """
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountSurface = options['Refine number of elements surface']
-        refineElementsCountThroughWall = 1
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
         # arterial wall
         for cusp in range(3):
             for e in range(6):
