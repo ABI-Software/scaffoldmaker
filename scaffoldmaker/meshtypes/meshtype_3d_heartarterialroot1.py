@@ -33,12 +33,12 @@ class MeshType_3d_heartarterialroot1(object):
         return {
             'Unit scale' : 1.0,
             'Outer height' : 0.5,
-            'Inner depth' : 0.2,
+            'Inner depth' : 0.15,
             'Cusp height' : 0.6,
             'Inner diameter': 1.0,
             'Sinus radial displacement': 0.1,
-            'Wall thickness': 0.08,
-            'Cusp thickness' : 0.03,
+            'Wall thickness': 0.06,
+            'Cusp thickness' : 0.02,
             'Aortic not pulmonary' : True,
             'Refine' : False,
             'Refine number of elements surface' : 4,
@@ -176,8 +176,12 @@ class MeshType_3d_heartarterialroot1(object):
         noduleOuterAxialArcLength = cuspOuterLength2 - cuspOuterWallArcLength
         noduleOuterRadialArcLength = innerRadius
         cuspOuterWalld1 = interpolateLagrangeHermiteDerivative([ innerRadius, outerHeight + innerDepth - cuspHeight ], [ 0.0, 0.0 ], [ -innerRadius, 0.0 ], 0.0)
-        cuspInnerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius - 2.0*cuspThickness, cuspHeight - cuspThickness)
-        noduleInnerAxialArcLength = cuspInnerLength2*(cuspHeight - cuspThickness)/(innerRadius + cuspHeight - 3.0*cuspThickness)
+
+        sin60 = math.sin(math.pi/3.0)
+        cuspThicknessLowerFactor = 4.5  # GRC fudge factor
+        cuspInnerLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius - cuspThickness/sin60, cuspHeight - cuspThicknessLowerFactor*cuspThickness)
+
+        noduleInnerAxialArcLength = cuspInnerLength2*(cuspHeight - cuspThicknessLowerFactor*cuspThickness)/(innerRadius - cuspThickness/sin60 + cuspHeight - cuspThicknessLowerFactor*cuspThickness)
         noduleInnerRadialArcLength = innerRadius - cuspThickness/math.tan(math.pi/3.0)
         nMidCusp = 0 if aorticNotPulmonary else 1
 
@@ -196,9 +200,9 @@ class MeshType_3d_heartarterialroot1(object):
             [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
             elementsCountAround*2)
         # tweak inner points so elements attached to cusps are narrower
-        cuspRadiansFactor = 0.2  # GRC fudge factor
+        cuspRadiansFactor = 0.25  # GRC fudge factor
         midDerivativeFactor = 1.0 + 0.5*(1.0 - cuspRadiansFactor)  # GRC test compromise
-        cuspAttachmentRadians = 0.25*radiansPerElementAround
+        cuspAttachmentRadians = cuspRadiansFactor*radiansPerElementAround
         cuspAttachmentRadialDisplacement = wallThickness*0.333  # GRC fudge factor
         cuspAttachmentRadius = innerRadius - cuspAttachmentRadialDisplacement
         for cusp in range(3):
@@ -246,7 +250,7 @@ class MeshType_3d_heartarterialroot1(object):
                 upperd1[0][n1*2] = [ (cuspOuterWalld1[0]*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) + cuspOuterWalld1[1]*axisUp[c]) for c in range(3) ]
 
         # inner wall and mid sinus points; only every second one is used
-        sinusDepth = innerDepth - 4.0*cuspThickness  # GRC test
+        sinusDepth = innerDepth - cuspThicknessLowerFactor*cuspThickness  # GRC test
         sinusCentre = [ (baseCentre[c] - sinusDepth*axisUp[c]) for c in range(3) ]
         sinusx, sinusd1 = createCirclePoints(sinusCentre,
             [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
@@ -293,7 +297,7 @@ class MeshType_3d_heartarterialroot1(object):
         noduled1 = [ [], [] ]
         noduled2 = [ [], [] ]
         noduled3 = [ [], [] ]
-        cuspRadialThickness = cuspThickness/math.sin(math.pi/3.0)
+        cuspRadialThickness = cuspThickness/sin60
         for i in range(3):
             nodulex[0].append(noduleCentre)
             n1 = i*2 + nMidCusp
