@@ -93,6 +93,25 @@ def getElementNodeIdentifiers(element, eft):
         nodeIdentifiers.append(node.getIdentifier())
     return nodeIdentifiers
 
+def getElementNodeIdentifiersCube8Node(element, eft):
+    '''
+    Get 8 node identifiers for a cube element with 8 basis nodes, handling
+    collapses e.g. where eft has fewer nodes. Asserts basis has 8 nodes.
+    :param element: Element to query.
+    :param eft: Element field template nodes are stored for in element.
+    :return: List of 8 local node identifiers.
+    '''
+    elementbasis = eft.getElementbasis()
+    basisNodesCount = elementbasis.getNumberOfNodes()
+    assert basisNodesCount == 8, 'getElementNodeIdentifiersCube8Node:  Element ' + str(element.getIdentifier()) + ' is not an 8 node cube element'
+    nodeIdentifiers = []
+    fn = 1
+    for n in range(basisNodesCount):
+        ln = eft.getTermLocalNodeIndex(fn, 1)
+        nodeIdentifiers.append(element.getNode(eft, ln).getIdentifier())
+        fn += elementbasis.getNumberOfFunctionsPerNode(n + 1)
+    return nodeIdentifiers
+
 def getMaximumNodeIdentifier(nodeset):
     """
     :return: Maximum node identifier in nodeset or -1 if none.
