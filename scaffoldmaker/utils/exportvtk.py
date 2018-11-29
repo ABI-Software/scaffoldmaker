@@ -7,7 +7,7 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 
 import io
 
-from scaffoldmaker.utils.zinc_utils import getElementNodeIdentifiersCube8Node
+from scaffoldmaker.utils.zinc_utils import getElementNodeIdentifiers4Node, getElementNodeIdentifiers8Node
 from opencmiss.zinc.field import Field
 
 
@@ -25,6 +25,10 @@ class ExportVtk:
         '''
         self._region = region
         self._fieldmodule = self._region.getFieldmodule()
+        for dimension in range(3, 1, -1):
+            self._mesh = self._fieldmodule.findMeshByDimension(dimension)
+            if self._mesh.getSize() > 0:
+                break
         self._coordinates = self._fieldmodule.findFieldByName('coordinates')
         self._description = description
         self._annotationGroups = annotationGroups if annotationGroups else []
@@ -61,28 +65,37 @@ class ExportVtk:
             index += 1
             node = nodeIter.next()
 
-        # following assumes all hex elements
-        mesh = self._fieldmodule.findMeshByDimension(3)
-        cellCount = mesh.getSize()
-        cellListSize = 9*cellCount
+        # following assumes all hex (3-D) or all quad (2-D) elements
+        if self._mesh.getDimension() == 2:
+            localNodeCount = 4
+            vtkIndexing = [ 0, 1, 3, 2 ]
+            cellTypeString = '9'
+        else:
+            localNodeCount = 8
+            vtkIndexing = [ 0, 1, 3, 2, 4, 5, 7, 6 ]
+            cellTypeString = '12'
+        localNodeCountStr = str(localNodeCount)
+        cellCount = self._mesh.getSize()
+        cellListSize = (1 + localNodeCount)*cellCount
         outstream.write('CELLS ' + str(cellCount) + ' ' + str(cellListSize) + '\n')
-        elementIter = mesh.createElementiterator()
+        elementIter = self._mesh.createElementiterator()
         element = elementIter.next()
-        # use vtk winding
-        vtkHex8Indexing = [ 0, 1, 3, 2, 4, 5, 7, 6 ]
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)  # assumes all components same
-            nodeIdentifiersHex8 = getElementNodeIdentifiersCube8Node(element, eft)
-            outstream.write('8')
-            for localIndex in vtkHex8Indexing:
-                index = nodeIdentifierToIndex[nodeIdentifiersHex8[localIndex]]
+            if localNodeCount == 4:
+                nodeIdentifiers = getElementNodeIdentifiers4Node(element, eft)
+            else:
+                nodeIdentifiers = getElementNodeIdentifiers8Node(element, eft)
+            outstream.write(localNodeCountStr)
+            for localIndex in vtkIndexing:
+                index = nodeIdentifierToIndex[nodeIdentifiers[localIndex]]
                 outstream.write(' ' + str(index))
             outstream.write('\n')
             element = elementIter.next()
         outstream.write('CELL_TYPES ' + str(cellCount) + '\n')
         for i in range(cellCount - 1):
-            outstream.write('12 ')
-        outstream.write('12\n')
+            outstream.write(cellTypeString + ' ')
+        outstream.write(cellTypeString + '\n')
 
         if self._annotationGroups:
             outstream.write('CELL_DATA ' + str(cellCount) + '\n')
@@ -90,8 +103,8 @@ class ExportVtk:
                 safeName = annotationGroup.getName().replace(' ', '_')
                 outstream.write('SCALARS ' + safeName + ' int 1\n')
                 outstream.write('LOOKUP_TABLE default\n') 
-                meshGroup = annotationGroup.getMeshGroup(mesh)
-                elementIter = mesh.createElementiterator()
+                meshGroup = annotationGroup.getMeshGroup(self._mesh)
+                elementIter = self._mesh.createElementiterator()
                 element = elementIter.next()
                 while element.isValid():
                     outstream.write('1 ' if meshGroup.containsElement(element) else '0 ')
