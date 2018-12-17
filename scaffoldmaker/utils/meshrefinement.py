@@ -4,7 +4,7 @@ Created on April 4, 2018
 
 @author: Richard Christie
 '''
-
+from __future__ import division
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.octree import Octree
 from scaffoldmaker.utils.zinc_utils import *

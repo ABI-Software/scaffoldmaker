@@ -6,7 +6,7 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 '''
 
 import io
-
+from sys import version_info
 from scaffoldmaker.utils.zinc_utils import getElementNodeIdentifiers4Node, getElementNodeIdentifiers8Node
 from opencmiss.zinc.field import Field
 
@@ -35,7 +35,8 @@ class ExportVtk:
 
 
     def _write(self, outstream):
-        assert isinstance(outstream, io.TextIOBase), 'ExportVtk.write:  Invalid outstream argument'
+        if version_info.major > 2:
+          assert isinstance(outstream, io.TextIOBase), 'ExportVtk.write:  Invalid outstream argument'
         outstream.write('# vtk DataFile Version 2.0\n')
         outstream.write(self._description + '\n')
         outstream.write('ASCII\n')

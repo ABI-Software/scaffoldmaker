@@ -321,27 +321,27 @@ class MeshType_3d_heartatria1(object):
         aOuterSeptumHeight = 0.85*aOuterHeight
         iaGrooveDerivative = 0.25*aSeptumThickness
         n1MidFreeWall = elementsCountAroundAtrialFreeWall//2
-        elementsCountRidgeVenous = math.ceil(0.49*n1MidFreeWall)  # was 0.49
+        elementsCountRidgeVenous = int(math.ceil(0.49*n1MidFreeWall))  # was 0.49
         elementsCountAroundEnd = elementsCountAroundAtrialFreeWall - 2*elementsCountRidgeVenous
         ridgeVenousDistance = 0.5*aSeptumThickness + 1.2*(ivcInnerRadius + svcInnerRadius + 2*(ivcWallThickness + svcWallThickness))
 
         # get ranges of nodes/elements to omit where inlets are
 
         elementsCountAcrossVC = elementsCountRidgeVenous
-        elementsCountUpIVC = math.ceil(0.65*elementsCountUpAtria)
+        elementsCountUpIVC = int(math.ceil(0.65*elementsCountUpAtria))
         elementsCountAroundIVC = (elementsCountAcrossVC + elementsCountUpIVC)*2
         ivce1min = 0
         ivce1max = ivce1min + elementsCountAcrossVC - 1
         ivce2min = 0
         ivce2max = ivce2min + elementsCountUpIVC - 1
-        elementsCountUpSVC = math.ceil(0.58*elementsCountUpAtria)
+        elementsCountUpSVC = int(math.ceil(0.58*elementsCountUpAtria))
         elementsCountAroundSVC = (elementsCountAcrossVC + elementsCountUpSVC)*2
         svce1max = elementsCountAroundAtrialFreeWall - 1
         svce1min = svce1max - elementsCountAcrossVC + 1
         svce2max = elementsCountUpAtria - 1
         svce2min = svce2max - elementsCountUpSVC + 1
 
-        elementsCountUpLPV = math.ceil(0.66*elementsCountUpAtria)
+        elementsCountUpLPV = int(math.ceil(0.66*elementsCountUpAtria))
         lipve2max = elementsCountUpAtria - 1
         lipve2min = lipve2max - elementsCountUpLPV + 1
         lspve2max = elementsCountUpAtria - 1
@@ -366,13 +366,13 @@ class MeshType_3d_heartatria1(object):
         rspve1max = rspve1min + elementsCountAcrossRPV - 1
         if rpvCount == 1:
             # merge inferior/superior rpv so straddles top ridge
-            elementsCountUpRPV = math.ceil(0.66*elementsCountUpAtria)
+            elementsCountUpRPV = int(math.ceil(0.66*elementsCountUpAtria))
             ripve2min = elementsCountUpAtria - (elementsCountUpRPV + 1)//2
             ripve2max = elementsCountUpAtria + elementsCountUpRPV//2 - 1
             rspve2min = elementsCountUpAtria*2 - ripve2max - 1
             rspve2max = elementsCountUpAtria*2 - ripve2min - 1
         else:  # rpvCount == 2:
-            elementsCountUpRPV = math.ceil(0.49*elementsCountUpAtria)
+            elementsCountUpRPV = int(math.ceil(0.49*elementsCountUpAtria))
             ripve2min = elementsCountUpAtria - elementsCountUpRPV
             ripve2max = elementsCountUpAtria - 1
             rspve2min = elementsCountUpAtria - elementsCountUpRPV
