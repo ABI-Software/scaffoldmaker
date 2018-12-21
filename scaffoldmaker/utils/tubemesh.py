@@ -50,6 +50,9 @@ def generatetubemesh(region,
 
     # Sample central line to get same number of elements as elementsCountAlong
     sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+    # sd1Smoothed = smoothCubicHermiteDerivativesLine(sx, sd1)
+    # sd1 = []
+    # sd1 = sd1Smoothed
     sd2 = interpolateSampleLinear(cd2, se, sxi)
     sd3 = interpolateSampleLinear(cd3, se, sxi)
     st2 = interpolateSampleLinear(t2, se, sxi)
@@ -130,90 +133,117 @@ def generatetubemesh(region,
     dx_ds1 = [ 0.0, 0.0, 0.0 ]
     dx_ds2 = [ 0.0, 0.0, 0.0 ]
     dx_ds3 = [ 0.0, 0.0, 0.0 ]
+    innerx = []
+    innerdx_ds1 = []
+    outerx = []
+    dWall = []
+    unitNormalInner = []
+    curvatureAlong = []
+    ellipsex = []
+    ellipsedx_ds1 = []
+    tubex = []
+    tubedx_ds1 = []
+    tubedx_ds2 = []
+    tubedx_ds3 = []
 
+    # Calculate node location and derivatives for inner and outer surface
+    for n2 in range(elementsCountAlong+1):
+        aInner = sd2[n2][1]
+        bInner = sd3[n2][2]
+        perimeterInner = getApproximateEllipsePerimeter(aInner, bInner)
+        arcLengthPerElementAroundInner = perimeterInner / elementsCountAround
+        prevRadiansAroundInner = updateEllipseAngleByArcLength(aInner, bInner, 0.0, arcLengthPerElementAroundInner)
+
+        aOuter = sd2[n2][1] + st2[n2]
+        bOuter = sd3[n2][2] + st3[n2]
+        perimeterOuter = getApproximateEllipsePerimeter(aOuter, bOuter)
+        arcLengthPerElementAroundOuter = perimeterOuter / elementsCountAround
+        prevRadiansAroundOuter = updateEllipseAngleByArcLength(aOuter, bOuter, 0.0, arcLengthPerElementAroundOuter)
+
+        for n1 in range(elementsCountAround):
+            arcLengthAroundInner = n1*arcLengthPerElementAroundInner
+            radiansAroundInner = -1*updateEllipseAngleByArcLength(aInner, bInner, 0.0, arcLengthAroundInner)
+            cosRadiansAroundInner = math.cos(radiansAroundInner)
+            sinRadiansAroundInner = math.sin(radiansAroundInner)
+            xInner = [sx[n2][j] + aInner*cosRadiansAroundInner*sBinormal[n2][j] + bInner*sinRadiansAroundInner*sNormal[n2][j] for j in range(3)]
+            innerx.append(xInner)
+            dx_ds1Inner = [(radiansAroundInner - prevRadiansAroundInner)*(aInner*-sinRadiansAroundInner*sBinormal[n2][j] + bInner*cosRadiansAroundInner*sNormal[n2][j]) for j in range(3)]
+            innerdx_ds1.append(dx_ds1Inner)
+            prevRadiansAroundInner = radiansAroundInner
+            unitNormalInnerNode = normalise([aInner*cosRadiansAroundInner*sBinormal[n2][j] + bInner*sinRadiansAroundInner*sNormal[n2][j] for j in range(3)])
+            unitNormalInner.append(unitNormalInnerNode)
+
+            arcLengthAroundOuter = n1*arcLengthPerElementAroundOuter
+            radiansAroundOuter = -1*updateEllipseAngleByArcLength(aOuter, bOuter, 0.0, arcLengthAroundOuter)
+            cosRadiansAroundOuter = math.cos(radiansAroundOuter)
+            sinRadiansAroundOuter = math.sin(radiansAroundOuter)
+            xOuter = [sx[n2][j] + aOuter*cosRadiansAroundOuter*sBinormal[n2][j] + bOuter*sinRadiansAroundOuter*sNormal[n2][j] for j in range(3)]
+            outerx.append(xOuter)
+            prevRadiansAroundOuter = radiansAroundOuter
+
+            d = [ xOuter[i] - xInner[i] for i in range(3)]
+            dWall.append(d)
+
+            if n2 == 0:
+                curvature = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormalInnerNode, 0.0)
+            elif n2 == elementsCountAlong:
+                curvature = getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], unitNormalInnerNode, 1.0)
+            else:
+                curvature = 0.5*(
+                    getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], unitNormalInnerNode, 1.0) +
+                    getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormalInnerNode, 0.0))
+            curvatureAlong.append(curvature)
+
+    # Interpolate to get nodes through wall
     for n3 in range(elementsCountThroughWall + 1):
+        xi = 1/elementsCountThroughWall*n3
+
         for n2 in range(elementsCountAlong+1):
-            aThroughWallElement = sd2[n2][1] + st2[n2]*(n3/elementsCountThroughWall)
-            bThroughWallElement = sd3[n2][2] + st3[n2]*(n3/elementsCountThroughWall)
-            perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement, bThroughWallElement)
-            arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
-            prevRadiansAround = updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement, 0.0, arcLengthPerElementAround)
-            st2PerWallElement = st2[n2]/elementsCountThroughWall
-            st3PerWallElement = st3[n2]/elementsCountThroughWall
-
-            if n2 < elementsCountAlong:
-                aThroughWallElementNext = sd2[n2+1][1] + st2[n2+1]*(n3/elementsCountThroughWall)
-                bThroughWallElementNext = sd3[n2+1][2] + st3[n2+1]*(n3/elementsCountThroughWall)
-                perimeterAroundWallElementNext = getApproximateEllipsePerimeter(aThroughWallElementNext, bThroughWallElementNext)
-                arcLengthPerElementAroundNext = perimeterAroundWallElementNext / elementsCountAround
-
             for n1 in range(elementsCountAround):
-                arcLengthAround = n1*arcLengthPerElementAround
-                radiansAround = -1*updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement, 0.0, arcLengthAround)
-                cosRadiansAround = math.cos(radiansAround)
-                sinRadiansAround = math.sin(radiansAround)
-                x = [sx[n2][j] + aThroughWallElement*cosRadiansAround*sBinormal[n2][j] + bThroughWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)]
-                dx_ds1 = [(radiansAround - prevRadiansAround)*(aThroughWallElement*-sinRadiansAround*sBinormal[n2][j] + bThroughWallElement*cosRadiansAround*sNormal[n2][j]) for j in range(3)]
+                n = n2*elementsCountAround + n1
 
-                # Calculate curvature to find d1 for node
-                unitNormal = normalise([aThroughWallElement*cosRadiansAround*sBinormal[n2][j] + bThroughWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)])
-                if n2 == 0:
-                    curvature = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormal, 0.0)
-                elif n2 == elementsCountAlong:
-                    curvature = getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], unitNormal, 1.0)
+                # x
+                x = interpolateCubicHermite(innerx[n], dWall[n], outerx[n], dWall[n], xi)
+                tubex.append(x)
+
+                # dx_ds1
+                if n1 == 0:
+                    prevIdx = (((n+1)//elementsCountAround + 1)*elementsCountAround)-1
+                    ellipsex = []
+                    ellipsedx_ds1 = []
                 else:
-                    curvature = 0.5*(
-                    getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], unitNormal, 1.0) +
-                    getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormal, 0.0))
-                wallDistance = magnitude([aThroughWallElement*cosRadiansAround*sBinormal[n2][j] + bThroughWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)])
-                factor = 1.0 - curvature*wallDistance
-                d1Wall = [ factor*c for c in sd1[n2]]
+                    prevIdx = n - 1
+                nextIdx = ((n+1)//(elementsCountAround +1) * elementsCountAround + ((n+1)%elementsCountAround) + 1)-1
+                curvatureAround = 0.5*(
+                    getCubicHermiteCurvature(innerx[prevIdx], innerdx_ds1[prevIdx], innerx[n], innerdx_ds1[n], unitNormalInner[n], 1.0) +
+                    getCubicHermiteCurvature(innerx[n], innerdx_ds1[n], innerx[nextIdx], innerdx_ds1[nextIdx], unitNormalInner[n], 0.0))
+                wallDistance = magnitude(dWall[n])*xi
+                factor = 1.0 - curvatureAround*wallDistance
+                dx_ds1 = [ factor*c for c in innerdx_ds1[n]]
+                ellipsedx_ds1.append(dx_ds1)
+                ellipsex.append(x)
+                if n1 == elementsCountAround-1:
+                    smoothdx_ds1 = smoothCubicHermiteDerivativesLoop(ellipsex, ellipsedx_ds1)
+                    tubedx_ds1 = tubedx_ds1 + smoothdx_ds1
 
-                # Calculate curvature to find d1 for downstream node
-                if n2 < elementsCountAlong:
-                    arcLengthAroundNext = n1*arcLengthPerElementAroundNext
-                    radiansAroundNext = -1*updateEllipseAngleByArcLength(aThroughWallElementNext, bThroughWallElementNext, 0.0, arcLengthAroundNext)
-                    cosRadiansAroundNext = math.cos(radiansAroundNext)
-                    sinRadiansAroundNext = math.sin(radiansAroundNext)
-                    xNext = [sx[n2+1][j] + aThroughWallElementNext*cosRadiansAroundNext*sBinormal[n2+1][j] + bThroughWallElementNext*sinRadiansAroundNext*sNormal[n2+1][j] for j in range(3)]
-                    unitNormalNext = normalise([aThroughWallElementNext*cosRadiansAroundNext*sBinormal[n2+1][j] + bThroughWallElementNext*sinRadiansAroundNext*sNormal[n2+1][j] for j in range(3)])
-                    if n2 + 1 == elementsCountAlong:
-                        curvatureNext = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormalNext, 1.0)
-                    else:
-                        curvatureNext = 0.5*(
-                        getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], unitNormalNext, 1.0) +
-                        getCubicHermiteCurvature(sx[n2+1], sd1[n2+1], sx[n2+2], sd1[n2+2], unitNormalNext, 0.0))
-                    wallDistanceNext = magnitude([aThroughWallElementNext*cosRadiansAroundNext*sBinormal[n2+1][j] + bThroughWallElementNext*sinRadiansAroundNext*sNormal[n2+1][j] for j in range(3)])
-                    factorNext = 1.0 - curvatureNext*wallDistanceNext
-                    d1WallNext = [ factorNext*c for c in sd1[n2+1] ]
-                    arcLength = computeCubicHermiteArcLength(x, d1Wall, xNext, d1WallNext, True)
-                    dx_ds2 = [arcLength*c for c in normalise(d1Wall)]
-                    if n2 == elementsCountAlong - 1:
-                        secondLastX = x
-                        secondLastd1Wall = d1Wall
-                        lastX = xNext
-                        lastd1Wall = d1WallNext
-                else:
-                    arcLength = computeCubicHermiteArcLength(secondLastX, secondLastd1Wall, lastX, lastd1Wall, True)
-                    dx_ds2 = [arcLength*c for c in normalise(lastd1Wall)]
+                # dx_ds2
+                factor = 1.0 - curvatureAlong[n]*wallDistance 
+                d1AlongTube = [ factor*c for c in sd1[n2]]
+                tubedx_ds2.append(d1AlongTube)
 
-                dx_ds3 = [ st2PerWallElement*cosRadiansAround*sBinormal[n2][j] + st3PerWallElement*sinRadiansAround*sNormal[n2][j] for j in range(3)] # Modify later to calculate with interpolation
+                #dx_ds3
+                dx_ds3 = interpolateCubicHermiteDerivative(innerx[n], dWall[n], outerx[n], dWall[n], xi)
+                dx_ds3 = [c/elementsCountThroughWall for c in dx_ds3]
+                tubedx_ds3.append(dx_ds3)
 
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-                if useCubicHermiteThroughWall:
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
-                if useCrossDerivatives:
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                    if useCubicHermiteThroughWall:
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-                nodeIdentifier = nodeIdentifier + 1
-                prevRadiansAround = radiansAround
+    for n in range((elementsCountAround)*(elementsCountAlong+1)*(elementsCountThroughWall+1)):
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, tubex[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, tubedx_ds1[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, tubedx_ds2[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, tubedx_ds3[n])
+        nodeIdentifier = nodeIdentifier + 1
 
     # # For debugging - Nodes along central line
     # for pt in range(len(sx)):
