@@ -5,13 +5,14 @@ through wall, plus variable wall thickness for unit diameter.
 
 from __future__ import division
 import math
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_tube1(object):
+class MeshType_3d_tube1(Scaffold_base):
     '''
     classdocs
     '''
@@ -20,7 +21,7 @@ class MeshType_3d_tube1(object):
         return '3D Tube 1'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around' : 4,
             'Number of elements along' : 1,

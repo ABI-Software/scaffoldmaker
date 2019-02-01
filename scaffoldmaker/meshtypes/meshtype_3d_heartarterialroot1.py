@@ -6,6 +6,7 @@ for attaching to a 6-element-around bicubic-linear orifice.
 from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -18,7 +19,7 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_heartarterialroot1(object):
+class MeshType_3d_heartarterialroot1(Scaffold_base):
     '''
     Generates a 3-D heart arterial root scaffold with semilunar valve,
     for attaching to a 6-element-around bicubic-linear orifice.
@@ -29,7 +30,7 @@ class MeshType_3d_heartarterialroot1(object):
         return '3D Heart Arterial Root 1'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Unit scale' : 1.0,
             'Outer height' : 0.5,

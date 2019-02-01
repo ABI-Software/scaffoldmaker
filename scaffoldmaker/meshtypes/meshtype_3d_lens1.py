@@ -6,13 +6,14 @@ around, up the central axis, and radially.
 from __future__ import division
 import math
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import *
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_lens1:
+class MeshType_3d_lens1(Scaffold_base):
     '''
     Generates a 3-D spherical lens mesh with variable numbers
     of elements around, up the central axis, and radially.
@@ -24,8 +25,8 @@ class MeshType_3d_lens1:
         return '3D Lens 1'
 
     @staticmethod
-    def getDefaultOptions():
-        options = MeshType_3d_solidsphere1.getDefaultOptions()
+    def getDefaultOptions(parameterSetName='Default'):
+        options = MeshType_3d_solidsphere1.getDefaultOptions(parameterSetName)
         options['Number of elements around'] = 8
         optionsLens = {
             'Axial thickness' : 4.0,
