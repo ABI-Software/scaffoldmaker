@@ -5,23 +5,33 @@ Describes method each scaffold must or may override.
 
 class Scaffold_base:
     '''
-    Base class for all 
+    Base class for scaffolds / mesh generator scripts.
+    Not intended to be instantiated. Most methods must be overridden by actual scaffolds.
     '''
 
     @staticmethod
     def getName():
-        return 'Unique type name for display in user interface'
+        '''
+        Must override.
+        :return: Unique type name for scaffold, for display in user interface.
+        '''
+        return None
 
     @staticmethod
     def getParameterSetNames():
         '''
-        Override to return additional default parameter set names supported by getDefaultOptions().
+        Optionally override to return additional default parameter set names supported by getDefaultOptions().
         Always have first set name 'Default'. Do not use name 'Custom' as clients may use internally.
         '''
         return ['Default']
  
     @staticmethod
-    def getDefaultOptions(parameterSetName):
+    def getDefaultOptions(parameterSetName='Default'):
+        '''
+        Must override to get valid initial default or other named parameter set. Must support 'Default' parameter set.
+        :param parameterSetName: Name of parameter set to get, from list returned by getParameterSetNames().
+        :return: Dictionary of parameter name value pairs, of integer, real or boolean type.
+        '''
         return {
             'Integer option' : 1,
             'Real option' : 1.0,
@@ -30,15 +40,17 @@ class Scaffold_base:
 
     @staticmethod
     def getOrderedOptionNames():
-        return [
-            'List of parameters',
-            'In order for editing in user interface'
-        ]
+        '''
+        Must override to get list of parameters in order for display and editing in user interface.
+        Note can omit parameter names to remove from interface.
+        :return: List of parameter names in display order.
+        '''
+        return []
 
     @staticmethod
     def checkOptions(options):
         '''
-        Override to keep options within limits to prevent nonsense or errors.
+        Must override to keep options within limits to prevent nonsense or errors.
         '''
         if options['Integer option'] < 1:
             options['Integer option'] = 1
@@ -48,7 +60,7 @@ class Scaffold_base:
     @classmethod
     def generateMesh(cls, region, options):
         '''
-        Override to generate scaffold mesh in region using Zinc API with options.
+        Must override to generate scaffold mesh in region using Zinc API with options.
         Scaffolds supporting refinement may switch to call other functions:
         @classmethod
         def generateBaseMesh(cls, region, options):

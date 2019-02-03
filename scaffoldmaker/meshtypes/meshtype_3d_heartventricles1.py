@@ -79,7 +79,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             options['LV free wall thickness'] = 0.15
             options['LV apex thickness'] = 0.07
             options['RV inner height fraction'] = 0.65
-            options['RV arc apex fraction'] = 0.6
             options['RV width growth factor'] = 0.65
             options['Ventricular septum thickness'] = 0.12
         return options

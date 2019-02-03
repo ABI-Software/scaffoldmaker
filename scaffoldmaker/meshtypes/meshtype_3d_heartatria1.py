@@ -93,9 +93,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Number of left pulmonary veins'] = 1
             options['Number of right pulmonary veins'] = 1
             options['Left pulmonary vein inner diameter'] = 0.16
-            options['Left pulmonary vein wall thickness'] = 0.009
-            options['Right pulmonary vein angle up degrees'] = 0.0
+            options['Left pulmonary vein wall thickness'] = 0.011
             options['Right pulmonary vein inner diameter'] = 0.17
+            options['Right pulmonary vein wall thickness'] = 0.011
             options['Inferior vena cava angle left degrees'] = 50.0
             options['Superior vena cava angle up degrees'] = 30.0
         return options
