@@ -1,6 +1,6 @@
 """
 Scaffold abstract base class.
-Describes method each scaffold must or may override.
+Describes methods each scaffold must or may override.
 """
 
 class Scaffold_base:
