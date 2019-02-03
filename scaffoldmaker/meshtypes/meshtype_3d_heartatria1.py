@@ -6,6 +6,7 @@ Generates a 3-D heart atria model, suitable for attachment to the
 from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -16,7 +17,7 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_heartatria1(object):
+class MeshType_3d_heartatria1(Scaffold_base):
     '''
     3-D heart atria model, suitable for attachment to the 3-D Heart Ventricles with Base 2.
     '''
@@ -26,8 +27,17 @@ class MeshType_3d_heartatria1(object):
         return '3D Heart Atria 1'
 
     @staticmethod
-    def getDefaultOptions():
-        return {
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1',
+            'Pig 1',
+            'Unit Human 1',
+            'Unit Pig 1']
+
+    @staticmethod
+    def getDefaultOptions(parameterSetName='Default'):
+        options = {
             'Number of elements around atrial free wall' : 8,
             'Number of elements around atrial septum' : 3,
             'Number of elements up atria' : 4,
@@ -74,6 +84,21 @@ class MeshType_3d_heartatria1(object):
             'Refine number of elements through wall' : 1,
             'Use cross derivatives' : False,
         }
+        if 'Human' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 80.0
+        elif 'Pig' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 80.0
+            options['Number of left pulmonary veins'] = 1
+            options['Number of right pulmonary veins'] = 1
+            options['Left pulmonary vein inner diameter'] = 0.16
+            options['Left pulmonary vein wall thickness'] = 0.011
+            options['Right pulmonary vein inner diameter'] = 0.17
+            options['Right pulmonary vein wall thickness'] = 0.011
+            options['Inferior vena cava angle left degrees'] = 50.0
+            options['Superior vena cava angle up degrees'] = 30.0
+        return options
 
     @staticmethod
     def getOrderedOptionNames():

@@ -5,6 +5,7 @@ Generates 3-D Left and Right ventricles mesh starting from modified sphere shell
 from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 import scaffoldmaker.utils.vector as vector
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
@@ -17,7 +18,7 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
 
-class MeshType_3d_heartventricles2(object):
+class MeshType_3d_heartventricles2(Scaffold_base):
     '''
     classdocs
     '''
@@ -27,7 +28,7 @@ class MeshType_3d_heartventricles2(object):
         return '3D Heart Ventricles 2'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around LV free wall' : 5,
             'Number of elements around ventricular septum' : 7,

@@ -6,6 +6,7 @@ Variant using collapsed/wedge elements at septum junction.
 from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 import scaffoldmaker.utils.vector as vector
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
@@ -18,7 +19,7 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
 
-class MeshType_3d_heartventricles1(object):
+class MeshType_3d_heartventricles1(Scaffold_base):
     '''
     Generates 3-D mesh of left and right ventricles below base plane.
     '''
@@ -28,8 +29,17 @@ class MeshType_3d_heartventricles1(object):
         return '3D Heart Ventricles 1'
 
     @staticmethod
-    def getDefaultOptions():
-        return {
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1',
+            'Pig 1',
+            'Unit Human 1',
+            'Unit Pig 1']
+
+    @staticmethod
+    def getDefaultOptions(parameterSetName='Default'):
+        options = {
             'Number of elements around LV free wall' : 5,
             'Number of elements around RV free wall' : 7,
             'Number of elements up LV apex' : 1,
@@ -40,12 +50,12 @@ class MeshType_3d_heartventricles1(object):
             'LV outer diameter' : 1.0,
             'LV free wall thickness' : 0.12,
             'LV apex thickness' : 0.06,
-            'RV inner height fraction' : 0.8,
+            'RV inner height fraction' : 0.85,
             'RV arc around degrees' : 155.0,
             'RV arc apex fraction' : 0.6,
             'RV free wall thickness' : 0.05,
             'RV width' : 0.4,
-            'RV width growth factor' : 0.65,
+            'RV width growth factor' : 0.7,
             'RV side extension' : 0.12,
             'RV side extension growth factor' : 0.5,
             'Ventricular septum thickness' : 0.1,
@@ -56,6 +66,22 @@ class MeshType_3d_heartventricles1(object):
             'Refine number of elements through LV wall' : 1,
             'Refine number of elements through wall' : 1
         }
+        if 'Human' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 80.0
+            options['LV outer height'] = 0.9
+        elif 'Pig' in parameterSetName:
+            options['Number of elements up LV apex'] = 2
+            options['Number of elements up RV'] = 3
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 80.0
+            options['LV outer height'] = 0.9
+            options['LV free wall thickness'] = 0.15
+            options['LV apex thickness'] = 0.07
+            options['RV inner height fraction'] = 0.65
+            options['RV width growth factor'] = 0.65
+            options['Ventricular septum thickness'] = 0.12
+        return options
 
     @staticmethod
     def getOrderedOptionNames():

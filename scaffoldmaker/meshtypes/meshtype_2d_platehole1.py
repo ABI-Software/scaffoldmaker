@@ -7,12 +7,13 @@ directions go around the hole.
 
 from __future__ import division
 import math
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_2d_platehole1(object):
+class MeshType_2d_platehole1(Scaffold_base):
     '''
     classdocs
     '''
@@ -21,7 +22,7 @@ class MeshType_2d_platehole1(object):
         return '2D Plate Hole 1'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Coordinate dimensions' : 3,
             'Number of elements 1' : 1,

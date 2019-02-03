@@ -5,10 +5,11 @@ through wall, with variable major and minor axis length and
 wall thickness.
 """
 
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 
-class MeshType_3d_centrallinetube1(object):
+class MeshType_3d_centrallinetube1(Scaffold_base):
     '''
     Generates a 3-D tubular mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -20,7 +21,7 @@ class MeshType_3d_centrallinetube1(object):
         return '3D Central Line Tube 1'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around' : 8,
             'Number of elements along' : 6,
