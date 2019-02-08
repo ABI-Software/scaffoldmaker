@@ -121,6 +121,20 @@ class MeshType_3d_solidsphere1(Scaffold_base):
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         zero = [ 0.0, 0.0, 0.0 ]
 
+        # Create node for bottom pole
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -radius*2.0/elementsCountUp])
+        if useCrossDerivatives:
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        nodeIdentifier = nodeIdentifier + 1
+
         cubicArcLengthList = [0.0]*(elementsCountUp+1)
 
         # Pre-calculate cubicArcLength along elementsCountUp
@@ -139,20 +153,6 @@ class MeshType_3d_solidsphere1(Scaffold_base):
             ]
             d2 = [math.cos(math.pi/2.0)*sinRadiansUp,math.sin(math.pi/2.0)*sinRadiansUp,-cosRadiansUp]
             cubicArcLengthList[n2] = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-
-        # Create node for bottom pole
-        node = nodes.createNode(nodeIdentifier, nodetemplate)
-        cache.setNode(node)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ 0.0, 0.0, -radius ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [ radius*radiansPerElementUp, 0.0, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [ 0.0, radius*radiansPerElementUp, 0.0 ])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [ 0.0, 0.0, -radius*2.0/elementsCountUp])
-        if useCrossDerivatives:
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-        nodeIdentifier = nodeIdentifier + 1
 
         # Create nodes along axis between top and bottom poles
         for n2 in range(1,elementsCountUp):
