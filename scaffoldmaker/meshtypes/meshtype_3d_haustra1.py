@@ -1,5 +1,5 @@
 """
-Generates a 3-D colon mesh along the central line, with variable
+Generates a 3-D haustra mesh along a central line, with variable
 numbers of elements around, along and through wall, with
 variable radius and thickness along.
 """
@@ -7,18 +7,16 @@ variable radius and thickness along.
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 
-class MeshType_3d_colon1(object):
+class MeshType_3d_haustra1(object):
     '''
-    Generates a 3-D colon mesh with variable numbers
+    Generates a 3-D haustra mesh with variable numbers
     of elements around, along the central line, and through wall.
-    The colon has a triangular profile with rounded corners at the
-    interhaustral septa which is created from a central line and
-    lateral axes data. The colon presents a clover profile outside
-    the septa.
+    The haustra has a triangular profile with rounded corners at the
+    interhaustral septa, and a clover profile outside the septa.
     '''
     @staticmethod
     def getName():
-        return '3D Colon 1'
+        return '3D Haustra 1'
 
     @staticmethod
     def getDefaultOptions():
@@ -29,12 +27,11 @@ class MeshType_3d_colon1(object):
             'Inner radius': 0.5,
             'Corner radius fraction': 0.5,
             'Wall thickness': 0.01,
-            'Number of haustra': 2,
+            'Number of haustra': 1,
             'Haustra radius fraction': 0.5,
             'Haustra length': 1.0,
             'Interhaustra fold factor': 0.5,
             'Haustra curvature factor': 1.0,
-            'Tube type': 1,
             'Use cross derivatives' : False,
             'Use linear through wall' : False,
             'Refine' : False,
@@ -57,8 +54,7 @@ class MeshType_3d_colon1(object):
             'Haustra length',
             'Interhaustra fold factor',
             'Haustra curvature factor',
-            'Tube type',
-            'Use cross derivatives',
+           'Use cross derivatives',
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
@@ -97,8 +93,6 @@ class MeshType_3d_colon1(object):
             'Interhaustra fold factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
-        if (options['Tube type'] < 1 or options['Tube type'] > 3 ) :
-            options['Tube type'] = 1
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -119,23 +113,9 @@ class MeshType_3d_colon1(object):
         haustraLength = options['Haustra length']
         foldFactor = options['Interhaustra fold factor']
         haustraCurvatureFactor = options['Haustra curvature factor']
-        tubeType = options['Tube type']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongHaustra*haustraCount)
-
-        # if tubeType == 1:
-            # # Straight tube
-            # cx = [[0.0, 0.0, 0.0], [ 0.0, 0.0, 5.0 ] ]
-            # cd1 = [[ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 5.0 ]]
-            # cd2 = [ [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ]]
-            # cd3 = [ [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5 ]]
-
-            # # thickness in cd2 and cd3 directions and derivatives (rate of change)
-            # t2 = [ 0.2, 0.2 ]
-            # t2d = [ 0.0, 0.0 ]
-            # t3 = [ 0.2, 0.2 ]
-            # t3d = [ 0.0, 0.0 ]
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -178,7 +158,7 @@ class MeshType_3d_colon1(object):
         dx_ds3 = [ 0.0, 0.0, 0.0 ]
         radiansRangeRC = [7*math.pi/4, 0.0, math.pi/4]
         cornerRC = cornerRadiusFraction*radius
-        tubeAxis = [0.0, 0.0, 1.0]
+        unitZ = [0.0, 0.0, 1.0]
         haustraRadius = (haustraRadiusFraction + 1)*radius
         xAround = []
         d1Around = []
@@ -270,17 +250,17 @@ class MeshType_3d_colon1(object):
             if n1%(elementsCountAround/3) > 0.0:
                 v1 = [xInner[n1][0], xInner[n1][1], 0.0]
                 startArcLength = foldFactor * haustraLength
-                d1 = [ c*startArcLength for c in tubeAxis]
+                d1 = [ c*startArcLength for c in unitZ]
                 v2 = [xHaustraInner[n1][0], xHaustraInner[n1][1], haustraLength/2]
                 midArcLength = haustraCurvatureFactor * haustraLength
-                d2 = [ c*midArcLength for c in tubeAxis]
+                d2 = [ c*midArcLength for c in unitZ]
                 v3 = [xInner[n1][0], xInner[n1][1], haustraLength]
-                d3 = [ c*startArcLength for c in tubeAxis]
+                d3 = [ c*startArcLength for c in unitZ]
             else:
                 v1 = [xInner[n1][0], xInner[n1][1], 0.0]
                 v2 = [xInner[n1][0], xInner[n1][1], haustraLength/2]
                 v3 = [xInner[n1][0], xInner[n1][1], haustraLength]
-                d3 = d2 = d1 = [c* haustraLength/3 for c in tubeAxis]
+                d3 = d2 = d1 = [c* haustraLength/3 for c in unitZ]
             nx = [v1, v2, v3]
             nd1 = [d1, d2, d3]
             sx, sd1, se, sxi, _  = sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustra)
@@ -316,11 +296,11 @@ class MeshType_3d_colon1(object):
                         else: # points on clover
                             if elementsCountAlongHaustra > 3: 
                                 if n2 < int(elementsCountAlongHaustra/2): # first half of haustraLength
-                                    axisRot = crossproduct3(tubeAxis, unitTangent)
+                                    axisRot = crossproduct3(unitZ, unitTangent)
                                 elif n2 > int(elementsCountAlongHaustra/2): # second half of haustraLength
-                                    axisRot = crossproduct3(unitTangent, tubeAxis)
+                                    axisRot = crossproduct3(unitTangent, unitZ)
                             elif elementsCountAlongHaustra == 3: # 3 elementsAlongHaustra
-                                axisRot = crossproduct3(unitTangent, tubeAxis)
+                                axisRot = crossproduct3(unitTangent, unitZ)
 
                             rotFrame = rotationMatrixAboutAxis(axisRot, math.pi/2)
                             rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
@@ -381,16 +361,6 @@ class MeshType_3d_colon1(object):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3List[n])
             # print('NodeIdentifier = ', nodeIdentifier, xList[n])
             nodeIdentifier = nodeIdentifier + 1
-
-    # # For debugging - Nodes along central line
-    # for pt in range(len(sx)):
-        # node = nodes.createNode(nodeIdentifier, nodetemplate)
-        # cache.setNode(node)
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[pt])
-        # coordinates.setNodeParametrs(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sNormal[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sBinormal[pt])
-        # nodeIdentifier = nodeIdentifier + 1
 
         # create elements
         elementIdentifier = 1 # nextElementIdentifier
