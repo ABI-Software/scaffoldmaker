@@ -32,9 +32,9 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 4, 'Number of elements up': 3, 'Number of elements through wall': 2,
-            'Number of elements radial': 1, 'Major diameter': 2.0, 'Minor diameter': 1.0, 'Height': 1.0,
-            'Use cross derivatives': False, 'Refine': False, 'Refine number of elements around': 1,
+        return {'Number of elements around': 6, 'Number of elements up': 3, 'Number of elements through wall': 2,
+            'Number of elements radial': 1, 'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3,
+            'Use cross derivatives': False, 'Refine': False, 'Refine number of elements through wall': 1,
             'Refine number of elements up': 1, 'Refine number of elements radial': 1}
 
     @staticmethod
@@ -164,18 +164,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
         cache = fm.createFieldcache()
 
-        mesh = fm.findMeshByDimension(3)
-
-        if useCubicHermiteThroughWall:
-            eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        else:
-            eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = eftfactory.createEftBasic()
-
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate.defineField(coordinates, -1, eft)
-
         """ Create nodes """
         nodeIdentifier = 1
 
@@ -183,8 +171,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
         node = nodes.createNode(nodeIdentifier, nodetemplate)
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, zero)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, height / elementsCountUp])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, axisB / elementsCountThroughWall, 0.0])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, axisB / elementsCountThroughWall, 0.0])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, height / elementsCountUp])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
                                       [axisA / elementsCountThroughWall, 0.0, 0.0])
         if useCrossDerivatives:
@@ -199,10 +187,12 @@ class MeshType_3d_vertebra1(Scaffold_base):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [0, 0, n2 * height / elementsCountUp])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, height / elementsCountUp])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, axisB / elementsCountThroughWall, 0.0])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, axisB / elementsCountThroughWall, 0.0])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, height / elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
                                           [axisA / elementsCountThroughWall, 0.0, 0.0])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
+            #                               [0.0, 0.0, 0.0])
             if useCrossDerivatives:
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
@@ -214,8 +204,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
         node = nodes.createNode(nodeIdentifier, nodetemplate)
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [0, 0, height])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, height/elementsCountUp])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, axisB/elementsCountThroughWall, 0.0])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, height/elementsCountUp])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, axisB/elementsCountThroughWall, 0.0])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [axisA/elementsCountThroughWall, 0.0, 0.0])
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
@@ -330,6 +320,101 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     nodeIdentifier = nodeIdentifier + 1
                     prevRadiansAround = radiansAround
 
+        """ Create elements """
+        mesh = fm.findMeshByDimension(3)
+
+        if useCubicHermiteThroughWall:
+            eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        else:
+            eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eft = eftfactory.createEftBasic()
+
+        # Regular element template
+        elementtemplateRegular = mesh.createElementtemplate()
+        elementtemplateRegular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        # Tetrahedron element template
+        elementtemplateWedge = mesh.createElementtemplate()
+        elementtemplateWedge.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        elementIdentifier = 1
+
+        no2 = elementsCountAround
+        no3 = elementsCountAround*(elementsCountUp - 1)
+        rni = (1 + elementsCountUp) - no3 - no2 + 1  # regular node identifier
+
+        for e3 in range(elementsCountThroughWall):
+            # Create elements on bottom pole
+            radiansIncline = math.pi*0.5*e3/elementsCountThroughWall
+            radiansInclineNext = math.pi*0.5*(e3 + 1)/elementsCountThroughWall
+            if e3 == 0:
+                # Create tetrahedron elements on the bottom pole
+                bni1 = elementsCountUp + 2
+                for e2 in range(elementsCountUp):
+                    aThroughWallElement = sd2[e2][1] + st2[e2] * (e3 / elementsCountThroughWall)
+                    bThroughWallElement = sd3[e2][0] + st3[e2] * (e3 / elementsCountThroughWall)
+                    perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement,
+                                                                                bThroughWallElement)
+                    arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
+                    for e1 in range(elementsCountAround):
+                        arcLengthAround = e1 * arcLengthPerElementAround
+                        radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement, 0.0,
+                                                                           arcLengthAround)
+                        va = e1
+                        vb = (e1 + 1)%elementsCountAround
+                        eft2 = eftfactory.createEftWedgeRadial(va*100, vb*100)
+                        elementtemplateWedge.defineField(coordinates, -1, eft2)
+                        element = mesh.createElement(elementIdentifier, elementtemplateWedge)
+                        if e2 == 0:
+                            bni1 = elementsCountUp + 2
+                            bni2 = elementsCountUp + 3
+                            bni3 = elementsCountUp + elementsCountAround + 2
+                            bni4 = elementsCountUp + elementsCountAround + 3
+
+                            if e1 <= elementsCountAround - 2:
+                                nodeIdentifiers = [ e2 + 1, e2 + 2, bni1 + e1, bni2 + e1, bni3 + e1, bni4 + e1 ]
+                            else:
+                                nodeIdentifiers = [ e2 + 1, e2 + 2, bni1 + e1, bni2 + e1 - elementsCountAround, bni3 + e1, bni4 + e1 - elementsCountAround ]
+                        else:
+                            if e1 <= elementsCountAround - 2:
+                                bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp
+                                bni2 = bni1 + 1
+                                bni3 = bni2 + (elementsCountAround - 1)
+                                bni4 = bni3 + 1
+                                nodeIdentifiers = [ e2 + 1, e2 + 2, bni1 + e1, bni2 + e1, bni3 + e1, bni4 + e1 ]
+                            else:
+                                bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp
+                                bni2 = bni1 - (elementsCountAround - 1)
+                                bni3 = bni1 + 1 + (elementsCountAround - 1)
+                                bni4 = bni3 - (elementsCountAround - 1)
+                                nodeIdentifiers = [ e2 + 1, e2 + 2, bni1 + e1, bni2 + e1, bni3 + e1, bni4 + e1 ]
+
+                            # if e1 <= elementsCountAround - 2:
+                            #     nodeIdentifiers = [ e2 + 1, e2 + 2, bni1 + e1 + elementsCountAround, bni2 + e1 + elementsCountAround, bni3 + e1 + elementsCountAround, bni4 + e1 + elementsCountAround ]
+                            # else:
+                            #     nodeIdentifiers = [ e2 + 1, e2 + 2, bni3 + e1, bni4 + e1 - elementsCountAround, bni3 + e1 + elementsCountAround, bni4 + e1 - elementsCountAround + elementsCountAround]
+
+                        result1 = element.setNodesByIdentifier(eft2, nodeIdentifiers)
+                        # set general linear map coefficients
+                        radiansAround = va*radiansAround
+                        radiansAroundNext = vb*radiansAround
+                        scalefactors = [-1.0, 1.0, 1.0, 1.0, 1.0]
+                        # scalefactors = [
+                        #     -1.0,
+                        #     math.cos(radiansAround), math.sin(radiansAround), radiansAround,
+                        #     math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansAround,
+                        #     math.cos(radiansAround), math.sin(radiansAround), radiansAround,
+                        #     math.cos(radiansAroundNext), math.sin(radiansAroundNext), radiansAround
+                        # ]
+                        result2 = element.setScaleFactors(eft2, scalefactors)
+                        # print('axis element', elementIdentifier, result1, result2, nodeIdentifiers)
+                        elementIdentifier = elementIdentifier + 1
+            else:
+                pass
+
+        # result = elementtemplate.defineField(coordinates, -1, eft)
+
+
 
         fm.endChange()
 
@@ -345,14 +430,14 @@ class MeshType_3d_vertebra1(Scaffold_base):
             return
 
         refineElementsCountAround = options['Refine number of elements around']
-        refineElementsCountAlong = options['Refine number of elements along']
+        refineElementsCountUp = options['Refine number of elements up']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
         cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp,
                                                        refineElementsCountThroughWall)
 
 
