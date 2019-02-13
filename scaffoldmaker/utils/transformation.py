@@ -10,7 +10,7 @@ import math
 
 from scaffoldmaker.utils.vector import *
 
-def rotation_matrix(angle, direction, point=None):
+def rotationMatrix(angle, direction, point=None):
     '''
     :param angle: Theta angle
     :param direction: Axis
