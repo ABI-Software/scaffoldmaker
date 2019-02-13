@@ -5,13 +5,18 @@ Created on Feb 14, 2019
 @author: Mahyar Osanlouy
 """
 
+
 import math
 
 from scaffoldmaker.utils.vector import *
 
 def rotation_matrix(angle, direction, point=None):
-    """Return matrix to rotate about axis defined by point and direction.
-    """
+    '''
+    :param angle: Theta angle
+    :param direction: Axis
+    :param point: If roation is not around the origin, the input the point
+    :return: The rotation matrix
+    '''
     sina = math.sin(angle)
     cosa = math.cos(angle)
     direction = normalise(direction[:3])
@@ -24,8 +29,7 @@ def rotation_matrix(angle, direction, point=None):
          [-direction[1], direction[0], 0.0]])
     M = identity(4)
     M[:3, :3] = R
-    if point is not None:
-        # rotation not around origin
+    if point is not None:  # rotation not around origin
         point = (point[:3])
         M[:3, 3] = point - dotproduct(R, point)
     return M
