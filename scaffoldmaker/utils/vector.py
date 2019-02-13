@@ -3,6 +3,7 @@ Utility functions for vectors.
 Created on Apr 13, 2018
 
 @author: Richard Christie
+@edit: Mahyar Osanlouy
 '''
 
 import math
@@ -38,3 +39,18 @@ def setMagnitude(v, mag):
     '''
     scale = mag/math.sqrt(sum(c*c for c in v))
     return [ c*scale for c in v ]
+
+def diagonal(m):
+    '''
+    :param m: matrix
+    :return: Diagonal elements of m in a list.
+    '''
+    width, height = len(m[0]), len(m)
+
+    def diag(sx, sy):
+        for x, y in zip(range(sx, height), range(sy, width)):
+            yield m[x][y]
+    for sx in range(height):
+        yield list(diag(sx, 0))
+    for sy in range(1, width):
+        yield list(diag(0, sy))
