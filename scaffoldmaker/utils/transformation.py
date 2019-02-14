@@ -21,7 +21,7 @@ def rotationMatrix(angle, direction, point=None):
     cosa = math.cos(angle)
     direction = normalise(direction[:3])
     # rotation matrix around unit vector
-    R = diagonal([cosa, cosa, cosa])
+    R = getDiagonal([cosa, cosa, cosa])
     R += outerProduct(direction, direction) * (1.0 - cosa)
     direction *= sina
     R += ([[0.0, -direction[2], direction[1]],
