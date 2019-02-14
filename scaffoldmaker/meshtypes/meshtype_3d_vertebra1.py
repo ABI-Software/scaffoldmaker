@@ -15,6 +15,7 @@ from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.vector import *
+from scaffoldmaker.utils.transformation import *
 
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -32,21 +33,21 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 6, 'Number of elements up': 3, 'Number of elements through wall': 3,
-                'Number of elements radial': 1, 'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3,
-                'Use cross derivatives': False, 'Refine': False, 'Refine number of elements through wall': 1,
-                'Refine number of elements up': 1, 'Refine number of elements radial': 1}
+        return {'Number of elements around': 6, 'Number of elements up': 3, 'Number of elements through wall': 2,
+                'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3, 'Body thickness ratio': 0.7,
+                'Use cross derivatives': False, 'Refine': False, 'Refine number of elements around': 1,
+                'Refine number of elements through wall': 1, 'Refine number of elements up': 1}
 
     @staticmethod
     def getOrderedOptionNames():
-        return ['Number of elements around', 'Number of elements radial', 'Number of elements up',
-                'Number of elements through wall', 'Major diameter', 'Minor diameter', 'Height',
+        return ['Number of elements around', 'Number of elements up',
+                'Number of elements through wall', 'Major diameter', 'Minor diameter', 'Height', 'Body thickness ratio',
                 'Use cross derivatives', 'Refine', 'Refine number of elements around', 'Refine number of elements up',
-                'Refine number of elements radial']
+                'Refine number of elements through wall']
 
     @staticmethod
     def checkOptions(options):
-        for key in ['Number of elements radial', 'Refine number of elements around', 'Refine number of elements up',
+        for key in ['Refine number of elements around', 'Refine number of elements up',
                     'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
@@ -55,13 +56,19 @@ class MeshType_3d_vertebra1(Scaffold_base):
         if options['Number of elements around'] < 4:
             options['Number of elements around'] = 4
         if options['Number of elements through wall'] < 2:
-            options['Number of elements around'] = 2
+            options['Number of elements through wall'] = 2
+        elif options['Number of elements through wall'] > 4:
+            options['Number of elements through wall'] = 4
         if options['Major diameter'] < 0.0:
             options['Diameter'] = 0.0
         if options['Minor diameter'] < 0.0:
             options['Diameter'] = 0.0
         if options['Height'] < 0.0:
-            options['Diameter'] = 0.0
+            options['Height'] = 0.0
+        if options['Body thickness ratio'] <= 0.5:
+            options['Body thickness ratio'] = 0.55
+        elif options['Body thickness ratio'] > 1.0:
+            options['Body thickness ratio'] = 0.9
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -73,7 +80,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
         """
         elementsCountAround = options['Number of elements around']
         elementsCountUp = options['Number of elements up']
-        elementsCountRadial = options['Number of elements radial']
         elementsCountThroughWall = options['Number of elements through wall']
         useCrossDerivatives = options['Use cross derivatives']
         axisA = options['Major diameter']
@@ -88,9 +94,11 @@ class MeshType_3d_vertebra1(Scaffold_base):
         cd1 = [[0.0, 0.0, height / elementsCountUp], [0.0, 0.0, height / elementsCountUp]]
         cd2 = [[0.0, axisB / elementsCountThroughWall, 0.0], [0.0, axisB / elementsCountThroughWall, 0.0]]
         cd3 = [[axisA / elementsCountThroughWall, 0.0, 0.0], [axisA / elementsCountThroughWall, 0.0, 0.0]]
-        t2 = [0.5, 0.5]
+
+        t = options['Body thickness ratio']
+        t2 = [1.0 - options['Body thickness ratio']] * 2
         t2d = [0.0, 0.0]
-        t3 = [0.5, 0.5]
+        t3 = [1.0 - options['Body thickness ratio']] * 2
         t3d = [0.0, 0.0]
 
         sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountUp)
@@ -117,14 +125,14 @@ class MeshType_3d_vertebra1(Scaffold_base):
         sBinormal.append(prevUnitBinormal)
 
         # Step through central line and rotate central line axes to align tangent
-        # to tangent from previous frame
+        # to tangent from previous level
         for n in range(1, elementsCountUp + 1):
             unitTangent = normalise(sd1[n])
             cp = crossproduct3(prevUnitTangent, unitTangent)
             if magnitude(cp) > 0.0:
                 axisRot = normalise(cp)
                 thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
-                rotFrame = rotationMatrixAboutAxis(axisRot, thetaRot)
+                rotFrame = rotationMatrix(axisRot, thetaRot)
                 rotNormal = [rotFrame[j][0] * prevUnitNormal[0] + rotFrame[j][1] * prevUnitNormal[1] + rotFrame[j][2] *
                              prevUnitNormal[2] for j in range(3)]
                 unitNormal = normalise(rotNormal)
@@ -481,22 +489,3 @@ class MeshType_3d_vertebra1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp,
                                                        refineElementsCountThroughWall)
-
-
-def rotationMatrixAboutAxis(rotAxis, theta):
-    """
-    Generate the rotation matrix for rotation about an axis.
-    :param rotAxis: axis of rotation
-    :param theta: angle of rotation
-    :return: rotation matrix
-    """
-    cosTheta = math.cos(theta)
-    sinTheta = math.sin(theta)
-    C = 1 - cosTheta
-    rotMatrix = ([[rotAxis[0] * rotAxis[0] * C + cosTheta, rotAxis[0] * rotAxis[1] * C - rotAxis[2] * sinTheta,
-                   rotAxis[0] * rotAxis[2] * C + rotAxis[1] * sinTheta],
-                  [rotAxis[1] * rotAxis[0] * C + rotAxis[2] * sinTheta, rotAxis[1] * rotAxis[1] * C + cosTheta,
-                   rotAxis[1] * rotAxis[2] * C - rotAxis[0] * sinTheta],
-                  [rotAxis[2] * rotAxis[0] * C - rotAxis[1] * sinTheta,
-                   rotAxis[2] * rotAxis[1] * C + rotAxis[0] * sinTheta, rotAxis[2] * rotAxis[2] * C + cosTheta]])
-    return rotMatrix
