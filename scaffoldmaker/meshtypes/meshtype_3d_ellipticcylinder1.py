@@ -32,8 +32,8 @@ class MeshType_3d_ellipticcylinder1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 6, 'Number of elements up': 3, 'Number of elements through wall': 2,
-                'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3, 'Thickness ratio': 0.7,
+        return {'Number of elements around': 4, 'Number of elements up': 3, 'Number of elements through wall': 2,
+                'Major diameter': 1.2, 'Minor diameter': 0.7, 'Height': 2.0, 'Thickness ratio': 0.5,
                 'Use cross derivatives': False, 'Refine': False, 'Refine number of elements around': 1,
                 'Refine number of elements through wall': 1, 'Refine number of elements up': 1}
 
@@ -83,6 +83,8 @@ class MeshType_3d_ellipticcylinder1(Scaffold_base):
         axisB = options['Minor diameter']
         height = options['Height']
         useCubicHermiteThroughWall = True
+
+        a = identity(4)
 
         zero = [0.0, 0.0, 0.0]
 
