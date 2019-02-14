@@ -14,32 +14,33 @@ from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.vector import *
+from scaffoldmaker.utils.transformation import *
 
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
 
-class MeshType_3d_vertebra1(Scaffold_base):
+class MeshType_3d_ellipticcylinder1(Scaffold_base):
     """
     Generates a 3-D vertebral mesh
     """
 
     @staticmethod
     def getName():
-        return '3D Vertebra 1'
+        return '3D Elliptic Cylinder 1'
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {'Number of elements around': 6, 'Number of elements up': 3, 'Number of elements through wall': 2,
-                'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3, 'Body thickness ratio': 0.7,
+                'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3, 'Thickness ratio': 0.7,
                 'Use cross derivatives': False, 'Refine': False, 'Refine number of elements around': 1,
                 'Refine number of elements through wall': 1, 'Refine number of elements up': 1}
 
     @staticmethod
     def getOrderedOptionNames():
         return ['Number of elements around', 'Number of elements up',
-                'Number of elements through wall', 'Major diameter', 'Minor diameter', 'Height', 'Body thickness ratio',
+                'Number of elements through wall', 'Major diameter', 'Minor diameter', 'Height', 'Thickness ratio',
                 'Use cross derivatives', 'Refine', 'Refine number of elements around', 'Refine number of elements up',
                 'Refine number of elements through wall']
 
@@ -51,22 +52,20 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 options[key] = 1
         if options['Number of elements up'] < 2:
             options['Number of elements up'] = 2
-        if options['Number of elements around'] < 4:
-            options['Number of elements around'] = 4
+        if options['Number of elements around'] < 3:
+            options['Number of elements around'] = 3
         if options['Number of elements through wall'] < 2:
             options['Number of elements through wall'] = 2
-        elif options['Number of elements through wall'] > 4:
-            options['Number of elements through wall'] = 4
         if options['Major diameter'] < 0.0:
             options['Diameter'] = 0.0
         if options['Minor diameter'] < 0.0:
             options['Diameter'] = 0.0
         if options['Height'] < 0.0:
             options['Height'] = 0.0
-        if options['Body thickness ratio'] <= 0.0:
-            options['Body thickness ratio'] = 0.55
-        elif options['Body thickness ratio'] > 1.0:
-            options['Body thickness ratio'] = 0.9
+        if options['Thickness ratio'] <= 0.0:
+            options['Thickness ratio'] = 0.01
+        elif options['Thickness ratio'] > 1.0:
+            options['Thickness ratio'] = 0.99
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -93,10 +92,10 @@ class MeshType_3d_vertebra1(Scaffold_base):
         cd2 = [[0.0, axisB / elementsCountThroughWall, 0.0], [0.0, axisB / elementsCountThroughWall, 0.0]]
         cd3 = [[axisA / elementsCountThroughWall, 0.0, 0.0], [axisA / elementsCountThroughWall, 0.0, 0.0]]
 
-        t = options['Body thickness ratio']
-        t2 = [1.0 - options['Body thickness ratio']] * 2
+        t = options['Thickness ratio']
+        t2 = [1.0 - options['Thickness ratio']] * 2
         t2d = [0.0, 0.0]
-        t3 = [1.0 - options['Body thickness ratio']] * 2
+        t3 = [1.0 - options['Thickness ratio']] * 2
         t3d = [0.0, 0.0]
 
         sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountUp)
@@ -130,7 +129,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
             if magnitude(cp) > 0.0:
                 axisRot = normalise(cp)
                 thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
-                rotFrame = rotationMatrixAboutAxis(axisRot, thetaRot)
+                # rotFrame = rotationMatrixAboutAxis(axisRot, thetaRot)
+                rotFrame = rotationMatrix(axisRot, thetaRot)
                 rotNormal = [rotFrame[j][0] * prevUnitNormal[0] + rotFrame[j][1] * prevUnitNormal[1] + rotFrame[j][2] *
                              prevUnitNormal[2] for j in range(3)]
                 unitNormal = normalise(rotNormal)
@@ -199,8 +199,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, height / elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
                                           [axisA / elementsCountThroughWall, 0.0, 0.0])
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
-            #                               [0.0, 0.0, 0.0])
             if useCrossDerivatives:
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
@@ -255,7 +253,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             aThroughWallElement * -sinRadiansAround * sBinormal[n2][
                         j] + bThroughWallElement * cosRadiansAround * sNormal[n2][j]) for j in range(3)]
 
-                    # Calculate curvature to find d1 for node
                     unitNormal = normalise([aThroughWallElement * cosRadiansAround * sBinormal[n2][
                         j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)])
                     if n2 == 0:
@@ -272,7 +269,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     factor = 1.0 - curvature * wallDistance
                     d1Wall = [factor * c for c in sd1[n2]]
 
-                    # Calculate curvature to find d1 for downstream node
                     if n2 < elementsCountUp:
                         arcLengthAroundNext = n1 * arcLengthPerElementAroundNext
                         radiansAroundNext = -1 * updateEllipseAngleByArcLength(aThroughWallElementNext,
@@ -343,21 +339,13 @@ class MeshType_3d_vertebra1(Scaffold_base):
         elementtemplateRegular = mesh.createElementtemplate()
         elementtemplateRegular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-        # Tetrahedron element template
+        # Wedge element template
         elementtemplateWedge = mesh.createElementtemplate()
         elementtemplateWedge.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         elementIdentifier = 1
 
-        no2 = elementsCountAround
-        no3 = elementsCountAround * (elementsCountUp - 1)
-        rni = (1 + elementsCountUp) - no3 - no2 + 1  # regular node identifier
-
         for e3 in range(elementsCountThroughWall):
-            # Create elements on bottom pole
-            radiansIncline = math.pi * 0.5 * e3 / elementsCountThroughWall
-            radiansInclineNext = math.pi * 0.5 * (e3 + 1) / elementsCountThroughWall
-
             if e3 == 0:  # Create wedge elements on the bottom pole
                 bni1 = elementsCountUp + 2
                 for e2 in range(elementsCountUp):
@@ -367,9 +355,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
                                                                                 bThroughWallElement)
                     arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
                     for e1 in range(elementsCountAround):
-                        # arcLengthAround = e1 * arcLengthPerElementAround
-                        # radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement,
-                        #                                                    0.0, arcLengthAround)
                         va = e1
                         vb = (e1 + 1) % elementsCountAround
                         eft2 = eftfactory.createEftWedgeRadial(va * 100, vb * 100)
@@ -487,22 +472,3 @@ class MeshType_3d_vertebra1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp,
                                                        refineElementsCountThroughWall)
-
-
-def rotationMatrixAboutAxis(rotAxis, theta):
-    """
-    Generate the rotation matrix for rotation about an axis.
-    :param rotAxis: axis of rotation
-    :param theta: angle of rotation
-    :return: rotation matrix
-    """
-    cosTheta = math.cos(theta)
-    sinTheta = math.sin(theta)
-    C = 1 - cosTheta
-    rotMatrix = ([[rotAxis[0] * rotAxis[0] * C + cosTheta, rotAxis[0] * rotAxis[1] * C - rotAxis[2] * sinTheta,
-                   rotAxis[0] * rotAxis[2] * C + rotAxis[1] * sinTheta],
-                  [rotAxis[1] * rotAxis[0] * C + rotAxis[2] * sinTheta, rotAxis[1] * rotAxis[1] * C + cosTheta,
-                   rotAxis[1] * rotAxis[2] * C - rotAxis[0] * sinTheta],
-                  [rotAxis[2] * rotAxis[0] * C - rotAxis[1] * sinTheta,
-                   rotAxis[2] * rotAxis[1] * C + rotAxis[0] * sinTheta, rotAxis[2] * rotAxis[2] * C + cosTheta]])
-    return rotMatrix
