@@ -40,7 +40,7 @@ def setMagnitude(v, mag):
     scale = mag/math.sqrt(sum(c*c for c in v))
     return [ c*scale for c in v ]
 
-def diagonal(m):
+def getDiagonal(m):
     '''
     :param m: matrix
     :return: Diagonal elements of m in a list.
@@ -51,9 +51,9 @@ def diagonal(m):
         for x, y in zip(range(sx, height), range(sy, width)):
             yield m[x][y]
     for sx in range(height):
-        yield list(diag(sx, 0))
+        return list(diag(sx, 0))
     for sy in range(1, width):
-        yield list(diag(0, sy))
+        return list(diag(0, sy))
 
 def identity(n):
     '''
