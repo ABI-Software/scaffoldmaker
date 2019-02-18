@@ -9,13 +9,14 @@ Only one element throught the wall is currently implemented.
 
 from __future__ import division
 import math
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_sphereshellseptum1(object):
+class MeshType_3d_sphereshellseptum1(Scaffold_base):
     '''
     classdocs
     '''
@@ -24,7 +25,7 @@ class MeshType_3d_sphereshellseptum1(object):
         return '3D Sphere Shell Septum 1'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements up' : 4,
             'Number of elements across' : 2,

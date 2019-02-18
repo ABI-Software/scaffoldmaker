@@ -8,6 +8,7 @@ from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_heartventricles2
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -20,7 +21,7 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_heartventriclesbase2(object):
+class MeshType_3d_heartventriclesbase2(Scaffold_base):
     '''
     Generates a 3-D heart ventricles with base plane model, ready to attach the
     atria, mitral and tricuspid valves, with LV + RV outlets ready to attach
@@ -32,8 +33,8 @@ class MeshType_3d_heartventriclesbase2(object):
         return '3D Heart Ventricles with Base 2'
 
     @staticmethod
-    def getDefaultOptions():
-        options = MeshType_3d_heartventricles2.getDefaultOptions()
+    def getDefaultOptions(parameterSetName='Default'):
+        options = MeshType_3d_heartventricles2.getDefaultOptions(parameterSetName)
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around ventricular septum'] = 7

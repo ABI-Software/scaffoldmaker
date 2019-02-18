@@ -9,6 +9,7 @@ import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import getLeftAtriumBasePoints
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -21,7 +22,7 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK as ZINC_OK
 
-class MeshType_3d_heartventriclesbase1(object):
+class MeshType_3d_heartventriclesbase1(Scaffold_base):
     '''
     Generates a 3-D heart ventricles with base plane model, ready to attach the
     atria, mitral and tricuspid valves, with LV + RV outlets ready to attach
@@ -33,16 +34,22 @@ class MeshType_3d_heartventriclesbase1(object):
         return '3D Heart Ventricles with Base 1'
 
     @staticmethod
-    def getDefaultOptions():
-        options = MeshType_3d_heartventricles1.getDefaultOptions()
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1',
+            'Pig 1',
+            'Unit Human 1',
+            'Unit Pig 1']
+
+    @staticmethod
+    def getDefaultOptions(parameterSetName='Default'):
+        options = MeshType_3d_heartventricles1.getDefaultOptions(parameterSetName)
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
         options['Number of elements around atrial free wall'] = 6
         options['Number of elements around atrial septum'] = 3
-        # works best with particular numbers of elements up
-        options['Number of elements up LV apex'] = 1
-        options['Number of elements up RV'] = 4
         # reduce LV outer height from default as adding to it
         options['LV outer height'] = 0.9
         # additional options
@@ -67,6 +74,10 @@ class MeshType_3d_heartventriclesbase1(object):
         options['Ventricles rotation degrees'] = 16.0
         options['Ventricles translation x'] = -0.19
         options['Ventricles translation y'] = -0.2
+        if 'Human' in parameterSetName:
+            pass
+        elif 'Pig' in parameterSetName:
+            options['RV outlet left incline degrees'] = 10.0
         return options
 
     @staticmethod

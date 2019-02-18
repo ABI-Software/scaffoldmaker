@@ -7,10 +7,11 @@ import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria2 import MeshType_3d_heartatria2
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase2 import MeshType_3d_heartventriclesbase2
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
-class MeshType_3d_heart2(object):
+class MeshType_3d_heart2(Scaffold_base):
     '''
     Generates a 3-D heart model including ventricles, base and atria.
     '''
@@ -20,9 +21,9 @@ class MeshType_3d_heart2(object):
         return '3D Heart 2'
 
     @staticmethod
-    def getDefaultOptions():
-        options = MeshType_3d_heartventriclesbase2.getDefaultOptions()
-        optionsAtria = MeshType_3d_heartatria2.getDefaultOptions()
+    def getDefaultOptions(parameterSetName='Default'):
+        options = MeshType_3d_heartventriclesbase2.getDefaultOptions(parameterSetName)
+        optionsAtria = MeshType_3d_heartatria2.getDefaultOptions(parameterSetName)
         options.update(optionsAtria)
         return options
 

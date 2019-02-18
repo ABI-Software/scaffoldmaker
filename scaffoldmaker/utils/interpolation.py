@@ -373,17 +373,25 @@ def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
         if partDistance <= arcLength:
             xiLast = 100.0
             xi = partDistance/arcLength
+            dxiLimit = 0.1
             for iter in range(100):
                 xiLast = xi
                 dist = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi)
-                #print('iter',iter,'xi',xi,'--> dist',dist)
                 distp = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi + xiDelta)
                 distm = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi - xiDelta)
-                dxi_ddist = (2.0*xiDelta)/(distp - distm)
-                xi -= dxi_ddist*(dist - partDistance)
+                dxi_ddist = 2.0*xiDelta/(distp - distm)
+                dxi = dxi_ddist*(partDistance - dist)
+                #print('iter',iter,'xi',xi,'--> dist',dist,'dxi',dxi,'dxiLimit',dxiLimit)
+                if dxi > dxiLimit:
+                    dxi = dxiLimit
+                elif dxi < -dxiLimit:
+                    dxi = -dxiLimit
+                xi += dxi
                 if math.fabs(xi - xiLast) <= xiTol:
                     #print('converged xi',xi)
                     return interpolateCubicHermite(v1, d1, v2, d2, xi), interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi), e, xi
+                if iter in [ 4, 10, 25, 62 ]:
+                    dxiLimit *= 0.5
             print('getCubicHermiteCurvesPointAtArcDistance Max iters reached:',iter,': e', e, ', xi',xi,', closeness', math.fabs(dist - partDistance))
             return v2, d2, e, xi
         length += arcLength

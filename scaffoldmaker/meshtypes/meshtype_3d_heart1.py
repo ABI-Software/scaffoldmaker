@@ -5,6 +5,7 @@ Generates a 3-D heart model including ventricles, base and atria.
 from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
 from scaffoldmaker.utils.eft_utils import *
@@ -13,7 +14,7 @@ from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element
 
-class MeshType_3d_heart1(object):
+class MeshType_3d_heart1(Scaffold_base):
     '''
     Generates a 3-D heart model including ventricles, base and atria.
     '''
@@ -23,10 +24,19 @@ class MeshType_3d_heart1(object):
         return '3D Heart 1'
 
     @staticmethod
-    def getDefaultOptions():
-        options = MeshType_3d_heartatria1.getDefaultOptions()
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1',
+            'Pig 1',
+            'Unit Human 1',
+            'Unit Pig 1']
+
+    @staticmethod
+    def getDefaultOptions(parameterSetName='Default'):
+        options = MeshType_3d_heartatria1.getDefaultOptions(parameterSetName)
         # ventricles overrides some atria options, so update from it:
-        optionsVentricles = MeshType_3d_heartventriclesbase1.getDefaultOptions()
+        optionsVentricles = MeshType_3d_heartventriclesbase1.getDefaultOptions(parameterSetName)
         options.update(optionsVentricles)
         return options
 

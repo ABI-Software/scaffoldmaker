@@ -6,6 +6,7 @@ Generates a 3-D heart atria model, suitable for attachment to the
 from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
@@ -16,7 +17,7 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_heartatria2(object):
+class MeshType_3d_heartatria2(Scaffold_base):
     '''
     3-D heart atria model, suitable for attachment to the 3-D Heart Ventricles with Base 2.
     '''
@@ -26,7 +27,7 @@ class MeshType_3d_heartatria2(object):
         return '3D Heart Atria 2'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around atria' : 8,
             'Number of elements around atrial septum' : 2,
