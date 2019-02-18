@@ -27,7 +27,7 @@ class MeshType_3d_haustra1(object):
             'Inner radius': 0.5,
             'Corner radius fraction': 0.5,
             'Wall thickness': 0.01,
-            'Number of haustra': 1,
+            'Number of haustra': 2,
             'Haustra radius fraction': 0.5,
             'Haustra length': 1.0,
             'Interhaustra fold factor': 0.5,
@@ -266,9 +266,6 @@ class MeshType_3d_haustra1(object):
             sx, sd1, se, sxi, _  = sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustra)
             xInnerRaw.append(sx)
             dx_ds2InnerRaw.append(sd1)
-            # if n1 == 28: # troubleshoot issue when samples suddenly go back to start
-                # print('nx = ', nx)
-                # print(sx)
 
         # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
         dx_ds1InnerList = dx_ds1InnerList + d1Inner
