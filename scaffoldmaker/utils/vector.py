@@ -55,12 +55,23 @@ def getDiagonal(m):
     for sy in range(1, width):
         return list(diag(0, sy))
 
+def makeDiagonal(d):
+    """
+    :param d: Vector to go on to the diagonal
+    :return: A diagonal matrix with d on diagonal
+    """
+    Y = identity(len(d))
+    for i in range(0, len(d)):
+        Y[i][i] = d[i]
+    return Y
+
 def identity(n):
     '''
     :param n: Number of rows (and columns) in n x n output.
     :return: The identity matrix
     '''
-    return [[0] * i + [1] + [0] * (n - i - 1) for i in range(n)]
+
+    return [[0.] * i + [1.] + [0.] * (n - i - 1) for i in range(n)]
 
 def outerProduct(a, b):
     '''
@@ -69,4 +80,7 @@ def outerProduct(a, b):
     :param b: Second input vector
     :return: The outer product of a and b.
     '''
-    return b[:, None] * a
+    from numpy.core.numeric import outer
+
+    # return b[:, None] * a  ## NOT WORKING ON A LIST
+    return outer(a, b)
