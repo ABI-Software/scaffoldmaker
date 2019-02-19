@@ -62,7 +62,7 @@ class MeshType_3d_centrallinetube1(Scaffold_base):
                 options[key] = 1
         if (options['Number of elements around'] < 2) :
             options['Number of elements around'] = 2
-        if (options['Tube type'] < 1 or options['Tube type'] > 4 ) :
+        if (options['Tube type'] < 1 or options['Tube type'] > 5 ) :
             options['Tube type'] = 1
 
     @staticmethod
@@ -120,17 +120,30 @@ class MeshType_3d_centrallinetube1(Scaffold_base):
             t3d = [ 0.0, 0.0, 0.0, 0.0]
         
         elif tubeType == 4:
-            # Colon
+            # Colon in x-y plane
             cx = [ [ 0.0, 0.0, 0.0], [0.0, 10.0, 0.0], [5.0, 9.0, 0.0], [ 10.0, 10.0, 0.0 ], [ 10.0, -2.0, 0.0], [ 7.0, -4.0, 0.0] ]
             cd1 = [ [ 0.0, 10.0, 0.0 ], [ 5.0, 5.0, 0.0 ], [5.0, 0.0, 0.0], [ 5.0, -5.0, 0.0 ], [ -3.0, -5.0, 0.0 ], [ -3.0, 0.0, 0.0 ]]
             cd2 = [ [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ]]
             cd3 = [ [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5]]
 
             # thickness in cd2 and cd3 directions and derivatives (rate of change)
-            t2 = [ 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 ]
+            t2 = [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]
             t2d = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
-            t3 = [ 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+            t3 = [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
             t3d = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        elif tubeType == 5:
+            # Colon in 3D
+            cx = [ [ 0.0, 0.0, 0.0], [0.0, 10.0, 3.0], [5.0, 9.0, 0.0], [ 10.0, 10.0, 2.0 ], [15.0, 15.0, 7.0], [ 20.0, -2.0, 0.0], [ 10.0, -4.0, -0.0] ]
+            cd1 = [ [ 0.0, 10.0, 3.0 ], [ 5.0, 5.0, 0.0 ], [5.0, 0.0, 0.0], [ 10.0, -5.0, 0.0 ], [12.0, 12.0, 0.0], [ 5.0, -12.0, -5.0 ], [ -8.0, 0.0, 0.0 ]]
+            cd2 = [ [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ]]
+            cd3 = [ [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5]]
+
+            # thickness in cd2 and cd3 directions and derivatives (rate of change)
+            t2 = [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]
+            t2d = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+            t3 = [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+            t3d = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAlong, elementsCountAround, elementsCountThroughWall, 
             cx, cd1, cd2, cd3, t2, t2d, t3, t3d, useCrossDerivatives, useCubicHermiteThroughWall)

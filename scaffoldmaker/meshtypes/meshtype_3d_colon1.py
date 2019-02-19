@@ -99,7 +99,7 @@ class MeshType_3d_colon1(object):
             'Interhaustra fold factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
-        if (options['Tube type'] < 1 or options['Tube type'] > 2 ) :
+        if (options['Tube type'] < 1 or options['Tube type'] > 3 ) :
             options['Tube type'] = 1
 
     @staticmethod
@@ -128,9 +128,13 @@ class MeshType_3d_colon1(object):
         if tubeType == 1: # Straight tube
             cx = [[-4.0, 1.0, 3.0], [ 1.0, 2.0, 0.0 ] ]
             cd1 = [[ 5.0, 1.0, -3.0 ], [ 5.0, 1.0, -3.0 ]]
-        elif tubeType == 2: # Human colon
+        elif tubeType == 2: # Human colon in x-y plane
             cx = [ [ 0.0, 0.0, 0.0], [0.0, 10.0, 0.0], [5.0, 9.0, 0.0], [ 10.0, 10.0, 0.0 ], [ 10.0, -2.0, 0.0], [ 7.0, -4.0, 0.0] ]
             cd1 = [ [ 0.0, 10.0, 0.0 ], [ 5.0, 5.0, 0.0 ], [5.0, 0.0, 0.0], [ 5.0, -5.0, 0.0 ], [ -3.0, -5.0, 0.0 ], [ -3.0, 0.0, 0.0 ]]
+        elif tubeType == 3: # Human colon in 3D
+            cx = [ [ 0.0, 0.0, 0.0], [0.0, 10.0, 3.0], [5.0, 9.0, 0.0], [ 10.0, 10.0, 2.0 ], [15.0, 15.0, 7.0], [ 20.0, -2.0, 0.0], [ 10.0, -4.0, -0.0] ]
+            cd1 = [ [ 0.0, 10.0, 3.0 ], [ 5.0, 5.0, 0.0 ], [5.0, 0.0, 0.0], [ 10.0, -5.0, 0.0 ], [12.0, 12.0, 0.0], [ 5.0, -12.0, -5.0 ], [ -8.0, 0.0, 0.0 ]]
+            
 
         length = 0.0
         # find arclength of colon
