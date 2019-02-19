@@ -141,6 +141,7 @@ def generatetubemesh(region,
         for nAlongUnit in range(elementsCountAlongUnit+1):
             n2 = nUnit*elementsCountAlongUnit + nAlongUnit
             if nUnit == 0 or (nUnit > 0 and nAlongUnit > 0): # Take first face from first element along, take 2nd to last face for subsequent elements along
+                # Rotate to align unit axis with tangent of central line
                 unitMid = [0.0, 0.0, unitLength/elementsCountAlongUnit* nAlongUnit]
                 unitTangent = normalise(sd1[n2])
                 cp = crossproduct3(unitAxis, unitTangent)
@@ -149,6 +150,7 @@ def generatetubemesh(region,
                     thetaRot = math.acos(dotproduct(unitAxis, unitTangent))
                     rotFrame = rotationMatrixAboutAxis(axisRot, thetaRot)
                     midRot = [rotFrame[j][0]*unitMid[0] + rotFrame[j][1]*unitMid[1] + rotFrame[j][2]*unitMid[2] for j in range(3)]
+                    translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
                 else:
                     midRot = unitMid
 
@@ -158,20 +160,31 @@ def generatetubemesh(region,
                     d1 = d1Outer[n]
                     d2 = d2Outer[n]
                     if magnitude(cp)> 0.0:
-                        xRot = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
-                        d1Rot = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
-                        d2Rot = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
+                        xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
+                        d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
+                        d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
+                        # Rotate to align first vector on face with binormal axis
+                        if n1 == 0:
+                            firstVector = normalise([xRot1[j] - midRot[j] for j in range(3)])
+                            thetaRot2 = math.acos(dotproduct(normalise(sBinormal[n2]), firstVector))
+                            cp2 = normalise(crossproduct3(normalise(sBinormal[n2]), firstVector))
+                            signThetaRot2 = dotproduct(unitTangent, cp2)
+                            axisRot2 = unitTangent
+                            rotFrame2 = rotationMatrixAboutAxis(axisRot2, -signThetaRot2*thetaRot2)
+                        xRot2 = [rotFrame2[j][0]*xRot1[0] + rotFrame2[j][1]*xRot1[1] + rotFrame2[j][2]*xRot1[2] for j in range(3)]
+                        d1Rot2 = [rotFrame2[j][0]*d1Rot1[0] + rotFrame2[j][1]*d1Rot1[1] + rotFrame2[j][2]*d1Rot1[2] for j in range(3)]
+                        d2Rot2 = [rotFrame2[j][0]*d2Rot1[0] + rotFrame2[j][1]*d2Rot1[1] + rotFrame2[j][2]*d2Rot1[2] for j in range(3)]
                     else:
-                        xRot = x
-                        d1Rot = d1
-                        d2Rot = d2
+                        xRot2 = x
+                        d1Rot2 = d1
+                        d2Rot2 = d2
 
-                    translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
-                    xTranslate = [xRot[j] + translateMatrix[j] for j in range(3)]
+                    xTranslate = [xRot2[j] + translateMatrix[j] for j in range(3)]
+
                     xOuterList.append(xTranslate)
-                    d1OuterList.append(d1Rot)
-                    d2OuterList.append(d2Rot)
-                    d3Unit = normalise(crossproduct3(normalise(d2Rot), normalise(d1Rot)))
+                    d1OuterList.append(d1Rot2)
+                    d2OuterList.append(d2Rot2)
+                    d3Unit = normalise(crossproduct3(normalise(d2Rot2), normalise(d1Rot2)))
                     d3OuterUnitList.append(d3Unit)
 
     # Pre-calculate node locations and derivatives on outer boundary
@@ -198,17 +211,18 @@ def generatetubemesh(region,
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # print('NodeIdentifier = ', nodeIdentifier, xList[n])
         nodeIdentifier = nodeIdentifier + 1
-
-    # # For debugging - Nodes along central line
-    # for pt in range(len(sx)):
-        # node = nodes.createNode(nodeIdentifier, nodetemplate)
-        # cache.setNode(node)
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sNormal[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sBinormal[pt])
-        # nodeIdentifier = nodeIdentifier + 1
+        
+    # For debugging - Nodes along central line
+    for pt in range(len(sx)):
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[pt])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[pt])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sNormal[pt])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sBinormal[pt])
+        nodeIdentifier = nodeIdentifier + 1
 
     # create elements
     elementIdentifier = nextElementIdentifier
