@@ -33,7 +33,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 6, 'Number of elements up': 3, 'Number of elements through wall': 2,
+        return {'Number of elements around': 5, 'Number of elements up': 3, 'Number of elements through wall': 2,
                 'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3, 'Body thickness ratio': 0.7,
                 'Use cross derivatives': False, 'Refine': False, 'Refine number of elements around': 1,
                 'Refine number of elements through wall': 1, 'Refine number of elements up': 1}
@@ -90,11 +90,12 @@ class MeshType_3d_vertebra1(Scaffold_base):
         zero = [0.0, 0.0, 0.0]
 
         """ Get nodes along the centre line """
+        # Straight tube
         cx = [zero, [0.0, 0.0, height]]
-        cd1 = [[0.0, 0.0, height / elementsCountUp], [0.0, 0.0, height / elementsCountUp]]
-        cd2 = [[0.0, axisB / elementsCountThroughWall, 0.0], [0.0, axisB / elementsCountThroughWall, 0.0]]
-        cd3 = [[axisA / elementsCountThroughWall, 0.0, 0.0], [axisA / elementsCountThroughWall, 0.0, 0.0]]
-
+        cd1 = [[0.0, 0.0, 0.1], [0.0, 0.0, 0.1]]
+        cd2 = [[0.0, 0.3, 0.0], [0.0, 0.3, 0.0]]
+        cd3 = [[0.4, 0.0, 0.0], [0.4, 0.0, 0.0]]
+        # thickness in cd2 and cd3 directions and derivatives (rate of change)
         t = options['Body thickness ratio']
         t2 = [1.0 - options['Body thickness ratio']] * 2
         t2d = [0.0, 0.0]
@@ -105,13 +106,11 @@ class MeshType_3d_vertebra1(Scaffold_base):
         sd2 = interpolateSampleLinear(cd2, se, sxi)
         sd3 = interpolateSampleLinear(cd3, se, sxi)
         st2 = interpolateSampleLinear(t2, se, sxi)
-        st2d = interpolateSampleLinear(t2d, se, sxi)
         st3 = interpolateSampleLinear(t3, se, sxi)
-        st3d = interpolateSampleLinear(t3d, se, sxi)
 
         # Find unit normals and binormals at each sample points
-        sNormal = []
-        sBinormal = []
+        sNormal = list()
+        sBinormal = list()
 
         # Set up normal and binormal for first frame
         prevUnitTangent = normalise(sd1[0])
@@ -132,9 +131,10 @@ class MeshType_3d_vertebra1(Scaffold_base):
             if magnitude(cp) > 0.0:
                 axisRot = normalise(cp)
                 thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
-                rotFrame = rotationMatrix(axisRot, thetaRot)
-                rotNormal = [rotFrame[j][0] * prevUnitNormal[0] + rotFrame[j][1] * prevUnitNormal[1] + rotFrame[j][2] *
-                             prevUnitNormal[2] for j in range(3)]
+                rotFrame = rotationMatrix(thetaRot, axisRot)
+                rotNormal = [rotFrame[j][0] * prevUnitNormal[0] + rotFrame[j][1] * prevUnitNormal[1] +
+                             rotFrame[j][2] * prevUnitNormal[2]
+                             for j in range(3)]
                 unitNormal = normalise(rotNormal)
                 unitBinormal = crossproduct3(unitTangent, unitNormal)
                 prevUnitTangent = unitTangent
@@ -226,7 +226,13 @@ class MeshType_3d_vertebra1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
         nodeIdentifier = nodeIdentifier + 1
 
-        # Create nodes on the surface
+        # create nodes
+        # nodeIdentifier = nextNodeIdentifier
+        x = [0.0, 0.0, 0.0]
+        dx_ds1 = [0.0, 0.0, 0.0]
+        dx_ds2 = [0.0, 0.0, 0.0]
+        dx_ds3 = [0.0, 0.0, 0.0]
+
         for n3 in range(elementsCountThroughWall):
             for n2 in range(elementsCountUp + 1):
                 aThroughWallElement = sd2[n2][1] + st2[n2] * (n3 / elementsCountThroughWall)
@@ -254,8 +260,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     x = [sx[n2][j] + aThroughWallElement * cosRadiansAround * sBinormal[n2][
                         j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)]
                     dx_ds1 = [(radiansAround - prevRadiansAround) * (
-                            aThroughWallElement * -sinRadiansAround * sBinormal[n2][
-                        j] + bThroughWallElement * cosRadiansAround * sNormal[n2][j]) for j in range(3)]
+                                aThroughWallElement * -sinRadiansAround * sBinormal[n2][
+                            j] + bThroughWallElement * cosRadiansAround * sNormal[n2][j]) for j in range(3)]
 
                     # Calculate curvature to find d1 for node
                     unitNormal = normalise([aThroughWallElement * cosRadiansAround * sBinormal[n2][
@@ -332,6 +338,79 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     nodeIdentifier = nodeIdentifier + 1
                     prevRadiansAround = radiansAround
 
+        # Collecting the posterior curve nodes
+        iList = []
+        jList = []
+        kList = []
+
+        for e3 in range(elementsCountThroughWall):
+            if e3 == 0:
+                for e2 in range(elementsCountUp + 1):
+                        if e2 == 0:
+                            for e1 in range(elementsCountAround):
+                                i = elementsCountUp + 2
+                                j = i + 1
+                                k = (i+elementsCountAround) - 1
+                            iList.append(i)
+                            jList.append(j)
+                            kList.append(k)
+                        else:
+                            for e1 in range(elementsCountAround):
+                                i = (e2 * elementsCountAround) + 2 + elementsCountUp
+                                j = i + 1
+                                k = (i+elementsCountAround) - 1
+                            iList.append(i)
+                            jList.append(j)
+                            kList.append(k)
+            else:
+                nx = e3*((elementsCountUp * elementsCountAround) + elementsCountAround)
+                for e1 in range(elementsCountAround-1):
+                    i = (e1 * elementsCountAround + 2 + elementsCountUp) + nx
+                    iList.append(i)
+                    j = i + 1
+                    jList.append(j)
+                    k = (i+elementsCountAround) - 1
+                    kList.append(k)
+
+        # Sampling arclength on the posterior curves
+        unitZ = [0., 0., 1.]
+        foldFactor = 0.5
+        haustraLength = 1.0
+
+        # node_iter = nodes.createNodeiterator()
+        # node = node_iter.next()
+        for n1 in range(len(iList)):
+            # first node
+            cache.setNode(nodes.findNodeByIdentifier(kList[n1]))
+            result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+
+            v1 = x1
+            d1 = dx1
+
+            # second node
+            cache.setNode(nodes.findNodeByIdentifier(iList[n1]))
+            result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+
+            v2 = x1
+            d2 = dx1
+
+            # third node
+            cache.setNode(nodes.findNodeByIdentifier(jList[n1]))
+            result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+
+            v3 = x1
+            d3 = dx1
+
+
         """ Create elements """
         mesh = fm.findMeshByDimension(3)
 
@@ -361,13 +440,12 @@ class MeshType_3d_vertebra1(Scaffold_base):
             radiansInclineNext = math.pi * 0.5 * (e3 + 1) / elementsCountThroughWall
 
             if e3 == 0:  # Create wedge elements on the bottom pole
-                bni1 = elementsCountUp + 2
                 for e2 in range(elementsCountUp):
-                    aThroughWallElement = sd2[e2][1] + st2[e2] * (e3 / elementsCountThroughWall)
-                    bThroughWallElement = sd3[e2][0] + st3[e2] * (e3 / elementsCountThroughWall)
-                    perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement,
-                                                                                bThroughWallElement)
-                    arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
+                    # aThroughWallElement = sd2[e2][1] + st2[e2] * (e3 / elementsCountThroughWall)
+                    # bThroughWallElement = sd3[e2][0] + st3[e2] * (e3 / elementsCountThroughWall)
+                    # perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement,
+                    #                                                             bThroughWallElement)
+                    # arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
                     for e1 in range(elementsCountAround):
                         # arcLengthAround = e1 * arcLengthPerElementAround
                         # radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement,
