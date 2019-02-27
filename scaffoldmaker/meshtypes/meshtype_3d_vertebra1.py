@@ -33,16 +33,36 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 5, 'Number of elements up': 3, 'Number of elements through wall': 2,
-                'Major diameter': 1.1, 'Minor diameter': 0.9, 'Height': 0.3, 'Body thickness ratio': 0.7,
-                'Use cross derivatives': False, 'Refine': False, 'Refine number of elements around': 1,
-                'Refine number of elements through wall': 1, 'Refine number of elements up': 1}
+        return {'Number of elements around': 8,
+                'Number of elements up': 4,
+                # 'Number of elements through wall': 2,
+                # 'Major diameter': 1.1,
+                # 'Minor diameter': 0.9,
+                'Height': 0.3,
+                'Body thickness ratio': 0.7,
+                'Body posterior surface curvature factor': 1.0,
+                'Body posterior surface depth factor': 1.5,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 1,
+                'Refine number of elements through wall': 1,
+                'Refine number of elements up': 1}
 
     @staticmethod
     def getOrderedOptionNames():
-        return ['Number of elements around', 'Number of elements up',
-                'Number of elements through wall', 'Major diameter', 'Minor diameter', 'Height', 'Body thickness ratio',
-                'Use cross derivatives', 'Refine', 'Refine number of elements around', 'Refine number of elements up',
+        return ['Number of elements around',
+                'Number of elements up',
+                # 'Number of elements through wall',
+                # 'Major diameter',
+                # 'Minor diameter',
+                'Height',
+                'Body thickness ratio',
+                'Body posterior surface curvature factor',
+                'Body posterior surface depth factor',
+                'Refine',
+                'Use cross derivatives',
+                'Refine number of elements around',
+                'Refine number of elements up',
                 'Refine number of elements through wall']
 
     @staticmethod
@@ -55,20 +75,29 @@ class MeshType_3d_vertebra1(Scaffold_base):
             options['Number of elements up'] = 2
         if options['Number of elements around'] < 4:
             options['Number of elements around'] = 4
-        if options['Number of elements through wall'] < 2:
-            options['Number of elements through wall'] = 2
-        elif options['Number of elements through wall'] > 4:
-            options['Number of elements through wall'] = 4
-        if options['Major diameter'] < 0.0:
-            options['Diameter'] = 0.0
-        if options['Minor diameter'] < 0.0:
-            options['Diameter'] = 0.0
+        # if options['Number of elements through wall'] < 2:
+        #     options['Number of elements through wall'] = 2
+        # elif options['Number of elements through wall'] > 4:
+        #     options['Number of elements through wall'] = 4
+        # if options['Major diameter'] < 0.0:
+        #     options['Major diameter'] = 0.0
+        # if options['Minor diameter'] < 0.0:
+        #     options['Minor diameter'] = 0.0
         if options['Height'] < 0.0:
             options['Height'] = 0.0
         if options['Body thickness ratio'] <= 0.5:
             options['Body thickness ratio'] = 0.55
-        elif options['Body thickness ratio'] > 1.0:
+        elif options['Body thickness ratio'] >= 1.0:
             options['Body thickness ratio'] = 0.9
+        if options['Body posterior surface curvature factor'] < 0.5:
+            options['Body posterior surface curvature factor'] = 0.5
+        elif options['Body posterior surface curvature factor'] > 1.5:
+            options['Body posterior surface curvature factor'] = 1.5
+        if options['Body posterior surface depth factor'] < 1.0:
+            options['Body posterior surface depth factor'] = 1.1
+        elif options['Body posterior surface depth factor'] > 1.8:
+            options['Body posterior surface depth factor'] = 1.8
+            options['Body posterior surface curvature factor'] = 0.7
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -80,12 +109,17 @@ class MeshType_3d_vertebra1(Scaffold_base):
         """
         elementsCountAround = options['Number of elements around']
         elementsCountUp = options['Number of elements up']
-        elementsCountThroughWall = options['Number of elements through wall']
+        # elementsCountThroughWall = options['Number of elements through wall']
+        elementsCountThroughWall = 2
         useCrossDerivatives = options['Use cross derivatives']
-        axisA = options['Major diameter']
-        axisB = options['Minor diameter']
+        # axisA = options['Major diameter']
+        # axisB = options['Minor diameter']
+        axisA = 1.1
+        axisB = 0.9
         height = options['Height']
         useCubicHermiteThroughWall = True
+        foldFactor = options['Body posterior surface curvature factor']
+        depthFactor = options['Body posterior surface depth factor']
 
         zero = [0.0, 0.0, 0.0]
 
@@ -94,13 +128,10 @@ class MeshType_3d_vertebra1(Scaffold_base):
         cx = [zero, [0.0, 0.0, height]]
         cd1 = [[0.0, 0.0, 0.1], [0.0, 0.0, 0.1]]
         cd2 = [[0.0, 0.3, 0.0], [0.0, 0.3, 0.0]]
-        cd3 = [[0.4, 0.0, 0.0], [0.4, 0.0, 0.0]]
-        # thickness in cd2 and cd3 directions and derivatives (rate of change)
-        t = options['Body thickness ratio']
+        cd3 = [[0.35, 0.0, 0.0], [0.35, 0.0, 0.0]]
+        # thickness in cd2 and cd3 directions and derivatives
         t2 = [1.0 - options['Body thickness ratio']] * 2
-        t2d = [0.0, 0.0]
         t3 = [1.0 - options['Body thickness ratio']] * 2
-        t3d = [0.0, 0.0]
 
         sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountUp)
         sd2 = interpolateSampleLinear(cd2, se, sxi)
@@ -112,7 +143,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
         sNormal = list()
         sBinormal = list()
 
-        # Set up normal and binormal for first frame
+        # Normal and binormal
         prevUnitTangent = normalise(sd1[0])
         if magnitude(crossproduct3(prevUnitTangent, [0.0, 0.0, 1.0])) > 0.0:
             prevBinormal = crossproduct3(prevUnitTangent, [0.0, 0.0, 1.0])
@@ -122,9 +153,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
         prevUnitNormal = crossproduct3(prevUnitBinormal, prevUnitTangent)
         sNormal.append(prevUnitNormal)
         sBinormal.append(prevUnitBinormal)
-
-        # Step through central line and rotate central line axes to align tangent
-        # to tangent from previous level
         for n in range(1, elementsCountUp + 1):
             unitTangent = normalise(sd1[n])
             cp = crossproduct3(prevUnitTangent, unitTangent)
@@ -201,8 +229,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, height / elementsCountUp])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
                                           [axisA / elementsCountThroughWall, 0.0, 0.0])
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1,
-            #                               [0.0, 0.0, 0.0])
             if useCrossDerivatives:
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
@@ -225,13 +251,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
         nodeIdentifier = nodeIdentifier + 1
-
-        # create nodes
-        # nodeIdentifier = nextNodeIdentifier
-        x = [0.0, 0.0, 0.0]
-        dx_ds1 = [0.0, 0.0, 0.0]
-        dx_ds2 = [0.0, 0.0, 0.0]
-        dx_ds3 = [0.0, 0.0, 0.0]
 
         for n3 in range(elementsCountThroughWall):
             for n2 in range(elementsCountUp + 1):
@@ -338,10 +357,14 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     nodeIdentifier = nodeIdentifier + 1
                     prevRadiansAround = radiansAround
 
+        generalNodeIndentifier = nodeIdentifier
+
         # Collecting the posterior curve nodes
-        iList = []
-        jList = []
-        kList = []
+        iList = list()
+        jList = list()
+        kList = list()
+
+        diff = elementsCountAround - elementsCountUp
 
         for e3 in range(elementsCountThroughWall):
             if e3 == 0:
@@ -364,22 +387,22 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             kList.append(k)
             else:
                 nx = e3*((elementsCountUp * elementsCountAround) + elementsCountAround)
-                for e1 in range(elementsCountAround-1):
-                    i = (e1 * elementsCountAround + 2 + elementsCountUp) + nx
-                    iList.append(i)
-                    j = i + 1
-                    jList.append(j)
-                    k = (i+elementsCountAround) - 1
-                    kList.append(k)
+                for e2 in range(elementsCountUp):
+                    for e1 in range(elementsCountAround - diff + 1):
+                        if e2 == 1:
+                            i = (e1 * e2 * elementsCountAround + 2 + elementsCountUp) + nx
+                            j = i + 1
+                            k = (i+elementsCountAround) - 1
+                            iList.append(i)
+                            jList.append(j)
+                            kList.append(k)
 
         # Sampling arclength on the posterior curves
-        unitZ = [0., 0., 1.]
-        foldFactor = 0.5
-        haustraLength = 1.0
+        samplePoints = 4
 
-        # node_iter = nodes.createNodeiterator()
-        # node = node_iter.next()
         for n1 in range(len(iList)):
+            dx3List = list()
+
             # first node
             cache.setNode(nodes.findNodeByIdentifier(kList[n1]))
             result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
@@ -389,6 +412,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
             v1 = x1
             d1 = dx1
+            dx3List.append(dx3)
 
             # second node
             cache.setNode(nodes.findNodeByIdentifier(iList[n1]))
@@ -399,6 +423,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
             v2 = x1
             d2 = dx1
+            dx3List.append(dx3)
 
             # third node
             cache.setNode(nodes.findNodeByIdentifier(jList[n1]))
@@ -409,6 +434,47 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
             v3 = x1
             d3 = dx1
+            dx3List.append(dx3)
+
+            nx = [v1, v2, v3]
+            nd1 = [d1, d2, d3]
+            sx, sd, se, sxi, _ = sampleCubicHermiteCurves(nx, nd1, samplePoints)
+
+            sxn, sdn = [sx[1], sx[3]], [sd[1], sd[3]]
+
+            # move the i nodes slightly anteriorly
+            v2[0] = v2[0] / depthFactor
+            cache.setNode(nodes.findNodeByIdentifier(iList[n1]))
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, v2)
+
+            # estimate the dx3 for the newly generated nodes in sxn.
+            dx31 = [sum(x) for x in zip(dx3List[0], dx3List[1])]
+            dx311 = [x / 2. for x in dx31]
+            dx32 = [sum(x) for x in zip(dx3List[1], dx3List[2])]
+            dx321 = [x / 2. for x in dx32]
+            dx3All = [dx311, dx321]
+
+            # fold derivative dx1
+            for i in range(len(sdn)):
+                for j in range(len(sdn[i])):
+                    sdn[i][j] = sdn[i][j] * foldFactor
+
+                # sdnSmooth = smoothCubicHermiteDerivativesLoop(sxn[i], sdn[i])
+
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxn[i])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sdn[i])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
+                if useCubicHermiteThroughWall:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx3All[i])
+                if useCrossDerivatives:
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                    if useCubicHermiteThroughWall:
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+                nodeIdentifier = nodeIdentifier + 1
 
 
         """ Create elements """
@@ -446,7 +512,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     # perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement,
                     #                                                             bThroughWallElement)
                     # arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
-                    for e1 in range(elementsCountAround):
+                    for e1 in range(elementsCountAround + 2):
                         # arcLengthAround = e1 * arcLengthPerElementAround
                         # radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement,
                         #                                                    0.0, arcLengthAround)
@@ -460,24 +526,50 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             bni2 = elementsCountUp + 3
                             bni3 = elementsCountUp + elementsCountAround + 2
                             bni4 = elementsCountUp + elementsCountAround + 3
-                            if e1 <= elementsCountAround - 2:
-                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + e1, bni2 + e1, bni3 + e1, bni4 + e1]
+                            if e1 == 0:
+                                bni21 = generalNodeIndentifier + 1
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + e1, bni21, bni3 + e1, bni21 + 2 + e1]
+                            elif e1 == 1:
+                                bni21 = generalNodeIndentifier + 1
+                                nodeIdentifiers = [e2 + 1, 2, bni21, bni1 + e1, bni21 + 1 + e1, bni3 + e1]
+                            elif e1 <= elementsCountAround - 1 and e1 != 0 and e1 != 1:
+                                nodeIdentifiers = [e2 + 1, 2, bni1 + e1 - 1, bni2 + e1 - 1, bni3 + e1 - 1, bni4 + e1 - 1]
+                            elif e1 == elementsCountAround:
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + e1 - 1, generalNodeIndentifier,
+                                                   bni3 + e1 - 1, generalNodeIndentifier + 2]
                             else:
-                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + e1, bni2 + e1 - elementsCountAround,
-                                                   bni3 + e1, bni4 + e1 - elementsCountAround]
+                                nodeIdentifiers = [e2 + 1, e2 + 2, generalNodeIndentifier,
+                                                   bni1, generalNodeIndentifier + 2, bni3]
                         else:
-                            if e1 <= elementsCountAround - 2:
-                                bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp
+                            bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp
+                            bni2 = e2 * 2 + generalNodeIndentifier + 1
+                            bni3 = bni1 + elementsCountAround
+                            bni4 = e2 * 2 + generalNodeIndentifier + 3
+                            if e1 == 0:
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1, bni2, bni3, bni4]
+                            elif e1 == 1:
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni2, bni1 + 1, bni4, bni3 + 1]
+                            elif e1 < elementsCountAround and e1 != 0 and e1 != 1:
+                                bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp + 1
                                 bni2 = bni1 + 1
-                                bni3 = bni2 + (elementsCountAround - 1)
+                                bni3 = bni1 + elementsCountAround
                                 bni4 = bni3 + 1
-                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + e1, bni2 + e1, bni3 + e1, bni4 + e1]
+                                nx = e1 - 2
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + nx, bni2 + nx, bni3 + nx, bni4 + nx]
+                            elif e1 == elementsCountAround:
+                                nx = e1 - 2
+                                bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp + 1
+                                bni2 = generalNodeIndentifier + e2 * 2
+                                bni3 = bni1 + elementsCountAround
+                                bni4 = bni2 + 2
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + nx, bni2, bni3 + nx, bni4]
                             else:
-                                bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp
-                                bni2 = bni1 - (elementsCountAround - 1)
-                                bni3 = bni1 + 1 + (elementsCountAround - 1)
-                                bni4 = bni3 - (elementsCountAround - 1)
-                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1 + e1, bni2 + e1, bni3 + e1, bni4 + e1]
+                                # pass
+                                bni1 = generalNodeIndentifier + e2 * 2
+                                bni2 = elementsCountUp + 2 + elementsCountAround * e2
+                                bni3 = bni1 + 2
+                                bni4 = elementsCountUp + 2 + elementsCountAround * e2 + elementsCountAround
+                                nodeIdentifiers = [e2 + 1, e2 + 2, bni1, bni2, bni3, bni4]
                         result1 = element.setNodesByIdentifier(eft2, nodeIdentifiers)
                         scalefactors = [-1.0, 1.0, 1.0, 1.0, 1.0]
                         result2 = element.setScaleFactors(eft2, scalefactors)
@@ -486,13 +578,33 @@ class MeshType_3d_vertebra1(Scaffold_base):
             # Create regular elements
             elif e3 == 1:
                 for e2 in range(elementsCountUp):
-                    for e1 in range(elementsCountAround):
+                    for e1 in range(elementsCountAround + 2):
 
                         elementtemplateRegular.defineField(coordinates, -1, eft)
                         element = mesh.createElement(elementIdentifier, elementtemplateRegular)
 
-                        if e1 <= elementsCountAround - 2:
-                            bni1 = e1 + (e2 * elementsCountAround) + 2 + elementsCountUp
+                        if e1 == 0:
+                            bni1 = (e2 * elementsCountAround) + 2 + elementsCountUp
+                            bni2 = e2 * 2 + generalNodeIndentifier + 1
+                            bni3 = elementsCountUp + 2 + elementsCountAround * e2 + elementsCountAround
+                            bni4 = bni2 + 2
+                            bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            bni6 = (e2 * 2) + (generalNodeIndentifier + (elementsCountUp * 2 + 3))
+                            bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            bni8 = bni6 + 2
+                            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                        elif e1 == 1:
+                            bni1 = e2 * 2 + generalNodeIndentifier + 1
+                            bni2 = (e2 * elementsCountAround) + 2 + elementsCountUp + 1
+                            bni3 = bni1 + 2
+                            bni4 = elementsCountUp + 2 + elementsCountAround * e2 + elementsCountAround + 1
+                            bni5 = (e2 * 2) + (generalNodeIndentifier + (elementsCountUp * 2 + 3))
+                            bni6 = bni2 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            bni7 = bni5 + 2
+                            bni8 = bni6 + elementsCountAround
+                            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                        elif e1 <= elementsCountAround - 1 and e1 != 0 and e1 != 1:
+                            bni1 = e1 + (e2 * elementsCountAround) + 2 + elementsCountUp - 1
                             bni2 = bni1 + 1
                             bni3 = bni2 + (elementsCountAround - 1)
                             bni4 = bni3 + 1
@@ -501,48 +613,73 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
                             bni8 = bni7 + 1
                             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                        else:
-                            bni1 = e1 + (e2 * elementsCountAround) + 2 + elementsCountUp
-                            bni2 = bni1 - (elementsCountAround - 1)
+                        elif e1 == elementsCountAround:
+                            bni1 = e1 + (e2 * elementsCountAround) + 2 + elementsCountUp - 1
+                            bni2 = generalNodeIndentifier + e2 * 2
                             bni3 = bni1 + elementsCountAround
-                            bni4 = bni3 - (elementsCountAround - 1)
+                            bni4 = bni2 + 2
                             bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
-                            bni6 = bni5 - (elementsCountAround - 1)
-                            bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
-                            bni8 = bni7 - (elementsCountAround - 1)
+                            bni6 = (e2 * 2) + (generalNodeIndentifier + (elementsCountUp * 2 + 2))
+                            bni7 = bni5 + elementsCountAround
+                            bni8 = bni6 + 2
                             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                        else:
+                            bni1 = generalNodeIndentifier + e2 * 2
+                            bni2 = (e2 * elementsCountAround) + 2 + elementsCountUp
+                            bni3 = bni1 + 2
+                            bni4 = elementsCountUp + 2 + elementsCountAround * e2 + elementsCountAround
+                            bni5 = (e2 * 2) + (generalNodeIndentifier + (elementsCountUp * 2 + 2))
+                            bni6 = bni2 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            bni7 = bni5 + 2
+                            bni8 = bni4 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+
                         result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         elementIdentifier = elementIdentifier + 1
             else:
-                for e2 in range(elementsCountUp):
-                    for e1 in range(elementsCountAround):
-
-                        elementtemplateRegular.defineField(coordinates, -1, eft)
-                        element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-
-                        nx = (e3-1)*((elementsCountUp * elementsCountAround) + elementsCountAround)
-                        if e1 <= elementsCountAround - 2:
-                            bni1 = (e1 + (e2 * elementsCountAround) + 2 + elementsCountUp) + nx
-                            bni2 = bni1 + 1
-                            bni3 = bni2 + (elementsCountAround - 1)
-                            bni4 = bni3 + 1
-                            bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
-                            bni6 = bni5 + 1
-                            bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
-                            bni8 = bni7 + 1
-                            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                        else:
-                            bni1 = (e1 + (e2 * elementsCountAround) + 2 + elementsCountUp) + nx
-                            bni2 = bni1 - (elementsCountAround - 1)
-                            bni3 = bni1 + elementsCountAround
-                            bni4 = bni3 - (elementsCountAround - 1)
-                            bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
-                            bni6 = bni5 - (elementsCountAround - 1)
-                            bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
-                            bni8 = bni7 - (elementsCountAround - 1)
-                            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                        result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        elementIdentifier = elementIdentifier + 1
+                pass
+                # for e2 in range(elementsCountUp):
+                #     for e1 in range(elementsCountAround + 2):
+                #
+                #         elementtemplateRegular.defineField(coordinates, -1, eft)
+                #         element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                #
+                #         nx = (e3-1)*((elementsCountUp * elementsCountAround) + elementsCountAround)
+                #         if e1 == 0:
+                #             bni1 = (e1 + (e2 * elementsCountAround) + 2 + elementsCountUp) + nx
+                #             bni2 = (e2 * 2) + (generalNodeIndentifier + (elementsCountUp * 2 + 3))
+                #             bni3 = bni1 + elementsCountAround
+                #             bni4 = bni2 + 2
+                #             bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                #             bni6 = bni2 + elementsCountAround + elementsCountUp
+                #             bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                #             bni8 = bni6 + 2
+                #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                #         elif e1 == 1:
+                            # pass
+                            # bni1 = (e1 + (e2 * elementsCountAround) + 2 + elementsCountUp) + nx
+                            # bni2 = e2 * 2 + (generalNodeIndentifier + elementsCountAround + 4)
+                            # bni3 = bni1 + elementsCountAround
+                            # bni4 = bni2 + 2
+                            # bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            # bni6 = (e2 * 2) + (generalNodeIndentifier + (elementsCountUp * 2 + 3) + elementsCountAround
+                            #                    + elementsCountUp)
+                            # bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            # bni8 = bni6 + 2
+                            # nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                        # else:
+                        #     pass
+                            # bni1 = (e1 + (e2 * elementsCountAround) + 2 + elementsCountUp) + nx
+                            # bni2 = bni1 - (elementsCountAround - 1)
+                            # bni3 = bni1 + elementsCountAround
+                            # bni4 = bni3 - (elementsCountAround - 1)
+                            # bni5 = bni1 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            # bni6 = bni5 - (elementsCountAround - 1)
+                            # bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
+                            # bni8 = bni7 - (elementsCountAround - 1)
+                            # nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                        # result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+                        # elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
 
