@@ -19,8 +19,10 @@ readme = readfile("README.rst", split=True)[3:]  # skip title
 # into the 'requirements.txt' file.
 requires = [
     # minimal requirements listing
-    'opencmiss.utils',
-    'ZincPythonTools',
+    'opencmiss.utils @ https://api.github.com/repos/OpenCMISS-Bindings/opencmiss.utils/tarball/master',
+    'ZincPythonTools @ https://api.github.com/repos/OpenCMISS-Bindings/ZincPythonTools/tarball/master',
+    'scipy',
+    'numpy',
 ]
 source_license = readfile("LICENSE")
 
