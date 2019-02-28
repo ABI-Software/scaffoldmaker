@@ -8,7 +8,6 @@ SETUP_DIR = os.path.dirname(os.path.abspath(__file__))
 # List all of your Python package dependencies in the
 # requirements.txt file
 
-
 def readfile(filename, split=False):
     with io.open(filename, encoding="utf-8") as stream:
         if split:
@@ -18,18 +17,12 @@ def readfile(filename, split=False):
 readme = readfile("README.rst", split=True)[3:]  # skip title
 # For requirements not hosted on PyPi place listings
 # into the 'requirements.txt' file.
-requires = []  # minimal requirements listing
+requires = [
+    # minimal requirements listing
+    'opencmiss.utils',
+    'ZincPythonTools',
+]
 source_license = readfile("LICENSE")
-
-
-class InstallCommand(install):
-
-    def run(self):
-        install.run(self)
-        # Automatically install requirements from requirements.txt
-        import subprocess
-        subprocess.call(['pip', 'install', '-r', os.path.join(SETUP_DIR, 'requirements.txt')])
-
 
 setup(name='scaffoldmaker',
     version='0.1.1',
@@ -40,7 +33,6 @@ setup(name='scaffoldmaker',
       "License :: OSI Approved :: Apache Software License",
       "Programming Language :: Python",
     ],
-    cmdclass={'install': InstallCommand,},
     author='Richard Christie',
     author_email='',
     url='',

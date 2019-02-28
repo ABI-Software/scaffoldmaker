@@ -1,2 +1,3 @@
-git+https://github.com/OpenCMISS-Bindings/opencmiss.utils.git
-git+https://github.com/OpenCMISS-Bindings/ZincPythonTools.git
+-e git+https://github.com/OpenCMISS-Bindings/opencmiss.utils.git#egg=opencmiss.utils
+-e git+https://github.com/OpenCMISS-Bindings/ZincPythonTools.git#egg=ZincPythonTools
+-e .
