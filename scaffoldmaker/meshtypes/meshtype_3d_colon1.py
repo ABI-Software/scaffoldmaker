@@ -4,17 +4,8 @@ numbers of elements around, along and through wall, with
 variable radius and thickness along.
 """
 
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh2 import *
-from scaffoldmaker.utils.zinc_utils import *
-from scaffoldmaker.utils.geometry import *
-from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.vector import *
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 class MeshType_3d_colon1(object):
     '''
