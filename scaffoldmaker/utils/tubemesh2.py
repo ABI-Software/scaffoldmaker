@@ -32,14 +32,14 @@ def generatetubemesh(region,
     '''
     Generates a 3-D tubular mesh with variable numbers of elements
     around, along the central axis, and radially through wall. The
-    tubular mesh is created from a unit profile which is mapped onto 
+    tubular mesh is created from a unit profile which is mapped onto
     the central line and lateral axes data
     :param elementsCountAround: number of elements around tube
     :param elementsCountAlongUnit: number of elements along unit profile
     :param elementsCountThroughWall: number of elements through wall thickness
     :param unitsCountAlong: number of units along the tube
     :param cx: coordinates on central line
-    :param cd1: derivative 1 along central line
+    :param cd1: derivative along central line
     :param xOuter: coordinates on outer surface of unit profile
     :param d1Outer: derivatives around outer surface of unit profile
     :param d2Outer: derivatives along outer surface of unit profile
@@ -140,7 +140,7 @@ def generatetubemesh(region,
     for nUnit in range(unitsCountAlong):
         for nAlongUnit in range(elementsCountAlongUnit+1):
             n2 = nUnit*elementsCountAlongUnit + nAlongUnit
-            if nUnit == 0 or (nUnit > 0 and nAlongUnit > 0): # Take first face from first element along, take 2nd to last face for subsequent elements along
+            if nUnit == 0 or (nUnit > 0 and nAlongUnit > 0):
                 # Rotate to align unit axis with tangent of central line
                 unitMid = [0.0, 0.0, unitLength/elementsCountAlongUnit* nAlongUnit]
                 unitTangent = normalise(sd1[n2])
@@ -213,16 +213,16 @@ def generatetubemesh(region,
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
         # print('NodeIdentifier = ', nodeIdentifier, xList[n])
         nodeIdentifier = nodeIdentifier + 1
-        
-    # For debugging - Nodes along central line
-    for pt in range(len(sx)):
-        node = nodes.createNode(nodeIdentifier, nodetemplate)
-        cache.setNode(node)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[pt])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[pt])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sNormal[pt])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sBinormal[pt])
-        nodeIdentifier = nodeIdentifier + 1
+
+    # # For debugging - Nodes along central line
+    # for pt in range(len(sx)):
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[pt])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[pt])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sNormal[pt])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sBinormal[pt])
+        # nodeIdentifier = nodeIdentifier + 1
 
     # create elements
     elementIdentifier = nextElementIdentifier
@@ -352,4 +352,5 @@ def rotationMatrixAboutAxis(rotAxis, theta):
     rotMatrix = ([[rotAxis[0]*rotAxis[0]*C + cosTheta, rotAxis[0]*rotAxis[1]*C - rotAxis[2]*sinTheta, rotAxis[0]*rotAxis[2]*C + rotAxis[1]*sinTheta],
         [rotAxis[1]*rotAxis[0]*C + rotAxis[2]*sinTheta, rotAxis[1]*rotAxis[1]*C + cosTheta, rotAxis[1]*rotAxis[2]*C - rotAxis[0]*sinTheta],
         [rotAxis[2]*rotAxis[0]*C - rotAxis[1]*sinTheta, rotAxis[2]*rotAxis[1]*C + rotAxis[0]*sinTheta, rotAxis[2]*rotAxis[2]*C + cosTheta]])
+
     return rotMatrix

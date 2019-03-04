@@ -11,8 +11,8 @@ class MeshType_3d_colon1(object):
     '''
     Generates a 3-D colon mesh with variable numbers
     of elements around, along the central line, and through wall.
-    The colon is created by a function that deforms haustras along
-    the central line based on the curvature of the line.
+    The colon is created by a function that generates haustra units
+    and uses tubemesh to map the units along a central line profile.
     '''
     @staticmethod
     def getName():
@@ -21,9 +21,9 @@ class MeshType_3d_colon1(object):
     @staticmethod
     def getDefaultOptions():
         return {
-            'Number of elements around' : 15,
-            'Number of elements along haustra' : 4,
-            'Number of elements through wall' : 1,
+            'Number of elements around': 15,
+            'Number of elements along haustra': 4,
+            'Number of elements through wall': 1,
             'Number of haustra': 30,
             'Inner radius': 1.0,
             'Corner radius fraction': 0.5,
@@ -32,12 +32,12 @@ class MeshType_3d_colon1(object):
             'Haustra curvature factor': 2.0,
             'Wall thickness': 0.05,
             'Tube type': 2,
-            'Use cross derivatives' : False,
-            'Use linear through wall' : False,
-            'Refine' : False,
-            'Refine number of elements around' : 1,
-            'Refine number of elements along' : 1,
-            'Refine number of elements through wall' : 1
+            'Use cross derivatives': False,
+            'Use linear through wall': False,
+            'Refine': False,
+            'Refine number of elements around': 1,
+            'Refine number of elements along': 1,
+            'Refine number of elements through wall': 1
         }
 
     @staticmethod
@@ -125,16 +125,15 @@ class MeshType_3d_colon1(object):
         elif tubeType == 3: # Human colon in 3D
             cx = [ [ 0.0, 0.0, 0.0], [0.0, 10.0, 3.0], [5.0, 9.0, 0.0], [ 10.0, 10.0, 2.0 ], [15.0, 15.0, 7.0], [ 20.0, -2.0, 0.0], [ 10.0, -4.0, -0.0] ]
             cd1 = [ [ 0.0, 10.0, 3.0 ], [ 5.0, 5.0, 0.0 ], [5.0, 0.0, 0.0], [ 10.0, -5.0, 0.0 ], [12.0, 12.0, 0.0], [ 5.0, -12.0, -5.0 ], [ -8.0, 0.0, 0.0 ]]
-            
 
-        length = 0.0
         # find arclength of colon
+        length = 0.0
         elementsCountIn = len(cx) - 1
         for e in range(elementsCountIn):
             arcLength = computeCubicHermiteArcLength(cx[e], cd1[e], cx[e + 1], cd1[e + 1], rescaleDerivatives = True)
             length += arcLength
         haustraLength = length / haustraCount
-        
+
         # Generate outer surface of a haustra unit
         xHaustraOuter, d1HaustraOuter, d2HaustraOuter, haustraAxis = getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, cornerRadiusFraction,
             haustraRadiusFraction, foldFactor, haustraCurvatureFactor, wallThickness, haustraLength)
@@ -167,7 +166,7 @@ class MeshType_3d_colon1(object):
 def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, cornerRadiusFraction,
         haustraRadiusFraction, foldFactor, haustraCurvatureFactor, wallThickness, haustraLength):
     """
-    Generates a 3-D haustra mesh with variable numbers
+    Generates a 3-D haustra unit mesh with variable numbers
     of elements around, along the central line, and through wall.
     The haustra has a triangular profile with rounded corners at the
     interhaustral septa, and a clover profile outside the septa.
@@ -179,14 +178,14 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
     to get a radius of curvature at the corners.
     :param haustraRadiusFraction: Factor is multiplied by inner haustra
     radius to obtain radius of intersecting circles in the middle cross-section
-    of haustra.
+    along a haustra.
     :param foldFactor: Factor is multiplied by haustra length to scale derivative
     along the haustra at the interhaustral septa end.
-    :param haustraCurvatureFactor: Fator is multiplied by haustra length to 
+    :param haustraCurvatureFactor: Factor is multiplied by haustra length to 
     scale derivative along the haustra at the middle section of the haustra.
     :param wallThickness: Thickness of haustra through wall.
     :param haustraLength: Length of a haustra unit.
-    :return: coordinates, derivatives on outer surface
+    :return: coordinates, derivatives on outer surface of haustra unit.
     """
 
     # create nodes
@@ -311,7 +310,6 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
             xInnerList.append(x)
             dx_ds2 = dx_ds2InnerRaw[n1][n2]
             dx_ds2InnerList.append(dx_ds2)
-
             unitTangent = normalise(dx_ds2)
             # Interhaustra
             if n2 == 0 or n2 > elementsCountAlongHaustra - 1:
@@ -367,7 +365,7 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
 
 def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThickness, elementsCountAlongHaustra, elementsCountAround):
     """
-    Generates coordinates and derivatives of outer surface from 
+    Generates coordinates and derivatives of outer surface from
     coordinates and derivatives of inner surface using wall thickness
     and normals.
     param xInner: Coordinates on inner surface
@@ -433,4 +431,5 @@ def rotationMatrixAboutAxis(rotAxis, theta):
     rotMatrix = ([[rotAxis[0]*rotAxis[0]*C + cosTheta, rotAxis[0]*rotAxis[1]*C - rotAxis[2]*sinTheta, rotAxis[0]*rotAxis[2]*C + rotAxis[1]*sinTheta],
         [rotAxis[1]*rotAxis[0]*C + rotAxis[2]*sinTheta, rotAxis[1]*rotAxis[1]*C + cosTheta, rotAxis[1]*rotAxis[2]*C - rotAxis[0]*sinTheta],
         [rotAxis[2]*rotAxis[0]*C - rotAxis[1]*sinTheta, rotAxis[2]*rotAxis[1]*C + rotAxis[0]*sinTheta, rotAxis[2]*rotAxis[2]*C + cosTheta]])
+
     return rotMatrix
