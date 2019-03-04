@@ -3,11 +3,11 @@ Generates a 3-D colon mesh along the central line, with variable
 numbers of elements around, along and through wall, with
 variable radius and thickness along.
 """
-
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh2 import *
 
-class MeshType_3d_colon1(object):
+class MeshType_3d_colon1(Scaffold_base):
     '''
     Generates a 3-D colon mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -19,8 +19,15 @@ class MeshType_3d_colon1(object):
         return '3D Colon 1'
 
     @staticmethod
-    def getDefaultOptions():
-        return {
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1',
+            'Section 1']
+
+    @staticmethod
+    def getDefaultOptions(parameterSetName='Default'):
+        options = {
             'Number of elements around': 15,
             'Number of elements along haustra': 4,
             'Number of elements through wall': 1,
@@ -39,6 +46,12 @@ class MeshType_3d_colon1(object):
             'Refine number of elements along': 1,
             'Refine number of elements through wall': 1
         }
+        if 'Human 1' in parameterSetName:
+            options['Tube type'] = 3
+        elif 'Section 1' in parameterSetName:
+            options['Tube type'] = 1
+            options['Number of haustra'] = 3
+        return options
 
     @staticmethod
     def getOrderedOptionNames():
