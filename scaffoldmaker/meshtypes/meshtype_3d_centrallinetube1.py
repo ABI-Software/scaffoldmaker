@@ -24,9 +24,9 @@ class MeshType_3d_centrallinetube1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around' : 8,
-            'Number of elements along' : 6,
+            'Number of elements along' : 30, #6
             'Number of elements through wall' : 1,
-            'Tube type' : 1,
+            'Tube type' : 4,
             'Use cross derivatives' : False,
             'Use linear through wall' : False,
             'Refine' : False,
@@ -123,8 +123,8 @@ class MeshType_3d_centrallinetube1(Scaffold_base):
             # Colon in x-y plane
             cx = [ [ 0.0, 0.0, 0.0], [0.0, 10.0, 0.0], [5.0, 9.0, 0.0], [ 10.0, 10.0, 0.0 ], [ 10.0, -2.0, 0.0], [ 7.0, -4.0, 0.0] ]
             cd1 = [ [ 0.0, 10.0, 0.0 ], [ 5.0, 5.0, 0.0 ], [5.0, 0.0, 0.0], [ 5.0, -5.0, 0.0 ], [ -3.0, -5.0, 0.0 ], [ -3.0, 0.0, 0.0 ]]
-            cd2 = [ [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0], [ 0.0, 0.5, 0.0 ], [ 0.0, 0.5, 0.0 ]]
-            cd3 = [ [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.5], [ 0.0, 0.0, 0.5]]
+            cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0], [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ]]
+            cd3 = [ [ 0.0, 0.0, 1.0 ], [ 0.0, 0.0, 1.0 ], [ 0.0, 0.0, 1.0], [ 0.0, 0.0, 1.0 ], [ 0.0, 0.0, 1.0], [ 0.0, 0.0, 1.0]]
 
             # thickness in cd2 and cd3 directions and derivatives (rate of change)
             t2 = [ 0.5, 0.5, 0.5, 0.5, 0.5, 0.5 ]
