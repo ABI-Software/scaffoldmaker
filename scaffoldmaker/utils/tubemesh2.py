@@ -48,8 +48,10 @@ def generatetubemesh(region,
     :param unitAxis: axis of unit profile
     :param unitLength: length of unit profile
     :param useCubicHermiteThroughWall: use linear when false
+    :return: annotationGroups, nextNodeIdentifier, nextElementIdentifier
     '''
     zero  = [0.0, 0.0, 0.0]
+    annotationGroups = []
     elementsCountAlong = elementsCountAlongUnit*unitsCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
@@ -242,7 +244,7 @@ def generatetubemesh(region,
 
     fm.endChange()
 
-    return nodeIdentifier, elementIdentifier
+    return annotationGroups, nodeIdentifier, elementIdentifier
 
 def getInnerCoordinatesAndDerivativesFromOuter(xOuter, d1Outer, d3Outer, wallThickness, elementsCountAlong, elementsCountAround):
     """

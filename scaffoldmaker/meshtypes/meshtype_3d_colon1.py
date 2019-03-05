@@ -115,7 +115,7 @@ class MeshType_3d_colon1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: annotationGroups
         """
         elementsCountAround = options['Number of elements around']
         elementsCountAlongHaustrum = options['Number of elements along haustrum']
@@ -155,8 +155,10 @@ class MeshType_3d_colon1(Scaffold_base):
             haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraLength)
 
         # Generate tube mesh
-        nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraCount,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraCount,
             cx, cd1, xHaustraOuter, d1HaustraOuter, d2HaustraOuter, wallThickness, haustraAxis, haustraLength, useCrossDerivatives, useCubicHermiteThroughWall)
+
+        return annotationGroups
 
     @classmethod
     def generateMesh(cls, region, options):
@@ -164,6 +166,7 @@ class MeshType_3d_colon1(Scaffold_base):
         Generate base or refined mesh.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
+        :return: list of AnnotationGroup for mesh.
         """
         if not options['Refine']:
             cls.generateBaseMesh(region, options)
@@ -174,10 +177,11 @@ class MeshType_3d_colon1(Scaffold_base):
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
-        cls.generateBaseMesh(baseRegion, options)
+        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
 
-        meshrefinement = MeshRefinement(baseRegion, region)
+        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
+        return meshrefinement.getAnnotationGroups()
 
 def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
         haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraLength):
