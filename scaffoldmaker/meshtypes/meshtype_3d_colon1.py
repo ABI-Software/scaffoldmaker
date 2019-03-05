@@ -34,10 +34,10 @@ class MeshType_3d_colon1(Scaffold_base):
             'Number of elements through wall': 1,
             'Number of haustra': 30,
             'Inner radius': 1.0,
-            'Corner radius fraction': 0.5,
-            'Haustra radius fraction': 0.5,
-            'Interhaustra fold factor': 0.5,
-            'Haustra curvature factor': 2.0,
+            'Corner inner radius factor': 0.5,
+            'Haustra inner radius factor': 0.5,
+            'Haustrum segment end-derivative factor': 0.5,
+            'Haustrum segment mid-derivative factor': 2.0,
             'Wall thickness': 0.05,
             'Tube type': 2,
             'Use cross derivatives': False,
@@ -62,10 +62,10 @@ class MeshType_3d_colon1(Scaffold_base):
             'Number of elements through wall',
             'Number of haustra',
             'Inner radius',
-            'Corner radius fraction',
-            'Haustra radius fraction',
-            'Interhaustra fold factor',
-            'Haustra curvature factor',
+            'Corner inner radius factor',
+            'Haustra inner radius factor',
+            'Haustrum segment end-derivative factor',
+            'Haustrum segment mid-derivative factor',
             'Wall thickness',
             'Tube type',
             'Use cross derivatives',
@@ -91,17 +91,17 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Number of elements around'] = (options['Number of elements around']//3)*3
         for key in [
             'Inner radius',
-            'Haustra radius fraction',
-            'Interhaustra fold factor',
-            'Haustra curvature factor',
+            'Haustra inner radius factor',
+            'Haustrum segment end-derivative factor',
+            'Haustrum segment mid-derivative factor',
             'Wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['Corner radius fraction'] < 0.1:
-            options['Corner radius fraction'] = 0.1
+        if options['Corner inner radius factor'] < 0.1:
+            options['Corner inner radius factor'] = 0.1
         for key in [
-            'Corner radius fraction',
-            'Interhaustra fold factor']:
+            'Corner inner radius factor',
+            'Haustrum segment end-derivative factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
         if options['Tube type'] < 1:
@@ -122,10 +122,10 @@ class MeshType_3d_colon1(Scaffold_base):
         elementsCountThroughWall = options['Number of elements through wall']
         haustraCount = options['Number of haustra']
         radius = options['Inner radius']
-        cornerRadiusFraction = options['Corner radius fraction']
-        haustraRadiusFraction = options['Haustra radius fraction']
-        foldFactor = options['Interhaustra fold factor']
-        haustraCurvatureFactor = options['Haustra curvature factor']
+        cornerInnerRadiusFactor = options['Corner inner radius factor']
+        haustraInnerRadiusFactor = options['Haustra inner radius factor']
+        haustrumSegmentEndDerivativeFactor = options['Haustrum segment end-derivative factor']
+        haustrumSegmentMidDerivativeFactor = options['Haustrum segment mid-derivative factor']
         wallThickness = options['Wall thickness']
         tubeType = options['Tube type']
         useCrossDerivatives = options['Use cross derivatives']
@@ -151,8 +151,8 @@ class MeshType_3d_colon1(Scaffold_base):
         haustraLength = length / haustraCount
 
         # Generate outer surface of a haustra unit
-        xHaustraOuter, d1HaustraOuter, d2HaustraOuter, haustraAxis = getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerRadiusFraction,
-            haustraRadiusFraction, foldFactor, haustraCurvatureFactor, wallThickness, haustraLength)
+        xHaustraOuter, d1HaustraOuter, d2HaustraOuter, haustraAxis = getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+            haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraLength)
 
         # Generate tube mesh
         nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraCount,
@@ -179,8 +179,8 @@ class MeshType_3d_colon1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
 
-def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerRadiusFraction,
-        haustraRadiusFraction, foldFactor, haustraCurvatureFactor, wallThickness, haustraLength):
+def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+        haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraLength):
     """
     Generates a 3-D haustra unit mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -188,17 +188,19 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius,
     interhaustral septa, and a clover profile outside the septa.
     :param elementsCountAround: Number of elements around haustra.
     :param elementsCountAlongHaustrum: Number of elements along haustrum.
-    :param radius: Inner radius of haustra.
-    :param cornerRadiusFraction: Roundness of triangular corners of
-    interhaustral septa. Factor is multiplied by inner haustra radius
+    :param radius: Inner radius defined from center of triangular
+    profile to vertex of the triangle.
+    :param cornerInnerRadiusFactor: Roundness of triangular corners of
+    interhaustral septa. Factor is multiplied by inner radius
     to get a radius of curvature at the corners.
-    :param haustraRadiusFraction: Factor is multiplied by inner haustra
+    :param haustraInnerRadiusFactor: Factor is multiplied by inner
     radius to obtain radius of intersecting circles in the middle cross-section
-    along a haustra.
-    :param foldFactor: Factor is multiplied by haustra length to scale derivative
-    along the haustra at the interhaustral septa end.
-    :param haustraCurvatureFactor: Factor is multiplied by haustra length to 
-    scale derivative along the haustra at the middle section of the haustra.
+    along a haustrum.
+    :param haustrumSegmentEndDerivativeFactor: Factor is multiplied by haustra
+    length to scale derivative along the haustra at the interhaustral septa end.
+    :param haustrumSegmentMidDerivativeFactor: Factor is multiplied by haustra
+    length to scale derivative along the haustra at the middle section of the
+    haustra.
     :param wallThickness: Thickness of haustra through wall.
     :param haustraLength: Length of a haustra unit.
     :return: coordinates, derivatives on outer surface of haustra unit.
@@ -210,9 +212,9 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius,
     dx_ds2 = [ 0.0, 0.0, 0.0 ]
     dx_ds3 = [ 0.0, 0.0, 0.0 ]
     radiansRangeRC = [7*math.pi/4, 0.0, math.pi/4]
-    cornerRC = cornerRadiusFraction*radius
+    cornerRC = cornerInnerRadiusFactor*radius
     unitZ = [0.0, 0.0, 1.0]
-    haustraRadius = (haustraRadiusFraction + 1)*radius
+    haustraRadius = (haustraInnerRadiusFactor + 1)*radius
     xAround = []
     d1Around = []
     xInner = []
@@ -298,10 +300,10 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius,
     for n1 in range(elementsCountAround):
         if n1%(elementsCountAround/3) > 0.0:
             v1 = [xInner[n1][0], xInner[n1][1], 0.0]
-            startArcLength = foldFactor * haustraLength
+            startArcLength = haustrumSegmentEndDerivativeFactor * haustraLength
             d1 = [ c*startArcLength for c in unitZ]
             v2 = [xHaustraInner[n1][0], xHaustraInner[n1][1], haustraLength/2]
-            midArcLength = haustraCurvatureFactor * haustraLength
+            midArcLength = haustrumSegmentMidDerivativeFactor * haustraLength
             d2 = [ c*midArcLength for c in unitZ]
             v3 = [xInner[n1][0], xInner[n1][1], haustraLength]
             d3 = [ c*startArcLength for c in unitZ]
