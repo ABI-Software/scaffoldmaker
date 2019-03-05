@@ -62,8 +62,10 @@ class MeshType_3d_centrallinetube1(Scaffold_base):
                 options[key] = 1
         if (options['Number of elements around'] < 2) :
             options['Number of elements around'] = 2
-        if (options['Tube type'] < 1 or options['Tube type'] > 5 ) :
+        if (options['Tube type'] < 1):
             options['Tube type'] = 1
+        if (options['Tube type'] > 5):
+            options['Tube type'] = 5
 
     @staticmethod
     def generateBaseMesh(region, options):
