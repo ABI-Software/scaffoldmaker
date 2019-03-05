@@ -8,10 +8,11 @@ from __future__ import division
 import math
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.zinc_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils.matrix import *
 from scaffoldmaker.utils.vector import *
+from scaffoldmaker.utils.zinc_utils import *
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -83,7 +84,7 @@ def generatetubemesh(region,
         if magnitude(cp)> 0.0:
             axisRot = normalise(cp)
             thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
-            rotFrame = rotationMatrixAboutAxis(axisRot, thetaRot)
+            rotFrame = getRotationMatrixFromAxisAngle(axisRot, thetaRot)
             rotNormal = [rotFrame[j][0]*prevUnitNormal[0] + rotFrame[j][1]*prevUnitNormal[1] + rotFrame[j][2]*prevUnitNormal[2] for j in range(3)]
             unitNormal = normalise(rotNormal)
             unitBinormal = crossproduct3(unitTangent, unitNormal)
@@ -273,18 +274,3 @@ def generatetubemesh(region,
     fm.endChange()
 
     return nodeIdentifier, elementIdentifier
-
-def rotationMatrixAboutAxis(rotAxis, theta):
-    """
-    Generate the rotation matrix for rotation about an axis.
-    :param rotAxis: axis of rotation
-    :param theta: angle of rotation
-    :return: rotation matrix
-    """
-    cosTheta = math.cos(theta)
-    sinTheta = math.sin(theta)
-    C = 1 - cosTheta
-    rotMatrix = ([[rotAxis[0]*rotAxis[0]*C + cosTheta, rotAxis[0]*rotAxis[1]*C - rotAxis[2]*sinTheta, rotAxis[0]*rotAxis[2]*C + rotAxis[1]*sinTheta],
-        [rotAxis[1]*rotAxis[0]*C + rotAxis[2]*sinTheta, rotAxis[1]*rotAxis[1]*C + cosTheta, rotAxis[1]*rotAxis[2]*C - rotAxis[0]*sinTheta],
-        [rotAxis[2]*rotAxis[0]*C - rotAxis[1]*sinTheta, rotAxis[2]*rotAxis[1]*C + rotAxis[0]*sinTheta, rotAxis[2]*rotAxis[2]*C + cosTheta]])
-    return rotMatrix
