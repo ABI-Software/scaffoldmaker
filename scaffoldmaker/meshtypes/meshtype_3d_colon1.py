@@ -103,8 +103,10 @@ class MeshType_3d_colon1(Scaffold_base):
             'Interhaustra fold factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
-        if (options['Tube type'] < 1 or options['Tube type'] > 3 ) :
+        if options['Tube type'] < 1:
             options['Tube type'] = 1
+        if options['Tube type'] > 3:
+            options['Tube type'] = 3
 
     @staticmethod
     def generateBaseMesh(region, options):
