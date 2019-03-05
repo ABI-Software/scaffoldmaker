@@ -29,7 +29,7 @@ class MeshType_3d_colon1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         options = {
             'Number of elements around': 15,
-            'Number of elements along haustra': 4,
+            'Number of elements along haustrum': 4,
             'Number of elements through wall': 1,
             'Number of haustra': 30,
             'Inner radius': 1.0,
@@ -57,7 +57,7 @@ class MeshType_3d_colon1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             'Number of elements around',
-            'Number of elements along haustra',
+            'Number of elements along haustrum',
             'Number of elements through wall',
             'Number of haustra',
             'Inner radius',
@@ -115,7 +115,7 @@ class MeshType_3d_colon1(Scaffold_base):
         :return: None
         """
         elementsCountAround = options['Number of elements around']
-        elementsCountAlongHaustra = options['Number of elements along haustra']
+        elementsCountAlongHaustrum = options['Number of elements along haustrum']
         elementsCountThroughWall = options['Number of elements through wall']
         haustraCount = options['Number of haustra']
         radius = options['Inner radius']
@@ -127,7 +127,7 @@ class MeshType_3d_colon1(Scaffold_base):
         tubeType = options['Tube type']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
-        elementsCountAlong = int(elementsCountAlongHaustra*haustraCount)
+        elementsCountAlong = int(elementsCountAlongHaustrum*haustraCount)
 
         if tubeType == 1: # Straight tube
             cx = [[-4.0, 1.0, 3.0], [ 1.0, 2.0, 0.0 ] ]
@@ -148,11 +148,11 @@ class MeshType_3d_colon1(Scaffold_base):
         haustraLength = length / haustraCount
 
         # Generate outer surface of a haustra unit
-        xHaustraOuter, d1HaustraOuter, d2HaustraOuter, haustraAxis = getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, cornerRadiusFraction,
+        xHaustraOuter, d1HaustraOuter, d2HaustraOuter, haustraAxis = getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerRadiusFraction,
             haustraRadiusFraction, foldFactor, haustraCurvatureFactor, wallThickness, haustraLength)
 
         # Generate tube mesh
-        nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustra, elementsCountThroughWall, haustraCount,
+        nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraCount,
             cx, cd1, xHaustraOuter, d1HaustraOuter, d2HaustraOuter, wallThickness, haustraAxis, haustraLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
     @classmethod
@@ -176,7 +176,7 @@ class MeshType_3d_colon1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
 
-def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, cornerRadiusFraction,
+def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustrum, radius, cornerRadiusFraction,
         haustraRadiusFraction, foldFactor, haustraCurvatureFactor, wallThickness, haustraLength):
     """
     Generates a 3-D haustra unit mesh with variable numbers
@@ -184,7 +184,7 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
     The haustra has a triangular profile with rounded corners at the
     interhaustral septa, and a clover profile outside the septa.
     :param elementsCountAround: Number of elements around haustra.
-    :param elementsCountAlongHaustra: Number of elements along haustra.
+    :param elementsCountAlongHaustrum: Number of elements along haustrum.
     :param radius: Inner radius of haustra.
     :param cornerRadiusFraction: Roundness of triangular corners of
     interhaustral septa. Factor is multiplied by inner haustra radius
@@ -309,13 +309,13 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
             d3 = d2 = d1 = [c* haustraLength/3 for c in unitZ]
         nx = [v1, v2, v3]
         nd1 = [d1, d2, d3]
-        sx, sd1, se, sxi, _  = sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustra)
+        sx, sd1, se, sxi, _  = sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustrum)
         xInnerRaw.append(sx)
         dx_ds2InnerRaw.append(sd1)
 
     # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
     dx_ds1InnerList = dx_ds1InnerList + d1Inner
-    for n2 in range(elementsCountAlongHaustra + 1):
+    for n2 in range(elementsCountAlongHaustrum + 1):
         xAround = []
         unitdx_ds1Around = []
         for n1 in range(elementsCountAround):
@@ -325,23 +325,23 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
             dx_ds2InnerList.append(dx_ds2)
             unitTangent = normalise(dx_ds2)
             # Interhaustra
-            if n2 == 0 or n2 > elementsCountAlongHaustra - 1:
+            if n2 == 0 or n2 > elementsCountAlongHaustrum - 1:
                 dx_ds1 = d1Inner[n1]
                 unitdx_ds3 = crossproduct3(normalise(dx_ds1), unitTangent)
             else:
                 # Haustra
-                if elementsCountAlongHaustra == 2:
+                if elementsCountAlongHaustrum == 2:
                     unitdx_ds1 = normalise(d1InnerHaustra[n1])
                 else:
                     if n1%(elementsCountAround/3) == 0: # intersection points
                         unitdx_ds1 = normalise(d1InnerHaustra[n1])
                     else: # points on clover
-                        if elementsCountAlongHaustra > 3: 
-                            if n2 < int(elementsCountAlongHaustra/2): # first half of haustraLength
+                        if elementsCountAlongHaustrum > 3:
+                            if n2 < int(elementsCountAlongHaustrum/2): # first half of haustraLength
                                 axisRot = crossproduct3(unitZ, unitTangent)
-                            elif n2 > int(elementsCountAlongHaustra/2): # second half of haustraLength
+                            elif n2 > int(elementsCountAlongHaustrum/2): # second half of haustraLength
                                 axisRot = crossproduct3(unitTangent, unitZ)
-                        elif elementsCountAlongHaustra == 3: # 3 elementsAlongHaustra
+                        elif elementsCountAlongHaustrum == 3: # 3 elementsAlongHaustrum
                             axisRot = crossproduct3(unitTangent, unitZ)
 
                         rotFrame = rotationMatrixAboutAxis(axisRot, math.pi/2)
@@ -351,7 +351,7 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
                 xAround.append(x)
                 unitdx_ds1Around.append(unitdx_ds1)
 
-        if n2 > 0 and n2 < elementsCountAlongHaustra:
+        if n2 > 0 and n2 < elementsCountAlongHaustrum:
             dx_ds1InnerAroundList = []
             for n1 in range(elementsCountAround):
                 v1 = xAround[n1]
@@ -372,11 +372,11 @@ def getUnitHaustraOuter(elementsCountAround, elementsCountAlongHaustra, radius, 
         dx_ds3InnerUnitList.append(unitdx_ds3)
 
     # Pre-calculate node locations and derivatives on outer boundary
-    xOuter, d1Outer, d2Outer = getOuterCoordinatesAndDerivativesFromInner(xInnerList, dx_ds1InnerList, dx_ds2InnerList, dx_ds3InnerUnitList, wallThickness, elementsCountAlongHaustra, elementsCountAround)
+    xOuter, d1Outer, d2Outer = getOuterCoordinatesAndDerivativesFromInner(xInnerList, dx_ds1InnerList, dx_ds2InnerList, dx_ds3InnerUnitList, wallThickness, elementsCountAlongHaustrum, elementsCountAround)
 
     return xOuter, d1Outer, d2Outer, unitZ
 
-def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThickness, elementsCountAlongHaustra, elementsCountAround):
+def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThickness, elementsCountAlongHaustrum, elementsCountAround):
     """
     Generates coordinates and derivatives of outer surface from
     coordinates and derivatives of inner surface using wall thickness
@@ -386,7 +386,7 @@ def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner
     param d2Inner: Derivatives on inner surface along haustra
     param d3Inner: Derivatives on inner surface through wall
     param thickness: Thickness of wall
-    param elementsCountAlongHaustra: Number of elements along haustra
+    param elementsCountAlongHaustrum: Number of elements along haustrum
     param elementsCountAround: Number of elements around haustra
     return xOuter: Coordinates on outer surface
     return nd1Outer: Derivatives on outer surface around haustra
@@ -396,7 +396,7 @@ def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner
     nd1Outer = []
     nd2Outer = []
 
-    for n2 in range(elementsCountAlongHaustra + 1):
+    for n2 in range(elementsCountAlongHaustrum + 1):
         for n1 in range(elementsCountAround):
             n = n2*elementsCountAround + n1
             x = [xInner[n][i] + d3Inner[n][i]*wallThickness for i in range(3)]
@@ -410,11 +410,11 @@ def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner
             factor = 1.0 - curvatureAround*wallThickness
             nd1 = [ factor*c for c in d1Inner[n]]
             # d2
-            if n2 > 0 and n2 < elementsCountAlongHaustra:
+            if n2 > 0 and n2 < elementsCountAlongHaustrum:
                 prevIdx = (n2-1)*elementsCountAround + n1
                 nextIdx = (n2+1)*elementsCountAround + n1
             elif n2 == 0:
-                prevIdx = (elementsCountAlongHaustra-1)*elementsCountAround + n1
+                prevIdx = (elementsCountAlongHaustrum-1)*elementsCountAround + n1
                 nextIdx = (n2+1)*elementsCountAround + n1
             else:
                 prevIdx = (n2-1)*elementsCountAround + n1
