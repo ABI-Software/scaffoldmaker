@@ -1,9 +1,6 @@
 '''
 Utility function for generating tubular mesh from a central line
 using a unit profile.
-Created on 18 Feb, 2019
-
-@author: Mabelle Lin
 '''
 from __future__ import division
 import math
