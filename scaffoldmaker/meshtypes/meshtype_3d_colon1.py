@@ -155,7 +155,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Generate outer surface of a haustra segment
         xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-            haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraSegmentLength)
+            haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, haustraSegmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
@@ -187,7 +187,7 @@ class MeshType_3d_colon1(Scaffold_base):
         return meshrefinement.getAnnotationGroups()
 
 def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-        haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraSegmentLength):
+        haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, haustraSegmentLength):
     """
     Generates a 3-D haustra segment mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -208,7 +208,6 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     length to scale derivative along the end of a haustra segment length.
     :param haustrumSegmentMidDerivativeFactor: Factor is multiplied by haustra
     length to scale derivative along the mid length of the haustra segment.
-    :param wallThickness: Thickness of haustra through wall.
     :param haustraSegmentLength: Length of a haustra segment.
     :return: coordinates, derivatives on inner surface of haustra segment.
     """
