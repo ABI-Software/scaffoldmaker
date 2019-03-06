@@ -154,12 +154,12 @@ class MeshType_3d_colon1(Scaffold_base):
         haustraSegmentLength = length / haustraSegmentCount
 
         # Generate outer surface of a haustra segment
-        xHaustraOuter, d1HaustraOuter, d2HaustraOuter, haustraSegmentAxis = getColonHaustraSegmentOuterPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
             haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraSegmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
-            cx, cd1, xHaustraOuter, d1HaustraOuter, d2HaustraOuter, wallThickness, haustraSegmentAxis, haustraSegmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustraSegmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
 
@@ -186,7 +186,7 @@ class MeshType_3d_colon1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonHaustraSegmentOuterPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
         haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, wallThickness, haustraSegmentLength):
     """
     Generates a 3-D haustra segment mesh with variable numbers
@@ -210,7 +210,7 @@ def getColonHaustraSegmentOuterPoints(elementsCountAround, elementsCountAlongHau
     length to scale derivative along the mid length of the haustra segment.
     :param wallThickness: Thickness of haustra through wall.
     :param haustraSegmentLength: Length of a haustra segment.
-    :return: coordinates, derivatives on outer surface of haustra segment.
+    :return: coordinates, derivatives on inner surface of haustra segment.
     """
 
     # create nodes
@@ -233,7 +233,6 @@ def getColonHaustraSegmentOuterPoints(elementsCountAround, elementsCountAlongHau
     dx_ds2InnerRaw = []
     xInnerList = []
     dx_ds2InnerList = []
-    dx_ds3InnerUnitList = []
 
     # Pre-calculate node locations and derivatives on inner triangle
     for n1 in range(3):
@@ -378,67 +377,4 @@ def getColonHaustraSegmentOuterPoints(elementsCountAround, elementsCountAlongHau
 
     dx_ds1InnerList = dx_ds1InnerList + d1Inner
 
-    for n in range(len(xInnerList)):
-        dx_ds3 = crossproduct3(normalise(dx_ds1InnerList[n]), normalise(dx_ds2InnerList[n]))
-        unitdx_ds3 = normalise(dx_ds3)
-        dx_ds3InnerUnitList.append(unitdx_ds3)
-
-    # Pre-calculate node locations and derivatives on outer boundary
-    xOuter, d1Outer, d2Outer = getOuterCoordinatesAndDerivativesFromInner(xInnerList, dx_ds1InnerList, dx_ds2InnerList, dx_ds3InnerUnitList, wallThickness, elementsCountAlongHaustrum, elementsCountAround)
-
-    return xOuter, d1Outer, d2Outer, unitZ
-
-def getOuterCoordinatesAndDerivativesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThickness, elementsCountAlongHaustrum, elementsCountAround):
-    """
-    Generates coordinates and derivatives of outer surface from
-    coordinates and derivatives of inner surface using wall thickness
-    and normals.
-    param xInner: Coordinates on inner surface
-    param d1Inner: Derivatives on inner surface around haustra segment
-    param d2Inner: Derivatives on inner surface along haustra segment
-    param d3Inner: Derivatives on inner surface through wall
-    param thickness: Thickness of wall
-    param elementsCountAlongHaustrum: Number of elements along haustrum
-    param elementsCountAround: Number of elements around haustra segment
-    return xOuter: Coordinates on outer surface
-    return nd1Outer: Derivatives on outer surface around haustra segment
-    return nd2Outer: Derivatives on outer surface along haustra segment
-    """
-    xOuter = []
-    nd1Outer = []
-    nd2Outer = []
-
-    for n2 in range(elementsCountAlongHaustrum + 1):
-        for n1 in range(elementsCountAround):
-            n = n2*elementsCountAround + n1
-            x = [xInner[n][i] + d3Inner[n][i]*wallThickness for i in range(3)]
-            norm = d3Inner[n]
-            # d1
-            prevIdx = n-1 if (n1 != 0) else (n2+1)*elementsCountAround - 1
-            nextIdx = n+1 if (n1 < elementsCountAround-1) else n2*elementsCountAround
-            curvatureAround = 0.5*(
-                getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0) +
-                getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0))
-            factor = 1.0 - curvatureAround*wallThickness
-            nd1 = [ factor*c for c in d1Inner[n]]
-            # d2
-            if n2 > 0 and n2 < elementsCountAlongHaustrum:
-                prevIdx = (n2-1)*elementsCountAround + n1
-                nextIdx = (n2+1)*elementsCountAround + n1
-            elif n2 == 0:
-                prevIdx = (elementsCountAlongHaustrum-1)*elementsCountAround + n1
-                nextIdx = (n2+1)*elementsCountAround + n1
-            else:
-                prevIdx = (n2-1)*elementsCountAround + n1
-                nextIdx = elementsCountAround + n1
-            curvatureAlong = 0.5*(
-                getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0)+
-                getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0))
-            factor = 1.0 - curvatureAlong*wallThickness
-            nd2 = [ factor*c for c in d2Inner[n]]
-
-            xOuter.append(x)
-            nd1Outer.append(nd1)
-            nd2Outer.append(nd2)
-
-    return xOuter, nd1Outer, nd2Outer
+    return xInnerList, dx_ds1InnerList, dx_ds2InnerList, unitZ
