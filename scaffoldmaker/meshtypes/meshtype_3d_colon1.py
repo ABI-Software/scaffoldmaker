@@ -24,8 +24,7 @@ class MeshType_3d_colon1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Human 1',
-            'Section 1']
+            'Human 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -50,9 +49,6 @@ class MeshType_3d_colon1(Scaffold_base):
         }
         if 'Human 1' in parameterSetName:
             options['Tube type'] = 3
-        elif 'Section 1' in parameterSetName:
-            options['Tube type'] = 1
-            options['Number of haustra segments'] = 3
         return options
 
     @staticmethod
