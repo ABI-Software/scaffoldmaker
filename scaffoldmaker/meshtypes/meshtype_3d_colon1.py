@@ -45,7 +45,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Use linear through wall': False,
             'Refine': False,
             'Refine number of elements around': 1,
-            'Refine number of elements along': 1,
+            'Refine number of elements along haustrum': 1,
             'Refine number of elements through wall': 1
         }
         if 'Human 1' in parameterSetName:
@@ -73,7 +73,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
-            'Refine number of elements along',
+            'Refine number of elements along haustrum',
             'Refine number of elements through wall'
         ]
 
@@ -82,7 +82,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Number of elements through wall',
             'Number of haustra segments',
             'Refine number of elements around',
-            'Refine number of elements along',
+            'Refine number of elements along haustrum',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
@@ -176,7 +176,7 @@ class MeshType_3d_colon1(Scaffold_base):
             return
 
         refineElementsCountAround = options['Refine number of elements around']
-        refineElementsCountAlong = options['Refine number of elements along']
+        refineElementsCountAlong = options['Refine number of elements along haustrum']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
