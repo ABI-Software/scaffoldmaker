@@ -27,7 +27,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Inner radius': 0.5,
             'Corner radius fraction': 0.5,
             'Wall thickness': 0.01,
-            'Number of haustra': 2,
+            'Number of haustra': 1,
             'Haustra radius fraction': 0.5,
             'Haustra length': 1.0,
             'Interhaustra fold factor': 0.5,
