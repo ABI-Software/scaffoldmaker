@@ -90,6 +90,8 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Number of elements around'] = 9
         if (options['Number of elements around'] % 3 != 0) :
             options['Number of elements around'] = (options['Number of elements around']//3)*3
+        if (options['Number of elements along haustrum'] < 2) :
+            options['Number of elements along haustrum'] = 2
         for key in [
             'Inner radius',
             'Haustra inner radius factor',
