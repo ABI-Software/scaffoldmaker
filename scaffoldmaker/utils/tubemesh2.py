@@ -1,6 +1,6 @@
 '''
 Utility function for generating tubular mesh from a central line
-using a unit profile.
+using a segment profile.
 '''
 from __future__ import division
 import math
@@ -17,12 +17,12 @@ from opencmiss.zinc.node import Node
 
 def generatetubemesh(region,
     elementsCountAround,
-    elementsCountAlongUnit,
+    elementsCountAlongSegment,
     elementsCountThroughWall,
-    unitsCountAlong,
+    segmentCountAlong,
     cx, cd1,
     xOuter, d1Outer, d2Outer, wallThickness,
-    unitAxis, unitLength,
+    segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
     nextNodeIdentifier = 1, nextElementIdentifier = 1
@@ -30,26 +30,26 @@ def generatetubemesh(region,
     '''
     Generates a 3-D tubular mesh with variable numbers of elements
     around, along the central axis, and radially through wall. The
-    tubular mesh is created from a unit profile which is mapped onto
+    tubular mesh is created from a segment profile which is mapped onto
     the central line and lateral axes data
     :param elementsCountAround: number of elements around tube
-    :param elementsCountAlongUnit: number of elements along unit profile
+    :param elementsCountAlongSegment: number of elements along segment profile
     :param elementsCountThroughWall: number of elements through wall thickness
-    :param unitsCountAlong: number of units along the tube
+    :param segmentCountAlong: number of segments along the tube
     :param cx: coordinates on central line
     :param cd1: derivative along central line
-    :param xOuter: coordinates on outer surface of unit profile
-    :param d1Outer: derivatives around outer surface of unit profile
-    :param d2Outer: derivatives along outer surface of unit profile
+    :param xOuter: coordinates on outer surface of segment profile
+    :param d1Outer: derivatives around outer surface of segment profile
+    :param d2Outer: derivatives along outer surface of segment profile
     :param wallThickness: thickness of wall
-    :param unitAxis: axis of unit profile
-    :param unitLength: length of unit profile
+    :param segmentAxis: axis of segment profile
+    :param segmentLength: length of segment profile
     :param useCubicHermiteThroughWall: use linear when false
     :return: annotationGroups, nextNodeIdentifier, nextElementIdentifier
     '''
     zero  = [0.0, 0.0, 0.0]
     annotationGroups = []
-    elementsCountAlong = elementsCountAlongUnit*unitsCountAlong
+    elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
     sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
@@ -136,26 +136,26 @@ def generatetubemesh(region,
     dx_ds2List = []
     dx_ds3List = []
 
-    # Map each face along unit profile to central line
-    for nUnit in range(unitsCountAlong):
-        for nAlongUnit in range(elementsCountAlongUnit+1):
-            n2 = nUnit*elementsCountAlongUnit + nAlongUnit
-            if nUnit == 0 or (nUnit > 0 and nAlongUnit > 0):
-                # Rotate to align unit axis with tangent of central line
-                unitMid = [0.0, 0.0, unitLength/elementsCountAlongUnit* nAlongUnit]
+    # Map each face along segment profile to central line
+    for nSegment in range(segmentCountAlong):
+        for nAlongSegment in range(elementsCountAlongSegment+1):
+            n2 = nSegment*elementsCountAlongSegment + nAlongSegment
+            if nSegment == 0 or (nSegment > 0 and nAlongSegment > 0):
+                # Rotate to align segment axis with tangent of central line
+                segmentMid = [0.0, 0.0, segmentLength/elementsCountAlongSegment* nAlongSegment]
                 unitTangent = normalise(sd1[n2])
-                cp = crossproduct3(unitAxis, unitTangent)
+                cp = crossproduct3(segmentAxis, unitTangent)
                 if magnitude(cp)> 0.0:
                     axisRot = normalise(cp)
-                    thetaRot = math.acos(dotproduct(unitAxis, unitTangent))
+                    thetaRot = math.acos(dotproduct(segmentAxis, unitTangent))
                     rotFrame = getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-                    midRot = [rotFrame[j][0]*unitMid[0] + rotFrame[j][1]*unitMid[1] + rotFrame[j][2]*unitMid[2] for j in range(3)]
+                    midRot = [rotFrame[j][0]*segmentMid[0] + rotFrame[j][1]*segmentMid[1] + rotFrame[j][2]*segmentMid[2] for j in range(3)]
                     translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
                 else:
-                    midRot = unitMid
+                    midRot = segmentMid
 
                 for n1 in range(elementsCountAround):
-                    n = nAlongUnit*elementsCountAround + n1
+                    n = nAlongSegment*elementsCountAround + n1
                     x = xOuter[n]
                     d1 = d1Outer[n]
                     d2 = d2Outer[n]
