@@ -3,11 +3,11 @@ Generates a 3-D haustra mesh along a central line, with variable
 numbers of elements around, along and through wall, with
 variable radius and thickness along.
 """
-
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 
-class MeshType_3d_haustra1(object):
+class MeshType_3d_haustra1(Scaffold_base):
     '''
     Generates a 3-D haustra mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -19,7 +19,7 @@ class MeshType_3d_haustra1(object):
         return '3D Haustra 1'
 
     @staticmethod
-    def getDefaultOptions():
+    def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around' : 9,
             'Number of elements along haustra' : 3,
