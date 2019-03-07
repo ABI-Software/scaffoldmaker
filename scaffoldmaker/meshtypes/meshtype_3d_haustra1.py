@@ -4,6 +4,7 @@ numbers of elements around, along and through wall, with
 variable radius and thickness along.
 """
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.matrix import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 
@@ -299,7 +300,7 @@ class MeshType_3d_haustra1(Scaffold_base):
                             elif elementsCountAlongHaustra == 3: # 3 elementsAlongHaustra
                                 axisRot = crossproduct3(unitTangent, unitZ)
 
-                            rotFrame = rotationMatrixAboutAxis(axisRot, math.pi/2)
+                            rotFrame = getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
                             rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
                             unitdx_ds3 = normalise(rotNormal)
                             unitdx_ds1 = crossproduct3(unitTangent, unitdx_ds3)
@@ -495,17 +496,3 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
 
     return xList, dx_ds1List, dx_ds2List, dx_ds3List
 
-def rotationMatrixAboutAxis(rotAxis, theta):
-    """
-    Generate the rotation matrix for rotation about an axis.
-    :param rotAxis: axis of rotation
-    :param theta: angle of rotation
-    :return: rotation matrix
-    """
-    cosTheta = math.cos(theta)
-    sinTheta = math.sin(theta)
-    C = 1 - cosTheta
-    rotMatrix = ([[rotAxis[0]*rotAxis[0]*C + cosTheta, rotAxis[0]*rotAxis[1]*C - rotAxis[2]*sinTheta, rotAxis[0]*rotAxis[2]*C + rotAxis[1]*sinTheta],
-        [rotAxis[1]*rotAxis[0]*C + rotAxis[2]*sinTheta, rotAxis[1]*rotAxis[1]*C + cosTheta, rotAxis[1]*rotAxis[2]*C - rotAxis[0]*sinTheta],
-        [rotAxis[2]*rotAxis[0]*C - rotAxis[1]*sinTheta, rotAxis[2]*rotAxis[1]*C + rotAxis[0]*sinTheta, rotAxis[2]*rotAxis[2]*C + cosTheta]])
-    return rotMatrix
