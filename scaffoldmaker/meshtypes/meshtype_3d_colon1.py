@@ -6,7 +6,7 @@ variable radius and thickness along.
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.matrix import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.tubemesh2 import *
+from scaffoldmaker.utils.tubemesh import *
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
