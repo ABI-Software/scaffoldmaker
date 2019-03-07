@@ -118,6 +118,7 @@ class MeshType_3d_haustra1(Scaffold_base):
 
         nodeIdentifier = 1
         zero = [0.0, 0.0, 0.0]
+        annotationGroups = []
         d3InnerUnitList = []
         xList = []
         dx_ds1List = []
@@ -208,6 +209,8 @@ class MeshType_3d_haustra1(Scaffold_base):
 
         fm.endChange()
 
+        return annotationGroups
+
     @classmethod
     def generateMesh(cls, region, options):
         """
@@ -224,10 +227,11 @@ class MeshType_3d_haustra1(Scaffold_base):
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
-        cls.generateBaseMesh(baseRegion, options)
+        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
 
-        meshrefinement = MeshRefinement(baseRegion, region)
+        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
+        return meshrefinement.getAnnotationGroups()
 
 def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
         haustraInnerRadiusFactor, haustrumSegmentEndDerivativeFactor, haustrumSegmentMidDerivativeFactor, haustraSegmentLength):
