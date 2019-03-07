@@ -495,4 +495,3 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
             dx_ds3List.append(dx_ds3)
 
     return xList, dx_ds1List, dx_ds2List, dx_ds3List
-
