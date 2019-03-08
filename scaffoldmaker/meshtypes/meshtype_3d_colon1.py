@@ -100,8 +100,10 @@ class MeshType_3d_colon1(Scaffold_base):
         # find arclength of colon
         length = 0.0
         elementsCountIn = len(cx) - 1
+        sd1 = smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections = True,
+            magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
         for e in range(elementsCountIn):
-            arcLength = computeCubicHermiteArcLength(cx[e], cd1[e], cx[e + 1], cd1[e + 1], rescaleDerivatives = True)
+            arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
         haustraSegmentLength = length / haustraSegmentCount
 
