@@ -52,7 +52,7 @@ def generatetubemesh(region,
     elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
-    sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountAlong, arcLengthDerivatives = True)
+    sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
 
     # Find unit normals and binormals at each sample points
     sNormal = []
@@ -76,10 +76,7 @@ def generatetubemesh(region,
         cp = crossproduct3(prevUnitTangent, unitTangent)
         if magnitude(cp)> 0.0:
             axisRot = normalise(cp)
-            dp = dotproduct(prevUnitTangent, unitTangent)
-            if (dp - 1.0) > 0.0 and (dp - 1.0) < 1e-6:
-                dp = 1.0
-            thetaRot = math.acos(dp)
+            thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
             rotFrame = getRotationMatrixFromAxisAngle(axisRot, thetaRot)
             rotNormal = [rotFrame[j][0]*prevUnitNormal[0] + rotFrame[j][1]*prevUnitNormal[1] + rotFrame[j][2]*prevUnitNormal[2] for j in range(3)]
             unitNormal = normalise(rotNormal)
