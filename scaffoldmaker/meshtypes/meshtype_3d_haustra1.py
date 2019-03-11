@@ -32,7 +32,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Haustrum length end derivative factor': 0.5,
             'Haustrum length mid derivative factor': 1.0,
             'Wall thickness': 0.01,
-            'Haustra segment length': 1.0,
+            'Haustrum length': 1.0,
             'Use cross derivatives' : False,
             'Use linear through wall' : False,
             'Refine' : False,
@@ -53,7 +53,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Haustrum length end derivative factor',
             'Haustrum length mid derivative factor',
             'Wall thickness',
-            'Haustra segment length',
+            'Haustrum length',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -83,7 +83,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Haustrum length end derivative factor',
             'Haustrum length mid derivative factor',
             'Wall thickness',
-            'Haustra segment length']:
+            'Haustrum length']:
             if options[key] < 0.0:
                 options[key] = 0.0
         if options['Corner inner radius factor'] < 0.1:
@@ -111,7 +111,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
         haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
         wallThickness = options['Wall thickness']
-        haustraSegmentLength = options['Haustra segment length']
+        haustrumLength = options['Haustrum length']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = elementsCountAlongHaustrum
@@ -158,7 +158,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         result = elementtemplate.defineField(coordinates, -1, eft)
 
         xInnerList, d1InnerList, d2InnerList, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-            haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustraSegmentLength)
+            haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         for n in range(len(xInnerList)):
             dx_ds3 = crossproduct3(normalise(d1InnerList[n]), normalise(d2InnerList[n]))
@@ -234,7 +234,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         return meshrefinement.getAnnotationGroups()
 
 def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-        haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustraSegmentLength):
+        haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
     """
     Generates a 3-D haustra segment mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -255,7 +255,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     length to scale derivative along the end of a haustrum length.
     :param haustrumLengthMidDerivativeFactor: Factor is multiplied by haustrum
     length to scale derivative along the mid length of the haustrum.
-    :param haustraSegmentLength: Length of a haustra segment.
+    :param haustrumLength: Length of a haustrum.
     :return: coordinates, derivatives on inner surface of haustra segment.
     """
 
@@ -352,18 +352,18 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     for n1 in range(elementsCountAround):
         if n1%(elementsCountAround/3) > 0.0:
             v1 = [xInner[n1][0], xInner[n1][1], 0.0]
-            startArcLength = haustrumLengthEndDerivativeFactor * haustraSegmentLength
+            startArcLength = haustrumLengthEndDerivativeFactor * haustrumLength
             d1 = [ c*startArcLength for c in unitZ]
-            v2 = [xHaustraInner[n1][0], xHaustraInner[n1][1], haustraSegmentLength/2]
-            midArcLength = haustrumLengthMidDerivativeFactor * haustraSegmentLength
+            v2 = [xHaustraInner[n1][0], xHaustraInner[n1][1], haustrumLength/2]
+            midArcLength = haustrumLengthMidDerivativeFactor * haustrumLength
             d2 = [ c*midArcLength for c in unitZ]
-            v3 = [xInner[n1][0], xInner[n1][1], haustraSegmentLength]
+            v3 = [xInner[n1][0], xInner[n1][1], haustrumLength]
             d3 = [ c*startArcLength for c in unitZ]
         else:
             v1 = [xInner[n1][0], xInner[n1][1], 0.0]
-            v2 = [xInner[n1][0], xInner[n1][1], haustraSegmentLength/2]
-            v3 = [xInner[n1][0], xInner[n1][1], haustraSegmentLength]
-            d3 = d2 = d1 = [c* haustraSegmentLength/3 for c in unitZ]
+            v2 = [xInner[n1][0], xInner[n1][1], haustrumLength/2]
+            v3 = [xInner[n1][0], xInner[n1][1], haustrumLength]
+            d3 = d2 = d1 = [c* haustrumLength/3 for c in unitZ]
         nx = [v1, v2, v3]
         nd1 = [d1, d2, d3]
         sx, sd1, se, sxi, _  = sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustrum)
@@ -394,9 +394,9 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
                         unitdx_ds1 = normalise(d1InnerHaustra[n1])
                     else: # points on clover
                         if elementsCountAlongHaustrum > 3:
-                            if n2 < int(elementsCountAlongHaustrum/2): # first half of haustraSegmentLength
+                            if n2 < int(elementsCountAlongHaustrum/2): # first half of haustrumLength
                                 axisRot = crossproduct3(unitZ, unitTangent)
-                            elif n2 > int(elementsCountAlongHaustrum/2): # second half of haustraSegmentLength
+                            elif n2 > int(elementsCountAlongHaustrum/2): # second half of haustrumLength
                                 axisRot = crossproduct3(unitTangent, unitZ)
                         elif elementsCountAlongHaustrum == 3: # 3 elementsAlongHaustrum
                             axisRot = crossproduct3(unitTangent, unitZ)

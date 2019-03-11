@@ -48,7 +48,7 @@ class MeshType_3d_colon1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         optionNames = MeshType_3d_haustra1.getOrderedOptionNames()
-        optionNames.remove('Haustra segment length')
+        optionNames.remove('Haustrum length')
         for optionName in [
             'Number of haustra segments',
             'Tube type']:
@@ -105,15 +105,15 @@ class MeshType_3d_colon1(Scaffold_base):
         for e in range(elementsCountIn):
             arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
-        haustraSegmentLength = length / haustraSegmentCount
+        haustrumLength = length / haustraSegmentCount
 
         # Generate inner surface of a haustra segment
         xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-            haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustraSegmentLength)
+            haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
-            cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustraSegmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
 
