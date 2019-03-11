@@ -8,7 +8,8 @@ from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
-from scaffoldmaker.meshtypes.meshtype_3d_centrallinetube1 import MeshType_3d_centrallinetube1
+from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
+from scaffoldmaker.meshtypes.meshtype_3d_haustra1 import MeshType_3d_haustra1
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
 from scaffoldmaker.meshtypes.meshtype_3d_heart2 import MeshType_3d_heart2
 from scaffoldmaker.meshtypes.meshtype_3d_heartarterialroot1 import MeshType_3d_heartarterialroot1
@@ -37,7 +38,8 @@ class Scaffolds(object):
             MeshType_2d_tube1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
-            MeshType_3d_centrallinetube1,
+            MeshType_3d_colon1,
+            MeshType_3d_haustra1,
             MeshType_3d_heart1,
             MeshType_3d_heart2,
             MeshType_3d_heartarterialroot1,
