@@ -115,99 +115,18 @@ class MeshType_3d_haustra1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = elementsCountAlongHaustrum
+        haustraSegmentCount = 1
 
-        nodeIdentifier = 1
-        zero = [0.0, 0.0, 0.0]
-        annotationGroups = []
-        d3InnerUnitList = []
-        xList = []
-        dx_ds1List = []
-        dx_ds2List = []
-        dx_ds3List = []
+        cx = [ [ 0.0, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
+        cd1 = [ [ haustrumLength, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
 
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        cache = fm.createFieldcache()
-        coordinates = getOrCreateCoordinateField(fm)
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if useCrossDerivatives:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-        if useCubicHermiteThroughWall:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-            if useCrossDerivatives:
-                nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
-                nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
-                nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-
-        mesh = fm.findMeshByDimension(3)
-
-        if useCubicHermiteThroughWall:
-            eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        else:
-            eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = eftfactory.createEftBasic()
-
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate.defineField(coordinates, -1, eft)
-
-        xInnerList, d1InnerList, d2InnerList, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+        # Generate inner surface of a haustra segment
+        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
             haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
-        for n in range(len(xInnerList)):
-            dx_ds3 = crossproduct3(normalise(d1InnerList[n]), normalise(d2InnerList[n]))
-            unitdx_ds3 = normalise(dx_ds3)
-            d3InnerUnitList.append(unitdx_ds3)
-
-        # Pre-calculate node locations and derivatives on outer boundary
-        xOuterList, curvatureInner = getOuterCoordinatesAndCurvatureFromInner(xInnerList, d1InnerList, d3InnerUnitList, wallThickness, elementsCountAlong, elementsCountAround)
-
-        # Interpolate to get nodes through wall
-        for n3 in range(elementsCountThroughWall + 1):
-            xi3 = 1/elementsCountThroughWall * n3
-            x, dx_ds1, dx_ds2, dx_ds3 = interpolatefromInnerAndOuter( xInnerList, xOuterList, wallThickness, xi3, curvatureInner, d1InnerList, d2InnerList, d3InnerUnitList, elementsCountAround, elementsCountAlong, elementsCountThroughWall)
-            xList = xList + x
-            dx_ds1List = dx_ds1List + dx_ds1
-            dx_ds2List = dx_ds2List + dx_ds2
-            dx_ds3List = dx_ds3List + dx_ds3
-
-        for n in range(len(xList)):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xList[n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1List[n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2List[n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3List[n])
-            # print('NodeIdentifier = ', nodeIdentifier, xList[n])
-            if useCrossDerivatives:
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-            nodeIdentifier = nodeIdentifier + 1
-
-        # create elements
-        elementIdentifier = 1 # nextElementIdentifier
-        now = (elementsCountAlong + 1)*elementsCountAround
-        for e3 in range(elementsCountThroughWall):
-            for e2 in range(elementsCountAlong):
-                for e1 in range(elementsCountAround):
-                    element = mesh.createElement(elementIdentifier, elementtemplate)
-                    bni11 = e3*now + e2*elementsCountAround + e1 + 1
-                    bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
-                    bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
-                    bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
-                    nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
-                    result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                    elementIdentifier = elementIdentifier + 1
-
-        fm.endChange()
+        # Generate tube mesh
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
+            cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
 
