@@ -78,7 +78,7 @@ class MeshType_3d_colon1(Scaffold_base):
         haustraSegmentCount = options['Number of haustra segments']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
-        haustraInnerRadiusFactor = options['Haustra inner radius factor']
+        haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
         haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
         haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
         wallThickness = options['Wall thickness']
@@ -109,7 +109,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Generate inner surface of a haustra segment
         xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-            haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
+            haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,

@@ -28,7 +28,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Number of elements through wall' : 1,
             'Inner radius': 0.5,
             'Corner inner radius factor': 0.5,
-            'Haustra inner radius factor': 0.5,
+            'Haustrum inner radius factor': 0.5,
             'Haustrum length end derivative factor': 0.5,
             'Haustrum length mid derivative factor': 1.0,
             'Wall thickness': 0.01,
@@ -49,7 +49,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Number of elements through wall',
             'Inner radius',
             'Corner inner radius factor',
-            'Haustra inner radius factor',
+            'Haustrum inner radius factor',
             'Haustrum length end derivative factor',
             'Haustrum length mid derivative factor',
             'Wall thickness',
@@ -79,7 +79,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             options['Number of elements along haustrum'] = 2
         for key in [
             'Inner radius',
-            'Haustra inner radius factor',
+            'Haustrum inner radius factor',
             'Haustrum length end derivative factor',
             'Haustrum length mid derivative factor',
             'Wall thickness',
@@ -107,7 +107,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         elementsCountThroughWall = options['Number of elements through wall']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
-        haustraInnerRadiusFactor = options['Haustra inner radius factor']
+        haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
         haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
         haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
         wallThickness = options['Wall thickness']
@@ -158,7 +158,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         result = elementtemplate.defineField(coordinates, -1, eft)
 
         xInnerList, d1InnerList, d2InnerList, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-            haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
+            haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         for n in range(len(xInnerList)):
             dx_ds3 = crossproduct3(normalise(d1InnerList[n]), normalise(d2InnerList[n]))
@@ -234,7 +234,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         return meshrefinement.getAnnotationGroups()
 
 def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-        haustraInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
+        haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
     """
     Generates a 3-D haustra segment mesh with variable numbers
     of elements around, along the central line, and through wall.
@@ -248,7 +248,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     :param cornerInnerRadiusFactor: Roundness of triangular corners of
     interhaustral septa. Factor is multiplied by inner radius
     to get a radius of curvature at the corners.
-    :param haustraInnerRadiusFactor: Factor is multiplied by inner
+    :param haustrumInnerRadiusFactor: Factor is multiplied by inner
     radius to obtain radius of intersecting circles in the middle cross-section
     along a haustra segment.
     :param haustrumLengthEndDerivativeFactor: Factor is multiplied by haustrum
@@ -267,7 +267,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     radiansRangeRC = [7*math.pi/4, 0.0, math.pi/4]
     cornerRC = cornerInnerRadiusFactor*radius
     unitZ = [0.0, 0.0, 1.0]
-    haustraRadius = (haustraInnerRadiusFactor + 1)*radius
+    haustrumRadius = (haustrumInnerRadiusFactor + 1)*radius
     xAround = []
     d1Around = []
     xInner = []
@@ -310,8 +310,8 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     elementsCountAroundSide = int(elementsCountAround/3)
     Ax = xInner[elementsCountAroundSide][0]
     Ay = xInner[elementsCountAroundSide][1]
-    originRC = (Ax*Ax + Ay*Ay - haustraRadius*haustraRadius) / (2*(-Ax - haustraRadius))
-    RC = haustraRadius - originRC
+    originRC = (Ax*Ax + Ay*Ay - haustrumRadius*haustrumRadius) / (2*(-Ax - haustrumRadius))
+    RC = haustrumRadius - originRC
 
     if originRC > -Ax:
         startTheta = math.asin(Ay/RC)
