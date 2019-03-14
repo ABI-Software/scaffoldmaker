@@ -28,9 +28,13 @@ class MeshType_3d_heart1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Mouse 1',
             'Pig 1',
+            'Rat 1',
             'Unit Human 1',
-            'Unit Pig 1']
+            'Unit Mouse 1',
+            'Unit Pig 1',
+            'Unit Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
