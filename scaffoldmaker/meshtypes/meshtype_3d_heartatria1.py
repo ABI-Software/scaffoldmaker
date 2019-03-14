@@ -31,9 +31,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Mouse 1',
             'Pig 1',
+            'Rat 1',
             'Unit Human 1',
-            'Unit Pig 1']
+            'Unit Mouse 1',
+            'Unit Pig 1',
+            'Unit Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -87,6 +91,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
         if 'Human' in parameterSetName:
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 80.0
+        elif 'Mouse' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 5.0
+            options['Number of left pulmonary veins'] = 1
+            options['Left pulmonary vein angle up degrees'] = 30.0
+            options['Left pulmonary vein inner diameter'] = 0.16
+            options['Left pulmonary vein wall thickness'] = 0.011
+            options['Right pulmonary vein angle up degrees'] = 10.0
+            options['Right pulmonary vein inner diameter'] = 0.15
+            options['Right pulmonary vein wall thickness'] = 0.011
+            options['Superior vena cava inner diameter'] = 0.17
+            options['Superior vena cava wall thickness'] = 0.012
         elif 'Pig' in parameterSetName:
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 80.0
@@ -98,6 +114,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Right pulmonary vein wall thickness'] = 0.011
             options['Inferior vena cava angle left degrees'] = 50.0
             options['Superior vena cava angle up degrees'] = 30.0
+        elif 'Rat' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 12.0
+            options['Number of left pulmonary veins'] = 1
+            options['Left pulmonary vein angle up degrees'] = 30.0
+            options['Left pulmonary vein inner diameter'] = 0.16
+            options['Left pulmonary vein wall thickness'] = 0.011
+            options['Right pulmonary vein angle up degrees'] = 10.0
+            options['Right pulmonary vein inner diameter'] = 0.15
+            options['Right pulmonary vein wall thickness'] = 0.011
+            options['Superior vena cava inner diameter'] = 0.17
+            options['Superior vena cava wall thickness'] = 0.012
         return options
 
     @staticmethod

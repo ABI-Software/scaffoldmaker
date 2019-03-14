@@ -38,9 +38,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Mouse 1',
             'Pig 1',
+            'Rat 1',
             'Unit Human 1',
-            'Unit Pig 1']
+            'Unit Mouse 1',
+            'Unit Pig 1',
+            'Unit Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -76,8 +80,12 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Ventricles translation y'] = -0.2
         if 'Human' in parameterSetName:
             pass
+        elif 'Mouse' in parameterSetName:
+            options['LV outer height'] = 1.0
         elif 'Pig' in parameterSetName:
             options['RV outlet left incline degrees'] = 10.0
+        elif 'Rat' in parameterSetName:
+            pass
         return options
 
     @staticmethod
