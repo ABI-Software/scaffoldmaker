@@ -243,6 +243,107 @@ def generatetubemesh(region,
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
 
+    # Create texture coordinates
+    textureCoordinates = getOrCreateTextureCoordinateField(fm)
+    textureNodetemplate1 = nodes.createNodetemplate()
+    textureNodetemplate1.defineField(textureCoordinates)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+    textureNodetemplate2 = nodes.createNodetemplate()
+    textureNodetemplate2.defineField(textureCoordinates)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+    if useCrossDerivatives:
+        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+    bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+    eftTexture = bicubichermitelinear.createEftBasic()
+
+    elementtemplate1 = mesh.createElementtemplate()
+    elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate1.defineField(textureCoordinates, -1, eftTexture)
+
+    eftTexture2 = bicubichermitelinear.createEftOpenTube()
+    elementtemplate2 = mesh.createElementtemplate()
+    elementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
+
+    # Calculate texture coordinates and derivatives
+    uTexture = []
+    d1Texture = []
+    d2Texture = []
+    for n3 in range(elementsCountThroughWall + 1):
+        for n2 in range(elementsCountAlong + 1):
+            for n1 in range(elementsCountAround + 1):
+                u = [ 1.0 / elementsCountAround * n1,
+                    1.0 / elementsCountAlong * n2,
+                    wallThickness / elementsCountThroughWall * n3]
+                d1 = [1.0 / elementsCountAround, 0.0, 0.0]
+                d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
+                uTexture.append(u)
+                d1Texture.append(d1)
+                d2Texture.append(d2)
+
+    nodeIdentifier = nextNodeIdentifier
+    for n in range(len(uTexture)):
+        if n%(elementsCountAround+1) == 0.0:
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            node.merge(textureNodetemplate2)
+            cache.setNode(node)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, uTexture[n])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[n])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[n])
+            endIdx = n + elementsCountAround
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, uTexture[endIdx])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Texture[endIdx])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Texture[endIdx])
+            if useCrossDerivatives:
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+            nodeIdentifier = nodeIdentifier + 1
+        elif (n+1)%(elementsCountAround+1) > 0:
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            node.merge(textureNodetemplate1)
+            cache.setNode(node)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, uTexture[n])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[n])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[n])
+            if useCrossDerivatives:
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            nodeIdentifier = nodeIdentifier + 1
+
+    # create texture coordinate elements
+    elementIdentifier = nextElementIdentifier
+    now = (elementsCountAlong + 1)*elementsCountAround
+    for e3 in range(elementsCountThroughWall):
+        for e2 in range(elementsCountAlong):
+            for e1 in range(elementsCountAround):
+                if e1 < elementsCountAround - 1:
+                    element = mesh.findElementByIdentifier(elementIdentifier)
+                    element.merge(elementtemplate1)
+                    bni11 = e3*now + e2*elementsCountAround + e1 + 1
+                    bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                    bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
+                    bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                    nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
+                    result = element.setNodesByIdentifier(eftTexture, nodeIdentifiers)
+                else:
+                    element = mesh.findElementByIdentifier(elementIdentifier)
+                    element.merge(elementtemplate2)
+                    # element = mesh.createElement(elementIdentifier, elementtemplate2)
+                    bni11 = e3*now + e2*elementsCountAround + e1 + 1
+                    bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                    bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
+                    bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                    nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now]
+                    result2 = element.setNodesByIdentifier(eftTexture2, nodeIdentifiers)
+                elementIdentifier = elementIdentifier + 1
+
     fm.endChange()
 
     return annotationGroups, nodeIdentifier, elementIdentifier
