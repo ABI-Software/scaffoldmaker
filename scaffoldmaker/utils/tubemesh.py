@@ -71,7 +71,7 @@ def generatetubemesh(region,
 
     # Step through central line and rotate central line axes to align tangent 
     # to tangent from previous frame
-    for n in range(1, elementsCountAlong+1):
+    for n in range(1, elementsCountAlong + 1):
         unitTangent = normalise(sd1[n])
         cp = crossproduct3(prevUnitTangent, unitTangent)
         if magnitude(cp)> 0.0:
@@ -138,7 +138,7 @@ def generatetubemesh(region,
 
     # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
-        for nAlongSegment in range(elementsCountAlongSegment+1):
+        for nAlongSegment in range(elementsCountAlongSegment + 1):
             n2 = nSegment*elementsCountAlongSegment + nAlongSegment
             if nSegment == 0 or (nSegment > 0 and nAlongSegment > 0):
                 # Rotate to align segment axis with tangent of central line
@@ -236,9 +236,9 @@ def generatetubemesh(region,
             for e1 in range(elementsCountAround):
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 bni11 = e3*now + e2*elementsCountAround + e1 + 1
-                bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                bni12 = e3*now + e2*elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
-                bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
@@ -274,46 +274,32 @@ def generatetubemesh(region,
     elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
 
     # Calculate texture coordinates and derivatives
-    uTexture = []
-
-    for n3 in range(elementsCountThroughWall + 1):
-        for n2 in range(elementsCountAlong + 1):
-            for n1 in range(elementsCountAround + 1):
-                u = [ 1.0 / elementsCountAround * n1,
-                    1.0 / elementsCountAlong * n2,
-                    1.0 / elementsCountThroughWall * n3]
-                uTexture.append(u)
-
     d1 = [1.0 / elementsCountAround, 0.0, 0.0]
     d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
 
     nodeIdentifier = firstNodeIdentifier
-    for n in range(len(uTexture)):
-        if n%(elementsCountAround+1) == 0.0:
-            node = nodes.findNodeByIdentifier(nodeIdentifier)
-            node.merge(textureNodetemplate2)
-            cache.setNode(node)
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, uTexture[n])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-            endIdx = n + elementsCountAround
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, uTexture[endIdx])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
-            if useCrossDerivatives:
-                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
-            nodeIdentifier = nodeIdentifier + 1
-        elif (n+1)%(elementsCountAround+1) > 0:
-            node = nodes.findNodeByIdentifier(nodeIdentifier)
-            node.merge(textureNodetemplate1)
-            cache.setNode(node)
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, uTexture[n])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-            if useCrossDerivatives:
-                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-            nodeIdentifier = nodeIdentifier + 1
+    for n3 in range(elementsCountThroughWall + 1):
+        for n2 in range(elementsCountAlong + 1):
+            for n1 in range(elementsCountAround):
+                u = [ 1.0 / elementsCountAround * n1,
+                    1.0 / elementsCountAlong * n2,
+                    1.0 / elementsCountThroughWall * n3]
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
+                cache.setNode(node)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, u)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                if useCrossDerivatives:
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                if n1 == 0:
+                    u = [ 1.0, 1.0 / elementsCountAlong * n2, 1.0 / elementsCountThroughWall * n3]
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, u)
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
+                    if useCrossDerivatives:
+                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+                nodeIdentifier = nodeIdentifier + 1
 
     # define texture coordinates field over elements
     elementIdentifier = firstElementIdentifier
@@ -326,9 +312,9 @@ def generatetubemesh(region,
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 element.merge(elementtemplate2 if onOpening else elementtemplate1)
                 bni11 = e3*now + e2*elementsCountAround + e1 + 1
-                bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                bni12 = e3*now + e2*elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
-                bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
                 element.setNodesByIdentifier(eftTexture2 if onOpening else eftTexture1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
@@ -357,8 +343,8 @@ def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThick
         for n1 in range(elementsCountAround):
             n = n2*elementsCountAround + n1
             x = [xInner[n][i] + d3Inner[n][i]*wallThickness for i in range(3)]
-            prevIdx = n-1 if (n1 != 0) else (n2+1)*elementsCountAround - 1
-            nextIdx = n+1 if (n1 < elementsCountAround-1) else n2*elementsCountAround
+            prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
+            nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
             norm = d3Inner[n]
             curvatureAround = 0.5*(
                 getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0) +
@@ -390,7 +376,7 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
     dx_ds2List = []
     dx_ds3List =[]
 
-    for n2 in range(elementsCountAlong+1):
+    for n2 in range(elementsCountAlong + 1):
         for n1 in range(elementsCountAround):
             n = n2*elementsCountAround + n1
             norm = d3InnerUnit[n]
@@ -406,16 +392,16 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
             dx_ds1List.append(dx_ds1)
             # dx_ds2
             if n2 > 0 and n2 < elementsCountAlong:
-                prevIdx = (n2-1)*elementsCountAround + n1
-                nextIdx = (n2+1)*elementsCountAround + n1
+                prevIdx = (n2 - 1)*elementsCountAround + n1
+                nextIdx = (n2 + 1)*elementsCountAround + n1
                 curvatureAround = 0.5*(
-                    getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0)+
+                    getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0) +
                     getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0))
             elif n2 == 0:
-                nextIdx = (n2+1)*elementsCountAround + n1
+                nextIdx = (n2 + 1)*elementsCountAround + n1
                 curvatureAround = getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0)
             else:
-                prevIdx = (n2-1)*elementsCountAround + n1
+                prevIdx = (n2 - 1)*elementsCountAround + n1
                 curvatureAround = getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0)
 
             factor = 1.0 - curvatureAround*thickness*xi3
