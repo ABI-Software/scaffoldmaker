@@ -275,19 +275,17 @@ def generatetubemesh(region,
 
     # Calculate texture coordinates and derivatives
     uTexture = []
-    d1Texture = []
-    d2Texture = []
+
     for n3 in range(elementsCountThroughWall + 1):
         for n2 in range(elementsCountAlong + 1):
             for n1 in range(elementsCountAround + 1):
                 u = [ 1.0 / elementsCountAround * n1,
                     1.0 / elementsCountAlong * n2,
                     1.0 / elementsCountThroughWall * n3]
-                d1 = [1.0 / elementsCountAround, 0.0, 0.0]
-                d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
                 uTexture.append(u)
-                d1Texture.append(d1)
-                d2Texture.append(d2)
+
+    d1 = [1.0 / elementsCountAround, 0.0, 0.0]
+    d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
 
     nodeIdentifier = firstNodeIdentifier
     for n in range(len(uTexture)):
@@ -296,12 +294,12 @@ def generatetubemesh(region,
             node.merge(textureNodetemplate2)
             cache.setNode(node)
             textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, uTexture[n])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[n])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[n])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
             endIdx = n + elementsCountAround
             textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, uTexture[endIdx])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Texture[endIdx])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Texture[endIdx])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
             if useCrossDerivatives:
                 textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
@@ -311,8 +309,8 @@ def generatetubemesh(region,
             node.merge(textureNodetemplate1)
             cache.setNode(node)
             textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, uTexture[n])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[n])
-            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[n])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
             if useCrossDerivatives:
                 textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             nodeIdentifier = nodeIdentifier + 1
