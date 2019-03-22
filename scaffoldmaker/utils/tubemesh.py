@@ -317,7 +317,7 @@ def generatetubemesh(region,
                 textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             nodeIdentifier = nodeIdentifier + 1
 
-    # create texture coordinate elements
+    # define texture coordinates field over elements
     elementIdentifier = firstElementIdentifier
     now = (elementsCountAlong + 1)*elementsCountAround
     for e3 in range(elementsCountThroughWall):
