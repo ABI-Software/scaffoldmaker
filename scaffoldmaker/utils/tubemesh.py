@@ -243,7 +243,7 @@ def generatetubemesh(region,
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
 
-    # Create texture coordinates
+    # Define texture coordinates field
     textureCoordinates = getOrCreateTextureCoordinateField(fm)
     textureNodetemplate1 = nodes.createNodetemplate()
     textureNodetemplate1.defineField(textureCoordinates)
