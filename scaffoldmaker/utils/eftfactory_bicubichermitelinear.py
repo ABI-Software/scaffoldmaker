@@ -210,8 +210,9 @@ class eftfactory_bicubichermitelinear:
     def createEftOpenTube(self):
         '''
         Create a basic bicubic hermite linear element template for elements
-        along boundary where a tube is opened for a flat preparation. Retain node
-        numbering with two versions for boundary nodes.
+        along boundary where a tube is opened on xi1 = 1 for a flat preparation.
+        Could eventually have 6 variants. Retain node numbering with two versions
+        for boundary nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
