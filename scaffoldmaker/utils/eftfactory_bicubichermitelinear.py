@@ -223,5 +223,5 @@ class eftfactory_bicubichermitelinear:
             if self._useCrossDerivatives:
                 eft.setTermNodeParameter(n*4 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 2)
 
-        assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftFlattenTube:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftOpenTube:  Failed to validate eft'
         return eft
