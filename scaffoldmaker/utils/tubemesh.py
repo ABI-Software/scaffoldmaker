@@ -262,11 +262,11 @@ def generatetubemesh(region,
         textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
 
     bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-    eftTexture = bicubichermitelinear.createEftBasic()
+    eftTexture1 = bicubichermitelinear.createEftBasic()
 
     elementtemplate1 = mesh.createElementtemplate()
     elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    elementtemplate1.defineField(textureCoordinates, -1, eftTexture)
+    elementtemplate1.defineField(textureCoordinates, -1, eftTexture1)
 
     eftTexture2 = bicubichermitelinear.createEftOpenTube()
     elementtemplate2 = mesh.createElementtemplate()
@@ -320,28 +320,19 @@ def generatetubemesh(region,
     # define texture coordinates field over elements
     elementIdentifier = firstElementIdentifier
     now = (elementsCountAlong + 1)*elementsCountAround
+
     for e3 in range(elementsCountThroughWall):
         for e2 in range(elementsCountAlong):
             for e1 in range(elementsCountAround):
-                if e1 < elementsCountAround - 1:
-                    element = mesh.findElementByIdentifier(elementIdentifier)
-                    element.merge(elementtemplate1)
-                    bni11 = e3*now + e2*elementsCountAround + e1 + 1
-                    bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
-                    bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
-                    bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
-                    nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
-                    result = element.setNodesByIdentifier(eftTexture, nodeIdentifiers)
-                else:
-                    element = mesh.findElementByIdentifier(elementIdentifier)
-                    element.merge(elementtemplate2)
-                    # element = mesh.createElement(elementIdentifier, elementtemplate2)
-                    bni11 = e3*now + e2*elementsCountAround + e1 + 1
-                    bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
-                    bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
-                    bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
-                    nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now]
-                    result2 = element.setNodesByIdentifier(eftTexture2, nodeIdentifiers)
+                onOpening = e1 > elementsCountAround - 2
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                element.merge(elementtemplate2 if onOpening else elementtemplate1)
+                bni11 = e3*now + e2*elementsCountAround + e1 + 1
+                bni12 = e3*now + e2*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
+                bni22 = e3*now + (e2 + 1)*elementsCountAround + (e1 + 1)%elementsCountAround + 1
+                nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
+                element.setNodesByIdentifier(eftTexture2 if onOpening else eftTexture1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
 
     fm.endChange()
