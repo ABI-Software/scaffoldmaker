@@ -25,7 +25,7 @@ def generatetubemesh(region,
     segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
-    nextNodeIdentifier = 1, nextElementIdentifier = 1
+    firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
     Generates a 3-D tubular mesh with variable numbers of elements
@@ -45,7 +45,7 @@ def generatetubemesh(region,
     :param segmentAxis: axis of segment profile
     :param segmentLength: length of segment profile
     :param useCubicHermiteThroughWall: use linear when false
-    :return: annotationGroups, nextNodeIdentifier, nextElementIdentifier
+    :return: annotationGroups, nodeIdentifier, elementIdentifier
     '''
     zero  = [0.0, 0.0, 0.0]
     annotationGroups = []
@@ -122,7 +122,7 @@ def generatetubemesh(region,
     result = elementtemplate.defineField(coordinates, -1, eft)
 
     # create nodes
-    nodeIdentifier = nextNodeIdentifier
+    nodeIdentifier = firstNodeIdentifier
     x = [ 0.0, 0.0, 0.0 ]
     dx_ds1 = [ 0.0, 0.0, 0.0 ]
     dx_ds2 = [ 0.0, 0.0, 0.0 ]
@@ -229,7 +229,7 @@ def generatetubemesh(region,
         # nodeIdentifier = nodeIdentifier + 1
 
     # create elements
-    elementIdentifier = nextElementIdentifier
+    elementIdentifier = firstElementIdentifier
     now = (elementsCountAlong + 1)*elementsCountAround
     for e3 in range(elementsCountThroughWall):
         for e2 in range(elementsCountAlong):
@@ -289,7 +289,7 @@ def generatetubemesh(region,
                 d1Texture.append(d1)
                 d2Texture.append(d2)
 
-    nodeIdentifier = nextNodeIdentifier
+    nodeIdentifier = firstNodeIdentifier
     for n in range(len(uTexture)):
         if n%(elementsCountAround+1) == 0.0:
             node = nodes.findNodeByIdentifier(nodeIdentifier)
@@ -318,7 +318,7 @@ def generatetubemesh(region,
             nodeIdentifier = nodeIdentifier + 1
 
     # create texture coordinate elements
-    elementIdentifier = nextElementIdentifier
+    elementIdentifier = firstElementIdentifier
     now = (elementsCountAlong + 1)*elementsCountAround
     for e3 in range(elementsCountThroughWall):
         for e2 in range(elementsCountAlong):
