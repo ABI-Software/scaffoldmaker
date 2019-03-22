@@ -33,9 +33,13 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Mouse 1',
             'Pig 1',
+            'Rat 1',
             'Unit Human 1',
-            'Unit Pig 1']
+            'Unit Mouse 1',
+            'Unit Pig 1',
+            'Unit Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -70,6 +74,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 80.0
             options['LV outer height'] = 0.9
+        elif 'Mouse' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 5.0
+            options['LV apex thickness'] = 0.08
+            options['RV width'] = 0.35
         elif 'Pig' in parameterSetName:
             options['Number of elements up LV apex'] = 2
             options['Number of elements up RV'] = 3
@@ -81,6 +90,12 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             options['RV inner height fraction'] = 0.65
             options['RV width growth factor'] = 0.65
             options['Ventricular septum thickness'] = 0.12
+        elif 'Rat' in parameterSetName:
+            if 'Unit' not in parameterSetName:
+                options['Unit scale'] = 12.0
+            options['LV outer height'] = 0.9
+            options['LV apex thickness'] = 0.08
+            options['RV width'] = 0.35
         return options
 
     @staticmethod
