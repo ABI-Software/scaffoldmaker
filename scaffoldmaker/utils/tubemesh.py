@@ -282,7 +282,7 @@ def generatetubemesh(region,
             for n1 in range(elementsCountAround + 1):
                 u = [ 1.0 / elementsCountAround * n1,
                     1.0 / elementsCountAlong * n2,
-                    wallThickness / elementsCountThroughWall * n3]
+                    1.0 / elementsCountThroughWall * n3]
                 d1 = [1.0 / elementsCountAround, 0.0, 0.0]
                 d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
                 uTexture.append(u)
