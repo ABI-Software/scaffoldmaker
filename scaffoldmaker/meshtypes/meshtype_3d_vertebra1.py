@@ -33,8 +33,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 8,
-                'Number of elements up': 4,
+        return {'Number of elements around': 7,
+                'Number of elements up': 2,
                 # 'Number of elements through wall': 2,
                 # 'Major diameter': 1.1,
                 # 'Minor diameter': 0.9,
@@ -203,6 +203,9 @@ class MeshType_3d_vertebra1(Scaffold_base):
         """ Create nodes """
         nodeIdentifier = 1
 
+        nodesForLeftPedicleElement = list()
+        nodesForRightPedicleElement = list()
+
         # Create bottom node
         node = nodes.createNode(nodeIdentifier, nodetemplate)
         cache.setNode(node)
@@ -285,6 +288,13 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     # Calculate curvature to find d1 for node
                     unitNormal = normalise([aThroughWallElement * cosRadiansAround * sBinormal[n2][
                         j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)])
+
+                    # # append node ID for left pedicle element
+                    # if n1 == elementsCountAround - 1 and n2 == elementsCountUp // 2 and n3 == elementsCountThroughWall - 1:
+                    #     nodesForLeftPedicleElement.append(nodeIdentifier)
+                    # if n1 == elementsCountAround - 1 and n2 == elementsCountUp and n3 == elementsCountThroughWall - 1:
+                    #     nodesForLeftPedicleElement.append(nodeIdentifier)
+
                     if n2 == 0:
                         curvature = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2 + 1], sd1[n2 + 1], unitNormal, 0.0)
                     elif n2 == elementsCountUp:
@@ -360,9 +370,9 @@ class MeshType_3d_vertebra1(Scaffold_base):
         generalNodeIndentifier = nodeIdentifier
 
         # Collecting the posterior curve nodes
-        iList = list()
-        jList = list()
-        kList = list()
+        iNodeList = list()
+        jNodeList = list()
+        kNodeList = list()
 
         diff = elementsCountAround - elementsCountUp
 
@@ -374,17 +384,17 @@ class MeshType_3d_vertebra1(Scaffold_base):
                                 i = elementsCountUp + 2
                                 j = i + 1
                                 k = (i+elementsCountAround) - 1
-                            iList.append(i)
-                            jList.append(j)
-                            kList.append(k)
+                            iNodeList.append(i)
+                            jNodeList.append(j)
+                            kNodeList.append(k)
                         else:
                             for e1 in range(elementsCountAround):
                                 i = (e2 * elementsCountAround) + 2 + elementsCountUp
                                 j = i + 1
                                 k = (i+elementsCountAround) - 1
-                            iList.append(i)
-                            jList.append(j)
-                            kList.append(k)
+                            iNodeList.append(i)
+                            jNodeList.append(j)
+                            kNodeList.append(k)
             else:
                 nx = e3*((elementsCountUp * elementsCountAround) + elementsCountAround)
                 for e2 in range(elementsCountUp):
@@ -393,18 +403,18 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             i = (e1 * e2 * elementsCountAround + 2 + elementsCountUp) + nx
                             j = i + 1
                             k = (i+elementsCountAround) - 1
-                            iList.append(i)
-                            jList.append(j)
-                            kList.append(k)
+                            iNodeList.append(i)
+                            jNodeList.append(j)
+                            kNodeList.append(k)
 
         # Sampling arclength on the posterior curves
         samplePoints = 4
 
-        for n1 in range(len(iList)):
+        for n1 in range(len(iNodeList)):
             dx3List = list()
 
             # first node
-            cache.setNode(nodes.findNodeByIdentifier(kList[n1]))
+            cache.setNode(nodes.findNodeByIdentifier(kNodeList[n1]))
             result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
             result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
             result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
@@ -415,7 +425,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
             dx3List.append(dx3)
 
             # second node
-            cache.setNode(nodes.findNodeByIdentifier(iList[n1]))
+            cache.setNode(nodes.findNodeByIdentifier(iNodeList[n1]))
             result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
             result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
             result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
@@ -426,7 +436,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
             dx3List.append(dx3)
 
             # third node
-            cache.setNode(nodes.findNodeByIdentifier(jList[n1]))
+            cache.setNode(nodes.findNodeByIdentifier(jNodeList[n1]))
             result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
             result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
             result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
@@ -444,7 +454,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
             # move the i nodes slightly anteriorly
             v2[0] = v2[0] / depthFactor
-            cache.setNode(nodes.findNodeByIdentifier(iList[n1]))
+            cache.setNode(nodes.findNodeByIdentifier(iNodeList[n1]))
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, v2)
 
             # estimate the dx3 for the newly generated nodes in sxn.
@@ -476,6 +486,108 @@ class MeshType_3d_vertebra1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
                 nodeIdentifier = nodeIdentifier + 1
 
+        # """ PEDICLES TEST BEGIN """
+        # cache.setNode(nodes.findNodeByIdentifier(45))
+        # result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        # result, dx1_45 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        # result, dx2_45 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        # result, dx3_45 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        #
+        # dx4 = [(dx3_45[x] + (0.3*dx1_45[x])) / 2 for x in range(len(dx1_45))]
+        # x4 = [x1[x] + dx4[x] for x in range(len(dx4))]
+        # x4[0] = x4[0]*1.4
+        #
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x4)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2_45)
+        # if useCubicHermiteThroughWall:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        # if useCrossDerivatives:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+        #     if useCubicHermiteThroughWall:
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # nodeIdentifier = nodeIdentifier + 1
+        #
+        # cache.setNode(nodes.findNodeByIdentifier(56))
+        # result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        # result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        # result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        # result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        #
+        # dx4 = [(dx3[x] + (0.3*dx1[x])) / 2 for x in range(len(dx1))]
+        # x4 = [x1[x] + dx4[x] for x in range(len(dx4))]
+        # x4[0] = x4[0]*1.2
+        #
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x4)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
+        # if useCubicHermiteThroughWall:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        # if useCrossDerivatives:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+        #     if useCubicHermiteThroughWall:
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # nodeIdentifier = nodeIdentifier + 1
+        #
+        # cache.setNode(nodes.findNodeByIdentifier(38))
+        # result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        # result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        # result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        # result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        #
+        # dx4 = [(dx3[x] + (0.3*dx1[x])) / 2 for x in range(len(dx1))]
+        # x4 = [x1[x] + dx4[x] for x in range(len(dx4))]
+        # x4[0] = x4[0]*1.4
+        #
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x4)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
+        # if useCubicHermiteThroughWall:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        # if useCrossDerivatives:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+        #     if useCubicHermiteThroughWall:
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # nodeIdentifier = nodeIdentifier + 1
+        #
+        # cache.setNode(nodes.findNodeByIdentifier(54))
+        # result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        # result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        # result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        # result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        #
+        # dx4 = [(dx3[x] + (0.3*dx1[x])) / 2 for x in range(len(dx1))]
+        # x4 = [x1[x] + dx4[x] for x in range(len(dx4))]
+        # x4[0] = x4[0]*1.2
+        #
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x4)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
+        # if useCubicHermiteThroughWall:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        # if useCrossDerivatives:
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+        #     if useCubicHermiteThroughWall:
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # nodeIdentifier = nodeIdentifier + 1
+        #
+        # """ PEDICLES TEST END """
 
         """ Create elements """
         mesh = fm.findMeshByDimension(3)
@@ -507,15 +619,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
             if e3 == 0:  # Create wedge elements on the bottom pole
                 for e2 in range(elementsCountUp):
-                    # aThroughWallElement = sd2[e2][1] + st2[e2] * (e3 / elementsCountThroughWall)
-                    # bThroughWallElement = sd3[e2][0] + st3[e2] * (e3 / elementsCountThroughWall)
-                    # perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement,
-                    #                                                             bThroughWallElement)
-                    # arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
                     for e1 in range(elementsCountAround + 2):
-                        # arcLengthAround = e1 * arcLengthPerElementAround
-                        # radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement,
-                        #                                                    0.0, arcLengthAround)
                         va = e1
                         vb = (e1 + 1) % elementsCountAround
                         eft2 = eftfactory.createEftWedgeRadial(va * 100, vb * 100)
@@ -580,6 +684,9 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 for e2 in range(elementsCountUp):
                     for e1 in range(elementsCountAround + 2):
 
+                        if elementIdentifier == 35:
+                            print('element 35')
+
                         elementtemplateRegular.defineField(coordinates, -1, eft)
                         element = mesh.createElement(elementIdentifier, elementtemplateRegular)
 
@@ -623,6 +730,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             bni7 = bni5 + elementsCountAround
                             bni8 = bni6 + 2
                             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                            # append node ID for left pedicle element
+                            nodesForLeftPedicleElement = [bni5, bni6, bni7, bni8]
                         else:
                             bni1 = generalNodeIndentifier + e2 * 2
                             bni2 = (e2 * elementsCountAround) + 2 + elementsCountUp
@@ -681,6 +790,13 @@ class MeshType_3d_vertebra1(Scaffold_base):
                         # result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         # elementIdentifier = elementIdentifier + 1
 
+        # """ Pedicle test """
+        # elementtemplateRegular.defineField(coordinates, -1, eft)
+        # element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+        # nodeIdentifiers = [38, 54, 45, 56, 60, 61, 58, 59]
+        # result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+        # elementIdentifier = elementIdentifier + 1
+
         fm.endChange()
 
     @classmethod
@@ -704,3 +820,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp,
                                                        refineElementsCountThroughWall)
+
+
+def _createPedicleNodes(nodeList):
+
+    return None
