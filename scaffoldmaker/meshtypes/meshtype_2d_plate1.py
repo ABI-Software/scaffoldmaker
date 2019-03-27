@@ -5,6 +5,7 @@ Generates a 2-D unit plate mesh with variable numbers of elements in 2 direction
 from __future__ import division
 import math
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.zinc_utils import *
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -60,15 +61,7 @@ class MeshType_2d_plate1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = fm.createFieldFiniteElement(coordinateDimensions)
-        coordinates.setName('coordinates')
-        coordinates.setManaged(True)
-        coordinates.setTypeCoordinate(True)
-        coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-        coordinates.setComponentName(1, 'x')
-        coordinates.setComponentName(2, 'y')
-        if coordinateDimensions == 3:
-            coordinates.setComponentName(3, 'z')
+        coordinates = getOrCreateCoordinateField(fm, componentsCount=coordinateDimensions)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()

@@ -47,8 +47,16 @@ class Scaffold_base:
         '''
         return []
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def isValidScaffoldTypeForOption(cls, optionName, scaffoldType):
+        '''
+        Override to return True if optionName for a scaffold is a ScaffoldPackage,
+        and that scaffoldType is a valid type for that option.
+        '''
+        return False
+
+    @classmethod
+    def checkOptions(cls, options):
         '''
         Must override to keep options within limits to prevent nonsense or errors.
         '''

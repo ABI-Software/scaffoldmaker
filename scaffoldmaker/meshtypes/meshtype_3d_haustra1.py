@@ -34,7 +34,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Wall thickness': 0.01,
             'Haustrum length': 1.0,
             'Use cross derivatives' : False,
-            'Use linear through wall' : False,
+            'Use linear through wall' : True,
             'Refine' : False,
             'Refine number of elements around' : 1,
             'Refine number of elements along haustrum' : 1,
