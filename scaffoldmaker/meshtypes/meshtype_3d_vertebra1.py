@@ -42,6 +42,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 'Body thickness ratio': 0.7,
                 'Body posterior surface curvature factor': 1.0,
                 'Body posterior surface depth factor': 1.5,
+                'Pedicle arch factor': 0.3,
+                'Pedicle length factor': 1.2,
                 'Use cross derivatives': False,
                 'Refine': False,
                 'Refine number of elements around': 1,
@@ -59,6 +61,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 'Body thickness ratio',
                 'Body posterior surface curvature factor',
                 'Body posterior surface depth factor',
+                'Pedicle arch factor',
+                'Pedicle length factor',
                 'Refine',
                 'Use cross derivatives',
                 'Refine number of elements around',
@@ -98,6 +102,14 @@ class MeshType_3d_vertebra1(Scaffold_base):
         elif options['Body posterior surface depth factor'] > 1.8:
             options['Body posterior surface depth factor'] = 1.8
             options['Body posterior surface curvature factor'] = 0.7
+        if options['Pedicle arch factor'] < 0.0:
+            options['Pedicle arch factor'] = 0.0
+        elif options['Pedicle arch factor'] > 1.0:
+            options['Pedicle arch factor'] = 1.0
+        if options['Pedicle length factor'] < 1.0:
+            options['Pedicle length factor'] = 1.0
+        elif options['Pedicle length factor'] > 1.3:
+            options['Pedicle length factor'] = 1.3
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -120,6 +132,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
         useCubicHermiteThroughWall = True
         foldFactor = options['Body posterior surface curvature factor']
         depthFactor = options['Body posterior surface depth factor']
+        pedicleArchFactor = options['Pedicle arch factor']
+        pedicleLenghtFactor = options['Pedicle length factor']
 
         zero = [0.0, 0.0, 0.0]
 
@@ -288,12 +302,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
                     # Calculate curvature to find d1 for node
                     unitNormal = normalise([aThroughWallElement * cosRadiansAround * sBinormal[n2][
                         j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)])
-
-                    # # append node ID for left pedicle element
-                    # if n1 == elementsCountAround - 1 and n2 == elementsCountUp // 2 and n3 == elementsCountThroughWall - 1:
-                    #     nodesForLeftPedicleElement.append(nodeIdentifier)
-                    # if n1 == elementsCountAround - 1 and n2 == elementsCountUp and n3 == elementsCountThroughWall - 1:
-                    #     nodesForLeftPedicleElement.append(nodeIdentifier)
 
                     if n2 == 0:
                         curvature = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2 + 1], sd1[n2 + 1], unitNormal, 0.0)
@@ -684,9 +692,6 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 for e2 in range(elementsCountUp):
                     for e1 in range(elementsCountAround + 2):
 
-                        if elementIdentifier == 35:
-                            print('element 35')
-
                         elementtemplateRegular.defineField(coordinates, -1, eft)
                         element = mesh.createElement(elementIdentifier, elementtemplateRegular)
 
@@ -710,6 +715,13 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             bni7 = bni5 + 2
                             bni8 = bni6 + elementsCountAround
                             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                            if e2 >= elementsCountUp // 2:
+                                nodesForRightPedicleElement.append(bni5)
+                                nodesForRightPedicleElement.append(bni6)
+                            if e2 == elementsCountUp - 1:
+                                nodesForRightPedicleElement.append(bni7)
+                                nodesForRightPedicleElement.append(bni8)
+
                         elif e1 <= elementsCountAround - 1 and e1 != 0 and e1 != 1:
                             bni1 = e1 + (e2 * elementsCountAround) + 2 + elementsCountUp - 1
                             bni2 = bni1 + 1
@@ -730,8 +742,12 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             bni7 = bni5 + elementsCountAround
                             bni8 = bni6 + 2
                             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                            # append node ID for left pedicle element
-                            nodesForLeftPedicleElement = [bni5, bni6, bni7, bni8]
+                            if e2 >= elementsCountUp // 2:
+                                nodesForLeftPedicleElement.append(bni5)
+                                nodesForLeftPedicleElement.append(bni6)
+                            if e2 == elementsCountUp - 1:
+                                nodesForLeftPedicleElement.append(bni7)
+                                nodesForLeftPedicleElement.append(bni8)
                         else:
                             bni1 = generalNodeIndentifier + e2 * 2
                             bni2 = (e2 * elementsCountAround) + 2 + elementsCountUp
@@ -790,12 +806,13 @@ class MeshType_3d_vertebra1(Scaffold_base):
                         # result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         # elementIdentifier = elementIdentifier + 1
 
-        # """ Pedicle test """
-        # elementtemplateRegular.defineField(coordinates, -1, eft)
-        # element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-        # nodeIdentifiers = [38, 54, 45, 56, 60, 61, 58, 59]
-        # result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
-        # elementIdentifier = elementIdentifier + 1
+        nodeIdentifier, elementIdentifier = _createPedicleNodes(nodesForLeftPedicleElement, cache, nodes, coordinates, nodeIdentifier, nodetemplate,
+                            useCubicHermiteThroughWall, useCrossDerivatives, pedicleArchFactor, pedicleLenghtFactor, elementsCountUp,
+                            elementtemplateRegular, eft, mesh, elementIdentifier)
+
+        nodeIdentifier, elementIdentifier = _createPedicleNodes(nodesForRightPedicleElement, cache, nodes, coordinates, nodeIdentifier, nodetemplate,
+                            useCubicHermiteThroughWall, useCrossDerivatives, -pedicleArchFactor, pedicleLenghtFactor, elementsCountUp,
+                            elementtemplateRegular, eft, mesh, elementIdentifier)
 
         fm.endChange()
 
@@ -822,6 +839,54 @@ class MeshType_3d_vertebra1(Scaffold_base):
                                                        refineElementsCountThroughWall)
 
 
-def _createPedicleNodes(nodeList):
+def _createPedicleNodes(nodeList, cache, nodes, coordinates, nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
+                        useCrossDerivatives, archFactor, lengthFactor, elementsCountUp, elementtemplateRegular, eft,
+                        mesh, elementIdentifier):
 
-    return None
+    newNodeList = list()
+    for node in nodeList:
+        cache.setNode(nodes.findNodeByIdentifier(node))
+        result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+
+        dx4 = [(dx3[x] + (archFactor*dx1[x])) / 2 for x in range(len(dx1))]
+        x4 = [x1[x] + dx4[x] for x in range(len(dx4))]
+        x4[0] = x4[0]*lengthFactor
+
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x4)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, 0.0])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
+        if useCubicHermiteThroughWall:
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [0.0, 0.0, 0.0])
+        if useCrossDerivatives:
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, [0.0, 0.0, 0.0])
+            if useCubicHermiteThroughWall:
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, [0.0, 0.0, 0.0])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, [0.0, 0.0, 0.0])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, [0.0, 0.0, 0.0])
+
+        newNodeList.append(nodeIdentifier)
+        nodeIdentifier = nodeIdentifier + 1
+
+    nodeIdStarter = 0
+
+    for e2 in range(int(math.ceil(elementsCountUp / 2))):
+        elementtemplateRegular.defineField(coordinates, -1, eft)
+        element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+
+        nodeIdentifiers_1 = [nodeList[nodeIdStarter], nodeList[nodeIdStarter+1], nodeList[nodeIdStarter+2],
+                             nodeList[nodeIdStarter+3]]
+        nodeIdentifiers_2 = [newNodeList[nodeIdStarter], newNodeList[nodeIdStarter+1], newNodeList[nodeIdStarter+2],
+                             newNodeList[nodeIdStarter+3]]
+
+        nodeIdentifiers = nodeIdentifiers_1 + nodeIdentifiers_2
+        result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+        elementIdentifier = elementIdentifier + 1
+
+        nodeIdStarter += 2
+
+    return nodeIdentifier, elementIdentifier
