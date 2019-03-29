@@ -63,5 +63,18 @@ class ScaffoldPackage:
     def setMeshEdits(self, meshEdits):
         self._meshEdits = meshEdits
 
-    def generateMesh(self, region):
+    def getScaffoldSettings(self):
+        return self._scaffoldSettings
+
+    def setScaffoldSettings(self, scaffoldSettings):
+        self._scaffoldSettings = scaffoldSettings
+
+    def getScaffoldType(self):
+        return self._scaffoldType
+
+    def setScaffoldType(self, scaffoldType):
+        if scaffoldType != self._scaffoldType:
+            self.__init__(scaffoldType)
+
+    def generate(self, region):
         return self._scaffoldType.generateMesh(region, self._scaffoldSettings)
