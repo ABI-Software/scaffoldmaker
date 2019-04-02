@@ -5,6 +5,7 @@ Created on Jan 4, 2018
 @author: Richard Christie
 '''
 
+from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.interpolation import *
@@ -255,3 +256,45 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
     d2 = interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
     d2 = [ d*scale2 for d in d2 ]
     return d2
+
+def exnodeStringFromNodeValues(
+        nodeValueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ],
+        nodeValues = [
+            [ [ 0.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ],
+            [ [ 1.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ] ]):
+    '''
+    Return a string in Zinc EX format defining nodes 1..N with the supplied
+    coordinate values and their labels. Works in a private zinc context.
+    '''
+    # following requires at least one value label and node, assumes consistent values and components counts
+    nodeValueLabelsCount = len(nodeValueLabels)
+    nodesCount = len(nodeValues)
+    componentsCount = len(nodeValues[0][0])
+    context = Context('exnodeStringFromNodeValues')
+    region = context.getDefaultRegion()
+    fm = region.getFieldmodule()
+    fm.beginChange()
+    cache = fm.createFieldcache()
+    coordinates = getOrCreateCoordinateField(fm, componentsCount = componentsCount)
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+    for nodeValueLabel in nodeValueLabels:
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
+    # create nodes
+    for n in range(nodesCount):
+        node = nodes.createNode(n + 1, nodetemplate)
+        cache.setNode(node)
+        for v in range(nodeValueLabelsCount):
+            coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
+    # serialise to string
+    sir = region.createStreaminformationRegion()
+    srm = sir.createStreamresourceMemory()
+    region.write(sir)
+    result, exString = srm.getBuffer()
+    #print('\n',nodeValues)
+    #print('exnodeStringFromNodeValues', result, exString)
+    fm.endChange()
+    return exString

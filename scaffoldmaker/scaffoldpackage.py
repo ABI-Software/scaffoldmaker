@@ -3,6 +3,7 @@ Class packaging a scaffold type, options and modifications.
 Supports serialisation to/from JSON. Can be used as a scaffold option.
 """
 
+import copy
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 class ScaffoldPackage:
@@ -24,9 +25,17 @@ class ScaffoldPackage:
         self._scaffoldSettings = scaffoldType.getDefaultOptions()
         scaffoldSettings = dct.get('scaffoldSettings')
         if scaffoldSettings:
-            # remove obsolete options?
+            # remove obsolete options? If so, deepcopy first?
             self._scaffoldSettings.update(scaffoldSettings)
-        self._meshEdits = dct.get('meshEdits')
+        self._meshEdits = copy.deepcopy(dct.get('meshEdits'))
+
+    def deepcopy(self, other):
+        '''
+        Deep copy contents from another object.
+        '''
+        self._scaffoldType = other._scaffoldType
+        self._scaffoldSettings = copy.deepcopy(other._scaffoldSettings)
+        self._meshEdits = copy.deepcopy(other._meshEdits)
 
     def __eq__(self, other):
         '''
@@ -66,15 +75,15 @@ class ScaffoldPackage:
     def getScaffoldSettings(self):
         return self._scaffoldSettings
 
-    def setScaffoldSettings(self, scaffoldSettings):
-        self._scaffoldSettings = scaffoldSettings
-
     def getScaffoldType(self):
         return self._scaffoldType
 
-    def setScaffoldType(self, scaffoldType):
-        if scaffoldType != self._scaffoldType:
-            self.__init__(scaffoldType)
-
     def generate(self, region):
-        return self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+        #print('\nScaffoldPackage.generate: ', self.toDict())
+        annotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+        if self._meshEdits:
+            # apply mesh edits, a Zinc-readable model file containing node edits
+            sir = region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
+            region.read(sir)
+        return annotationGroups

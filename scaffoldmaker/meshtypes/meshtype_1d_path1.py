@@ -96,3 +96,33 @@ class MeshType_1d_path1(Scaffold_base):
             elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
+
+
+def extractPathParametersFromRegion(region):
+    '''
+    Returns parameters of all nodes in region in identifier order.
+    Assumes nodes in region have field coordinates (1 to 3 components).
+    Currently limited to nodes with exactly value and d_ds1, same as path 1 scaffold.
+    :return: cx, cd1 (all padded with zeroes to 3 components)
+    '''
+    fm = region.getFieldmodule()
+    coordinates = fm.findFieldByName('coordinates').castFiniteElement()
+    componentsCount = coordinates.getNumberOfComponents()
+    assert componentsCount in [ 1, 2, 3 ], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
+    cache = fm.createFieldcache()
+    cx = []
+    cd1 = []
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodeIter = nodes.createNodeiterator()
+    node = nodeIter.next()
+    while node.isValid():
+        cache.setNode(node)
+        result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, componentsCount)
+        result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, componentsCount)
+        for c in range(componentsCount, 3):
+            x.append(0.0)
+            d1.append(0.0)
+        cx.append(x)
+        cd1.append(d1)
+        node = nodeIter.next()
+    return cx, cd1
