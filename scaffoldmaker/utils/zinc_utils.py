@@ -14,11 +14,11 @@ import scaffoldmaker.utils.vector as vector
 def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=3):
     '''
     Finds or creates a rectangular cartesian coordinate field.
-    New field has component names, 'x', 'y', 'z'.
+    New field has component names: 'x', 'y', 'z'.
     Raises exception if existing field of name is not finite element type or has incorrect attributes.
     :param fieldmodule:  Zinc fieldmodule to find or create field in.
     :param name:  Name of field to find or create.
-    :param componentsCount: Number of components / dimension of field.
+    :param componentsCount: Number of components / dimension of field, from 1 to 3.
     '''
     assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateCoordinateField.  Dimensions must be from 1 to 3'
     coordinates = fieldmodule.findFieldByName(name)
@@ -39,22 +39,48 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
     fieldmodule.endChange()
     return coordinates
 
-def getOrCreateTextureCoordinateField(fieldmodule, name='textureCoordinates', componentsCount=3):
+def getOrCreateFibreField(fieldmodule, name='fibres', componentsCount=3):
     '''
-    Finds or creates a rectangular cartesian texture coordinate field.
-    New field has component names, 'u', 'v', 'w'.
+    Finds or creates a fibre field.
+    New field has component names: 'fibre angle', 'imbrication angle', 'sheet angle'.
     Raises exception if existing field of name is not finite element type or has incorrect attributes.
     :param fieldmodule:  Zinc fieldmodule to find or create field in.
     :param name:  Name of field to find or create.
-    :param componentsCount: Number of components / dimension of field.
+    :param componentsCount: Number of components of field, from 1 to 3.
     '''
-    assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateCoordinateField.  Dimensions must be from 1 to 3'
+    assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateFibreField.  Dimensions must be from 1 to 3'
+    fibres = fieldmodule.findFieldByName(name)
+    if fibres.isValid():
+        fibres = fibres.castFiniteElement()
+        assert fibres.isValid(), 'getOrCreateFibreField.  Existing field \'' + name + '\' is not finite element type'
+        assert fibres.getNumberOfComponents() == componentsCount, 'getOrCreateFibreField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
+        assert fibres.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_FIBRE, 'getOrCreateFibreField.  Existing field \'' + name + '\' is not fibre'
+        return fibres
+    fieldmodule.beginChange()
+    fibres = fieldmodule.createFieldFiniteElement(componentsCount)
+    fibres.setName(name)
+    fibres.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_FIBRE)
+    for c in range(componentsCount):
+        fibres.setComponentName(c + 1, ['fibre angle', 'imbrication angle', 'sheet angle'][c])
+    fieldmodule.endChange()
+    return fibres
+
+def getOrCreateTextureCoordinateField(fieldmodule, name='textureCoordinates', componentsCount=3):
+    '''
+    Finds or creates a rectangular cartesian texture coordinate field.
+    New field has component names: 'u', 'v', 'w'.
+    Raises exception if existing field of name is not finite element type or has incorrect attributes.
+    :param fieldmodule:  Zinc fieldmodule to find or create field in.
+    :param name:  Name of field to find or create.
+    :param componentsCount: Number of components / dimension of field, from 1 to 3.
+    '''
+    assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateTextureCoordinateField.  Dimensions must be from 1 to 3'
     coordinates = fieldmodule.findFieldByName(name)
     if coordinates.isValid():
         coordinates = coordinates.castFiniteElement()
-        assert coordinates.isValid(), 'getOrCreateCoordinateField.  Existing field \'' + name + '\' is not finite element type'
-        assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
-        assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
+        assert coordinates.isValid(), 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' is not finite element type'
+        assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
+        assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
         return coordinates
     fieldmodule.beginChange()
     coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
