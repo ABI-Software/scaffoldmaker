@@ -47,13 +47,6 @@ class ScaffoldPackage:
                 and (self._meshEdits == other._meshEdits)
         return NotImplemented
 
-    def __ne__(self, other):
-        if isinstance(other, ScaffoldPackage):
-            return (self._scaffoldType != other._scaffoldType) \
-                or (self._scaffoldSettings != other._scaffoldSettings) \
-                or (self._meshEdits != other._meshEdits)
-        return NotImplemented
-
     def toDict(self):
         '''
         Encodes object into a dictionary for JSON serialisation.

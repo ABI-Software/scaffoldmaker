@@ -14,7 +14,6 @@ from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
-
 class MeshType_3d_colon1(Scaffold_base):
     '''
     Generates a 3-D colon mesh with variable numbers
@@ -137,6 +136,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
     @classmethod
     def checkOptions(cls, options):
+        MeshType_3d_haustra1.checkOptions(options)
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         if options['Number of haustra segments'] < 1:

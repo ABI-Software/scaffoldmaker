@@ -80,7 +80,9 @@ class MeshType_1d_path1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
             nodeIdentifier = nodeIdentifier + 1
 
-        # create elements
+        #################
+        # Create elements
+        #################
 
         mesh = fm.findMeshByDimension(1)
         cubicHermiteBasis = fm.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
