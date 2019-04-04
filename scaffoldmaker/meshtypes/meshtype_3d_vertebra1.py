@@ -33,7 +33,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 7, 'Number of elements up': 2,  # 'Number of elements through wall': 2,
+        return {'Number of elements around': 7, 'Number of elements up': 3,  # 'Number of elements through wall': 2,
                 # 'Major diameter': 1.1,
                 # 'Minor diameter': 0.9,
                 'Height': 0.3, 'Body thickness ratio': 0.85, 'Body posterior surface curvature factor': 0.5,
@@ -61,6 +61,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 options[key] = 1
         if options['Number of elements up'] < 2:
             options['Number of elements up'] = 2
+        elif options['Number of elements up'] > 9:
+            options['Number of elements up'] = 9
         if options['Number of elements around'] < 4:
             options['Number of elements around'] = 4
         # if options['Number of elements through wall'] < 2:
@@ -210,6 +212,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
         nodesForRightPedicleElement = list()
 
         nodesForVertebralArchElement = list()
+
+        nodesOfTheVertebralArchCetreAxis = list()
 
         # Create bottom node
         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -594,6 +598,9 @@ class MeshType_3d_vertebra1(Scaffold_base):
                             bni7 = bni3 + ((elementsCountUp * elementsCountAround) + elementsCountAround)
                             bni8 = bni6 + 2
                             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                            if e2 >= elementsCountUp // 2:
+                                nodesOfTheVertebralArchCetreAxis.append(bni5)
+                                nodesOfTheVertebralArchCetreAxis.append(bni7)
                         elif e1 == 1:
                             bni1 = e2 * 2 + generalNodeIndentifier + 1
                             bni2 = (e2 * elementsCountAround) + 2 + elementsCountUp + 1
@@ -680,57 +687,71 @@ class MeshType_3d_vertebra1(Scaffold_base):
                 # bni3, bni4, bni5, bni6, bni7, bni8]  # result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 #  elementIdentifier = elementIdentifier + 1
 
+        """ Create vertebral arch ring """
+        _createVertebralArchCentreLineNodes(nodesOfTheVertebralArchCetreAxis, cache, nodes, coordinates,
+                                            options['Body thickness ratio'], elementsCountAround, elementsCountUp,
+                                            nodeIdentifier, nodetemplate, elementtemplateRegular, eft, mesh,
+                                        elementIdentifier, nodesForLeftPedicleElement, nodesForRightPedicleElement)
+
+
         """ Create left and right pedicles """
-        # Left
-        leftPedicleNodes, nID, eID = _createPedicleElements(nodesForLeftPedicleElement, cache, nodes, coordinates,
-                                                            nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
-                                                            useCrossDerivatives, pedicleArchFactor, pedicleLenghtFactor,
-                                                            elementsCountUp, elementtemplateRegular, eft, mesh,
-                                                            elementIdentifier, zero)
-
-        nodeIdentifier, elementIdentifier = nID, eID
-
-        # Right
-        rightPedicleNodes, nID, eID = _createPedicleElements(nodesForRightPedicleElement, cache, nodes, coordinates,
-                                                             nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
-                                                             useCrossDerivatives, -pedicleArchFactor,
-                                                             pedicleLenghtFactor, elementsCountUp,
-                                                             elementtemplateRegular, eft, mesh, elementIdentifier, zero)
-
-        nodeIdentifier, elementIdentifier = nID, eID
-
-        """ Create the vertebral arch """
-        # Nodes of the peak of the arch
-        peakArchNodes, nID = _createVertebralArchNodes(nodesForVertebralArchElement, cache, nodes, coordinates,
-                                                       nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
-                                                       useCrossDerivatives, vertebralArchPeakLengthFactor, elongated=False,
-                                                       elongationNodes=None, elongationFactor=0)
-
-        nodeIdentifier = nID
-
-        # Nodes of the left side of the arch
-        leftArchNodes, nID = _createVertebralArchNodes(leftPedicleNodes, cache, nodes, coordinates, nodeIdentifier,
-                                                       nodetemplate, useCubicHermiteThroughWall, useCrossDerivatives,
-                                                       vertebralArchLengthFactor, elongated=True,
-                                                       elongationNodes=[leftPedicleNodes[0], leftPedicleNodes[2]],
-                                                       elongationFactor=1.4)
-
-        nodeIdentifier = nID
-
-        # Elements of the left side of the arch
-        eID = _createVertebralArchElements(leftPedicleNodes, leftArchNodes, coordinates, elementsCountUp,
-                                     elementtemplateRegular, eft, mesh, elementIdentifier)
-
-        elementIdentifier = eID
-
-        # Nodes of the right side of the arch
-        rightArchNodes, nID = _createVertebralArchNodes(rightPedicleNodes, cache, nodes, coordinates, nodeIdentifier,
-                                                        nodetemplate, useCubicHermiteThroughWall, useCrossDerivatives,
-                                                        vertebralArchLengthFactor, elongated=True,
-                                                        elongationNodes=[rightPedicleNodes[1], rightPedicleNodes[3]],
-                                                        elongationFactor=1.4)
-
-        nodeIdentifier = nID
+        # # Left
+        # leftPedicleNodes, nID, eID = _createPedicleElements(nodesForLeftPedicleElement, cache, nodes, coordinates,
+        #                                                     nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
+        #                                                     useCrossDerivatives, pedicleArchFactor, pedicleLenghtFactor,
+        #                                                     elementsCountUp, elementtemplateRegular, eft, mesh,
+        #                                                     elementIdentifier, zero)
+        #
+        # nodeIdentifier, elementIdentifier = nID, eID
+        #
+        # # Right
+        # rightPedicleNodes, nID, eID = _createPedicleElements(nodesForRightPedicleElement, cache, nodes, coordinates,
+        #                                                      nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
+        #                                                      useCrossDerivatives, -pedicleArchFactor,
+        #                                                      pedicleLenghtFactor, elementsCountUp,
+        #                                                      elementtemplateRegular, eft, mesh, elementIdentifier, zero)
+        #
+        # nodeIdentifier, elementIdentifier = nID, eID
+        #
+        # """ Create the vertebral arch """
+        # # Nodes of the peak of the arch
+        # peakArchNodes, nID = _createVertebralArchNodes(nodesForVertebralArchElement, cache, nodes, coordinates,
+        #                                                nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
+        #                                                useCrossDerivatives, vertebralArchPeakLengthFactor, elongated=False,
+        #                                                elongationNodes=None, elongationFactor=0)
+        #
+        # nodeIdentifier = nID
+        #
+        # # Nodes of the left side of the arch
+        # leftArchNodes, nID = _createVertebralArchNodes(leftPedicleNodes, cache, nodes, coordinates, nodeIdentifier,
+        #                                                nodetemplate, useCubicHermiteThroughWall, useCrossDerivatives,
+        #                                                vertebralArchLengthFactor, elongated=True,
+        #                                                elongationNodes=[leftPedicleNodes[0], leftPedicleNodes[2]],
+        #                                                elongationFactor=1.4)
+        #
+        # # leftArchNodes, nID, eID = _createPedicleElements(leftPedicleNodes, cache, nodes, coordinates,
+        # #                                                     nodeIdentifier, nodetemplate, useCubicHermiteThroughWall,
+        # #                                                     useCrossDerivatives, pedicleArchFactor, pedicleLenghtFactor,
+        # #                                                     elementsCountUp, elementtemplateRegular, eft, mesh,
+        # #                                                     elementIdentifier, zero)
+        # # nodeIdentifier, elementIdentifier = nID, eID
+        #
+        # nodeIdentifier = nID
+        #
+        # # Elements of the left side of the arch
+        # eID = _createVertebralArchElements(leftPedicleNodes, leftArchNodes, coordinates, elementsCountUp,
+        #                              elementtemplateRegular, eft, mesh, elementIdentifier)
+        #
+        # elementIdentifier = eID
+        #
+        # # Nodes of the right side of the arch
+        # rightArchNodes, nID = _createVertebralArchNodes(rightPedicleNodes, cache, nodes, coordinates, nodeIdentifier,
+        #                                                 nodetemplate, useCubicHermiteThroughWall, useCrossDerivatives,
+        #                                                 vertebralArchLengthFactor, elongated=True,
+        #                                                 elongationNodes=[rightPedicleNodes[1], rightPedicleNodes[3]],
+        #                                                 elongationFactor=1.4)
+        #
+        # nodeIdentifier = nID
 
         fm.endChange()
 
@@ -772,13 +793,14 @@ def _createPedicleElements(nodeList, cache, nodes, coordinates, nodeIdentifier, 
         x4 = [x1[x] + dx4[x] for x in range(len(dx4))]
         x4[0] = x4[0] * lengthFactor
 
+        dx3[1] = -.5*dx3[1]
         node = nodes.createNode(nodeIdentifier, nodetemplate)
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x4)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx1)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
         if useCubicHermiteThroughWall:
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx3Values)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx3)
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, [0.0, 0.0, 0.0])
             if useCubicHermiteThroughWall:
@@ -799,6 +821,10 @@ def _createPedicleElements(nodeList, cache, nodes, coordinates, nodeIdentifier, 
                              nodeList[nodeIdStarter + 3]]
         nodeIdentifiers_2 = [newNodeList[nodeIdStarter], newNodeList[nodeIdStarter + 1], newNodeList[nodeIdStarter + 2],
                              newNodeList[nodeIdStarter + 3]]
+        # nodeIdentifiers_1 = [nodeList[nodeIdStarter + 1], newNodeList[nodeIdStarter + 1], nodeList[nodeIdStarter + 3],
+        #                      newNodeList[nodeIdStarter + 3]]
+        # nodeIdentifiers_2 = [nodeList[nodeIdStarter], newNodeList[nodeIdStarter], nodeList[nodeIdStarter + 2],
+        #                      newNodeList[nodeIdStarter + 2]]
 
         nodeIdentifiers = nodeIdentifiers_1 + nodeIdentifiers_2
         result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
@@ -823,23 +849,23 @@ def _createVertebralArchNodes(nodeList, cache, nodes, coordinates, nodeIdentifie
         if elongated:
             if node in elongationNodes:
                 x1[0] = lengthFactor * x1[0] * elongationFactor
-                dx1[1] = dx1[1]*-0.1
-                dx1[0] = dx1[0]*-0.1
-                dx1 = [-1. * x for x in dx1]
+                # dx1[1] = dx1[1]*-0.1
+                # dx1[0] = dx1[0]*-0.1
+                # dx1 = [-1. * x for x in dx1]
             else:
                 x1[0] = lengthFactor * x1[0]
-                dx1[1] = dx1[1]*-0.1
-                dx1 = [-1. * x for x in dx1]
+                # dx1[1] = dx1[1]*-0.1
+                # dx1 = [-1. * x for x in dx1]
         else:
             x1[0] = lengthFactor * x1[0]
 
         node = nodes.createNode(nodeIdentifier, nodetemplate)
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x1)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, 0.0])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, 0.0])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx2)
         if useCubicHermiteThroughWall:
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [0.0, 0.0, 0.0])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx3)
         if useCrossDerivatives:
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, [0.0, 0.0, 0.0])
             if useCubicHermiteThroughWall:
@@ -872,3 +898,262 @@ def _createVertebralArchElements(nodeList1, nodeList2, coordinates, elementsCoun
         nodeIdStarter += 2
 
     return elementIdentifier
+
+
+def _createVertebralArchCentreLineNodes(nodeList, cache, nodes, coordinates, thickness, elementsCountAround,
+                                        elementsCountUp, nodeIdentifier, nodetemplate, elementtemplateRegular, eft, mesh,
+                                        elementIdentifier, nodesForLeftPedicleElement, nodesForRightPedicleElement):
+    X = list()
+    DX1 = list()
+    DX2 = list()
+    DX3 = list()
+
+    finalBodyNodeIdentifier = nodeIdentifier - 1
+
+    for node in nodeList:
+        cache.setNode(nodes.findNodeByIdentifier(node))
+        result, x1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, dx1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, dx2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        result, dx3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        X.append(x1), DX1.append(dx1), DX2.append(dx2), DX3.append(dx3)
+
+    cx = [X[0], X[-1]]
+    cd1 = [DX2[0], DX2[-1]]
+    cd2 = [DX1[0], DX1[-1]]
+    cd3 = [DX3[0], DX3[-1]]
+
+    t2 = [1.0 - thickness] * 2
+    t3 = [1.0 - thickness] * 2
+
+    if elementsCountUp > 2:
+        sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, int(math.ceil(elementsCountUp / 2)))
+        sd2 = interpolateSampleLinear(cd2, se, sxi)
+        sd3 = interpolateSampleLinear(cd3, se, sxi)
+        st2 = interpolateSampleLinear(t2, se, sxi)
+        st3 = interpolateSampleLinear(t3, se, sxi)
+    else:
+        sx, sd1, se = cx, cd1, int(math.ceil(elementsCountUp / 2))
+        sd2, sd3 = cd2, cd3
+        st2, st3 = t2, t3
+
+    elementsCountUpNew = int(math.ceil(elementsCountUp / 2))
+
+    # Find unit normals and binormals at each sample points
+    sNormal = list()
+    sBinormal = list()
+
+    # Normal and binormal
+    prevUnitTangent = normalise(sd1[0])
+    if magnitude(crossproduct3(prevUnitTangent, [0.0, 0.0, 1.0])) > 0.0:
+        prevBinormal = crossproduct3(prevUnitTangent, [0.0, 0.0, 1.0])
+    else:
+        prevBinormal = crossproduct3(prevUnitTangent, [0.0, -1.0, 0.0])
+    prevUnitBinormal = normalise(prevBinormal)
+    prevUnitNormal = crossproduct3(prevUnitBinormal, prevUnitTangent)
+    sNormal.append(prevUnitNormal)
+    sBinormal.append(prevUnitBinormal)
+    for n in range(1, elementsCountUpNew + 1):
+        unitTangent = normalise(sd1[n])
+        cp = crossproduct3(prevUnitTangent, unitTangent)
+        if magnitude(cp) > 0.0:
+            axisRot = normalise(cp)
+            thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
+            rotFrame = rotationMatrix(thetaRot, axisRot)
+            rotNormal = [rotFrame[j][0] * prevUnitNormal[0] + rotFrame[j][1] * prevUnitNormal[1] + rotFrame[j][2] *
+                         prevUnitNormal[2] for j in range(3)]
+            unitNormal = normalise(rotNormal)
+            unitBinormal = crossproduct3(unitTangent, unitNormal)
+            prevUnitTangent = unitTangent
+            prevUnitNormal = unitNormal
+        else:
+            unitBinormal = prevUnitBinormal
+            unitNormal = prevUnitNormal
+        sNormal.append(unitNormal)
+        sBinormal.append(unitBinormal)
+
+    elementsCountThroughWall = 2
+    useCubicHermiteThroughWall = True
+    useCrossDerivatives = False
+
+    if elementsCountAround > 7:
+        pedicleCoefficient = 2.5 * (elementsCountAround / (7. * 3.))
+    elif elementsCountAround < 7:
+        pedicleCoefficient = 0.3 * (elementsCountAround * (7. / 3.))
+    else:
+        pedicleCoefficient = elementsCountAround / (7. / 3.)
+    print(elementsCountAround)
+    print(pedicleCoefficient)
+
+    """ Nodes """
+    for n3 in range(elementsCountThroughWall):
+        for n2 in range(elementsCountUpNew + 1):
+            aThroughWallElement = sd2[n2][1] + st2[n2] * (n3 / elementsCountThroughWall)
+            bThroughWallElement = sd3[n2][0] + st3[n2] * (n3 / elementsCountThroughWall)
+            perimeterAroundWallElement = getApproximateEllipsePerimeter(aThroughWallElement, bThroughWallElement)
+            arcLengthPerElementAround = perimeterAroundWallElement / elementsCountAround
+            prevRadiansAround = updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement, 0.0,
+                                                              arcLengthPerElementAround)
+            st2PerWallElement = st2[n2] / elementsCountThroughWall
+            st3PerWallElement = st3[n2] / elementsCountThroughWall
+
+            if n2 < elementsCountUpNew:
+                aThroughWallElementNext = sd2[n2 + 1][1] + st2[n2 + 1] * (n3 / elementsCountThroughWall)
+                bThroughWallElementNext = sd3[n2 + 1][0] + st3[n2 + 1] * (n3 / elementsCountThroughWall)
+                perimeterAroundWallElementNext = getApproximateEllipsePerimeter(aThroughWallElementNext,
+                                                                                bThroughWallElementNext)
+                arcLengthPerElementAroundNext = perimeterAroundWallElementNext / elementsCountAround
+
+            for n1 in range(elementsCountAround):
+                if n1 == 0 or n1 == 1 or n1 == elementsCountAround - 1:
+                    arcLengthAround = n1 * arcLengthPerElementAround
+                    radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement, 0.0,
+                                                                       arcLengthAround)
+                    cosRadiansAround = math.cos(radiansAround)
+                    sinRadiansAround = math.sin(radiansAround)
+                    x = [sx[n2][j] + aThroughWallElement * cosRadiansAround * sBinormal[n2][
+                        j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)]
+                    dx_ds1 = [(radiansAround - prevRadiansAround) * (
+                            aThroughWallElement * -sinRadiansAround * sBinormal[n2][
+                        j] + bThroughWallElement * cosRadiansAround * sNormal[n2][j]) for j in range(3)]
+
+                    # Calculate curvature to find d1 for node
+                    unitNormal = normalise([aThroughWallElement * cosRadiansAround * sBinormal[n2][
+                        j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)])
+
+                    if n2 == 0:
+                        curvature = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2 + 1], sd1[n2 + 1], unitNormal, 0.0)
+                    elif n2 == elementsCountUpNew:
+                        curvature = getCubicHermiteCurvature(sx[n2 - 1], sd1[n2 - 1], sx[n2], sd1[n2], unitNormal, 1.0)
+                    else:
+                        curvature = 0.5 * (getCubicHermiteCurvature(sx[n2 - 1], sd1[n2 - 1], sx[n2], sd1[n2], unitNormal,
+                                                                    1.0) + getCubicHermiteCurvature(sx[n2], sd1[n2],
+                                                                                                    sx[n2 + 1], sd1[n2 + 1],
+                                                                                                    unitNormal, 0.0))
+                    wallDistance = magnitude([aThroughWallElement * cosRadiansAround * sBinormal[n2][
+                        j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)])
+                    factor = 1.0 - curvature * wallDistance
+                    d1Wall = [factor * c for c in sd1[n2]]
+
+                    # Calculate curvature to find d1 for downstream node
+                    if n2 < elementsCountUpNew:
+                        arcLengthAroundNext = n1 * arcLengthPerElementAroundNext
+                        radiansAroundNext = -1 * updateEllipseAngleByArcLength(aThroughWallElementNext,
+                                                                               bThroughWallElementNext, 0.0,
+                                                                               arcLengthAroundNext)
+                        cosRadiansAroundNext = math.cos(radiansAroundNext)
+                        sinRadiansAroundNext = math.sin(radiansAroundNext)
+                        xNext = [sx[n2 + 1][j] + aThroughWallElementNext * cosRadiansAroundNext * sBinormal[n2 + 1][
+                            j] + bThroughWallElementNext * sinRadiansAroundNext * sNormal[n2 + 1][j] for j in range(3)]
+                        unitNormalNext = normalise([aThroughWallElementNext * cosRadiansAroundNext * sBinormal[n2 + 1][
+                            j] + bThroughWallElementNext * sinRadiansAroundNext * sNormal[n2 + 1][j] for j in range(3)])
+                        if n2 + 1 == elementsCountUpNew:
+                            curvatureNext = getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2 + 1], sd1[n2 + 1],
+                                                                     unitNormalNext, 1.0)
+                        else:
+                            curvatureNext = 0.5 * (
+                                    getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2 + 1], sd1[n2 + 1], unitNormalNext,
+                                                             1.0) + getCubicHermiteCurvature(sx[n2 + 1], sd1[n2 + 1],
+                                                                                             sx[n2 + 2], sd1[n2 + 2],
+                                                                                             unitNormalNext, 0.0))
+                        wallDistanceNext = magnitude([aThroughWallElementNext * cosRadiansAroundNext * sBinormal[n2 + 1][
+                            j] + bThroughWallElementNext * sinRadiansAroundNext * sNormal[n2 + 1][j] for j in range(3)])
+                        factorNext = 1.0 - curvatureNext * wallDistanceNext
+                        d1WallNext = [factorNext * c for c in sd1[n2 + 1]]
+                        arcLength = computeCubicHermiteArcLength(x, d1Wall, xNext, d1WallNext, True)
+                        dx_ds2 = [arcLength * c for c in normalise(d1Wall)]
+                        if n2 == elementsCountUpNew - 1:
+                            secondLastX = x
+                            secondLastd1Wall = d1Wall
+                            lastX = xNext
+                            lastd1Wall = d1WallNext
+                    else:
+                        arcLength = computeCubicHermiteArcLength(secondLastX, secondLastd1Wall, lastX, lastd1Wall, True)
+                        dx_ds2 = [arcLength * c for c in normalise(lastd1Wall)]
+
+                    dx_ds3 = [
+                        st2PerWallElement * cosRadiansAround * sBinormal[n2][j] + st3PerWallElement * sinRadiansAround *
+                        sNormal[n2][j] for j in range(3)]  # Modify later to calculate with interpolation
+
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    if n1 == 1:
+                        x[1] = x[1]*pedicleCoefficient
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x*0.5 for x in dx_ds1])
+                    elif n1 == elementsCountAround - 1:
+                        x[1] = x[1]*pedicleCoefficient
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x*0.1 for x in dx_ds1])
+                    else:
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                    if useCubicHermiteThroughWall:
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                    if useCrossDerivatives:
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, [0., 0., 0.])
+                        if useCubicHermiteThroughWall:
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, [0., 0., 0.])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, [0., 0., 0.])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, [0., 0., 0.])
+                    nodeIdentifier = nodeIdentifier + 1
+                    prevRadiansAround = radiansAround
+                else:
+                    pass
+
+    """ Left pedicle elements """
+    nodeIdStarter = 0
+    for e2 in range(elementsCountUpNew):
+        elementtemplateRegular.defineField(coordinates, -1, eft)
+        element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+
+        if elementsCountUp == 3:
+            bni1 = 3*e2+(finalBodyNodeIdentifier + 3) + (2 * elementsCountUp + (elementsCountUp%3) + 3)
+        else:
+            bni1 = 3*e2+(finalBodyNodeIdentifier + 3) + (2 * elementsCountUp + (elementsCountUp%3))
+        bni2 = 3*e2+(finalBodyNodeIdentifier + 3)
+        if elementsCountUp == 3:
+            bni3 = (bni2 + 3) + (2 * elementsCountUp + (elementsCountUp%3) + 3)
+        else:
+            bni3 = (bni2 + 3) + (2 * elementsCountUp + (elementsCountUp%3))
+        bni4 = bni2 + 3
+
+        nodeIdentifiers1 = [nodesForLeftPedicleElement[nodeIdStarter], nodesForLeftPedicleElement[nodeIdStarter + 1],
+                            nodesForLeftPedicleElement[nodeIdStarter + 2], nodesForLeftPedicleElement[nodeIdStarter + 3]]
+        nodeIdentifiers2 = [bni1, bni2, bni3, bni4]
+        nodeIdentifiers = nodeIdentifiers1 + nodeIdentifiers2
+        result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+        elementIdentifier = elementIdentifier + 1
+        nodeIdStarter += 2
+
+    """ Right pedicle elements """
+    nodeIdStarter = 0
+    for e2 in range(elementsCountUpNew):
+        elementtemplateRegular.defineField(coordinates, -1, eft)
+        element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+
+        bni1 = 3*e2+(finalBodyNodeIdentifier + 2)
+        if elementsCountUp == 3:
+            bni2 = 3*e2+(finalBodyNodeIdentifier + 2) + (2 * elementsCountUp + (elementsCountUp%3) + 3)
+        else:
+            bni2 = 3*e2+(finalBodyNodeIdentifier + 2) + (2 * elementsCountUp + (elementsCountUp%3))
+        if elementsCountUp == 3:
+            bni3 = bni2 - (2 * elementsCountUp + (elementsCountUp%3))
+        else:
+            bni3 = bni2 - (2 * elementsCountUp + (elementsCountUp%3) - 3)
+        if elementsCountUp == 3:
+            bni4 = bni3 + (2 * elementsCountUp + (elementsCountUp%3) + 3)
+        else:
+            bni4 = bni3 + (2 * elementsCountUp + (elementsCountUp%3))
+
+        nodeIdentifiers1 = [nodesForRightPedicleElement[nodeIdStarter], nodesForRightPedicleElement[nodeIdStarter + 1],
+                            nodesForRightPedicleElement[nodeIdStarter + 2], nodesForRightPedicleElement[nodeIdStarter + 3]]
+        nodeIdentifiers2 = [bni1, bni2, bni3, bni4]
+        nodeIdentifiers = nodeIdentifiers1 + nodeIdentifiers2
+        result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+        elementIdentifier = elementIdentifier + 1
+        nodeIdStarter += 2
+
+    return None
