@@ -10,7 +10,7 @@ from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.matrix import *
 from scaffoldmaker.utils.vector import *
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -92,7 +92,7 @@ def generatetubemesh(region,
     fm = region.getFieldmodule()
     fm.beginChange()
     cache = fm.createFieldcache()
-    coordinates = getOrCreateCoordinateField(fm)
+    coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -244,7 +244,7 @@ def generatetubemesh(region,
                 elementIdentifier = elementIdentifier + 1
 
     # Define texture coordinates field
-    textureCoordinates = getOrCreateTextureCoordinateField(fm)
+    textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
     textureNodetemplate1 = nodes.createNodetemplate()
     textureNodetemplate1.defineField(textureCoordinates)
     textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)

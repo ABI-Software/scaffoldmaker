@@ -13,7 +13,7 @@ from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -220,7 +220,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
@@ -229,9 +229,9 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation points
-        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
+        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateInternal = datapoints.createNodetemplate()

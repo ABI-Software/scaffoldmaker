@@ -9,7 +9,7 @@ from __future__ import division
 import math
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -78,7 +78,7 @@ class MeshType_2d_platehole1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm, componentsCount=coordinateDimensions)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm, componentsCount=coordinateDimensions)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()

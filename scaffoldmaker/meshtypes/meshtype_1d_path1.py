@@ -5,7 +5,7 @@ Generates a 1-D path mesh.
 from __future__ import division
 import math
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -56,7 +56,7 @@ class MeshType_1d_path1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm, componentsCount=coordinateDimensions)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm, componentsCount=coordinateDimensions)
         cache = fm.createFieldcache()
 
         #################

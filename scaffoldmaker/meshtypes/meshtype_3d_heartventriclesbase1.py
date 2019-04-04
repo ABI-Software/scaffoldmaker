@@ -13,7 +13,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 import scaffoldmaker.utils.vector as vector
@@ -223,7 +223,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         # generate heartventricles1 model to add base plane to
@@ -240,9 +240,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
         # annotation points
-        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
+        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
@@ -268,7 +268,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = startNodeIdentifier = zinc_utils.getMaximumNodeIdentifier(nodes) + 1
 
         # move ventricles to fit atria centred around aorta
         cosVRotationRadians = math.cos(-vRotationRadians)
@@ -740,7 +740,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
 
-        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

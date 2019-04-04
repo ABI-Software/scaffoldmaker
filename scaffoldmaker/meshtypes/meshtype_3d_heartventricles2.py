@@ -12,7 +12,7 @@ from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -150,7 +150,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')

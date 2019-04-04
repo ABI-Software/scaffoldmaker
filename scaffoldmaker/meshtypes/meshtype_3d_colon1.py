@@ -12,7 +12,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.matrix import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils import zinc_utils
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
@@ -30,7 +30,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 5
                 },
-            'meshEdits' : exnodeStringFromNodeValues(
+            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [
                 [ [  0.0,  0.0 ], [  0.0, 10.0 ] ],
                 [ [  0.0, 10.0 ], [  5.0,  5.0 ] ],
@@ -45,7 +45,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 6
                 },
-            'meshEdits' : exnodeStringFromNodeValues(
+            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [
                 [ [  0.0,  0.0,  0.0 ], [  0.0, 10.0,  3.0 ] ],
                 [ [  0.0, 10.0,  3.0 ], [  5.0,  5.0,  0.0 ] ],
@@ -61,7 +61,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 1
                 },
-            'meshEdits' : exnodeStringFromNodeValues(
+            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [
                 [ [ -4.0,  1.0,  3.0 ], [  5.0,  1.0, -3.0 ] ],
                 [ [  1.0,  2.0,  0.0 ], [  5.0,  1.0, -3.0 ] ] ] )

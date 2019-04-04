@@ -10,9 +10,11 @@ from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatr
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 
 class MeshType_3d_heart1(Scaffold_base):
     '''
@@ -102,7 +104,7 @@ class MeshType_3d_heart1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         # generate heartventriclesbase2 model and put atria2 on it
@@ -113,9 +115,9 @@ class MeshType_3d_heart1(Scaffold_base):
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
         # annotation points
-        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
+        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateInternal = datapoints.createNodetemplate()
@@ -188,7 +190,7 @@ class MeshType_3d_heart1(Scaffold_base):
         lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
         rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
 
-        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

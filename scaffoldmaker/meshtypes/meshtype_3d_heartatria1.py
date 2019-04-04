@@ -11,7 +11,7 @@ from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -308,7 +308,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         laGroup = AnnotationGroup(region, 'left atrium', FMANumber = 7097, lyphID = 'Lyph ID unknown')
@@ -345,7 +345,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, zinc_utils.getMaximumNodeIdentifier(nodes) + 1)
 
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
@@ -877,7 +877,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
 
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, zinc_utils.getMaximumElementIdentifier(mesh) + 1)
 
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)

@@ -12,7 +12,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -189,7 +189,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         #################
@@ -210,7 +210,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = startNodeIdentifier = zinc_utils.getMaximumNodeIdentifier(nodes) + 1
 
         # node offsets for row, wall in LV, plus first LV node on inside top
         norl = elementsCountAroundLV
@@ -717,7 +717,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         #print('lv crest interpolated from nodes', nida, nidb)
         node1 = nodes.findNodeByIdentifier(nida)
         node2 = nodes.findNodeByIdentifier(nidb)
-        x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.5, baseThickness, \
+        x, dx_ds2, dx_ds1, dx_ds3 = zinc_utils.interpolateNodesCubicHermite(cache, coordinates, 0.5, baseThickness, \
             node1, Node.VALUE_LABEL_D_DS2,  1.0, Node.VALUE_LABEL_D_DS1, 1.0, \
             node2, Node.VALUE_LABEL_D_DS3, -1.0, Node.VALUE_LABEL_D_DS1, 1.0)
 
@@ -784,7 +784,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         #print('lv bridge interpolated from nodes', nida, nidb)
         node1 = nodes.findNodeByIdentifier(nida)
         node2 = nodes.findNodeByIdentifier(nidb)
-        x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.4, lvOutletWallThickness, \
+        x, dx_ds2, dx_ds1, dx_ds3 = zinc_utils.interpolateNodesCubicHermite(cache, coordinates, 0.4, lvOutletWallThickness, \
             node1, Node.VALUE_LABEL_D_DS2, -1.0, Node.VALUE_LABEL_D_DS1, -1.0, \
             node2, Node.VALUE_LABEL_D_DS2,  1.0, Node.VALUE_LABEL_D_DS1,  1.0)
         # dx_ds1 needs to be larger
@@ -860,7 +860,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
 
-        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

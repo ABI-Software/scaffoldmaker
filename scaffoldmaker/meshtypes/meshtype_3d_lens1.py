@@ -8,7 +8,7 @@ import math
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -93,7 +93,7 @@ class MeshType_3d_lens1(Scaffold_base):
 
         # generate solidsphere with unit diameter
         MeshType_3d_solidsphere1.generateBaseMesh(region, options)
-        sphereCoordinates = getOrCreateCoordinateField(fm)
+        sphereCoordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
         # Morph sphere surface to lens surface
         lensRC = getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness,

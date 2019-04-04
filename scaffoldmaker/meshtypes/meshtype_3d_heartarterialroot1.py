@@ -10,7 +10,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -113,7 +113,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         if aorticNotPulmonary:
@@ -133,9 +133,9 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         annotationGroups = allGroups + cuspGroups
 
         # annotation points
-        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = getOrCreateLabelField(fm, 'data_label')
-        #dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
+        #dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
@@ -166,7 +166,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, zinc_utils.getMaximumNodeIdentifier(nodes) + 1)
 
         elementsCountAround = 6
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
@@ -398,7 +398,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eftDefault = bicubichermitelinear.createEftNoCrossDerivatives()
 
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, zinc_utils.getMaximumElementIdentifier(mesh) + 1)
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

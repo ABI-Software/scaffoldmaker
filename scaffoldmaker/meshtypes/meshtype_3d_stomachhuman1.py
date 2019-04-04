@@ -7,7 +7,7 @@ from __future__ import division
 import numpy as np
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -9259,8 +9259,8 @@ Element: 264
     def generateTube(self,region,circumferentialElements,axialElements,wallElements,wallThickness=1):
         fieldModule = region.getFieldmodule()
         fieldModule.beginChange()
-        coordinates = getOrCreateCoordinateField(fieldModule)
-        fibres = getOrCreateFibreField(fieldModule)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fieldModule)
+        fibres = zinc_utils.getOrCreateFibreField(fieldModule)
 
         nodeset = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodeset.createNodetemplate()
