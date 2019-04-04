@@ -11,7 +11,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import getLeftAtriumBasePoi
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
-from scaffoldmaker.utils.geometry import *
+from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
