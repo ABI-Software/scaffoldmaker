@@ -3,7 +3,7 @@ Definitions of standard element field templates using bicubic Hermite x linear L
 
 @author: Richard Christie
 '''
-from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from opencmiss.zinc.element import Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK

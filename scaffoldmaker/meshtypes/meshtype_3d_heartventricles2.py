@@ -7,7 +7,7 @@ import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, updateEllipseAngleByArcLength
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite

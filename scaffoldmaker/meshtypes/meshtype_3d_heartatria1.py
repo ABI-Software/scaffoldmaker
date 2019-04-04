@@ -7,7 +7,7 @@ from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength, createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.meshrefinement import MeshRefinement

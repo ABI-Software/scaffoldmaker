@@ -6,52 +6,6 @@ Created on Jan 4, 2018
 '''
 from opencmiss.zinc.element import Elementfieldtemplate
 
-def mapEftFunction1Node1Term(eft, function, localNode, valueLabel, version, scaleFactors):
-    '''
-    Set function of eft to map valueLabel, version from localNode with scaleFactors
-    '''
-    eft.setFunctionNumberOfTerms(function, 1)
-    eft.setTermNodeParameter(function, 1, localNode, valueLabel, version)
-    eft.setTermScaling(function, 1, scaleFactors)
-
-def mapEftFunction1Node2Terms(eft, function, localNode, valueLabel1, version1, scaleFactors1, valueLabel2, version2, scaleFactors2):
-    '''
-    Set function of eft to sum 2 terms the respective valueLabels, versions from localNode with scaleFactors
-    '''
-    eft.setFunctionNumberOfTerms(function, 2)
-    eft.setTermNodeParameter(function, 1, localNode, valueLabel1, version1)
-    eft.setTermScaling(function, 1, scaleFactors1)
-    eft.setTermNodeParameter(function, 2, localNode, valueLabel2, version2)
-    eft.setTermScaling(function, 2, scaleFactors2)
-
-def setEftScaleFactorIds(eft, generalScaleFactorIds, nodeScaleFactorIds):
-    '''
-    Set general followed by node scale factor identifiers.
-    '''
-    eft.setNumberOfLocalScaleFactors(len(generalScaleFactorIds) + len(nodeScaleFactorIds))
-    s = 1
-    for id in generalScaleFactorIds:
-        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
-        eft.setScaleFactorIdentifier(s, id)
-        s += 1
-    for id in nodeScaleFactorIds:
-        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
-        eft.setScaleFactorIdentifier(s, id)
-        s += 1
-
-def remapEftLocalNodes(eft, newNodeCount, localNodeIndexes):
-    '''
-    Remaps current local nodes to the new local ids, changing number of local nodes.
-    Assumes node parameters are in use.
-    :param localNodeIds: new local node identifiers starting at 1 for each current local node id - 1 referenced.
-    '''
-    functionCount = eft.getNumberOfFunctions()
-    for f in range(1, functionCount + 1):
-        termCount = eft.getFunctionNumberOfTerms(f)
-        for t in range(1, termCount + 1):
-            eft.setTermNodeParameter(f, t, localNodeIndexes[eft.getTermLocalNodeIndex(f, t) - 1], eft.getTermNodeValueLabel(f, t), eft.getTermNodeVersion(f, t))
-    eft.setNumberOfLocalNodes(newNodeCount)
-
 def getEftTermScaling(eft, functionIndex, termIndex):
     '''
     Convenience function to get the scale factor indexes scaling a term as a list.
@@ -72,23 +26,36 @@ def getEftTermScaling(eft, functionIndex, termIndex):
     scaleFactorCount, scaleFactorIndexes = eft.getTermScaling(functionIndex, termIndex, scaleFactorCount)
     return scaleFactorIndexes
 
-def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIndexes):
+def mapEftFunction1Node1Term(eft, function, localNode, valueLabel, version, scaleFactors):
     '''
-    Multiply all uses of the given ValueLabels by scale factor at scaleFactorIndex.
-    Handles general maps.
-    :param localNodeIndexes:  List of local node indexes >= 1 to scale value label.
-    :param valueLabels:  List of node value label to be scaled.
-    :param addScaleFactorIndexes: List of valid scale factor indexes >= 1 to append to existing scale factors.
+    Set function of eft to map valueLabel, version from localNode with scaleFactors
+    '''
+    eft.setFunctionNumberOfTerms(function, 1)
+    eft.setTermNodeParameter(function, 1, localNode, valueLabel, version)
+    eft.setTermScaling(function, 1, scaleFactors)
+
+def mapEftFunction1Node2Terms(eft, function, localNode, valueLabel1, version1, scaleFactors1, valueLabel2, version2, scaleFactors2):
+    '''
+    Set function of eft to sum 2 terms the respective valueLabels, versions from localNode with scaleFactors
+    '''
+    eft.setFunctionNumberOfTerms(function, 2)
+    eft.setTermNodeParameter(function, 1, localNode, valueLabel1, version1)
+    eft.setTermScaling(function, 1, scaleFactors1)
+    eft.setTermNodeParameter(function, 2, localNode, valueLabel2, version2)
+    eft.setTermScaling(function, 2, scaleFactors2)
+
+def remapEftLocalNodes(eft, newNodeCount, localNodeIndexes):
+    '''
+    Remaps current local nodes to the new local ids, changing number of local nodes.
+    Assumes node parameters are in use.
+    :param localNodeIds: new local node identifiers starting at 1 for each current local node id - 1 referenced.
     '''
     functionCount = eft.getNumberOfFunctions()
     for f in range(1, functionCount + 1):
         termCount = eft.getFunctionNumberOfTerms(f)
         for t in range(1, termCount + 1):
-            if eft.getTermLocalNodeIndex(f, t) in localNodeIndexes:
-                if eft.getTermNodeValueLabel(f, t) in valueLabels:
-                    scaleFactorIndexes = getEftTermScaling(eft, f, t)
-                    scaleFactorIndexes += addScaleFactorIndexes
-                    eft.setTermScaling(f, t, scaleFactorIndexes)
+            eft.setTermNodeParameter(f, t, localNodeIndexes[eft.getTermLocalNodeIndex(f, t) - 1], eft.getTermNodeValueLabel(f, t), eft.getTermNodeVersion(f, t))
+    eft.setNumberOfLocalNodes(newNodeCount)
 
 def remapEftNodeValueLabel(eft, localNodeIndexes, fromValueLabel, expressionTerms):
     '''
@@ -135,16 +102,35 @@ def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, express
                     if expressionTerm[2]:
                         eft.setTermScaling(f, t, expressionTerm[2])
 
-def derivativeSignsToExpressionTerms(valueLabels, signs):
+def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIndexes):
     '''
-    Return remap expression terms for summing derivative[i]*sign[i]
-    :param valueLabels: List of node value labels to possibly include.
-    :param signs: List of 1 (no scaling), -1 (scale by scale factor 1) or 0 (no term).
+    Multiply all uses of the given ValueLabels by scale factor at scaleFactorIndex.
+    Handles general maps.
+    :param localNodeIndexes:  List of local node indexes >= 1 to scale value label.
+    :param valueLabels:  List of node value label to be scaled.
+    :param addScaleFactorIndexes: List of valid scale factor indexes >= 1 to append to existing scale factors.
     '''
-    expressionTerms = []
-    for i in range(len(valueLabels)):
-        if signs[i] is 1:
-            expressionTerms.append( ( valueLabels[i], [] ) )
-        elif signs[i] is -1:
-            expressionTerms.append( ( valueLabels[i], [1] ) )
-    return expressionTerms
+    functionCount = eft.getNumberOfFunctions()
+    for f in range(1, functionCount + 1):
+        termCount = eft.getFunctionNumberOfTerms(f)
+        for t in range(1, termCount + 1):
+            if eft.getTermLocalNodeIndex(f, t) in localNodeIndexes:
+                if eft.getTermNodeValueLabel(f, t) in valueLabels:
+                    scaleFactorIndexes = getEftTermScaling(eft, f, t)
+                    scaleFactorIndexes += addScaleFactorIndexes
+                    eft.setTermScaling(f, t, scaleFactorIndexes)
+
+def setEftScaleFactorIds(eft, generalScaleFactorIds, nodeScaleFactorIds):
+    '''
+    Set general followed by node scale factor identifiers.
+    '''
+    eft.setNumberOfLocalScaleFactors(len(generalScaleFactorIds) + len(nodeScaleFactorIds))
+    s = 1
+    for id in generalScaleFactorIds:
+        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        eft.setScaleFactorIdentifier(s, id)
+        s += 1
+    for id in nodeScaleFactorIds:
+        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+        eft.setScaleFactorIdentifier(s, id)
+        s += 1

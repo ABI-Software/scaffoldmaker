@@ -10,7 +10,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnota
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import getLeftAtriumBasePoints
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import zinc_utils

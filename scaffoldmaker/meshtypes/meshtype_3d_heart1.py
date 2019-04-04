@@ -8,7 +8,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnota
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
-from scaffoldmaker.utils.eft_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
