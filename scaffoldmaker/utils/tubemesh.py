@@ -6,8 +6,7 @@ from __future__ import division
 import math
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.geometry import *
-from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils import zinc_utils
@@ -52,7 +51,7 @@ def generatetubemesh(region,
     elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
-    sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+    sx, sd1, se, sxi, _ = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
 
     # Find unit normals and binormals at each sample points
     sNormal = []
@@ -347,8 +346,8 @@ def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThick
             nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
             norm = d3Inner[n]
             curvatureAround = 0.5*(
-                getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0) +
-                getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0))
+                interp.getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0) +
+                interp.getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0))
             xOuter.append(x)
             curvatureInner.append(curvatureAround)
 
@@ -384,7 +383,7 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
             innerx = xInner[n]
             outerx = xOuter[n]
             dWall = [thickness*c for c in norm]
-            x = interpolateCubicHermite(innerx, dWall, outerx, dWall, xi3)
+            x = interp.interpolateCubicHermite(innerx, dWall, outerx, dWall, xi3)
             xList.append(x)
             # dx_ds1
             factor = 1.0 - curvatureInner[n]*thickness*xi3
@@ -395,14 +394,14 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
                 prevIdx = (n2 - 1)*elementsCountAround + n1
                 nextIdx = (n2 + 1)*elementsCountAround + n1
                 curvatureAround = 0.5*(
-                    getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0) +
-                    getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0))
+                    interp.getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0) +
+                    interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0))
             elif n2 == 0:
                 nextIdx = (n2 + 1)*elementsCountAround + n1
-                curvatureAround = getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0)
+                curvatureAround = interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0)
             else:
                 prevIdx = (n2 - 1)*elementsCountAround + n1
-                curvatureAround = getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0)
+                curvatureAround = interp.getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0)
 
             factor = 1.0 - curvatureAround*thickness*xi3
             dx_ds2 = [ factor*c for c in d2Inner[n]]

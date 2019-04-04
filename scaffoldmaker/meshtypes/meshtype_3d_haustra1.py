@@ -3,10 +3,13 @@ Generates a single 3-D haustra segment mesh along a central
 line, with variable numbers of elements around, along and
 through wall, with variable radius and thickness along.
 """
+
+import math
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.tubemesh import *
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
 
 class MeshType_3d_haustra1(Scaffold_base):
@@ -126,7 +129,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier = tubemesh.generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
             cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
@@ -222,9 +225,9 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     d1Sample = d1Around[1:9]
     d1Sample.append(d1Around[0])
     d1Sample.append(d1Around[1])
-    sx, sd1, se, sxi, _= sampleCubicHermiteCurves(xSample, d1Sample, elementsCountAround)
+    sx, sd1, se, sxi, _= interp.sampleCubicHermiteCurves(xSample, d1Sample, elementsCountAround)
     xInner = xInner + sx[0:-1]
-    d1Inner = smoothCubicHermiteDerivativesLoop(sx[0:-1], sd1[0:-1])
+    d1Inner = interp.smoothCubicHermiteDerivativesLoop(sx[0:-1], sd1[0:-1])
 
     # Pre-calculate node locations and derivatives on haustra inner cross-section
     elementsCountAroundSide = int(elementsCountAround/3)
@@ -266,7 +269,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
                   (-RC*sinTheta*sinRotAng + RC*cosTheta*cosRotAng)*thetaPerElementAround,
                   0.0]
             d1InnerHaustraRaw.append(dx_ds1)
-    d1InnerHaustra = smoothCubicHermiteDerivativesLoop(xHaustraInner, d1InnerHaustraRaw)
+    d1InnerHaustra = interp.smoothCubicHermiteDerivativesLoop(xHaustraInner, d1InnerHaustraRaw)
 
     # Sample arclength of haustra segment
     for n1 in range(elementsCountAround):
@@ -286,7 +289,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
             d3 = d2 = d1 = [c* haustrumLength/3 for c in unitZ]
         nx = [v1, v2, v3]
         nd1 = [d1, d2, d3]
-        sx, sd1, se, sxi, _  = sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustrum)
+        sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustrum)
         xInnerRaw.append(sx)
         dx_ds2InnerRaw.append(sd1)
 
@@ -335,10 +338,10 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
                 d1 = unitdx_ds1Around[n1]
                 v2 = xAround[(n1+1)%elementsCountAround]
                 d2 = unitdx_ds1Around[(n1+1)%elementsCountAround]
-                arcLengthAround = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+                arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
                 dx_ds1 = [c*arcLengthAround for c in d1]
                 dx_ds1InnerAroundList.append(dx_ds1)
-            d1Smoothed = smoothCubicHermiteDerivativesLoop(xAround, dx_ds1InnerAroundList)
+            d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, dx_ds1InnerAroundList)
             dx_ds1InnerList = dx_ds1InnerList + d1Smoothed
 
     dx_ds1InnerList = dx_ds1InnerList + d1Inner

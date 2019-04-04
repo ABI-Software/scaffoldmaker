@@ -10,8 +10,10 @@ from scaffoldmaker.meshtypes.meshtype_3d_haustra1 import MeshType_3d_haustra1, g
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.tubemesh import *
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import zinc_utils
+from opencmiss.zinc.node import Node
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
@@ -172,10 +174,10 @@ class MeshType_3d_colon1(Scaffold_base):
         # find arclength of colon
         length = 0.0
         elementsCountIn = len(cx) - 1
-        sd1 = smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections = True,
-            magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
+        sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections = True,
+            magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
         for e in range(elementsCountIn):
-            arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+            arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
         haustrumLength = length / haustraSegmentCount
 
@@ -184,7 +186,7 @@ class MeshType_3d_colon1(Scaffold_base):
             haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier = generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier = tubemesh.generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
             cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
