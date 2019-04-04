@@ -7,7 +7,7 @@ from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *

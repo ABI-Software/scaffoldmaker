@@ -10,7 +10,7 @@ import collections
 import copy
 from enum import Enum
 import math
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import vector
 
 gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )
 gaussWt3 = ( 5.0/18.0, 4.0/9.0, 5.0/18.0 )

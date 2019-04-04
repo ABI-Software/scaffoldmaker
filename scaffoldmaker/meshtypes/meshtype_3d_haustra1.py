@@ -4,9 +4,10 @@ line, with variable numbers of elements around, along and
 through wall, with variable radius and thickness along.
 """
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.matrix import *
+from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
+from scaffoldmaker.utils import vector
 
 class MeshType_3d_haustra1(Scaffold_base):
     '''
@@ -299,31 +300,31 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
             xInnerList.append(x)
             dx_ds2 = dx_ds2InnerRaw[n1][n2]
             dx_ds2InnerList.append(dx_ds2)
-            unitTangent = normalise(dx_ds2)
+            unitTangent = vector.normalise(dx_ds2)
             # Inter-haustra
             if n2 == 0 or n2 > elementsCountAlongHaustrum - 1:
                 dx_ds1 = d1Inner[n1]
-                unitdx_ds3 = crossproduct3(normalise(dx_ds1), unitTangent)
+                unitdx_ds3 = vector.crossproduct3(vector.normalise(dx_ds1), unitTangent)
             else:
                 # Intra-Haustra
                 if elementsCountAlongHaustrum == 2:
-                    unitdx_ds1 = normalise(d1InnerHaustra[n1])
+                    unitdx_ds1 = vector.normalise(d1InnerHaustra[n1])
                 else:
                     if n1%(elementsCountAround/3) == 0: # intersection points
-                        unitdx_ds1 = normalise(d1InnerHaustra[n1])
+                        unitdx_ds1 = vector.normalise(d1InnerHaustra[n1])
                     else: # points on clover
                         if elementsCountAlongHaustrum > 3:
                             if n2 < int(elementsCountAlongHaustrum/2): # first half of haustrumLength
-                                axisRot = crossproduct3(unitZ, unitTangent)
+                                axisRot = vector.crossproduct3(unitZ, unitTangent)
                             elif n2 > int(elementsCountAlongHaustrum/2): # second half of haustrumLength
-                                axisRot = crossproduct3(unitTangent, unitZ)
+                                axisRot = vector.crossproduct3(unitTangent, unitZ)
                         elif elementsCountAlongHaustrum == 3: # 3 elementsAlongHaustrum
-                            axisRot = crossproduct3(unitTangent, unitZ)
+                            axisRot = vector.crossproduct3(unitTangent, unitZ)
 
-                        rotFrame = getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
+                        rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
                         rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
-                        unitdx_ds3 = normalise(rotNormal)
-                        unitdx_ds1 = crossproduct3(unitTangent, unitdx_ds3)
+                        unitdx_ds3 = vector.normalise(rotNormal)
+                        unitdx_ds1 = vector.crossproduct3(unitTangent, unitdx_ds3)
                 xAround.append(x)
                 unitdx_ds1Around.append(unitdx_ds1)
 

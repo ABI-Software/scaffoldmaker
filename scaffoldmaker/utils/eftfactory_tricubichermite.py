@@ -7,7 +7,7 @@ Created on Nov 15, 2017
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import zinc_utils
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import vector
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node

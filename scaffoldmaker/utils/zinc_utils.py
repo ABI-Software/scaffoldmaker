@@ -9,7 +9,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.interpolation import *
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import vector
 
 def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=3):
     '''

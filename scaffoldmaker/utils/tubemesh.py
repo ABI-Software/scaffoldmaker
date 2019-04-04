@@ -8,8 +8,8 @@ from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicub
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.matrix import *
-from scaffoldmaker.utils.vector import *
+from scaffoldmaker.utils import matrix
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -59,28 +59,28 @@ def generatetubemesh(region,
     sBinormal = []
 
     # Set up normal and binormal for first frame
-    prevUnitTangent = normalise(sd1[0])
-    if magnitude(crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])) > 0.0:
-        prevBinormal = crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])
+    prevUnitTangent = vector.normalise(sd1[0])
+    if vector.magnitude(vector.crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])) > 0.0:
+        prevBinormal = vector.crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])
     else:
-        prevBinormal = crossproduct3(prevUnitTangent,[0.0, -1.0, 0.0])
-    prevUnitBinormal = normalise(prevBinormal)
-    prevUnitNormal = crossproduct3(prevUnitBinormal, prevUnitTangent)
+        prevBinormal = vector.crossproduct3(prevUnitTangent,[0.0, -1.0, 0.0])
+    prevUnitBinormal = vector.normalise(prevBinormal)
+    prevUnitNormal = vector.crossproduct3(prevUnitBinormal, prevUnitTangent)
     sNormal.append(prevUnitNormal)
     sBinormal.append(prevUnitBinormal)
 
     # Step through central line and rotate central line axes to align tangent 
     # to tangent from previous frame
     for n in range(1, elementsCountAlong + 1):
-        unitTangent = normalise(sd1[n])
-        cp = crossproduct3(prevUnitTangent, unitTangent)
-        if magnitude(cp)> 0.0:
-            axisRot = normalise(cp)
-            thetaRot = math.acos(dotproduct(prevUnitTangent, unitTangent))
-            rotFrame = getRotationMatrixFromAxisAngle(axisRot, thetaRot)
+        unitTangent = vector.normalise(sd1[n])
+        cp = vector.crossproduct3(prevUnitTangent, unitTangent)
+        if vector.magnitude(cp)> 0.0:
+            axisRot = vector.normalise(cp)
+            thetaRot = math.acos(vector.dotproduct(prevUnitTangent, unitTangent))
+            rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
             rotNormal = [rotFrame[j][0]*prevUnitNormal[0] + rotFrame[j][1]*prevUnitNormal[1] + rotFrame[j][2]*prevUnitNormal[2] for j in range(3)]
-            unitNormal = normalise(rotNormal)
-            unitBinormal = crossproduct3(unitTangent, unitNormal)
+            unitNormal = vector.normalise(rotNormal)
+            unitBinormal = vector.crossproduct3(unitTangent, unitNormal)
             prevUnitTangent = unitTangent
             prevUnitNormal = unitNormal
         else:
@@ -143,12 +143,12 @@ def generatetubemesh(region,
             if nSegment == 0 or (nSegment > 0 and nAlongSegment > 0):
                 # Rotate to align segment axis with tangent of central line
                 segmentMid = [0.0, 0.0, segmentLength/elementsCountAlongSegment* nAlongSegment]
-                unitTangent = normalise(sd1[n2])
-                cp = crossproduct3(segmentAxis, unitTangent)
-                if magnitude(cp)> 0.0:
-                    axisRot = normalise(cp)
-                    thetaRot = math.acos(dotproduct(segmentAxis, unitTangent))
-                    rotFrame = getRotationMatrixFromAxisAngle(axisRot, thetaRot)
+                unitTangent = vector.normalise(sd1[n2])
+                cp = vector.crossproduct3(segmentAxis, unitTangent)
+                if vector.magnitude(cp)> 0.0:
+                    axisRot = vector.normalise(cp)
+                    thetaRot = math.acos(vector.dotproduct(segmentAxis, unitTangent))
+                    rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
                     midRot = [rotFrame[j][0]*segmentMid[0] + rotFrame[j][1]*segmentMid[1] + rotFrame[j][2]*segmentMid[2] for j in range(3)]
                     translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
                 else:
@@ -159,20 +159,20 @@ def generatetubemesh(region,
                     x = xInner[n]
                     d1 = d1Inner[n]
                     d2 = d2Inner[n]
-                    if magnitude(cp)> 0.0:
+                    if vector.magnitude(cp)> 0.0:
                         xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                         d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                         d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
                         # Rotate to align first vector on face with binormal axis
                         if n1 == 0:
-                            firstVector = normalise([xRot1[j] - midRot[j] for j in range(3)])
-                            thetaRot2 = math.acos(dotproduct(normalise(sBinormal[n2]), firstVector))
-                            cp2 = crossproduct3(normalise(sBinormal[n2]), firstVector)
-                            if magnitude(cp2) > 0.0:
-                                cp2 = normalise(cp2)
-                                signThetaRot2 = dotproduct(unitTangent, cp2)
+                            firstVector = vector.normalise([xRot1[j] - midRot[j] for j in range(3)])
+                            thetaRot2 = math.acos(vector.dotproduct(vector.normalise(sBinormal[n2]), firstVector))
+                            cp2 = vector.crossproduct3(vector.normalise(sBinormal[n2]), firstVector)
+                            if vector.magnitude(cp2) > 0.0:
+                                cp2 = vector.normalise(cp2)
+                                signThetaRot2 = vector.dotproduct(unitTangent, cp2)
                                 axisRot2 = unitTangent
-                                rotFrame2 = getRotationMatrixFromAxisAngle(axisRot2, -signThetaRot2*thetaRot2)
+                                rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, -signThetaRot2*thetaRot2)
                             else:
                                 rotFrame2 = [ [1, 0, 0], [0, 1, 0], [0, 0, 1]]
                         xRot2 = [rotFrame2[j][0]*xRot1[0] + rotFrame2[j][1]*xRot1[1] + rotFrame2[j][2]*xRot1[2] for j in range(3)]
@@ -188,7 +188,7 @@ def generatetubemesh(region,
                     xInnerList.append(xTranslate)
                     d1InnerList.append(d1Rot2)
                     d2InnerList.append(d2Rot2)
-                    d3Unit = normalise(crossproduct3(normalise(d1Rot2), normalise(d2Rot2)))
+                    d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1Rot2), vector.normalise(d2Rot2)))
                     d3InnerUnitList.append(d3Unit)
 
     # Pre-calculate node locations and derivatives on outer boundary

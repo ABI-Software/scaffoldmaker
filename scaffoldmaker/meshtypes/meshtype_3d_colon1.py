@@ -9,7 +9,6 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extract
 from scaffoldmaker.meshtypes.meshtype_3d_haustra1 import MeshType_3d_haustra1, getColonHaustraSegmentInnerPoints
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.matrix import *
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tubemesh import *
 from scaffoldmaker.utils import zinc_utils
