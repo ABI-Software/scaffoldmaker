@@ -11,7 +11,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_hea
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import *
 from scaffoldmaker.utils.geometry import *
-from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -749,15 +749,15 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         d2a = [ scale*d for d in d2a ]
         xi = 0.5
         xr = 1.0 - xi
-        x = interpolateCubicHermite(xa, d2a, xb, d2b, xi)
+        x = interp.interpolateCubicHermite(xa, d2a, xb, d2b, xi)
         dx_ds1 = [ (xr*d1a[c] + xi*d1b[c]) for c in range(3) ]
-        dx_ds2 = interpolateCubicHermiteDerivative(xa, d2a, xb, d2b, xi)
+        dx_ds2 = interp.interpolateCubicHermiteDerivative(xa, d2a, xb, d2b, xi)
         dx_ds2 = [ xr*d for d in dx_ds2 ]
         radialVector = vector.normalise(vector.crossproduct3(dx_ds1, dx_ds2))
         dx_ds3 = [ baseThickness*d for d in radialVector ]
 
         x_inner = [ (x[c] - dx_ds3[c]) for c in range(3) ]
-        curvatureScale = 1.0 - baseThickness*getCubicHermiteCurvature(xa, d2a, x, dx_ds2, radialVector, 1.0)
+        curvatureScale = 1.0 - baseThickness*interp.getCubicHermiteCurvature(xa, d2a, x, dx_ds2, radialVector, 1.0)
         dx_ds2_inner = [ curvatureScale*d for d in dx_ds2 ]
 
         node = nodes.createNode(nodeIdentifier, nodetemplate)

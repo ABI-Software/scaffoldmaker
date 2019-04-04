@@ -8,7 +8,7 @@ Created on Jan 4, 2018
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
 def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=3):
@@ -244,15 +244,15 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
     d2 = [ scale2*d for d in d2 ]
     d2c = [ cross_scale2*d for d in d2c ]
 
-    arcLength = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+    arcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
     mag = arcLength/vector.magnitude(d1)
     d1 = [ mag*d for d in d1 ]
     mag = arcLength/vector.magnitude(d2)
     d2 = [ mag*d for d in d2 ]
 
     xr = 1.0 - xi
-    x = interpolateCubicHermite(v1, d1, v2, d2, xi)
-    dx_ds = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+    x = interp.interpolateCubicHermite(v1, d1, v2, d2, xi)
+    dx_ds = interp.interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     scale = min(xi, xr)
     dx_ds = [ scale*d for d in dx_ds ]
     dx_ds_cross = [ (xr*d1c[c] + xi*d2c[c]) for c in range(3) ]
@@ -279,7 +279,7 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
     d1 = [ d*scale1 for d in d1 ]
     cache.setNode(node2)
     result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
-    d2 = interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
+    d2 = interp.interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
     d2 = [ d*scale2 for d in d2 ]
     return d2
 
