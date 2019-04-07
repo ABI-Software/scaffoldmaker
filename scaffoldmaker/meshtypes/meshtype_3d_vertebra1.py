@@ -16,6 +16,7 @@ from scaffoldmaker.utils.geometry import *
 from scaffoldmaker.utils.interpolation import *
 from scaffoldmaker.utils.vector import *
 from scaffoldmaker.utils.transformation import *
+from scaffoldmaker.utils.eft_utils import *
 
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -203,16 +204,32 @@ class MeshType_3d_vertebra1(Scaffold_base):
         else:
             nodetemplate = nodetemplateApex
 
+        """ Node templates for nodes with 2 versions """
+        nodetemplateV2 = nodes.createNodetemplate()
+        if useCrossDerivatives:
+            nodetemplateV2.defineField(coordinates)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 2)
+        else:
+            nodetemplateV2.defineField(coordinates)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+            nodetemplateV2.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
+
         cache = fm.createFieldcache()
 
         """ Create nodes """
         nodeIdentifier = 1
-
         nodesForLeftPedicleElement = list()
         nodesForRightPedicleElement = list()
-
         nodesForVertebralArchElement = list()
-
         nodesOfTheVertebralArchCetreAxis = list()
 
         # Create bottom node
@@ -501,6 +518,12 @@ class MeshType_3d_vertebra1(Scaffold_base):
         # Regular element template
         elementtemplateRegular = mesh.createElementtemplate()
         elementtemplateRegular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        # Elements for nodes with 2 versions:
+        eft2V = eftfactory.createEftBasic()
+        elementtemplate2V = mesh.createElementtemplate()
+        elementtemplate2V.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate2V.defineField(textureCoordinates, -1, eftTexture2)
 
         # Tetrahedron element template
         elementtemplateWedge = mesh.createElementtemplate()
@@ -1078,14 +1101,18 @@ def _createVertebralArchCentreLineNodes(nodeList, cache, nodes, coordinates, thi
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     cache.setNode(node)
                     # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    dx_ds2 = [x*0.4 for x in dx_ds2]
                     if n1 == 1:
                         x[1] = x[1]*pedicleCoefficient
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x*0.5 for x in dx_ds1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x*0.2 for x in dx_ds1])
+                        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                     elif n1 == elementsCountAround - 1:
                         x[1] = x[1]*pedicleCoefficient
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x*0.1 for x in dx_ds1])
+                        # dx_ds1[1] = dx_ds1[1]*10.
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x*0.2 for x in dx_ds1])
+                        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                     else:
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
@@ -1106,7 +1133,16 @@ def _createVertebralArchCentreLineNodes(nodeList, cache, nodes, coordinates, thi
     """ Left pedicle elements """
     nodeIdStarter = 0
     for e2 in range(elementsCountUpNew):
-        elementtemplateRegular.defineField(coordinates, -1, eft)
+        # elementtemplateRegular.defineField(coordinates, -1, eft)
+        # element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft1 = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft1, [1], [])
+        remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1,
+                               [(Node.VALUE_LABEL_D_DS3, [1]), (Node.VALUE_LABEL_D_DS1, [])])
+
+        elementtemplateRegular.defineField(coordinates, -1, eft1)
         element = mesh.createElement(elementIdentifier, elementtemplateRegular)
 
         if elementsCountUp == 3:
@@ -1120,11 +1156,16 @@ def _createVertebralArchCentreLineNodes(nodeList, cache, nodes, coordinates, thi
             bni3 = (bni2 + 3) + (2 * elementsCountUp + (elementsCountUp%3))
         bni4 = bni2 + 3
 
-        nodeIdentifiers1 = [nodesForLeftPedicleElement[nodeIdStarter], nodesForLeftPedicleElement[nodeIdStarter + 1],
-                            nodesForLeftPedicleElement[nodeIdStarter + 2], nodesForLeftPedicleElement[nodeIdStarter + 3]]
-        nodeIdentifiers2 = [bni1, bni2, bni3, bni4]
+        # nodeIdentifiers1 = [nodesForLeftPedicleElement[nodeIdStarter], nodesForLeftPedicleElement[nodeIdStarter + 1],
+        #                     nodesForLeftPedicleElement[nodeIdStarter + 2], nodesForLeftPedicleElement[nodeIdStarter + 3]]
+        # nodeIdentifiers2 = [bni1, bni2, bni3, bni4]
+        #
+        nodeIdentifiers1 = [nodesForLeftPedicleElement[nodeIdStarter + 1], bni2,
+                            nodesForLeftPedicleElement[nodeIdStarter + 3], bni4]
+        nodeIdentifiers2 = [nodesForLeftPedicleElement[nodeIdStarter], bni1,
+                            nodesForLeftPedicleElement[nodeIdStarter + 2], bni3]
         nodeIdentifiers = nodeIdentifiers1 + nodeIdentifiers2
-        result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+        result1 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
         elementIdentifier = elementIdentifier + 1
         nodeIdStarter += 2
 
@@ -1156,4 +1197,35 @@ def _createVertebralArchCentreLineNodes(nodeList, cache, nodes, coordinates, thi
         elementIdentifier = elementIdentifier + 1
         nodeIdStarter += 2
 
+    """ Closing the ring """
+    elementtemplateRegular.defineField(coordinates, -1, eft)
+    element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+    nodeIdentifiers = [79, 77, 82, 80, 88, 86, 91, 89]
+    result1 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+    elementIdentifier = elementIdentifier + 1
+    nodeIdStarter += 2
+
     return None
+
+
+def _createEftPedicles(eft, useCrossDerivatives):
+    """
+
+    :param eft:
+    :param useCrossDerivatives:
+    :return: Element field template
+    """
+    for n in [ 0, 2, 4, 6 ]:
+        ln = n + 1
+        eft.setTermNodeParameter(n*8 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 2)
+        eft.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 2)
+        eft.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D_DS2, 2)
+        eft.setTermNodeParameter(n*8 + 1, 1, ln, Node.VALUE_LABEL_D_DS3, 2)
+        if useCrossDerivatives:
+            eft.setTermNodeParameter(n*8 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 2)
+            eft.setTermNodeParameter(n*8 + 2, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 2)
+            eft.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 2)
+            eft.setTermNodeParameter(n*8 + 3, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 2)
+
+    assert eft.validate(), '_createEftPedicles:  Failed to validate eft'
+    return eft
