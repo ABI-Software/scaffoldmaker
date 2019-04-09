@@ -62,6 +62,9 @@ class ScaffoldPackage:
             dct['meshEdits'] = self._meshEdits
         return dct
 
+    def getMeshEdits(self):
+        return self._meshEdits
+
     def setMeshEdits(self, meshEdits):
         self._meshEdits = meshEdits
 

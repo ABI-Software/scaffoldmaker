@@ -34,7 +34,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 class Scaffolds(object):
 
     def __init__(self):
-        self._allMeshTypes = [
+        self._allScaffoldTypes = [
             MeshType_1d_path1,
             MeshType_2d_plate1,
             MeshType_2d_platehole1,
@@ -62,17 +62,29 @@ class Scaffolds(object):
             MeshType_3d_tubeseptum1
             ]
 
-    def findMeshTypeByName(self, name):
-        for meshType in self._allMeshTypes:
-            if meshType.getName() == name:
-                return meshType
+    def findScaffoldTypeByName(self, name):
+        for scaffoldType in self._allScaffoldTypes:
+            if scaffoldType.getName() == name:
+                return scaffoldType
         return None
 
-    def getMeshTypes(self):
-        return self._allMeshTypes
-
     def getDefaultMeshType(self):
+        '''
+        Deprecated: use getDefaultScaffoldType()
+        '''
+        return self.getDefaultScaffoldType()
+
+    def getDefaultScaffoldType(self):
         return MeshType_3d_box1
+
+    def getMeshTypes(self):
+        '''
+        Deprecated: use getScaffoldTypes()
+        '''
+        return self.getScaffoldTypes()
+
+    def getScaffoldTypes(self):
+        return self._allScaffoldTypes
 
 
 class Scaffolds_JSONEncoder(json.JSONEncoder):
@@ -95,7 +107,7 @@ def Scaffolds_decodeJSON(dct):
     Constructs scaffold objects from their JSON object encoding.
     '''
     if ('_ScaffoldPackage' in dct):
-        scaffoldType = Scaffolds().findMeshTypeByName(dct['scaffoldTypeName'])
+        scaffoldType = Scaffolds().findScaffoldTypeByName(dct['scaffoldTypeName'])
         #print('Scaffolds_decodeJSON scaffoldType',scaffoldType.getName(), dct)
         return ScaffoldPackage(scaffoldType, dct)
     return dct
