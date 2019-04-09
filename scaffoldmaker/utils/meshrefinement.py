@@ -1,8 +1,5 @@
 '''
 Class for refining a mesh from one region to another.
-Created on April 4, 2018
-
-@author: Richard Christie
 '''
 from __future__ import division
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup

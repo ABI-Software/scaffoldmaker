@@ -1,7 +1,5 @@
 '''
 Definitions of standard element field templates using bicubic Hermite x linear Lagrange basis.
-
-@author: Richard Christie
 '''
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from opencmiss.zinc.element import Elementbasis, Elementfieldtemplate

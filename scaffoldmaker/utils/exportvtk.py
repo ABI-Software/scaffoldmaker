@@ -1,8 +1,5 @@
-
 '''
 Class for exporting a Scaffold from Zinc to legacy vtk text format.
-
-@author: Richard Christie
 '''
 
 import io

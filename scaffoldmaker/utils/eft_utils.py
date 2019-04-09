@@ -1,8 +1,5 @@
 '''
 Utility functions for element field templates shared by mesh generators.
-Created on Jan 4, 2018
-
-@author: Richard Christie
 '''
 from opencmiss.zinc.element import Elementfieldtemplate
 

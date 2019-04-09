@@ -1,8 +1,5 @@
 '''
 Interpolation functions shared by mesh generators.
-Created on Nov 15, 2017
-
-@author: Richard Christie
 '''
 
 from __future__ import division

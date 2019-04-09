@@ -1,8 +1,5 @@
 '''
 Utility functions for easing use of Zinc API.
-Created on Jan 4, 2018
-
-@author: Richard Christie
 '''
 
 from opencmiss.zinc.context import Context

@@ -1,8 +1,5 @@
 '''
 Definitions of standard element field templates shared by mesh generators.
-Created on Nov 15, 2017
-
-@author: Richard Christie
 '''
 from scaffoldmaker.utils.eft_utils import mapEftFunction1Node1Term, remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils import interpolation as interp
