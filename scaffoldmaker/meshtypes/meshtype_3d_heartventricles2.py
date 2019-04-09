@@ -6,13 +6,13 @@ from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-import scaffoldmaker.utils.vector as vector
-from scaffoldmaker.utils.eft_utils import *
-from scaffoldmaker.utils.geometry import *
-from scaffoldmaker.utils.interpolation import *
+from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, updateEllipseAngleByArcLength
+from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -150,7 +150,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
@@ -252,7 +252,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
 
                 # get radial displacement of centre of septum, a function of radiansUp
                 xiUp = max(0.0, (radiansUp - radialDisplacementStartRadiansUp)/(0.5*math.pi - radialDisplacementStartRadiansUp))
-                radialDisplacement = interpolateCubicHermite([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
+                radialDisplacement = interp.interpolateCubicHermite([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
 
                 radiansAround = -0.5*rvArcAroundRadians
                 cosRadiansAround = math.cos(radiansAround)
@@ -288,7 +288,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                     tx, td1 = getRvOuterPoints(rvArcAroundRadians, radius + dr, rvAddWidthRadius, rvAddCrossRadius, elementsCountAroundVSeptum, dEndMag, z + dz, xiUpCross)
                 else:
                     dxiUp_dxi = ds_dxi/(ds_dRadiansUp*(0.5*math.pi - radialDisplacementStartRadiansUp))
-                    dRadialDisplacement = dxi*dxiUp_dxi*interpolateCubicHermiteDerivative([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
+                    dRadialDisplacement = dxi*dxiUp_dxi*interp.interpolateCubicHermiteDerivative([0.0], [0.0], [vSeptumBaseRadialDisplacement], [0.0], xiUp)[0]
                     tx, td1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundVSeptum, z + dz, n3)
                 # true values for LV freewall
                 dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
@@ -456,10 +456,10 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                 curvature = 0.0
                 count = 0
                 if n1 > 0:
-                    curvature -= getCubicHermiteCurvature(rx[n1 - 1], rd1[n1 - 1], rx[n1], rd1[n1], unitRadial, 1.0)
+                    curvature -= interp.getCubicHermiteCurvature(rx[n1 - 1], rd1[n1 - 1], rx[n1], rd1[n1], unitRadial, 1.0)
                     count += 1
                 if n1 < (elementsCountAroundRV - 2):
-                    curvature -= getCubicHermiteCurvature(rx[n1], rd1[n1], rx[n1 + 1], rd1[n1 + 1], unitRadial, 0.0)
+                    curvature -= interp.getCubicHermiteCurvature(rx[n1], rd1[n1], rx[n1 + 1], rd1[n1 + 1], unitRadial, 0.0)
                     count += 1
                 curvature /= count
                 factor = 1.0 - curvature*rvFreeWallThickness
@@ -469,10 +469,10 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                 curvature = 0.0
                 count = 0
                 if n2 > 0:
-                    curvature -= getCubicHermiteCurvature(rxOuter[n2 - 1][n1], rd2Outer[n2 - 1][n1], rx[n1], rd2[n1], unitRadial, 1.0)
+                    curvature -= interp.getCubicHermiteCurvature(rxOuter[n2 - 1][n1], rd2Outer[n2 - 1][n1], rx[n1], rd2[n1], unitRadial, 1.0)
                     count += 1
                 if n2 < (elementsCountUpRV - 1):
-                    curvature -= getCubicHermiteCurvature(rx[n1], rd2[n1], rxOuter[n2 + 1][n1], rd2Outer[n2 + 1][n1], unitRadial, 0.0)
+                    curvature -= interp.getCubicHermiteCurvature(rx[n1], rd2[n1], rxOuter[n2 + 1][n1], rd2Outer[n2 + 1][n1], unitRadial, 0.0)
                     count += 1
                 curvature /= count
                 factor = 1.0 - curvature*rvFreeWallThickness
@@ -499,8 +499,8 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                 bd1 = [ 2.0*d for d in bd1 ]
                 if n1 > 0:
                     ax, ad1, ad2, bx, bd1, bd2 = bx, bd1, bd2, ax, ad1, ad2
-                x = interpolateCubicHermite(ax, ad1, bx, bd1, 0.5)
-                dx_ds1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
+                x = interp.interpolateCubicHermite(ax, ad1, bx, bd1, 0.5)
+                dx_ds1 = interp.interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
                 dx_ds1 = [ 0.5*d for d in dx_ds1 ]
                 dx_ds2 = [ 0.5*(ad2[c] + bd2[c]) for c in range(3) ]
                 ox = rxOuter[n2][n1]
@@ -536,9 +536,9 @@ class MeshType_3d_heartventricles2(Scaffold_base):
             bd2 = rd2Inner[0][n1]
             ad2 = [ 1.5*d for d in ad2 ]
             bd2 = [ 1.5*d for d in bd2 ]
-            x = interpolateCubicHermite(ax, ad2, bx, bd2, 0.5)
+            x = interp.interpolateCubicHermite(ax, ad2, bx, bd2, 0.5)
             dx_ds1 = [ 0.5*(ad1[c] + bd1[c]) for c in range(3) ]
-            dx_ds2 = interpolateCubicHermiteDerivative(ax, ad2, bx, bd2, 0.5)
+            dx_ds2 = interp.interpolateCubicHermiteDerivative(ax, ad2, bx, bd2, 0.5)
             dx_ds2 = [ (1.0/3.0)*d for d in dx_ds2 ]
             ox = rxOuter[0][n1]
             dx_ds3 = [ (ox[c] - x[c]) for c in range(3) ]
@@ -563,8 +563,8 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                 ax, ad1, bx, bd1 = bx, bd1, ax, ad1
             ad1 = [ 1.5*d for d in ad1 ]
             bd1 = [ 1.5*d for d in bd1 ]
-            x = interpolateCubicHermite(ax, ad1, bx, bd1, 0.5)
-            dx_ds1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
+            x = interp.interpolateCubicHermite(ax, ad1, bx, bd1, 0.5)
+            dx_ds1 = interp.interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, 0.5)
             dx_ds1 = [ (1.0/3.0)*d for d in dx_ds1 ]
             if n1 == 0:
                 dx_ds2 = [ -d for d in dx_ds1 ]
@@ -927,7 +927,7 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
         d1 = [ 0.0, circleArcLength, 0.0 ]
         v2 = [ lvRadius*math.cos(radiansAround), lvRadius*math.sin(radiansAround), z ]
         d2 = [ -circleArcLength*math.sin(radiansAround), circleArcLength*math.cos(radiansAround), 0.0 ]
-        cubicArcLength = computeCubicHermiteArcLength(v1, d1, v2, d2, False)
+        cubicArcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, False)
         scale = cubicArcLength/circleArcLength
         d1 = [ d*scale for d in d1 ]
         d2 = [ d*scale for d in d2 ]
@@ -940,9 +940,9 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
         dx_ds1 = []
         for n1 in range(elementsCountAroundVSeptum//2):
             xi = length/cubicArcLength
-            pos1 = interpolateCubicHermite(v1, d1, v2, d2, xi)
+            pos1 = interp.interpolateCubicHermite(v1, d1, v2, d2, xi)
             x.append([ v for v in pos1 ])
-            deriv1 = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+            deriv1 = interp.interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
             scale = elementLengthMid/vector.magnitude(deriv1)
             dx_ds1.append([ d*scale for d in deriv1 ])
             length += elementLengthMid
@@ -983,7 +983,7 @@ def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossR
     d1 = ( -1.0, 0.0 )
     x2 = ( lvRadius*math.cos(startRadians), lvRadius*math.sin(startRadians) )
     d2 = ( -math.sin(startRadians), math.cos(startRadians) )
-    cubicArcLength = computeCubicHermiteArcLength(x1, d1, x2, d2, True)
+    cubicArcLength = interp.computeCubicHermiteArcLength(x1, d1, x2, d2, True)
     d1 = ( d1[0]*cubicArcLength, d1[1]*cubicArcLength )
     d2 = ( d2[0]*cubicArcLength, d2[1]*cubicArcLength )
     quarterEllipsePerimeter = 0.25*getApproximateEllipsePerimeter(a, b)
@@ -1024,8 +1024,8 @@ def getRvOuterPoints(rvArcAroundRadians, lvRadius, rvAddWidthRadius, rvAddCrossR
             angle = updateEllipseAngleByArcLength(a, b, angle, elementLength)
         else:
             xi = (length - quarterEllipsePerimeter)/cubicArcLength
-            v = interpolateCubicHermite(x1, d1, x2, d2, xi)
-            t = interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
+            v = interp.interpolateCubicHermite(x1, d1, x2, d2, xi)
+            t = interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
         x.append([ v[0], v[1], z ])
         scale = dMag/math.sqrt(t[0]*t[0] + t[1]*t[1])
         dx_ds1.append([ t[0]*scale, t[1]*scale, 0.0 ])
@@ -1050,7 +1050,7 @@ def getRVOuterSize(xiUpWidth, xiUpCross, rvWidthRadius, rvExtraCrossRadiusBase):
         xiUpCross = 0.0
     xiUpFast = 1.0 - (1.0 - xiUpWidth)*(1.0 - xiUpWidth)
     xiUpSlow = xiUpCross
-    rvAddWidthRadius = interpolateCubicHermite([0.0], [0.0], [rvWidthRadius], [0.0], xiUpFast)[0]
-    rvAddCrossRadius = interpolateCubicHermite([0.0], [0.0], [rvExtraCrossRadiusBase], [0.0], xiUpSlow)[0]
+    rvAddWidthRadius = interp.interpolateCubicHermite([0.0], [0.0], [rvWidthRadius], [0.0], xiUpFast)[0]
+    rvAddCrossRadius = interp.interpolateCubicHermite([0.0], [0.0], [rvExtraCrossRadiusBase], [0.0], xiUpSlow)[0]
     #print('getRVOuterSize xiUpWidth', xiUpWidth, ', addWidth', rvAddWidthRadius, ', addCross', rvAddCrossRadius)
     return rvAddWidthRadius, rvAddCrossRadius

@@ -25,8 +25,8 @@ class Scaffold_base:
         '''
         return ['Default']
  
-    @staticmethod
-    def getDefaultOptions(parameterSetName='Default'):
+    @classmethod
+    def getDefaultOptions(cls, parameterSetName='Default'):
         '''
         Must override to get valid initial default or other named parameter set. Must support 'Default' parameter set.
         :param parameterSetName: Name of parameter set to get, from list returned by getParameterSetNames().
@@ -47,8 +47,36 @@ class Scaffold_base:
         '''
         return []
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def getOptionValidScaffoldTypes(cls, optionName):
+        '''
+        Override in derived types with ScaffoldPackage options, to return list of
+        valid scaffold types for ScaffoldPackage option optionName.
+        '''
+        return []
+
+    @classmethod
+    def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
+        '''
+        Optionally override in derived types with ScaffoldPackage options to return
+        custom list of parameter set names for ScaffoldPackage option optionName with the
+        specified scaffoldType. Otherwise override should call this function to get default
+        behaviour which is to return the standard parameter set names for the type.
+        '''
+        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), 'Scaffold_base.getOptionScaffoldTypeParameterSetNames.  Invalid option ' + optionName + ' scaffold type ' + scaffoldType.getName()
+        return scaffoldType.getParameterSetNames()
+
+    @classmethod
+    def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
+        '''
+        Override in derived types with ScaffoldPackage options to create a ScaffoldPackage
+        object for option optionName with the specified scaffoldType and parameterSetName.
+        :param parameterSetName:  Name of valid parameter set for option Scaffold, or None for default.
+        '''
+        assert False, 'getOptionScaffoldPackage() not implemented for scaffold type.  Attempted to get option ' + optionName + ' scaffold type ' + scaffoldType.getName()
+
+    @classmethod
+    def checkOptions(cls, options):
         '''
         Must override to keep options within limits to prevent nonsense or errors.
         '''

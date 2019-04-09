@@ -1,16 +1,29 @@
 '''
 Definitions of standard element field templates shared by mesh generators.
-Created on Nov 15, 2017
-
-@author: Richard Christie
 '''
-from scaffoldmaker.utils.eft_utils import *
-from scaffoldmaker.utils.zinc_utils import *
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils.eft_utils import mapEftFunction1Node1Term, remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import zinc_utils
+from scaffoldmaker.utils import vector
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK
 import math
+
+def derivativeSignsToExpressionTerms(valueLabels, signs):
+    '''
+    Return remap expression terms for summing derivative[i]*sign[i]
+    :param valueLabels: List of node value labels to possibly include.
+    :param signs: List of 1 (no scaling), -1 (scale by scale factor 1) or 0 (no term).
+    '''
+    expressionTerms = []
+    for i in range(len(valueLabels)):
+        if signs[i] is 1:
+            expressionTerms.append( ( valueLabels[i], [] ) )
+        elif signs[i] is -1:
+            expressionTerms.append( ( valueLabels[i], [1] ) )
+    return expressionTerms
 
 class eftfactory_tricubichermite:
     '''
@@ -919,7 +932,7 @@ class eftfactory_tricubichermite:
         cache = fm.createFieldcache()
         diff1 = self._mesh.getChartDifferentialoperator(1, 1)
         diff2 = self._mesh.getChartDifferentialoperator(1, 2)
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache.setMeshLocation(origElement, [0.5, 0.5, 1.0])
         result, fc = coordinates.evaluateReal(cache, 3)
         resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
@@ -966,7 +979,7 @@ class eftfactory_tricubichermite:
                 nodeIdentifier = nodeIdentifier + 1
 
         eft0 = origElement.getElementfieldtemplate(coordinates, -1)
-        nids0 = getElementNodeIdentifiers(origElement, eft0)
+        nids0 = zinc_utils.getElementNodeIdentifiers(origElement, eft0)
         orig_nids = [ nids0[0], nids0[2], nids0[3], nids0[1], nids0[4], nids0[6], nids0[7], nids0[5] ]
         #print('orig_nids',orig_nids)
 
@@ -1044,7 +1057,7 @@ class eftfactory_tricubichermite:
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         fm.beginChange()
         cache = fm.createFieldcache()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         a = vector.normalise(inletSide)
         b = vector.normalise(vector.crossproduct3(inletAxis, inletSide))
 
@@ -1076,9 +1089,9 @@ class eftfactory_tricubichermite:
                 nodeIdentifier = nodeIdentifier + 1
 
         eft0 = origElement1.getElementfieldtemplate(coordinates, -1)
-        nids1 = getElementNodeIdentifiers(origElement1, eft0)
+        nids1 = zinc_utils.getElementNodeIdentifiers(origElement1, eft0)
         eft0 = origElement2.getElementfieldtemplate(coordinates, -1)
-        nids2 = getElementNodeIdentifiers(origElement2, eft0)
+        nids2 = zinc_utils.getElementNodeIdentifiers(origElement2, eft0)
         orig_nids = [ nids1[0], nids1[2], nids2[2], nids2[3], nids1[3], nids1[1],
                       nids1[4], nids1[6], nids2[6], nids2[7], nids1[7], nids1[5] ]
         #print('orig_nids',orig_nids)
@@ -1217,7 +1230,7 @@ class eftfactory_tricubichermite:
         fm = self._mesh.getFieldmodule()
         fm.beginChange()
         cache = fm.createFieldcache()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
         # Build arrays of points from start to end
         px  = [ [], [] ]
@@ -1310,12 +1323,12 @@ class eftfactory_tricubichermite:
                             for c in range(3):
                                 bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
 
-                mx, md2, me, mxi = sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountRadial,
+                mx, md2, me, mxi = interp.sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountRadial,
                     addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
                     addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5, arcLengthDerivatives = True)[0:4]
-                md1 = interpolateSampleLinear([ ad1, bd1 ], me, mxi)
-                thi = interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
-                md2 = smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
+                md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
+                thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
+                md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
                 for n2 in range(1, elementsCountRadial):
                     px [n3][n2][n1] = mx [n2]
                     pd1[n3][n2][n1] = md1[n2]
@@ -1325,7 +1338,7 @@ class eftfactory_tricubichermite:
             # now get inner positions from normal and thickness, derivatives from curvature
             for n2 in range(1, elementsCountRadial):
                 # first smooth derivative 1 around outer loop
-                pd1[1][n2] = smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
+                pd1[1][n2] = interp.smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
 
                 for n1 in range(nodesCountAround):
                     normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
@@ -1336,30 +1349,30 @@ class eftfactory_tricubichermite:
                     n1m = n1 - 1
                     n1p = (n1 + 1)%nodesCountAround
                     curvature = 0.5*(
-                        getCubicHermiteCurvature(px[1][n2][n1m], pd1[1][n2][n1m], px[1][n2][n1 ], pd1[1][n2][n1 ], normal, 1.0) +
-                        getCubicHermiteCurvature(px[1][n2][n1 ], pd1[1][n2][n1 ], px[1][n2][n1p], pd1[1][n2][n1p], normal, 0.0))
+                        interp.getCubicHermiteCurvature(px[1][n2][n1m], pd1[1][n2][n1m], px[1][n2][n1 ], pd1[1][n2][n1 ], normal, 1.0) +
+                        interp.getCubicHermiteCurvature(px[1][n2][n1 ], pd1[1][n2][n1 ], px[1][n2][n1p], pd1[1][n2][n1p], normal, 0.0))
                     factor = 1.0 + curvature*thickness
                     pd1[0][n2][n1] = [ factor*d for d in pd1[1][n2][n1] ]
                     # calculate inner d2 from curvature radially
                     n2m = n2 - 1
                     n2p = n2 + 1
                     curvature = 0.5*(
-                        getCubicHermiteCurvature(px[1][n2m][n1], pd2[1][n2m][n1], px[1][n2 ][n1], pd2[1][n2 ][n1], normal, 1.0) +
-                        getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
+                        interp.getCubicHermiteCurvature(px[1][n2m][n1], pd2[1][n2m][n1], px[1][n2 ][n1], pd2[1][n2 ][n1], normal, 1.0) +
+                        interp.getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
                     factor = 1.0 + curvature*thickness
                     pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
 
                 # smooth derivative 1 around inner loop
-                pd1[0][n2] = smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
+                pd1[0][n2] = interp.smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
 
             for n3 in range(0, nodesCountWall):
                 # smooth derivative 2 radially/along annulus
                 for n1 in range(nodesCountAround):
-                    sd2 = smoothCubicHermiteDerivativesLine(
+                    sd2 = interp.smoothCubicHermiteDerivativesLine(
                         [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
                         [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
                         fixStartDerivative = True, fixEndDerivative = True,
-                        magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
+                        magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
                     for n2 in range(elementsCountRadial + 1):
                         pd2[n3][n2][n1] = sd2[n2]
 

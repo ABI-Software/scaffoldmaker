@@ -10,13 +10,13 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnota
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import getLeftAtriumBasePoints
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import *
-from scaffoldmaker.utils.geometry import *
-from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.geometry import createCirclePoints
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import vector
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -223,7 +223,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         # generate heartventricles1 model to add base plane to
@@ -240,9 +240,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
         # annotation points
-        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
+        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
@@ -268,7 +268,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = startNodeIdentifier = zinc_utils.getMaximumNodeIdentifier(nodes) + 1
 
         # move ventricles to fit atria centred around aorta
         cosVRotationRadians = math.cos(-vRotationRadians)
@@ -373,7 +373,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         # fix derivative 3 on lv outlet adjacent to rv outlet
         n1 = elementsCountAroundOutlet//2
-        lvOutletOuterd3[n1] = interpolateLagrangeHermiteDerivative(lvOutletOuterx[n1], rvOutletOuterx[0], rvOutletd2, 0.0)
+        lvOutletOuterd3[n1] = interp.interpolateLagrangeHermiteDerivative(lvOutletOuterx[n1], rvOutletOuterx[0], rvOutletd2, 0.0)
 
         # Left av fibrous ring points
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
@@ -454,8 +454,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         for n1 in range(elementsCountLVFreeWallRegular + 1):
             noa = elementsCountAroundAtrialFreeWall - elementsCountLVFreeWallRegular + n1
             nov = elementsCountAroundLVFreeWall - elementsCountLVFreeWallRegular + n1
-            lavInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
-            lavOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], lavOuterx[0][noa], 1.0)
+            lavInnerd2[0][noa] = interp.interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
+            lavOuterd2[0][noa] = interp.interpolateHermiteLagrangeDerivative(vOuterx[nov], vOuterd2[nov], lavOuterx[0][noa], 1.0)
             if n1 == 0:
                 # add d1 to d2 since subtracted in use:
                 for c in range(3):
@@ -475,15 +475,15 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                     niv -= 1
                     nov -= 1
             if elementsCountRVHanging and ((n1 == 2) or (n1 == 4)):
-                six  = interpolateCubicHermite(rvInnerx[niv], rvInnerd1[niv], rvInnerx[niv + 1], rvInnerd1[niv + 1], 0.5)
-                sox  = interpolateCubicHermite( vOuterx[nov],  vOuterd2[nov],  vOuterx[nov + 1],  vOuterd2[nov + 1], 0.5)
+                six  = interp.interpolateCubicHermite(rvInnerx[niv], rvInnerd1[niv], rvInnerx[niv + 1], rvInnerd1[niv + 1], 0.5)
+                sox  = interp.interpolateCubicHermite( vOuterx[nov],  vOuterd2[nov],  vOuterx[nov + 1],  vOuterd2[nov + 1], 0.5)
                 sid2 = [ 0.5*(rvInnerd2[niv][c] + rvInnerd2[niv + 1][c]) for c in range(3) ]
                 sod2 = [ 0.5*( vOuterd2[nov][c] +  vOuterd2[nov + 1][c]) for c in range(3) ]
             else:
                 six, sid2 = rvInnerx[niv], rvInnerd2[niv]
                 sox, sod2 = vOuterx[nov], vOuterd2[nov]
-            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(six, sid2, ravInnerx[0][noa], 1.0)
-            ravOuterd2[0][noa] = interpolateHermiteLagrangeDerivative(sox, sod2, ravOuterx[0][noa], 1.0)
+            ravInnerd2[0][noa] = interp.interpolateHermiteLagrangeDerivative(six, sid2, ravInnerx[0][noa], 1.0)
+            ravOuterd2[0][noa] = interp.interpolateHermiteLagrangeDerivative(sox, sod2, ravOuterx[0][noa], 1.0)
         if elementsCountRVHanging:
             # subtract d1 on last point, later map to d1 + d2
             noa = elementsCountAroundAtrialSeptum + 4
@@ -493,22 +493,22 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         for n1 in range(elementsCountAroundAtrialSeptum + 1):
             noa = (elementsCountAroundAtrialFreeWall + n1)%elementsCountAroundAtria
             nov = elementsCountAroundLVFreeWall + n1
-            lavInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
+            lavInnerd2[0][noa] = interp.interpolateHermiteLagrangeDerivative(lvInnerx[nov], lvInnerd2[nov], lavInnerx[0][noa], 1.0)
             noa = (elementsCountAroundAtrialSeptum - 1 + elementsCountAroundAtria - n1)%elementsCountAroundAtria
             nov = -n1
-            ravInnerd2[0][noa] = interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
+            ravInnerd2[0][noa] = interp.interpolateHermiteLagrangeDerivative(rvInnerx[nov], rvInnerd2[nov], ravInnerx[0][noa], 1.0)
         # special fix for left cfb
-        lavInnerd2[0][1] = interpolateHermiteLagrangeDerivative(lvOutletInnerx[-1], [ -d for d in lvOutletd2 ], lavInnerx[0][1], 1.0)
+        lavInnerd2[0][1] = interp.interpolateHermiteLagrangeDerivative(lvOutletInnerx[-1], [ -d for d in lvOutletd2 ], lavInnerx[0][1], 1.0)
         # special fix for left-central cfb (fix from above)
         sd2 = [ (-lvOutletInnerd1[0][c] - lvOutletd2[c]) for c in range(3) ]
-        pd2 = smoothCubicHermiteDerivativesLine([ lvOutletInnerx[0], lavInnerx[0][0] ], [ sd2, lavInnerd2[0][0] ], fixStartDerivative=True, fixEndDirection=True)
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ lvOutletInnerx[0], lavInnerx[0][0] ], [ sd2, lavInnerd2[0][0] ], fixStartDerivative=True, fixEndDirection=True)
         lavInnerd2[0][0] = pd2[1]
         # special fix for right cfb
         noa = elementsCountAroundAtria - 2
         nov = -elementsCountAroundAtrialSeptum - 1
         mag = baseHeight + baseThickness
         d2 = vector.setMagnitude(vector.crossproduct3(ravInnerd3[0][noa], ravInnerd1[0][noa]), mag)
-        pd2 = smoothCubicHermiteDerivativesLine([ rvInnerx[nov], ravInnerx[0][noa]], [ rvInnerd2[nov], d2 ], fixStartDerivative=True, fixEndDirection=True)
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ rvInnerx[nov], ravInnerx[0][noa]], [ rvInnerd2[nov], d2 ], fixStartDerivative=True, fixEndDirection=True)
         ravInnerd2[0][noa] = pd2[1]
 
         datapoint = datapoints.createNode(-1, datapointTemplateExternal)
@@ -538,14 +538,14 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         fd2 = [ (lvOutletOuterx[4][c] - vOuterx[1][c]) for c in range(3) ]
         mag = 1.0*vector.magnitude(fd2)
         fd2 = vector.setMagnitude([ fd2[0], fd2[1], 0.0 ], mag)
-        x = interpolateCubicHermite(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
-        d2 = interpolateCubicHermiteDerivative(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
-        pd2 = smoothCubicHermiteDerivativesLine([ vOuterx[0], x, lvOutletOuterx[4] ], [ vOuterd2[0], d2, lvOutletd2 ], fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True)
-        pd1 = smoothCubicHermiteDerivativesLine([ rvOutletOuterx[-1], x, lavOuterx[0][2] ], [ [ -d for d in rvOutletd2 ], zero, lavOuterd2[0][2] ], fixStartDerivative=True, fixEndDirection=True, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+        x = interp.interpolateCubicHermite(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
+        d2 = interp.interpolateCubicHermiteDerivative(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ vOuterx[0], x, lvOutletOuterx[4] ], [ vOuterd2[0], d2, lvOutletd2 ], fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True)
+        pd1 = interp.smoothCubicHermiteDerivativesLine([ rvOutletOuterx[-1], x, lavOuterx[0][2] ], [ [ -d for d in rvOutletd2 ], zero, lavOuterd2[0][2] ], fixStartDerivative=True, fixEndDirection=True, magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
         avsx = x
         avsd1 = pd1[1]
         avsd2 = pd2[1]
-        avsd3 = interpolateHermiteLagrangeDerivative(lvInnerx[0], lvInnerd2[0], avsx, 1.0)
+        avsd3 = interp.interpolateHermiteLagrangeDerivative(lvInnerx[0], lvInnerd2[0], avsx, 1.0)
         lavOuterd2[0][2] = pd1[2]
 
         # create points on bottom and top of RV supraventricular crest
@@ -560,16 +560,16 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             for c in range(3):
                 sd1[c] += ravInnerd1[0][ravsvcn2][c]
         fd1 = [ (rvOutletInnerd1[2][c] + rvOutletd2[c]) for c in range(3) ]
-        pd1 = smoothCubicHermiteDerivativesLine([ ravInnerx[0][ravsvcn2], mx, rvOutletInnerx[1] ], [ sd1, zero, fd1 ],
+        pd1 = interp.smoothCubicHermiteDerivativesLine([ ravInnerx[0][ravsvcn2], mx, rvOutletInnerx[1] ], [ sd1, zero, fd1 ],
             fixStartDerivative=True, fixEndDerivative = True)
-        pd2 = smoothCubicHermiteDerivativesLine([ rvInnerx[ns], mx, rvInnerx[nf] ], [ rvInnerd2[ns], md2, [ -d for d in rvInnerd2[nf] ] ],
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ rvInnerx[ns], mx, rvInnerx[nf] ], [ rvInnerd2[ns], md2, [ -d for d in rvInnerd2[nf] ] ],
             fixStartDerivative = True, fixEndDerivative = True)
         svcix = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
         svcid1 = pd1[1]
         svcid2 = pd2[1]
         svcid3 = vector.setMagnitude(vector.crossproduct3(svcid1, svcid2), baseThickness)
         sd2 = [ (svcid2[c] - svcid1[c]) for c in range(3) ]
-        pd2 = smoothCubicHermiteDerivativesLine([ mx, ravInnerx[0][ravsvcn1] ], [ sd2, ravInnerd2[0][ravsvcn1] ],
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ mx, ravInnerx[0][ravsvcn1] ], [ sd2, ravInnerd2[0][ravsvcn1] ],
             fixStartDerivative=True, fixEndDirection = True)
         ravInnerd2[0][ravsvcn1] = pd2[1]
 
@@ -581,16 +581,16 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             for c in range(3):
                 sd1[c] += ravOuterd1[0][ravsvcn2][c]
         fd1 = [ (rvOutletOuterd1[2][c] + rvOutletd2[c]) for c in range(3) ]
-        pd1 = smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn2], mx, rvOutletOuterx[1] ], [ sd1, zero, fd1 ],
+        pd1 = interp.smoothCubicHermiteDerivativesLine([ ravOuterx[0][ravsvcn2], mx, rvOutletOuterx[1] ], [ sd1, zero, fd1 ],
             fixStartDerivative=True, fixEndDerivative = True)
-        pd2 = smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)  # , instrument=True)
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)  # , instrument=True)
         svcox = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
         svcod1 = pd1[1]
         svcod2 = pd2[0]
         svcod3 = svcid3
         lvOutletOuterd3[nf] = [ -d for d in pd2[1] ]
         sd2 = [ (svcod2[c] - svcod1[c]) for c in range(3) ]
-        pd2 = smoothCubicHermiteDerivativesLine([ mx, ravOuterx[0][ravsvcn1] ], [ sd2, ravOuterd2[0][ravsvcn1] ],
+        pd2 = interp.smoothCubicHermiteDerivativesLine([ mx, ravOuterx[0][ravsvcn1] ], [ sd2, ravOuterd2[0][ravsvcn1] ],
             fixStartDerivative=True, fixEndDirection = True)
         ravOuterd2[0][ravsvcn1] = pd2[1]
 
@@ -740,7 +740,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
 
-        elementIdentifier = startElementIdentifier = getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

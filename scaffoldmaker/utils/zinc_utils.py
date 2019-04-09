@@ -1,23 +1,21 @@
 '''
 Utility functions for easing use of Zinc API.
-Created on Jan 4, 2018
-
-@author: Richard Christie
 '''
 
+from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.utils.interpolation import *
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import vector
 
 def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=3):
     '''
     Finds or creates a rectangular cartesian coordinate field.
-    New field has component names, 'x', 'y', 'z'.
+    New field has component names: 'x', 'y', 'z'.
     Raises exception if existing field of name is not finite element type or has incorrect attributes.
     :param fieldmodule:  Zinc fieldmodule to find or create field in.
     :param name:  Name of field to find or create.
-    :param componentsCount: Number of components / dimension of field.
+    :param componentsCount: Number of components / dimension of field, from 1 to 3.
     '''
     assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateCoordinateField.  Dimensions must be from 1 to 3'
     coordinates = fieldmodule.findFieldByName(name)
@@ -38,22 +36,48 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
     fieldmodule.endChange()
     return coordinates
 
-def getOrCreateTextureCoordinateField(fieldmodule, name='textureCoordinates', componentsCount=3):
+def getOrCreateFibreField(fieldmodule, name='fibres', componentsCount=3):
     '''
-    Finds or creates a rectangular cartesian texture coordinate field.
-    New field has component names, 'u', 'v', 'w'.
+    Finds or creates a fibre field.
+    New field has component names: 'fibre angle', 'imbrication angle', 'sheet angle'.
     Raises exception if existing field of name is not finite element type or has incorrect attributes.
     :param fieldmodule:  Zinc fieldmodule to find or create field in.
     :param name:  Name of field to find or create.
-    :param componentsCount: Number of components / dimension of field.
+    :param componentsCount: Number of components of field, from 1 to 3.
     '''
-    assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateCoordinateField.  Dimensions must be from 1 to 3'
+    assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateFibreField.  Dimensions must be from 1 to 3'
+    fibres = fieldmodule.findFieldByName(name)
+    if fibres.isValid():
+        fibres = fibres.castFiniteElement()
+        assert fibres.isValid(), 'getOrCreateFibreField.  Existing field \'' + name + '\' is not finite element type'
+        assert fibres.getNumberOfComponents() == componentsCount, 'getOrCreateFibreField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
+        assert fibres.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_FIBRE, 'getOrCreateFibreField.  Existing field \'' + name + '\' is not fibre'
+        return fibres
+    fieldmodule.beginChange()
+    fibres = fieldmodule.createFieldFiniteElement(componentsCount)
+    fibres.setName(name)
+    fibres.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_FIBRE)
+    for c in range(componentsCount):
+        fibres.setComponentName(c + 1, ['fibre angle', 'imbrication angle', 'sheet angle'][c])
+    fieldmodule.endChange()
+    return fibres
+
+def getOrCreateTextureCoordinateField(fieldmodule, name='textureCoordinates', componentsCount=3):
+    '''
+    Finds or creates a rectangular cartesian texture coordinate field.
+    New field has component names: 'u', 'v', 'w'.
+    Raises exception if existing field of name is not finite element type or has incorrect attributes.
+    :param fieldmodule:  Zinc fieldmodule to find or create field in.
+    :param name:  Name of field to find or create.
+    :param componentsCount: Number of components / dimension of field, from 1 to 3.
+    '''
+    assert (componentsCount > 0) and (componentsCount <= 3), 'getOrCreateTextureCoordinateField.  Dimensions must be from 1 to 3'
     coordinates = fieldmodule.findFieldByName(name)
     if coordinates.isValid():
         coordinates = coordinates.castFiniteElement()
-        assert coordinates.isValid(), 'getOrCreateCoordinateField.  Existing field \'' + name + '\' is not finite element type'
-        assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
-        assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
+        assert coordinates.isValid(), 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' is not finite element type'
+        assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
+        assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
         return coordinates
     fieldmodule.beginChange()
     coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
@@ -217,15 +241,15 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
     d2 = [ scale2*d for d in d2 ]
     d2c = [ cross_scale2*d for d in d2c ]
 
-    arcLength = computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+    arcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
     mag = arcLength/vector.magnitude(d1)
     d1 = [ mag*d for d in d1 ]
     mag = arcLength/vector.magnitude(d2)
     d2 = [ mag*d for d in d2 ]
 
     xr = 1.0 - xi
-    x = interpolateCubicHermite(v1, d1, v2, d2, xi)
-    dx_ds = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+    x = interp.interpolateCubicHermite(v1, d1, v2, d2, xi)
+    dx_ds = interp.interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     scale = min(xi, xr)
     dx_ds = [ scale*d for d in dx_ds ]
     dx_ds_cross = [ (xr*d1c[c] + xi*d2c[c]) for c in range(3) ]
@@ -252,6 +276,53 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
     d1 = [ d*scale1 for d in d1 ]
     cache.setNode(node2)
     result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3 )
-    d2 = interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
+    d2 = interp.interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
     d2 = [ d*scale2 for d in d2 ]
     return d2
+
+def exnodeStringFromNodeValues(
+        nodeValueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ],
+        nodeValues = [
+            [ [ 0.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ],
+            [ [ 1.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ] ],
+        groupName = 'meshEdits'):
+    '''
+    Return a string in Zinc EX format defining nodes 1..N with the supplied
+    coordinate values and their labels. Works in a private zinc context.
+    '''
+    # following requires at least one value label and node, assumes consistent values and components counts
+    nodeValueLabelsCount = len(nodeValueLabels)
+    nodesCount = len(nodeValues)
+    componentsCount = len(nodeValues[0][0])
+    context = Context('exnodeStringFromNodeValues')
+    region = context.getDefaultRegion()
+    fm = region.getFieldmodule()
+    fm.beginChange()
+    cache = fm.createFieldcache()
+    coordinates = getOrCreateCoordinateField(fm, componentsCount = componentsCount)
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    group = fm.createFieldGroup()
+    group.setName(groupName)
+    nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+    for nodeValueLabel in nodeValueLabels:
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
+    # create nodes
+    for n in range(nodesCount):
+        node = nodesetGroup.createNode(n + 1, nodetemplate)
+        cache.setNode(node)
+        for v in range(nodeValueLabelsCount):
+            coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
+    # serialise to string
+    sir = region.createStreaminformationRegion()
+    srm = sir.createStreamresourceMemory()
+    sir.setResourceGroupName(srm, groupName)
+    region.write(sir)
+    result, exString = srm.getBuffer()
+    #print('\n',nodeValues)
+    #print('exnodeStringFromNodeValues', result, exString)
+    fm.endChange()
+    return exString

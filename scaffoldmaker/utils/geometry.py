@@ -1,8 +1,5 @@
 '''
 Utility functions for geometry.
-Created on Apr 11, 2018
-
-@author: Richard Christie
 '''
 
 from __future__ import division

@@ -1,8 +1,5 @@
 '''
 Octree for searching for objects by coordinates
-Created on April 4, 2018
-
-@author: Richard Christie
 '''
 from __future__ import division
 import copy

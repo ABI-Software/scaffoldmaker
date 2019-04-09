@@ -8,7 +8,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnota
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria2 import MeshType_3d_heartatria2
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase2 import MeshType_3d_heartventriclesbase2
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 class MeshType_3d_heart2(Scaffold_base):
@@ -78,7 +78,7 @@ class MeshType_3d_heart2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         # generate heartventriclesbase2 model and put atria2 on it

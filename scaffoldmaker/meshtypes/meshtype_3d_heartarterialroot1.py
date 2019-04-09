@@ -7,14 +7,14 @@ from __future__ import division
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import *
-from scaffoldmaker.utils.geometry import *
-from scaffoldmaker.utils.interpolation import *
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, createCirclePoints
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-import scaffoldmaker.utils.vector as vector
+from scaffoldmaker.utils import vector
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -113,7 +113,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateCoordinateField(fm)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
         if aorticNotPulmonary:
@@ -133,9 +133,9 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         annotationGroups = allGroups + cuspGroups
 
         # annotation points
-        dataCoordinates = getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = getOrCreateLabelField(fm, 'data_label')
-        #dataElementXi = getOrCreateElementXiField(fm, 'data_element_xi')
+        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
+        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
+        #dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
@@ -166,7 +166,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, zinc_utils.getMaximumNodeIdentifier(nodes) + 1)
 
         elementsCountAround = 6
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
@@ -176,7 +176,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         cuspOuterWallArcLength = cuspOuterLength2*innerRadius/(innerRadius + cuspHeight)
         noduleOuterAxialArcLength = cuspOuterLength2 - cuspOuterWallArcLength
         noduleOuterRadialArcLength = innerRadius
-        cuspOuterWalld1 = interpolateLagrangeHermiteDerivative([ innerRadius, outerHeight + innerDepth - cuspHeight ], [ 0.0, 0.0 ], [ -innerRadius, 0.0 ], 0.0)
+        cuspOuterWalld1 = interp.interpolateLagrangeHermiteDerivative([ innerRadius, outerHeight + innerDepth - cuspHeight ], [ 0.0, 0.0 ], [ -innerRadius, 0.0 ], 0.0)
 
         sin60 = math.sin(math.pi/3.0)
         cuspThicknessLowerFactor = 4.5  # GRC fudge factor
@@ -215,7 +215,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
             rcosRadiansAround = cuspAttachmentRadius*math.cos(radiansAround)
             rsinRadiansAround = cuspAttachmentRadius*math.sin(radiansAround)
             ix[n2 + 1] = [ (topCentre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ]
-            id1[n2 + 1] = interpolateLagrangeHermiteDerivative(ix[n2 + 1], ix[n2 + 2], id1[n2 + 2], 0.0)
+            id1[n2 + 1] = interp.interpolateLagrangeHermiteDerivative(ix[n2 + 1], ix[n2 + 2], id1[n2 + 2], 0.0)
             # side 2
             n1 = ((cusp + 1)*2 - 1 + nMidCusp)%elementsCountAround
             n2 = n1*2
@@ -223,7 +223,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
             rcosRadiansAround = cuspAttachmentRadius*math.cos(radiansAround)
             rsinRadiansAround = cuspAttachmentRadius*math.sin(radiansAround)
             ix[n2 - 1] = [ (topCentre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ]
-            id1[n2 - 1] = interpolateHermiteLagrangeDerivative(ix[n2 - 2], id1[n2 - 2], ix[n2 - 1], 1.0)
+            id1[n2 - 1] = interp.interpolateHermiteLagrangeDerivative(ix[n2 - 2], id1[n2 - 2], ix[n2 - 1], 1.0)
         ox, od1 = createCirclePoints(topCentre,
             [ axisSide1[c]*outerRadius for c in range(3) ], [ axisSide2[c]*outerRadius for c in range(3) ],
             elementsCountAround)
@@ -233,7 +233,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         zero = [ 0.0, 0.0, 0.0 ]
         upperd2factor = outerHeight
         upd2 = [ d*upperd2factor for d in axisUp ]
-        lowerOuterd2 = smoothCubicHermiteDerivativesLine([ lowerx[1][nMidCusp], upperx[1][nMidCusp] ], [ upd2, upd2 ],
+        lowerOuterd2 = interp.smoothCubicHermiteDerivativesLine([ lowerx[1][nMidCusp], upperx[1][nMidCusp] ], [ upd2, upd2 ],
             fixStartDirection=True, fixEndDerivative=True)[0]
         lowerd2factor = 2.0*(outerHeight + innerDepth) - upperd2factor
         lowerInnerd2 = [ d*lowerd2factor for d in axisUp ]
@@ -257,7 +257,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
             [ axisSide1[c]*innerRadius for c in range(3) ], [ axisSide2[c]*innerRadius for c in range(3) ],
             elementsCountAround)
         # get sinusd2, parallel to lower inclined lines
-        sd2 = smoothCubicHermiteDerivativesLine([ [ innerRadius, -sinusDepth ], [ innerRadius, outerHeight ] ],
+        sd2 = interp.smoothCubicHermiteDerivativesLine([ [ innerRadius, -sinusDepth ], [ innerRadius, outerHeight ] ],
             [ [ wallThickness + sinusRadialDisplacement, innerDepth ], [ 0.0, upperd2factor ] ],
             fixStartDirection=True, fixEndDerivative=True)[0]
         sinusd2 = [ None ]*elementsCountAround
@@ -278,12 +278,12 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
             n1p = (n1 + 1)%elementsCountAround
             n2m = n1m*2 + 1
             n2p = n1p*2 - 1
-            ax, ad1 = sampleCubicHermiteCurves([ upperx[0][n2m], sinusx[n1] ], [ [ -scaled1*d for d in upperd2[0][n2m] ], [ scaled1*d for d in sinusd1[n1] ] ],
+            ax, ad1 = interp.sampleCubicHermiteCurves([ upperx[0][n2m], sinusx[n1] ], [ [ -scaled1*d for d in upperd2[0][n2m] ], [ scaled1*d for d in sinusd1[n1] ] ],
                 elementsCountOut=2, addLengthStart=0.5*vector.magnitude(upperd2[0][n2m]), lengthFractionStart=0.5,
                 addLengthEnd=0.5*vector.magnitude(sinusd1[n1]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
             arcx .append(ax [1])
             arcd1.append(ad1[1])
-            ax, ad1 = sampleCubicHermiteCurves([ sinusx[n1], upperx[0][n2p], ], [ [ scaled1*d for d in sinusd1[n1] ], [ scaled1*d for d in upperd2[0][n2p] ] ],
+            ax, ad1 = interp.sampleCubicHermiteCurves([ sinusx[n1], upperx[0][n2p], ], [ [ scaled1*d for d in sinusd1[n1] ], [ scaled1*d for d in upperd2[0][n2p] ] ],
                 elementsCountOut=2, addLengthStart=0.5*vector.magnitude(sinusd1[n1]), lengthFractionStart=0.5,
                 addLengthEnd=0.5*vector.magnitude(upperd2[0][n2p]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
             arcx .append(ax [1])
@@ -398,7 +398,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eftDefault = bicubichermitelinear.createEftNoCrossDerivatives()
 
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, zinc_utils.getMaximumElementIdentifier(mesh) + 1)
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
@@ -585,7 +585,7 @@ def getSemilunarValveSinusPoints(centre, axisSide1, axisSide2, radius, sinusRadi
         px.append([ (centre[c] + rcosRadiansAround*axisSide1[c] + rsinRadiansAround*axisSide2[c]) for c in range(3) ])
         pd1.append([ radiansPerElementAround*(-rsinRadiansAround*axisSide1[c] + rcosRadiansAround*axisSide2[c]) for c in range(3) ])
     # smooth to get derivative in sinus
-    sd1 = smoothCubicHermiteDerivativesLine(px[1 - nMidCusp:3 - nMidCusp], pd1[1 - nMidCusp:3 - nMidCusp], fixStartDerivative=True, fixEndDirection=True)
+    sd1 = interp.smoothCubicHermiteDerivativesLine(px[1 - nMidCusp:3 - nMidCusp], pd1[1 - nMidCusp:3 - nMidCusp], fixStartDerivative=True, fixEndDirection=True)
     magSinus = vector.magnitude(sd1[1])
     for n in range(nMidCusp, elementsCountAround, 2):
         pd1[n] = vector.setMagnitude(pd1[n], magSinus)

@@ -1,13 +1,10 @@
 '''
 Class for refining a mesh from one region to another.
-Created on April 4, 2018
-
-@author: Richard Christie
 '''
 from __future__ import division
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.octree import Octree
-from scaffoldmaker.utils.zinc_utils import *
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -27,7 +24,7 @@ class MeshRefinement:
         self._sourceRegion = sourceRegion
         self._sourceFm = sourceRegion.getFieldmodule()
         self._sourceCache = self._sourceFm.createFieldcache()
-        self._sourceCoordinates = getOrCreateCoordinateField(self._sourceFm)
+        self._sourceCoordinates = zinc_utils.getOrCreateCoordinateField(self._sourceFm)
         # get range of source coordinates for octree range
         self._sourceFm.beginChange()
         sourceNodes = self._sourceFm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -53,7 +50,7 @@ class MeshRefinement:
         self._targetFm = targetRegion.getFieldmodule()
         self._targetFm.beginChange()
         self._targetCache = self._targetFm.createFieldcache()
-        self._targetCoordinates = getOrCreateCoordinateField(self._targetFm)
+        self._targetCoordinates = zinc_utils.getOrCreateCoordinateField(self._targetFm)
 
         self._targetNodes = self._targetFm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self._nodetemplate = self._targetNodes.createNodetemplate()

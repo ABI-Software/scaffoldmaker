@@ -1,8 +1,5 @@
 '''
 Utility functions for vectors.
-Created on Apr 13, 2018
-
-@author: Richard Christie
 '''
 
 import math

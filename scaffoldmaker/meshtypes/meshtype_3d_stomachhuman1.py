@@ -7,9 +7,11 @@ from __future__ import division
 import numpy as np
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.node import Node
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.context import Context
+from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scipy.interpolate import splprep, splev
 
 class Stomach:
@@ -9257,21 +9259,10 @@ Element: 264
     def generateTube(self,region,circumferentialElements,axialElements,wallElements,wallThickness=1):
         fieldModule = region.getFieldmodule()
         fieldModule.beginChange()
-        coordinates = fieldModule.createFieldFiniteElement(3)
-        coordinates.setName('coordinates')
-        coordinates.setManaged(True)
-        coordinates.setTypeCoordinate(True)
-        coordinates.setCoordinateSystemType(coordinates.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-        coordinates.setComponentName(1, 'x')
-        coordinates.setComponentName(2, 'y')
-        coordinates.setComponentName(3, 'z')
-        fibres = fieldModule.createFieldFiniteElement(3)
-        fibres.setName('fibres')
-        fibres.setComponentName(1, 'fibre angle')
-        fibres.setComponentName(2, 'imbrication angle')
-        fibres.setComponentName(3, 'sheet angle')
-                        
-        nodeset = fieldModule.findNodesetByFieldDomainType(coordinates.DOMAIN_TYPE_NODES)
+        coordinates = zinc_utils.getOrCreateCoordinateField(fieldModule)
+        fibres = zinc_utils.getOrCreateFibreField(fieldModule)
+
+        nodeset = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodeset.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.defineField(fibres)

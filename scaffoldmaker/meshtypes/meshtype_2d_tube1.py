@@ -5,6 +5,7 @@ Generates a 2-D unit tube mesh with variable numbers of elements around, along.
 from __future__ import division
 import math
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -53,14 +54,7 @@ class MeshType_2d_tube1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = fm.createFieldFiniteElement(3)
-        coordinates.setName('coordinates')
-        coordinates.setManaged(True)
-        coordinates.setTypeCoordinate(True)
-        coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-        coordinates.setComponentName(1, 'x')
-        coordinates.setComponentName(2, 'y')
-        coordinates.setComponentName(3, 'z')
+        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
