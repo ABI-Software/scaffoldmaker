@@ -287,7 +287,8 @@ def exnodeStringFromNodeValues(
         nodeValueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ],
         nodeValues = [
             [ [ 0.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ],
-            [ [ 1.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ] ]):
+            [ [ 1.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ] ],
+        groupName = 'meshEdits'):
     '''
     Return a string in Zinc EX format defining nodes 1..N with the supplied
     coordinate values and their labels. Works in a private zinc context.
@@ -303,6 +304,9 @@ def exnodeStringFromNodeValues(
     cache = fm.createFieldcache()
     coordinates = getOrCreateCoordinateField(fm, componentsCount = componentsCount)
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    group = fm.createFieldGroup()
+    group.setName(groupName)
+    nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
     nodetemplate = nodes.createNodetemplate()
     nodetemplate.defineField(coordinates)
     if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
@@ -311,13 +315,14 @@ def exnodeStringFromNodeValues(
         nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
     # create nodes
     for n in range(nodesCount):
-        node = nodes.createNode(n + 1, nodetemplate)
+        node = nodesetGroup.createNode(n + 1, nodetemplate)
         cache.setNode(node)
         for v in range(nodeValueLabelsCount):
             coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
     # serialise to string
     sir = region.createStreaminformationRegion()
     srm = sir.createStreamresourceMemory()
+    sir.setResourceGroupName(srm, groupName)
     region.write(sir)
     result, exString = srm.getBuffer()
     #print('\n',nodeValues)
