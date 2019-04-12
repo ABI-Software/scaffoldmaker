@@ -27,9 +27,11 @@ class MeshType_3d_haustra1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of elements around' : 9,
+            'Number of elements around tenia coli' : 2,
+            'Number of elements around haustrum' : 4,
             'Number of elements along haustrum' : 3,
             'Number of elements through wall' : 1,
+            'Inner width of tenia coli': 0.2,
             'Inner radius': 0.5,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
@@ -48,9 +50,11 @@ class MeshType_3d_haustra1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of elements around',
+            'Number of elements around tenia coli',
+            'Number of elements around haustrum',
             'Number of elements along haustrum',
             'Number of elements through wall',
+            'Inner width of tenia coli',
             'Inner radius',
             'Corner inner radius factor',
             'Haustrum inner radius factor',
@@ -75,12 +79,22 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
-        if (options['Number of elements around'] < 9) :
-            options['Number of elements around'] = 9
-        if (options['Number of elements around'] % 3 != 0) :
-            options['Number of elements around'] = (options['Number of elements around']//3)*3
-        if (options['Number of elements along haustrum'] < 2) :
-            options['Number of elements along haustrum'] = 2
+        for key in [
+            'Number of elements around tenia coli',
+            'Number of elements along haustrum']:
+            if options[key] < 2:
+                options[key] = 2
+        if options['Number of elements around haustrum'] < 4:
+            options['Number of elements around haustrum'] = 4
+        for key in [
+            'Number of elements around tenia coli',
+            'Number of elements around haustrum']:
+            if options[key] % 2 > 0:
+                options[key] = options[key] + 1
+        if options['Inner width of tenia coli'] < 0.1*options['Inner radius']:
+            options['Inner width of tenia coli'] = 0.1*options['Inner radius']
+        if options['Inner width of tenia coli'] > round(math.sqrt(3)*0.5*options['Inner radius'],2):
+            options['Inner width of tenia coli'] = round(math.sqrt(3)*0.5*options['Inner radius'],2)
         for key in [
             'Inner radius',
             'Haustrum inner radius factor',
@@ -106,9 +120,12 @@ class MeshType_3d_haustra1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        elementsCountAround = options['Number of elements around']
+        elementsCountAroundTC = options['Number of elements around tenia coli']
+        elementsCountAroundHaustrum = options['Number of elements around haustrum']
+        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
         elementsCountAlongHaustrum = options['Number of elements along haustrum']
         elementsCountThroughWall = options['Number of elements through wall']
+        widthTC = options['Inner width of tenia coli']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
@@ -125,7 +142,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         cd1 = [ [ haustrumLength, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
 
         # Generate inner surface of a haustra segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius, cornerInnerRadiusFactor,
             haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
@@ -156,16 +173,18 @@ class MeshType_3d_haustra1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
-        haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
+def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius, cornerInnerRadiusFactor,
+    haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
     """
     Generates a 3-D haustra segment mesh with variable numbers
     of elements around, along the central line, and through wall.
     The haustra segment has a triangular profile with rounded corners
     at the inter-haustral septa, and a clover profile in the intra-haustral
     region.
-    :param elementsCountAround: Number of elements around haustra.
+    :param elementsCountAroundTC: Number of elements around each tenia coli.
+    :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :param elementsCountAlongHaustrum: Number of elements along haustrum.
+    :param widthTC: Width of tenia coli.
     :param radius: Inner radius defined from center of triangular
     profile to vertex of the triangle.
     :param cornerInnerRadiusFactor: Roundness of triangular corners of
@@ -183,95 +202,134 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     """
 
     # create nodes
+    zero = [0.0, 0.0, 0.0] # Delete later if not in use
     x = [ 0.0, 0.0, 0.0 ]
     dx_ds1 = [ 0.0, 0.0, 0.0 ]
     dx_ds2 = [ 0.0, 0.0, 0.0 ]
     dx_ds3 = [ 0.0, 0.0, 0.0 ]
-    radiansRangeRC = [7*math.pi/4, 0.0, math.pi/4]
     cornerRC = cornerInnerRadiusFactor*radius
     unitZ = [0.0, 0.0, 1.0]
     haustrumRadius = (haustrumInnerRadiusFactor + 1)*radius
+
     xAround = []
-    d1Around = []
-    xInner = []
     dx_ds1InnerList = []
-    xHaustraSide = []
-    xHaustraInner = []
-    d1InnerHaustraRaw = []
+    xTC = []
+    d1TC = []
+    xHalfSet = []
+    d1HalfSet = []
+    nxHaustrum = []
+    nd1Haustrum = []
     xInnerRaw = []
     dx_ds2InnerRaw = []
     xInnerList = []
     dx_ds2InnerList = []
 
-    # Pre-calculate node locations and derivatives on inner triangle
-    for n1 in range(3):
-        radiansAround = n1*2*math.pi / 3
-        cosRadiansAround = math.cos(radiansAround)
-        sinRadiansAround = math.sin(radiansAround)
-        xc = [(radius - cornerRC) * cosRadiansAround, (radius - cornerRC) * sinRadiansAround, 0.0]
+    # Inter-haustral segment
+    # Calculate boundary of tenia coli and haustrum
+    xc = [(radius - cornerRC)* math.cos(0.0), (radius - cornerRC)*math.sin(0.0), 0.0]
+    pt1 = [xc[0] + cornerRC*math.cos(0.0), xc[1] + cornerRC*math.sin(0.0), 0.0]
+    pt2 = [xc[0] + cornerRC*math.cos(math.pi/4), xc[1] + cornerRC*math.sin(math.pi/4), 0.0]
+    pt3 = [(radius - cornerRC) * math.cos(2*math.pi/3) + cornerRC*math.cos(2*math.pi/3 + math.pi*7/4),
+           (radius - cornerRC) * math.sin(2*math.pi/3) + cornerRC*math.sin(2*math.pi/3 + math.pi*7/4), 
+           0.0]
+    xMid = [(pt2[n] + pt3[n])*0.5 for n in range(3)]
 
-        for n in range(3):
-            radiansRC = radiansAround + radiansRangeRC[n]
-            cosRadiansRC = math.cos(radiansRC)
-            sinRadiansRC = math.sin(radiansRC)
-            x = [xc[0] + cornerRC*cosRadiansRC, xc[1] + cornerRC*sinRadiansRC, 0.0]
-            xAround.append(x)
-            d1 = [ cornerRC*math.pi/4 * -sinRadiansRC, cornerRC*math.pi/4 * cosRadiansRC, 0.0]
-            d1Around.append(d1)
-
-    xSample = xAround[1:9]
-    xSample.append(xAround[0])
-    xSample.append(xAround[1])
-    d1Sample = d1Around[1:9]
-    d1Sample.append(d1Around[0])
-    d1Sample.append(d1Around[1])
-    sx, sd1, se, sxi, _= interp.sampleCubicHermiteCurves(xSample, d1Sample, elementsCountAround)
-    xInner = xInner + sx[0:-1]
-    d1Inner = interp.smoothCubicHermiteDerivativesLoop(sx[0:-1], sd1[0:-1])
-
-    # Pre-calculate node locations and derivatives on haustra inner cross-section
-    elementsCountAroundSide = int(elementsCountAround/3)
-    Ax = xInner[elementsCountAroundSide][0]
-    Ay = xInner[elementsCountAroundSide][1]
-    originRC = (Ax*Ax + Ay*Ay - haustrumRadius*haustrumRadius) / (2*(-Ax - haustrumRadius))
-    RC = haustrumRadius - originRC
-
-    if originRC > -Ax:
-        startTheta = math.asin(Ay/RC)
-        thetaRC = (math.pi - startTheta)*2
-    else:
-        startTheta = math.pi - math.asin(Ay/RC)
-        thetaRC = math.asin(Ay/RC)*2
-    thetaPerElementAround = thetaRC/(elementsCountAround/3)
-
-    for n in range(elementsCountAroundSide + 1):
-        theta = startTheta + thetaPerElementAround * n
-        x = [RC*math.cos(theta) - originRC,
-            RC*math.sin(theta),
-            0.0]
-        xHaustraSide.append(x)
-
-    ang = [-2/3*math.pi, 0.0, 2/3*math.pi]
-
-    for i in range(3):
-        rotAng = ang[i]
-        cosRotAng = math.cos(rotAng)
-        sinRotAng = math.sin(rotAng)
-        for n in range(elementsCountAroundSide):
-            theta = startTheta + thetaPerElementAround * n
+    if widthTC/2 < cornerRC*math.sin(math.pi/4):
+        TCTheta = math.asin(widthTC/(2*cornerRC))
+        thetaSet = [-TCTheta, TCTheta]
+        for n in range(2):
+            theta = thetaSet[n]
             cosTheta = math.cos(theta)
             sinTheta = math.sin(theta)
-            x = [ (RC*cosTheta - originRC)*cosRotAng - RC*sinTheta*sinRotAng,
-                  (RC*cosTheta - originRC)*sinRotAng + RC*sinTheta*cosRotAng,
-                  0.0]
-            xHaustraInner.append(x)
-            dx_ds1 = [(-RC*sinTheta*cosRotAng - RC*cosTheta*sinRotAng)*thetaPerElementAround,
-                  (-RC*sinTheta*sinRotAng + RC*cosTheta*cosRotAng)*thetaPerElementAround,
-                  0.0]
-            d1InnerHaustraRaw.append(dx_ds1)
-    d1InnerHaustra = interp.smoothCubicHermiteDerivativesLoop(xHaustraInner, d1InnerHaustraRaw)
+            x = [xc[0] + cornerRC*cosTheta, xc[1] + cornerRC*sinTheta, 0.0]
+            d1 = [-cornerRC*sinTheta*TCTheta*2.0, cornerRC*cosTheta*TCTheta*2.0, 0.0]
+            xTC.append(x)
+            d1TC.append(d1)
+        thetaDiff = math.pi/4 - TCTheta
+        d1Pt2 = [-cornerRC*math.sin(math.pi/4)*thetaDiff, cornerRC*math.cos(math.pi/4)*thetaDiff, 0.0]
+        d1HaustrumEnd = [xMid[c] - pt2[c] for c in range(3)]
+    else:
+        widthOutsideCircle = widthTC/2 - cornerRC*math.sin(math.pi/4)
+        m = (pt2[1] - pt3[1])/(pt2[0] - pt3[0])
+        c = pt2[1] - m*pt2[0]
+        xA = [(widthOutsideCircle + pt2[1] - c)/m, widthOutsideCircle + pt2[1], 0.0]
+        d1A = [xA[c] - pt2[c] for c in range(3)]
+        xB = [xA[0], -xA[1], 0.0]
+        reflectPt2 = [pt2[0], -pt2[1], 0.0]
+        d1B = [reflectPt2[c] - xB[c] for c in range(3)]
+        d1Pt1 = [-cornerRC*math.sin(0.0), cornerRC*math.cos(0.0), 0.0]
+        xTC = [xB, pt1, xA]
+        d1TC = [d1B, d1Pt1, d1A]
+        d1HaustrumEnd = [xMid[c] - xA[c] for c in range(3)]
+    sxTC, sd1TC, se, sxi, _= interp.sampleCubicHermiteCurves(xTC, d1TC, elementsCountAroundTC)
+
+    xHaustrumStart = sxTC[-1]
+    d1HaustrumStart = sd1TC[-1]
+    cosRotAng = math.cos(2*math.pi/3)
+    sinRotAng = math.sin(2*math.pi/3)
+    xHaustrumEnd = xMid
+    nx = [xHaustrumStart, xHaustrumEnd] if widthTC/2 > cornerRC*math.sin(math.pi/4) else [xHaustrumStart, pt2, xHaustrumEnd]
+    nd1 = [d1HaustrumStart, d1HaustrumEnd] if widthTC/2 > cornerRC*math.sin(math.pi/4) else [d1HaustrumStart, d1Pt2, d1HaustrumEnd]
+    sxHaustrum, sd1Haustrum, se, sxi, _= interp.sampleCubicHermiteCurves(nx, nd1, int(elementsCountAroundHaustrum/2),
+                                         addLengthStart = 0.5*vector.magnitude(nd1[0]), lengthFractionStart = 0.5)
+
+    xHalfSet = xHalfSet + sxTC[int(elementsCountAroundTC/2):-1] + sxHaustrum
+    d1HalfSet = d1HalfSet + sd1TC[int(elementsCountAroundTC/2):-1] + sd1Haustrum
+    xInner, d1Inner = getFullProfileFromHalfHaustrum(xHalfSet, d1HalfSet)
+
+    # Haustra segment
+    # Re-initialise for haustra segment
+    xTC = []
+    d1TC = []
+    xHalfSet = []
+    d1HalfSet = []
+
+    xTC2 = radius* math.cos(2*math.pi/3)
+    yTC2 = radius* math.sin(2*math.pi/3)
+    originRC = (xTC2*xTC2 + yTC2*yTC2 - haustrumRadius*haustrumRadius) / (2*(-xTC2 - haustrumRadius))
+    RC = haustrumRadius - originRC
+
+    # Rotate to find originRC of 1st haustrum
+    yTC1 = pt1[1]
+    rotOriginRC = [ originRC*math.cos(-2/3*math.pi), originRC*math.sin(-2/3*math.pi), 0.0]
+
+    # Teniae coli boundary on 1st haustrum
+    thetaStart = math.asin((yTC1 + rotOriginRC[1]) / RC)
+    thetaEnd = math.pi - math.asin((yTC2 + rotOriginRC[1])/ RC)
+    thetaHalfHaustrum = (thetaEnd - thetaStart)/2 + thetaStart
+    thetaStartToHalfTC = math.asin(widthTC/(2*RC)+ math.sin(thetaStart))
+    thetaSet1 = [thetaStart, thetaStartToHalfTC]
+    thetaDiff = (thetaHalfHaustrum + thetaStartToHalfTC)*0.5
+    thetaSet2 = [thetaDiff, thetaHalfHaustrum]
+
+    nxTC, nd1TC = getCircleXandD1FromRadians(thetaSet1, RC, rotOriginRC)
+    xHaustrumPt, d1HaustrumPt = getCircleXandD1FromRadians(thetaSet2, RC, rotOriginRC)
+
+    if int(elementsCountAroundTC/2) > 1:
+        sxTC, sd1TC, _, _ , _ = interp.sampleCubicHermiteCurves(nxTC, nd1TC, int(elementsCountAroundTC/2))
+        xTC = sxTC[:-1]
+        d1TC = sd1TC[:-1]
+        xHaustrumStart = sxTC[-1]
+        d1HaustrumStart = sd1TC[-1]
+    else:
+        xTC = nxTC[:-1]
+        d1TC = nd1TC[:-1]
+        xHaustrumStart = nxTC[-1]
+        d1HaustrumStart = nd1TC[-1]
+
+    nxHaustrum.append(xHaustrumStart)
+    nxHaustrum = nxHaustrum + xHaustrumPt
+    nd1Haustrum.append(d1HaustrumStart)
+    nd1Haustrum = nd1Haustrum + d1HaustrumPt
+    sxHaustrum, sd1Haustrum, _, _ , _ = interp.sampleCubicHermiteCurves(nxHaustrum, nd1Haustrum, int(elementsCountAroundHaustrum/2),
+                                                                        addLengthStart = 0.5*vector.magnitude(d1HaustrumStart), lengthFractionStart = 0.5)
+    xHalfSet = xHalfSet + xTC + sxHaustrum
+    d1HalfSet = d1HalfSet + d1TC + sd1Haustrum
+    xHaustraInner, d1HaustraInner = getFullProfileFromHalfHaustrum(xHalfSet, d1HalfSet)
 
     # Sample arclength of haustra segment
+    elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
+
     for n1 in range(elementsCountAround):
         if n1%(elementsCountAround/3) > 0.0:
             v1 = [xInner[n1][0], xInner[n1][1], 0.0]
@@ -311,10 +369,10 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
             else:
                 # Intra-Haustra
                 if elementsCountAlongHaustrum == 2:
-                    unitdx_ds1 = vector.normalise(d1InnerHaustra[n1])
+                    unitdx_ds1 = vector.normalise(d1HaustraInner[n1])
                 else:
                     if n1%(elementsCountAround/3) == 0: # intersection points
-                        unitdx_ds1 = vector.normalise(d1InnerHaustra[n1])
+                        unitdx_ds1 = vector.normalise(d1HaustraInner[n1])
                     else: # points on clover
                         if elementsCountAlongHaustrum > 3:
                             if n2 < int(elementsCountAlongHaustrum/2): # first half of haustrumLength
@@ -347,3 +405,87 @@ def getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHau
     dx_ds1InnerList = dx_ds1InnerList + d1Inner
 
     return xInnerList, dx_ds1InnerList, dx_ds2InnerList, unitZ
+
+def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet):
+    """
+    Gets the coordinates and derivatives of the entire profile
+    using points from first half of the first sector. The first
+    sector starts from the x-axis. The first half set of points
+    are reflected across the x-axis followed by rotation to get
+    the points in the second half of the first sector. The full
+    set of points in the first sector are then rotated to obtain
+    points in the other two sectors.
+    :param xHaustrumHalfSet: Coordinates of points in first
+    half of the first sector.
+    :param d1HaustrumHalfSet: Derivatives of points in first
+    half of the first sector.
+    :return: coordinates, derivatives of points over entire profile.
+    """
+    xHaustrumHalfSet2 = []
+    d1HaustrumHalfSet2 = []
+    xHaustrum = []
+    d1Haustrum = []
+    xHaustra = []
+    d1Haustra = []
+
+    for n in range(1,len(xHaustrumHalfSet)):
+        idx =  -n + len(xHaustrumHalfSet) - 1
+        x = xHaustrumHalfSet[idx]
+        d1 = d1HaustrumHalfSet[idx]
+        xReflect = [x[0], -x[1], 0.0]
+        d1Reflect = [d1[0], -d1[1], 0.0]
+        xRot = [xReflect[0]*math.cos(2/3*math.pi) - xReflect[1]*math.sin(2/3*math.pi),
+                xReflect[0]*math.sin(2/3*math.pi) + xReflect[1]*math.cos(2/3*math.pi),
+                0.0]
+        d1Rot = [-(d1Reflect[0]*math.cos(2/3*math.pi) - d1Reflect[1]*math.sin(2/3*math.pi)),
+                -(d1Reflect[0]*math.sin(2/3*math.pi) + d1Reflect[1]*math.cos(2/3*math.pi)),
+                0.0]
+        xHaustrumHalfSet2.append(xRot)
+        d1HaustrumHalfSet2.append(d1Rot)
+
+    xHaustrum = xHaustrumHalfSet + xHaustrumHalfSet2
+    d1Haustrum = d1HaustrumHalfSet + d1HaustrumHalfSet2
+
+    # Rotate to get all 3 sectors
+    xHaustra = xHaustra + xHaustrum[:-1]
+    d1Haustra = d1Haustra + d1Haustrum[:-1]
+    ang = [ 2/3*math.pi, -2/3*math.pi]
+    for i in range(2):
+        rotAng = ang[i]
+        cosRotAng = math.cos(rotAng)
+        sinRotAng = math.sin(rotAng)
+        for n in range(len(xHaustrum)- 1):
+            x = xHaustrum[n]
+            d1 = d1Haustrum[n]
+            x = [ x[0]*cosRotAng - x[1]*sinRotAng, x[0]*sinRotAng + x[1]*cosRotAng, 0.0]
+            xHaustra.append(x)
+            dx_ds1 = [ d1[0]*cosRotAng - d1[1]*sinRotAng, d1[0]*sinRotAng + d1[1]*cosRotAng, 0.0]
+            d1Haustra.append(dx_ds1)
+
+    return xHaustra, d1Haustra
+
+def getCircleXandD1FromRadians(thetaSet, radius, origin):
+    """
+    Gets the coordinates and derivatives along a circular path
+    based on the angular range.
+    :param thetaSet: Lower and upper limit of theta.
+    :param radius: Radius of circle.
+    :param origin: Origin of circle.
+    :return: coordinates, derivatives on lower and upper
+    limit of thetaSet.
+    """
+    nx = []
+    nd1 = []
+    dTheta = thetaSet[1] - thetaSet[0]
+    for n in range(2):
+        theta = thetaSet[n]
+        x = [radius*math.cos(theta) - origin[0],
+            radius*math.sin(theta) - origin[1],
+            0.0]
+        d1 = [-radius*math.sin(theta)*dTheta,
+            radius*math.cos(theta)*dTheta,
+            0.0]
+        nx.append(x)
+        nd1.append(d1)
+
+    return nx, nd1

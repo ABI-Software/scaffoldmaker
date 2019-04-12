@@ -82,7 +82,6 @@ class MeshType_3d_colon1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = MeshType_3d_haustra1.getDefaultOptions(parameterSetName)
-        options['Number of elements around'] = 15
         options['Number of elements along haustrum'] = 4
         options['Inner radius'] = 1.0
         options['Haustrum length mid derivative factor'] = 2.0
@@ -152,10 +151,13 @@ class MeshType_3d_colon1(Scaffold_base):
         :return: annotationGroups
         """
         centralPath = options['Central path']
-        elementsCountAround = options['Number of elements around']
+        elementsCountAroundTC = options['Number of elements around tenia coli']
+        elementsCountAroundHaustrum = options['Number of elements around haustrum']
+        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
         elementsCountAlongHaustrum = options['Number of elements along haustrum']
         elementsCountThroughWall = options['Number of elements through wall']
         haustraSegmentCount = options['Number of haustra segments']
+        widthTC = options['Inner width of tenia coli']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
@@ -182,7 +184,7 @@ class MeshType_3d_colon1(Scaffold_base):
         haustrumLength = length / haustraSegmentCount
 
         # Generate inner surface of a haustra segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius, cornerInnerRadiusFactor,
             haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
