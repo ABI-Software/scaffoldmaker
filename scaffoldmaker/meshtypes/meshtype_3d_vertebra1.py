@@ -34,20 +34,26 @@ class MeshType_3d_vertebra1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        return {'Number of elements around': 8, 'Number of elements up': 4,
-                'Height': 0.3, 'Body thickness ratio': 0.85,
+        return {'Number of elements around': 8,
+                'Number of elements up': 4,
+                'Body height': 0.3,
+                'Body thickness ratio': 0.85,
                 'Body posterior surface depth factor': 1.15,
+                'Number of elements around foramen ring (currently only 4 (default) or 8 is allowed)': 4,
                 'Pedicle length factor': 1.0,
                 'Foramen arch curve factor': 10.0,
                 'Use cross derivatives': False,
-                'Refine': False, 'Refine number of elements around': 1, 'Refine number of elements through wall': 1,
+                'Refine': False,
+                'Refine number of elements around': 1,
+                'Refine number of elements through wall': 1,
                 'Refine number of elements up': 1}
 
     @staticmethod
     def getOrderedOptionNames():
         return ['Number of elements around', 'Number of elements up',
-                'Height', 'Body thickness ratio',
+                'Body height', 'Body thickness ratio',
                 'Body posterior surface depth factor',
+                'Number of elements around foramen ring (currently only 4 (default) or 8 is allowed)',
                 'Pedicle length factor',
                 'Foramen arch curve factor',
                 'Use cross derivatives',
@@ -69,8 +75,8 @@ class MeshType_3d_vertebra1(Scaffold_base):
             options['Number of elements around'] = 8
         elif options['Number of elements around'] > 15:
             options['Number of elements around'] = 15
-        if options['Height'] < 0.0:
-            options['Height'] = 0.0
+        if options['Body height'] < 0.0:
+            options['Body height'] = 0.0
         if options['Body thickness ratio'] <= 0.5:
             options['Body thickness ratio'] = 0.55
         elif options['Body thickness ratio'] >= 1.0:
@@ -84,6 +90,11 @@ class MeshType_3d_vertebra1(Scaffold_base):
             options['Pedicle length factor'] = 0.9
         elif options['Pedicle length factor'] > 1.3:
             options['Pedicle length factor'] = 1.3
+        if options['Number of elements around foramen ring (currently only 4 (default) or 8 is allowed)'] != 4\
+                or options['Number of elements around foramen ring (currently only 4 (default) or 8 is allowed)'] != 8:
+            options['Number of elements around foramen ring'] = 4
+        if options['Number of elements around foramen ring'] % 2 != 0:
+            options['Number of elements around foramen ring'] = options['Number of elements around foramen ring'] + 1
         if options['Foramen arch curve factor'] < 1.0:
             options['Foramen arch curve factor'] = 1.0
         elif options['Foramen arch curve factor'] > 20.0:
@@ -101,7 +112,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
         elementsCountUp = options['Number of elements up']
         elementsCountThroughWall = 2
         useCrossDerivatives = options['Use cross derivatives']
-        height = options['Height']
+        height = options['Body height']
         useCubicHermiteThroughWall = True
         depthFactor = options['Body posterior surface depth factor']
 
@@ -518,6 +529,7 @@ class MeshType_3d_vertebra1(Scaffold_base):
         nodeIdentifier = _createEllipseNodes(X, DX1, DX2, DX3, options, nodes, nodetemplates, cache, coordinates,
                                              region=2, nodeID=nodeIdentifier)
         elementsCountUpNew = int(math.ceil(elementsCountUp / 2))
+
         """ Left pedicle elements """
         nodeIdStarter = 0
         for e2 in range(elementsCountUpNew):
@@ -655,18 +667,18 @@ def _createEllipseNodes(X, DX1, DX2, DX3, options, nodes, nodetemplates, cache,
     """
 
     thickness = options['Body thickness ratio']
-    elementsCountAround = options['Number of elements around']
     elementsCountUp = options['Number of elements up']
     t2 = [1.0 - thickness] * 2
     t3 = [1.0 - thickness] * 2
 
     if region == 1:
+        elementsCountAround = options['Number of elements around']
         nodeIdentifier = 1
         pedicleLenghtFactor = 1.0
         foramenCurveFactor = 1.0
         axisA = 1.3
         axisB = 0.9
-        height = options['Height']
+        height = options['Body height']
         cx, cd1, cd2, cd3 = X, DX1, DX2, DX3
         sx, sd1, se, sxi, _ = sampleCubicHermiteCurves(cx, cd1, elementsCountUp)
         sd2 = interpolateSampleLinear(cd2, se, sxi)
@@ -678,6 +690,10 @@ def _createEllipseNodes(X, DX1, DX2, DX3, options, nodes, nodetemplates, cache,
         nodetemplate = nodetemplates[0]
         nodetemplateV2 = nodetemplates[1]
     else:
+        elementsCountAround = options['Number of elements around foramen ring (currently only 4 (default) or 8 is ' \
+                                      'allowed)']
+        elementsCountAround = elementsCountAround * 2
+
         nodeIdentifier = nodeID
         pedicleLenghtFactor = options['Pedicle length factor']
         foramenCurveFactor = options['Foramen arch curve factor']
@@ -974,6 +990,7 @@ def _createEllipseNodes(X, DX1, DX2, DX3, options, nodes, nodetemplates, cache,
                     prevRadiansAround = radiansAround
 
     else:  # region = 2 i.e. Vertebral foramen ring
+        eAround = elementsCountAround // 4
         for n3 in range(elementsCountThroughWall):
             for n2 in range(elementsCountUp + 1):
                 aThroughWallElement = sd2[n2][1] + st2[n2] * (n3 / elementsCountThroughWall)
@@ -993,14 +1010,18 @@ def _createEllipseNodes(X, DX1, DX2, DX3, options, nodes, nodetemplates, cache,
                     arcLengthPerElementAroundNext = perimeterAroundWallElementNext / elementsCountAround
 
                 for n1 in range(elementsCountAround):
-                    if n1 == 0 or n1 == 1 or n1 == elementsCountAround - 1:
+                    if n1 < eAround or n1 > 3 * eAround:
                         arcLengthAround = n1 * arcLengthPerElementAround
                         radiansAround = -1 * updateEllipseAngleByArcLength(aThroughWallElement, bThroughWallElement,
                                                                            0.0, arcLengthAround)
                         cosRadiansAround = math.cos(radiansAround)
                         sinRadiansAround = math.sin(radiansAround)
-                        x = [sx[n2][j] + aThroughWallElement * cosRadiansAround * sBinormal[n2][
-                            j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)]
+                        if n1 == 0 and n3 == 0:
+                            x = [sx[n2][j] + (aThroughWallElement * 0.9) * cosRadiansAround * sBinormal[n2][
+                                j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)]
+                        else:
+                            x = [sx[n2][j] + aThroughWallElement * cosRadiansAround * sBinormal[n2][
+                                j] + bThroughWallElement * sinRadiansAround * sNormal[n2][j] for j in range(3)]
                         dx_ds1 = [(radiansAround - prevRadiansAround) * (
                                 aThroughWallElement * -sinRadiansAround * sBinormal[n2][
                             j] + bThroughWallElement * cosRadiansAround * sNormal[n2][j]) for j in range(3)]
@@ -1075,25 +1096,20 @@ def _createEllipseNodes(X, DX1, DX2, DX3, options, nodes, nodetemplates, cache,
                         cache.setNode(node)
                         x[0] = x[0] * pedicleLenghtFactor
                         if n1 == 1:
-                            dx_ds1[1] = dx_ds1[1] * foramenCurveFactor * 0.3
+                            dx_ds1[1] = dx_ds1[1] * foramenCurveFactor
                             x[1] = x[1] * pedicleCoefficient
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x * .2 for x in
-                            #                                                                      dx_ds1])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1,
+                                                          [x * .15 for x in dx_ds1])
                         elif n1 == elementsCountAround - 1:
                             x[1] = x[1] * pedicleCoefficient
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                            dx_ds1[1] = dx_ds1[1] * foramenCurveFactor * 0.3
+                            dx_ds1[1] = dx_ds1[1] * foramenCurveFactor
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1,
-                                                          [x * .15 for x in dx_ds1])
+                                                          [x * .05 for x in dx_ds1])
                         elif n1 == 0:
                             x[0] = x[0] * foramentMiddleNodeCoefficient
-                            x[1] = x[1] * pedicleCoefficient
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                            # dx_ds1[1] = dx_ds1[1] * 3.
-                            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [x * .05 for x in
-                            #                                                                      dx_ds1])
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                         else:
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
