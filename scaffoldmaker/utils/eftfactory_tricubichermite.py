@@ -1490,3 +1490,28 @@ class eftfactory_tricubichermite:
         fm.endChange()
 
         return nodeIdentifier, elementIdentifier
+
+    def createEftPedicles(self, localNodeIndex):
+        """
+
+        :param localNodeIndex: A list of the local node index
+        :param eft:
+        :param useCrossDerivatives:
+        :return: Element field template
+        """
+
+        eft = self.createEftBasic()
+        for n in localNodeIndex:
+            ln = n + 1
+            eft.setTermNodeParameter(n * 8 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 2)
+            eft.setTermNodeParameter(n * 8 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 2)
+            eft.setTermNodeParameter(n * 8 + 3, 1, ln, Node.VALUE_LABEL_D_DS2, 2)
+            eft.setTermNodeParameter(n * 8 + 5, 1, ln, Node.VALUE_LABEL_D_DS3, 2)
+            if self._useCrossDerivatives:
+                eft.setTermNodeParameter(n * 8 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 2)
+                eft.setTermNodeParameter(n * 8 + 6, 1, ln, Node.VALUE_LABEL_D2_DS1DS3, 2)
+                eft.setTermNodeParameter(n * 8 + 7, 1, ln, Node.VALUE_LABEL_D2_DS2DS3, 2)
+                eft.setTermNodeParameter(n * 8 + 8, 1, ln, Node.VALUE_LABEL_D3_DS1DS2DS3, 2)
+
+        assert eft.validate(), '_createEftPedicles:  Failed to validate eft'
+        return eft
