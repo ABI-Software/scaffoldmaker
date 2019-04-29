@@ -206,3 +206,23 @@ class eftfactory_bicubichermitelinear:
         remapEftNodeValueLabel(eft, [ 5, 7 ], self._d_ds2, [ (self._d_ds1, [1]), (self._d_ds2, []) ])
         assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftSplitXi1RightOut:  Failed to validate eft'
         return eft
+
+    def createEftPedicles(self, localNodeIndex):
+        '''
+        Create a basic bicubic hermite linear element template for elements
+        along boundary where a tube is opened on xi1 = 1 for a flat preparation.
+        Could eventually have 6 variants. Retain node numbering with two versions
+        for boundary nodes.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        for n in localNodeIndex:
+            ln = n + 1
+            eft.setTermNodeParameter(n * 4 + 1, 1, ln, Node.VALUE_LABEL_VALUE, 2)
+            eft.setTermNodeParameter(n * 4 + 2, 1, ln, Node.VALUE_LABEL_D_DS1, 2)
+            eft.setTermNodeParameter(n * 4 + 3, 1, ln, Node.VALUE_LABEL_D_DS2, 2)
+            if self._useCrossDerivatives:
+                eft.setTermNodeParameter(n * 4 + 4, 1, ln, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+        assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftOpenTube:  Failed to validate eft'
+        return eft
