@@ -201,7 +201,7 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     length = 0.0
     for e in range(elementsCountIn):
         if arcLengthDerivatives:
-            arcLength = computeCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1], rescaleDerivatives = True)
+            arcLength = computeCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1], rescaleDerivatives=True)
             nd1a.append(vector.setMagnitude(nd1[e], arcLength))
             nd1b.append(vector.setMagnitude(nd1[e + 1], arcLength))
         else:
@@ -226,15 +226,12 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     # fix end lengths:
     elementLengths[ 0] = addLengthStart + elementLengthProportionStart
     elementLengths[-1] = addLengthEnd + elementLengthProportionEnd
-    #print('\nsampleCubicHermiteCurves:')
-    #print('  elementLengths', elementLengths, 'addLengthStart', addLengthStart, 'addLengthEnd', addLengthEnd)
-    #print('  sum lengths', sum(elementLengths), 'vs. length', length, 'diff', sum(elementLengths) - length)
     # set end derivatives:
     if elementsCountOut == 1:
         nodeDerivativeMagnitudes[0] = nodeDerivativeMagnitudes[1] = elementLengths[0]
     else:
-        nodeDerivativeMagnitudes[0] = elementLengths[ 0]*2.0 - nodeDerivativeMagnitudes[ 1]
-        nodeDerivativeMagnitudes[-1]   = elementLengths[-1]*2.0 - nodeDerivativeMagnitudes[-2]
+        nodeDerivativeMagnitudes[0] = elementLengths[0]*2.0 - nodeDerivativeMagnitudes[1]
+        nodeDerivativeMagnitudes[-1] = elementLengths[-1]*2.0 - nodeDerivativeMagnitudes[-2]
 
     px = []
     pd1 = []
