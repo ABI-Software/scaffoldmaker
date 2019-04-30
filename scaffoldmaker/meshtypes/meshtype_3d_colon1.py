@@ -85,7 +85,7 @@ class MeshType_3d_colon1(Scaffold_base):
         options['Number of elements along haustrum'] = 4
         options['Inner radius'] = 1.0
         options['Haustrum length mid derivative factor'] = 2.0
-        options['Wall thickness'] = 0.05
+        options['Wall thickness'] = 0.02
         if 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 3D 1']
         else:
@@ -157,12 +157,12 @@ class MeshType_3d_colon1(Scaffold_base):
         elementsCountAlongHaustrum = options['Number of elements along haustrum']
         elementsCountThroughWall = options['Number of elements through wall']
         haustraSegmentCount = options['Number of haustra segments']
-        widthTC = options['Inner width of tenia coli']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
         haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
         haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
+        widthTC = options['Tenia coli width']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
