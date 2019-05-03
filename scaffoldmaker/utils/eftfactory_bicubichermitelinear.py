@@ -224,3 +224,27 @@ class eftfactory_bicubichermitelinear:
 
         assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftOpenTube:  Failed to validate eft'
         return eft
+
+    def createEftWedgeXi1One(self):
+        '''
+        Create a basic bicubic hermite linear element template for elements
+        along boundary of tenia coli where nodes on xi1 = 1 are collapsed.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        ln_map = [ 1, 2, 3, 4, 5, 2, 6, 4 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1One:  Failed to validate eft'
+        return eft
+
+    def createEftWedgeXi1Zero(self):
+        '''
+        Create a basic bicubic hermite linear element template for elements
+        along boundary of tenia coli where nodes on xi1 = 0 are collapsed.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        ln_map = [ 1, 2, 3, 4, 1, 5, 3, 6 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1Zero:  Failed to validate eft'
+        return eft
