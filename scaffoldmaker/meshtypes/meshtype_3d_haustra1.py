@@ -5,6 +5,7 @@ through wall, with variable radius and thickness along.
 """
 
 import math
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -161,8 +162,10 @@ class MeshType_3d_haustra1(Scaffold_base):
             cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
+        annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
             xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness)
+
+        annotationGroups += annotationGroupsTC
 
         return annotationGroups
 
@@ -657,7 +660,12 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     :param TCThickness: Thickness of tenia coli at its thickest part.
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     """
-    annotationGroups = []
+    # Check after developing cross axes to make sure tenia coli groups are in correct
+    # orientation
+    TLGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    TMGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    TOGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    annotationGroups = [TLGroup, TMGroup, TOGroup]
 
     fm = region.getFieldmodule()
     fm.beginChange()
@@ -776,6 +784,10 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
         nodeIdentifier = nodeIdentifier + 1
 
     # create elements
+    TLMeshGroup = TLGroup.getMeshGroup(mesh)
+    TMMeshGroup = TMGroup.getMeshGroup(mesh)
+    TOMeshGroup = TOGroup.getMeshGroup(mesh)
+
     for N in range(4):
         if N == 0:
             for e1 in range(int(elementsCountAroundTC*0.5)):
@@ -819,6 +831,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 # print('Regular elements, ', elementIdentifier, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
+                TLMeshGroup.addElement(element)
 
         # Create element collapsed on xi1 = 1
         e1 = e1 + 1
@@ -827,6 +840,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
         #print('Wedge collapsed on xi1 = 1, ', elementIdentifier, result, nodeIdentifiers)
         elementIdentifier = elementIdentifier + 1
+        TLMeshGroup.addElement(element)
 
         for N in range(2):
             # Create element collapsed on xi1 = 0
@@ -836,6 +850,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             result = element.setNodesByIdentifier(eft2, nodeIdentifiers)
             # print('Wedge collapsed on xi1 = 0, ', elementIdentifier, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
+            TMMeshGroup.addElement(element) if N == 0 else TOMeshGroup.addElement(element)
 
             # Create regular elements
             if elementsCountAroundTC > 2:
@@ -846,6 +861,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                     elementIdentifier = elementIdentifier + 1
+                    TMMeshGroup.addElement(element) if N == 0 else TOMeshGroup.addElement(element)
 
             # Create element collapsed on xi1 = 1
             e1 = e1 + 1
@@ -854,6 +870,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
             # print('Wedge collapsed on xi1 = 1, ', elementIdentifier, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
+            TMMeshGroup.addElement(element) if N == 0 else TOMeshGroup.addElement(element)
 
         # Create element collapsed on xi1 = 0
         e1 = e1 + 1
@@ -862,6 +879,8 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
         result = element.setNodesByIdentifier(eft2, nodeIdentifiers)
         # print('Wedge collapsed on xi1 = 0, ', elementIdentifier, nodeIdentifiers)
         elementIdentifier = elementIdentifier + 1
+        TLMeshGroup.addElement(element)
+
         if elementsCountAroundTC > 2:
             # Create regular elements
             for n1 in range(int(elementsCountAroundTC*0.5-1)):
@@ -872,6 +891,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
+                TLMeshGroup.addElement(element)
 
     fm.endChange()
 
