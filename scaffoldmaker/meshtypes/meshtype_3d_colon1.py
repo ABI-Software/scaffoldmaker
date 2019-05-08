@@ -193,8 +193,10 @@ class MeshType_3d_colon1(Scaffold_base):
             cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
+        annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
             xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness)
+
+        annotationGroups += annotationGroupsTC
 
         return annotationGroups
 
@@ -207,8 +209,7 @@ class MeshType_3d_colon1(Scaffold_base):
         :return: list of AnnotationGroup for mesh.
         """
         if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
+            return cls.generateBaseMesh(region, options)
 
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountAlong = options['Refine number of elements along haustrum']

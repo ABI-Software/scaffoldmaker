@@ -177,8 +177,7 @@ class MeshType_3d_haustra1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         """
         if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
+            return cls.generateBaseMesh(region, options)
 
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountAlong = options['Refine number of elements along haustrum']
@@ -660,17 +659,18 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     :param TCThickness: Thickness of tenia coli at its thickest part.
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     """
+
+    fm = region.getFieldmodule()
+    fm.beginChange()
+    cache = fm.createFieldcache()
+    coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+
     # Check after developing cross axes to make sure tenia coli groups are in correct
     # orientation
     TLGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     TMGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     TOGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     annotationGroups = [TLGroup, TMGroup, TOGroup]
-
-    fm = region.getFieldmodule()
-    fm.beginChange()
-    cache = fm.createFieldcache()
-    coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
