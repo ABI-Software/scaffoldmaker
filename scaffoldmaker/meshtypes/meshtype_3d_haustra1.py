@@ -574,7 +574,7 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet, d2Haustr
                 xReflect[2]]
         d1Rot = [-(d1Reflect[0]*math.cos(2/3*math.pi) - d1Reflect[1]*math.sin(2/3*math.pi)),
                 -(d1Reflect[0]*math.sin(2/3*math.pi) + d1Reflect[1]*math.cos(2/3*math.pi)),
-                d1Reflect[2]]
+                -d1Reflect[2]]
         d2 = d2HaustrumHalfSet[idx]
         d2Reflect = [d2[0], -d2[1], d2[2]]
         d2Rot = [(d2Reflect[0]*math.cos(2/3*math.pi) - d2Reflect[1]*math.sin(2/3*math.pi)),
