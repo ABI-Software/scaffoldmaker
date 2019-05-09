@@ -749,8 +749,11 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             nd1 = [d1List[TCStartIdx], d1MidScaled, d1List[TCEndIdx]]
             sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundTC)
             xTCRaw = xTCRaw + sx[1:-1]
-            d1TCRaw = d1TCRaw + sd1[1:-1]
-
+            if elementsCountAroundTC == 2:
+                p = [v2[i] - v1[i] for i in range(3)]
+                A = vector.dotproduct(unitNorm, p) # A<0 if v2 is higher than v1
+                d1 = [c*widthTC*0.5 for c in vector.normalise(d1Mid)] if A < 0 else d1MidScaled
+            d1TCRaw = d1TCRaw + sd1[1:-1] if elementsCountAroundTC > 2 else d1TCRaw + [d1]
             xTCInnerSet = list(range(TCStartIdx+1, TCEndIdx)) if N > 0 else list(range(TCStartIdx + 1, TCStartIdx + int(elementsCountAroundTC * 0.5))) + list(range(idxTCMid, idxTCMid + int(elementsCountAroundTC * 0.5)))
             for n in range(elementsCountAroundTC - 1):
                 d2 = d2List[xTCInnerSet[n]]
