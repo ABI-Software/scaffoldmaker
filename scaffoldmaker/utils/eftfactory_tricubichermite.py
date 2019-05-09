@@ -578,6 +578,44 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftPyramidTop:  Failed to validate eft'
         return eft
 
+    def createEftWedgeXi1One(self):
+        '''
+        Create a basic tricubic hermite element template for elements
+        along boundary of tenia coli where nodes on xi1 = 1 are collapsed.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        # remap parameters on xi1 = 1 before collapsing nodes
+        remapEftNodeValueLabel(eft, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS3, [])
+        remapEftNodeValueLabel(eft, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [ 1, 2, 3, 4, 5, 2, 6, 4 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1One:  Failed to validate eft'
+        return eft
+
+    def createEftWedgeXi1Zero(self):
+        '''
+        Create a basic tricubic hermite element template for elements
+        along boundary of tenia coli where nodes on xi1 = 0 are collapsed.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        # remap parameters on xi1 = 1 before collapsing nodes
+        remapEftNodeValueLabel(eft, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS3, [])
+        remapEftNodeValueLabel(eft, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [ 1, 2, 3, 4, 1, 5, 3, 6 ]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1Zero:  Failed to validate eft'
+        return eft
+
     def createEftSplitXi1LeftStraight(self):
         '''
         Create an element field template suitable for the inner elements of the

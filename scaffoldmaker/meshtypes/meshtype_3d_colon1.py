@@ -6,7 +6,7 @@ variable radius and thickness along.
 
 import copy
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_haustra1 import MeshType_3d_haustra1, getColonHaustraSegmentInnerPoints
+from scaffoldmaker.meshtypes.meshtype_3d_haustra1 import MeshType_3d_haustra1, getColonHaustraSegmentInnerPoints, getTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -82,11 +82,10 @@ class MeshType_3d_colon1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = MeshType_3d_haustra1.getDefaultOptions(parameterSetName)
-        options['Number of elements around'] = 15
         options['Number of elements along haustrum'] = 4
         options['Inner radius'] = 1.0
         options['Haustrum length mid derivative factor'] = 2.0
-        options['Wall thickness'] = 0.05
+        options['Wall thickness'] = 0.02
         if 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 3D 1']
         else:
@@ -152,7 +151,9 @@ class MeshType_3d_colon1(Scaffold_base):
         :return: annotationGroups
         """
         centralPath = options['Central path']
-        elementsCountAround = options['Number of elements around']
+        elementsCountAroundTC = options['Number of elements around tenia coli']
+        elementsCountAroundHaustrum = options['Number of elements around haustrum']
+        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
         elementsCountAlongHaustrum = options['Number of elements along haustrum']
         elementsCountThroughWall = options['Number of elements through wall']
         haustraSegmentCount = options['Number of haustra segments']
@@ -161,6 +162,8 @@ class MeshType_3d_colon1(Scaffold_base):
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
         haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
         haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
+        widthTC = options['Tenia coli width']
+        TCThickness = options['Tenia coli thickness']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
@@ -182,12 +185,18 @@ class MeshType_3d_colon1(Scaffold_base):
         haustrumLength = length / haustraSegmentCount
 
         # Generate inner surface of a haustra segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAround, elementsCountAlongHaustrum, radius, cornerInnerRadiusFactor,
+        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius, cornerInnerRadiusFactor,
             haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier = tubemesh.generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List = tubemesh.generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
             cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
+
+        # Generate tenia coli
+        annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
+            xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness)
+
+        annotationGroups += annotationGroupsTC
 
         return annotationGroups
 
@@ -200,8 +209,7 @@ class MeshType_3d_colon1(Scaffold_base):
         :return: list of AnnotationGroup for mesh.
         """
         if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
+            return cls.generateBaseMesh(region, options)
 
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountAlong = options['Refine number of elements along haustrum']

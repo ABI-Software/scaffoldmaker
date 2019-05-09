@@ -45,6 +45,8 @@ def generatetubemesh(region,
     :param segmentLength: length of segment profile
     :param useCubicHermiteThroughWall: use linear when false
     :return: annotationGroups, nodeIdentifier, elementIdentifier
+    :return xList, d1List, d2List, d3List: List of coordinates and derivatives
+    on tube
     '''
     zero  = [0.0, 0.0, 0.0]
     annotationGroups = []
@@ -320,7 +322,7 @@ def generatetubemesh(region,
 
     fm.endChange()
 
-    return annotationGroups, nodeIdentifier, elementIdentifier
+    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List
 
 def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround):
     """
