@@ -47,6 +47,9 @@ def generatetubemesh(region,
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
+    :return sx: List of coordinates sampled from central line
+    :return curvatureAlong, factorList: List of curvature and scale factor along mesh
+    for each node on inner surface of mesh.
     '''
     zero  = [0.0, 0.0, 0.0]
     annotationGroups = []
@@ -136,6 +139,7 @@ def generatetubemesh(region,
     dx_ds1List = []
     dx_ds2List = []
     dx_ds3List = []
+    curvatureAlong = []
 
     # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
@@ -183,14 +187,25 @@ def generatetubemesh(region,
                         xRot2 = x
                         d1Rot2 = d1
                         d2Rot2 = d2
-
                     xTranslate = [xRot2[j] + translateMatrix[j] for j in range(3)]
-
                     xInnerList.append(xTranslate)
                     d1InnerList.append(d1Rot2)
                     d2InnerList.append(d2Rot2)
                     d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1Rot2), vector.normalise(d2Rot2)))
                     d3InnerUnitList.append(d3Unit)
+
+    for n2 in range(elementsCountAlong + 1):
+        for n1 in range(elementsCountAround):
+            n = elementsCountAround * n2 + n1
+            if n2 == 0:
+                curvature = interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0)
+            elif n2 == elementsCountAlong:
+                curvature = interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], d3InnerUnitList[n], 1.0)
+            else:
+                curvature = 0.5*(
+                    interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], d3InnerUnitList[n], 1.0) +
+                    interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0))
+            curvatureAlong.append(curvature)
 
     # Pre-calculate node locations and derivatives on outer boundary
     xOuterList, curvatureInner = getOuterCoordinatesAndCurvatureFromInner(xInnerList, d1InnerList, d3InnerUnitList, wallThickness, elementsCountAlong, elementsCountAround)
@@ -198,7 +213,9 @@ def generatetubemesh(region,
     # Interpolate to get nodes through wall
     for n3 in range(elementsCountThroughWall + 1):
         xi3 = 1/elementsCountThroughWall * n3
-        x, dx_ds1, dx_ds2, dx_ds3 = interpolatefromInnerAndOuter( xInnerList, xOuterList, wallThickness, xi3, curvatureInner, d1InnerList, d2InnerList, d3InnerUnitList, elementsCountAround, elementsCountAlong, elementsCountThroughWall)
+        x, dx_ds1, dx_ds2, dx_ds3, factorList = interpolatefromInnerAndOuter( xInnerList, xOuterList,
+            wallThickness, xi3, sx, curvatureInner, curvatureAlong, d1InnerList, d2InnerList, d3InnerUnitList,
+            elementsCountAround, elementsCountAlong, elementsCountThroughWall)
         xList = xList + x
         dx_ds1List = dx_ds1List + dx_ds1
         dx_ds2List = dx_ds2List + dx_ds2
@@ -322,7 +339,7 @@ def generatetubemesh(region,
 
     fm.endChange()
 
-    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List
+    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList
 
 def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround):
     """
@@ -355,27 +372,31 @@ def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThick
 
     return xOuter, curvatureInner
 
-def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner, d1Inner, d2Inner, d3InnerUnit,
-    elementsCountAround, elementsCountAlong, elementsCountThroughWall):
+def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, sx, curvatureInner, curvatureAlong,
+    d1Inner, d2Inner, d3InnerUnit, elementsCountAround, elementsCountAlong, elementsCountThroughWall):
     """
     Generate coordinates and derivatives at xi3 by interpolating with 
     inner and outer coordinates and derivatives.
-    param xInner: Coordinates on inner surface
-    param xOuter: Coordinates on outer surface
-    param thickness: Thickness of wall
-    param curvatureInner: Curvature of coordinates on inner surface
-    param d1Inner: Derivatives on inner surface around tube
-    param d2Inner: Derivatives on inner surface along tube
-    param d3InnerUnit: Unit derivatives on inner surface through wall
-    param elementsCountAround: Number of elements around tube
-    param elementsCountAlong: Number of elements along tube
-    param elementsCountThroughWall: Number of elements through wall
-    return xList, dx_ds1List, dx_ds2List, dx_ds3List: Coordinates and derivatives on xi3
+    :param xInner: Coordinates on inner surface
+    :param xOuter: Coordinates on outer surface
+    :param thickness: Thickness of wall
+    :param sx: List of coordinates sampled from central line
+    :param curvatureInner: Curvature of coordinates on inner surface
+    :param curvatureAlong: Curvature of coordinates on inner surface along mesh
+    :param d1Inner: Derivatives on inner surface around tube
+    :param d2Inner: Derivatives on inner surface along tube
+    :param d3InnerUnit: Unit derivatives on inner surface through wall
+    :param elementsCountAround: Number of elements around tube
+    :param elementsCountAlong: Number of elements along tube
+    :param elementsCountThroughWall: Number of elements through wall
+    :return xList, dx_ds1List, dx_ds2List, dx_ds3List: Coordinates and derivatives on xi3
+    :return factorList: List of factors used for scaling d2
     """
     xList = []
     dx_ds1List = []
     dx_ds2List = []
     dx_ds3List =[]
+    factorList = []
 
     for n2 in range(elementsCountAlong + 1):
         for n1 in range(elementsCountAround):
@@ -392,24 +413,15 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, curvatureInner
             dx_ds1 = [ factor*c for c in d1Inner[n]]
             dx_ds1List.append(dx_ds1)
             # dx_ds2
-            if n2 > 0 and n2 < elementsCountAlong:
-                prevIdx = (n2 - 1)*elementsCountAround + n1
-                nextIdx = (n2 + 1)*elementsCountAround + n1
-                curvatureAround = 0.5*(
-                    interp.getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0) +
-                    interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0))
-            elif n2 == 0:
-                nextIdx = (n2 + 1)*elementsCountAround + n1
-                curvatureAround = interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[nextIdx], d2Inner[nextIdx], norm, 0.0)
-            else:
-                prevIdx = (n2 - 1)*elementsCountAround + n1
-                curvatureAround = interp.getCubicHermiteCurvature(xInner[prevIdx], d2Inner[prevIdx], xInner[n], d2Inner[n], norm, 1.0)
-
-            factor = 1.0 - curvatureAround*thickness*xi3
+            curvature = curvatureAlong[n]
+            distance = vector.magnitude([x[i] - sx[n2][i] for i in range(3)])
+            factor = 1.0 - curvature*distance
             dx_ds2 = [ factor*c for c in d2Inner[n]]
             dx_ds2List.append(dx_ds2)
+            factorList.append(factor)
+
             #dx_ds3
             dx_ds3 = [c * thickness/elementsCountThroughWall for c in norm]
             dx_ds3List.append(dx_ds3)
 
-    return xList, dx_ds1List, dx_ds2List, dx_ds3List
+    return xList, dx_ds1List, dx_ds2List, dx_ds3List, factorList
