@@ -157,16 +157,16 @@ class MeshType_3d_haustra1(Scaffold_base):
             haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List = tubemesh.generatetubemesh(region,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount, cx, cd1,
             xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength,
             useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
-            useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
-            elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, elementsCountThroughWall,
-            widthTC, TCThickness)
+           useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
+           elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, elementsCountThroughWall,
+           widthTC, TCThickness, sx, curvatureAlong, factorList)
 
         annotationGroups += annotationGroupsTC
 
@@ -631,9 +631,9 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet, d2Haustr
     return xHaustra, d1Haustra, d2Haustra
 
 def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
-    useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC,
-    elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-    widthTC, TCThickness):
+    useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
+    elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
+    widthTC, TCThickness, sxCentralLine, curvatureAlong, factorList):
     """
     Create equally spaced nodes and elements for tenia coli over the outer
     surface of the haustra. Nodes of the tenia coli is sampled from a cubic
@@ -650,6 +650,9 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     :param elementsCountThroughWall: Number of elements through wall.
     :param widthTC: Width of tenia coli.
     :param TCThickness: Thickness of tenia coli at its thickest part.
+    :param sxCentralLine: Coordinates sampled from central line.
+    :param curvatureAlong: Curvatures along the colon for nodes on inner surface of colon.
+    :param factorList: Factors used for scaling d2 to account for curvature along colon.
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     """
 
@@ -748,9 +751,8 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                 d1 = [c*widthTC*0.5 for c in vector.normalise(d1Mid)] if A < 0 else d1MidScaled
             d1TCRaw = d1TCRaw + sd1[1:-1] if elementsCountAroundTC > 2 else d1TCRaw + [d1]
             xTCInnerSet = list(range(TCStartIdx+1, TCEndIdx)) if N > 0 else list(range(TCStartIdx + 1, TCStartIdx + int(elementsCountAroundTC * 0.5))) + list(range(idxTCMid, idxTCMid + int(elementsCountAroundTC * 0.5)))
+
             for n in range(elementsCountAroundTC - 1):
-                d2 = d2List[xTCInnerSet[n]]
-                d2TCRaw.append(d2)
                 xTCInner = xList[xTCInnerSet[n]]
                 xTCOuter = sx[n + 1]
                 d3 = [xTCOuter[i] - xTCInner[i] for i in range(3)]
@@ -758,6 +760,16 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                 node = nodes.findNodeByIdentifier(xTCInnerSet[n]+1)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+
+                innerIdx = xTCInnerSet[n] - elementsCountThroughWall*(elementsCountAlong+1)*elementsCountAround
+                d2 = d2List[xTCInnerSet[n]]
+                factor = factorList[innerIdx]
+                d2Unscaled = [ 1.0/factor*c for c in d2]
+                curvature = curvatureAlong[innerIdx]
+                distance = vector.magnitude([xTCOuter[i] - sxCentralLine[n2][i] for i in range(3)])
+                newFactor = 1.0 - curvature*distance
+                dx_ds2 = [ newFactor*c for c in d2Unscaled]
+                d2TCRaw.append(dx_ds2)
 
         xTCOuterList = xTCOuterList + xTCRaw[int((elementsCountAroundTC-2)*0.5):] + xTCRaw[:int((elementsCountAroundTC-2)*0.5)]
         d1TCOuterList = d1TCOuterList + d1TCRaw[int((elementsCountAroundTC-2)*0.5):] + d1TCRaw[:int((elementsCountAroundTC-2)*0.5)]
