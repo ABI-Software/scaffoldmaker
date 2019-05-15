@@ -12,6 +12,19 @@ from scaffoldmaker.utils import vector
 gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )
 gaussWt3 = ( 5.0/18.0, 4.0/9.0, 5.0/18.0 )
 
+
+def getCubicHermiteBasis(xi):
+    """
+    :return: 4 basis functions for x1, d1, x2, d2
+    """
+    xi2 = xi*xi
+    xi3 = xi2*xi
+    f1 = 1.0 - 3.0*xi2 + 2.0*xi3
+    f2 = xi - 2.0*xi2 + xi3
+    f3 = 3.0*xi2 - 2.0*xi3
+    f4 = -xi2 + xi3
+    return f1, f2, f3, f4
+
 def interpolateCubicHermite(v1, d1, v2, d2, xi):
     """
     Get values of cubic Hermite interpolated from v1, d1 to v2, d2.
@@ -27,6 +40,17 @@ def interpolateCubicHermite(v1, d1, v2, d2, xi):
     f3 = 3.0*xi2 - 2.0*xi3
     f4 = -xi2 + xi3
     return [ (f1*v1[i] + f2*d1[i] + f3*v2[i] + f4*d2[i]) for i in range(len(v1)) ]
+
+def getCubicHermiteBasisDerivatives(xi):
+    """
+    :return: 4 derivatives of basis functions for x1, d1, x2, d2
+    """
+    xi2 = xi*xi
+    df1 = -6.0*xi + 6.0*xi2
+    df2 = 1.0 - 4.0*xi + 3.0*xi2
+    df3 = 6.0*xi - 6.0*xi2
+    df4 = -2.0*xi + 3.0*xi2
+    return df1, df2, df3, df4
 
 def interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi):
     """
@@ -84,8 +108,25 @@ def computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives):
             #print('computeCubicHermiteArcLength converged at iter',iters,'=',arcLength,', closeness', math.fabs(arcLength - lastArcLength))
             return arcLength
         lastArcLength = arcLength
-    print('computeCubicHermiteArcLength Max iters reached:',iters,'=',arcLength,', closeness', math.fabs(arcLength - lastArcLength))
+    print('computeCubicHermiteArcLength:  Max iters reached:',iters,'=',arcLength,', closeness', math.fabs(arcLength - lastArcLength))
     return arcLength
+
+def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
+    '''
+    Compute scaling for d1, d2 which makes their sum twice the arc length.
+    :return: Scale factor to multiply d1, d2
+    '''
+    origMag = 0.5*(vector.magnitude(d1) + vector.magnitude(d2))
+    scaling = 1.0
+    for iters in range(100):
+        mag = origMag*scaling
+        arcLength = getCubicHermiteArcLength(v1, [ d*scaling for d in d1 ], v2, [ d*scaling for d in d2 ])
+        if math.fabs(arcLength - mag) < 0.000001*arcLength:
+            #print('compute scaling', v1, d1, v2, d2, '\n  --> scaling',scaling)
+            return scaling
+        scaling *= arcLength/mag
+    print('computeCubicHermiteDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
+    return scaling
 
 def getCubicHermiteArcLength(v1, d1, v2, d2):
     '''
