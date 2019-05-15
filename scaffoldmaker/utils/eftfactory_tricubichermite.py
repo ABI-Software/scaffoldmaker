@@ -1361,12 +1361,16 @@ class eftfactory_tricubichermite:
                             for c in range(3):
                                 bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
 
-                mx, md2, me, mxi = interp.sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountRadial,
+                # scale derivatives pro-rata to give better sampling in-between
+                ds = interp.computeCubicHermiteDerivativeScaling(ax, ad2, bx, bd2)
+                scaledDerivatives = [ [ d*ds for d in d2 ] for d2 in [ ad2, bd2 ]]
+                #print('scaling', ds, [ ad2, bd2 ], 'vs', scaledDerivatives)
+                mx, md2, me, mxi = interp.sampleCubicHermiteCurves([ ax, bx ], scaledDerivatives, elementsCountRadial,
                     addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
-                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5, arcLengthDerivatives = True)[0:4]
+                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
                 md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
                 thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
-                md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
+                #md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
                 for n2 in range(1, elementsCountRadial):
                     px [n3][n2][n1] = mx [n2]
                     pd1[n3][n2][n1] = md1[n2]
@@ -1403,7 +1407,7 @@ class eftfactory_tricubichermite:
                 # smooth derivative 1 around inner loop
                 pd1[0][n2] = interp.smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
 
-            for n3 in range(0, nodesCountWall):
+            for n3 in range(0, 1):  # was (0, nodesCountWall)
                 # smooth derivative 2 radially/along annulus
                 for n1 in range(nodesCountAround):
                     sd2 = interp.smoothCubicHermiteDerivativesLine(
@@ -1413,7 +1417,6 @@ class eftfactory_tricubichermite:
                         magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
                     for n2 in range(elementsCountRadial + 1):
                         pd2[n3][n2][n1] = sd2[n2]
-
 
         ##############
         # Create nodes
