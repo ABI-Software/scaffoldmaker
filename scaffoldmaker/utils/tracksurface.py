@@ -199,7 +199,7 @@ class TrackSurface:
                     else:
                         onBoundary = True
                 if onBoundary:
-                    write('TrackSurface.trackVector:  End on boundary at', position)
+                    print('TrackSurface.trackVector:  End on boundary at', position)
                     break
                 #print('  cross face', faceNumber, 'new position', position)
         return position
