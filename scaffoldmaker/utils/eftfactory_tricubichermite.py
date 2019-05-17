@@ -1413,8 +1413,8 @@ class eftfactory_tricubichermite:
                     sd2 = interp.smoothCubicHermiteDerivativesLine(
                         [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
                         [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
-                        fixStartDerivative = True, fixEndDerivative = True,
-                        magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+                        fixAllDirections = True, fixStartDerivative = True, fixEndDerivative = True,
+                        magnitudeScalingMode = interp.DerivativeScalingMode.ARITHMETIC_MEAN)  # was HARMONIC_MEAN
                     for n2 in range(elementsCountRadial + 1):
                         pd2[n3][n2][n1] = sd2[n2]
 
