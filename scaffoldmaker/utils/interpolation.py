@@ -482,10 +482,16 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
             break
         else:
             if instrument:
-                print('smoothCubicHermiteDerivativesLine converged after iter:',iter)
+                print('smoothCubicHermiteDerivativesLine converged after iter:', iter + 1)
             return md1
 
-    print('smoothCubicHermiteDerivativesLine max iters reached:',iter)
+    max = 0.0
+    for n in range(nodesCount):
+        for c in componentRange:
+            if math.fabs(md1[n][c] - lastmd1[n][c]) > max:
+                max = math.fabs(md1[n][c] - lastmd1[n][c])
+    closeness = max / dtol
+    print('smoothCubicHermiteDerivativesLine max iters reached:', iter + 1, ', max = ', round(closeness,2), 'x tolerance')
     return md1
 
 def smoothCubicHermiteDerivativesLoop(nx, nd1,
@@ -550,7 +556,13 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
                 print('smoothCubicHermiteDerivativesLoop converged after iter:',iter)
             return md1
 
-    print('smoothCubicHermiteDerivativesLoop max iters reached:',iter)
+    max = 0.0
+    for n in range(nodesCount):
+        for c in componentRange:
+            if math.fabs(md1[n][c] - lastmd1[n][c]) > max:
+                max = math.fabs(md1[n][c] - lastmd1[n][c])
+    closeness = max / dtol
+    print('smoothCubicHermiteDerivativesLoop max iters reached:', iter + 1, ', max = ', round(closeness,2) , 'x tolerance')
     return md1
 
 def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):

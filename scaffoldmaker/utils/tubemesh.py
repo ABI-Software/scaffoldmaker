@@ -19,7 +19,7 @@ def generatetubemesh(region,
     elementsCountAlongSegment,
     elementsCountThroughWall,
     segmentCountAlong,
-    cx, cd1,
+    cx, cd1, cd2, cd12,
     xInner, d1Inner, d2Inner, wallThickness,
     segmentAxis, segmentLength,
     useCrossDerivatives,
@@ -37,6 +37,8 @@ def generatetubemesh(region,
     :param segmentCountAlong: number of segments along the tube
     :param cx: coordinates on central line
     :param cd1: derivative along central line
+    :param cd2: derivative representing cross axis
+    :param cd12: rate of change of cd2 along cd1
     :param xInner: coordinates on inner surface of segment profile
     :param d1Inner: derivatives around inner surface of segment profile
     :param d2Inner: derivatives along inner surface of segment profile
@@ -56,42 +58,8 @@ def generatetubemesh(region,
     elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
-    sx, sd1, se, sxi, _ = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-
-    # Find unit normals and binormals at each sample points
-    sNormal = []
-    sBinormal = []
-
-    # Set up normal and binormal for first frame
-    prevUnitTangent = vector.normalise(sd1[0])
-    if vector.magnitude(vector.crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])) > 0.0:
-        prevBinormal = vector.crossproduct3(prevUnitTangent,[0.0, 0.0, 1.0])
-    else:
-        prevBinormal = vector.crossproduct3(prevUnitTangent,[0.0, -1.0, 0.0])
-    prevUnitBinormal = vector.normalise(prevBinormal)
-    prevUnitNormal = vector.crossproduct3(prevUnitBinormal, prevUnitTangent)
-    sNormal.append(prevUnitNormal)
-    sBinormal.append(prevUnitBinormal)
-
-    # Step through central line and rotate central line axes to align tangent 
-    # to tangent from previous frame
-    for n in range(1, elementsCountAlong + 1):
-        unitTangent = vector.normalise(sd1[n])
-        cp = vector.crossproduct3(prevUnitTangent, unitTangent)
-        if vector.magnitude(cp)> 0.0:
-            axisRot = vector.normalise(cp)
-            thetaRot = math.acos(vector.dotproduct(prevUnitTangent, unitTangent))
-            rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-            rotNormal = [rotFrame[j][0]*prevUnitNormal[0] + rotFrame[j][1]*prevUnitNormal[1] + rotFrame[j][2]*prevUnitNormal[2] for j in range(3)]
-            unitNormal = vector.normalise(rotNormal)
-            unitBinormal = vector.crossproduct3(unitTangent, unitNormal)
-            prevUnitTangent = unitTangent
-            prevUnitNormal = unitNormal
-        else:
-            unitBinormal = prevUnitBinormal
-            unitNormal = prevUnitNormal
-        sNormal.append(unitNormal)
-        sBinormal.append(unitBinormal)
+    sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+    sd2, _ = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
     fm = region.getFieldmodule()
     fm.beginChange()
@@ -140,8 +108,10 @@ def generatetubemesh(region,
     dx_ds2List = []
     dx_ds3List = []
     curvatureAlong = []
+    smoothd2Raw = []
+    smoothd2InnerList = []
 
-    # Map each face along segment profile to central line
+# Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
         for nAlongSegment in range(elementsCountAlongSegment + 1):
             n2 = nSegment*elementsCountAlongSegment + nAlongSegment
@@ -168,11 +138,17 @@ def generatetubemesh(region,
                         xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                         d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                         d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
-                        # Rotate to align first vector on face with binormal axis
                         if n1 == 0:
+                            # Project sd2 onto plane normal to sd1
+                            v = sd2[n2]
+                            pt = [midRot[j] + sd2[n2][j] for j in range(3)]
+                            dist = vector.dotproduct(v, unitTangent)
+                            ptOnPlane = [pt[j] - dist*unitTangent[j] for j in range(3)]
+                            newVector = [ptOnPlane[j] - midRot[j] for j in range(3)]
+                            # Rotate first point to align with planar projection of sd2
                             firstVector = vector.normalise([xRot1[j] - midRot[j] for j in range(3)])
-                            thetaRot2 = math.acos(vector.dotproduct(vector.normalise(sBinormal[n2]), firstVector))
-                            cp2 = vector.crossproduct3(vector.normalise(sBinormal[n2]), firstVector)
+                            thetaRot2 = math.acos(vector.dotproduct(vector.normalise(newVector), firstVector))
+                            cp2 = vector.crossproduct3(vector.normalise(newVector), firstVector)
                             if vector.magnitude(cp2) > 0.0:
                                 cp2 = vector.normalise(cp2)
                                 signThetaRot2 = vector.dotproduct(unitTangent, cp2)
@@ -194,8 +170,19 @@ def generatetubemesh(region,
                     d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1Rot2), vector.normalise(d2Rot2)))
                     d3InnerUnitList.append(d3Unit)
 
+    for n1 in range(elementsCountAround):
+        nx = []
+        nd2 = []
+        for n2 in range(elementsCountAlong + 1):
+            n = n2*elementsCountAround + n1
+            nx.append(xInnerList[n])
+            nd2.append(d2InnerList[n])
+        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2)
+        smoothd2Raw.append(smoothd2)
+
     for n2 in range(elementsCountAlong + 1):
         for n1 in range(elementsCountAround):
+            smoothd2InnerList.append(smoothd2Raw[n1][n2])
             n = elementsCountAround * n2 + n1
             if n2 == 0:
                 curvature = interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0)
@@ -214,7 +201,7 @@ def generatetubemesh(region,
     for n3 in range(elementsCountThroughWall + 1):
         xi3 = 1/elementsCountThroughWall * n3
         x, dx_ds1, dx_ds2, dx_ds3, factorList = interpolatefromInnerAndOuter( xInnerList, xOuterList,
-            wallThickness, xi3, sx, curvatureInner, curvatureAlong, d1InnerList, d2InnerList, d3InnerUnitList,
+            wallThickness, xi3, sx, curvatureInner, curvatureAlong, d1InnerList, smoothd2InnerList, d3InnerUnitList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall)
         xList = xList + x
         dx_ds1List = dx_ds1List + dx_ds1
@@ -242,8 +229,8 @@ def generatetubemesh(region,
         # cache.setNode(node)
         # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[pt])
         # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sNormal[pt])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sBinormal[pt])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, vector.normalise(sd2[pt]))
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, vector.normalise(testRot[pt]))
         # nodeIdentifier = nodeIdentifier + 1
 
     # create elements
