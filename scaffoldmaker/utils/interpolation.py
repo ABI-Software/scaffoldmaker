@@ -253,10 +253,13 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     elementLengthProportionStart = proportionStart*lengthFractionStart*elementLengthMid
     elementLengthProportionEnd = proportionEnd*lengthFractionEnd*elementLengthMid
     # get smoothly varying element lengths, not accounting for start and end
-    elementLengths = []
-    for eOut in range(elementsCountOut):
-        xi = eOut/(elementsCountOut - 1)
-        elementLengths.append(((1.0 - xi)*proportionStart + xi*proportionEnd)*elementLengthMid)
+    if (elementsCountOut == 1) or (elementLengthStartEndRatio == 1.0):
+        elementLengths = [ elementLengthMid ]*elementsCountOut
+    else:
+        elementLengths = []
+        for eOut in range(elementsCountOut):
+            xi = eOut/(elementsCountOut - 1)
+            elementLengths.append(((1.0 - xi)*proportionStart + xi*proportionEnd)*elementLengthMid)
     # get middle derivative magnitudes
     nodeDerivativeMagnitudes = [ None ]*(elementsCountOut + 1)  # start and end determined below
     for n in range(1, elementsCountOut):
