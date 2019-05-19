@@ -33,7 +33,7 @@ class MeshType_3d_ostium1(Scaffold_base):
             'Number of elements along' : 1,
             'Number of elements through wall' : 1,  # not implemented for > 1
             'Unit scale' : 1.0,
-            'Inlet' : True,
+            'Outlet' : False,
             'Ostium diameter' : 1.0,
             'Ostium length' : 0.4,
             'Ostium wall thickness' : 0.08,
@@ -63,7 +63,7 @@ class MeshType_3d_ostium1(Scaffold_base):
             'Number of elements along',
             'Number of elements through wall',  # not implemented for > 1
             'Unit scale',
-            'Inlet',  # GRC not implemented for outlet
+            'Outlet',
             'Ostium diameter',
             'Ostium length',
             'Ostium wall thickness',
@@ -177,7 +177,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     elementsCountThroughWall = options['Number of elements through wall']
     unitScale = options['Unit scale']
 
-    isInlet = options['Inlet']
+    isOutlet = options['Outlet']
     ostiumRadius = 0.5*unitScale*options['Ostium diameter']
     ostiumLength = unitScale*options['Ostium length']
     ostiumWallThickness = unitScale*options['Ostium wall thickness']
@@ -435,6 +435,23 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                     #print('v', v, 'n3', n3, 'n1', n1, ':', vector.magnitude(ndf), 'vs.', vector.magnitude(nd2[1]), 'd2Map', d2Map)
                     pass
 
+    if isOutlet:
+        # reverse directions of d1 and d2 on vessels and ostium base
+        for c in range(3):
+            for n3 in range(2):
+                for n1 in range(elementsCountAroundOstium):
+                    od1[n3][n1][c] = -od1[n3][n1][c]
+                    od2[n3][n1][c] = -od2[n3][n1][c]
+                for n1 in range(elementsCountAcross - 1):
+                    xd1[n3][n1][c] = -xd1[n3][n1][c]
+                    xd2[n3][n1][c] = -xd2[n3][n1][c]
+                for v in range(vesselsCount):
+                    for n1 in range(elementsCountAroundVessel):
+                        vod1[v][n3][n1][c] = -vod1[v][n3][n1][c]
+            # d2 is referenced all around, so only change once per vessel
+            for v in range(vesselsCount):
+                vod2[v][0][0][c] = -vod2[v][0][0][c]
+
     ##############
     # Create nodes
     ##############
@@ -536,18 +553,33 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     #elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
     for v in range(vesselsCount):
-        startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
-            vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
-        endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
-            mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
+        if isOutlet:
+            startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
+                mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
+            endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
+                vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
+            # reverse order of nodes around vessel to start from other side:
+            for px in [ startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap, \
+                endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap ]:
+                if px:
+                    for n3 in range(2):
+                        px[n3] = px[n3][-elementsCountAcross::-1] + px[n3][:-elementsCountAcross:-1]
+            # must switch s1/s2 mapping to d1 around corners in startDerivativesMap
+            oa = elementsCountAroundVessel - elementsCountAcross
+            for n3 in range(2):
+                startDerivativesMap[n3][0] = ( ( 0, -1, 0 ), ( 1, 1, 0 ), None, ( 1, 0, 0 ))
+                startDerivativesMap[n3][oa] = ( ( 1, 0, 0 ), ( -1, 1, 0 ), None, ( 0, 1, 0 ))
+        else:
+            startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
+                vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
+            endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
+                mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
         nodeIdentifier, elementIdentifier = tricubichermite.createAnnulusMesh3d(
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
             nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
             elementsCountRadial = elementsCountAlong,
             meshGroups = vesselMeshGroups[v] if vesselMeshGroups else [])
-
-    oNodeId = []
 
     fm.endChange()
     return annotationGroups, nodeIdentifier, elementIdentifier, (ox, od1, od2, od3, oNodeId)
