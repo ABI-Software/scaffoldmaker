@@ -442,9 +442,10 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                 for n1 in range(elementsCountAroundOstium):
                     od1[n3][n1][c] = -od1[n3][n1][c]
                     od2[n3][n1][c] = -od2[n3][n1][c]
-                for n1 in range(elementsCountAcross - 1):
-                    xd1[n3][n1][c] = -xd1[n3][n1][c]
-                    xd2[n3][n1][c] = -xd2[n3][n1][c]
+                if vesselsCount > 1:
+                    for n1 in range(elementsCountAcross - 1):
+                        xd1[n3][n1][c] = -xd1[n3][n1][c]
+                        xd2[n3][n1][c] = -xd2[n3][n1][c]
                 for v in range(vesselsCount):
                     for n1 in range(elementsCountAroundVessel):
                         vod1[v][n3][n1][c] = -vod1[v][n3][n1][c]
@@ -564,11 +565,12 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                 if px:
                     for n3 in range(2):
                         px[n3] = px[n3][-elementsCountAcross::-1] + px[n3][:-elementsCountAcross:-1]
-            # must switch s1/s2 mapping to d1 around corners in startDerivativesMap
-            oa = elementsCountAroundVessel - elementsCountAcross
-            for n3 in range(2):
-                startDerivativesMap[n3][0] = ( ( 0, -1, 0 ), ( 1, 1, 0 ), None, ( 1, 0, 0 ))
-                startDerivativesMap[n3][oa] = ( ( 1, 0, 0 ), ( -1, 1, 0 ), None, ( 0, 1, 0 ))
+            if vesselsCount > 1:
+                # must switch s1/s2 mapping to d1 around corners in startDerivativesMap
+                oa = elementsCountAroundVessel - elementsCountAcross
+                for n3 in range(2):
+                    startDerivativesMap[n3][0] = ( ( 0, -1, 0 ), ( 1, 1, 0 ), None, ( 1, 0, 0 ))
+                    startDerivativesMap[n3][oa] = ( ( 1, 0, 0 ), ( -1, 1, 0 ), None, ( 0, 1, 0 ))
         else:
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
                 vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
