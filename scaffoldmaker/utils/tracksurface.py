@@ -61,7 +61,7 @@ class TrackSurface:
         Evaluate coordinates on surface at position, and optionally
         derivative w.r.t. xi1 and xi2.
         :param position: A valid TrackSurfacePosition.
-        :return: If derivatives is False: coordinates [ x, y, z];
+        :return: If derivatives is False: coordinates [ x, y, z].
         If derivatives is True: coordinates, derivative1, derivative2.
         '''
         n1 = position.e2*(self.elementsCount1 + 1) + position.e1
@@ -240,7 +240,7 @@ def calculate_surface_delta_xi(d1, d2, direction):
             for k in range(3):
                 a[i][j] += dx_dxi[i][k]*dx_dxi[j][k]
         for k in range(3):
-            b[i] += dx_dxi[i][k]*direction[k];
+            b[i] += dx_dxi[i][k]*direction[k]
     # 2x2 matrix inverse
     deta = a[0][0]*a[1][1] - a[0][1]*a[1][0]
     inva = [ [ a[1][1]/deta, -a[0][1]/deta ], [ -a[1][0]/deta, a[0][0]/deta ] ]
@@ -250,7 +250,7 @@ def calculate_surface_delta_xi(d1, d2, direction):
 
 def calculate_surface_axes(d1, d2, direction):
     '''
-    :return: Vectors ax1, ax2, ax3; ax1 in-plane in 3-D vector direction,
+    :return: Vectors ax1, ax2, ax3: ax1 in-plane in 3-D vector direction,
     ax2 in-plane normal to a and ax3 normal to the surface plane.
     Vectors all have unit magnitude.
     '''
