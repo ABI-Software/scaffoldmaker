@@ -118,7 +118,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             if options[key] > 1.0:
                 options[key] = 1.0
         if options['Tenia coli width'] < 0.2*options['Inner radius']:
-            options['Tenia coli width'] = 0.2*options['Inner radius']
+            options['Tenia coli width'] = round(0.2*options['Inner radius'], 2)
         if options['Tenia coli width'] > round(math.sqrt(3)*0.5*options['Inner radius'],2):
             options['Tenia coli width'] = round(math.sqrt(3)*0.5*options['Inner radius'],2)
 
@@ -150,6 +150,8 @@ class MeshType_3d_haustra1(Scaffold_base):
 
         cx = [ [ 0.0, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
         cd1 = [ [ haustrumLength, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
+        cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
+        cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a haustra segment
         xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAroundTC,
@@ -158,7 +160,7 @@ class MeshType_3d_haustra1(Scaffold_base):
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-            elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount, cx, cd1,
+            elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
             xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength,
             useCrossDerivatives, useCubicHermiteThroughWall)
 
@@ -836,7 +838,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             element = mesh.createElement(elementIdentifier, elementtemplate if n1 < int(elementsCountAroundTC*0.5) - 1 else elementtemplate1)
             result = element.setNodesByIdentifier(eft if n1 < int(elementsCountAroundTC*0.5) - 1 else eft1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            TLMeshGroup.addElement(element)
+            TOMeshGroup.addElement(element)
 
         for N in range(2):
             for n1 in range(elementsCountAroundTC):
@@ -855,7 +857,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
-                TMMeshGroup.addElement(element) if N == 0 else TOMeshGroup.addElement(element)
+                TLMeshGroup.addElement(element) if N == 0 else TMMeshGroup.addElement(element)
 
         for n1 in range(int(elementsCountAroundTC*0.5)):
             e1 = e1 + 1
@@ -864,7 +866,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             element = mesh.createElement(elementIdentifier, elementtemplate if n1 > 0 else elementtemplate2)
             result = element.setNodesByIdentifier(eft if n1 > 0 else eft2, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            TLMeshGroup.addElement(element)
+            TOMeshGroup.addElement(element)
 
     fm.endChange()
 

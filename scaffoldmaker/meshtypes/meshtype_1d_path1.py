@@ -68,16 +68,22 @@ class MeshType_1d_path1(Scaffold_base):
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
         nodeIdentifier = 1
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ length/elementsCount, 0.0, 0.0 ]
+        dx_ds2 = [ 0.0, 1.0, 0.0 ]
+        d2x_ds1ds2 = [ 0.0, 0.0, 0.0 ]
         for n in range(elementsCount + 1):
             x[0] = length*n/elementsCount
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d2x_ds1ds2)
             nodeIdentifier = nodeIdentifier + 1
 
         #################
@@ -104,8 +110,9 @@ def extractPathParametersFromRegion(region):
     '''
     Returns parameters of all nodes in region in identifier order.
     Assumes nodes in region have field coordinates (1 to 3 components).
-    Currently limited to nodes with exactly value and d_ds1, same as path 1 scaffold.
-    :return: cx, cd1 (all padded with zeroes to 3 components)
+    Currently limited to nodes with exactly value, d_ds1, d_ds2, d2_ds12,
+    same as path 1 scaffold.
+    :return: cx, cd1, cd2, cd12 (all padded with zeroes to 3 components)
     '''
     fm = region.getFieldmodule()
     coordinates = fm.findFieldByName('coordinates').castFiniteElement()
@@ -114,6 +121,8 @@ def extractPathParametersFromRegion(region):
     cache = fm.createFieldcache()
     cx = []
     cd1 = []
+    cd2 = []
+    cd12 = []
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodeIter = nodes.createNodeiterator()
     node = nodeIter.next()
@@ -121,10 +130,16 @@ def extractPathParametersFromRegion(region):
         cache.setNode(node)
         result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, componentsCount)
         result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, componentsCount)
+        result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, componentsCount)
+        result, d12 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, componentsCount)
         for c in range(componentsCount, 3):
             x.append(0.0)
             d1.append(0.0)
+            d2.append(0.0)
+            d12.append(0.0)
         cx.append(x)
         cd1.append(d1)
+        cd2.append(d2)
+        cd12.append(d12)
         node = nodeIter.next()
-    return cx, cd1
+    return cx, cd1, cd2, cd12

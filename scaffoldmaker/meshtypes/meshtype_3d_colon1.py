@@ -32,13 +32,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Number of elements' : 5
                 },
             'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [
-                [ [  0.0,  0.0 ], [  0.0, 10.0 ] ],
-                [ [  0.0, 10.0 ], [  5.0,  5.0 ] ],
-                [ [  5.0,  9.0 ], [  5.0,  0.0 ] ],
-                [ [ 10.0, 10.0 ], [  5.0, -5.0 ] ],
-                [ [ 10.0, -2.0 ], [ -3.0, -5.0 ] ],
-                [ [  7.0, -4.0 ], [ -3.0,  0.0 ] ] ] )
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
+                [ [  0.0,  0.0 ], [  0.0, 10.0 ], [ 4.0, 0.0 ], [ -1.2, -2.8 ] ],
+                [ [  0.0, 10.0 ], [  5.0,  5.0 ], [ 2.8, -2.8 ], [ -2.8, -1.2 ] ],
+                [ [  5.0,  9.0 ], [  5.0,  0.0 ], [ 0.0, -4.0 ], [ -2.8, 1.2 ] ],
+                [ [ 10.0, 10.0 ], [  5.0, -5.0 ], [ -2.8, -2.8 ], [ -0.4, 4.8 ] ],
+                [ [ 10.0, -2.0 ], [ -3.0, -5.0 ], [ -3.2, 2.0 ], [3.2, 2.0 ] ],
+                [ [  7.0, -4.0 ], [ -3.0,  0.0 ], [ 0.0, 4.0 ], [ 3.2, 2.0 ] ] ] )
             } ),
         'Human 3D 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
@@ -47,14 +47,14 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Number of elements' : 6
                 },
             'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [
-                [ [  0.0,  0.0,  0.0 ], [  0.0, 10.0,  3.0 ] ],
-                [ [  0.0, 10.0,  3.0 ], [  5.0,  5.0,  0.0 ] ],
-                [ [  5.0,  9.0,  0.0 ], [  5.0,  0.0,  0.0 ] ],
-                [ [ 10.0, 10.0,  2.0 ], [ 10.0, -5.0,  0.0 ] ],
-                [ [ 15.0, 15.0,  7.0 ], [ 12.0, 12.0,  0.0 ] ],
-                [ [ 20.0, -2.0,  0.0 ], [  5.0,-12.0, -5.0 ] ],
-                [ [ 10.0, -4.0, -0.0 ], [ -8.0,  0.0,  0.0 ] ] ] )
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
+                [ [  0.0,  0.0,  0.0 ], [  0.0, 10.0,  3.0 ], [ -2.0, 0.0, -4.0 ], [ 2.1, 3.0, 2.0 ] ],
+                [ [  0.0, 10.0,  3.0 ], [  5.0,  5.0,  0.0 ], [ 0.1, 3.0, -2.0 ], [ -0.1, -5.0, 7.0 ] ],
+                [ [  5.0,  9.0,  0.0 ], [  5.0,  0.0,  0.0 ], [ 0.0, -2.0, 5.0 ], [ 0.0, 0.0, 0.0 ] ],
+                [ [ 10.0, 10.0,  2.0 ], [ 10.0, -5.0,  0.0 ], [ 0.0, -2.0, 5.0 ], [ 0.1, 4.0, -3.0 ] ],
+                [ [ 15.0, 15.0,  7.0 ], [ 12.0, 12.0,  0.0 ], [ 0.1, 2.0, 2.0 ], [ 1.9, -2.0, -6.0 ] ],
+                [ [ 20.0, -2.0,  0.0 ], [  5.0,-12.0, -5.0 ], [ 2.0, 0.0, -4.0 ], [ -1.0, 1.0, 0.0 ] ],
+                [ [ 15.0, -10.0, -0.0 ], [ -8.0,  0.0,  0.0 ], [ 1.0, 1.0, -4.0 ], [ -1.0, 1.0, 0.0 ] ] ])
             } ),
         'Test Line' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
@@ -63,9 +63,9 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Number of elements' : 1
                 },
             'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [
-                [ [ -4.0,  1.0,  3.0 ], [  5.0,  1.0, -3.0 ] ],
-                [ [  1.0,  2.0,  0.0 ], [  5.0,  1.0, -3.0 ] ] ] )
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
+                [ [ -4.0,  1.0,  3.0 ], [  5.0,  1.0, -3.0 ], [ 0.8, -4.0, 0.0 ], [0.0, 0.0, 0.0 ] ],
+                [ [  1.0,  2.0,  0.0 ], [  5.0,  1.0, -3.0 ], [ 0.8, -4.0, 0.0 ], [0.0, 0.0, 0.0 ] ] ])
             } )
         }
 
@@ -171,7 +171,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1 = extractPathParametersFromRegion(tmpRegion)
+        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
         del tmpRegion
 
         # find arclength of colon
@@ -190,7 +190,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region, elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount,
-            cx, cd1, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            cx, cd1, cd2, cd12, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
