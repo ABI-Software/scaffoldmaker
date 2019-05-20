@@ -4,6 +4,7 @@ Utility functions for geometry.
 
 from __future__ import division
 import math
+from scaffoldmaker.utils import vector
 
 def getApproximateEllipsePerimeter(a, b):
     '''
@@ -115,3 +116,61 @@ def createCirclePoints(cx, axis1, axis2, elementsCountAround, startRadians = 0.0
         pd1.append([ radiansPerElementAround*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
         radiansAround += radiansPerElementAround
     return px, pd1
+
+def getCircleProjectionAxes(ax, ad1, ad2, ad3, angle1radians, angle2radians, length):
+    '''
+    Project coordinates and orthogonal unit axes ax, ad1, ad2, ad3 in direction
+    of ad3, rotated towards ad1 by angle1radians and ad2 by angle2radians such
+    that it conforms to a circular arc of the given length, tangential to ad3
+    at the start and the final bd3 at the end.
+    All vectors are/must be length 3.
+    Assumes angles are not large e.g. less than 90 degrees.
+    Note: not robust for all inputs.
+    :return: Final coordinates and orthogonal unit axes: bx, bd1, bd2, bd3
+    '''
+    if (math.fabs(angle1radians) < 0.000001) and (math.fabs(angle2radians) < 0.000001):
+        bx = [ (ax[c] + length*ad3[c]) for c in range(3) ]
+        return bx, ad1, ad2, ad3
+    cosAngle1 = math.cos(angle1radians)
+    sinAngle1 = math.sin(angle1radians)
+    cosAngle2 = math.cos(angle2radians)
+    sinAngle2 = math.sin(angle2radians)
+    f1 = sinAngle1*cosAngle2
+    f2 = cosAngle1*sinAngle2
+    f3 = cosAngle1*cosAngle2
+    angleAroundRadians = math.atan2(f2, f1)
+    fh = math.sqrt(f1*f1 + f2*f2)
+    arcAngleRadians = 0.5*math.pi - math.atan2(f3, fh)
+    arcRadius = length/arcAngleRadians
+    br = arcRadius*(1.0 - math.cos(arcAngleRadians))
+    w1 = br*math.cos(angleAroundRadians)  # f1/fh
+    w2 = br*math.sin(angleAroundRadians)  # f2/fh
+    w3 = arcRadius*math.sin(arcAngleRadians)
+    bx = [ (ax[c] + w1*ad1[c] + w2*ad2[c] + w3*ad3[c]) for c in range(3) ]
+    bd3 = vector.normalise([ (f1*ad1[c] + f2*ad2[c] + f3*ad3[c]) for c in range(3) ])
+    bd1 = vector.normalise(vector.crossproduct3(ad2, bd3))
+    bd2 = vector.crossproduct3(bd3, bd1)
+    return bx, bd1, bd2, bd3
+
+def getSurfaceProjectionAxes(ax, ad1, ad2, ad3, angle1radians, angle2radians, length):
+    '''
+    Project coordinates and orthogonal unit axes ax, ad1, ad2, ad3 in direction
+    of ad3, rotated towards ad1 by angle1radians and ad2 by angle2radians by
+    simple rotation.
+    All vectors are/must be length 3.
+    Assumes angles are not large e.g. less than 90 degrees.
+    Note: not robust for all inputs.
+    :return: Final coordinates and orthogonal unit axes: bx, bd1, bd2, bd3
+    '''
+    cosAngle1 = math.cos(angle1radians)
+    sinAngle1 = math.sin(angle1radians)
+    cosAngle2 = math.cos(angle2radians)
+    sinAngle2 = math.sin(angle2radians)
+    f1 = sinAngle1*cosAngle2
+    f2 = cosAngle1*sinAngle2
+    f3 = cosAngle1*cosAngle2
+    bd3 = [ (f1*ad1[c] + f2*ad2[c] + f3*ad3[c]) for c in range (3) ]
+    bx = [ (ax[c] + length*bd3[c]) for c in range(3) ]
+    bd1 = vector.crossproduct3(ad2, bd3)
+    bd2 = vector.crossproduct3(bd3, bd1)
+    return bx, bd1, bd2, bd3
