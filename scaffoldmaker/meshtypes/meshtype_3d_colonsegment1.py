@@ -1,5 +1,5 @@
 """
-Generates a single 3-D haustra segment mesh along a central
+Generates a single 3-D colon segment mesh along a central
 line, with variable numbers of elements around, along and
 through wall, with variable radius and thickness along.
 """
@@ -19,31 +19,36 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_haustra1(Scaffold_base):
+class MeshType_3d_colonsegment1(Scaffold_base):
     '''
-    Generates a single 3-D haustra segment mesh with variable
+    Generates a single 3-D colon segment mesh with variable
     numbers of elements around, along the central line, and
-    through wall. The haustra segment has a triangular profile
-    with rounded corners at the inter-haustral septa, and a
-    clover profile in the intra-haustral region.
+    through wall. The cross-section profile of the colon
+    segment varies with species and is dependent on the number
+    of tenia coli.
+    Mouse: 0 tenia coli, largely cylindrical
+    Pig: 2 tenia coli, bow tie profile
+    Human (Default): 3 tenia coli, triangular profile with rounded
+    corners at the inter-haustral septa, and a clover
+    profile in the intra-haustral region.
     '''
     @staticmethod
     def getName():
-        return '3D Haustra 1'
+        return '3D Colon Segment 1'
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around tenia coli' : 2,
             'Number of elements around haustrum' : 8,
-            'Number of elements along haustrum' : 3,
+            'Number of elements along segment' : 3,
             'Number of elements through wall' : 1,
             'Inner radius': 0.5,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
-            'Haustrum length end derivative factor': 0.5,
-            'Haustrum length mid derivative factor': 1.0,
-            'Haustrum length': 1.0,
+            'Segment length end derivative factor': 0.5,
+            'Segment length mid derivative factor': 1.0,
+            'Segment length': 1.0,
             'Tenia coli width': 0.2,
             'Tenia coli thickness': 0.03,
             'Wall thickness': 0.01,
@@ -51,7 +56,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Use linear through wall' : True,
             'Refine' : False,
             'Refine number of elements around' : 1,
-            'Refine number of elements along haustrum' : 1,
+            'Refine number of elements along segment' : 1,
             'Refine number of elements through wall' : 1
         }
 
@@ -60,14 +65,14 @@ class MeshType_3d_haustra1(Scaffold_base):
         return [
             'Number of elements around tenia coli',
             'Number of elements around haustrum',
-            'Number of elements along haustrum',
+            'Number of elements along segment',
             'Number of elements through wall',
             'Inner radius',
             'Corner inner radius factor',
             'Haustrum inner radius factor',
-            'Haustrum length end derivative factor',
-            'Haustrum length mid derivative factor',
-            'Haustrum length',
+            'Segment length end derivative factor',
+            'Segment length mid derivative factor',
+            'Segment length',
             'Tenia coli width',
             'Tenia coli thickness',
             'Wall thickness',
@@ -75,7 +80,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
-            'Refine number of elements along haustrum',
+            'Refine number of elements along segment',
             'Refine number of elements through wall'
         ]
 
@@ -84,13 +89,13 @@ class MeshType_3d_haustra1(Scaffold_base):
         for key in [
             'Number of elements through wall',
             'Refine number of elements around',
-            'Refine number of elements along haustrum',
+            'Refine number of elements along segment',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
         for key in [
             'Number of elements around tenia coli',
-            'Number of elements along haustrum']:
+            'Number of elements along segment']:
             if options[key] < 2:
                 options[key] = 2
         if options['Number of elements around haustrum'] < 4:
@@ -103,9 +108,9 @@ class MeshType_3d_haustra1(Scaffold_base):
         for key in [
             'Inner radius',
             'Haustrum inner radius factor',
-            'Haustrum length end derivative factor',
-            'Haustrum length mid derivative factor',
-            'Haustrum length',
+            'Segment length end derivative factor',
+            'Segment length mid derivative factor',
+            'Segment length',
             'Tenia coli thickness',
             'Wall thickness']:
             if options[key] < 0.0:
@@ -114,7 +119,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             options['Corner inner radius factor'] = 0.1
         for key in [
             'Corner inner radius factor',
-            'Haustrum length end derivative factor']:
+            'Segment length end derivative factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
         if options['Tenia coli width'] < 0.2*options['Inner radius']:
@@ -133,14 +138,14 @@ class MeshType_3d_haustra1(Scaffold_base):
         elementsCountAroundTC = options['Number of elements around tenia coli']
         elementsCountAroundHaustrum = options['Number of elements around haustrum']
         elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
-        elementsCountAlongHaustrum = options['Number of elements along haustrum']
+        elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
-        haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
-        haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
-        haustrumLength = options['Haustrum length']
+        segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
+        segmentLengthMidDerivativeFactor = options['Segment length mid derivative factor']
+        segmentLength = options['Segment length']
         widthTC = options['Tenia coli width']
         TCThickness = options['Tenia coli thickness']
         wallThickness = options['Wall thickness']
@@ -148,26 +153,26 @@ class MeshType_3d_haustra1(Scaffold_base):
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         haustraSegmentCount = 1
 
-        cx = [ [ 0.0, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
-        cd1 = [ [ haustrumLength, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
+        cx = [ [ 0.0, 0.0, 0.0 ], [ segmentLength, 0.0, 0.0 ] ]
+        cd1 = [ [ segmentLength, 0.0, 0.0 ], [ segmentLength, 0.0, 0.0 ] ]
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a haustra segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAroundTC,
-            elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-            haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
+        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(elementsCountAroundTC,
+            elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-            elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
-            xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength,
+            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
+            xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, segmentLength,
             useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
            useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
-           elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, elementsCountThroughWall,
+           elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
            widthTC, TCThickness, sx, curvatureAlong, factorList)
 
         annotationGroups += annotationGroupsTC
@@ -185,7 +190,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             return cls.generateBaseMesh(region, options)
 
         refineElementsCountAround = options['Refine number of elements around']
-        refineElementsCountAlong = options['Refine number of elements along haustrum']
+        refineElementsCountAlong = options['Refine number of elements along segment']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
@@ -195,17 +200,17 @@ class MeshType_3d_haustra1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius,
-    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
+def getColonSegmentInnerPoints3TC(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius,
+    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength):
     """
-    Generates a 3-D haustra segment mesh with variable numbers
-    of elements around, along the central line, and through wall.
-    The haustra segment has a triangular profile with rounded corners
+    Generates a 3-D colon segment mesh with 3 tenia coli with variable
+    numbers of elements around, along the central line, and through wall.
+    The colon segment has a triangular profile with rounded corners
     at the inter-haustral septa, and a clover profile in the intra-haustral
     region.
     :param elementsCountAroundTC: Number of elements around each tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
-    :param elementsCountAlongHaustrum: Number of elements along haustrum.
+    :param elementsCountAlongSegment: Number of elements along colon segment.
     :param widthTC: Width of tenia coli.
     :param radius: Inner radius defined from center of triangular
     profile to vertex of the triangle.
@@ -215,12 +220,12 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
     :param haustrumInnerRadiusFactor: Factor is multiplied by inner
     radius to obtain radius of intersecting circles in the middle cross-section
     along a haustra segment.
-    :param haustrumLengthEndDerivativeFactor: Factor is multiplied by haustrum
-    length to scale derivative along the end of a haustrum length.
-    :param haustrumLengthMidDerivativeFactor: Factor is multiplied by haustrum
-    length to scale derivative along the mid length of the haustrum.
-    :param haustrumLength: Length of a haustrum.
-    :return: coordinates, derivatives on inner surface of haustra segment.
+    :param segmentLengthEndDerivativeFactor: Factor is multiplied by segment
+    length to scale derivative along the end of a segment length.
+    :param segmentLengthMidDerivativeFactor: Factor is multiplied by segment
+    length to scale derivative along the mid length of the segment.
+    :param segmentLength: Length of a colon segment.
+    :return: coordinates, derivatives on inner surface of a colon segment.
     """
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
@@ -357,21 +362,21 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
 
     for n1 in range(elementsCountAroundHalfHaustrum + 1):
         v1 = [xHalfSetInterHaustra[n1][0], xHalfSetInterHaustra[n1][1], 0.0]
-        startArcLength = haustrumLengthEndDerivativeFactor * haustrumLength
+        startArcLength = segmentLengthEndDerivativeFactor * segmentLength
         d1 = [ c*startArcLength for c in unitZ]
-        v2 = [xHalfSetIntraHaustra[n1][0], xHalfSetIntraHaustra[n1][1], haustrumLength/2]
-        midArcLength = haustrumLengthMidDerivativeFactor * haustrumLength
+        v2 = [xHalfSetIntraHaustra[n1][0], xHalfSetIntraHaustra[n1][1], segmentLength/2]
+        midArcLength = segmentLengthMidDerivativeFactor * segmentLength
         d2 = [c*midArcLength for c in unitZ]
-        v3 = [xHalfSetInterHaustra[n1][0], xHalfSetInterHaustra[n1][1], haustrumLength]
+        v3 = [xHalfSetInterHaustra[n1][0], xHalfSetInterHaustra[n1][1], segmentLength]
         d3 = [ c*startArcLength for c in unitZ]
         nx = [v1, v2, v3]
         nd1 = [d1, d2, d3]
-        sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustrum)
+        sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)
         xInnerRaw.append(sx)
         dx_ds2InnerRaw.append(sd1)
 
     # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
-    for n2 in range(elementsCountAlongHaustrum + 1):
+    for n2 in range(elementsCountAlongSegment + 1):
         xAround = []
         unitdx_ds1Around = []
         d2Around = []
@@ -385,9 +390,9 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
             if n1 == 0:
                 unitdx_ds1 = vector.normalise(d1HalfSetIntraHaustra[n1])
             else: # points on clover
-                if n2 <= int(elementsCountAlongHaustrum/2): # first half of haustrumLength
+                if n2 <= int(elementsCountAlongSegment/2): # first half of segmentLength
                     axisRot = vector.crossproduct3(unitZ, unitTangent)
-                elif n2 > int(elementsCountAlongHaustrum/2): # second half of haustrumLength
+                elif n2 > int(elementsCountAlongSegment/2): # second half of segmentLength
                     axisRot = vector.crossproduct3(unitTangent, unitZ)
                 rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
                 rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
@@ -397,9 +402,9 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
             d2Around.append(dx_ds2)
             unitdx_ds1Around.append(unitdx_ds1)
 
-        if n2 > 0 and n2 < elementsCountAlongHaustrum:
+        if n2 > 0 and n2 < elementsCountAlongSegment:
             dx_ds1InnerAroundList = []
-            if elementsCountAlongHaustrum%2 == 0 and n2 == int(elementsCountAlongHaustrum*0.5):
+            if elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5):
                 dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1HalfSetIntraHaustra
             else:
                 for n1 in range(elementsCountAroundHalfHaustrum):
