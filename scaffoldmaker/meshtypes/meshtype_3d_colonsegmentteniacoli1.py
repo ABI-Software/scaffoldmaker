@@ -19,14 +19,13 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_colonsegment1(Scaffold_base):
+class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
     '''
     Generates a single 3-D colon segment mesh with variable
-    numbers of elements around, along the central line, and
-    through wall. The cross-section profile of the colon
+    numbers of tenia coli, elements around, along the central
+    line, and through wall. The cross-section profile of the colon
     segment varies with species and is dependent on the number
     of tenia coli.
-    Mouse: 0 tenia coli, largely cylindrical
     Pig: 2 tenia coli, bow tie profile
     Human (Default): 3 tenia coli, triangular profile with rounded
     corners at the inter-haustral septa, and a clover
@@ -34,24 +33,30 @@ class MeshType_3d_colonsegment1(Scaffold_base):
     '''
     @staticmethod
     def getName():
-        return '3D Colon Segment 1'
+        return '3D Colon Segment Tenia Coli 1'
+
+    @staticmethod
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around tenia coli' : 2,
             'Number of elements around haustrum' : 8,
-            'Number of elements along segment' : 3,
+            'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
-            'Inner radius': 0.5,
+            'Inner radius': 1.0,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
             'Segment length end derivative factor': 0.5,
-            'Segment length mid derivative factor': 1.0,
-            'Segment length': 1.0,
+            'Segment length mid derivative factor': 2.0,
+            'Segment length': 1.5,
             'Tenia coli width': 0.2,
             'Tenia coli thickness': 0.03,
-            'Wall thickness': 0.01,
+            'Wall thickness': 0.02,
             'Use cross derivatives' : False,
             'Use linear through wall' : True,
             'Refine' : False,
@@ -158,7 +163,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
-        # Generate inner surface of a haustra segment
+        # Generate inner surface of a colon segment
         xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(elementsCountAroundTC,
             elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
@@ -668,7 +673,6 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     cache = fm.createFieldcache()
     coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
-    # Make sure tenia coli groups are in correct orientation after developing cross axes
     TLGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     TMGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     TOGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')

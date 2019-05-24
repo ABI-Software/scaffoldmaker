@@ -6,7 +6,8 @@ variable radius and thickness along.
 
 import copy
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, getColonSegmentInnerPoints3TC, getTeniaColi
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentsimplemesentery1 import MeshType_3d_colonsegmentsimplemesentery1, getColonSegmentInnerPoints0TC
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, getColonSegmentInnerPoints3TC, getTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -74,6 +75,20 @@ class MeshType_3d_colon1(Scaffold_base):
             } )
         }
 
+    segmentProfileTeniaColiDefaultScaffoldPackages = {
+        'Human 1' : ScaffoldPackage(MeshType_3d_colonsegmentteniacoli1, {
+            'scaffoldSettings' : {
+                }
+            } ),
+        }
+
+    segmentProfileSimpleMesenteryDefaultScaffoldPackages = {
+        'Mouse 1' : ScaffoldPackage(MeshType_3d_colonsegmentsimplemesentery1, {
+            'scaffoldSettings' : {
+                },
+            } )
+        }
+
     @staticmethod
     def getName():
         return '3D Colon 1'
@@ -83,46 +98,61 @@ class MeshType_3d_colon1(Scaffold_base):
         return [
             'Default',
             'Human 1',
-            'Human 2']
+            'Human 2',
+            'Mouse 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        options = MeshType_3d_colonsegment1.getDefaultOptions(parameterSetName)
-        options['Number of elements along segment'] = 4
-        options['Inner radius'] = 1.0
-        options['Segment length mid derivative factor'] = 2.0
-        options['Wall thickness'] = 0.02
         if 'Human 2' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
-        optionsColon = {
+        if 'Mouse' in parameterSetName:
+            segmentProfileOption = cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages['Mouse 1']
+        else:
+            segmentProfileOption = cls.segmentProfileTeniaColiDefaultScaffoldPackages['Human 1']
+        options = {
             'Central path' : copy.deepcopy(centralPathOption),
-            'Number of segments': 30
+            'Segment profile' : copy.deepcopy(segmentProfileOption),
+            'Number of segments': 30,
+            'Refine' : False,
+            'Refine number of elements around' : 1,
+            'Refine number of elements along' : 1,
+            'Refine number of elements through wall' : 1
             }
-        options.update(optionsColon)
         return options
 
     @staticmethod
     def getOrderedOptionNames():
-        optionNames = MeshType_3d_colonsegment1.getOrderedOptionNames()
-        optionNames.remove('Segment length')
-        for optionName in [
+        return [
+            'Central path',
+            'Segment profile',
             'Number of segments',
-            'Central path']:
-            optionNames.insert(0, optionName)
-        return optionNames
+            'Refine',
+            'Refine number of elements around',
+            'Refine number of elements along',
+            'Refine number of elements through wall' ]
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
             return [ MeshType_1d_path1 ]
+        if optionName == 'Segment profile':
+            return[ MeshType_3d_colonsegmentsimplemesentery1,
+                    MeshType_3d_colonsegmentteniacoli1 ]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
+        #return Scaffold_base.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType)
+
+        if optionName == 'Segment profile':
+            if scaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
+                return list(cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages.keys())
+            else:  # scaffoldType == MeshType_3d_colonsegmentteniacoli1:
+                return list(cls.segmentProfileTeniaColiDefaultScaffoldPackages.keys())
         return Scaffold_base.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType)
 
     @classmethod
@@ -138,15 +168,30 @@ class MeshType_3d_colon1(Scaffold_base):
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+        if optionName == 'Segment profile':
+            if scaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
+                if not parameterSetName:
+                    parameterSetName = list(cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages.keys())[0]
+                return copy.deepcopy(cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages[parameterSetName])
+            else:  # scaffoldType == MeshType_3d_colonsegmentteniacoli1:
+                if not parameterSetName:
+                    parameterSetName = list(cls.segmentProfileTeniaColiDefaultScaffoldPackages.keys())[0]
+                return copy.deepcopy(cls.segmentProfileTeniaColiDefaultScaffoldPackages[parameterSetName])
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
-        MeshType_3d_colonsegment1.checkOptions(options)
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
-        if options['Number of segments'] < 1:
-            options['Number of segments'] = 1
+        if not options['Segment profile'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Segment profile'):
+            options['Segment profile'] = cls.getOptionScaffoldPackage('Segment profile', MeshType_3d_colonsegmentteniacoli1)
+        for key in [
+            'Number of segments',
+            'Refine number of elements around',
+            'Refine number of elements along',
+            'Refine number of elements through wall']:
+            if options[key] < 1:
+                options[key] = 1
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -157,22 +202,33 @@ class MeshType_3d_colon1(Scaffold_base):
         :return: annotationGroups
         """
         centralPath = options['Central path']
-        elementsCountAroundTC = options['Number of elements around tenia coli']
-        elementsCountAroundHaustrum = options['Number of elements around haustrum']
-        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
-        elementsCountAlongSegment = options['Number of elements along segment']
-        elementsCountThroughWall = options['Number of elements through wall']
+        segmentProfile = options['Segment profile']
         segmentCount = options['Number of segments']
-        radius = options['Inner radius']
-        cornerInnerRadiusFactor = options['Corner inner radius factor']
-        haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
-        segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
-        segmentLengthMidDerivativeFactor = options['Segment length mid derivative factor']
-        widthTC = options['Tenia coli width']
-        TCThickness = options['Tenia coli thickness']
-        wallThickness = options['Wall thickness']
-        useCrossDerivatives = options['Use cross derivatives']
-        useCubicHermiteThroughWall = not(options['Use linear through wall'])
+        segmentScaffoldType = segmentProfile.getScaffoldType()
+        segmentSettings = segmentProfile.getScaffoldSettings()
+
+        if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
+            elementsCountAroundMZ = segmentSettings['Number of elements around mesenteric zone']
+            elementsCountAroundNonMZ = segmentSettings['Number of elements around non-mesenteric zone']
+            elementsCountAround = elementsCountAroundMZ + elementsCountAroundNonMZ
+            widthMZ = segmentSettings['Mesenteric zone width']
+        else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
+            elementsCountAroundTC = segmentSettings['Number of elements around tenia coli']
+            elementsCountAroundHaustrum = segmentSettings['Number of elements around haustrum']
+            elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
+            cornerInnerRadiusFactor = segmentSettings['Corner inner radius factor']
+            haustrumInnerRadiusFactor = segmentSettings['Haustrum inner radius factor']
+            segmentLengthEndDerivativeFactor = segmentSettings['Segment length end derivative factor']
+            segmentLengthMidDerivativeFactor = segmentSettings['Segment length mid derivative factor']
+            widthTC = segmentSettings['Tenia coli width']
+            TCThickness = segmentSettings['Tenia coli thickness']
+
+        elementsCountAlongSegment = segmentSettings['Number of elements along segment']
+        elementsCountThroughWall = segmentSettings['Number of elements through wall']
+        radius = segmentSettings['Inner radius']
+        wallThickness = segmentSettings['Wall thickness']
+        useCrossDerivatives = segmentSettings['Use cross derivatives']
+        useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
 
         tmpRegion = region.createRegion()
@@ -188,26 +244,29 @@ class MeshType_3d_colon1(Scaffold_base):
         for e in range(elementsCountIn):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
-        haustrumLength = length / segmentCount
+        segmentLength = length / segmentCount
 
-        # Generate inner surface of a haustra segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(elementsCountAroundTC,
-            elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor,
-            haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, haustrumLength)
+        # Generate inner surface of a colon segment
+        if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
+            xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(elementsCountAroundMZ, elementsCountAroundNonMZ,
+                elementsCountAlongSegment, widthMZ, radius, segmentLength)
+        else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
+            xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(elementsCountAroundTC, elementsCountAroundHaustrum,
+                elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+                segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount,
-            cx, cd1, cd2, cd12, xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis,
-            haustrumLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
+            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
-        annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region,
-            nextNodeIdentifier, nextElementIdentifier, useCrossDerivatives, useCubicHermiteThroughWall,
-            xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
-            elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness, sx, curvatureAlong, factorList)
+        if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
+            annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
+                useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
+                elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness, sx, curvatureAlong, factorList)
 
-        annotationGroups += annotationGroupsTC
+            annotationGroups += annotationGroupsTC
 
         return annotationGroups
 
@@ -223,7 +282,7 @@ class MeshType_3d_colon1(Scaffold_base):
             return cls.generateBaseMesh(region, options)
 
         refineElementsCountAround = options['Refine number of elements around']
-        refineElementsCountAlong = options['Refine number of elements along segment']
+        refineElementsCountAlong = options['Refine number of elements along']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
