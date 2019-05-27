@@ -243,17 +243,17 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Generate inner surface of a colon segment
         if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
-            xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(elementsCountAroundMZ, elementsCountAroundNonMZ,
+            annotationGroups, annotationArray, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
                 elementsCountAlongSegment, widthMZ, radius, segmentLength)
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
-            xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(elementsCountAroundTC, elementsCountAroundHaustrum,
+            annotationGroups, annotationArray, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum,
                 elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
                 segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray)
 
         # Generate tenia coli
         if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:

@@ -126,13 +126,14 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(elementsCountAroundMZ,
+        annotationGroups, annotationArray, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
            elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
+            annotationGroups, annotationArray)
 
         return annotationGroups
 
@@ -157,7 +158,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonSegmentInnerPoints0TC(elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
+def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
     widthMZ, radius, segmentLength):
     """
     Generates a 3-D colon segment mesh with a simple mesentery
@@ -170,8 +171,12 @@ def getColonSegmentInnerPoints0TC(elementsCountAroundMZ, elementsCountAroundNonM
     :param widthMZ: Width of mesenteric zone in flat preparation.
     :param radius: Inner radius of colon segment.
     :param segmentLength: Length of a colon segment.
-    :return: coordinates, derivatives on inner surface of a colon segment.
+    :return: annotationGroups, annotationArray, coordinates, derivatives on inner surface of a colon segment.
     """
+    MZGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    NonMZGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    annotationGroups = [MZGroup, NonMZGroup]
+    annotationArray = ['mesenteric zone']*int(elementsCountAroundMZ*0.5) + ['non-mesenteric zone']*elementsCountAroundNonMZ + ['mesenteric zone']*int(elementsCountAroundMZ*0.5)
 
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
@@ -236,4 +241,4 @@ def getColonSegmentInnerPoints0TC(elementsCountAroundMZ, elementsCountAroundNonM
             d1List.append(d1)
             d2List.append(d2)
 
-    return xList, d1List, d2List, unitZ
+    return annotationGroups, annotationArray, xList, d1List, d2List, unitZ

@@ -24,6 +24,7 @@ def generatetubemesh(region,
     segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
+    annotationGroups, annotationArray,
     firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
@@ -46,6 +47,8 @@ def generatetubemesh(region,
     :param segmentAxis: axis of segment profile
     :param segmentLength: length of segment profile
     :param useCubicHermiteThroughWall: use linear when false
+    :param annotationGroups: Empty when not required
+    :param annotationArray: Array storing annotation group name for elements around
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
@@ -54,7 +57,6 @@ def generatetubemesh(region,
     for each node on inner surface of mesh.
     '''
     zero  = [0.0, 0.0, 0.0]
-    annotationGroups = []
     elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
@@ -247,6 +249,11 @@ def generatetubemesh(region,
                 nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
+                if annotationGroups:
+                    for annotationGroup in annotationGroups:
+                        if annotationArray[e1] == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
     # Define texture coordinates field
     textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)

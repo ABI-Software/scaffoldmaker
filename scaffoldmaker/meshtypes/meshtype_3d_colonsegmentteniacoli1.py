@@ -164,7 +164,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(elementsCountAroundTC,
+        annotationGroups, annotationArray, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC,
             elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
 
@@ -172,7 +172,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
             xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, segmentLength,
-            useCrossDerivatives, useCubicHermiteThroughWall)
+            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
@@ -205,7 +205,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonSegmentInnerPoints3TC(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius,
+def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius,
     cornerInnerRadiusFactor, haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength):
     """
     Generates a 3-D colon segment mesh with 3 tenia coli with variable
@@ -230,8 +230,11 @@ def getColonSegmentInnerPoints3TC(elementsCountAroundTC, elementsCountAroundHaus
     :param segmentLengthMidDerivativeFactor: Factor is multiplied by segment
     length to scale derivative along the mid length of the segment.
     :param segmentLength: Length of a colon segment.
-    :return: coordinates, derivatives on inner surface of a colon segment.
+    :return: annotationGroups, annotationArray, coordinates, derivatives on inner surface of a colon segment.
     """
+    annotationGroups = []
+    annotationArray = []
+
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
     dx_ds1 = [ 0.0, 0.0, 0.0 ]
@@ -439,7 +442,7 @@ def getColonSegmentInnerPoints3TC(elementsCountAroundTC, elementsCountAroundHaus
         d1Final = d1Final + d1AlongList
         d2Final = d2Final + d2AlongList
 
-    return xFinal, d1Final, d2Final, unitZ
+    return annotationGroups, annotationArray, xFinal, d1Final, d2Final, unitZ
 
 def findEdgeOfTeniaColi(nx, nd1, widthTC, arcStart, arcEnd):
     """
