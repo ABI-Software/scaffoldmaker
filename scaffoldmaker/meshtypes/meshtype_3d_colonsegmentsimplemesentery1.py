@@ -35,7 +35,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         return {
             'Number of elements around mesenteric zone' : 2,
             'Number of elements around non-mesenteric zone' : 10,
-            'Number of elements along segment' : 1,
+            'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
             'Inner radius': 1.35,
             'Mesenteric zone width': 0.8,

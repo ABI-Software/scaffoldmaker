@@ -146,14 +146,9 @@ class MeshType_3d_colon1(Scaffold_base):
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
-        #return Scaffold_base.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType)
-
-        if optionName == 'Segment profile':
-            if scaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
-                return list(cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages.keys())
-            else:  # scaffoldType == MeshType_3d_colonsegmentteniacoli1:
-                return list(cls.segmentProfileTeniaColiDefaultScaffoldPackages.keys())
-        return Scaffold_base.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType)
+        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
+            'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
+        return scaffoldType.getParameterSetNames()
 
     @classmethod
     def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
