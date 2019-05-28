@@ -75,20 +75,6 @@ class MeshType_3d_colon1(Scaffold_base):
             } )
         }
 
-    segmentProfileTeniaColiDefaultScaffoldPackages = {
-        'Human 1' : ScaffoldPackage(MeshType_3d_colonsegmentteniacoli1, {
-            'scaffoldSettings' : {
-                }
-            } ),
-        }
-
-    segmentProfileSimpleMesenteryDefaultScaffoldPackages = {
-        'Mouse 1' : ScaffoldPackage(MeshType_3d_colonsegmentsimplemesentery1, {
-            'scaffoldSettings' : {
-                },
-            } )
-        }
-
     @staticmethod
     def getName():
         return '3D Colon 1'
@@ -108,12 +94,12 @@ class MeshType_3d_colon1(Scaffold_base):
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         if 'Mouse' in parameterSetName:
-            segmentProfileOption = cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages['Mouse 1']
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegmentsimplemesentery1, defaultParameterSetName = 'Mouse 1')
         else:
-            segmentProfileOption = cls.segmentProfileTeniaColiDefaultScaffoldPackages['Human 1']
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegmentteniacoli1, defaultParameterSetName = 'Human 1')
         options = {
             'Central path' : copy.deepcopy(centralPathOption),
-            'Segment profile' : copy.deepcopy(segmentProfileOption),
+            'Segment profile' : segmentProfileOption,
             'Number of segments': 30,
             'Refine' : False,
             'Refine number of elements around' : 1,
@@ -164,14 +150,9 @@ class MeshType_3d_colon1(Scaffold_base):
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
         if optionName == 'Segment profile':
-            if scaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
-                if not parameterSetName:
-                    parameterSetName = list(cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages.keys())[0]
-                return copy.deepcopy(cls.segmentProfileSimpleMesenteryDefaultScaffoldPackages[parameterSetName])
-            else:  # scaffoldType == MeshType_3d_colonsegmentteniacoli1:
-                if not parameterSetName:
-                    parameterSetName = list(cls.segmentProfileTeniaColiDefaultScaffoldPackages.keys())[0]
-                return copy.deepcopy(cls.segmentProfileTeniaColiDefaultScaffoldPackages[parameterSetName])
+            if not parameterSetName:
+                parameterSetName = scaffoldType.getParameterSetNames()[0]
+            return ScaffoldPackage(scaffoldType, defaultParameterSetName = parameterSetName)
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
