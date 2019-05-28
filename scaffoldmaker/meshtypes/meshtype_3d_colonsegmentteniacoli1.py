@@ -428,7 +428,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
                 dx_ds1InnerAroundList.append(dx_ds1)
             d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList, fixStartDerivative = True)
             d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
-            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5)]))
+            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
             d1Corrected = []
             d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC*0.5)]
             d1Corrected.append(d1TCEdge)
@@ -538,7 +538,7 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
     for e in range(elementsCountOut):
         arcDistance = arcDistance + elementLengths[e]
         x, d1, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, nd1, arcDistance)
-        d1Scaled = vector.setMagnitude(d1, elementLengths[e])
+        d1Scaled = vector.setMagnitude(d1, elementLengths[e] if e > 0 else elementLengths[e+1])
         xHaustrum.append(x)
         d1Haustrum.append(d1Scaled)
 
