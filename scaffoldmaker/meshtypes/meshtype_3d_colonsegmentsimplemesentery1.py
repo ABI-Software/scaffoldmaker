@@ -126,14 +126,14 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
+        annotationGroups, annotationArray, transitElementList, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
            elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
             xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray)
+            annotationGroups, annotationArray, transitElementList)
 
         return annotationGroups
 
@@ -171,12 +171,17 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
     :param widthMZ: Width of mesenteric zone in flat preparation.
     :param radius: Inner radius of colon segment.
     :param segmentLength: Length of a colon segment.
-    :return: annotationGroups, annotationArray, coordinates, derivatives on inner surface of a colon segment.
+    :return annotationGroups, annotationArray: annotationArray stores annotation
+    names of elements around
+    :return transitElementList: stores true if element around is an element that
+    transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
+    :return coordinates, derivatives on inner surface of a colon segment.
     """
     MZGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     NonMZGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     annotationGroups = [MZGroup, NonMZGroup]
     annotationArray = ['mesenteric zone']*int(elementsCountAroundMZ*0.5) + ['non-mesenteric zone']*elementsCountAroundNonMZ + ['mesenteric zone']*int(elementsCountAroundMZ*0.5)
+    transitElementList = [0]*int(elementsCountAroundMZ*0.5) + [1] + [0]*int(elementsCountAroundNonMZ - 2) + [1] + [0]*int(elementsCountAroundMZ*0.5)
 
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
@@ -241,4 +246,4 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
             d1List.append(d1)
             d2List.append(d2)
 
-    return annotationGroups, annotationArray, xList, d1List, d2List, unitZ
+    return annotationGroups, annotationArray, transitElementList, xList, d1List, d2List, unitZ

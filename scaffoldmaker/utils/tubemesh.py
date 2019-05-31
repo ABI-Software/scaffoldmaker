@@ -24,7 +24,7 @@ def generatetubemesh(region,
     segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
-    annotationGroups, annotationArray,
+    annotationGroups, annotationArray, transitElementList,
     firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
@@ -49,7 +49,9 @@ def generatetubemesh(region,
     :param useCubicHermiteThroughWall: use linear when false
     :param annotationGroups: Empty when not required
     :param annotationArray: Array storing annotation group name for elements around
-    :return: annotationGroups, nodeIdentifier, elementIdentifier
+    :param transitElementList: True false list of where transition elements are
+    located around
+    :return nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
     :return sx: List of coordinates sampled from central line
@@ -197,7 +199,7 @@ def generatetubemesh(region,
             curvatureAlong.append(curvature)
 
     # Pre-calculate node locations and derivatives on outer boundary
-    xOuterList, curvatureInner = getOuterCoordinatesAndCurvatureFromInner(xInnerList, d1InnerList, d3InnerUnitList, wallThickness, elementsCountAlong, elementsCountAround)
+    xOuterList, curvatureInner = getOuterCoordinatesAndCurvatureFromInner(xInnerList, d1InnerList, d3InnerUnitList, wallThickness, elementsCountAlong, elementsCountAround, transitElementList)
 
     # Interpolate to get nodes through wall
     for n3 in range(elementsCountThroughWall + 1):
@@ -335,7 +337,7 @@ def generatetubemesh(region,
 
     return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList
 
-def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround):
+def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround, transitElementList):
     """
     Generates coordinates on outer surface and curvature of inner
     surface from coordinates and derivatives of inner surface using
@@ -358,9 +360,14 @@ def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThick
             prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
             nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
             norm = d3Inner[n]
-            curvatureAround = 0.5*(
-                interp.getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0) +
-                interp.getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0))
+            kappam = interp.getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0)
+            kappap = interp.getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0)
+            if not transitElementList[n1] and not transitElementList[(n1-1)%elementsCountAround]:
+                curvatureAround = 0.5*(kappam + kappap)
+            elif transitElementList[n1]:
+                curvatureAround = kappam
+            elif transitElementList[(n1-1)%elementsCountAround]:
+                curvatureAround = kappap
             xOuter.append(x)
             curvatureInner.append(curvatureAround)
 
@@ -403,13 +410,13 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, sx, curvatureI
             x = interp.interpolateCubicHermite(innerx, dWall, outerx, dWall, xi3)
             xList.append(x)
             # dx_ds1
-            factor = 1.0 - curvatureInner[n]*thickness*xi3
+            factor = 1.0 + thickness*xi3 * curvatureInner[n]
             dx_ds1 = [ factor*c for c in d1Inner[n]]
             dx_ds1List.append(dx_ds1)
             # dx_ds2
             curvature = curvatureAlong[n]
             distance = vector.magnitude([x[i] - sx[n2][i] for i in range(3)])
-            factor = 1.0 - curvature*distance
+            factor = 1.0 + curvature*distance
             dx_ds2 = [ factor*c for c in d2Inner[n]]
             dx_ds2List.append(dx_ds2)
             factorList.append(factor)

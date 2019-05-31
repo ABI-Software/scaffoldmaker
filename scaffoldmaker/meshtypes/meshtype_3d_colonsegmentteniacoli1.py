@@ -164,7 +164,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC,
+        annotationGroups, annotationArray, transitElementList, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC,
             elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
 
@@ -172,7 +172,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
             xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, segmentLength,
-            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray)
+            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray, transitElementList)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
@@ -230,10 +230,16 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     :param segmentLengthMidDerivativeFactor: Factor is multiplied by segment
     length to scale derivative along the mid length of the segment.
     :param segmentLength: Length of a colon segment.
-    :return: annotationGroups, annotationArray, coordinates, derivatives on inner surface of a colon segment.
+    :return annotationGroups, annotationArray: annotationArray stores annotation
+    names of elements around
+    :return transitElementList: stores true if element around is an element that
+    transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
+    :return coordinates, derivatives on inner surface of a colon segment.
     """
     annotationGroups = []
     annotationArray = []
+    transitElementListHaustrum = [0]*int(elementsCountAroundTC*0.5) + [1] + [0]*int(elementsCountAroundHaustrum - 2) + [1] + [0]*int(elementsCountAroundTC*0.5)
+    transitElementList = transitElementListHaustrum*3
 
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
@@ -442,7 +448,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
         d1Final = d1Final + d1AlongList
         d2Final = d2Final + d2AlongList
 
-    return annotationGroups, annotationArray, xFinal, d1Final, d2Final, unitZ
+    return annotationGroups, annotationArray, transitElementList, xFinal, d1Final, d2Final, unitZ
 
 def findEdgeOfTeniaColi(nx, nd1, widthTC, arcStart, arcEnd):
     """
@@ -781,7 +787,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                 d2Unscaled = [ 1.0/factor*c for c in d2]
                 curvature = curvatureAlong[innerIdx]
                 distance = vector.magnitude([xTCOuter[i] - sxCentralLine[n2][i] for i in range(3)])
-                newFactor = 1.0 - curvature*distance
+                newFactor = 1.0 + curvature*distance
                 dx_ds2 = [ newFactor*c for c in d2Unscaled]
                 d2TCRaw.append(dx_ds2)
 
