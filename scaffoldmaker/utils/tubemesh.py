@@ -24,7 +24,7 @@ def generatetubemesh(region,
     segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
-    annotationGroups, annotationArray, transitElementList,
+    annotationGroups, annotationArray, transitElementList, uList,
     firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
@@ -51,6 +51,8 @@ def generatetubemesh(region,
     :param annotationArray: Array storing annotation group name for elements around
     :param transitElementList: True false list of where transition elements are
     located around
+    :param uList: List of xi for each node around representative cross-sectional
+    profile
     :return nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
@@ -114,6 +116,7 @@ def generatetubemesh(region,
     curvatureAlong = []
     smoothd2Raw = []
     smoothd2InnerList = []
+    d1List = []
 
 # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
@@ -288,16 +291,22 @@ def generatetubemesh(region,
     elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
 
     # Calculate texture coordinates and derivatives
-    d1 = [1.0 / elementsCountAround, 0.0, 0.0]
     d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
+
+    for n1 in range(len(uList)):
+        d1 = [uList[n1] - uList[n1-1] if n1 > 0 else uList[n1+1] - uList[n1],
+              0.0,
+              0.0]
+        d1List.append(d1)
 
     nodeIdentifier = firstNodeIdentifier
     for n3 in range(elementsCountThroughWall + 1):
         for n2 in range(elementsCountAlong + 1):
             for n1 in range(elementsCountAround):
-                u = [ 1.0 / elementsCountAround * n1,
-                    1.0 / elementsCountAlong * n2,
-                    1.0 / elementsCountThroughWall * n3]
+                u = [ uList[n1],
+                      1.0 / elementsCountAlong * n2,
+                      1.0 / elementsCountThroughWall * n3]
+                d1 = d1List[n1]
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
                 cache.setNode(node)
@@ -308,6 +317,7 @@ def generatetubemesh(region,
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 if n1 == 0:
                     u = [ 1.0, 1.0 / elementsCountAlong * n2, 1.0 / elementsCountThroughWall * n3]
+                    d1 = d1List[-1]
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, u)
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)

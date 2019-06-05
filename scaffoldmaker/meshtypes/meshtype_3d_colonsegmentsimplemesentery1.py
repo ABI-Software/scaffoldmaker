@@ -126,14 +126,14 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, transitElementList, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
+        annotationGroups, annotationArray, transitElementList, uList, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
            elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
             xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray, transitElementList)
+            annotationGroups, annotationArray, transitElementList, uList)
 
         return annotationGroups
 
@@ -175,6 +175,7 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
     names of elements around
     :return transitElementList: stores true if element around is an element that
     transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
+    :return uList: List of xi for node around
     :return coordinates, derivatives on inner surface of a colon segment.
     """
     MZGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
@@ -195,6 +196,7 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
     xList = []
     d1List = []
     d2List = []
+    uList = []
 
     #Set up profile
     sampleElementOut = 20
@@ -215,10 +217,11 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
                 0.0]
         xMZ.append(x)
         d1MZ.append(d1)
+    arcLengthPerMZ = radius*radiansPerElementAroundMZ
 
     # Sample half non-mesenteric zone into equally spaced nodes
     halfCircumference = math.pi*radius
-    xNonMZ, d1NonMZ = sampleHaustrum(nx, nd1, xMZ[-1], d1MZ[-1], halfCircumference, widthMZ*0.5, elementsCountAroundNonMZ)
+    xNonMZ, d1NonMZ, arcLengthPerNonMZ, arcLengthPerTransition = sampleHaustrum(nx, nd1, xMZ[-1], d1MZ[-1], halfCircumference, widthMZ*0.5, elementsCountAroundNonMZ)
 
     xListBaseLayer = xList + xMZ + xNonMZ[1:]
     d1ListBaseLayer = d1List + d1MZ + d1NonMZ[1:]
@@ -246,4 +249,13 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
             d1List.append(d1)
             d2List.append(d2)
 
-    return annotationGroups, annotationArray, transitElementList, xList, d1List, d2List, unitZ
+    # Calculate uList for elements around
+    totalArcLength = math.pi*2.0*radius
+    arcLengthList = [0.0] + [arcLengthPerMZ]*int(elementsCountAroundMZ*0.5) + [arcLengthPerTransition] + [arcLengthPerNonMZ]*(elementsCountAroundNonMZ-2) + [arcLengthPerTransition] + [arcLengthPerMZ]*int(elementsCountAroundMZ*0.5)
+    arcDistance = 0
+    for n in range(len(arcLengthList)):
+        arcDistance = arcDistance + arcLengthList[n]
+        xi = arcDistance / totalArcLength
+        uList.append(xi)
+
+    return annotationGroups, annotationArray, transitElementList, uList, xList, d1List, d2List, unitZ

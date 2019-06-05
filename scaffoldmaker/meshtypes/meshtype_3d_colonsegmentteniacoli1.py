@@ -164,7 +164,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, transitElementList, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC,
+        annotationGroups, annotationArray, transitElementList, uList, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC,
             elementsCountAroundHaustrum, elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
 
@@ -172,7 +172,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
             xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, segmentLength,
-            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray, transitElementList)
+            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray, transitElementList, uList)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
@@ -234,6 +234,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     names of elements around
     :return transitElementList: stores true if element around is an element that
     transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
+    :return uList: List of xi for each node around mid-length haustra.
     :return coordinates, derivatives on inner surface of a colon segment.
     """
     annotationGroups = []
@@ -267,6 +268,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     xFinal = []
     d1Final = []
     d2Final = []
+    uList = []
 
     # Inter-haustral segment
     # Set up profile
@@ -302,10 +304,10 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     arcDistanceTCEdge = findEdgeOfTeniaColi(xLoop, d1Loop, widthTC, arcStart, arcEnd)
 
     # Sample TC into equally sized elements
-    xTC, d1TC = sampleTeniaColi(xLoop, d1Loop, arcDistanceTCEdge, elementsCountAroundTC)
+    xTC, d1TC, _ = sampleTeniaColi(xLoop, d1Loop, arcDistanceTCEdge, elementsCountAroundTC)
 
     # Sample haustrum into equally sized elements
-    xHaustrum, d1Haustrum = sampleHaustrum(xLoop, d1Loop, xTC[-1], d1TC[-1], arcLength/6.0, arcDistanceTCEdge, elementsCountAroundHaustrum)
+    xHaustrum, d1Haustrum, _, _ = sampleHaustrum(xLoop, d1Loop, xTC[-1], d1TC[-1], arcLength/6.0, arcDistanceTCEdge, elementsCountAroundHaustrum)
 
     xHalfSetInterHaustra = xHalfSetInterHaustra + xTC + xHaustrum[1:]
     d1HalfSetInterHaustra = d1HalfSetInterHaustra + d1TC + d1Haustrum[1:]
@@ -363,13 +365,24 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     arcDistanceTCEdge = findEdgeOfTeniaColi(nxHaustrum, smoothd1, widthTC, arcStart, arcEnd)
 
     # Sample TC into equally sized elements
-    xTC, d1TC = sampleTeniaColi(nxHaustrum, smoothd1, arcDistanceTCEdge, elementsCountAroundTC)
+    xTC, d1TC, arcLengthPerTC = sampleTeniaColi(nxHaustrum, smoothd1, arcDistanceTCEdge, elementsCountAroundTC)
 
     # Sample haustrum into equally sized elements
-    xHaustrum, d1Haustrum = sampleHaustrum(nxHaustrum, smoothd1, xTC[-1], d1TC[-1], arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum)
+    xHaustrum, d1Haustrum, arcLengthPerHaustrum, arcLengthPerTransition = sampleHaustrum(nxHaustrum, smoothd1, xTC[-1], d1TC[-1], arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum)
 
     xHalfSetIntraHaustra = xHalfSetIntraHaustra + xTC + xHaustrum[1:]
     d1HalfSetIntraHaustra = d1HalfSetIntraHaustra + d1TC + d1Haustrum[1:]
+
+    # Calculate uList for elements around on mid-length haustra
+    totalArcLength = (arcLengthPerTC*elementsCountAroundTC + arcLengthPerTransition*2.0 + arcLengthPerHaustrum*(elementsCountAroundHaustrum - 2))*3
+    arcLengthListHaustrum = [arcLengthPerTC]*int(elementsCountAroundTC*0.5) + [arcLengthPerTransition] + [arcLengthPerHaustrum]*(elementsCountAroundHaustrum-2) + [arcLengthPerTransition] + [arcLengthPerTC]*int(elementsCountAroundTC*0.5)
+    arcLengthList = [0.0] + arcLengthListHaustrum + arcLengthListHaustrum + arcLengthListHaustrum
+    arcDistance = 0
+
+    for n in range(len(arcLengthList)):
+        arcDistance = arcDistance + arcLengthList[n]
+        xi = arcDistance / totalArcLength
+        uList.append(xi)
 
     # Sample arclength of haustra segment
     elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
@@ -394,6 +407,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
         xAround = []
         unitdx_ds1Around = []
         d2Around = []
+
         for n1 in range(elementsCountAroundHalfHaustrum+1):
             x = xInnerRaw[n1][n2]
             xInnerList.append(x)
@@ -448,7 +462,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
         d1Final = d1Final + d1AlongList
         d2Final = d2Final + d2AlongList
 
-    return annotationGroups, annotationArray, transitElementList, xFinal, d1Final, d2Final, unitZ
+    return annotationGroups, annotationArray, transitElementList, uList, xFinal, d1Final, d2Final, unitZ
 
 def findEdgeOfTeniaColi(nx, nd1, widthTC, arcStart, arcEnd):
     """
@@ -490,7 +504,8 @@ def sampleTeniaColi(nx, nd1, arcDistanceTCEdge, elementsCountAroundTC):
     :param nd1: Derivatives of nodes along curve.
     :param arcDistanceTCEdge: Arc distance covered by tenia coli.
     :param elementsCountAroundTC: Number of elements around tenia coli.
-    :return: coordinates, derivatives on tenia coli.
+    :return: coordinates, derivatives of tenia coli, and arclength of
+    each tenia coli element.
     """
     xTC = []
     d1TC = []
@@ -502,7 +517,7 @@ def sampleTeniaColi(nx, nd1, arcDistanceTCEdge, elementsCountAroundTC):
         xTC.append(x)
         d1TC.append(d1Scaled)
 
-    return xTC, d1TC
+    return xTC, d1TC, arcDistancePerElementTC
 
 def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum):
     """
@@ -517,6 +532,7 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
     :param arcDistanceTCEdge: Arc distance covered by tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :return: coordinates, derivatives on haustrum.
+    :return: arclength of haustrum element and transition elements.
     """
     xHaustrum = []
     d1Haustrum = []
@@ -535,6 +551,8 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
         elementLengths.append(elementLengthMid)
     elementLengths[0] = addLengthStart + elementLengthProportionStart
     elementLengths[-1] = 0.0 + elementLengthProportionEnd
+    haustrumElementLength = elementLengthMid
+    transitionElementLength = elementLengths[0]
 
     arcDistance = arcDistanceTCEdge
     xHaustrum.append(xTCLast)
@@ -548,7 +566,7 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
         xHaustrum.append(x)
         d1Haustrum.append(d1Scaled)
 
-    return xHaustrum, d1Haustrum
+    return xHaustrum, d1Haustrum, haustrumElementLength, transitionElementLength
 
 def getCircleXandD1FromRadians(thetaSet, radius, origin):
     """
