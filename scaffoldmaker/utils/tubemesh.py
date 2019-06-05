@@ -192,13 +192,13 @@ def generatetubemesh(region,
             smoothd2InnerList.append(smoothd2Raw[n1][n2])
             n = elementsCountAround * n2 + n1
             if n2 == 0:
-                curvature = interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0)
+                curvature = interp.getCubicHermiteCurvatureSimple(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], 0.0)
             elif n2 == elementsCountAlong:
-                curvature = interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], d3InnerUnitList[n], 1.0)
+                curvature = interp.getCubicHermiteCurvatureSimple(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], 1.0)
             else:
                 curvature = 0.5*(
-                    interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], d3InnerUnitList[n], 1.0) +
-                    interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0))
+                    interp.getCubicHermiteCurvatureSimple(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], 1.0) +
+                    interp.getCubicHermiteCurvatureSimple(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], 0.0))
             curvatureAlong.append(curvature)
 
     # Pre-calculate node locations and derivatives on outer boundary
@@ -370,8 +370,8 @@ def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThick
             prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
             nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
             norm = d3Inner[n]
-            kappam = interp.getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0)
-            kappap = interp.getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0)
+            kappam = interp.getCubicHermiteCurvatureSimple(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], 1.0)
+            kappap = interp.getCubicHermiteCurvatureSimple(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], 0.0)
             if not transitElementList[n1] and not transitElementList[(n1-1)%elementsCountAround]:
                 curvatureAround = 0.5*(kappam + kappap)
             elif transitElementList[n1]:
