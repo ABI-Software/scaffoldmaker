@@ -16,6 +16,23 @@ def getApproximateEllipsePerimeter(a, b):
     h = ((a-b)/(a+b))**2
     return math.pi*(a + b)*(1.0 + 3.0*h/(10.0 + math.sqrt(4.0 - 3.0*h)))
 
+def getEllipseAngleFromVector(a, b, x, y):
+    '''
+    Given an ellipse with major and minor axes a and b cented at (0.0, 0.0),
+    get angle in radians in direction of vector (dx, dy)
+    :param a: Major axis length.
+    :param b: Minor axis length.
+    :param x, y: Non-zero vector direction
+    :return: Angle in radians.
+    '''
+    # Compute theta such that
+    # r*x = a*cos_theta
+    # r*y = b*sin_theta
+    # hence:
+    # y/x = b/a * tan(theta)
+    # (a*y)/(b*x) = tan(theta)
+    return math.atan2(a*y, b*x)
+
 def getEllipseArcLength(a, b, angle1Radians, angle2Radians):
     '''
     Calculates perimeter distance between two angles by summing line segments at regular angles.

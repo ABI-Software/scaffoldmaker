@@ -2,6 +2,7 @@
 Class for refining a mesh from one region to another.
 '''
 from __future__ import division
+import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.octree import Octree
 from scaffoldmaker.utils import zinc_utils
