@@ -163,10 +163,9 @@ class MeshType_3d_ostium1(Scaffold_base):
 
 
 def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, startNodeIdentifier = 1, startElementIdentifier = 1,
-        vesselMeshGroups = None, spacingMeshGroups = None):
+        vesselMeshGroups = None):
     '''
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
-    :param spacingMeshGroups: List of mesh groups to add spacing elements to, if any.
     :return: annotationGroups, nextNodeIdentifier, nextElementIdentifier, Ostium points tuple
     (ox[n3][n1][c], od1[n3][n1][c], od2[n3][n1][c], od3[n3][n1][c], oNodeId[n3][n1]).
     '''
