@@ -140,8 +140,8 @@ class MeshType_3d_ostium1(Scaffold_base):
         trackSurface = TrackSurface(1, 1, nx, nd1, nd2)
         centrePosition = TrackSurfacePosition(0, 0, 0.5, 0.5)
         axis1 = [ 1.0, 0.0, 0.0 ]
-        annotationGroups = generateOstiumMesh(region, options, trackSurface, centrePosition, axis1)[0]
-        return annotationGroups
+        generateOstiumMesh(region, options, trackSurface, centrePosition, axis1)
+        return []  # no annotation groups
 
     @classmethod
     def generateMesh(cls, region, options):
@@ -166,8 +166,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
         vesselMeshGroups = None):
     '''
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
-    :return: annotationGroups, nextNodeIdentifier, nextElementIdentifier, Ostium points tuple
-    (ox[n3][n1][c], od1[n3][n1][c], od2[n3][n1][c], od3[n3][n1][c], oNodeId[n3][n1]).
+    :return: nextNodeIdentifier, nextElementIdentifier, Ostium points tuple
+    (ox[n3][n1][c], od1[n3][n1][c], od2[n3][n1][c], od3[n3][n1][c], oNodeId[n3][n1], oPositions).
     '''
     vesselsCount = options['Number of vessels']
     elementsCountAroundVessel = options['Number of elements around vessel']
@@ -193,8 +193,6 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     vesselAngle2Radians = math.radians(options['Vessel angle 2 degrees'])
     useCubicHermiteThroughVesselWall = not(options['Use linear through vessel wall'])
     useCrossDerivatives = False  # options['Use cross derivatives']  # not implemented
-
-    annotationGroups = []
 
     fm = region.getFieldmodule()
     fm.beginChange()
@@ -233,6 +231,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     od1 = [ [], [] ]
     od2 = [ [], [] ]
     od3 = [ [], [] ]
+    oPositions = []
     for n1 in range(elementsCountAroundOstium):
         if distance <= halfInterVesselDistance:
             position = trackSurface.trackVector(centrePosition, trackDirection1reverse, distance)
@@ -256,6 +255,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             position = trackSurface.trackVector(centrePosition, trackDirection1reverse, distance - (circumference + 2.0*interVesselDistance))
             sideDirection = trackDirection2reverse
         position = trackSurface.trackVector(position, sideDirection, ostiumRadius)
+        oPositions.append(position)
         px, d1, d2 = trackSurface.evaluateCoordinates(position, True)
         pd2, pd1, pd3 = calculate_surface_axes(d1, d2, sideDirection)
         # get outer coordinates
@@ -583,4 +583,4 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             meshGroups = vesselMeshGroups[v] if vesselMeshGroups else [])
 
     fm.endChange()
-    return annotationGroups, nodeIdentifier, elementIdentifier, (ox, od1, od2, od3, oNodeId)
+    return nodeIdentifier, elementIdentifier, (ox, od1, od2, od3, oNodeId, oPositions)

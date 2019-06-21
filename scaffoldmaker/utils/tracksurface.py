@@ -131,43 +131,56 @@ class TrackSurface:
         return coordinates, derivative1, derivative2
 
     def createHermiteCurvePoints(self, aProportion1, aProportion2, bProportion1, bProportion2, elementsCount,
-                                 derivativeMagStart = None, derivativeMagEnd = None):
+            derivativeStart = None, derivativeEnd = None):
         '''
         Create hermite curve points between two points a and b on the surface, each defined
         by their proportions over the surface in directions 1 and 2.
         Also returns cross direction 2 in plane of surface with similar magnitude to curve derivative 1,
         and unit surface normals.
-        :return: nx[], nd1[], nd2[], nd3[]
+        :param derivativeStart, derivativeEnd: Optional derivative vectors in 3-D world coordinates
+        to match at the start and end of the curves. If omitted, derivative is a straight line between ends.
+        :param elementsCount:  Number of elements out.
+        :return: nx[], nd1[], nd2[], nd3[], nProportions[]
         '''
-        #print('createHermiteCurvePoints', aProportion1, aProportion2, bProportion1, bProportion2, elementsCount)
-        dp1 = bProportion1 - aProportion1
-        dp2 = bProportion2 - aProportion2
-        dpmag = math.sqrt(dp1*dp1 + dp2*dp2)
-        f1 = dp1*self.elementsCount1
-        f2 = dp2*self.elementsCount2
-        if derivativeMagStart:
+        #print('createHermiteCurvePoints', aProportion1, aProportion2, bProportion1, bProportion2, elementsCount, derivativeStart, derivativeEnd)
+        if derivativeStart:
             position = self.createPositionProportion(aProportion1, aProportion2)
-            x, sd1, sd2 = self.evaluateCoordinates(position, derivatives=True)
-            dxmag = vector.magnitude([ (f1*sd1[c] + f2*sd2[c]) for c in range(3) ])
-            #print('start dpmag', dpmag, 'dxmag', dxmag)
-            addLengthStart = 0.5*derivativeMagStart*dpmag/dxmag
+            _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
+            delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeStart)
+            dp1Start = delta_xi1/self.elementsCount1
+            dp2Start = delta_xi2/self.elementsCount2
+            addLengthStart = 0.5*math.sqrt(dp1Start*dp1Start + dp2Start*dp2Start)
             lengthFractionStart = 0.5
+            dp1Start *= elementsCount
+            dp2Start *= elementsCount
+            #print('start delta_xi1', delta_xi1, 'delta_xi2', delta_xi2)
+            #print('dp1Start', dp1Start, 'dp2Start', dp2Start)
+            #print('addLengthStart', addLengthStart, 'lengthFractionStart', lengthFractionStart)
         else:
+            dp1Start = bProportion1 - aProportion1
+            dp2Start = bProportion2 - aProportion2
             addLengthStart = 0.0
             lengthFractionStart = 1.0
-        if derivativeMagEnd:
+        if derivativeEnd:
             position = self.createPositionProportion(bProportion1, bProportion2)
-            x, sd1, sd2 = self.evaluateCoordinates(position, derivatives=True)
-            dxmag = vector.magnitude([ (f1*sd1[c] + f2*sd2[c]) for c in range(3) ])
-            #print('  end dpmag', dpmag, 'dxmag', dxmag)
-            addLengthEnd = 0.5*derivativeMagEnd*dpmag/dxmag
+            _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
+            delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeEnd)
+            dp1End = delta_xi1/self.elementsCount1
+            dp2End = delta_xi2/self.elementsCount2
+            addLengthEnd = 0.5*math.sqrt(dp1End*dp1End + dp2End*dp2End)
             lengthFractionEnd = 0.5
+            dp1End *= elementsCount
+            dp2End *= elementsCount
+            #print('end delta_xi1', delta_xi1, 'delta_xi2', delta_xi2)
+            #print('dp1End', dp1End, 'dp2End', dp2End)
+            #print('addLengthEnd', addLengthEnd, 'lengthFractionEnd', lengthFractionEnd)
         else:
+            dp1End = bProportion1 - aProportion1
+            dp2End = bProportion2 - aProportion2
             addLengthEnd = 0.0
             lengthFractionEnd = 1.0
         proportions, dproportions = interp.sampleCubicHermiteCurves([ [ aProportion1, aProportion2 ], [ bProportion1, bProportion2 ] ], \
-            [ [ dp1, dp2 ], [ dp1, dp2 ] ], elementsCount, addLengthStart, addLengthEnd, lengthFractionStart, lengthFractionEnd)[0:2]
-        #print('derivativeMagStart',derivativeMagStart)
+            [ [ dp1Start, dp2Start ], [ dp1End, dp2End ] ], elementsCount, addLengthStart, addLengthEnd, lengthFractionStart, lengthFractionEnd)[0:2]
         #print(' proportions', proportions)
         #print('dproportions', dproportions)
         nx  = []
@@ -176,24 +189,22 @@ class TrackSurface:
         nd3 = []
         for n in range(0, elementsCount + 1):
             position = self.createPositionProportion(proportions[n][0], proportions[n][1])
-            x, sd1, sd2 = self.evaluateCoordinates(position, derivatives=True)
-            gmag = vector.magnitude(dproportions[n])/dpmag
-            g1 = gmag*f1
-            g2 = gmag*f2
-            d1 = [ (g1*sd1[c] + g2*sd2[c]) for c in range(3) ]
-            cp = vector.crossproduct3(sd1, sd2)
-            mag = math.sqrt(sum(cp[c]*cp[c] for c in range(3)))
+            x, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
+            f1 = dproportions[n][0]*self.elementsCount1
+            f2 = dproportions[n][1]*self.elementsCount2
+            d1 = [ (f1*sd1[c] + f2*sd2[c]) for c in range(3) ]
+            d3 = vector.crossproduct3(sd1, sd2)
+            # handle zero magnitude of d3
+            mag = math.sqrt(sum(d3[c]*d3[c] for c in range(3)))
             if mag > 0.0:
-                d3 = [ (cp[c]/mag) for c in range(3) ]
-            else:
-                d3 = [ 0.0, 0.0, 0.0 ]
+                d3 = [ (d3[c]/mag) for c in range(3) ]
             d2 = vector.crossproduct3(d3, d1)
             nx .append(x)
             nd2.append(d2)
             nd1.append(d1)
             nd3.append(d3)
-        #print('createHermiteCurvePoints end; final derivativeMagStart', vector.magnitude(nd1[0]))
-        return nx, nd1, nd2, nd3
+        #print('createHermiteCurvePoints end \n nx', nx,'\nnd1',nd1,'\nnd2',nd2,'\nnd3',nd3)
+        return nx, nd1, nd2, nd3, proportions
 
     def findNearestPosition(self, targetx, startPosition = None):
         '''

@@ -81,8 +81,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Atrial septum thickness'] = 0.075
         options['Atrial base wall thickness'] = 0.07
         options['Atrial base slope degrees'] = 30.0
-        options['Left atrium venous midpoint posterior left'] = 0.45
-        options['Right atrium venous limit posterior right'] = 0.6
+        options['Left atrial appendage left'] = 0.9
+        options['Right atrium venous posterior right'] = 0.6
+        options['Left atrium venous midpoint posterior left'] = 0.5
         if 'Human' in parameterSetName:
             pass
         elif 'Mouse' in parameterSetName:
@@ -122,8 +123,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             'Atrial septum thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
+            'Left atrial appendage left',
             'Left atrium venous midpoint posterior left',
-            'Right atrium venous limit posterior right']
+            'Right atrium venous posterior right']
         # want refinement options last
         for optionName in [
             'Refine',
@@ -189,12 +191,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         elif options['Atria major axis rotation degrees'] > 75.0:
             options['Atria major axis rotation degrees'] = 75.0
         for key in [
+            'Left atrial appendage left',
             'Left atrium venous midpoint posterior left',
-            'Right atrium venous limit posterior right']:
-            if options[key] < 0.01:
-                options[key] = 0.01
-            elif options[key] > 0.99:
-                options[key] = 0.99
+            'Right atrium venous posterior right']:
+            if options[key] < 0.001:
+                options[key] = 0.001
+            elif options[key] > 0.999:
+                options[key] = 0.999
         return dependentChanges
 
     @classmethod
@@ -228,8 +231,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         aSeptumThickness = unitScale*options['Atrial septum thickness']
         aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
+        laaLeft = options['Left atrial appendage left']
         laVenousMidpointPosteriorLeft = options['Left atrium venous midpoint posterior left']
-        raVenousLimitPosteriorRight = options['Right atrium venous limit posterior right']
+        raVenousPosteriorRight = options['Right atrium venous posterior right']
         # new:
         baseHeight = unitScale*options['Base height']
         baseThickness = unitScale*options['Base thickness']
@@ -410,13 +414,14 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         aortaOuterPlusRadius = lvOutletOuterRadius
         aBaseFrontInclineRadians = lvOutletFrontInclineRadians
         elementsCountAroundTrackSurface = 20  # must be even, twice number of elements along
+        aBaseSideInclineRadians = 0.0
+        aBaseBackInclineRadians = 0.0
         labx, labd1, labd2, labd3, rabx, rabd1, rabd2, rabd3, _, _, _, aSeptumBaseCentre, laCentre, laSeptumRadians, = \
             getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeftAtriumFreeWall, elementsCountAroundRightAtriumFreeWall,
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumLength, aSeptumThickness,
-                aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians = 0.0, aBaseBackInclineRadians = 0.0,
-                elementsCountAroundTrackSurface = elementsCountAroundTrackSurface, laVenousMidpointPosteriorLeft = laVenousMidpointPosteriorLeft,
-                raVenousLimitPosteriorRight = raVenousLimitPosteriorRight)
+                aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians,
+                laaLeft, laVenousMidpointPosteriorLeft, raVenousPosteriorRight, elementsCountAroundTrackSurface)
         laCentre[2] -= (aBaseSlopeHeight + fibrousRingThickness)
 
         # displace to get points on bottom av fibrous ring

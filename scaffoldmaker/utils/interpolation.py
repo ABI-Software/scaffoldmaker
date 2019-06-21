@@ -277,8 +277,11 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
         lengths.append(length)
     proportionEnd = 2.0/(elementLengthStartEndRatio + 1)
     proportionStart = elementLengthStartEndRatio*proportionEnd
-    elementLengthMid = (length - addLengthStart - addLengthEnd) / \
-        (elementsCountOut - 2.0 + proportionStart*lengthFractionStart + proportionEnd*lengthFractionEnd)
+    if elementsCountOut == 1:
+        elementLengthMid = length
+    else:
+        elementLengthMid = (length - addLengthStart - addLengthEnd) / \
+            (elementsCountOut - 2.0 + proportionStart*lengthFractionStart + proportionEnd*lengthFractionEnd)
     elementLengthProportionStart = proportionStart*lengthFractionStart*elementLengthMid
     elementLengthProportionEnd = proportionEnd*lengthFractionEnd*elementLengthMid
     # get smoothly varying element lengths, not accounting for start and end
