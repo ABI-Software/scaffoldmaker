@@ -25,36 +25,41 @@ class MeshType_3d_colon1(Scaffold_base):
     '''
 
     centralPathDefaultScaffoldPackages = {
-        'Human 2D 1' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 2,
-                'Length' : 1.0,
-                'Number of elements' : 5
-                },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
-                [ [  0.0,  0.0 ], [  0.0, 10.0 ], [ 4.0, 0.0 ], [ -1.2, -2.8 ] ],
-                [ [  0.0, 10.0 ], [  5.0,  5.0 ], [ 2.8, -2.8 ], [ -2.8, -1.2 ] ],
-                [ [  5.0,  9.0 ], [  5.0,  0.0 ], [ 0.0, -4.0 ], [ -2.8, 1.2 ] ],
-                [ [ 10.0, 10.0 ], [  5.0, -5.0 ], [ -2.8, -2.8 ], [ -0.4, 4.8 ] ],
-                [ [ 10.0, -2.0 ], [ -3.0, -5.0 ], [ -3.2, 2.0 ], [3.2, 2.0 ] ],
-                [ [  7.0, -4.0 ], [ -3.0,  0.0 ], [ 0.0, 4.0 ], [ 3.2, 2.0 ] ] ] )
-            } ),
-        'Human 3D 1' : ScaffoldPackage(MeshType_1d_path1, {
+        'Human 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
                 'Coordinate dimensions' : 3,
                 'Length' : 1.0,
-                'Number of elements' : 6
+                'Number of elements' : 8
+                },
+            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
+                [ [  0.0,  0.0,  0.0 ], [ -1.6,  5.8,  0.0 ], [ -2.4, -0.6, -1.2 ], [ -1.4, -0.1, -1.2 ] ],
+                [ [ -1.6,  6.1,  0.0 ], [ -0.8,  6.2,  0.0 ], [ -2.2, -0.4, -0.8 ], [ -0.4,  1.9,  2.2 ] ],
+                [ [ -0.3, 12.3,  0.0 ], [  4.8,  1.2,  0.0 ], [ -1.0,  2.0,  0.8 ], [ -0.6,  0.0,  5.1 ] ],
+                [ [  3.0, 12.2,  0.0 ], [  4.0, -0.3,  0.0 ], [ -0.5,  0.4,  2.9 ], [  0.0,  0.1,  2.4 ] ],
+                [ [  7.3, 12.3,  0.0 ], [  4.6,  1.1,  0.0 ], [ -0.2,  1.0,  2.2 ], [  0.5,  2.5, -2.0 ] ],
+                [ [ 12.2, 12.9,  0.0 ], [  5.1, -3.6,  0.0 ], [  1.0,  1.7,  0.6 ], [  0.1, -0.6, -3.5 ] ],
+                [ [ 13.9,  6.4,  0.0 ], [  0.2, -4.0,  0.0 ], [  2.0,  0.0, -2.0 ], [  1.5, -0.1, -1.0 ] ],
+                [ [ 12.9, -0.3,  0.0 ], [ -4.1, -3.0,  0.0 ], [  0.6, -0.9, -1.4 ], [  0.8, -1.1, -1.3 ] ],
+                [ [  7.7,  0.3,  0.0 ], [ -3.0,  1.7,  0.0 ], [  0.1, -1.1, -1.8 ], [  0.4, -1.2, -1.2 ] ] ] )
+            } ),
+        'Human 2' : ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings' : {
+                'Coordinate dimensions' : 3,
+                'Length' : 1.0,
+                'Number of elements' : 8
                 },
             'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
-                [ [  0.0,  0.0,  0.0 ], [  0.0, 10.0,  3.0 ], [ -2.0, 0.0, -4.0 ], [ 2.1, 3.0, 2.0 ] ],
-                [ [  0.0, 10.0,  3.0 ], [  5.0,  5.0,  0.0 ], [ 0.1, 3.0, -2.0 ], [ -0.1, -5.0, 7.0 ] ],
-                [ [  5.0,  9.0,  0.0 ], [  5.0,  0.0,  0.0 ], [ 0.0, -2.0, 5.0 ], [ 0.0, 0.0, 0.0 ] ],
-                [ [ 10.0, 10.0,  2.0 ], [ 10.0, -5.0,  0.0 ], [ 0.0, -2.0, 5.0 ], [ 0.1, 4.0, -3.0 ] ],
-                [ [ 15.0, 15.0,  7.0 ], [ 12.0, 12.0,  0.0 ], [ 0.1, 2.0, 2.0 ], [ 1.9, -2.0, -6.0 ] ],
-                [ [ 20.0, -2.0,  0.0 ], [  5.0,-12.0, -5.0 ], [ 2.0, 0.0, -4.0 ], [ -1.0, 1.0, 0.0 ] ],
-                [ [ 15.0, -10.0, -0.0 ], [ -8.0,  0.0,  0.0 ], [ 1.0, 1.0, -4.0 ], [ -1.0, 1.0, 0.0 ] ] ])
+                [ [  0.0,  0.0,  0.0 ], [ -1.6,  5.8,  0.0 ], [ -2.4, -0.6, -1.2 ], [ -1.4, -0.1, -1.2 ] ],
+                [ [ -1.6,  6.1,  0.0 ], [ -0.8,  6.2,  0.0 ], [ -2.2, -0.4, -0.8 ], [ -0.4,  1.9,  2.2 ] ],
+                [ [ -0.3, 12.3,  0.0 ], [  3.8, -0.4,  2.6 ], [ -1.0,  2.0,  0.8 ], [ -0.6,  0.0,  5.1 ] ],
+                [ [  3.6, 10.4,  2.3 ], [  4.4,  3.9,  1.4 ], [ -0.5,  0.4,  2.9 ], [  0.0,  0.1,  2.4 ] ],
+                [ [  9.5, 11.7,  2.4 ], [  5.9, -0.6,  2.0 ], [ -0.2,  1.0,  2.2 ], [  0.5,  2.5, -2.0 ] ],
+                [ [ 12.9, 17.3, -1.1 ], [  1.8, -1.5, -5.5 ], [  1.0,  1.7,  0.6 ], [  0.1, -0.6, -3.5 ] ],
+                [ [ 14.6,  7.8, -1.5 ], [ -0.2, -3.8, -0.1 ], [  2.0,  0.0, -2.0 ], [  1.5, -0.1, -1.0 ] ],
+                [ [ 12.9, -0.3,  0.0 ], [ -4.1, -3.0,  0.0 ], [  0.6, -0.9, -1.4 ], [  0.8, -1.1, -1.3 ] ],
+                [ [  7.7,  0.3,  0.0 ], [ -3.0,  1.7,  0.0 ], [  0.1, -1.1, -1.8 ], [  0.4, -1.2, -1.2 ] ] ] )
             } ),
         'Test Line' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
@@ -64,8 +69,8 @@ class MeshType_3d_colon1(Scaffold_base):
                 },
             'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
-                [ [ -4.0,  1.0,  3.0 ], [  5.0,  1.0, -3.0 ], [ 0.8, -4.0, 0.0 ], [0.0, 0.0, 0.0 ] ],
-                [ [  1.0,  2.0,  0.0 ], [  5.0,  1.0, -3.0 ], [ 0.8, -4.0, 0.0 ], [0.0, 0.0, 0.0 ] ] ])
+                [ [ -4.0, 1.0, 3.0 ], [ 5.0, 1.0, -3.0 ], [ 0.8, -4.0, 0.0 ], [0.0, 0.0, 0.0 ] ],
+                [ [  1.0, 2.0, 0.0 ], [ 5.0, 1.0, -3.0 ], [ 0.8, -4.0, 0.0 ], [0.0, 0.0, 0.0 ] ] ])
             } )
         }
 
@@ -77,7 +82,8 @@ class MeshType_3d_colon1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Human 1']
+            'Human 1',
+            'Human 2']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -86,10 +92,10 @@ class MeshType_3d_colon1(Scaffold_base):
         options['Inner radius'] = 1.0
         options['Haustrum length mid derivative factor'] = 2.0
         options['Wall thickness'] = 0.02
-        if 'Human 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 3D 1']
+        if 'Human 2' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
         else:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2D 1']
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         optionsColon = {
             'Central path' : copy.deepcopy(centralPathOption),
             'Number of haustra segments': 30
