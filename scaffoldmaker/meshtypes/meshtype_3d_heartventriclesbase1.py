@@ -82,7 +82,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Atrial base wall thickness'] = 0.07
         options['Atrial base slope degrees'] = 30.0
         options['Left atrial appendage left'] = 0.9
-        options['Right atrium venous posterior right'] = 0.6
+        options['Right atrium venous right'] = 0.4
         options['Left atrium venous midpoint posterior left'] = 0.5
         if 'Human' in parameterSetName:
             pass
@@ -125,7 +125,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             'Atrial base slope degrees',
             'Left atrial appendage left',
             'Left atrium venous midpoint posterior left',
-            'Right atrium venous posterior right']
+            'Right atrium venous right']
         # want refinement options last
         for optionName in [
             'Refine',
@@ -193,7 +193,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         for key in [
             'Left atrial appendage left',
             'Left atrium venous midpoint posterior left',
-            'Right atrium venous posterior right']:
+            'Right atrium venous right']:
             if options[key] < 0.001:
                 options[key] = 0.001
             elif options[key] > 0.999:
@@ -233,7 +233,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
         laaLeft = options['Left atrial appendage left']
         laVenousMidpointPosteriorLeft = options['Left atrium venous midpoint posterior left']
-        raVenousPosteriorRight = options['Right atrium venous posterior right']
+        raVenousRight = options['Right atrium venous right']
         # new:
         baseHeight = unitScale*options['Base height']
         baseThickness = unitScale*options['Base thickness']
@@ -421,7 +421,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumLength, aSeptumThickness,
                 aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians,
-                laaLeft, laVenousMidpointPosteriorLeft, raVenousPosteriorRight, elementsCountAroundTrackSurface)
+                laaLeft, laVenousMidpointPosteriorLeft, raVenousRight, elementsCountAroundTrackSurface)
         laCentre[2] -= (aBaseSlopeHeight + fibrousRingThickness)
 
         # displace to get points on bottom av fibrous ring

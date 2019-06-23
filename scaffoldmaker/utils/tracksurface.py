@@ -131,14 +131,15 @@ class TrackSurface:
         return coordinates, derivative1, derivative2
 
     def createHermiteCurvePoints(self, aProportion1, aProportion2, bProportion1, bProportion2, elementsCount,
-            derivativeStart = None, derivativeEnd = None):
+            derivativeStart, derivativeEnd):
         '''
         Create hermite curve points between two points a and b on the surface, each defined
         by their proportions over the surface in directions 1 and 2.
         Also returns cross direction 2 in plane of surface with similar magnitude to curve derivative 1,
         and unit surface normals.
         :param derivativeStart, derivativeEnd: Optional derivative vectors in 3-D world coordinates
-        to match at the start and end of the curves. If omitted, derivative is a straight line between ends.
+        to match at the start and end of the curves. If omitted, fits in with other derivative or is
+        in a straight line from a to b.
         :param elementsCount:  Number of elements out.
         :return: nx[], nd1[], nd2[], nd3[], nProportions[]
         '''
@@ -149,38 +150,40 @@ class TrackSurface:
             delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeStart)
             dp1Start = delta_xi1/self.elementsCount1
             dp2Start = delta_xi2/self.elementsCount2
-            addLengthStart = 0.5*math.sqrt(dp1Start*dp1Start + dp2Start*dp2Start)
-            lengthFractionStart = 0.5
+            derivativeMagnitudeStart = math.sqrt(dp1Start*dp1Start + dp2Start*dp2Start)
             dp1Start *= elementsCount
             dp2Start *= elementsCount
             #print('start delta_xi1', delta_xi1, 'delta_xi2', delta_xi2)
             #print('dp1Start', dp1Start, 'dp2Start', dp2Start)
             #print('addLengthStart', addLengthStart, 'lengthFractionStart', lengthFractionStart)
-        else:
-            dp1Start = bProportion1 - aProportion1
-            dp2Start = bProportion2 - aProportion2
-            addLengthStart = 0.0
-            lengthFractionStart = 1.0
         if derivativeEnd:
             position = self.createPositionProportion(bProportion1, bProportion2)
             _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
             delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeEnd)
             dp1End = delta_xi1/self.elementsCount1
             dp2End = delta_xi2/self.elementsCount2
-            addLengthEnd = 0.5*math.sqrt(dp1End*dp1End + dp2End*dp2End)
-            lengthFractionEnd = 0.5
+            derivativeMagnitudeEnd = math.sqrt(dp1End*dp1End + dp2End*dp2End)
             dp1End *= elementsCount
             dp2End *= elementsCount
             #print('end delta_xi1', delta_xi1, 'delta_xi2', delta_xi2)
             #print('dp1End', dp1End, 'dp2End', dp2End)
             #print('addLengthEnd', addLengthEnd, 'lengthFractionEnd', lengthFractionEnd)
-        else:
-            dp1End = bProportion1 - aProportion1
-            dp2End = bProportion2 - aProportion2
-            addLengthEnd = 0.0
-            lengthFractionEnd = 1.0
-        proportions, dproportions = interp.sampleCubicHermiteCurves([ [ aProportion1, aProportion2 ], [ bProportion1, bProportion2 ] ], \
-            [ [ dp1Start, dp2Start ], [ dp1End, dp2End ] ], elementsCount, addLengthStart, addLengthEnd, lengthFractionStart, lengthFractionEnd)[0:2]
+        if not derivativeStart:
+            if derivativeEnd:
+                dp1Start, dp2Start = interp.interpolateLagrangeHermiteDerivative([ aProportion1, aProportion2 ], [ bProportion1, bProportion2 ], [ dp1End, dp2End ], 0.0)
+            else:
+                dp1Start = bProportion1 - aProportion1
+                dp2Start = bProportion2 - aProportion2
+            derivativeMagnitudeStart = math.sqrt(dp1Start*dp1Start + dp2Start*dp2Start)/elementsCount
+        if not derivativeEnd:
+            if derivativeStart:
+                dp1End, dp2End = interp.interpolateHermiteLagrangeDerivative([ aProportion1, aProportion2 ], [ dp1Start, dp2Start ], [ bProportion1, bProportion2 ], 0.0)
+            else:
+                dp1End = bProportion1 - aProportion1
+                dp2End = bProportion2 - aProportion2
+            derivativeMagnitudeEnd = math.sqrt(dp1End*dp1End + dp2End*dp2End)/elementsCount
+        proportions, dproportions = interp.sampleCubicHermiteCurvesSmooth([ [ aProportion1, aProportion2 ], [ bProportion1, bProportion2 ] ], \
+            [ [ dp1Start, dp2Start ], [ dp1End, dp2End ] ], elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
         #print(' proportions', proportions)
         #print('dproportions', dproportions)
         nx  = []

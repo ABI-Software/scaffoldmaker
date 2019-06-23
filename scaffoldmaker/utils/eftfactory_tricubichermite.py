@@ -1361,13 +1361,12 @@ class eftfactory_tricubichermite:
                             for c in range(3):
                                 bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
 
-                # scale derivatives pro-rata to give better sampling in-between
-                ds = interp.computeCubicHermiteDerivativeScaling(ax, ad2, bx, bd2)
-                scaledDerivatives = [ [ d*ds for d in d2 ] for d2 in [ ad2, bd2 ]]
-                #print('scaling', ds, [ ad2, bd2 ], 'vs', scaledDerivatives)
-                mx, md2, me, mxi = interp.sampleCubicHermiteCurves([ ax, bx ], scaledDerivatives, elementsCountRadial,
-                    addLengthStart = 0.5*vector.magnitude(ad2), lengthFractionStart = 0.5,
-                    addLengthEnd = 0.5*vector.magnitude(bd2), lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
+                # scaling end derivatives to arc length gives even curvature along the curve
+                arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
+                scaledDerivatives = [ vector.setMagnitude(d2, arcLength) for d2 in [ ad2, bd2 ]]
+                mx, md2, me, mxi = interp.sampleCubicHermiteCurvesSmooth([ ax, bx ], scaledDerivatives, elementsCountRadial,
+                    derivativeMagnitudeStart = vector.magnitude(ad2),
+                    derivativeMagnitudeEnd = vector.magnitude(bd2))[0:4]
                 md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
                 thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
                 #md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
@@ -1380,7 +1379,7 @@ class eftfactory_tricubichermite:
             # now get inner positions from normal and thickness, derivatives from curvature
             for n2 in range(1, elementsCountRadial):
                 # first smooth derivative 1 around outer loop
-                pd1[1][n2] = interp.smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2])
+                pd1[1][n2] = interp.smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2], magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
 
                 for n1 in range(nodesCountAround):
                     normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
@@ -1405,7 +1404,7 @@ class eftfactory_tricubichermite:
                     pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
 
                 # smooth derivative 1 around inner loop
-                pd1[0][n2] = interp.smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2])
+                pd1[0][n2] = interp.smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2], magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
 
             for n3 in range(0, 1):  # was (0, nodesCountWall)
                 # smooth derivative 2 radially/along annulus
@@ -1414,7 +1413,7 @@ class eftfactory_tricubichermite:
                         [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
                         [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
                         fixAllDirections = True, fixStartDerivative = True, fixEndDerivative = True,
-                        magnitudeScalingMode = interp.DerivativeScalingMode.ARITHMETIC_MEAN)  # was HARMONIC_MEAN
+                        magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
                     for n2 in range(elementsCountRadial + 1):
                         pd2[n3][n2][n1] = sd2[n2]
 
