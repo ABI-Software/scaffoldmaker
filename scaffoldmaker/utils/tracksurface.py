@@ -79,6 +79,13 @@ class TrackSurface:
             xi2 = 1.0
         return TrackSurfacePosition(e1, e2, xi1, xi2)
 
+    def getProportion(self, position):
+        '''
+        From a position on this track surface, return proportions.
+        :return: proportion1, proportion2
+        '''
+        return (position.e1 + position.xi1)/self.elementsCount1, (position.e2 + position.xi2)/self.elementsCount2
+
     def evaluateCoordinates(self, position, derivatives = False):
         '''
         Evaluate coordinates on surface at position, and optionally
@@ -131,7 +138,7 @@ class TrackSurface:
         return coordinates, derivative1, derivative2
 
     def createHermiteCurvePoints(self, aProportion1, aProportion2, bProportion1, bProportion2, elementsCount,
-            derivativeStart, derivativeEnd):
+            derivativeStart = None, derivativeEnd = None):
         '''
         Create hermite curve points between two points a and b on the surface, each defined
         by their proportions over the surface in directions 1 and 2.
