@@ -62,7 +62,7 @@ def getOrCreateFibreField(fieldmodule, name='fibres', componentsCount=3):
     fieldmodule.endChange()
     return fibres
 
-def getOrCreateTextureCoordinateField(fieldmodule, name='textureCoordinates', componentsCount=3):
+def getOrCreateTextureCoordinateField(fieldmodule, name='texture coordinates', componentsCount=3):
     '''
     Finds or creates a rectangular cartesian texture coordinate field.
     New field has component names: 'u', 'v', 'w'.
