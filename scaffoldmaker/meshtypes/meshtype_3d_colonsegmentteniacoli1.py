@@ -178,7 +178,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
            useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
            elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
-           widthTC, TCThickness, sx, curvatureAlong, factorList)
+           widthTC, TCThickness, sx, curvatureAlong, factorList, uList)
 
         annotationGroups += annotationGroupsTC
 
@@ -672,7 +672,7 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet, d2Haustr
 def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
     elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-    widthTC, TCThickness, sxCentralLine, curvatureAlong, factorList):
+    widthTC, TCThickness, sxCentralLine, curvatureAlong, factorList, uList):
     """
     Create equally spaced nodes and elements for tenia coli over the outer
     surface of the haustra. Nodes of the tenia coli is sampled from a cubic
@@ -692,6 +692,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     :param sxCentralLine: Coordinates sampled from central line.
     :param curvatureAlong: Curvatures along the colon for nodes on inner surface of colon.
     :param factorList: Factors used for scaling d2 to account for curvature along colon.
+    :param uList: List of xi for each node around mid-length haustra.
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     """
 
@@ -748,6 +749,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     TCEdgeFactor = 1.5
     zero = [0.0, 0.0, 0.0]
     prevNodeIdentifier = nodeIdentifier - 1
+    prevElementIdentifier = elementIdentifier - 1
 
     xTCOuterList = []
     d1TCOuterList = []
@@ -756,6 +758,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     bniList = []
     bniTCList = []
     idxList = []
+    wList = []
 
     set1 = list(range(int(elementsCountAroundTC/2)+1))
     set2 = list(range(set1[-1] + elementsCountAroundHaustrum, set1[-1] + elementsCountAroundHaustrum + elementsCountAroundTC + 1))
@@ -903,6 +906,142 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             result = element.setNodesByIdentifier(eft if n1 > 0 else eft2, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
             TOMeshGroup.addElement(element)
+
+    # Define texture coordinates field for tenia coli
+    textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
+    textureNodetemplate1 = nodes.createNodetemplate()
+    textureNodetemplate1.defineField(textureCoordinates)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+    textureNodetemplate2 = nodes.createNodetemplate()
+    textureNodetemplate2.defineField(textureCoordinates)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+    if useCrossDerivatives:
+        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+    bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+    eftTexture1 = bicubichermitelinear.createEftBasic()
+    elementtemplate = mesh.createElementtemplate()
+    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate.defineField(textureCoordinates, -1, eftTexture1)
+
+    eftTexture2 = bicubichermitelinear.createEftWedgeXi1One()
+    elementtemplate1.defineField(textureCoordinates, -1, eftTexture2)
+
+    eftTexture3 = bicubichermitelinear.createEftWedgeXi1Zero()
+    elementtemplate2.defineField(textureCoordinates, -1, eftTexture3)
+
+    eftTexture4 = bicubichermitelinear.createEftOpenTube()
+    elementtemplate3 = mesh.createElementtemplate()
+    elementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate3.defineField(textureCoordinates, -1, eftTexture4)
+
+    eftTexture5 = bicubichermitelinear.createEftWedgeXi1ZeroOpenTube()
+    elementtemplate4 = mesh.createElementtemplate()
+    elementtemplate4.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate4.defineField(textureCoordinates, -1, eftTexture5)
+
+    # Calculate texture coordinates and derivatives
+    nodeIdentifier = prevNodeIdentifier + 1
+    dTC = uList[1] - uList[0]
+
+    for N in range(4):
+        idxTCMid = N*(elementsCountAroundTC + elementsCountAroundHaustrum)
+        TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5)
+        TCEndIdx = idxTCMid + int(elementsCountAroundTC*0.5)
+        v1 = [uList[TCStartIdx], 0.0, 1.0] if N > 0 else [-dTC, 0.0, 1.0]
+        v2 = [  uList[idxTCMid], 0.0, 2.0]
+        v3 = [  uList[TCEndIdx], 0.0, 1.0] if N < 3 else [ 1 + dTC , 0.0, 1.0]
+        d1 = d2 = d3 = [dTC, 0.0, 0.0]
+        nx = [v1, v2, v3]
+        nd1 = [d1, d2, d3]
+        sx, _, _, _, _ = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundTC)
+        if N > 0 and N < 3:
+            w = sx[1:-1]
+        elif N == 0:
+            w = sx[int(elementsCountAroundTC*0.5):-1]
+        else: # N > 2
+            w = sx[1:int(elementsCountAroundTC*0.5)+1]
+        wList = wList + w
+
+    d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
+    for n2 in range(elementsCountAlong + 1):
+        for n1 in range((elementsCountAroundTC-1) * 3):
+            u = [ wList[n1][0],
+                  1.0 / elementsCountAlong * n2,
+                  wList[n1][2]]
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
+            cache.setNode(node)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, u)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dTC)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            if useCrossDerivatives:
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            if n1 == 0:
+                u = [ wList[-1][0],
+                      1.0 / elementsCountAlong * n2,
+                      wList[-1][2]]
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, u)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, dTC)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
+                if useCrossDerivatives:
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+            nodeIdentifier = nodeIdentifier + 1
+
+    # define texture coordinates field over elements
+    elementIdentifier = prevElementIdentifier + 1
+    for e2 in range(elementsCountAlong):
+        e1 = -1
+        A = e2*(elementsCountAroundTC-1)*3 + prevNodeIdentifier
+
+        for n1 in range(int(elementsCountAroundTC*0.5)):
+            e1 = e1 + 1
+            regNodeIdentifiers = getNodeIdentifierForRegularElement(e1, e2, A, elementsCountAroundTC, elementsCountAround, bniList, bniTCList, idxList)
+            nodeIdentifiers = regNodeIdentifiers if n1 < int(elementsCountAroundTC*0.5) - 1 else [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            element.merge(elementtemplate if n1 < int(elementsCountAroundTC*0.5) - 1 else elementtemplate1)
+            element.setNodesByIdentifier(eftTexture1 if n1 < int(elementsCountAroundTC*0.5) - 1 else eftTexture2, nodeIdentifiers)
+            elementIdentifier = elementIdentifier + 1
+
+        for N in range(2):
+            for n1 in range(elementsCountAroundTC):
+                e1 = e1 + 1
+                regNodeIdentifiers = getNodeIdentifierForRegularElement(e1, e2, A, elementsCountAroundTC, elementsCountAround, bniList, bniTCList, idxList)
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                if n1 == 0:
+                    nodeIdentifiers = [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+                    element.merge(elementtemplate2)
+                    element.setNodesByIdentifier(eftTexture3, nodeIdentifiers)
+                elif n1 > 0 and n1 < elementsCountAroundTC - 1:
+                    nodeIdentifiers = regNodeIdentifiers
+                    element.merge(elementtemplate)
+                    element.setNodesByIdentifier(eftTexture1, nodeIdentifiers)
+                else:
+                    nodeIdentifiers = [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+                    element.merge(elementtemplate1)
+                    element.setNodesByIdentifier(eftTexture2, nodeIdentifiers)
+                elementIdentifier = elementIdentifier + 1
+
+        for n1 in range(int(elementsCountAroundTC*0.5)):
+            onOpening = (n1 == int(elementsCountAroundTC*0.5 - 1))
+            e1 = e1 + 1
+            regNodeIdentifiers = getNodeIdentifierForRegularElement(e1, e2, A, elementsCountAroundTC, elementsCountAround, bniList, bniTCList, idxList)
+            nodeIdentifiers = regNodeIdentifiers if n1 > 0 else [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            if n1 > 0:
+                element.merge(elementtemplate3 if onOpening else elementtemplate)
+                element.setNodesByIdentifier(eftTexture4 if onOpening else eftTexture1, nodeIdentifiers)
+            else:
+                element.merge(elementtemplate4 if onOpening else elementtemplate2)
+                result = element.setNodesByIdentifier(eftTexture5 if onOpening else eftTexture3, nodeIdentifiers)
+            elementIdentifier = elementIdentifier + 1
 
     fm.endChange()
 

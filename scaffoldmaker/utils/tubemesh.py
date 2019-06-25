@@ -60,6 +60,7 @@ def generatetubemesh(region,
     :return curvatureAlong, factorList: List of curvature and scale factor along mesh
     for each node on inner surface of mesh.
     '''
+
     zero  = [0.0, 0.0, 0.0]
     elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
@@ -298,6 +299,11 @@ def generatetubemesh(region,
               0.0,
               0.0]
         d1List.append(d1)
+
+    # To modify derivative along transition elements
+    for i in range(len(transitElementList)):
+        if transitElementList[i]:
+            d1List[i+1] = d1List[i+2]
 
     nodeIdentifier = firstNodeIdentifier
     for n3 in range(elementsCountThroughWall + 1):

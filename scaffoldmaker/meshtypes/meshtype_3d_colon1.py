@@ -241,7 +241,7 @@ class MeshType_3d_colon1(Scaffold_base):
         if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                 useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness, sx, curvatureAlong, factorList)
+                elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness, sx, curvatureAlong, factorList, uList)
 
             annotationGroups += annotationGroupsTC
 
