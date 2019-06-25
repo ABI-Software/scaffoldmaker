@@ -77,13 +77,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Atria base inner major axis length'] = 0.55
         options['Atria base inner minor axis length'] = 0.45
         options['Atria major axis rotation degrees'] = 40.0
-        options['Atrial septum length'] = 0.3
-        options['Atrial septum thickness'] = 0.075
+        options['Atrial septum length'] = 0.25
+        options['Atrial septum thickness'] = 0.07
         options['Atrial base wall thickness'] = 0.07
         options['Atrial base slope degrees'] = 30.0
         options['Left atrial appendage left'] = 0.9
         options['Right atrium venous right'] = 0.4
-        options['Left atrium venous midpoint posterior left'] = 0.5
+        options['Left atrium venous midpoint posterior left'] = 0.55
         if 'Human' in parameterSetName:
             pass
         elif 'Mouse' in parameterSetName:

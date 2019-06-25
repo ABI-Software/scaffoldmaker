@@ -164,14 +164,14 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Atria base inner minor axis length'] = 0.45
         options['Atria major axis rotation degrees'] = 40.0
         options['Atria outer height'] = 0.45
-        options['Atrial septum height'] = 0.3
-        options['Atrial septum length'] = 0.3
-        options['Atrial septum thickness'] = 0.075
+        options['Atrial septum height'] = 0.25
+        options['Atrial septum length'] = 0.25
+        options['Atrial septum thickness'] = 0.07
         options['Coronary sinus height'] = 0.07
         options['Fossa ovalis height'] = 0.1
         options['Fossa ovalis length'] = 0.15
-        options['Fossa ovalis thickness'] = 0.025
-        options['Fossa ovalis midpoint height'] = 0.17
+        options['Fossa ovalis thickness'] = 0.035
+        options['Fossa ovalis midpoint height'] = 0.16
         options['Left atrium venous free wall thickness'] = 0.02
         options['Right atrium venous free wall thickness'] = 0.015
         options['Crista terminalis thickness'] = 0.03
@@ -733,7 +733,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elementsCountAroundFossa = elementsCountOverAtria + elementsCountAroundAtrialSeptum - 2
         fossaPerimeterLength = getApproximateEllipsePerimeter(foMagY, foMagZ)
         estElementSizeAroundFossa = fossaPerimeterLength/elementsCountAroundFossa
-        fossaInnerDerivativeRatio = 1.0  # 4.0/3.0  # GRC fudge factor
+        fossaInnerDerivativeRatio = 1.5  # GRC fudge factor
         fossaOuterDerivativeRatio = 2.0 - fossaInnerDerivativeRatio
         foMidpointY = aSeptumBaseCentre[1]
         fossaRadiansAround = []
@@ -2551,7 +2551,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
         ltBaseOuterd1.append(d1)
         ltBaseOuterd2.append(d2)
     # generate point on posterior base septum
-    xi = 0.9  # GRC fudge factor
+    xi = 0.85  # GRC fudge factor
     baseSeptumPosteriorx  = [ 0.0, (1.0 - xi)*ltBaseOuterx[0][1] + xi*ltBaseOuterx[-1][1], 0.0 ]
     nx  = [ ltBaseOuterx[-1], baseSeptumPosteriorx ]
     nd1 = interp.smoothCubicHermiteDerivativesLine(nx, [ ltBaseOuterd1[-1], [ vector.magnitude(ltBaseOuterd1[-1]), 0.0, 0.0 ] ],
