@@ -1716,7 +1716,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
                      laoaNodeId[1][e1], laoaNodeId[1][e1 + 1], lavbNodeId[1][e1], lavbNodeId[1][e1 + 1] ]
             scalefactors = None
             if e1 == 0:
-                eft1 = eftBaseSulcusNext
+                # general linear map d3 adjacent to interatrial groove
+                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                setEftScaleFactorIds(eft1, [1], [])
+                remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 scalefactors = [ -1.0 ]
                 elementtemplateX.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateX
