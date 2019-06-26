@@ -6,6 +6,7 @@ from __future__ import division
 import copy
 import math
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints, getCircleProjectionAxes
 from scaffoldmaker.utils import interpolation as interp
@@ -575,10 +576,11 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                 vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
                 mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
-        nodeIdentifier, elementIdentifier = tricubichermite.createAnnulusMesh3d(
+        nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
+            nodes, mesh, nodeIdentifier, elementIdentifier,
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
-            nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
+            forceMidLinearXi3 = not useCubicHermiteThroughVesselWall,
             elementsCountRadial = elementsCountAlong,
             meshGroups = vesselMeshGroups[v] if vesselMeshGroups else [])
 

@@ -10,6 +10,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnota
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getCircleProjectionAxes, getEllipseAngleFromVector, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength, createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
@@ -1972,10 +1973,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         #print('lpvaNodeId[1]',lpvaNodeId[1])
         #print('lpvaDerivativesMap[0]',lpvaDerivativesMap[0])
         #print('lpvaDerivativesMap[1]',lpvaDerivativesMap[1])
-        nodeIdentifier, elementIdentifier = tricubichermite.createAnnulusMesh3d(
+        nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
+            nodes, mesh, nodeIdentifier, elementIdentifier,
             lpvox, lpvod1, lpvod2, lpvod3, lpvoNodeId, None,
             lpvax, lpvad1, lpvad2, lpvad3, lpvaNodeId, lpvaDerivativesMap,
-            nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
             elementsCountRadial = 1, meshGroups = [ laMeshGroup ])
 
         # create right pulmonary vein annulus
@@ -2053,10 +2054,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         #print('rpvaNodeId[1]',rpvaNodeId[1])
         #print('rpvaDerivativesMap[0]',rpvaDerivativesMap[0])
         #print('rpvaDerivativesMap[1]',rpvaDerivativesMap[1])
-        nodeIdentifier, elementIdentifier = tricubichermite.createAnnulusMesh3d(
+        nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
+            nodes, mesh, nodeIdentifier, elementIdentifier,
             rpvox, rpvod1, rpvod2, rpvod3, rpvoNodeId, None,
             rpvax, rpvad1, rpvad2, rpvad3, rpvaNodeId, rpvaDerivativesMap,
-            nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
             elementsCountRadial = 1, meshGroups = [ laMeshGroup ])
 
         # create inferior and superior vena cavae inlets
@@ -2242,10 +2243,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
             #print('vcaNodeId[1]',vcaNodeId[1])
             #print('vcaDerivativesMap[0]',vcaDerivativesMap[0])
             #print('vcaDerivativesMap[1]',vcaDerivativesMap[1])
-            nodeIdentifier, elementIdentifier = tricubichermite.createAnnulusMesh3d(
+            nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
+                nodes, mesh, nodeIdentifier, elementIdentifier,
                 vcvx, vcvd1, vcvd2, None, None, None,
                 vcax, vcad1, vcad2, vcad3, vcaNodeId, vcaDerivativesMap,
-                nodetemplate, nodetemplateLinearS3, nodeIdentifier, elementIdentifier,
                 elementsCountRadial = elementsCountAlongVCInlet, maxEndThickness = 1.5*raVenousFreeWallThickness,
                 meshGroups = [ raMeshGroup, ivcInletMeshGroup if (v == 0) else svcInletMeshGroup])
 
