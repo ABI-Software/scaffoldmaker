@@ -224,24 +224,25 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Generate inner surface of a colon segment
         if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
-            annotationGroups, annotationArray, transitElementList, uList, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
-                elementsCountAlongSegment, widthMZ, radius, segmentLength)
+            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
+                elementsCountAlongSegment, widthMZ, radius, segmentLength, wallThickness)
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
-            annotationGroups, annotationArray, transitElementList, uList, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum,
+            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum,
                 elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-                segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength)
+                segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
             xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray, transitElementList, uList)
+            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength)
 
         # Generate tenia coli
         if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                 useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlong, elementsCountThroughWall, widthTC, TCThickness, sx, curvatureAlong, factorList, uList)
+                elementsCountAlong, elementsCountThroughWall, wallThickness, widthTC, TCThickness, sx, curvatureAlong, factorList, uList,
+                arcLengthOuterMidLength, length)
 
             annotationGroups += annotationGroupsTC
 

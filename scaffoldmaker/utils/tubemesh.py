@@ -24,7 +24,7 @@ def generatetubemesh(region,
     segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
-    annotationGroups, annotationArray, transitElementList, uList,
+    annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength,
     firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
@@ -53,6 +53,8 @@ def generatetubemesh(region,
     located around
     :param uList: List of xi for each node around representative cross-sectional
     profile
+    :param arcLengthOuterMidLength: Total arclength of elements around outer surface
+    along mid-length of a segment
     :return nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
@@ -331,7 +333,75 @@ def generatetubemesh(region,
                         textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                 nodeIdentifier = nodeIdentifier + 1
 
-    # define texture coordinates field over elements
+    # Define flat coordinates field
+    flatCoordinates = zinc_utils.getOrCreateFlatCoordinateField(fm)
+    flatNodetemplate1 = nodes.createNodetemplate()
+    flatNodetemplate1.defineField(flatCoordinates)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+    flatNodetemplate2 = nodes.createNodetemplate()
+    flatNodetemplate2.defineField(flatCoordinates)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+    if useCrossDerivatives:
+        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+    flatElementtemplate1 = mesh.createElementtemplate()
+    flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate1.defineField(flatCoordinates, -1, eftTexture1)
+
+    flatElementtemplate2 = mesh.createElementtemplate()
+    flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
+
+    # Calculate texture coordinates and derivatives
+    totalLengthAlong = segmentLength*segmentCountAlong
+    d2 = [0.0, totalLengthAlong/elementsCountAlong, 0.0]
+
+    d1List = []
+    for n1 in range(len(uList)):
+        d1 = [(uList[n1] - uList[n1-1])*arcLengthOuterMidLength if n1 > 0 else (uList[n1+1] - uList[n1])*arcLengthOuterMidLength,
+              0.0,
+              0.0]
+        d1List.append(d1)
+
+    # To modify derivative along transition elements
+    for i in range(len(transitElementList)):
+        if transitElementList[i]:
+            d1List[i+1] = d1List[i+2]
+
+    nodeIdentifier = firstNodeIdentifier
+    for n3 in range(elementsCountThroughWall + 1):
+        for n2 in range(elementsCountAlong + 1):
+            for n1 in range(elementsCountAround):
+                x = [ uList[n1]*arcLengthOuterMidLength,
+                      totalLengthAlong / elementsCountAlong * n2,
+                      wallThickness / elementsCountThroughWall * n3]
+                d1 = d1List[n1]
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
+                cache.setNode(node)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                if useCrossDerivatives:
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                if n1 == 0:
+                    x = [ arcLengthOuterMidLength, totalLengthAlong / elementsCountAlong * n2, wallThickness / elementsCountThroughWall * n3]
+                    d1 = d1List[-1]
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, x)
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
+                    if useCrossDerivatives:
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+                nodeIdentifier = nodeIdentifier + 1
+
+    # Define flat coordinates field & texture coordinates field over elements
     elementIdentifier = firstElementIdentifier
     now = (elementsCountAlong + 1)*elementsCountAround
 
@@ -341,6 +411,7 @@ def generatetubemesh(region,
                 onOpening = e1 > elementsCountAround - 2
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 element.merge(elementtemplate2 if onOpening else elementtemplate1)
+                element.merge(flatElementtemplate2 if onOpening else flatElementtemplate1)
                 bni11 = e3*now + e2*elementsCountAround + e1 + 1
                 bni12 = e3*now + e2*elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1

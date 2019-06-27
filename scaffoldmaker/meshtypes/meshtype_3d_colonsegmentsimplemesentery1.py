@@ -7,7 +7,7 @@ with variable radius and thickness along.
 
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import sampleHaustrum
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import sampleHaustrum, getuListFromOuterMidLengthProfile
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -126,14 +126,14 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, transitElementList, uList, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
-           elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength)
+        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
+           elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength, wallThickness)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
             xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray, transitElementList, uList)
+            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength)
 
         return annotationGroups
 
@@ -159,7 +159,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         return meshrefinement.getAnnotationGroups()
 
 def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
-    widthMZ, radius, segmentLength):
+    widthMZ, radius, segmentLength, wallThickness):
     """
     Generates a 3-D colon segment mesh with a simple mesentery
     (no tenia coli) with variable numbers of elements around,
@@ -171,11 +171,14 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
     :param widthMZ: Width of mesenteric zone in flat preparation.
     :param radius: Inner radius of colon segment.
     :param segmentLength: Length of a colon segment.
+    :param wallThickness: Thickness of wall.
     :return annotationGroups, annotationArray: annotationArray stores annotation
     names of elements around
     :return transitElementList: stores true if element around is an element that
     transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
     :return uList: List of xi for node around
+    : return totalArcLengthOuterMidLength: total arclength of elements on outer
+    surface along mid-length of segment.
     :return coordinates, derivatives on inner surface of a colon segment.
     """
     MZGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
@@ -187,7 +190,7 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
     d1 = [ 0.0, 0.0, 0.0 ]
-    unitZ = [0.0, 0.0, 1.0]
+    segmentAxis = [0.0, 0.0, 1.0]
 
     xMZ = []
     d1MZ = []
@@ -249,13 +252,7 @@ def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAr
             d1List.append(d1)
             d2List.append(d2)
 
-    # Calculate uList for elements around
-    totalArcLength = math.pi*2.0*radius
-    arcLengthList = [0.0] + [arcLengthPerMZ]*int(elementsCountAroundMZ*0.5) + [arcLengthPerTransition] + [arcLengthPerNonMZ]*(elementsCountAroundNonMZ-2) + [arcLengthPerTransition] + [arcLengthPerMZ]*int(elementsCountAroundMZ*0.5)
-    arcDistance = 0
-    for n in range(len(arcLengthList)):
-        arcDistance = arcDistance + arcLengthList[n]
-        xi = arcDistance / totalArcLength
-        uList.append(xi)
+    # Calculate uList for elements on outer surface along mid-length of segment
+    uList, totalArcLengthOuterMidLength = getuListFromOuterMidLengthProfile(xListBaseLayer, d1ListBaseLayer, segmentAxis, wallThickness, transitElementList)
 
-    return annotationGroups, annotationArray, transitElementList, uList, xList, d1List, d2List, unitZ
+    return annotationGroups, annotationArray, transitElementList, uList, totalArcLengthOuterMidLength, xList, d1List, d2List, segmentAxis
