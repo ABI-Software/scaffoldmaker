@@ -489,30 +489,32 @@ def interpolateSampleLinear(v, pe, pxi):
             vOut.append(wm*v[pe[n]] + wp*v[pe[n] + 1])
     return vOut
 
-def sampleCubicElementLengths(length, elementsCount, startDerivative=None, endDerivative=None):
+def sampleCubicElementLengths(length, elementsCount, startDerivative = None, endDerivative = None):
     '''
     Get lengths of elements gradually changing over length, satisfying the start and end derivatives.
-    Note this does not assume variation from high-low-high or low-high-low.
-    :param startDerivative, endDerivative: Values of end derivatives or None to choose a natural size.
+    :param startDerivative, endDerivative: Magnitudes of end derivatives to use with elementsCount,
+    or None to choose a natural size.
     :return: List of elementsCount element lengths
     '''
     assert (elementsCount > 0), 'interpolation sampleCubicElementLengths:  Invalid number of elements'
-    if startDerivative and endDerivative:
-        d1 = startDerivative
-        d2 = endDerivative
-    elif startDerivative:
-        d1 = startDerivative
-        d2 = 2.0*length/elementsCount - d1
-    elif endDerivative:
-        d2 = endDerivative
-        d1 = 2.0*length/elementsCount - d2
-    else:
-        d1 = d2 = length/elementsCount
-    lm = length/elementsCount
+    x1 = 0.0
+    x2 = length
+    d1 = startDerivative*elementsCount if startDerivative else None
+    d2 = endDerivative*elementsCount if endDerivative else None
+    if not (d1 and d2):
+        d1 = d2 = length
+    elif not d2:
+        d2 = 2.0*length - d1
+    elif not d1:
+        d1 = 2.0*length - d2
     elementLengths = []
-    for n in range(elementsCount):
-        xi = (n + 0.5)/elementsCount
-        elementLengths.append(2.0*lm*((1.0 - xi)*d1/(d1 + d2) + xi*d2/(d1 + d2)))
+    lastx = 0.0
+    for n in range(1, elementsCount + 1):
+        xi = n/elementsCount
+        f1, f2, f3, f4 = getCubicHermiteBasis(xi)
+        x = f1*x1 + f2*d1 + f3*x2 + f4*d2
+        elementLengths.append(x - lastx)
+        lastx = x
     return elementLengths
 
 def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):

@@ -182,15 +182,24 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Atrial base front incline degrees'] = 15.0
         options['Atrial base back incline degrees'] = 20.0
         options['Atrial base side incline degrees'] = 20.0
+        options['Left atrial appendage angle left degrees'] = 0.0
+        options['Left atrial appendage angle up degrees'] = -50.0
+        options['Left atrial appendage arc length'] = 0.3
+        options['Left atrial appendage arc radius'] = 0.15
+        options['Left atrial appendage base length'] = 0.3
         options['Left atrial appendage left'] = 0.9
-        options['Left atrium venous anterior over'] = 0.7
-        options['Left atrium venous midpoint posterior left'] = 0.55
-        options['Right atrium venous midpoint over'] = 0.41
-        options['Right atrium venous right'] = 0.4
+        options['Left atrial appendage midpoint left'] = 0.5
+        options['Left atrial appendage midpoint over'] = 0.95
+        options['Left atrial appendage wall thickness'] = 0.03
+        options['Left atrial appendage wedge angle degrees'] = 90.0
         options['Left pulmonary vein ostium'] = copy.deepcopy(lpvOstium)
         options['Left pulmonary vein ostium angle degrees'] = 60.0
         options['Left pulmonary vein ostium position left'] = 0.64
         options['Left pulmonary vein ostium position over'] = 0.47
+        options['Left atrium venous anterior over'] = 0.7
+        options['Left atrium venous midpoint posterior left'] = 0.5
+        options['Right atrium venous midpoint over'] = 0.41
+        options['Right atrium venous right'] = 0.4
         options['Right pulmonary vein ostium'] = copy.deepcopy(rpvOstium)
         options['Right pulmonary vein ostium angle degrees'] = 80.0
         options['Right pulmonary vein ostium position left'] = 0.16
@@ -284,7 +293,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Atrial base front incline degrees',
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
+            'Left atrial appendage angle left degrees',
+            'Left atrial appendage angle up degrees',
+            'Left atrial appendage arc length',
+            'Left atrial appendage arc radius',
+            'Left atrial appendage base length',
             'Left atrial appendage left',
+            'Left atrial appendage midpoint left',
+            'Left atrial appendage midpoint over',
+            'Left atrial appendage wall thickness',
+            'Left atrial appendage wedge angle degrees',
             'Left atrium venous anterior over',
             'Left atrium venous midpoint posterior left',
             'Right atrium venous midpoint over',
@@ -392,6 +410,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Crista terminalis thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
+            'Left atrial appendage arc length',
+            'Left atrial appendage arc radius',
+            'Left atrial appendage base length',
+            'Left atrial appendage wall thickness',
             'Inferior vena cava inlet derivative factor',
             'Inferior vena cava inlet length',
             'Inferior vena cava inlet inner diameter',
@@ -404,6 +426,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 options[key] = 0.0
         for key in [
             'Left atrial appendage left',
+            'Left atrial appendage midpoint left',
+            'Left atrial appendage midpoint over',
             'Left atrium venous anterior over',
             'Left atrium venous midpoint posterior left',
             'Right atrium venous midpoint over',
@@ -428,6 +452,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 options[key] = -75.0
             elif options[key] > 75.0:
                 options[key] = 75.0
+        if options['Left atrial appendage arc radius'] < 0.1*math.fabs(options['Atria base inner minor axis length']):
+            options['Left atrial appendage arc radius'] = 0.1*math.fabs(options['Atria base inner minor axis length'])
+            dependentChanges = True
+        elif options['Left atrial appendage arc radius'] > 1000.0*math.fabs(options['Atria base inner major axis length']):
+            options['Left atrial appendage arc radius'] = 1000.0*math.fabs(options['Atria base inner major axis length'])
+            dependentChanges = True
+        for key in [
+            'Left atrial appendage wedge angle degrees']:
+            if options[key] < 5.0:
+                options[key] = 5.0
+            elif options[key] > 150.0:
+                options[key] = 150.0
         for key in [
             'Refine number of elements surface',
             'Refine number of elements through wall']:
@@ -471,7 +507,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cristaTerminalisThickness = unitScale*options['Crista terminalis thickness']
         aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
+        laaAngleLeftRadians = math.radians(options['Left atrial appendage angle left degrees'])
+        laaAngleUpradians = math.radians(options['Left atrial appendage angle up degrees'])
+        laaArcLength = unitScale*options['Left atrial appendage arc length']
+        laaArcRadius = unitScale*options['Left atrial appendage arc radius']
+        laaBaseLength = unitScale*options['Left atrial appendage base length']
         laaLeft = options['Left atrial appendage left']
+        laaMidpointLeft = options['Left atrial appendage midpoint left']
+        laaMidpointOver = options['Left atrial appendage midpoint over']
+        laaWallThickness = unitScale*options['Left atrial appendage wall thickness']
+        laaWedgeAngleRadians = math.radians(options['Left atrial appendage wedge angle degrees'])
         laVenousLimitAnterior = options['Left atrium venous anterior over']
         laVenousMidpointPosteriorLeft = options['Left atrium venous midpoint posterior left']
         raVenousRight = options['Right atrium venous right']
@@ -511,13 +556,15 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raGroup = AnnotationGroup(region, 'right atrium', FMANumber = 7096, lyphID = 'Lyph ID unknown')
         aSeptumGroup = AnnotationGroup(region, 'interatrial septum', FMANumber = 7108, lyphID = 'Lyph ID unknown')
         fossaGroup = AnnotationGroup(region, 'fossa ovalis', FMANumber = 9246, lyphID = 'Lyph ID unknown')
+        laaGroup = AnnotationGroup(region, 'left atrial appendage', FMANumber = 7219, lyphID = 'Lyph ID unknown')
+        raaGroup = AnnotationGroup(region, 'right atrial appendage', FMANumber = 7218, lyphID = 'Lyph ID unknown')
         lipvGroup = AnnotationGroup(region, 'left inferior pulmonary vein', FMANumber = 49913, lyphID = 'Lyph ID unknown')
         lspvGroup = AnnotationGroup(region, 'left superior pulmonary vein', FMANumber = 49916, lyphID = 'Lyph ID unknown')
         ripvGroup = AnnotationGroup(region, 'right inferior pulmonary vein', FMANumber = 49911, lyphID = 'Lyph ID unknown')
         rspvGroup = AnnotationGroup(region, 'right superior pulmonary vein', FMANumber = 49914, lyphID = 'Lyph ID unknown')
         ivcInletGroup = AnnotationGroup(region, 'inferior vena cava inlet', FMANumber = 10951, lyphID = 'Lyph ID unknown')
         svcInletGroup = AnnotationGroup(region, 'superior vena cava inlet', FMANumber = 4720, lyphID = 'Lyph ID unknown')
-        annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, lipvGroup, lspvGroup, ripvGroup, rspvGroup, ivcInletGroup, svcInletGroup ]
+        annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup, lipvGroup, lspvGroup, ripvGroup, rspvGroup, ivcInletGroup, svcInletGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
@@ -551,6 +598,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raMeshGroup = raGroup.getMeshGroup(mesh)
         aSeptumMeshGroup = aSeptumGroup.getMeshGroup(mesh)
         fossaMeshGroup = fossaGroup.getMeshGroup(mesh)
+        laaMeshGroup = laaGroup.getMeshGroup(mesh)
+        raaMeshGroup = raaGroup.getMeshGroup(mesh)
         lipvMeshGroup = lipvGroup.getMeshGroup(mesh)
         lspvMeshGroup = lspvGroup.getMeshGroup(mesh)
         ripvMeshGroup = ripvGroup.getMeshGroup(mesh)
@@ -564,9 +613,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elementsCountOverLeftAtriumNonVenousAnterior, elementsCountOverLeftAtriumVenous, elementsCountOverLeftAtriumNonVenousPosterior, \
         elementsCountOverRightAtriumNonVenousAnterior, elementsCountOverRightAtriumVenous, elementsCountOverRightAtriumNonVenousPosterior \
             = getOverAtriaElementsCounts(elementsCountOverAtria)
-        elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftArialAppendageBase, elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV \
+        elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftAtrialAppendageBase, elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV \
             = getLeftAtriumBaseFreewallElementsCounts(elementsCountAroundLeftAtriumFreeWall)
-        elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightArialAppendageBase, elementsCountAroundRightAtriumAorta \
+        elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase, elementsCountAroundRightAtriumAorta \
             = getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeWall)
         elementsCountAroundRpvOstium = 2*(elementsCountOverLeftAtriumVenous + elementsCountAroundLeftAtriumRPV)
         elementsCountOverSideLeftAtriumLPV = elementsCountAroundLeftAtriumLPV
@@ -859,7 +908,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lacsd2 = [ agd2[1] ]
         lacsd3 = [ agd3[1] ]
         lan1Aorta = elementsCountAroundLeftAtriumAorta
-        lan1Mid = elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftArialAppendageBase
+        lan1Mid = elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftAtrialAppendageBase
         lan1MidVenous = lan1Mid + elementsCountAroundLeftAtriumLPV
         lacsProportions = [ [ 1.0, 0.0 ] ]
         laApexx = laTrackSurface.nx[-1]
@@ -2247,8 +2296,113 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 nodes, mesh, nodeIdentifier, elementIdentifier,
                 vcvx, vcvd1, vcvd2, None, None, None,
                 vcax, vcad1, vcad2, vcad3, vcaNodeId, vcaDerivativesMap,
-                elementsCountRadial = elementsCountAlongVCInlet, maxEndThickness = 1.5*raVenousFreeWallThickness,
+                maxEndThickness = 1.5*raVenousFreeWallThickness,
+                elementsCountRadial = elementsCountAlongVCInlet,
                 meshGroups = [ raMeshGroup, ivcInletMeshGroup if (v == 0) else svcInletMeshGroup])
+
+        # create left atrial appendage
+        position = laTrackSurface.createPositionProportion(laaMidpointOver, laaMidpointLeft)
+        laamx, d1, d2 = laTrackSurface.evaluateCoordinates(position, derivatives = True)
+        laamd3 = vector.normalise(vector.crossproduct3(d1, d2))
+        laamd2 = vector.normalise(vector.crossproduct3(laamd3, d2))
+        laamd1 = vector.crossproduct3(laamd2, laamd3)
+        if True:
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laamx )
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, laamd1)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, laamd2)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, laamd3)
+            nodeIdentifier += 1
+        elementsCountAroundLaa = elementsCountAroundLeftAtrialAppendageBase + elementsCountAroundLeftAtriumRPV + elementsCountOverSideLeftAtriumLPV + 1
+        #print('elementsCountAroundLaa', elementsCountAroundLaa)
+        # get start points, nodes, derivative maps
+        laasx  = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laasd1 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laasd2 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laasd3 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laasNodeId = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laasDerivativesMap = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        # set points anticlockwise around base first from aorta
+        # insert at indexes such that 0 is the next one along
+        ix = 1 + elementsCountAroundLaa%2 - elementsCountAroundLaa
+        # left along base
+        for n1 in range(elementsCountAroundLeftAtrialAppendageBase + 1):
+            nb = n1 + elementsCountAroundLeftAtriumAorta
+            for n3 in range(2):
+                laasx [n3][ix] = labx [n3][nb]
+                laasd1[n3][ix] = labd1[n3][nb]
+                laasd2[n3][ix] = labd2[n3][nb]
+                laasd3[n3][ix] = labd3[n3][nb]
+                laasNodeId[n3][ix] = labNodeId[n3][nb]
+                if n1 == 0:
+                    laasDerivativesMap[n3][ix] = ( (0, -1, 0), (1, 1, 0), None, (1, 0, 0 ) )
+                elif n1 == elementsCountAroundLeftAtrialAppendageBase:
+                    laasDerivativesMap[n3][ix] = ( None, (-1, 1, 0), None, (0, 1, 0 ) )
+                else:
+                    laasDerivativesMap[n3][ix] = ( None, None, None )
+            ix += 1
+        # right over appendage laoa
+        for n1 in range(elementsCountAroundLeftAtriumRPV + elementsCountOverSideLeftAtriumLPV):
+            no = -1 - n1
+            for n3 in range(2):
+                laasx [n3][ix] = laoax [n3][no]
+                laasd1[n3][ix] = laoad1[n3][no]
+                laasd2[n3][ix] = laoad2[n3][no]
+                laasd3[n3][ix] = laoad3[n3][no]
+                laasNodeId[n3][ix] = laoaNodeId[n3][no]
+                if n1 == 0:
+                    laasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, 0, 0), None )
+                elif n1 == (elementsCountAroundLeftAtriumRPV + elementsCountOverSideLeftAtriumLPV - 1):
+                    laasDerivativesMap[n3][ix] = ( (-1, 0, 0), (1, -1, 0), None, (0, -1, 0 ) )
+                else:
+                    laasDerivativesMap[n3][ix] = ( (-1, 0, 0), (0, -1, 0), None )
+            ix += 1
+        #print('laasNodeId[0]',laasNodeId[0])
+        #print('laasNodeId[1]',laasNodeId[1])
+        #print('laasDerivativesMap[0]',laasDerivativesMap[0])
+        #print('laasDerivativesMap[1]',laasDerivativesMap[1])
+        elementsCountLaaRadial = 2
+        # get end points, nodes, derivative maps, expanding from wedge
+        laawx, laawd1, laawd2, laawd3, elementsCountAcrossLaaWedge, laawPointsMap, laaeDerivativesMap = getAtrialAppendageWedgePoints(laamx, laamd1, laamd2, laamd3, laaAngleLeftRadians, laaAngleUpradians, laaBaseLength,
+            elementsCountAroundLaa, elementsCountLaaRadial, laaArcLength, laaArcRadius, laaWallThickness, laaWedgeAngleRadians)
+        # create laa wedge nodes:
+        laawNodeId = [ [], [] ]
+        for n3 in range(2):
+            for n1 in range(len(laawx[n3])):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laawx [n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, laawd1[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, laawd2[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, laawd3[n3][n1])
+                laawNodeId[n3].append(nodeIdentifier)
+                nodeIdentifier += 1
+        laaex  = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laaed1 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laaed2 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laaed3 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        laaeNodeId = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
+        for n1 in range(elementsCountAroundLaa):
+            nw = laawPointsMap[n1]
+            for n3 in range(2):
+                laaex [n3][n1] = laawx [n3][nw]
+                laaed1[n3][n1] = laawd1[n3][nw]
+                laaed2[n3][n1] = laawd2[n3][nw]
+                laaed3[n3][n1] = laawd3[n3][nw]
+                laaeNodeId[n3][n1] = laawNodeId[n3][nw]
+        #print('laaeNodeId[0]',laaeNodeId[0])
+        #print('laaeNodeId[1]',laaeNodeId[1])
+        #print('laaeDerivativesMap[0]',laaeDerivativesMap[0])
+        #print('laaeDerivativesMap[1]',laaeDerivativesMap[1])
+        nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
+            nodes, mesh, nodeIdentifier, elementIdentifier,
+            laasx, laasd1, laasd2, laasd3, laasNodeId, laasDerivativesMap,
+            laaex, laaed1, laaed2, laaed3, laaeNodeId, laaeDerivativesMap,
+            forceMidLinearXi3 = True, forceEndLinearXi3 = True,
+            maxStartThickness = laaWallThickness,
+            elementsCountRadial = elementsCountLaaRadial,
+            meshGroups = [ laMeshGroup, laaMeshGroup ])
 
         if drawLaTrackSurface:
             mesh2d = fm.findMeshByDimension(2)
@@ -2311,7 +2465,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
 
         # last atria element is last element in following group:
-        lastGroup = findAnnotationGroupByName(annotationGroups, 'superior vena cava inlet')
+        lastGroup = findAnnotationGroupByName(annotationGroups, 'left atrial appendage')
         lastMeshGroup = lastGroup.getMeshGroup(meshrefinement._sourceMesh)
         lastElementIdentifier = -1
         elementIter = lastMeshGroup.createElementiterator()
@@ -2363,17 +2517,17 @@ def getLeftAtriumBaseFreewallElementsCounts(elementsCountAroundLeftAtriumFreeWal
     '''
     Get the number of elements in each section of the left atrium free wall.
     :param elementsCountAroundLeftAtriumFreeWall: Valid range 6-10.
-    :return: elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftArialAppendageBase,
+    :return: elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftAtrialAppendageBase,
         elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV
     '''
     assert 6 <= elementsCountAroundLeftAtriumFreeWall <= 10, \
         'getLeftAtriumBaseFreewallElementsCounts: elements count out of range: ' + str(elementsCountAroundLeftAtriumFreeWall)
     elementsCountAroundLeftAtriumAorta = 1
     elementsCountAroundLeftAtriumVP = (elementsCountAroundLeftAtriumFreeWall + 1)//2
-    elementsCountAroundLeftArialAppendageBase = elementsCountAroundLeftAtriumFreeWall - elementsCountAroundLeftAtriumVP - elementsCountAroundLeftAtriumAorta
+    elementsCountAroundLeftAtrialAppendageBase = elementsCountAroundLeftAtriumFreeWall - elementsCountAroundLeftAtriumVP - elementsCountAroundLeftAtriumAorta
     elementsCountAroundLeftAtriumRPV = elementsCountAroundLeftAtriumVP//2
     elementsCountAroundLeftAtriumLPV = elementsCountAroundLeftAtriumVP - elementsCountAroundLeftAtriumRPV
-    return elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftArialAppendageBase, \
+    return elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftAtrialAppendageBase, \
         elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV
 
 
@@ -2381,16 +2535,16 @@ def getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeW
     '''
     Get the number of elements in each section of the right atrium free wall.
     :param elementsCountAroundRightAtriumFreeWall: Valid range 6-10.
-    :return: elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightArialAppendageBase,
+    :return: elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase,
         elementsCountAroundRightAtriumAorta
     '''
     assert 6 <= elementsCountAroundRightAtriumFreeWall <= 10, \
         'getRightAtriumBaseFreewallElementsCounts: elements count out of range: ' + str(elementsCountAroundRightAtriumFreeWall)
     elementsCountAroundRightAtriumAorta = 1
     elementsCountAroundRightAtriumPosteriorVenous = elementsCountAroundRightAtriumFreeWall//4
-    elementsCountAroundRightArialAppendageBase = elementsCountAroundRightAtriumFreeWall \
+    elementsCountAroundRightAtrialAppendageBase = elementsCountAroundRightAtriumFreeWall \
         - elementsCountAroundRightAtriumPosteriorVenous - elementsCountAroundRightAtriumAorta
-    return elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightArialAppendageBase, \
+    return elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase, \
         elementsCountAroundRightAtriumAorta
 
 
@@ -2496,9 +2650,9 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     atrialPerimeterLength = getApproximateEllipsePerimeter(aBaseOuterMajorMag, aBaseOuterMinorMag)
     atrialSeptumInnerElementLength = getEllipseArcLength(aBaseInnerMajorMag, aBaseInnerMinorMag, laSeptumPosteriorRadians, laSeptumAnteriorRadians)/elementsCountAroundAtrialSeptum
     atrialSeptumOuterElementLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laSeptumPosteriorRadians, laSeptumAnteriorRadians)/elementsCountAroundAtrialSeptum
-    aSeptumCfbLeftElementLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laSeptumAnteriorRadians, laCfbLeftRadians)
-    aCfbLeftDerivativeLength = 2.0*aSeptumCfbLeftElementLength - atrialSeptumOuterElementLength
-    aRemainingLength = atrialPerimeterLength - aSeptumCfbLeftElementLength - elementsCountAroundAtrialSeptum*atrialSeptumOuterElementLength
+    aSeptumCfbSideElementLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laSeptumAnteriorRadians, laCfbLeftRadians)
+    aCfbSideDerivativeLength = aSeptumCfbSideElementLength  # GRC was 2.0*aSeptumCfbSideElementLength - atrialSeptumOuterElementLength, but too high
+    aRemainingLength = atrialPerimeterLength - aSeptumCfbSideElementLength - elementsCountAroundAtrialSeptum*atrialSeptumOuterElementLength
 
     #testradians = updateEllipseAngleByArcLength(aBaseInnerMajorMag, aBaseInnerMinorMag, laSeptumPosteriorRadians, atrialSeptumInnerElementLength)
     #print('test radians 1', testradians,'vs',laSeptumRadians,'y',laCentreY + ayInner*math.cos(testradians) + byInner*math.sin(testradians), 'vs',aSeptumBaseCentreY)
@@ -2514,7 +2668,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     # this is needed now to sample key points defined relative to the track surface, used to set element size and spacing around
 
     elementsCountAroundLeftAtriumFreeWallFixed = 8
-    ltFreeWallElementLength = (aRemainingLength - 0.5*(atrialSeptumOuterElementLength + aCfbLeftDerivativeLength))/(elementsCountAroundLeftAtriumFreeWallFixed - 2)
+    ltFreeWallElementLength = (aRemainingLength - 0.5*(atrialSeptumOuterElementLength + aCfbSideDerivativeLength))/(elementsCountAroundLeftAtriumFreeWallFixed - 2)
     # first two points are around aorta
     ltBaseOuterx  = [ [ cfbX, cfbY, cfbZ ], [ cfbLeftX, cfbLeftY, cfbLeftZ ] ]
     ltBaseOuterd1 = [ [ -lvOutletDerivativeAround, 0.0, 0.0 ], [ -lvOutletDerivativeAround*cosPi_3, lvOutletDerivativeAround*sinPi_3*cosFrontInclineRadians, -lvOutletDerivativeAround*sinPi_3*sinFrontInclineRadians ]]
@@ -2528,7 +2682,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     backRadians = sideRadians + 0.5*math.pi
     up = [ 0.0, 0.0, 1.0 ]
     for n1 in range(elementsCountAroundLeftAtriumFreeWallFixed - 2):
-        elementLength = 0.5*(aCfbLeftDerivativeLength + ltFreeWallElementLength) if (n1 == 0) else ltFreeWallElementLength
+        elementLength = 0.5*(aCfbSideDerivativeLength + ltFreeWallElementLength) if (n1 == 0) else ltFreeWallElementLength
         radiansAround = updateEllipseAngleByArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, radiansAround, elementLength)
         cosRadiansAround = math.cos(radiansAround)
         sinRadiansAround = math.sin(radiansAround)
@@ -2588,7 +2742,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     #print('raVenousRight', raVenousRight, 'e', e, 'xi', xi, 'x', raVenousPosteriorRightX, 'radians', raVenousPosteriorRightRadians)
 
     # get numbers of elements and lengths of sections of left atrium (outer)
-    elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftArialAppendageBase, elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV = \
+    elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftAtrialAppendageBase, elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV = \
         getLeftAtriumBaseFreewallElementsCounts(elementsCountAroundLeftAtriumFreeWall)
     laaLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laCfbLeftRadians, laaEndRadians)
     laVenousLeftLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laaEndRadians, laVenousMidpointRadians)
@@ -2596,9 +2750,8 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     # = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laVenousMidpointRadians, laSeptumPosteriorRadians + 2.0*math.pi)
 
     # get element lengths/derivatives at edges of each section and transition element sizes between
-    laaEndDerivative = (laaLength - 0.5*aCfbLeftDerivativeLength)/(elementsCountAroundLeftArialAppendageBase - 0.5)
-    laVenousMidpointDerivative = (laVenousRightLength - 0.5*atrialSeptumOuterElementLength)/(elementsCountAroundLeftAtriumRPV - 0.5)
-    laaElementLengths = interp.sampleCubicElementLengths(laaLength, elementsCountAroundLeftArialAppendageBase, startDerivative = aCfbLeftDerivativeLength, endDerivative = laaEndDerivative)
+    laaEndDerivative = laVenousMidpointDerivative = laVenousLeftLength/elementsCountAroundLeftAtriumLPV
+    laaElementLengths = interp.sampleCubicElementLengths(laaLength, elementsCountAroundLeftAtrialAppendageBase, startDerivative = aCfbSideDerivativeLength, endDerivative = laaEndDerivative)
     lvlElementLengths = interp.sampleCubicElementLengths(laVenousLeftLength, elementsCountAroundLeftAtriumLPV, startDerivative = laaEndDerivative, endDerivative = laVenousMidpointDerivative)
     lvrElementLengths = interp.sampleCubicElementLengths(laVenousRightLength, elementsCountAroundLeftAtriumRPV, startDerivative = laVenousMidpointDerivative, endDerivative = atrialSeptumOuterElementLength)
 
@@ -2609,16 +2762,16 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     for n1 in range(elementsCountAroundLeftAtrium):
         laRadians.append(radiansAround)
         if n1 == 0:
-            elementLength = aSeptumCfbLeftElementLength
-        elif n1 < (elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftArialAppendageBase):
+            elementLength = aSeptumCfbSideElementLength
+        elif n1 < (elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftAtrialAppendageBase):
             elementLength = laaElementLengths[n1 - elementsCountAroundLeftAtriumAorta]
-        elif n1 < (elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftArialAppendageBase + elementsCountAroundLeftAtriumLPV):
-            elementLength = lvlElementLengths[n1 - elementsCountAroundLeftAtriumAorta - elementsCountAroundLeftArialAppendageBase]
+        elif n1 < (elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftAtrialAppendageBase + elementsCountAroundLeftAtriumLPV):
+            elementLength = lvlElementLengths[n1 - elementsCountAroundLeftAtriumAorta - elementsCountAroundLeftAtrialAppendageBase]
         elif n1 == (elementsCountAroundLeftAtriumFreeWall - 1):
             radiansAround = laSeptumPosteriorRadians + 2.0*math.pi
             continue
         elif n1 < elementsCountAroundLeftAtriumFreeWall:
-            elementLength = lvrElementLengths[n1 - elementsCountAroundLeftAtriumAorta - elementsCountAroundLeftArialAppendageBase - elementsCountAroundLeftAtriumLPV]
+            elementLength = lvrElementLengths[n1 - elementsCountAroundLeftAtriumAorta - elementsCountAroundLeftAtrialAppendageBase - elementsCountAroundLeftAtriumLPV]
         else:
             radiansAround = updateEllipseAngleByArcLength(aBaseInnerMajorMag, aBaseInnerMinorMag, radiansAround, atrialSeptumInnerElementLength)
             continue
@@ -2629,7 +2782,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
 
     # get numbers of elements and lengths of sections of right atrium (outer)
 
-    elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightArialAppendageBase, elementsCountAroundRightAtriumAorta = \
+    elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase, elementsCountAroundRightAtriumAorta = \
         getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeWall)
     raaLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laCfbLeftRadians, raVenousPosteriorRightRadians)
     raPosteriorVenousLength = aRemainingLength - raaLength
@@ -2637,7 +2790,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
 
     # get element lengths/derivatives at edges of each section and transition element sizes between
     raPosteriorVenousLimitDerivative = (raPosteriorVenousLength - 0.5*atrialSeptumOuterElementLength)/(elementsCountAroundRightAtriumPosteriorVenous - 0.5)
-    raaElementLengths = interp.sampleCubicElementLengths(raaLength, elementsCountAroundRightArialAppendageBase, startDerivative = aCfbLeftDerivativeLength, endDerivative = raPosteriorVenousLimitDerivative)
+    raaElementLengths = interp.sampleCubicElementLengths(raaLength, elementsCountAroundRightAtrialAppendageBase, startDerivative = aCfbSideDerivativeLength, endDerivative = raPosteriorVenousLimitDerivative)
     ravElementLengths = interp.sampleCubicElementLengths(raPosteriorVenousLength, elementsCountAroundRightAtriumPosteriorVenous, startDerivative = raPosteriorVenousLimitDerivative, endDerivative = atrialSeptumOuterElementLength)
 
     # get radians of nodes around right atrium (computed on left and mirrored at the end), starting at cfb
@@ -2647,14 +2800,14 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     for n1 in range(elementsCountAroundRightAtrium):
         raRadians.append(radiansAround)
         if n1 == 0:
-            elementLength = aSeptumCfbLeftElementLength
-        elif n1 < (elementsCountAroundRightAtriumAorta + elementsCountAroundRightArialAppendageBase):
+            elementLength = aSeptumCfbSideElementLength
+        elif n1 < (elementsCountAroundRightAtriumAorta + elementsCountAroundRightAtrialAppendageBase):
             elementLength = raaElementLengths[n1 - elementsCountAroundRightAtriumAorta]
         elif n1 == (elementsCountAroundRightAtriumFreeWall - 1):
             radiansAround = laSeptumPosteriorRadians + 2.0*math.pi
             continue
         elif n1 < elementsCountAroundRightAtriumFreeWall:
-            elementLength = ravElementLengths[n1 - elementsCountAroundRightAtriumAorta - elementsCountAroundRightArialAppendageBase]
+            elementLength = ravElementLengths[n1 - elementsCountAroundRightAtriumAorta - elementsCountAroundRightAtrialAppendageBase]
         else:
             radiansAround = updateEllipseAngleByArcLength(aBaseInnerMajorMag, aBaseInnerMinorMag, radiansAround, atrialSeptumInnerElementLength)
             continue
@@ -2864,3 +3017,78 @@ def getAtriumTrackSurface(elementsCountAroundTrackSurface, elementsCountAcrossTr
             nd2[n] = sd2[n2]
 
     return TrackSurface(elementsCountAcrossTrackSurface, elementsCountAlongTrackSurface, nx, nd1, nd2)
+
+
+def getAtrialAppendageWedgePoints(basex, based1, based2, based3, angle1radians, angle2radians, baseLength,
+        elementsCountAroundAppendage, elementsCountRadial, arcLength, arcRadius, wallThickness, wedgeAngleRadians):
+    '''
+    Get points on wedge midline at end of atrial appendage.
+    :param basex, based1, based2, based3: Base point on atrium to project from.
+    :param angle1radians, angle2radians: Rotation of direction toward d1, d2.
+    :param baseLength: Distance to project out from base.
+    :param elementsCountAcrossWedge: Elements around arc, one less than numbers of points out.
+    :param elementsCountAlongAppendage: Number of radial elements along appendage, used to
+    determine end derivatives.
+    :param arcLength: Length of outer arc around atrial appendage wedge.
+    :param arcRadius: Radius of outer arc. Must be < pi
+    :param wallThickness: Atrial appendage wall thickness
+    :param wedgeAngleRadians: Angle from base to top at end of wedge.
+    :return: aawx[n3][n1], aawd1[n3][n1], aawd2[n3][n1], aawd3[n3][n1], 
+        elementsCountAcrossWedge, wedgePointsMap, wedgeDerivativesMap.
+    where:
+        n3 is range 2 inner, outer; n1 is 0-elementsCountAcrossWedge
+        wedgePointsMap maps points count around appendage --> node index across wedge
+        derivativesMap is for passing to createAnnulusMesh3d.
+    n is number of points around arc.
+    '''
+    elementsCountAcrossWedge = (elementsCountAroundAppendage - 4)//2
+    # wedge centre:
+    wcx, wd1, wd2, wd3 = getCircleProjectionAxes(basex, based1, based2, based3, angle1radians, angle2radians, baseLength)
+    # arc centre:
+    acx = [ (wcx[c] - arcRadius*wd3[c]) for c in range(3) ]
+    wedgeLength = wallThickness/math.tan(0.5*wedgeAngleRadians)
+    cosHalfWedgeAngleRadians = math.cos(0.5*wedgeAngleRadians)
+    sinHalfWedgeAngleRadians = math.sin(0.5*wedgeAngleRadians)
+    aawx  = [ [], [] ]
+    aawd1 = [ [], [] ]
+    aawd2 = [ [], [] ]
+    aawd3 = [ [], [] ]
+    arcRadians = arcLength/arcRadius
+    elementLengthOuterRadial = baseLength/elementsCountRadial
+    for n2 in range(2):
+        if n2 == 0:
+            radius = arcRadius - wedgeLength
+            derivativeMag = elementLengthOuterRadial - wedgeLength
+        else:
+            radius = arcRadius
+            derivativeMag = elementLengthOuterRadial
+        elementLengthArc = (arcLength/elementsCountAcrossWedge)*(radius/arcRadius)
+        for n1 in range(0, elementsCountAcrossWedge + 1):
+            angleRadians = arcRadians*(n1/elementsCountAcrossWedge - 0.5)
+            cosAngleRadians = math.cos(angleRadians)
+            sinAngleRadians = math.sin(angleRadians)
+            x  = [ (acx[c] + radius*(cosAngleRadians*wd3[c] + sinAngleRadians*wd1[c])) for c in range(3) ]
+            d1 = [ elementLengthArc*(cosAngleRadians*wd1[c] - sinAngleRadians*wd3[c]) for c in range(3) ]
+            d2 = [ derivativeMag*( cosHalfWedgeAngleRadians*(-sinAngleRadians*wd1[c] - cosAngleRadians*wd3[c]) + sinHalfWedgeAngleRadians*wd2[c]) for c in range(3) ]
+            d3 = [ derivativeMag*(-cosHalfWedgeAngleRadians*(-sinAngleRadians*wd1[c] - cosAngleRadians*wd3[c]) + sinHalfWedgeAngleRadians*wd2[c]) for c in range(3) ]
+            #d3 = [ derivativeMag*(cosAngleRadians*wd3[c] + sinAngleRadians*wd1[c]) for c in range(3) ]  # flat d3, if using full WedgeAngleRadians
+            aawx [n2].append(x )
+            aawd1[n2].append(d1)
+            aawd2[n2].append(d2)
+            aawd3[n2].append(d3)
+
+    wedgePointsMap = [ 0 ]*3 + list(range(1, elementsCountAcrossWedge)) + [ elementsCountAcrossWedge ]*3 + list(range(elementsCountAcrossWedge - 1, 0, -1))
+    wedgeDerivativesMap = ( [ ( ( -1,  0,  0 ), (  0, -1,  0 ), None, (  0,  0,  0 ) ),
+                              ( (  0,  0,  0 ), ( +1,  0,  0 ), None, (  0,  0,  0 ) ),  # inside corner, collapsed
+                              ( (  0,  0,  0 ), (  0,  0, +1 ), None, None         ) ]
+                          + [ ( None          , (  0,  0, +1 ), None ) ]*(elementsCountAcrossWedge - 1)  # bottom
+                          + [ ( None          , (  0,  0, +1 ), None, (  0,  0,  0 ) ),
+                              ( (  0,  0,  0 ), ( -1,  0,  0 ), None, (  0,  0,  0 ) ),  # inside corner, collapsed
+                              ( (  0,  0,  0 ), (  0, -1,  0 ), None, ( -1,  0,  0 ) ) ]
+                          + [ ( ( -1,  0,  0 ), (  0, -1,  0 ), None ) ]*(elementsCountAcrossWedge - 1) )  # top
+    if (elementsCountAroundAppendage%2) == 1:
+        wedgePointsMap.insert(1, 0)
+        wedgeDerivativesMap.insert(1, wedgeDerivativesMap[1])
+    #print('wedgePointsMap',wedgePointsMap)
+    #print('wedgeDerivativesMap',wedgeDerivativesMap)
+    return aawx, aawd1, aawd2, aawd3, elementsCountAcrossWedge, wedgePointsMap, [ wedgeDerivativesMap, wedgeDerivativesMap ]

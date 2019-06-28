@@ -154,10 +154,14 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                     # average with d1 map for other side
                     derivativesMap = startDerivativesMap[n3][n1][3]
                     ad1 = [ 0.5*d for d in ad1 ]
-                    for ds in range(startPointsdslimit):
-                        if derivativesMap[ds] != 0.0:
-                            for c in range(3):
-                                ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+                    if not derivativesMap:
+                        for c in range(3):
+                            bd1[c] += 0.5*startPointsd[0][n3][n1][c]
+                    else:
+                        for ds in range(startPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
             if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][1] is None):
                 ad2 = startPointsd2[n3][n1]
             else:
@@ -182,10 +186,14 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                     # average with d1 map for other side
                     derivativesMap = endDerivativesMap[n3][n1][3]
                     bd1 = [ 0.5*d for d in bd1 ]
-                    for ds in range(endPointsdslimit):
-                        if derivativesMap[ds] != 0.0:
-                            for c in range(3):
-                                bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+                    if not derivativesMap:
+                        for c in range(3):
+                            bd1[c] += 0.5*endPointsd[0][n3][n1][c]
+                    else:
+                        for ds in range(endPointsdslimit):
+                            if derivativesMap[ds] != 0.0:
+                                for c in range(3):
+                                    bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
             if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][1] is None):
                 bd2 = endPointsd2[n3][n1]
             else:
