@@ -82,8 +82,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Atrial base wall thickness'] = 0.07
         options['Atrial base slope degrees'] = 30.0
         options['Left atrial appendage left'] = 0.9
+        options['Left atrium venous midpoint left'] = 0.55
         options['Right atrium venous right'] = 0.4
-        options['Left atrium venous midpoint posterior left'] = 0.55
+        options['Right atrial appendage pouch right'] = 0.9
         if 'Human' in parameterSetName:
             pass
         elif 'Mouse' in parameterSetName:
@@ -123,9 +124,10 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             'Atrial septum thickness',
             'Atrial base wall thickness',
             'Atrial base slope degrees',
+            'Left atrium venous midpoint left',
+            'Right atrium venous right',
             'Left atrial appendage left',
-            'Left atrium venous midpoint posterior left',
-            'Right atrium venous right']
+            'Right atrial appendage pouch right']
         # want refinement options last
         for optionName in [
             'Refine',
@@ -191,13 +193,19 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         elif options['Atria major axis rotation degrees'] > 75.0:
             options['Atria major axis rotation degrees'] = 75.0
         for key in [
-            'Left atrial appendage left',
-            'Left atrium venous midpoint posterior left',
-            'Right atrium venous right']:
-            if options[key] < 0.001:
-                options[key] = 0.001
-            elif options[key] > 0.999:
-                options[key] = 0.999
+            'Left atrium venous midpoint left',
+            'Right atrium venous right',
+            'Left atrial appendage left']:
+            if options[key] < 0.0:
+                options[key] = 0.0
+            elif options[key] > 1.0:
+                options[key] = 1.0
+        for key in [
+            'Right atrial appendage pouch right']:
+            if options[key] < 0.0:
+                options[key] = 0.0
+            elif options[key] > 2.0:
+                options[key] = 2.0
         return dependentChanges
 
     @classmethod
@@ -231,9 +239,10 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         aSeptumThickness = unitScale*options['Atrial septum thickness']
         aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
-        laaLeft = options['Left atrial appendage left']
-        laVenousMidpointPosteriorLeft = options['Left atrium venous midpoint posterior left']
+        laVenousMidpointLeft = options['Left atrium venous midpoint left']
         raVenousRight = options['Right atrium venous right']
+        laaLeft = options['Left atrial appendage left']
+        raaPouchRight = options['Right atrial appendage pouch right']
         # new:
         baseHeight = unitScale*options['Base height']
         baseThickness = unitScale*options['Base thickness']
@@ -421,7 +430,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumLength, aSeptumThickness,
                 aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians,
-                laaLeft, laVenousMidpointPosteriorLeft, raVenousRight, elementsCountAroundTrackSurface)
+                laaLeft, laVenousMidpointLeft, raVenousRight, raaPouchRight, elementsCountAroundTrackSurface)
         laCentre[2] -= (aBaseSlopeHeight + fibrousRingThickness)
 
         # displace to get points on bottom av fibrous ring

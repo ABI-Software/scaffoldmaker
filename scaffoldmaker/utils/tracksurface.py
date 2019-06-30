@@ -84,7 +84,7 @@ class TrackSurface:
         From a position on this track surface, return proportions.
         :return: proportion1, proportion2
         '''
-        return (position.e1 + position.xi1)/self.elementsCount1, (position.e2 + position.xi2)/self.elementsCount2
+        return [ (position.e1 + position.xi1)/self.elementsCount1, (position.e2 + position.xi2)/self.elementsCount2 ]
 
     def evaluateCoordinates(self, position, derivatives = False):
         '''

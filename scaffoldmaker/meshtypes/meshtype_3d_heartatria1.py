@@ -182,6 +182,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Atrial base front incline degrees'] = 15.0
         options['Atrial base back incline degrees'] = 20.0
         options['Atrial base side incline degrees'] = 20.0
+        options['Atrium venous anterior over'] = 0.7
+        options['Atrium venous midpoint over'] = 0.41
+        options['Left atrium venous midpoint left'] = 0.55
+        options['Right atrium venous right'] = 0.4
         options['Left atrial appendage angle left degrees'] = 0.0
         options['Left atrial appendage angle up degrees'] = -50.0
         options['Left atrial appendage arc length'] = 0.3
@@ -190,21 +194,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Left atrial appendage left'] = 0.9
         options['Left atrial appendage midpoint left'] = 0.5
         options['Left atrial appendage midpoint over'] = 0.95
-        options['Left atrial appendage wall thickness'] = 0.03
+        options['Left atrial appendage wall thickness'] = 0.025
         options['Left atrial appendage wedge angle degrees'] = 90.0
-        options['Left atrium venous anterior over'] = 0.7
-        options['Left atrium venous midpoint posterior left'] = 0.5
-        options['Right atrial appendage angle right degrees'] = 30.0
+        options['Right atrial appendage angle right degrees'] = 10.0
         options['Right atrial appendage angle up degrees'] = 0.0
-        options['Right atrial appendage arc length'] = 0.6
-        options['Right atrial appendage arc radius'] = 0.3
+        options['Right atrial appendage arc length'] = 0.5
+        options['Right atrial appendage arc radius'] = 0.2
         options['Right atrial appendage base length'] = 0.3
         options['Right atrial appendage midpoint right'] = 0.5
         options['Right atrial appendage midpoint over'] = 0.95
-        options['Right atrial appendage wall thickness'] = 0.03
+        options['Right atrial appendage pouch right'] = 0.9
+        options['Right atrial appendage wall thickness'] = 0.025
         options['Right atrial appendage wedge angle degrees'] = 90.0
-        options['Right atrium venous midpoint over'] = 0.41
-        options['Right atrium venous right'] = 0.4
         options['Left pulmonary vein ostium'] = copy.deepcopy(lpvOstium)
         options['Left pulmonary vein ostium angle degrees'] = 60.0
         options['Left pulmonary vein ostium position left'] = 0.64
@@ -302,6 +303,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Atrial base front incline degrees',
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
+            'Atrium venous anterior over',
+            'Atrium venous midpoint over',
+            'Left atrium venous midpoint left',
+            'Right atrium venous right',
             'Left atrial appendage angle left degrees',
             'Left atrial appendage angle up degrees',
             'Left atrial appendage arc length',
@@ -312,8 +317,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Left atrial appendage midpoint over',
             'Left atrial appendage wall thickness',
             'Left atrial appendage wedge angle degrees',
-            'Left atrium venous anterior over',
-            'Left atrium venous midpoint posterior left',
             'Right atrial appendage angle right degrees',
             'Right atrial appendage angle up degrees',
             'Right atrial appendage arc length',
@@ -321,10 +324,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Right atrial appendage base length',
             'Right atrial appendage midpoint right',
             'Right atrial appendage midpoint over',
+            'Right atrial appendage pouch right',
             'Right atrial appendage wall thickness',
             'Right atrial appendage wedge angle degrees',
-            'Right atrium venous midpoint over',
-            'Right atrium venous right',
             'Left pulmonary vein ostium',
             'Left pulmonary vein ostium angle degrees',
             'Left pulmonary vein ostium position left',
@@ -445,15 +447,15 @@ class MeshType_3d_heartatria1(Scaffold_base):
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
+            'Atrium venous anterior over',
+            'Atrium venous midpoint over',
+            'Left atrium venous midpoint left',
+            'Right atrium venous right',
             'Left atrial appendage left',
             'Left atrial appendage midpoint left',
             'Left atrial appendage midpoint over',
             'Right atrial appendage midpoint right',
             'Right atrial appendage midpoint over',
-            'Left atrium venous anterior over',
-            'Left atrium venous midpoint posterior left',
-            'Right atrium venous midpoint over',
-            'Right atrium venous right',
             'Left pulmonary vein ostium position left',
             'Left pulmonary vein ostium position over',
             'Right pulmonary vein ostium position left',
@@ -462,10 +464,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Inferior vena cava inlet position right',
             'Superior vena cava inlet position over',
             'Superior vena cava inlet position right']:
-            if options[key] < 0.001:
-                options[key] = 0.001
-            elif options[key] > 0.999:
-                options[key] = 0.999
+            if options[key] < 0.0:
+                options[key] = 0.0
+            elif options[key] > 1.0:
+                options[key] = 1.0
+        for key in [
+            'Right atrial appendage pouch right']:
+            if options[key] < 0.0:
+                options[key] = 0.0
+            elif options[key] > 2.0:
+                options[key] = 2.0
         if options['Aorta outer plus diameter'] < options['Atrial septum thickness']:
             options['Aorta outer plus diameter'] = options['Atrial septum thickness']
         for key in [
@@ -533,6 +541,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cristaTerminalisThickness = unitScale*options['Crista terminalis thickness']
         aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
+        aVenousAnteriorOver = options['Atrium venous anterior over']
+        aVenousMidpointOver = options['Atrium venous midpoint over']
+        laVenousMidpointLeft = options['Left atrium venous midpoint left']
+        raVenousRight = options['Right atrium venous right']
         laaAngleLeftRadians = math.radians(options['Left atrial appendage angle left degrees'])
         laaAngleUpradians = math.radians(options['Left atrial appendage angle up degrees'])
         laaArcLength = unitScale*options['Left atrial appendage arc length']
@@ -550,12 +562,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raaBaseLength = unitScale*options['Right atrial appendage base length']
         raaMidpointRight = options['Right atrial appendage midpoint right']
         raaMidpointOver = options['Right atrial appendage midpoint over']
+        raaPouchRight = options['Right atrial appendage pouch right']
         raaWallThickness = unitScale*options['Right atrial appendage wall thickness']
         raaWedgeAngleRadians = math.radians(options['Right atrial appendage wedge angle degrees'])
-        laVenousLimitAnterior = options['Left atrium venous anterior over']
-        laVenousMidpointPosteriorLeft = options['Left atrium venous midpoint posterior left']
-        raVenousRight = options['Right atrium venous right']
-        raVenousMidpointOver = options['Right atrium venous midpoint over']
         lpvOstium = options['Left pulmonary vein ostium']
         lpvOstiumAngleRadians = math.radians(options['Left pulmonary vein ostium angle degrees'])
         lpvOstiumPositionLeft = options['Left pulmonary vein ostium position left']
@@ -650,7 +659,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             = getOverAtriaElementsCounts(elementsCountOverAtria)
         elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftAtrialAppendageBase, elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV \
             = getLeftAtriumBaseFreewallElementsCounts(elementsCountAroundLeftAtriumFreeWall)
-        elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase, elementsCountAroundRightAtriumAorta \
+        elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendagePlainBase, \
+            elementsCountAroundRightAtrialAppendagePouchBase, elementsCountAroundRightAtriumAorta \
             = getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeWall)
         elementsCountAroundRpvOstium = 2*(elementsCountOverLeftAtriumVenous + elementsCountAroundLeftAtriumRPV)
         elementsCountOverSideLeftAtriumLPV = elementsCountAroundLeftAtriumLPV
@@ -672,7 +682,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
                 aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumLength, aSeptumThickness,
                 aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians,
-                laaLeft, laVenousMidpointPosteriorLeft, raVenousRight, elementsCountAroundTrackSurface)
+                laaLeft, laVenousMidpointLeft, raVenousRight, raaPouchRight, elementsCountAroundTrackSurface)
 
         laTrackSurface = getAtriumTrackSurface(elementsCountAroundTrackSurface, elementsCountAcrossTrackSurface,
             ltBaseOuterx, ltBaseOuterd1, ltBaseOuterd2, aSeptumBaseCentre, aOuterHeight, aOuterSeptumHeight, iaGrooveDerivative)
@@ -745,11 +755,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
         agx  = [ labx [1][0] ]
         agd1 = [ labd1[1][0] ]
         agd2 = [ labd2[1][0] ]  # rescale later
-        # add lengths over groove from anterior to posterior, intersecting laVenousLimitAnterior, raVenousMidpointOver, lagcsProportion
-        ragProportionLengths1 = interp.sampleCubicElementLengths(1.0 - laVenousLimitAnterior, elementsCountOverLeftAtriumNonVenousAnterior)
-        ragProportionLengths2 = interp.sampleCubicElementLengths(laVenousLimitAnterior - raVenousMidpointOver, elementsCountOverLeftAtriumVenous//2, \
+        # add lengths over groove from anterior to posterior, intersecting aVenousAnteriorOver, aVenousMidpointOver, lagcsProportion
+        ragProportionLengths1 = interp.sampleCubicElementLengths(1.0 - aVenousAnteriorOver, elementsCountOverLeftAtriumNonVenousAnterior)
+        ragProportionLengths2 = interp.sampleCubicElementLengths(aVenousAnteriorOver - aVenousMidpointOver, elementsCountOverLeftAtriumVenous//2, \
             startDerivative = ragProportionLengths1[-1], endDerivative = agMidpointDerivative)
-        ragProportionLengths3 = interp.sampleCubicElementLengths(raVenousMidpointOver - lagcsProportion, \
+        ragProportionLengths3 = interp.sampleCubicElementLengths(aVenousMidpointOver - lagcsProportion, \
             elementsCountOverLeftAtriumVenous//2 + elementsCountOverLeftAtriumNonVenousPosterior - elementsCountOverAtriaCoronarySinus, \
             startDerivative = ragProportionLengths2[-1], endDerivative = lagcsProportion)
         ragProportionLengths = ragProportionLengths1 + ragProportionLengths2 + ragProportionLengths3 + [ lagcsProportion ]
@@ -945,7 +955,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lan1Aorta = elementsCountAroundLeftAtriumAorta
         lan1Mid = elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftAtrialAppendageBase
         lan1MidVenous = lan1Mid + elementsCountAroundLeftAtriumLPV
-        lacsProportions = [ [ 1.0, 0.0 ] ]
+        lacsProportions = [ [ 1.0 - ragProportions[1], 0.0 ] ]
         laApexx = laTrackSurface.nx[-1]
         for n1 in range(1, elementsCountAroundLeftAtriumFreeWall):
             # find position on laTrackSurface corresponding to base outer node
@@ -969,7 +979,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             direction = [ 0.0, 0.0, 1.0 ] if onAorta else vector.normalise(labd2[1][n1])
             trackDistance1 = aoHeight1 if onAorta else coronarySinusHeight
             position = laTrackSurface.trackVector(startPosition, direction, trackDistance1)
-            lacsProportions.append([ (position.e1 + position.xi1)/laTrackSurface.elementsCount1, (position.e2 + position.xi2)/laTrackSurface.elementsCount2 ])
+            lacsProportions.append(laTrackSurface.getProportion(position))
             x, d1, d2 = laTrackSurface.evaluateCoordinates(position, derivatives = True)
             ax1, ax2, ax3 = calculate_surface_axes(d1, d2, direction)
             lacsx .append(x)
@@ -983,7 +993,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lacsd1.append(agd1[-2])
         lacsd2.append(agd2[-2])
         lacsd3.append(agd3[-2])
-        lacsProportions.append([ 0.0, 0.0 ])
+        lacsProportions.append( [ 1.0 - ragProportions[-2], 0.0 ] )
         lacsd1 = interp.smoothCubicHermiteDerivativesLine(lacsx, lacsd1, fixAllDirections = True, fixStartDerivative = True, fixEndDerivative = True)
         # get inner points
         lacsx  = [ [agx [0]], lacsx  ]
@@ -1012,7 +1022,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         racsd1 = [ agd1[-2] ]
         racsd2 = [ agd2[-2] ]
         racsd3 = [ agd3[-2] ]
-        racsProportions = [ [ 1.0, 0.0 ] ]
+        racsProportions = [ [ ragProportions[-2], 0.0 ] ]
+        rabProportions = [ [ 1.0, 0.0 ] ]
         ran1Ctp = elementsCountAroundRightAtriumPosteriorVenous
         ran1Aorta = elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtriumAorta
         raApexx = raTrackSurface.nx[-1]
@@ -1029,11 +1040,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
             else:
                 startProportion1 = (elementsCountAroundRightAtriumFreeWall - n1)/elementsCountAroundRightAtriumFreeWall
                 startPosition = raTrackSurface.findNearestPosition(rabx[1][n1], raTrackSurface.createPositionProportion(startProportion1, 0.5))
+            rabProportions.append(raTrackSurface.getProportion(startPosition))
             onAorta = n1 == (elementsCountAroundRightAtriumFreeWall - 1)
             direction = [ 0.0, 0.0, 1.0 ] if onAorta else vector.normalise(rabd2[1][n1])
             trackDistance1 = aoHeight1 if onAorta else coronarySinusHeight
             position = raTrackSurface.trackVector(startPosition, direction, trackDistance1)
-            racsProportions.append([ (position.e1 + position.xi1)/raTrackSurface.elementsCount1, (position.e2 + position.xi2)/raTrackSurface.elementsCount2 ])
+            racsProportions.append(raTrackSurface.getProportion(position))
             x, d1, d2 = raTrackSurface.evaluateCoordinates(position, derivatives = True)
             ax1, ax2, ax3 = calculate_surface_axes(d1, d2, direction)
             racsx .append(x)
@@ -1047,15 +1059,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
         racsd1.append(agd1[1])
         racsd2.append(agd2[1])
         racsd3.append(agd3[1])
-        lacsProportions.append([ 0.0, 0.0 ])
-        racsd1 = interp.smoothCubicHermiteDerivativesLine(racsx, racsd1, fixAllDirections = True, fixStartDerivative = True, fixEndDerivative = True)
+        racsProportions.append([ ragProportions[1], 0.0 ])
+        rabProportions.append([ 0.0, 0.0 ])
         # get inner points
         racsx  = [ [agx [-1]], racsx  ]
         racsd1 = [ [agd1[-1]], racsd1 ]
         racsd2 = [ [agd2[-1]], racsd2 ]
         racsd3 = [ [agd3[-1]], racsd3 ]
         for n1 in range(1, elementsCountAroundRightAtriumFreeWall):
-            x, d1, _, d3 = interp.projectHermiteCurvesThroughWall(racsx[1], racsd1[1], racsd2[1], n1, -raVenousFreeWallThickness)
+            x, d1, _, d3 = interp.projectHermiteCurvesThroughWall(racsx[1], racsd1[1], racsd2[1], n1,
+                -(raVenousFreeWallThickness if (n1 < elementsCountAroundRightAtriumPosteriorVenous) else raaWallThickness))
             # do same upwards to get proper value of d2
             nx  = [ rabx [1][n1], racsx [1][n1] ]
             nd1 = [ rabd1[1][n1], racsd1[1][n1] ]
@@ -1123,7 +1136,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lavbd2 = [ agd2[agn1va] ]
         lavbd3 = [ agd3[agn1va] ]
         lavbd2inner = [ None ]
-        lavbProportions = [ [ laVenousLimitAnterior, 0.0 ] ]
+        lavbProportions = [ [ aVenousAnteriorOver, 0.0 ] ]
         for n1 in range(1, elementsCountAroundLeftAtriumRPV + 1):
             n1rpv = -elementsCountOverLeftAtriumVenous//2 - n1
             rpvoProportion1, rpvoProportion2 = laTrackSurface.getProportion(rpvoPositions[n1rpv])
@@ -1322,8 +1335,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             lamld3[n3][-1] = lavqd3[n3][elementsCountAroundLeftAtriumRPV]
 
         # get points on right atrium along crista terminalis from aorta to posterior venous limit
-        xi = (1.0 - raVenousMidpointOver - racsProportions[ran1Aorta][0])/(racsProportions[ran1Ctp][0] - racsProportions[ran1Aorta][0])
-        rctmpProportion1 = 1.0 - raVenousMidpointOver
+        xi = (1.0 - aVenousMidpointOver - racsProportions[ran1Aorta][0])/(racsProportions[ran1Ctp][0] - racsProportions[ran1Aorta][0])
+        rctmpProportion1 = 1.0 - aVenousMidpointOver
         rctmpProportion2 = raVenousRight  # GRC was (failing) (1.0 - xi)*racsProportions[ran1Aorta][1] + xi*racsProportions[ran1Ctp][1]
         elementsCountOverCristaTerminalisAnterior = elementsCountOverRightAtriumVenous//2 + 1
         elementsCountOverCristaTerminalisPosterior = elementsCountOverRightAtriumVenous//2
@@ -1382,7 +1395,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elementsCountOverSideRightAtriumVC = max(elementsCountAroundRightAtriumPosteriorVenous, 2)
         ravmx, ravmd1, ravmd2, ravmd3 = raTrackSurface.createHermiteCurvePoints(
             ractProportions[elementsCountOverCristaTerminalisAnterior][0], ractProportions[elementsCountOverCristaTerminalisAnterior][1],
-            1.0 - raVenousMidpointOver, 0.0,
+            1.0 - aVenousMidpointOver, 0.0,
             elementsCount = elementsCountOverSideRightAtriumVC,
             derivativeStart = ractd1[1][elementsCountOverCristaTerminalisAnterior],
             derivativeEnd = agd1[agn1Mid])[0:4]
@@ -1416,6 +1429,102 @@ class MeshType_3d_heartatria1(Scaffold_base):
         ravmd1[1][-1]  = agd1[agn1Mid]
         ravmd2[1][-1]  = agd2[agn1Mid]
         ravmd3[1][-1]  = agd3[agn1Mid]
+
+        # get points over right atrial appendage from anterior end of crista terminalis to end of pouch on 'coronary sinus'
+        assert elementsCountAroundRightAtrialAppendagePlainBase == 2
+        elementsCountOverSideRightAtriumPouch = elementsCountOverAtria//2 + elementsCountOverCristaTerminalisAnterior - 3
+        ran1raap = ran1Ctp + elementsCountAroundRightAtrialAppendagePlainBase
+        nc = 2
+        raapx, raapd1, raapd2, raapd3, raapProportions = raTrackSurface.createHermiteCurvePoints(
+            ractProportions[nc][0], ractProportions[nc][1],
+            racsProportions[ran1raap][0], racsProportions[ran1raap][1],
+            elementsCount = elementsCountOverSideRightAtriumPouch,
+            derivativeStart = [ (ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
+            derivativeEnd = [ -d for d in racsd2[1][ran1raap] ])
+        # get inner points
+        raapx  = [ [ None ], raapx  ]
+        raapd1 = [ [ None ], raapd1 ]
+        raapd2 = [ [ None ], raapd2 ]
+        raapd3 = [ [ None ], raapd3 ]
+        for n in range(1, len(raapx[1])):
+            x, d1, d2, d3 = interp.projectHermiteCurvesThroughWall(raapx[1], raapd1[1], raapd2[1], n, -raaWallThickness)
+            raapx [0].append(x)
+            raapd1[0].append(d1)
+            raapd2[0].append(d2)
+            raapd3[0].append(d3)
+            raapd3[1][n] = d3
+        # substitute known end coordinates
+        for n3 in range(2):
+            raapx [n3][ 0]  = ractx [n3][nc]
+            raapd1[n3][ 0]  = ractd1[n3][nc]
+            raapd2[n3][ 0]  = ractd2[n3][nc]
+            raapd3[n3][ 0]  = ractd3[n3][nc]
+            raapx [n3][-1]  = racsx [n3][ran1raap]
+            raapd1[n3][-1]  = racsd1[n3][ran1raap]
+            raapd2[n3][-1]  = racsd2[n3][ran1raap]
+            raapd3[n3][-1]  = racsd3[n3][ran1raap]
+        # get second row between raap and crista terminalis: raaq
+        ran1raaq = ran1Ctp + elementsCountAroundRightAtrialAppendagePlainBase - 1
+        nc = 2
+        raaqx, raaqd1, raaqd2, raaqd3, raaqProportions = raTrackSurface.createHermiteCurvePoints(
+            ractProportions[nc][0], ractProportions[nc][1],
+            racsProportions[ran1raaq][0], racsProportions[ran1raaq][1],
+            elementsCount = elementsCountOverAtria//2 + elementsCountOverCristaTerminalisAnterior - 3,
+            derivativeStart = [ (ractd2[1][nc][c] - 0.5*ractd1[1][nc][c]) for c in range(3) ],
+            derivativeEnd = [ -d for d in racsd2[1][ran1raaq] ])
+        # get inner points
+        raaqx  = [ [ None ], raaqx  ]
+        raaqd1 = [ [ None ], raaqd1 ]
+        raaqd2 = [ [ None ], raaqd2 ]
+        raaqd3 = [ [ None ], raaqd3 ]
+        for n in range(1, len(raaqx[1])):
+            x, d1, d2, d3 = interp.projectHermiteCurvesThroughWall(raaqx[1], raaqd1[1], raaqd2[1], n, -raaWallThickness)
+            raaqx [0].append(x)
+            raaqd1[0].append(d1)
+            raaqd2[0].append(d2)
+            raaqd3[0].append(d3)
+            raaqd3[1][n] = d3
+        # substitute known end coordinates
+        for n3 in range(2):
+            raaqx [n3][ 0]  = ractx [n3][nc]
+            raaqd1[n3][ 0]  = ractd1[n3][nc]
+            raaqd2[n3][ 0]  = ractd2[n3][nc]
+            raaqd3[n3][ 0]  = ractd3[n3][nc]
+            raaqx [n3][-1]  = racsx [n3][ran1raaq]
+            raaqd1[n3][-1]  = racsd1[n3][ran1raaq]
+            raaqd2[n3][-1]  = racsd2[n3][ran1raaq]
+            raaqd3[n3][-1]  = racsd3[n3][ran1raaq]
+        # smooth d2 between raap and raaq
+        for n1 in range(2, len(raapx[1]) - 1):
+            nx  = [ raaqx [1][n1], raapx [1][n1] ]
+            nd1 = [ raaqd2[1][n1], raapd2[1][n1] ]
+            nd2 = [ [ -d for d in d1 ] for d1 in [ raaqd1[1][n1], raapd1[1][n1] ] ]
+            raaqd2[1][n1], raapd2[1][n1] = nd1 = interp.smoothCubicHermiteDerivativesLine(nx, nd1, fixAllDirections = True)
+            # get inner derivatives
+            _, raaqd2[0][n1], _, _ = interp.projectHermiteCurvesThroughWall(nx, nd1, nd2, 0, -raaWallThickness)
+            _, raapd2[0][n1], _, _ = interp.projectHermiteCurvesThroughWall(nx, nd1, nd2, 1, -raaWallThickness)
+        # make point in centre of triangle at top of raaq, for 3 quad element junction
+        raaqProportions[1] = [ (ractProportions[nc + 1][i] + raapProportions[1][i] + raaqProportions[2][i])/3.0 for i in range(2) ]
+        position = raTrackSurface.createPositionProportion(raaqProportions[1][0], raaqProportions[1][1])
+        raaqx[1][1], d1, d2 = raTrackSurface.evaluateCoordinates(position, derivatives = True)
+        # calculate derivative 1 there to fit nearest point on raaq
+        raaqd1[1][1] = interp.interpolateLagrangeHermiteDerivative(raaqx[1][1], raaqx[1][2], raaqd1[1][2], 0.0)
+        raaqd1[1][1] = vector.setMagnitude(calculate_surface_axes(d1, d2, raaqd1[1][1])[0], vector.magnitude(raaqd1[1][1]))
+        raaqd1[1][1] = interp.smoothCubicHermiteDerivativesLine(raaqx[1][1:3], raaqd1[1][1:3], fixAllDirections = True, fixEndDerivative = True)[0]
+        # calculate derivative 2 there and on nearest point on raap
+        # raapd2[1][1] magnitude needs to be set to fit distance between nodes:
+        d2mag = math.sqrt(sum((raapx[1][1][c] - raaqx[1][1][c])*(raapx[1][1][c] - raaqx[1][1][c]) for c in range(3)))
+        raaqd2[1][1] = interp.interpolateLagrangeHermiteDerivative(raaqx[1][1], raapx[1][1], vector.setMagnitude(raapd2[1][1], d2mag), 0.0)  
+        raaqd2[1][1] = vector.setMagnitude(calculate_surface_axes(d1, d2, raaqd2[1][1])[0], vector.magnitude(raaqd2[1][1]))
+        raaqd2[1][1], raapd2[1][1] = interp.smoothCubicHermiteDerivativesLine([ raaqx[1][1], raapx[1][1] ], [ raaqd2[1][1], raapd2[1][1] ], fixAllDirections = True)
+        # get inner coordinates and derivatives
+        raaqx[0][1], raaqd1[0][1], _, raaqd3[0][1] = interp.projectHermiteCurvesThroughWall(raaqx[1][1:3], raaqd1[1][1:3], raaqd2[1][1:3], 0, -raaWallThickness)
+        raaqd3[1][1] = raaqd3[0][1]
+        nx  = [ raaqx [1][1], raapx [1][1] ]
+        nd1 = [ raaqd2[1][1], raapd2[1][1] ]
+        nd2 = [ [ -d for d in d1 ] for d1 in [ raaqd1[1][1], raapd1[1][1] ] ]
+        _, raaqd2[0][1], _, _ = interp.projectHermiteCurvesThroughWall(nx, nd1, nd2, 0, -raaWallThickness)
+        _, raapd2[0][1], _, _ = interp.projectHermiteCurvesThroughWall(nx, nd1, nd2, 1, -raaWallThickness)
 
         # create la base nodes, adding to lFibrousRingGroup
         labNodeId = [ [], [] ]
@@ -1534,7 +1643,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         racsNodeId = [ [ asNodeId[1][0] ], [ agNodeId[-2] ] ]
         for n3 in range(2):
             for n1 in range(1, len(racsx[n3]) - 1):
-                if ran1Ctp < n1 <= ran1Aorta:
+                if ran1raap < n1 <= ran1Aorta:
                     # right atrial appendage; aorta substituted from ract later
                     racsNodeId[n3].append(None)
                     continue
@@ -1642,6 +1751,35 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 nodeIdentifier += 1
         ravmNodeId[0].append(asNodeId[1][asn1Mid])
         ravmNodeId[1].append(agNodeId[agn1Mid])
+
+        # create right atrial appendage plain boundary nodes
+        raapNodeId = [ [], [] ]
+        for n3 in range(2):
+            raapNodeId[n3].append(ractNodeId[n3][2])
+            for n1 in range(1, len(raapx[n3]) - 1):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, raapx [n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, raapd1[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, raapd2[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, raapd3[n3][n1])
+                raapNodeId[n3].append(nodeIdentifier)
+                nodeIdentifier += 1
+            raapNodeId[n3].append(racsNodeId[n3][ran1raap])
+        # and middle row on plain appendage
+        raaqNodeId = [ [], [] ]
+        for n3 in range(2):
+            raaqNodeId[n3].append(ractNodeId[n3][2])
+            for n1 in range(1, len(raaqx[n3]) - 1):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, raaqx [n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, raaqd1[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, raaqd2[n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, raaqd3[n3][n1])
+                raaqNodeId[n3].append(nodeIdentifier)
+                nodeIdentifier += 1
+            raaqNodeId[n3].append(racsNodeId[n3][ran1raaq])
 
         if False:
             # create lt nodes:
@@ -1766,6 +1904,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 continue  # right atrial appendage
             scalefactors = None
             meshGroups = [ raMeshGroup ]
+            if (e1 >= elementsCountAroundRightAtriumPosteriorVenous) and (e1 < elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtriumAorta - 1):
+                meshGroups += [ raaMeshGroup ]
             if e1 == -1:
                 # crux/posterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                 nids[0] = labNodeId[0][elementsCountAroundLeftAtriumFreeWall]
@@ -2449,7 +2589,66 @@ class MeshType_3d_heartatria1(Scaffold_base):
             elementsCountRadial = elementsCountLaaRadial,
             meshGroups = [ laMeshGroup, laaMeshGroup ])
 
-        # create right atrial appendage
+        # create right atrial appendage 'plain' elements
+        meshGroups = [ raMeshGroup, raaMeshGroup ]
+        for e2 in range(2):
+            for e1 in range(elementsCountOverSideRightAtriumPouch):
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+                scalefactors = None
+                nc = 2 + e1
+                if e2 == 0:
+                    nids = [ ractNodeId[0][nc], ractNodeId[0][nc + 1], raaqNodeId[0][e1], raaqNodeId[0][e1 + 1],
+                             ractNodeId[1][nc], ractNodeId[1][nc + 1], raaqNodeId[1][e1], raaqNodeId[1][e1 + 1] ]
+                else:
+                    nids = [ raaqNodeId[0][e1], raaqNodeId[0][e1 + 1], raapNodeId[0][e1], raapNodeId[0][e1 + 1],
+                             raaqNodeId[1][e1], raaqNodeId[1][e1 + 1], raapNodeId[1][e1], raapNodeId[1][e1 + 1] ]
+                if e1 == 0:
+                    if e2 == 0:
+                        continue
+                    nids[0] = ractNodeId[0][nc + 1]
+                    nids[4] = ractNodeId[1][nc + 1]
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                elif (e2 == 1) and (e1 < (elementsCountOverSideRightAtriumPouch - 1)):
+                    pass  # regular elements
+                else:
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
+                    if e1 < (elementsCountOverSideRightAtriumPouch - 1):
+                        if e2 == 0:
+                            remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                            if e1 == 1:
+                                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    else:
+                        if e2 == 0:
+                            remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                            remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                        remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                        remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                if eft1 is not eft:
+                    elementtemplateX.defineField(coordinates, -1, eft1)
+                    elementtemplate1 = elementtemplateX
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = '-'
+                #print('create element raa plain', element.isValid(), elementIdentifier, result2, result3, nids)
+                elementIdentifier += 1
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+
+        # create right atrial appendage 'pouch'
         position = raTrackSurface.createPositionProportion(1.0 - raaMidpointOver, raaMidpointRight)
         raamx, d1, d2 = raTrackSurface.evaluateCoordinates(position, derivatives = True)
         raamd3 = vector.normalise(vector.crossproduct3(d1, d2))
@@ -2463,7 +2662,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, raamd2)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, raamd3)
             nodeIdentifier += 1
-        elementsCountAroundRaa = elementsCountAroundRightAtrialAppendageBase + elementsCountOverAtria
+        elementsCountAroundRaa = elementsCountAroundRightAtrialAppendagePlainBase + elementsCountAroundRightAtrialAppendagePouchBase + elementsCountOverAtria - 2
         #print('elementsCountAroundRaa', elementsCountAroundRaa)
         # get start points, nodes, derivative maps
         raasx  = [ [ None ]*elementsCountAroundRaa, [ None ]*elementsCountAroundRaa ]
@@ -2474,10 +2673,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raasDerivativesMap = [ [ None ]*elementsCountAroundRaa, [ None ]*elementsCountAroundRaa ]
         # set points anticlockwise around base first from aorta
         # insert at indexes such that 0 is two along
-        ix = 1 + elementsCountAroundRaa%2 - elementsCountAroundRaa
-        # left along base
-        for n1 in range(elementsCountAroundRightAtrialAppendageBase + 1):
-            nb = elementsCountAroundRightAtriumPosteriorVenous + n1
+        ix = 2 + elementsCountAroundRaa%2 - elementsCountAroundRaa
+        # left/anticlockwise along base
+        for n1 in range(elementsCountAroundRightAtrialAppendagePouchBase + 1):
+            nb = elementsCountAroundRightAtriumPosteriorVenous + elementsCountAroundRightAtrialAppendagePlainBase + n1
             for n3 in range(2):
                 raasx [n3][ix] = rabx [n3][nb]
                 raasd1[n3][ix] = rabd1[n3][nb]
@@ -2486,13 +2685,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 raasNodeId[n3][ix] = rabNodeId[n3][nb]
                 if n1 == 0:
                     raasDerivativesMap[n3][ix] = ( (0, -1, 0), (1, 1, 0), None, None )
-                elif n1 == elementsCountAroundRightAtrialAppendageBase:
+                elif n1 == elementsCountAroundRightAtrialAppendagePouchBase:
                     raasDerivativesMap[n3][ix] = ( None, (-1, 1, 0), None, (0, 1, 0 ) )
                 else:
                     raasDerivativesMap[n3][ix] = ( None, None, None )
             ix += 1
         # back over crista terminalis ract
-        for n1 in range(elementsCountOverAtria - 1):
+        for n1 in range(2):
             nc = 1 + n1
             for n3 in range(2):
                 raasx [n3][ix] = ractx [n3][nc]
@@ -2501,17 +2700,29 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 raasd3[n3][ix] = ractd3[n3][nc]
                 raasNodeId[n3][ix] = ractNodeId[n3][nc]
                 if n1 == 0:
-                    raasDerivativesMap[n3][ix] = ( None, (-1, 1, 0), None, (0, 1, 0) )
-                elif n1 == (elementsCountOverAtria - 2):
+                    raasDerivativesMap[n3][ix] = ( None, (-1, 0, 0), None, (0, 1, 0) )  # compare ( None, (-1, 1, 0), None, (0, 1, 0) )
+                else: # n1 == 1:
+                    raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 1, 0) )  # compare ( (0, 1, 0), (-1, 0, 0), None, (-1, 1, 0) )
+            ix += 1
+        # down right atrial appendage pouch limit, raap
+        n1Last = len(raapx[1]) - 1
+        for n1 in range(1, n1Last + 1):
+            for n3 in range(2):
+                raasx [n3][ix] = raapx [n3][n1]
+                raasd1[n3][ix] = raapd1[n3][n1]
+                raasd2[n3][ix] = raapd2[n3][n1]
+                raasd3[n3][ix] = raapd3[n3][n1]
+                raasNodeId[n3][ix] = raapNodeId[n3][n1]
+                if n1 == n1Last:
                     raasDerivativesMap[n3][ix] = ( (0, -1, 0), (1, 0, 0), None )
                 else:
-                    raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, 0, 0), None )
+                    raasDerivativesMap[n3][ix] = ( (1, 0, 0), (0, 1, 0), None )
             ix += 1
         #print('raasNodeId[0]',raasNodeId[0])
         #print('raasNodeId[1]',raasNodeId[1])
         #print('raasDerivativesMap[0]',raasDerivativesMap[0])
         #print('raasDerivativesMap[1]',raasDerivativesMap[1])
-        elementsCountRaaRadial = 3
+        elementsCountRaaRadial = 2
         # get end points, nodes, derivative maps, expanding from wedge
         raawx, raawd1, raawd2, raawd3, elementsCountAcrossRaaWedge, raawPointsMap, raaeDerivativesMap = getAtrialAppendageWedgePoints(raamx, raamd1, raamd2, raamd3, -raaAngleRightRadians, raaAngleUpradians, raaBaseLength,
             elementsCountAroundRaa, elementsCountRaaRadial, raaArcLength, raaArcRadius, raaWallThickness, raaWedgeAngleRadians)
@@ -2684,17 +2895,18 @@ def getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeW
     '''
     Get the number of elements in each section of the right atrium free wall.
     :param elementsCountAroundRightAtriumFreeWall: Valid range 6-10.
-    :return: elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase,
-        elementsCountAroundRightAtriumAorta
+    :return: elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendagePlainBase
+        elementsCountAroundRightAtrialAppendagePouchBase, elementsCountAroundRightAtriumAorta
     '''
     assert 6 <= elementsCountAroundRightAtriumFreeWall <= 10, \
         'getRightAtriumBaseFreewallElementsCounts: elements count out of range: ' + str(elementsCountAroundRightAtriumFreeWall)
     elementsCountAroundRightAtriumAorta = 1
     elementsCountAroundRightAtriumPosteriorVenous = elementsCountAroundRightAtriumFreeWall//4
-    elementsCountAroundRightAtrialAppendageBase = elementsCountAroundRightAtriumFreeWall \
-        - elementsCountAroundRightAtriumPosteriorVenous - elementsCountAroundRightAtriumAorta
-    return elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase, \
-        elementsCountAroundRightAtriumAorta
+    elementsCountAroundRightAtrialAppendagePlainBase = 2
+    elementsCountAroundRightAtrialAppendagePouchBase = (elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtrialAppendagePlainBase
+        - elementsCountAroundRightAtriumPosteriorVenous - elementsCountAroundRightAtriumAorta)
+    return elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendagePlainBase, \
+        elementsCountAroundRightAtrialAppendagePouchBase, elementsCountAroundRightAtriumAorta
 
 
 def getOverAtriaElementsCounts(elementsCountOverAtria):
@@ -2723,7 +2935,7 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     aBaseInnerMajorMag, aBaseInnerMinorMag, aMajorAxisRadians,
     aBaseWallThickness, aBaseSlopeHeight, aBaseSlopeLength, aSeptumLength, aSeptumThickness,
     aortaOuterPlusRadius, aBaseFrontInclineRadians, aBaseSideInclineRadians, aBaseBackInclineRadians,
-    laaLeft, laVenousMidpointPosteriorLeft, raVenousRight, elementsCountAroundTrackSurface):
+    laaLeft, laVenousMidpointLeft, raVenousRight, raaPouchRight, elementsCountAroundTrackSurface):
     """
     Get points around left and right atria based on an ellipse.
     Left atria points start from central fibrous body and wind anticlockwise.
@@ -2876,32 +3088,37 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     laaEndRadians = getEllipseRadiansToX(ayOuter, byOuter, laaEndY - laCentreY, sideRadians)
     #print('laaEnd y', laaEndY, 'radians', laaEndRadians)
     # venous midpoint
-    er = 0.5*(2.0 - laVenousMidpointPosteriorLeft)*elementsCountAroundTrackSurface
+    er = 0.5*(2.0 - laVenousMidpointLeft)*elementsCountAroundTrackSurface
     e = int(er)
     xi = er - e
     laVenousMidpointX = interp.interpolateCubicHermite(vx[e], vd1[e], vx[e + 1], vd1[e + 1], xi)[0]
     laVenousMidpointRadians = getEllipseRadiansToX(axOuter, bxOuter, laVenousMidpointX - laCentreX, backRadians)
-    #print('laVenousMidpointPosteriorLeft', laVenousMidpointPosteriorLeft, 'e', e, 'xi', xi, 'x', laVenousMidpointX, 'radians', laVenousMidpointRadians)
+    #print('laVenousMidpointLeft', laVenousMidpointLeft, 'e', e, 'xi', xi, 'x', laVenousMidpointX, 'radians', laVenousMidpointRadians)
+    # note ra points these are computed on the left atrium and mirrored at the end
     er = 0.5*(2.0 - raVenousRight)*elementsCountAroundTrackSurface
     e = int(er)
     xi = er - e
-    # note these are computed on the left atrium and mirrored at the end
-    raVenousPosteriorRightX = interp.interpolateCubicHermite(vx[e], vd1[e], vx[e + 1], vd1[e + 1], xi)[0]
-    raVenousPosteriorRightRadians = getEllipseRadiansToX(axOuter, bxOuter, raVenousPosteriorRightX - laCentreX, backRadians)
-    #print('raVenousRight', raVenousRight, 'e', e, 'xi', xi, 'x', raVenousPosteriorRightX, 'radians', raVenousPosteriorRightRadians)
+    raVenousRightX = interp.interpolateCubicHermite(vx[e], vd1[e], vx[e + 1], vd1[e + 1], xi)[0]
+    raVenousRightRadians = getEllipseRadiansToX(axOuter, bxOuter, raVenousRightX - laCentreX, backRadians)
+    #print('raVenousRight', raVenousRight, 'e', e, 'xi', xi, 'x', raVenousRightX, 'radians', raVenousRightRadians)
+    er = 0.5*raaPouchRight*elementsCountAroundTrackSurface
+    e = int(er)
+    xi = er - e
+    raaPouchRightY = interp.interpolateCubicHermite(vx[e], vd1[e], vx[e + 1], vd1[e + 1], xi)[1]
+    raaPouchRightRadians = getEllipseRadiansToX(ayOuter, byOuter, raaPouchRightY - laCentreY, sideRadians)
+    #print('raaPouchRight', raaPouchRight, 'e', e, 'xi', xi, 'y', raaPouchRightY, 'radians', raaPouchRightRadians)
 
     # get numbers of elements and lengths of sections of left atrium (outer)
     elementsCountAroundLeftAtriumAorta, elementsCountAroundLeftAtrialAppendageBase, elementsCountAroundLeftAtriumLPV, elementsCountAroundLeftAtriumRPV = \
         getLeftAtriumBaseFreewallElementsCounts(elementsCountAroundLeftAtriumFreeWall)
     laaLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laCfbLeftRadians, laaEndRadians)
-    laVenousLeftLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laaEndRadians, laVenousMidpointRadians)
-    laVenousRightLength = aRemainingLength - laVenousLeftLength - laaLength
-    # = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laVenousMidpointRadians, laSeptumPosteriorRadians + 2.0*math.pi)
+    laaLeftLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laaEndRadians, laVenousMidpointRadians)
+    laVenousRightLength = aRemainingLength - laaLeftLength - laaLength
 
     # get element lengths/derivatives at edges of each section and transition element sizes between
-    laaEndDerivative = laVenousMidpointDerivative = laVenousLeftLength/elementsCountAroundLeftAtriumLPV
+    laaEndDerivative = laVenousMidpointDerivative = laaLeftLength/elementsCountAroundLeftAtriumLPV
     laaElementLengths = interp.sampleCubicElementLengths(laaLength, elementsCountAroundLeftAtrialAppendageBase, startDerivative = aCfbSideDerivativeLength, endDerivative = laaEndDerivative)
-    lvlElementLengths = interp.sampleCubicElementLengths(laVenousLeftLength, elementsCountAroundLeftAtriumLPV, startDerivative = laaEndDerivative, endDerivative = laVenousMidpointDerivative)
+    lvlElementLengths = interp.sampleCubicElementLengths(laaLeftLength, elementsCountAroundLeftAtriumLPV, startDerivative = laaEndDerivative, endDerivative = laVenousMidpointDerivative)
     lvrElementLengths = interp.sampleCubicElementLengths(laVenousRightLength, elementsCountAroundLeftAtriumRPV, startDerivative = laVenousMidpointDerivative, endDerivative = atrialSeptumOuterElementLength)
 
     # get radians of nodes around left atrium, starting at cfb
@@ -2930,17 +3147,19 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
     #print('laRadians', laRadians)
 
     # get numbers of elements and lengths of sections of right atrium (outer)
-
-    elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendageBase, elementsCountAroundRightAtriumAorta = \
-        getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeWall)
-    raaLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laCfbLeftRadians, raVenousPosteriorRightRadians)
-    raPosteriorVenousLength = aRemainingLength - raaLength
-    # = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, raVenousPosteriorRightRadians, laSeptumPosteriorRadians + 2.0*math.pi)
+    elementsCountAroundRightAtriumPosteriorVenous, elementsCountAroundRightAtrialAppendagePlainBase, \
+        elementsCountAroundRightAtrialAppendagePouchBase, elementsCountAroundRightAtriumAorta \
+        = getRightAtriumBaseFreewallElementsCounts(elementsCountAroundRightAtriumFreeWall)
+    elementsCountAroundRightAtrialAppendageBase = elementsCountAroundRightAtrialAppendagePlainBase + elementsCountAroundRightAtrialAppendagePouchBase
+    raaPouchLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, laCfbLeftRadians, raaPouchRightRadians)
+    raaPlainLength = getEllipseArcLength(aBaseOuterMajorMag, aBaseOuterMinorMag, raaPouchRightRadians, raVenousRightRadians)
+    raPosteriorVenousLength = aRemainingLength - raaPlainLength - raaPouchLength
 
     # get element lengths/derivatives at edges of each section and transition element sizes between
-    #raPosteriorVenousLimitDerivative = (raPosteriorVenousLength - 0.5*atrialSeptumOuterElementLength)/(elementsCountAroundRightAtriumPosteriorVenous - 0.5)
-    raPosteriorVenousLimitDerivative = (raaLength - 0.5*aCfbSideDerivativeLength)/(elementsCountAroundRightAtrialAppendageBase - 0.5)
-    raaElementLengths = interp.sampleCubicElementLengths(raaLength, elementsCountAroundRightAtrialAppendageBase, startDerivative = aCfbSideDerivativeLength, endDerivative = raPosteriorVenousLimitDerivative)
+    #raPosteriorVenousLimitDerivative = (raaLength - 0.5*aCfbSideDerivativeLength)/(elementsCountAroundRightAtrialAppendageBase - 0.5)
+    raPosteriorVenousLimitDerivative = raaPlainDerivative = raaPlainLength/elementsCountAroundRightAtrialAppendagePlainBase
+    raaPouchElementLengths = interp.sampleCubicElementLengths(raaPouchLength, elementsCountAroundRightAtrialAppendagePouchBase, startDerivative = aCfbSideDerivativeLength, endDerivative = raaPlainDerivative)
+    raaPlainElementLengths = interp.sampleCubicElementLengths(raaPlainLength, elementsCountAroundRightAtrialAppendagePlainBase, startDerivative = raaPlainDerivative, endDerivative = raPosteriorVenousLimitDerivative)
     ravElementLengths = interp.sampleCubicElementLengths(raPosteriorVenousLength, elementsCountAroundRightAtriumPosteriorVenous, startDerivative = raPosteriorVenousLimitDerivative, endDerivative = atrialSeptumOuterElementLength)
 
     # get radians of nodes around right atrium (computed on left and mirrored at the end), starting at cfb
@@ -2951,8 +3170,10 @@ def getAtriumBasePoints(elementsCountAroundAtrialSeptum, elementsCountAroundLeft
         raRadians.append(radiansAround)
         if n1 == 0:
             elementLength = aSeptumCfbSideElementLength
+        elif n1 < (elementsCountAroundRightAtriumAorta + elementsCountAroundRightAtrialAppendagePouchBase):
+            elementLength = raaPouchElementLengths[n1 - elementsCountAroundRightAtriumAorta]
         elif n1 < (elementsCountAroundRightAtriumAorta + elementsCountAroundRightAtrialAppendageBase):
-            elementLength = raaElementLengths[n1 - elementsCountAroundRightAtriumAorta]
+            elementLength = raaPlainElementLengths[n1 - elementsCountAroundRightAtriumAorta - elementsCountAroundRightAtrialAppendagePouchBase]
         elif n1 == (elementsCountAroundRightAtriumFreeWall - 1):
             radiansAround = laSeptumPosteriorRadians + 2.0*math.pi
             continue
@@ -3142,7 +3363,7 @@ def getAtriumTrackSurface(elementsCountAroundTrackSurface, elementsCountAcrossTr
         nx += lx
         nd1 += ld1
         nd2 += ld2  # to be smoothed when all rows assembled.
-    # add last point at tip of atrium, d1 all zero, d2 rotating around
+    # add last point at central outer point of atrium, d1 all zero, d2 rotating around
     d1 = vd1[elementsCountAlongTrackSurface]
     d2 = vector.setMagnitude(vd2[elementsCountAlongTrackSurface], vector.magnitude(d1))
     for n1 in range(elementsCountAcrossTrackSurface + 1):
