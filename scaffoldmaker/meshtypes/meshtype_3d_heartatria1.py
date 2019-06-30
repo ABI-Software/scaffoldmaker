@@ -1340,10 +1340,17 @@ class MeshType_3d_heartatria1(Scaffold_base):
         rctmpProportion2 = raVenousRight  # GRC was (failing) (1.0 - xi)*racsProportions[ran1Aorta][1] + xi*racsProportions[ran1Ctp][1]
         elementsCountOverCristaTerminalisAnterior = elementsCountOverRightAtriumVenous//2 + 1
         elementsCountOverCristaTerminalisPosterior = elementsCountOverRightAtriumVenous//2
+        # trick to get lower derivative at midpoint: sample one element higher
+        _, _d2 = raTrackSurface.createHermiteCurvePoints(
+            rctmpProportion1, rctmpProportion2, racsProportions[ran1Ctp][0], racsProportions[ran1Ctp][1],
+            elementsCount = elementsCountOverCristaTerminalisPosterior + 1,
+            derivativeStart = None,
+            derivativeEnd = [ -d for d in racsd2[1][ran1Ctp] ])[0:2]
+        useDerivativeStart = _d2[0]
         _ractx, _ractd2, _ractd1, _ractd3, _ractProportions = raTrackSurface.createHermiteCurvePoints(
             rctmpProportion1, rctmpProportion2, racsProportions[ran1Ctp][0], racsProportions[ran1Ctp][1],
             elementsCount = elementsCountOverCristaTerminalisPosterior,
-            derivativeStart = None,
+            derivativeStart = useDerivativeStart,
             derivativeEnd = [ -d for d in racsd2[1][ran1Ctp] ])
         ractx, ractd2, ractd1, ractd3, ractProportions = raTrackSurface.createHermiteCurvePoints(
             ragProportions[1], 0.0,
@@ -1397,7 +1404,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractProportions[elementsCountOverCristaTerminalisAnterior][0], ractProportions[elementsCountOverCristaTerminalisAnterior][1],
             1.0 - aVenousMidpointOver, 0.0,
             elementsCount = elementsCountOverSideRightAtriumVC,
-            derivativeStart = ractd1[1][elementsCountOverCristaTerminalisAnterior],
+            derivativeStart = [ 2.0*d for d in ractd1[1][elementsCountOverCristaTerminalisAnterior] ],  # GRC fudge factor: d1 is artificially reduced on crista terminalis
             derivativeEnd = agd1[agn1Mid])[0:4]
         # get inner points
         ravmx  = [ [], ravmx  ]
@@ -1419,6 +1426,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ravmd3[1][n] = d3
         # substitute known end coordinates
         for n3 in range(2):
+            # copy d1 back to crista terminalis
+            ractd1[n3][elementsCountOverCristaTerminalisAnterior] = ravmd1[n3][0]
             ravmd2[n3][0] = ractd2[n3][elementsCountOverCristaTerminalisAnterior]
         asn1Mid = elementsCountAroundAtrialSeptum + agn1Mid - 1
         ravmx [0][-1]  = asx [1][asn1Mid]
@@ -2491,7 +2500,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         laamd3 = vector.normalise(vector.crossproduct3(d1, d2))
         laamd2 = vector.normalise(vector.crossproduct3(laamd3, d2))
         laamd1 = vector.crossproduct3(laamd2, laamd3)
-        if True:
+        if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laamx )
@@ -2654,7 +2663,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raamd3 = vector.normalise(vector.crossproduct3(d1, d2))
         raamd2 = vector.normalise(vector.crossproduct3(d2, raamd3))
         raamd1 = vector.crossproduct3(raamd2, raamd3)
-        if True:
+        if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, raamx )
