@@ -187,7 +187,7 @@ class MeshType_3d_colon1(Scaffold_base):
             elementsCountAroundMZ = segmentSettings['Number of elements around mesenteric zone']
             elementsCountAroundNonMZ = segmentSettings['Number of elements around non-mesenteric zone']
             elementsCountAround = elementsCountAroundMZ + elementsCountAroundNonMZ
-            widthMZ = segmentSettings['Mesenteric zone width']
+            mzWidth = segmentSettings['Mesenteric zone width']
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             elementsCountAroundTC = segmentSettings['Number of elements around tenia coli']
             elementsCountAroundHaustrum = segmentSettings['Number of elements around haustrum']
@@ -196,8 +196,8 @@ class MeshType_3d_colon1(Scaffold_base):
             haustrumInnerRadiusFactor = segmentSettings['Haustrum inner radius factor']
             segmentLengthEndDerivativeFactor = segmentSettings['Segment length end derivative factor']
             segmentLengthMidDerivativeFactor = segmentSettings['Segment length mid derivative factor']
-            widthTC = segmentSettings['Tenia coli width']
-            TCThickness = segmentSettings['Tenia coli thickness']
+            tcWidth = segmentSettings['Tenia coli width']
+            tcThickness = segmentSettings['Tenia coli thickness']
 
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
@@ -225,10 +225,10 @@ class MeshType_3d_colon1(Scaffold_base):
         # Generate inner surface of a colon segment
         if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
             annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
-                elementsCountAlongSegment, widthMZ, radius, segmentLength, wallThickness)
+                elementsCountAlongSegment, mzWidth, radius, segmentLength, wallThickness)
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlongSegment, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+                elementsCountAlongSegment, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
                 segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
 
         # Generate tube mesh
@@ -241,7 +241,7 @@ class MeshType_3d_colon1(Scaffold_base):
         if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                 useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlong, elementsCountThroughWall, wallThickness, widthTC, TCThickness, sx, curvatureAlong, factorList, uList,
+                elementsCountAlong, elementsCountThroughWall, wallThickness, tcWidth, tcThickness, sx, curvatureAlong, factorList, uList,
                 arcLengthOuterMidLength, length)
 
             annotationGroups += annotationGroupsTC

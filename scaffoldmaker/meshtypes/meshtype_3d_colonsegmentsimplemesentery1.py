@@ -114,7 +114,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         elementsCountThroughWall = options['Number of elements through wall']
         radius = options['Inner radius']
         segmentLength = options['Segment length']
-        widthMZ = options['Mesenteric zone width']
+        mzWidth = options['Mesenteric zone width']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
@@ -127,7 +127,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
 
         # Generate inner surface of a colon segment
         annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ,
-           elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength, wallThickness)
+           elementsCountAroundNonMZ, elementsCountAlongSegment, mzWidth, radius, segmentLength, wallThickness)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
@@ -159,7 +159,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         return meshrefinement.getAnnotationGroups()
 
 def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
-    widthMZ, radius, segmentLength, wallThickness):
+    mzWidth, radius, segmentLength, wallThickness):
     """
     Generates a 3-D colon segment mesh with a simple mesentery
     (no tenia coli) with variable numbers of elements around,
@@ -168,7 +168,7 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     :param elementsCountAroundMZ: Number of elements around mesenteric zone.
     :param elementsCountAroundNonMZ: Number of elements around non-mesenteric zone.
     :param elementsCountAlongSegment: Number of elements along colon segment.
-    :param widthMZ: Width of mesenteric zone in flat preparation.
+    :param mzWidth: Width of mesenteric zone in flat preparation.
     :param radius: Inner radius of colon segment.
     :param segmentLength: Length of a colon segment.
     :param wallThickness: Thickness of wall.
@@ -206,7 +206,7 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     nx, nd1 = createCirclePoints([ 0.0, 0.0, 0.0 ], [ radius, 0.0, 0.0 ], [ 0.0, radius, 0.0 ], sampleElementOut, startRadians = 0.0)
 
     # Sample half mesenteric zone into equally spaced nodes
-    radiansAroundMZ = widthMZ/radius
+    radiansAroundMZ = mzWidth/radius
     radiansPerElementAroundMZ = radiansAroundMZ / elementsCountAroundMZ
     for n1 in range(int(elementsCountAroundMZ*0.5 + 1)):
         radiansAround = radiansPerElementAroundMZ * n1
@@ -224,7 +224,7 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
 
     # Sample half non-mesenteric zone into equally spaced nodes
     halfCircumference = math.pi*radius
-    xNonMZ, d1NonMZ, arcLengthPerNonMZ, arcLengthPerTransition = sampleHaustrum(nx, nd1, xMZ[-1], d1MZ[-1], halfCircumference, widthMZ*0.5, elementsCountAroundNonMZ)
+    xNonMZ, d1NonMZ, arcLengthPerNonMZ, arcLengthPerTransition = sampleHaustrum(nx, nd1, xMZ[-1], d1MZ[-1], halfCircumference, mzWidth*0.5, elementsCountAroundNonMZ)
 
     xListBaseLayer = xList + xMZ + xNonMZ[1:]
     d1ListBaseLayer = d1List + d1MZ + d1NonMZ[1:]
