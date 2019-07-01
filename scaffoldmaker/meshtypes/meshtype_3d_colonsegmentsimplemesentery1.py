@@ -126,7 +126,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ,
+        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ,
            elementsCountAroundNonMZ, elementsCountAlongSegment, widthMZ, radius, segmentLength, wallThickness)
 
         # Generate tube mesh
@@ -158,7 +158,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonSegmentInnerPoints0TC(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
+def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
     widthMZ, radius, segmentLength, wallThickness):
     """
     Generates a 3-D colon segment mesh with a simple mesentery
