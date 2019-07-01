@@ -181,9 +181,9 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     surface along mid-length of segment.
     :return coordinates, derivatives on inner surface of a colon segment.
     """
-    MZGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    NonMZGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    annotationGroups = [MZGroup, NonMZGroup]
+    mzGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    nonmzGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    annotationGroups = [mzGroup, nonmzGroup]
     annotationArray = ['mesenteric zone']*int(elementsCountAroundMZ*0.5) + ['non-mesenteric zone']*elementsCountAroundNonMZ + ['mesenteric zone']*int(elementsCountAroundMZ*0.5)
     transitElementList = [0]*int(elementsCountAroundMZ*0.5) + [1] + [0]*int(elementsCountAroundNonMZ - 2) + [1] + [0]*int(elementsCountAroundMZ*0.5)
 

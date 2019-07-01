@@ -755,10 +755,10 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     cache = fm.createFieldcache()
     coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
-    TLGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    TMGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    TOGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    annotationGroups = [TLGroup, TMGroup, TOGroup]
+    tlGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    tmGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    toGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    annotationGroups = [tlGroup, tmGroup, toGroup]
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -886,9 +886,9 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
         nodeIdentifier = nodeIdentifier + 1
 
     # create elements
-    TLMeshGroup = TLGroup.getMeshGroup(mesh)
-    TMMeshGroup = TMGroup.getMeshGroup(mesh)
-    TOMeshGroup = TOGroup.getMeshGroup(mesh)
+    tlMeshGroup = tlGroup.getMeshGroup(mesh)
+    tmMeshGroup = tmGroup.getMeshGroup(mesh)
+    toMeshGroup = toGroup.getMeshGroup(mesh)
 
     for N in range(4):
         if N == 0:
@@ -931,7 +931,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             element = mesh.createElement(elementIdentifier, elementtemplate if n1 < int(elementsCountAroundTC*0.5) - 1 else elementtemplate1)
             result = element.setNodesByIdentifier(eft if n1 < int(elementsCountAroundTC*0.5) - 1 else eft1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            TOMeshGroup.addElement(element)
+            toMeshGroup.addElement(element)
 
         for N in range(2):
             for n1 in range(elementsCountAroundTC):
@@ -950,7 +950,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
-                TLMeshGroup.addElement(element) if N == 0 else TMMeshGroup.addElement(element)
+                tlMeshGroup.addElement(element) if N == 0 else tmMeshGroup.addElement(element)
 
         for n1 in range(int(elementsCountAroundTC*0.5)):
             e1 = e1 + 1
@@ -959,7 +959,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             element = mesh.createElement(elementIdentifier, elementtemplate if n1 > 0 else elementtemplate2)
             result = element.setNodesByIdentifier(eft if n1 > 0 else eft2, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            TOMeshGroup.addElement(element)
+            toMeshGroup.addElement(element)
 
     # Define texture coordinates field for tenia coli
     textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
