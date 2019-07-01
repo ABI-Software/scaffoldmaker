@@ -7,7 +7,7 @@ variable radius and thickness along.
 import copy
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentsimplemesentery1 import MeshType_3d_colonsegmentsimplemesentery1, getColonSegmentInnerPointsNoTeniaColi
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, getColonSegmentInnerPoints3TC, getTeniaColi
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, getColonSegmentInnerPointsTeniaColi, getTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -196,6 +196,7 @@ class MeshType_3d_colon1(Scaffold_base):
             haustrumInnerRadiusFactor = segmentSettings['Haustrum inner radius factor']
             segmentLengthEndDerivativeFactor = segmentSettings['Segment length end derivative factor']
             segmentLengthMidDerivativeFactor = segmentSettings['Segment length mid derivative factor']
+            tcCount = segmentSettings['Number of tenia coli']
             tcWidth = segmentSettings['Tenia coli width']
             tcThickness = segmentSettings['Tenia coli thickness']
 
@@ -227,8 +228,8 @@ class MeshType_3d_colon1(Scaffold_base):
             annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
                 elementsCountAlongSegment, mzWidth, radius, segmentLength, wallThickness)
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
-            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlongSegment, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsCountAroundHaustrum,
+                elementsCountAlongSegment, tcCount, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
                 segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
 
         # Generate tube mesh

@@ -54,6 +54,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Segment length end derivative factor': 0.5,
             'Segment length mid derivative factor': 2.0,
             'Segment length': 1.5,
+            'Number of tenia coli': 3,
             'Tenia coli width': 0.2,
             'Tenia coli thickness': 0.03,
             'Wall thickness': 0.02,
@@ -78,6 +79,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Segment length end derivative factor',
             'Segment length mid derivative factor',
             'Segment length',
+            'Number of tenia coli',
             'Tenia coli width',
             'Tenia coli thickness',
             'Wall thickness',
@@ -127,6 +129,10 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Segment length end derivative factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
+        if options['Number of tenia coli'] < 2:
+            options['Number of tenia coli'] = 2
+        elif options['Number of tenia coli'] > 3:
+            options['Number of tenia coli'] = 3
         if options['Tenia coli width'] < 0.2*options['Inner radius']:
             options['Tenia coli width'] = round(0.2*options['Inner radius'], 2)
         if options['Tenia coli width'] > round(math.sqrt(3)*0.5*options['Inner radius'],2):
@@ -151,6 +157,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
         segmentLengthMidDerivativeFactor = options['Segment length mid derivative factor']
         segmentLength = options['Segment length']
+        tcCount = options['Number of tenia coli']
         tcWidth = options['Tenia coli width']
         tcThickness = options['Tenia coli thickness']
         wallThickness = options['Wall thickness']
@@ -164,8 +171,8 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPoints3TC(region, elementsCountAroundTC,
-            elementsCountAroundHaustrum, elementsCountAlongSegment, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
+            elementsCountAroundHaustrum, elementsCountAlongSegment, tcCount, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
 
         # Generate tube mesh
@@ -205,7 +212,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, tcWidth, radius,
+def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, tcCount, tcWidth, radius,
     cornerInnerRadiusFactor, haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness):
     """
     Generates a 3-D colon segment mesh with 3 tenia coli with variable
@@ -216,6 +223,7 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     :param elementsCountAroundTC: Number of elements around each tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :param elementsCountAlongSegment: Number of elements along colon segment.
+    :param tcCount: Number of tenia coli.
     :param tcWidth: Width of tenia coli.
     :param radius: Inner radius defined from center of triangular
     profile to vertex of the triangle.
@@ -244,6 +252,8 @@ def getColonSegmentInnerPoints3TC(region, elementsCountAroundTC, elementsCountAr
     annotationArray = []
     transitElementListHaustrum = [0]*int(elementsCountAroundTC*0.5) + [1] + [0]*int(elementsCountAroundHaustrum - 2) + [1] + [0]*int(elementsCountAroundTC*0.5)
     transitElementList = transitElementListHaustrum*3
+
+    assert tcCount == 3, 'getColonSegmentInnerPointsTeniaColi Only implemented for 3 tenia coli'
 
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
