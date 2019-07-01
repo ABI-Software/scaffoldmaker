@@ -49,7 +49,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 'Vessel wall thickness' : 0.009,
                 'Vessel angle 1 degrees' : 0.0,
                 'Vessel angle 1 spread degrees' : 30.0,
-                'Vessel angle 2 degrees' : 0.0,
+                'Vessel angle 2 degrees' : 10.0,
                 'Use linear through vessel wall' : True,
                 }
             } ),
@@ -100,7 +100,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 'Vessel wall thickness' : 0.009,
                 'Vessel angle 1 degrees' : 0.0,
                 'Vessel angle 1 spread degrees' : 30.0,
-                'Vessel angle 2 degrees' : 0.0,
+                'Vessel angle 2 degrees' : -10.0,
                 'Use linear through vessel wall' : True,
                 }
             } ),
@@ -186,9 +186,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Atrium venous midpoint over'] = 0.41
         options['Left atrium venous midpoint left'] = 0.55
         options['Right atrium venous right'] = 0.4
-        options['Left atrial appendage angle left degrees'] = 0.0
-        options['Left atrial appendage angle up degrees'] = -50.0
-        options['Left atrial appendage arc length'] = 0.3
+        options['Left atrial appendage angle axial degrees'] = -50.0
+        options['Left atrial appendage angle left degrees'] = -30.0
+        options['Left atrial appendage angle up degrees'] = 0.0
+        options['Left atrial appendage arc length'] = 0.4
         options['Left atrial appendage arc radius'] = 0.15
         options['Left atrial appendage base length'] = 0.3
         options['Left atrial appendage left'] = 0.9
@@ -196,8 +197,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Left atrial appendage midpoint over'] = 0.95
         options['Left atrial appendage wall thickness'] = 0.025
         options['Left atrial appendage wedge angle degrees'] = 90.0
-        options['Right atrial appendage angle right degrees'] = 10.0
-        options['Right atrial appendage angle up degrees'] = 0.0
+        options['Right atrial appendage angle axial degrees'] = 0.0
+        options['Right atrial appendage angle left degrees'] = 0.0
+        options['Right atrial appendage angle up degrees'] = -10.0
         options['Right atrial appendage arc length'] = 0.5
         options['Right atrial appendage arc radius'] = 0.2
         options['Right atrial appendage base length'] = 0.3
@@ -205,7 +207,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Right atrial appendage midpoint over'] = 0.95
         options['Right atrial appendage pouch right'] = 0.9
         options['Right atrial appendage wall thickness'] = 0.025
-        options['Right atrial appendage wedge angle degrees'] = 90.0
+        options['Right atrial appendage wedge angle degrees'] = 60.0
         options['Left pulmonary vein ostium'] = copy.deepcopy(lpvOstium)
         options['Left pulmonary vein ostium angle degrees'] = 60.0
         options['Left pulmonary vein ostium position left'] = 0.64
@@ -224,8 +226,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Inferior vena cava inlet wall thickness'] = 0.015
         options['Superior vena cava inlet position over'] = 0.65
         options['Superior vena cava inlet position right'] = 0.2
-        options['Superior vena cava inlet angle left degrees'] = -20.0
-        options['Superior vena cava inlet angle over degrees'] = 10.0
+        options['Superior vena cava inlet angle left degrees'] = -10.0
+        options['Superior vena cava inlet angle over degrees'] = 0.0
         options['Superior vena cava inlet derivative factor'] = 1.0
         options['Superior vena cava inlet length'] = 0.1
         options['Superior vena cava inlet inner diameter'] = 0.18
@@ -252,6 +254,28 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elif 'Pig' in parameterSetName:
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 80.0
+            options['Left atrial appendage angle axial degrees'] = -10.0
+            options['Left atrial appendage angle left degrees'] = 20.0
+            options['Left atrial appendage angle up degrees'] = -60.0
+            options['Left atrial appendage arc length'] = 0.4
+            options['Left atrial appendage arc radius'] = 0.3
+            options['Left atrial appendage base length'] = 0.3
+            #options['Left atrial appendage left'] = 0.9
+            #options['Left atrial appendage midpoint left'] = 0.5
+            #options['Left atrial appendage midpoint over'] = 0.95
+            #options['Left atrial appendage wall thickness'] = 0.025
+            options['Left atrial appendage wedge angle degrees'] = 60.0
+            options['Right atrial appendage angle axial degrees'] = 5.0
+            options['Right atrial appendage angle left degrees'] = -20.0
+            options['Right atrial appendage angle up degrees'] = -10.0
+            options['Right atrial appendage arc length'] = 0.5
+            options['Right atrial appendage arc radius'] = 0.25
+            options['Right atrial appendage base length'] = 0.25
+            options['Right atrial appendage midpoint right'] = 0.55
+            #options['Right atrial appendage midpoint over'] = 0.95
+            #options['Right atrial appendage pouch right'] = 0.9
+            #options['Right atrial appendage wall thickness'] = 0.025
+            options['Right atrial appendage wedge angle degrees'] = 60.0
             options['Inferior vena cava inlet position over'] = 0.18
             options['Inferior vena cava inlet position right'] = 0.18
             options['Inferior vena cava inlet angle left degrees'] = 30.0
@@ -307,6 +331,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Atrium venous midpoint over',
             'Left atrium venous midpoint left',
             'Right atrium venous right',
+            'Left atrial appendage angle axial degrees',
             'Left atrial appendage angle left degrees',
             'Left atrial appendage angle up degrees',
             'Left atrial appendage arc length',
@@ -317,7 +342,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Left atrial appendage midpoint over',
             'Left atrial appendage wall thickness',
             'Left atrial appendage wedge angle degrees',
-            'Right atrial appendage angle right degrees',
+            'Right atrial appendage angle axial degrees',
+            'Right atrial appendage angle left degrees',
             'Right atrial appendage angle up degrees',
             'Right atrial appendage arc length',
             'Right atrial appendage arc radius',
@@ -545,6 +571,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         aVenousMidpointOver = options['Atrium venous midpoint over']
         laVenousMidpointLeft = options['Left atrium venous midpoint left']
         raVenousRight = options['Right atrium venous right']
+        laaAngleAxialRadians = math.radians(options['Left atrial appendage angle axial degrees'])
         laaAngleLeftRadians = math.radians(options['Left atrial appendage angle left degrees'])
         laaAngleUpradians = math.radians(options['Left atrial appendage angle up degrees'])
         laaArcLength = unitScale*options['Left atrial appendage arc length']
@@ -555,7 +582,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         laaMidpointOver = options['Left atrial appendage midpoint over']
         laaWallThickness = unitScale*options['Left atrial appendage wall thickness']
         laaWedgeAngleRadians = math.radians(options['Left atrial appendage wedge angle degrees'])
-        raaAngleRightRadians = math.radians(options['Right atrial appendage angle right degrees'])
+        raaAngleAxialRadians = math.radians(options['Right atrial appendage angle axial degrees'])
+        raaAngleLeftRadians = math.radians(options['Right atrial appendage angle left degrees'])
         raaAngleUpradians = math.radians(options['Right atrial appendage angle up degrees'])
         raaArcLength = unitScale*options['Right atrial appendage arc length']
         raaArcRadius = unitScale*options['Right atrial appendage arc radius']
@@ -2334,7 +2362,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ocxPosition = raTrackSurface.createPositionProportion(proportion1, proportion2)
             ocx, d1, d2 = raTrackSurface.evaluateCoordinates(ocxPosition, derivatives = True)
             ocd1, ocd2, ocd3 = calculate_surface_axes(d1, d2, vector.normalise(d1))
-            vcx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx, ocd1, ocd2, ocd3, vcAngle1Radians, vcAngle2Radians, vcLength)
+            vcx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx, ocd1, ocd2, ocd3, vcLength, vcAngle1Radians, vcAngle2Radians)
             vcd1 = vd1
             vcd2 = [ -d for d in vd2 ]
             vcd3 = [ -vcEndDerivative*d for d in vd3 ]
@@ -2517,9 +2545,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
         laasd3 = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
         laasNodeId = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
         laasDerivativesMap = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
-        # set points anticlockwise around base first from aorta
-        # insert at indexes such that 0 is the next one along
-        ix = 1 + elementsCountAroundLaa%2 - elementsCountAroundLaa
+        # set points anticlockwise around base first, starting at aorta
+        ixStart = 1 + elementsCountAroundLaa%2  # position in final array for aorta base
+        ixRotation = round(elementsCountAroundLaa*0.5*laaAngleAxialRadians/math.pi)  # rotate indexes to align with axial angle
+        ix = (ixStart - ixRotation) % elementsCountAroundLaa - elementsCountAroundLaa  # works for negative values as modulo is always non-negative in python
+        #print('laa ixStart',ixStart,'ixRotation',ixRotation,'ix',ix)
         # left along base
         for n1 in range(elementsCountAroundLeftAtrialAppendageBase + 1):
             nb = n1 + elementsCountAroundLeftAtriumAorta
@@ -2558,8 +2588,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         #print('laasDerivativesMap[1]',laasDerivativesMap[1])
         elementsCountLaaRadial = 2
         # get end points, nodes, derivative maps, expanding from wedge
-        laawx, laawd1, laawd2, laawd3, elementsCountAcrossLaaWedge, laawPointsMap, laaeDerivativesMap = getAtrialAppendageWedgePoints(laamx, laamd1, laamd2, laamd3, laaAngleLeftRadians, laaAngleUpradians, laaBaseLength,
-            elementsCountAroundLaa, elementsCountLaaRadial, laaArcLength, laaArcRadius, laaWallThickness, laaWedgeAngleRadians)
+        laawx, laawd1, laawd2, laawd3, elementsCountAcrossLaaWedge, laawPointsMap, laaeDerivativesMap = \
+            getAtrialAppendageWedgePoints(laamx, laamd1, laamd2, laamd3, laaAngleLeftRadians, laaAngleUpradians, laaAngleAxialRadians, laaBaseLength,
+                elementsCountAroundLaa, elementsCountLaaRadial, laaArcLength, laaArcRadius, laaWallThickness, laaWedgeAngleRadians)
         # create laa wedge nodes:
         laawNodeId = [ [], [] ]
         for n3 in range(2):
@@ -2681,8 +2712,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raasNodeId = [ [ None ]*elementsCountAroundRaa, [ None ]*elementsCountAroundRaa ]
         raasDerivativesMap = [ [ None ]*elementsCountAroundRaa, [ None ]*elementsCountAroundRaa ]
         # set points anticlockwise around base first from aorta
-        # insert at indexes such that 0 is two along
-        ix = 2 + elementsCountAroundRaa%2 - elementsCountAroundRaa
+        ixStart = 2 + elementsCountAroundRaa%2  # position in final array for first base on raap
+        ixRotation = round(elementsCountAroundRaa*0.5*raaAngleAxialRadians/math.pi)  # rotate indexes to align with axial angle
+        ix = (ixStart - ixRotation) % elementsCountAroundRaa - elementsCountAroundRaa  # works for negative values as modulo is always non-negative in python
+        #print('raa ixStart',ixStart,'ixRotation',ixRotation,'ix',ix)
         # left/anticlockwise along base
         for n1 in range(elementsCountAroundRightAtrialAppendagePouchBase + 1):
             nb = elementsCountAroundRightAtriumPosteriorVenous + elementsCountAroundRightAtrialAppendagePlainBase + n1
@@ -2733,8 +2766,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         #print('raasDerivativesMap[1]',raasDerivativesMap[1])
         elementsCountRaaRadial = 2
         # get end points, nodes, derivative maps, expanding from wedge
-        raawx, raawd1, raawd2, raawd3, elementsCountAcrossRaaWedge, raawPointsMap, raaeDerivativesMap = getAtrialAppendageWedgePoints(raamx, raamd1, raamd2, raamd3, -raaAngleRightRadians, raaAngleUpradians, raaBaseLength,
-            elementsCountAroundRaa, elementsCountRaaRadial, raaArcLength, raaArcRadius, raaWallThickness, raaWedgeAngleRadians)
+        raawx, raawd1, raawd2, raawd3, elementsCountAcrossRaaWedge, raawPointsMap, raaeDerivativesMap = \
+            getAtrialAppendageWedgePoints(raamx, raamd1, raamd2, raamd3, raaAngleLeftRadians, raaAngleUpradians, raaAngleAxialRadians, raaBaseLength,
+                elementsCountAroundRaa, elementsCountRaaRadial, raaArcLength, raaArcRadius, raaWallThickness, raaWedgeAngleRadians)
         # create raa wedge nodes:
         raawNodeId = [ [], [] ]
         for n3 in range(2):
@@ -3399,7 +3433,7 @@ def getAtriumTrackSurface(elementsCountAroundTrackSurface, elementsCountAcrossTr
     return TrackSurface(elementsCountAcrossTrackSurface, elementsCountAlongTrackSurface, nx, nd1, nd2)
 
 
-def getAtrialAppendageWedgePoints(basex, based1, based2, based3, angle1radians, angle2radians, baseLength,
+def getAtrialAppendageWedgePoints(basex, based1, based2, based3, angle1radians, angle2radians, angle3Radians, baseLength,
         elementsCountAroundAppendage, elementsCountRadial, arcLength, arcRadius, wallThickness, wedgeAngleRadians):
     '''
     Get points on wedge midline at end of atrial appendage.
@@ -3423,7 +3457,7 @@ def getAtrialAppendageWedgePoints(basex, based1, based2, based3, angle1radians, 
     '''
     elementsCountAcrossWedge = (elementsCountAroundAppendage - 4)//2
     # wedge centre:
-    wcx, wd1, wd2, wd3 = getCircleProjectionAxes(basex, based1, based2, based3, angle1radians, angle2radians, baseLength)
+    wcx, wd1, wd2, wd3 = getCircleProjectionAxes(basex, based1, based2, based3, baseLength, angle1radians, angle2radians, angle3Radians)
     # arc centre:
     acx = [ (wcx[c] - arcRadius*wd3[c]) for c in range(3) ]
     wedgeLength = wallThickness/math.tan(0.5*wedgeAngleRadians)

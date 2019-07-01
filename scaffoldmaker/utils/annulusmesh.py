@@ -156,7 +156,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                     ad1 = [ 0.5*d for d in ad1 ]
                     if not derivativesMap:
                         for c in range(3):
-                            bd1[c] += 0.5*startPointsd[0][n3][n1][c]
+                            ad1[c] += 0.5*startPointsd[0][n3][n1][c]
                     else:
                         for ds in range(startPointsdslimit):
                             if derivativesMap[ds] != 0.0:

@@ -330,7 +330,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
         useVesselAngleRadians = vesselAngle1Radians
         if vesselsCount > 1:
             useVesselAngleRadians += (v - 0.5)*vesselAngle1SpreadRadians
-        vx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx[v], trackDirection1, trackDirection2, centreNormal, useVesselAngleRadians, vesselAngle2Radians, ostiumLength)
+        vx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx[v], trackDirection1, trackDirection2, centreNormal, ostiumLength, useVesselAngleRadians, vesselAngle2Radians)
         vd1 = [    vesselOuterRadius*d for d in vd1 ]
         vd2 = [   -vesselOuterRadius*d for d in vd2 ]
         vd3 = [ -vesselEndDerivative*d for d in vd3 ]
