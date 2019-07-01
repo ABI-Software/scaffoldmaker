@@ -124,7 +124,7 @@ class MeshType_3d_colon1(Scaffold_base):
         if optionName == 'Central path':
             return [ MeshType_1d_path1 ]
         if optionName == 'Segment profile':
-            return[ MeshType_3d_colonsegmentsimplemesentery1,
+            return [ MeshType_3d_colonsegmentsimplemesentery1,
                     MeshType_3d_colonsegmentteniacoli1 ]
         return []
 
