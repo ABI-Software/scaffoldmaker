@@ -195,13 +195,13 @@ def generatetubemesh(region,
             smoothd2InnerList.append(smoothd2Raw[n1][n2])
             n = elementsCountAround * n2 + n1
             if n2 == 0:
-                curvature = interp.getCubicHermiteCurvatureSimple(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], 0.0)
+                curvature = abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0))
             elif n2 == elementsCountAlong:
-                curvature = interp.getCubicHermiteCurvatureSimple(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], 1.0)
+                curvature = abs(interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], vector.normalise(sd2[n2]), 1.0))
             else:
                 curvature = 0.5*(
-                    interp.getCubicHermiteCurvatureSimple(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], 1.0) +
-                    interp.getCubicHermiteCurvatureSimple(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], 0.0))
+                    abs(interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], vector.normalise(sd2[n2]), 1.0)) +
+                    abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0)))
             curvatureAlong.append(curvature)
 
     # Pre-calculate node locations and derivatives on outer boundary

@@ -62,6 +62,24 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ 12.9, -0.3,  0.0 ], [ -4.1, -3.0,  0.0 ], [  0.6, -0.9, -1.4 ], [  0.8, -1.1, -1.3 ] ],
                 [ [  7.7,  0.3,  0.0 ], [ -3.0,  1.7,  0.0 ], [  0.1, -1.1, -1.8 ], [  0.4, -1.2, -1.2 ] ] ] )
             } ),
+        'Mouse 1' : ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings' : {
+                'Coordinate dimensions' : 3,
+                'Length' : 1.0,
+                'Number of elements' : 8
+                },
+            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
+                [ [  0.3, -0.2, -0.6 ], [  0.4,  1.3, -0.1 ], [ -0.1, 0.1, 0.4 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [  0.2,  1.4, -0.7 ], [ -1.9, -0.3, -0.5 ], [ -0.1, 0.0, 0.4 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.6, -0.3, -0.9 ], [ -2.8,  0.0, -1.4 ], [ -0.3, 0.0, 0.2 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -2.0,  0.8, -2.2 ], [ -1.8,  0.1,  0.0 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -2.6,  0.0, -1.6 ], [  0.7, -1.2,  1.0 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.9, -0.9, -1.6 ], [  1.3,  0.5, -1.6 ], [  0.0, 0.3, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.3,  0.6, -1.7 ], [  3.1,  0.3,  0.5 ], [ -0.2, 0.0, 0.2 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [  0.1, -1.0, -0.7 ], [ -0.3, -0.7,  0.4 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.4, -2.3, -0.1 ], [ -0.4, -0.6,  0.3 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ] ] )
+            } ),
         'Test Line' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
                 'Coordinate dimensions' : 3,
@@ -91,6 +109,8 @@ class MeshType_3d_colon1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
+        elif 'Mouse' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         if 'Mouse' in parameterSetName:
