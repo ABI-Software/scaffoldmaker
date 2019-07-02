@@ -24,6 +24,7 @@ def generatetubemesh(region,
     segmentAxis, segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
+    annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength,
     firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
@@ -46,15 +47,23 @@ def generatetubemesh(region,
     :param segmentAxis: axis of segment profile
     :param segmentLength: length of segment profile
     :param useCubicHermiteThroughWall: use linear when false
-    :return: annotationGroups, nodeIdentifier, elementIdentifier
+    :param annotationGroups: Empty when not required
+    :param annotationArray: Array storing annotation group name for elements around
+    :param transitElementList: True false list of where transition elements are
+    located around
+    :param uList: List of xi for each node around representative cross-sectional
+    profile
+    :param arcLengthOuterMidLength: Total arclength of elements around outer surface
+    along mid-length of a segment
+    :return nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
     :return sx: List of coordinates sampled from central line
     :return curvatureAlong, factorList: List of curvature and scale factor along mesh
     for each node on inner surface of mesh.
     '''
+
     zero  = [0.0, 0.0, 0.0]
-    annotationGroups = []
     elementsCountAlong = elementsCountAlongSegment*segmentCountAlong
 
     # Sample central line to get same number of elements as elementsCountAlong
@@ -110,6 +119,7 @@ def generatetubemesh(region,
     curvatureAlong = []
     smoothd2Raw = []
     smoothd2InnerList = []
+    d1List = []
 
 # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
@@ -185,17 +195,17 @@ def generatetubemesh(region,
             smoothd2InnerList.append(smoothd2Raw[n1][n2])
             n = elementsCountAround * n2 + n1
             if n2 == 0:
-                curvature = interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0)
+                curvature = abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0))
             elif n2 == elementsCountAlong:
-                curvature = interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], d3InnerUnitList[n], 1.0)
+                curvature = abs(interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], vector.normalise(sd2[n2]), 1.0))
             else:
                 curvature = 0.5*(
-                    interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], d3InnerUnitList[n], 1.0) +
-                    interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], d3InnerUnitList[n], 0.0))
+                    abs(interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], vector.normalise(sd2[n2]), 1.0)) +
+                    abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0)))
             curvatureAlong.append(curvature)
 
     # Pre-calculate node locations and derivatives on outer boundary
-    xOuterList, curvatureInner = getOuterCoordinatesAndCurvatureFromInner(xInnerList, d1InnerList, d3InnerUnitList, wallThickness, elementsCountAlong, elementsCountAround)
+    xOuterList, curvatureInner = getOuterCoordinatesAndCurvatureFromInner(xInnerList, d1InnerList, d3InnerUnitList, wallThickness, elementsCountAlong, elementsCountAround, transitElementList)
 
     # Interpolate to get nodes through wall
     for n3 in range(elementsCountThroughWall + 1):
@@ -247,6 +257,11 @@ def generatetubemesh(region,
                 nodeIdentifiers = [ bni11, bni12, bni21, bni22, bni11 + now, bni12 + now, bni21 + now, bni22 + now ]
                 result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
+                if annotationGroups:
+                    for annotationGroup in annotationGroups:
+                        if annotationArray[e1] == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
     # Define texture coordinates field
     textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
@@ -279,16 +294,27 @@ def generatetubemesh(region,
     elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
 
     # Calculate texture coordinates and derivatives
-    d1 = [1.0 / elementsCountAround, 0.0, 0.0]
     d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
+
+    for n1 in range(len(uList)):
+        d1 = [uList[n1] - uList[n1-1] if n1 > 0 else uList[n1+1] - uList[n1],
+              0.0,
+              0.0]
+        d1List.append(d1)
+
+    # To modify derivative along transition elements
+    for i in range(len(transitElementList)):
+        if transitElementList[i]:
+            d1List[i+1] = d1List[i+2]
 
     nodeIdentifier = firstNodeIdentifier
     for n3 in range(elementsCountThroughWall + 1):
         for n2 in range(elementsCountAlong + 1):
             for n1 in range(elementsCountAround):
-                u = [ 1.0 / elementsCountAround * n1,
-                    1.0 / elementsCountAlong * n2,
-                    1.0 / elementsCountThroughWall * n3]
+                u = [ uList[n1],
+                      1.0 / elementsCountAlong * n2,
+                      1.0 / elementsCountThroughWall * n3]
+                d1 = d1List[n1]
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
                 cache.setNode(node)
@@ -299,6 +325,7 @@ def generatetubemesh(region,
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 if n1 == 0:
                     u = [ 1.0, 1.0 / elementsCountAlong * n2, 1.0 / elementsCountThroughWall * n3]
+                    d1 = d1List[-1]
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, u)
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
                     textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
@@ -306,7 +333,75 @@ def generatetubemesh(region,
                         textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                 nodeIdentifier = nodeIdentifier + 1
 
-    # define texture coordinates field over elements
+    # Define flat coordinates field
+    flatCoordinates = zinc_utils.getOrCreateFlatCoordinateField(fm)
+    flatNodetemplate1 = nodes.createNodetemplate()
+    flatNodetemplate1.defineField(flatCoordinates)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+    flatNodetemplate2 = nodes.createNodetemplate()
+    flatNodetemplate2.defineField(flatCoordinates)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+    if useCrossDerivatives:
+        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+    flatElementtemplate1 = mesh.createElementtemplate()
+    flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate1.defineField(flatCoordinates, -1, eftTexture1)
+
+    flatElementtemplate2 = mesh.createElementtemplate()
+    flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
+
+    # Calculate texture coordinates and derivatives
+    totalLengthAlong = segmentLength*segmentCountAlong
+    d2 = [0.0, totalLengthAlong/elementsCountAlong, 0.0]
+
+    d1List = []
+    for n1 in range(len(uList)):
+        d1 = [(uList[n1] - uList[n1-1])*arcLengthOuterMidLength if n1 > 0 else (uList[n1+1] - uList[n1])*arcLengthOuterMidLength,
+              0.0,
+              0.0]
+        d1List.append(d1)
+
+    # To modify derivative along transition elements
+    for i in range(len(transitElementList)):
+        if transitElementList[i]:
+            d1List[i+1] = d1List[i+2]
+
+    nodeIdentifier = firstNodeIdentifier
+    for n3 in range(elementsCountThroughWall + 1):
+        for n2 in range(elementsCountAlong + 1):
+            for n1 in range(elementsCountAround):
+                x = [ uList[n1]*arcLengthOuterMidLength,
+                      totalLengthAlong / elementsCountAlong * n2,
+                      wallThickness / elementsCountThroughWall * n3]
+                d1 = d1List[n1]
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
+                cache.setNode(node)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                if useCrossDerivatives:
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                if n1 == 0:
+                    x = [ arcLengthOuterMidLength, totalLengthAlong / elementsCountAlong * n2, wallThickness / elementsCountThroughWall * n3]
+                    d1 = d1List[-1]
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, x)
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
+                    if useCrossDerivatives:
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+                nodeIdentifier = nodeIdentifier + 1
+
+    # Define flat coordinates field & texture coordinates field over elements
     elementIdentifier = firstElementIdentifier
     now = (elementsCountAlong + 1)*elementsCountAround
 
@@ -316,6 +411,7 @@ def generatetubemesh(region,
                 onOpening = e1 > elementsCountAround - 2
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 element.merge(elementtemplate2 if onOpening else elementtemplate1)
+                element.merge(flatElementtemplate2 if onOpening else flatElementtemplate1)
                 bni11 = e3*now + e2*elementsCountAround + e1 + 1
                 bni12 = e3*now + e2*elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 bni21 = e3*now + (e2 + 1)*elementsCountAround + e1 + 1
@@ -328,7 +424,7 @@ def generatetubemesh(region,
 
     return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList
 
-def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround):
+def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround, transitElementList):
     """
     Generates coordinates on outer surface and curvature of inner
     surface from coordinates and derivatives of inner surface using
@@ -351,9 +447,14 @@ def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThick
             prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
             nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
             norm = d3Inner[n]
-            curvatureAround = 0.5*(
-                interp.getCubicHermiteCurvature(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], norm, 1.0) +
-                interp.getCubicHermiteCurvature(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], norm, 0.0))
+            kappam = interp.getCubicHermiteCurvatureSimple(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], 1.0)
+            kappap = interp.getCubicHermiteCurvatureSimple(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], 0.0)
+            if not transitElementList[n1] and not transitElementList[(n1-1)%elementsCountAround]:
+                curvatureAround = 0.5*(kappam + kappap)
+            elif transitElementList[n1]:
+                curvatureAround = kappam
+            elif transitElementList[(n1-1)%elementsCountAround]:
+                curvatureAround = kappap
             xOuter.append(x)
             curvatureInner.append(curvatureAround)
 
@@ -396,13 +497,13 @@ def interpolatefromInnerAndOuter( xInner, xOuter, thickness, xi3, sx, curvatureI
             x = interp.interpolateCubicHermite(innerx, dWall, outerx, dWall, xi3)
             xList.append(x)
             # dx_ds1
-            factor = 1.0 - curvatureInner[n]*thickness*xi3
+            factor = 1.0 + thickness*xi3 * curvatureInner[n]
             dx_ds1 = [ factor*c for c in d1Inner[n]]
             dx_ds1List.append(dx_ds1)
             # dx_ds2
             curvature = curvatureAlong[n]
             distance = vector.magnitude([x[i] - sx[n2][i] for i in range(3)])
-            factor = 1.0 - curvature*distance
+            factor = 1.0 + curvature*distance
             dx_ds2 = [ factor*c for c in d2Inner[n]]
             dx_ds2List.append(dx_ds2)
             factorList.append(factor)

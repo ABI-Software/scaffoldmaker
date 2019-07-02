@@ -102,7 +102,7 @@ def createCirclePoints(cx, axis1, axis2, elementsCountAround, startRadians = 0.0
     :param cx: centre
     :param axis1:  Vector from cx to inside at zero angle
     :param axis2:  Vector from cx to inside at 90 degree angle.
-    :param wallThickness: Constant wall thickness around.
+    :param elementsCountAround: Number of elements around.
     :return: lists px, pd1
     '''
     px = []

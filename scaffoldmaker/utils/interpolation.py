@@ -165,6 +165,22 @@ def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     radialCurvature = vector.dotproduct(dTangent, radialVector)
     magTangent = vector.magnitude(tangent)
     curvature = radialCurvature/(magTangent*magTangent)
+
+    return curvature
+
+def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
+    """
+    :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
+    :param d1, d2: Derivatives w.r.t. xi at xi = 0.0 and xi = 1.0, respectively.
+    :param xi: Position in curve, nominally in [0.0, 1.0].
+    :return: Scalar curvature (1/R) of the 1-D cubic Hermite curve.
+    """
+
+    tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
+    dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
+    cp = vector.crossproduct3(tangent, dTangent)
+    curvature = vector.magnitude(cp) / (vector.magnitude(tangent)*vector.magnitude(tangent)*vector.magnitude(tangent))
+
     return curvature
 
 def interpolateHermiteLagrange(v1, d1, v2, xi):
