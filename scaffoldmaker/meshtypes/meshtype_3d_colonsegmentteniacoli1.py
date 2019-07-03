@@ -1,5 +1,5 @@
 """
-Generates a single 3-D haustra segment mesh along a central
+Generates a single 3-D colon segment mesh along a central
 line, with variable numbers of elements around, along and
 through wall, with variable radius and thickness along.
 """
@@ -19,39 +19,50 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_haustra1(Scaffold_base):
+class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
     '''
-    Generates a single 3-D haustra segment mesh with variable
-    numbers of elements around, along the central line, and
-    through wall. The haustra segment has a triangular profile
-    with rounded corners at the inter-haustral septa, and a
-    clover profile in the intra-haustral region.
+    Generates a single 3-D colon segment mesh with variable
+    numbers of tenia coli, elements around, along the central
+    line, and through wall. The cross-section profile of the colon
+    segment varies with species and is dependent on the number
+    of tenia coli.
+    Pig: 2 tenia coli, bow tie profile
+    Human (Default): 3 tenia coli, triangular profile with rounded
+    corners at the inter-haustral septa, and a clover
+    profile in the intra-haustral region.
     '''
     @staticmethod
     def getName():
-        return '3D Haustra 1'
+        return '3D Colon Segment Tenia Coli 1'
+
+    @staticmethod
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Human 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around tenia coli' : 2,
             'Number of elements around haustrum' : 8,
-            'Number of elements along haustrum' : 3,
+            'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
-            'Inner radius': 0.5,
+            'Inner radius': 1.0,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
-            'Haustrum length end derivative factor': 0.5,
-            'Haustrum length mid derivative factor': 1.0,
-            'Haustrum length': 1.0,
+            'Segment length end derivative factor': 0.5,
+            'Segment length mid derivative factor': 2.0,
+            'Segment length': 1.5,
+            'Number of tenia coli': 3,
             'Tenia coli width': 0.2,
             'Tenia coli thickness': 0.03,
-            'Wall thickness': 0.01,
+            'Wall thickness': 0.02,
             'Use cross derivatives' : False,
             'Use linear through wall' : True,
             'Refine' : False,
             'Refine number of elements around' : 1,
-            'Refine number of elements along haustrum' : 1,
+            'Refine number of elements along segment' : 1,
             'Refine number of elements through wall' : 1
         }
 
@@ -60,14 +71,15 @@ class MeshType_3d_haustra1(Scaffold_base):
         return [
             'Number of elements around tenia coli',
             'Number of elements around haustrum',
-            'Number of elements along haustrum',
+            'Number of elements along segment',
             'Number of elements through wall',
             'Inner radius',
             'Corner inner radius factor',
             'Haustrum inner radius factor',
-            'Haustrum length end derivative factor',
-            'Haustrum length mid derivative factor',
-            'Haustrum length',
+            'Segment length end derivative factor',
+            'Segment length mid derivative factor',
+            'Segment length',
+            'Number of tenia coli',
             'Tenia coli width',
             'Tenia coli thickness',
             'Wall thickness',
@@ -75,7 +87,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
-            'Refine number of elements along haustrum',
+            'Refine number of elements along segment',
             'Refine number of elements through wall'
         ]
 
@@ -84,13 +96,13 @@ class MeshType_3d_haustra1(Scaffold_base):
         for key in [
             'Number of elements through wall',
             'Refine number of elements around',
-            'Refine number of elements along haustrum',
+            'Refine number of elements along segment',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
         for key in [
             'Number of elements around tenia coli',
-            'Number of elements along haustrum']:
+            'Number of elements along segment']:
             if options[key] < 2:
                 options[key] = 2
         if options['Number of elements around haustrum'] < 4:
@@ -103,9 +115,9 @@ class MeshType_3d_haustra1(Scaffold_base):
         for key in [
             'Inner radius',
             'Haustrum inner radius factor',
-            'Haustrum length end derivative factor',
-            'Haustrum length mid derivative factor',
-            'Haustrum length',
+            'Segment length end derivative factor',
+            'Segment length mid derivative factor',
+            'Segment length',
             'Tenia coli thickness',
             'Wall thickness']:
             if options[key] < 0.0:
@@ -114,9 +126,13 @@ class MeshType_3d_haustra1(Scaffold_base):
             options['Corner inner radius factor'] = 0.1
         for key in [
             'Corner inner radius factor',
-            'Haustrum length end derivative factor']:
+            'Segment length end derivative factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
+        if options['Number of tenia coli'] < 2:
+            options['Number of tenia coli'] = 2
+        elif options['Number of tenia coli'] > 3:
+            options['Number of tenia coli'] = 3
         if options['Tenia coli width'] < 0.2*options['Inner radius']:
             options['Tenia coli width'] = round(0.2*options['Inner radius'], 2)
         if options['Tenia coli width'] > round(math.sqrt(3)*0.5*options['Inner radius'],2):
@@ -133,42 +149,43 @@ class MeshType_3d_haustra1(Scaffold_base):
         elementsCountAroundTC = options['Number of elements around tenia coli']
         elementsCountAroundHaustrum = options['Number of elements around haustrum']
         elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
-        elementsCountAlongHaustrum = options['Number of elements along haustrum']
+        elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         radius = options['Inner radius']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
-        haustrumLengthEndDerivativeFactor = options['Haustrum length end derivative factor']
-        haustrumLengthMidDerivativeFactor = options['Haustrum length mid derivative factor']
-        haustrumLength = options['Haustrum length']
-        widthTC = options['Tenia coli width']
-        TCThickness = options['Tenia coli thickness']
+        segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
+        segmentLengthMidDerivativeFactor = options['Segment length mid derivative factor']
+        segmentLength = options['Segment length']
+        tcCount = options['Number of tenia coli']
+        tcWidth = options['Tenia coli width']
+        tcThickness = options['Tenia coli thickness']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         haustraSegmentCount = 1
 
-        cx = [ [ 0.0, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
-        cd1 = [ [ haustrumLength, 0.0, 0.0 ], [ haustrumLength, 0.0, 0.0 ] ]
+        cx = [ [ 0.0, 0.0, 0.0 ], [ segmentLength, 0.0, 0.0 ] ]
+        cd1 = [ [ segmentLength, 0.0, 0.0 ], [ segmentLength, 0.0, 0.0 ] ]
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
-        # Generate inner surface of a haustra segment
-        xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonHaustraSegmentInnerPoints(elementsCountAroundTC,
-            elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-            haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength)
+        # Generate inner surface of a colon segment
+        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
+            elementsCountAroundHaustrum, elementsCountAlongSegment, tcCount, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-            elementsCountAround, elementsCountAlongHaustrum, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
-            xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, haustrumLength,
-            useCrossDerivatives, useCubicHermiteThroughWall)
+            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
+            xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, segmentLength,
+            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
            useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
-           elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, elementsCountThroughWall,
-           widthTC, TCThickness, sx, curvatureAlong, factorList)
+           elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall, wallThickness,
+           tcWidth, tcThickness, sx, curvatureAlong, factorList, uList, arcLengthOuterMidLength, segmentLength)
 
         annotationGroups += annotationGroupsTC
 
@@ -185,7 +202,7 @@ class MeshType_3d_haustra1(Scaffold_base):
             return cls.generateBaseMesh(region, options)
 
         refineElementsCountAround = options['Refine number of elements around']
-        refineElementsCountAlong = options['Refine number of elements along haustrum']
+        refineElementsCountAlong = options['Refine number of elements along segment']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         baseRegion = region.createRegion()
@@ -195,18 +212,19 @@ class MeshType_3d_haustra1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongHaustrum, widthTC, radius,
-    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, haustrumLengthEndDerivativeFactor, haustrumLengthMidDerivativeFactor, haustrumLength):
+def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, tcCount, tcWidth, radius,
+    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness):
     """
-    Generates a 3-D haustra segment mesh with variable numbers
-    of elements around, along the central line, and through wall.
-    The haustra segment has a triangular profile with rounded corners
+    Generates a 3-D colon segment mesh with 3 tenia coli with variable
+    numbers of elements around, along the central line, and through wall.
+    The colon segment has a triangular profile with rounded corners
     at the inter-haustral septa, and a clover profile in the intra-haustral
     region.
     :param elementsCountAroundTC: Number of elements around each tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
-    :param elementsCountAlongHaustrum: Number of elements along haustrum.
-    :param widthTC: Width of tenia coli.
+    :param elementsCountAlongSegment: Number of elements along colon segment.
+    :param tcCount: Number of tenia coli.
+    :param tcWidth: Width of tenia coli.
     :param radius: Inner radius defined from center of triangular
     profile to vertex of the triangle.
     :param cornerInnerRadiusFactor: Roundness of triangular corners of
@@ -215,13 +233,28 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
     :param haustrumInnerRadiusFactor: Factor is multiplied by inner
     radius to obtain radius of intersecting circles in the middle cross-section
     along a haustra segment.
-    :param haustrumLengthEndDerivativeFactor: Factor is multiplied by haustrum
-    length to scale derivative along the end of a haustrum length.
-    :param haustrumLengthMidDerivativeFactor: Factor is multiplied by haustrum
-    length to scale derivative along the mid length of the haustrum.
-    :param haustrumLength: Length of a haustrum.
-    :return: coordinates, derivatives on inner surface of haustra segment.
+    :param segmentLengthEndDerivativeFactor: Factor is multiplied by segment
+    length to scale derivative along the end of a segment length.
+    :param segmentLengthMidDerivativeFactor: Factor is multiplied by segment
+    length to scale derivative along the mid length of the segment.
+    :param segmentLength: Length of a colon segment.
+    :param wallThickness: Thickness of wall.
+    :return annotationGroups, annotationArray: annotationArray stores annotation
+    names of elements around
+    :return transitElementList: stores true if element around is an element that
+    transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
+    :return uList: List of xi for each node around mid-length haustra.
+    : return totalArcLengthOuterMidLengthHaustra: Total arclength around outer
+    surface on mid-length haustra.
+    :return coordinates, derivatives on inner surface of a colon segment.
     """
+    annotationGroups = []
+    annotationArray = []
+    transitElementListHaustrum = [0]*int(elementsCountAroundTC*0.5) + [1] + [0]*int(elementsCountAroundHaustrum - 2) + [1] + [0]*int(elementsCountAroundTC*0.5)
+    transitElementList = transitElementListHaustrum*3
+
+    assert tcCount == 3, 'getColonSegmentInnerPointsTeniaColi Only implemented for 3 tenia coli'
+
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
     dx_ds1 = [ 0.0, 0.0, 0.0 ]
@@ -230,7 +263,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
     cornerRC = cornerInnerRadiusFactor*radius
     radiansRangeRC = [7*math.pi/4, 0.0, math.pi/4]
     sampleElementOut = 20
-    unitZ = [0.0, 0.0, 1.0]
+    segmentAxis = [0.0, 0.0, 1.0]
     haustrumRadius = (haustrumInnerRadiusFactor + 1)*radius
 
     xAround = []
@@ -248,6 +281,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
     xFinal = []
     d1Final = []
     d2Final = []
+    uList = []
 
     # Inter-haustral segment
     # Set up profile
@@ -280,13 +314,13 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
     arcEnd = arcLength/6.0
 
     # Find edge of TC
-    arcDistanceTCEdge = findEdgeOfTeniaColi(xLoop, d1Loop, widthTC, arcStart, arcEnd)
+    arcDistanceTCEdge = findEdgeOfTeniaColi(xLoop, d1Loop, tcWidth, arcStart, arcEnd)
 
     # Sample TC into equally sized elements
-    xTC, d1TC = sampleTeniaColi(xLoop, d1Loop, arcDistanceTCEdge, elementsCountAroundTC)
+    xTC, d1TC, _ = sampleTeniaColi(xLoop, d1Loop, arcDistanceTCEdge, elementsCountAroundTC)
 
     # Sample haustrum into equally sized elements
-    xHaustrum, d1Haustrum = sampleHaustrum(xLoop, d1Loop, xTC[-1], d1TC[-1], arcLength/6.0, arcDistanceTCEdge, elementsCountAroundHaustrum)
+    xHaustrum, d1Haustrum, _, _ = sampleHaustrum(xLoop, d1Loop, xTC[-1], d1TC[-1], arcLength/6.0, arcDistanceTCEdge, elementsCountAroundHaustrum)
 
     xHalfSetInterHaustra = xHalfSetInterHaustra + xTC + xHaustrum[1:]
     d1HalfSetInterHaustra = d1HalfSetInterHaustra + d1TC + d1Haustrum[1:]
@@ -337,44 +371,52 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
         arcLength = arcLength + arcDistance
 
     arcDistanceAtMaxValue = arcLength / sampleElementOut * maxIndex
-    arcStart = 0.0 if yAtMaxValue > widthTC*0.5 else arcDistanceAtMaxValue
-    arcEnd = arcDistanceAtMaxValue if yAtMaxValue > widthTC*0.5 else arcLength
+    arcStart = 0.0 if yAtMaxValue > tcWidth*0.5 else arcDistanceAtMaxValue
+    arcEnd = arcDistanceAtMaxValue if yAtMaxValue > tcWidth*0.5 else arcLength
 
     # Find edge of TC
-    arcDistanceTCEdge = findEdgeOfTeniaColi(nxHaustrum, smoothd1, widthTC, arcStart, arcEnd)
+    arcDistanceTCEdge = findEdgeOfTeniaColi(nxHaustrum, smoothd1, tcWidth, arcStart, arcEnd)
 
     # Sample TC into equally sized elements
-    xTC, d1TC = sampleTeniaColi(nxHaustrum, smoothd1, arcDistanceTCEdge, elementsCountAroundTC)
+    xTC, d1TC, arcLengthPerTC = sampleTeniaColi(nxHaustrum, smoothd1, arcDistanceTCEdge, elementsCountAroundTC)
 
     # Sample haustrum into equally sized elements
-    xHaustrum, d1Haustrum = sampleHaustrum(nxHaustrum, smoothd1, xTC[-1], d1TC[-1], arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum)
+    xHaustrum, d1Haustrum, arcLengthPerHaustrum, arcLengthPerTransition = sampleHaustrum(nxHaustrum, smoothd1, xTC[-1], d1TC[-1], arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum)
 
     xHalfSetIntraHaustra = xHalfSetIntraHaustra + xTC + xHaustrum[1:]
     d1HalfSetIntraHaustra = d1HalfSetIntraHaustra + d1TC + d1Haustrum[1:]
+
+    # Calculate uList for elements lying around outer surface along mid-length haustra
+    d2 = []
+    for n in range(len(xHalfSetIntraHaustra)):
+        d2.append([0.0, 0.0, 0.0])
+    xInnerMidLengthHaustra, d1InnerMidLengthHaustra, _ = getFullProfileFromHalfHaustrum(xHalfSetIntraHaustra, d1HalfSetIntraHaustra, d2)
+    uList, totalArcLengthOuterMidLengthHaustra = getuListFromOuterMidLengthProfile(xInnerMidLengthHaustra, d1InnerMidLengthHaustra, segmentAxis, wallThickness, transitElementList)
 
     # Sample arclength of haustra segment
     elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
 
     for n1 in range(elementsCountAroundHalfHaustrum + 1):
         v1 = [xHalfSetInterHaustra[n1][0], xHalfSetInterHaustra[n1][1], 0.0]
-        startArcLength = haustrumLengthEndDerivativeFactor * haustrumLength
-        d1 = [ c*startArcLength for c in unitZ]
-        v2 = [xHalfSetIntraHaustra[n1][0], xHalfSetIntraHaustra[n1][1], haustrumLength/2]
-        midArcLength = haustrumLengthMidDerivativeFactor * haustrumLength
-        d2 = [c*midArcLength for c in unitZ]
-        v3 = [xHalfSetInterHaustra[n1][0], xHalfSetInterHaustra[n1][1], haustrumLength]
-        d3 = [ c*startArcLength for c in unitZ]
+        startArcLength = segmentLengthEndDerivativeFactor * segmentLength
+        d1 = [ c*startArcLength for c in segmentAxis]
+        v2 = [xHalfSetIntraHaustra[n1][0], xHalfSetIntraHaustra[n1][1], segmentLength/2]
+        midArcLength = segmentLengthMidDerivativeFactor * segmentLength
+        d2 = [c*midArcLength for c in segmentAxis]
+        v3 = [xHalfSetInterHaustra[n1][0], xHalfSetInterHaustra[n1][1], segmentLength]
+        d3 = [ c*startArcLength for c in segmentAxis]
         nx = [v1, v2, v3]
         nd1 = [d1, d2, d3]
-        sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongHaustrum)
+        sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)
         xInnerRaw.append(sx)
         dx_ds2InnerRaw.append(sd1)
 
     # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
-    for n2 in range(elementsCountAlongHaustrum + 1):
+    for n2 in range(elementsCountAlongSegment + 1):
         xAround = []
         unitdx_ds1Around = []
         d2Around = []
+
         for n1 in range(elementsCountAroundHalfHaustrum+1):
             x = xInnerRaw[n1][n2]
             xInnerList.append(x)
@@ -385,10 +427,10 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
             if n1 == 0:
                 unitdx_ds1 = vector.normalise(d1HalfSetIntraHaustra[n1])
             else: # points on clover
-                if n2 <= int(elementsCountAlongHaustrum/2): # first half of haustrumLength
-                    axisRot = vector.crossproduct3(unitZ, unitTangent)
-                elif n2 > int(elementsCountAlongHaustrum/2): # second half of haustrumLength
-                    axisRot = vector.crossproduct3(unitTangent, unitZ)
+                if n2 <= int(elementsCountAlongSegment/2): # first half of segmentLength
+                    axisRot = vector.crossproduct3(segmentAxis, unitTangent)
+                elif n2 > int(elementsCountAlongSegment/2): # second half of segmentLength
+                    axisRot = vector.crossproduct3(unitTangent, segmentAxis)
                 rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
                 rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
                 unitdx_ds3 = vector.normalise(rotNormal)
@@ -397,9 +439,9 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
             d2Around.append(dx_ds2)
             unitdx_ds1Around.append(unitdx_ds1)
 
-        if n2 > 0 and n2 < elementsCountAlongHaustrum:
+        if n2 > 0 and n2 < elementsCountAlongSegment:
             dx_ds1InnerAroundList = []
-            if elementsCountAlongHaustrum%2 == 0 and n2 == int(elementsCountAlongHaustrum*0.5):
+            if elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5):
                 dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1HalfSetIntraHaustra
             else:
                 for n1 in range(elementsCountAroundHalfHaustrum):
@@ -415,7 +457,7 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
                 dx_ds1InnerAroundList.append(dx_ds1)
             d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList, fixStartDerivative = True)
             d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
-            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5)]))
+            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
             d1Corrected = []
             d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC*0.5)]
             d1Corrected.append(d1TCEdge)
@@ -429,15 +471,15 @@ def getColonHaustraSegmentInnerPoints(elementsCountAroundTC, elementsCountAround
         d1Final = d1Final + d1AlongList
         d2Final = d2Final + d2AlongList
 
-    return xFinal, d1Final, d2Final, unitZ
+    return annotationGroups, annotationArray, transitElementList, uList, totalArcLengthOuterMidLengthHaustra, xFinal, d1Final, d2Final, segmentAxis
 
-def findEdgeOfTeniaColi(nx, nd1, widthTC, arcStart, arcEnd):
+def findEdgeOfTeniaColi(nx, nd1, tcWidth, arcStart, arcEnd):
     """
     Locate edge of tenia coli on a cubic hermite interpolated
     curve defined by nodes nx and derivatives nd1.
     :param nx: Coordinates of nodes along curve.
     :param nd1: Derivatives of nodes along curve.
-    :param widthTC: Width of tenia coli.
+    :param tcWidth: Width of tenia coli.
     :param arcStart: Lower limit of arc distance to search for
     edge of tenia coli.
     :param arcEnd: Upper limit of arc distance to search for
@@ -448,7 +490,7 @@ def findEdgeOfTeniaColi(nx, nd1, widthTC, arcStart, arcEnd):
     for iter in range(100):
         arcDistance = (arcStart + arcEnd)*0.5
         x, d1, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, nd1, arcDistance)
-        diff = x[1] - widthTC*0.5
+        diff = x[1] - tcWidth*0.5
         if abs(diff) > xTol:
             if diff < 0.0:
                 arcStart = arcDistance
@@ -471,7 +513,8 @@ def sampleTeniaColi(nx, nd1, arcDistanceTCEdge, elementsCountAroundTC):
     :param nd1: Derivatives of nodes along curve.
     :param arcDistanceTCEdge: Arc distance covered by tenia coli.
     :param elementsCountAroundTC: Number of elements around tenia coli.
-    :return: coordinates, derivatives on tenia coli.
+    :return: coordinates, derivatives of tenia coli, and arclength of
+    each tenia coli element.
     """
     xTC = []
     d1TC = []
@@ -483,7 +526,7 @@ def sampleTeniaColi(nx, nd1, arcDistanceTCEdge, elementsCountAroundTC):
         xTC.append(x)
         d1TC.append(d1Scaled)
 
-    return xTC, d1TC
+    return xTC, d1TC, arcDistancePerElementTC
 
 def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum):
     """
@@ -498,6 +541,7 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
     :param arcDistanceTCEdge: Arc distance covered by tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :return: coordinates, derivatives on haustrum.
+    :return: arclength of haustrum element and transition elements.
     """
     xHaustrum = []
     d1Haustrum = []
@@ -516,6 +560,8 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
         elementLengths.append(elementLengthMid)
     elementLengths[0] = addLengthStart + elementLengthProportionStart
     elementLengths[-1] = 0.0 + elementLengthProportionEnd
+    haustrumElementLength = elementLengthMid
+    transitionElementLength = elementLengths[0]
 
     arcDistance = arcDistanceTCEdge
     xHaustrum.append(xTCLast)
@@ -525,11 +571,11 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge, ele
     for e in range(elementsCountOut):
         arcDistance = arcDistance + elementLengths[e]
         x, d1, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, nd1, arcDistance)
-        d1Scaled = vector.setMagnitude(d1, elementLengths[e])
+        d1Scaled = vector.setMagnitude(d1, elementLengths[e] if e > 0 else elementLengths[e+1])
         xHaustrum.append(x)
         d1Haustrum.append(d1Scaled)
 
-    return xHaustrum, d1Haustrum
+    return xHaustrum, d1Haustrum, haustrumElementLength, transitionElementLength
 
 def getCircleXandD1FromRadians(thetaSet, radius, origin):
     """
@@ -632,10 +678,61 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet, d2Haustr
 
     return xHaustra, d1Haustra, d2Haustra
 
+def getuListFromOuterMidLengthProfile(xInnerMidLength, d1InnerMidLength,
+    segmentAxis, wallThickness, transitElementList):
+    """
+    Gets a list of xi for flat and texture coordinates calculated
+    from outer arclength of elements around mid-length of a segment.
+    :param xInnerMidLength: Coordinates of points on inner surface around
+    mid-length of segment.
+    :param d1InnerMidLength: Derivatives of points on inner surface around
+    mid-length of segment.
+    :param segmentAxis: Axis of segment.
+    :param wallThickness: Thickness of wall.
+    :param transitElementList: stores true if element around is an element that
+    transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
+    :return uList: List containing xi for each point on outer surface extruded by
+    wall thickness from points on inner surface.
+    :return totalArcLengthOuterMidLength: Total arclength around outer surface on
+    mid-length section of segment.
+    """
+    unitNormList = []
+    d1OuterMidLength = []
+
+    for n in range(len(xInnerMidLength)):
+        unitNormList.append(vector.normalise(vector.crossproduct3(d1InnerMidLength[n], segmentAxis)))
+
+    xOuterMidLength, curvatureInnerMidLength = tubemesh.getOuterCoordinatesAndCurvatureFromInner(xInnerMidLength, d1InnerMidLength, unitNormList, wallThickness, 0, len(xInnerMidLength), transitElementList)
+
+    for n1 in range(len(xOuterMidLength)):
+        factor = 1.0 + wallThickness * curvatureInnerMidLength[n1]
+        dx_ds1 = [ factor*c for c in d1InnerMidLength[n1]]
+        d1OuterMidLength.append(dx_ds1)
+
+    arcLengthList = []
+    for n1 in range(len(xOuterMidLength)):
+        arcLengthPerElement = interp.getCubicHermiteArcLength(xOuterMidLength[n1], d1OuterMidLength[n1], xOuterMidLength[(n1+1) % len(xOuterMidLength)], d1OuterMidLength[(n1+1)% len(xOuterMidLength)])
+        arcLengthList.append(arcLengthPerElement)
+
+    # Total arcLength
+    totalArcLengthOuterMidLength = 0.0
+    for n1 in range(len(arcLengthList)):
+        totalArcLengthOuterMidLength += arcLengthList[n1]
+
+    uList = [0.0]
+    arcDistance = 0
+    for n in range(len(arcLengthList)):
+        arcDistance = arcDistance + arcLengthList[n]
+        xi = arcDistance / totalArcLengthOuterMidLength
+        uList.append(xi)
+
+    return uList, totalArcLengthOuterMidLength
+
 def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     useCubicHermiteThroughWall, xList, d1List, d2List, d3List,
     elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-    widthTC, TCThickness, sxCentralLine, curvatureAlong, factorList):
+    wallThickness, tcWidth, tcThickness, sxCentralLine, curvatureAlong, factorList, uList,
+    arcLengthOuterMidLength, totalLengthAlong):
     """
     Create equally spaced nodes and elements for tenia coli over the outer
     surface of the haustra. Nodes of the tenia coli is sampled from a cubic
@@ -650,11 +747,16 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :param elementsCountAlong: Number of elements along scaffold.
     :param elementsCountThroughWall: Number of elements through wall.
-    :param widthTC: Width of tenia coli.
-    :param TCThickness: Thickness of tenia coli at its thickest part.
+    :param wallThickness: Thickness of wall.
+    :param tcWidth: Width of tenia coli.
+    :param tcThickness: Thickness of tenia coli at its thickest part.
     :param sxCentralLine: Coordinates sampled from central line.
     :param curvatureAlong: Curvatures along the colon for nodes on inner surface of colon.
     :param factorList: Factors used for scaling d2 to account for curvature along colon.
+    :param uList: List of xi for each node around mid-length haustra.
+    :param arcLengthOuterMidLength: Total arclength of elements around outer surface along
+    mid-length of segment.
+    :param totalLengthAlong: Total length of colon along center line.
     :return: annotationGroups, nodeIdentifier, elementIdentifier
     """
 
@@ -663,11 +765,10 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     cache = fm.createFieldcache()
     coordinates = zinc_utils.getOrCreateCoordinateField(fm)
 
-    # Make sure tenia coli groups are in correct orientation after developing cross axes
-    TLGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    TMGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    TOGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-    annotationGroups = [TLGroup, TMGroup, TOGroup]
+    tlGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    tmGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    toGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+    annotationGroups = [tlGroup, tmGroup, toGroup]
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -712,6 +813,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     TCEdgeFactor = 1.5
     zero = [0.0, 0.0, 0.0]
     prevNodeIdentifier = nodeIdentifier - 1
+    prevElementIdentifier = elementIdentifier - 1
 
     xTCOuterList = []
     d1TCOuterList = []
@@ -720,6 +822,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
     bniList = []
     bniTCList = []
     idxList = []
+    wList = []
 
     set1 = list(range(int(elementsCountAroundTC/2)+1))
     set2 = list(range(set1[-1] + elementsCountAroundHaustrum, set1[-1] + elementsCountAroundHaustrum + elementsCountAroundTC + 1))
@@ -735,13 +838,13 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
         for N in range(3):
             idxTCMid = elementsCountThroughWall*(elementsCountAlong+1)*elementsCountAround + n2*elementsCountAround + N*(elementsCountAroundTC + elementsCountAroundHaustrum)
             unitNorm = vector.normalise(d3List[idxTCMid])
-            xMid = [xList[idxTCMid][i] + unitNorm[i]*TCThickness for i in range(3)]
+            xMid = [xList[idxTCMid][i] + unitNorm[i]*tcThickness for i in range(3)]
             d1Mid = d1List[idxTCMid]
             TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5) if N > 0 else idxTCMid + 3*(elementsCountAroundTC + elementsCountAroundHaustrum) - int(elementsCountAroundTC*0.5)
             TCEndIdx = idxTCMid + int(elementsCountAroundTC*0.5)
             v1 = xList[TCStartIdx]
             v2 = xMid
-            d1MidScaled = [c*widthTC*TCEdgeFactor for c in vector.normalise(d1Mid)]
+            d1MidScaled = [c*tcWidth*TCEdgeFactor for c in vector.normalise(d1Mid)]
             v3 = xList[TCEndIdx]
             nx = [v1, v2, v3]
             nd1 = [d1List[TCStartIdx], d1MidScaled, d1List[TCEndIdx]]
@@ -750,7 +853,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             if elementsCountAroundTC == 2:
                 p = [v2[i] - v1[i] for i in range(3)]
                 A = vector.dotproduct(unitNorm, p) # A<0 if v2 is higher than v1
-                d1 = [c*widthTC*0.5 for c in vector.normalise(d1Mid)] if A < 0 else d1MidScaled
+                d1 = [c*tcWidth*0.5 for c in vector.normalise(d1Mid)] if A < 0 else d1MidScaled
             d1TCRaw = d1TCRaw + sd1[1:-1] if elementsCountAroundTC > 2 else d1TCRaw + [d1]
             xTCInnerSet = list(range(TCStartIdx+1, TCEndIdx)) if N > 0 else list(range(TCStartIdx + 1, TCStartIdx + int(elementsCountAroundTC * 0.5))) + list(range(idxTCMid, idxTCMid + int(elementsCountAroundTC * 0.5)))
 
@@ -769,7 +872,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                 d2Unscaled = [ 1.0/factor*c for c in d2]
                 curvature = curvatureAlong[innerIdx]
                 distance = vector.magnitude([xTCOuter[i] - sxCentralLine[n2][i] for i in range(3)])
-                newFactor = 1.0 - curvature*distance
+                newFactor = 1.0 + curvature*distance
                 dx_ds2 = [ newFactor*c for c in d2Unscaled]
                 d2TCRaw.append(dx_ds2)
 
@@ -793,9 +896,9 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
         nodeIdentifier = nodeIdentifier + 1
 
     # create elements
-    TLMeshGroup = TLGroup.getMeshGroup(mesh)
-    TMMeshGroup = TMGroup.getMeshGroup(mesh)
-    TOMeshGroup = TOGroup.getMeshGroup(mesh)
+    tlMeshGroup = tlGroup.getMeshGroup(mesh)
+    tmMeshGroup = tmGroup.getMeshGroup(mesh)
+    toMeshGroup = toGroup.getMeshGroup(mesh)
 
     for N in range(4):
         if N == 0:
@@ -838,7 +941,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             element = mesh.createElement(elementIdentifier, elementtemplate if n1 < int(elementsCountAroundTC*0.5) - 1 else elementtemplate1)
             result = element.setNodesByIdentifier(eft if n1 < int(elementsCountAroundTC*0.5) - 1 else eft1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            TOMeshGroup.addElement(element)
+            toMeshGroup.addElement(element)
 
         for N in range(2):
             for n1 in range(elementsCountAroundTC):
@@ -857,7 +960,7 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
-                TLMeshGroup.addElement(element) if N == 0 else TMMeshGroup.addElement(element)
+                tlMeshGroup.addElement(element) if N == 0 else tmMeshGroup.addElement(element)
 
         for n1 in range(int(elementsCountAroundTC*0.5)):
             e1 = e1 + 1
@@ -866,7 +969,243 @@ def getTeniaColi(region, nodeIdentifier, elementIdentifier, useCrossDerivatives,
             element = mesh.createElement(elementIdentifier, elementtemplate if n1 > 0 else elementtemplate2)
             result = element.setNodesByIdentifier(eft if n1 > 0 else eft2, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            TOMeshGroup.addElement(element)
+            toMeshGroup.addElement(element)
+
+    # Define texture coordinates field for tenia coli
+    textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
+    textureNodetemplate1 = nodes.createNodetemplate()
+    textureNodetemplate1.defineField(textureCoordinates)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+    textureNodetemplate2 = nodes.createNodetemplate()
+    textureNodetemplate2.defineField(textureCoordinates)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+    if useCrossDerivatives:
+        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+    bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+    eftTexture1 = bicubichermitelinear.createEftBasic()
+    elementtemplate = mesh.createElementtemplate()
+    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate.defineField(textureCoordinates, -1, eftTexture1)
+
+    eftTexture2 = bicubichermitelinear.createEftWedgeXi1One()
+    elementtemplate1.defineField(textureCoordinates, -1, eftTexture2)
+
+    eftTexture3 = bicubichermitelinear.createEftWedgeXi1Zero()
+    elementtemplate2.defineField(textureCoordinates, -1, eftTexture3)
+
+    eftTexture4 = bicubichermitelinear.createEftOpenTube()
+    elementtemplate3 = mesh.createElementtemplate()
+    elementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate3.defineField(textureCoordinates, -1, eftTexture4)
+
+    eftTexture5 = bicubichermitelinear.createEftWedgeXi1ZeroOpenTube()
+    elementtemplate4 = mesh.createElementtemplate()
+    elementtemplate4.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate4.defineField(textureCoordinates, -1, eftTexture5)
+
+    # Calculate texture coordinates and derivatives
+    nodeIdentifier = prevNodeIdentifier + 1
+    dTC = uList[1] - uList[0]
+
+    for N in range(4):
+        idxTCMid = N*(elementsCountAroundTC + elementsCountAroundHaustrum)
+        TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5)
+        TCEndIdx = idxTCMid + int(elementsCountAroundTC*0.5)
+        v1 = [uList[TCStartIdx], 0.0, 1.0] if N > 0 else [-dTC, 0.0, 1.0]
+        v2 = [  uList[idxTCMid], 0.0, 2.0]
+        v3 = [  uList[TCEndIdx], 0.0, 1.0] if N < 3 else [ 1 + dTC , 0.0, 1.0]
+        d1 = d2 = d3 = [dTC, 0.0, 0.0]
+        nx = [v1, v2, v3]
+        nd1 = [d1, d2, d3]
+        sx, _, _, _, _ = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundTC)
+        if N > 0 and N < 3:
+            w = sx[1:-1]
+        elif N == 0:
+            w = sx[int(elementsCountAroundTC*0.5):-1]
+        else: # N > 2
+            w = sx[1:int(elementsCountAroundTC*0.5)+1]
+        wList = wList + w
+
+    d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
+    for n2 in range(elementsCountAlong + 1):
+        for n1 in range((elementsCountAroundTC-1) * 3):
+            u = [ wList[n1][0],
+                  1.0 / elementsCountAlong * n2,
+                  wList[n1][2]]
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
+            cache.setNode(node)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, u)
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [dTC, 0.0, 0.0])
+            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            if useCrossDerivatives:
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            if n1 == 0:
+                u = [ wList[-1][0],
+                      1.0 / elementsCountAlong * n2,
+                      wList[-1][2]]
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, u)
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, [dTC, 0.0, 0.0])
+                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
+                if useCrossDerivatives:
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+            nodeIdentifier = nodeIdentifier + 1
+
+    # Define flat coordinates field for tenia coli
+    flatCoordinates = zinc_utils.getOrCreateFlatCoordinateField(fm)
+    flatNodetemplate1 = nodes.createNodetemplate()
+    flatNodetemplate1.defineField(flatCoordinates)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+    flatNodetemplate2 = nodes.createNodetemplate()
+    flatNodetemplate2.defineField(flatCoordinates)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+    if useCrossDerivatives:
+        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+
+    flatElementtemplate = mesh.createElementtemplate()
+    flatElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate.defineField(flatCoordinates, -1, eftTexture1)
+
+    flatElementtemplate1 = mesh.createElementtemplate()
+    flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate1.defineField(flatCoordinates, -1, eftTexture2)
+
+    flatElementtemplate2 = mesh.createElementtemplate()
+    flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture3)
+
+    flatElementtemplate3 = mesh.createElementtemplate()
+    flatElementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate3.defineField(flatCoordinates, -1, eftTexture4)
+
+    flatElementtemplate4 = mesh.createElementtemplate()
+    flatElementtemplate4.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    flatElementtemplate4.defineField(flatCoordinates, -1, eftTexture5)
+
+    # Calculate flat coordinates and derivatives
+    nodeIdentifier = prevNodeIdentifier + 1
+    dTC = (uList[1] - uList[0])*arcLengthOuterMidLength
+    wList = []
+    dwList = []
+
+    for N in range(4):
+        idxTCMid = N*(elementsCountAroundTC + elementsCountAroundHaustrum)
+        TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5)
+        TCEndIdx = idxTCMid + int(elementsCountAroundTC*0.5)
+        v1 = [uList[TCStartIdx]*arcLengthOuterMidLength, 0.0, wallThickness] if N > 0 else [-dTC, 0.0, wallThickness]
+        v2 = [  uList[idxTCMid]*arcLengthOuterMidLength, 0.0, wallThickness + tcThickness]
+        v3 = [  uList[TCEndIdx]*arcLengthOuterMidLength, 0.0, wallThickness] if N < 3 else [ arcLengthOuterMidLength + dTC , 0.0, wallThickness]
+        d1 = d3 = [dTC, 0.0, 0.0]
+        d2 = [c*10.0 for c in [dTC, 0.0, 0.0]]
+        nx = [v1, v2, v3]
+        nd1 = [d1, d2, d3]
+        sx, sd1, _, _, _ = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundTC)
+        if N > 0 and N < 3:
+            w = sx[1:-1]
+            dw = sd1[1:-1]
+        elif N == 0:
+            w = sx[int(elementsCountAroundTC*0.5):-1]
+            dw = sd1[int(elementsCountAroundTC*0.5):-1]
+        else: # N > 2
+            w = sx[1:int(elementsCountAroundTC*0.5)+1]
+            dw = sd1[1:int(elementsCountAroundTC*0.5)+1]
+        wList = wList + w
+        dwList = dwList + dw
+
+    dxds2 = [0.0, totalLengthAlong / elementsCountAlong, 0.0]
+
+    for n2 in range(elementsCountAlong + 1):
+        for n1 in range((elementsCountAroundTC-1) * 3):
+            x = [ wList[n1][0],
+                  totalLengthAlong / elementsCountAlong * n2,
+                  wList[n1][2]]
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
+            cache.setNode(node)
+            flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dwList[n1])
+            flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dxds2)
+            if useCrossDerivatives:
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            if n1 == 0:
+                x = [ wList[-1][0],
+                      totalLengthAlong / elementsCountAlong * n2,
+                      wList[-1][2]]
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, x)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, dwList[n1])
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, dxds2)
+                if useCrossDerivatives:
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+            nodeIdentifier = nodeIdentifier + 1
+
+    # Define texture coordinates field & flat coordinates field over elements
+    elementIdentifier = prevElementIdentifier + 1
+    for e2 in range(elementsCountAlong):
+        e1 = -1
+        A = e2*(elementsCountAroundTC-1)*3 + prevNodeIdentifier
+
+        for n1 in range(int(elementsCountAroundTC*0.5)):
+            e1 = e1 + 1
+            regNodeIdentifiers = getNodeIdentifierForRegularElement(e1, e2, A, elementsCountAroundTC, elementsCountAround, bniList, bniTCList, idxList)
+            nodeIdentifiers = regNodeIdentifiers if n1 < int(elementsCountAroundTC*0.5) - 1 else [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            element.merge(elementtemplate if n1 < int(elementsCountAroundTC*0.5) - 1 else elementtemplate1)
+            element.merge(flatElementtemplate if n1 < int(elementsCountAroundTC*0.5) - 1 else flatElementtemplate1)
+            element.setNodesByIdentifier(eftTexture1 if n1 < int(elementsCountAroundTC*0.5) - 1 else eftTexture2, nodeIdentifiers)
+            elementIdentifier = elementIdentifier + 1
+
+        for N in range(2):
+            for n1 in range(elementsCountAroundTC):
+                e1 = e1 + 1
+                regNodeIdentifiers = getNodeIdentifierForRegularElement(e1, e2, A, elementsCountAroundTC, elementsCountAround, bniList, bniTCList, idxList)
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                if n1 == 0:
+                    nodeIdentifiers = [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+                    element.merge(elementtemplate2)
+                    element.merge(flatElementtemplate2)
+                    element.setNodesByIdentifier(eftTexture3, nodeIdentifiers)
+                elif n1 > 0 and n1 < elementsCountAroundTC - 1:
+                    nodeIdentifiers = regNodeIdentifiers
+                    element.merge(elementtemplate)
+                    element.merge(flatElementtemplate)
+                    element.setNodesByIdentifier(eftTexture1, nodeIdentifiers)
+                else:
+                    nodeIdentifiers = [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+                    element.merge(elementtemplate1)
+                    element.merge(flatElementtemplate1)
+                    element.setNodesByIdentifier(eftTexture2, nodeIdentifiers)
+                elementIdentifier = elementIdentifier + 1
+
+        for n1 in range(int(elementsCountAroundTC*0.5)):
+            onOpening = (n1 == int(elementsCountAroundTC*0.5 - 1))
+            e1 = e1 + 1
+            regNodeIdentifiers = getNodeIdentifierForRegularElement(e1, e2, A, elementsCountAroundTC, elementsCountAround, bniList, bniTCList, idxList)
+            nodeIdentifiers = regNodeIdentifiers if n1 > 0 else [regNodeIdentifiers[i] for i in range(4)] + [regNodeIdentifiers[4], regNodeIdentifiers[6]]
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            if n1 > 0:
+                element.merge(elementtemplate3 if onOpening else elementtemplate)
+                element.merge(flatElementtemplate3 if onOpening else flatElementtemplate)
+                element.setNodesByIdentifier(eftTexture4 if onOpening else eftTexture1, nodeIdentifiers)
+            else:
+                element.merge(elementtemplate4 if onOpening else elementtemplate2)
+                element.merge(flatElementtemplate4 if onOpening else flatElementtemplate2)
+                result = element.setNodesByIdentifier(eftTexture5 if onOpening else eftTexture3, nodeIdentifiers)
+            elementIdentifier = elementIdentifier + 1
 
     fm.endChange()
 

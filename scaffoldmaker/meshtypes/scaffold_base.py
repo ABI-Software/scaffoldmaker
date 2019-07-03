@@ -58,12 +58,13 @@ class Scaffold_base:
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         '''
-        Optionally override in derived types with ScaffoldPackage options to return
+        Override in derived types with ScaffoldPackage options to return
         custom list of parameter set names for ScaffoldPackage option optionName with the
-        specified scaffoldType. Otherwise override should call this function to get default
-        behaviour which is to return the standard parameter set names for the type.
+        specified scaffoldType.
+        Override may cut and paste this code to handle any types using their standard
+        parameter set names.
         '''
-        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), 'Scaffold_base.getOptionScaffoldTypeParameterSetNames.  Invalid option ' + optionName + ' scaffold type ' + scaffoldType.getName()
+        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  Invalid option ' + optionName + ' scaffold type ' + scaffoldType.getName()
         return scaffoldType.getParameterSetNames()
 
     @classmethod
