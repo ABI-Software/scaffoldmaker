@@ -33,7 +33,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'scaffoldSettings' : {
                 'Number of vessels' : 2,
                 'Number of elements across common' : 2,
-                'Number of elements around vessel' : 8,
+                'Number of elements around ostium' : 12,
                 'Number of elements along' : 1,
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
@@ -57,7 +57,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'scaffoldSettings' : {
                 'Number of vessels' : 1,
                 'Number of elements across common' : 2,
-                'Number of elements around vessel' : 8,
+                'Number of elements around ostium' : 12,
                 'Number of elements along' : 1,
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
@@ -84,7 +84,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'scaffoldSettings' : {
                 'Number of vessels' : 2,
                 'Number of elements across common' : 2,
-                'Number of elements around vessel' : 8,
+                'Number of elements around ostium' : 12,
                 'Number of elements along' : 1,
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
@@ -108,7 +108,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'scaffoldSettings' : {
                 'Number of vessels' : 1,
                 'Number of elements across common' : 2,
-                'Number of elements around vessel' : 8,
+                'Number of elements around ostium' : 12,
                 'Number of elements along' : 1,
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
@@ -630,13 +630,41 @@ class MeshType_3d_heartatria1(Scaffold_base):
         fossaGroup = AnnotationGroup(region, 'fossa ovalis', FMANumber = 9246, lyphID = 'Lyph ID unknown')
         laaGroup = AnnotationGroup(region, 'left atrial appendage', FMANumber = 7219, lyphID = 'Lyph ID unknown')
         raaGroup = AnnotationGroup(region, 'right atrial appendage', FMANumber = 7218, lyphID = 'Lyph ID unknown')
-        lipvGroup = AnnotationGroup(region, 'left inferior pulmonary vein', FMANumber = 49913, lyphID = 'Lyph ID unknown')
-        lspvGroup = AnnotationGroup(region, 'left superior pulmonary vein', FMANumber = 49916, lyphID = 'Lyph ID unknown')
-        ripvGroup = AnnotationGroup(region, 'right inferior pulmonary vein', FMANumber = 49911, lyphID = 'Lyph ID unknown')
-        rspvGroup = AnnotationGroup(region, 'right superior pulmonary vein', FMANumber = 49914, lyphID = 'Lyph ID unknown')
+        annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup ]
+
+        lpvOstiumSettings = copy.deepcopy(lpvOstium.getScaffoldSettings())
+        lpvCount = lpvOstiumSettings['Number of vessels']
+        if lpvCount == 1:
+            lpvGroup = AnnotationGroup(region, 'left pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
+            lpvGroups = [ lpvGroup ]
+        else:
+            lipvGroup = AnnotationGroup(region, 'left inferior pulmonary vein', FMANumber = 49913, lyphID = 'Lyph ID unknown')
+            lspvGroup = AnnotationGroup(region, 'left superior pulmonary vein', FMANumber = 49916, lyphID = 'Lyph ID unknown')
+            if lpvCount == 2:
+                lpvGroups = [ lipvGroup, lspvGroup ]
+            else:  # lpvCount == 3:
+                lmpvGroup = AnnotationGroup(region, 'left middle pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
+                lpvGroups = [ lipvGroup, lmpvGroup, lspvGroup ]
+        annotationGroups += lpvGroups
+
+        rpvOstiumSettings = copy.deepcopy(rpvOstium.getScaffoldSettings())
+        rpvCount = rpvOstiumSettings['Number of vessels']
+        if rpvCount == 1:
+            rpvGroup = AnnotationGroup(region, 'right pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
+            rpvGroups = [ rpvGroup ]
+        else:
+            ripvGroup = AnnotationGroup(region, 'right inferior pulmonary vein', FMANumber = 49911, lyphID = 'Lyph ID unknown')
+            rspvGroup = AnnotationGroup(region, 'right superior pulmonary vein', FMANumber = 49914, lyphID = 'Lyph ID unknown')
+            if rpvCount == 2:
+                rpvGroups = [ ripvGroup, rspvGroup ]
+            else:  # rpvCount == 3:
+                rmpvGroup = AnnotationGroup(region, 'right middle pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
+                rpvGroups = [ ripvGroup, rmpvGroup, rspvGroup ]
+        annotationGroups += rpvGroups
+
         ivcInletGroup = AnnotationGroup(region, 'inferior vena cava inlet', FMANumber = 10951, lyphID = 'Lyph ID unknown')
         svcInletGroup = AnnotationGroup(region, 'superior vena cava inlet', FMANumber = 4720, lyphID = 'Lyph ID unknown')
-        annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup, lipvGroup, lspvGroup, ripvGroup, rspvGroup, ivcInletGroup, svcInletGroup ]
+        annotationGroups += [ ivcInletGroup, svcInletGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
@@ -672,10 +700,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         fossaMeshGroup = fossaGroup.getMeshGroup(mesh)
         laaMeshGroup = laaGroup.getMeshGroup(mesh)
         raaMeshGroup = raaGroup.getMeshGroup(mesh)
-        lipvMeshGroup = lipvGroup.getMeshGroup(mesh)
-        lspvMeshGroup = lspvGroup.getMeshGroup(mesh)
-        ripvMeshGroup = ripvGroup.getMeshGroup(mesh)
-        rspvMeshGroup = rspvGroup.getMeshGroup(mesh)
+        lpvMeshGroups = [ inletGroup.getMeshGroup(mesh) for inletGroup in lpvGroups ]
+        rpvMeshGroups = [ inletGroup.getMeshGroup(mesh) for inletGroup in rpvGroups ]
         ivcInletMeshGroup = ivcInletGroup.getMeshGroup(mesh)
         svcInletMeshGroup = svcInletGroup.getMeshGroup(mesh)
 
@@ -719,18 +745,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # need to create pulmonary vein ostia early because other derivatives are smoothed to fit them
 
         # create left pulmonary vein ostium
-        lpvOstiumSettings = copy.deepcopy(lpvOstium.getScaffoldSettings())
+        lpvOstiumSettings['Number of elements around ostium'] = elementsCountAroundLpvOstium
         lpvOstiumSettings['Unit scale'] *= unitScale
         lpvOstiumSettings['Ostium wall thickness'] = laVenousFreeWallThickness
         lpvOstiumSettings['Outlet'] = False
         lpvOstiumSettings['Use linear through ostium wall'] = False
-        lpvCount = lpvOstiumSettings['Number of vessels']
-        if lpvCount == 1:
-            lpvOstiumSettings['Number of elements around vessel'] = elementsCountAroundLpvOstium
-        else:  # 2 vessels
-            elementsCountAcrossLpvOstium = 2
-            lpvOstiumSettings['Number of elements across common'] = elementsCountAcrossLpvOstium
-            lpvOstiumSettings['Number of elements around vessel'] = elementsCountAroundLpvOstium//2 + elementsCountAcrossLpvOstium
         lpvOstiumPosition = laTrackSurface.createPositionProportion(lpvOstiumPositionOver, lpvOstiumPositionLeft)
         # get absolute direction on surface corresponding to chosen angle
         cx, cd1, cd2 = laTrackSurface.evaluateCoordinates(lpvOstiumPosition, derivatives = True)
@@ -740,23 +759,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cosAngle = math.cos(zAngleRadians + lpvOstiumAngleRadians)
         sinAngle = math.sin(zAngleRadians + lpvOstiumAngleRadians)
         lpvOstiumDirection = [ (cosAngle*-td2[c] + sinAngle*td1[c]) for c in range(3) ]
-        vesselMeshGroups = [ [ laMeshGroup, lipvMeshGroup ], [ laMeshGroup, lspvMeshGroup ] ] if (lpvCount == 2) else [ [ laMeshGroup, lipvMeshGroup, lspvMeshGroup ] ]
+        vesselMeshGroups = [ [ laMeshGroup, meshGroup ] for meshGroup in lpvMeshGroups ]
         nodeIdentifier, elementIdentifier, (lpvox, lpvod1, lpvod2, lpvod3, lpvoNodeId, lpvoPositions) = \
             generateOstiumMesh(region, lpvOstiumSettings, laTrackSurface, lpvOstiumPosition, lpvOstiumDirection, nodeIdentifier, elementIdentifier, vesselMeshGroups)
 
         # create right pulmonary vein ostium
-        rpvOstiumSettings = copy.deepcopy(rpvOstium.getScaffoldSettings())
+        rpvOstiumSettings['Number of elements around ostium'] = elementsCountAroundRpvOstium
         rpvOstiumSettings['Unit scale'] *= unitScale
         rpvOstiumSettings['Ostium wall thickness'] = laVenousFreeWallThickness
         rpvOstiumSettings['Outlet'] = False
         rpvOstiumSettings['Use linear through ostium wall'] = False
-        rpvCount = rpvOstiumSettings['Number of vessels']
-        if rpvCount == 1:
-            rpvOstiumSettings['Number of elements around vessel'] = elementsCountAroundRpvOstium
-        else:  # 2 vessels
-            elementsCountAcrossRpvOstium = 2
-            rpvOstiumSettings['Number of elements across common'] = elementsCountAcrossRpvOstium
-            rpvOstiumSettings['Number of elements around vessel'] = elementsCountAroundRpvOstium//2 + elementsCountAcrossRpvOstium
         rpvOstiumPosition = laTrackSurface.createPositionProportion(rpvOstiumPositionOver, rpvOstiumPositionLeft)
         # get absolute direction on surface corresponding to chosen angle
         cx, cd1, cd2 = laTrackSurface.evaluateCoordinates(rpvOstiumPosition, derivatives = True)
@@ -766,7 +778,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cosAngle = math.cos(zAngleRadians + rpvOstiumAngleRadians)
         sinAngle = math.sin(zAngleRadians + rpvOstiumAngleRadians)
         rpvOstiumDirection = [ (cosAngle*-td2[c] + sinAngle*td1[c]) for c in range(3) ]
-        vesselMeshGroups = [ [ laMeshGroup, ripvMeshGroup ], [ laMeshGroup, rspvMeshGroup ] ] if (rpvCount == 2) else [ [ laMeshGroup, ripvMeshGroup, rspvMeshGroup ] ]
+        vesselMeshGroups = [ [ laMeshGroup, meshGroup ] for meshGroup in rpvMeshGroups ]
         nodeIdentifier, elementIdentifier, (rpvox, rpvod1, rpvod2, rpvod3, rpvoNodeId, rpvoPositions) = \
             generateOstiumMesh(region, rpvOstiumSettings, laTrackSurface, rpvOstiumPosition, rpvOstiumDirection, nodeIdentifier, elementIdentifier, vesselMeshGroups)
 
@@ -2712,7 +2724,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raasNodeId = [ [ None ]*elementsCountAroundRaa, [ None ]*elementsCountAroundRaa ]
         raasDerivativesMap = [ [ None ]*elementsCountAroundRaa, [ None ]*elementsCountAroundRaa ]
         # set points anticlockwise around base first from aorta
-        ixStart = 2 + elementsCountAroundRaa%2  # position in final array for first base on raap
+        ixStart = 2 + elementsCountAroundRaa % 2  # position in final array for first base on raap
         ixRotation = round(elementsCountAroundRaa*0.5*raaAngleAxialRadians/math.pi)  # rotate indexes to align with axial angle
         ix = (ixStart - ixRotation) % elementsCountAroundRaa - elementsCountAroundRaa  # works for negative values as modulo is always non-negative in python
         #print('raa ixStart',ixStart,'ixRotation',ixRotation,'ix',ix)
