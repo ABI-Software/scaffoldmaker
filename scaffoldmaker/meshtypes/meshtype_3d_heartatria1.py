@@ -2759,8 +2759,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # create left atrial appendage
         position = laTrackSurface.createPositionProportion(laaMidpointOver, laaMidpointLeft)
         laamx, d1, d2 = laTrackSurface.evaluateCoordinates(position, derivatives = True)
-        laamd3 = vector.normalise(vector.crossproduct3(d1, d2))
-        laamd2 = vector.normalise(vector.crossproduct3(laamd3, d2))
+        # force d2 to be vertical, d3, d1 to be horizontal
+        laamd2 = [ 0.0, 0.0, 1.0 ]
+        laamd3 = vector.normalise(vector.crossproduct3(d2, laamd2))
         laamd1 = vector.crossproduct3(laamd2, laamd3)
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -2925,8 +2926,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # create right atrial appendage 'pouch'
         position = raTrackSurface.createPositionProportion(1.0 - raaMidpointOver, raaMidpointRight)
         raamx, d1, d2 = raTrackSurface.evaluateCoordinates(position, derivatives = True)
-        raamd3 = vector.normalise(vector.crossproduct3(d1, d2))
-        raamd2 = vector.normalise(vector.crossproduct3(d2, raamd3))
+        # force d2 to be vertical, d3, d1 to be horizontal
+        raamd2 = [ 0.0, 0.0, 1.0 ]
+        raamd3 = vector.normalise(vector.crossproduct3(raamd2, d2))
         raamd1 = vector.crossproduct3(raamd2, raamd3)
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
