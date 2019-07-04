@@ -223,6 +223,22 @@ def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     df3 = -1.0 + 2.0*xi
     return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
 
+def getNearestPointIndex(nx, x):
+    '''
+    :return: index of point in nx at shortest distance from x.
+    '''
+    pointCount = len(nx)
+    assert pointCount > 0
+    components = len(x)
+    minDistance = math.sqrt(sum( ((nx[0][c] - x[c])*(nx[0][c] - x[c])) for c in range(components)))
+    index = 0
+    for n in range(1, pointCount):
+        distance = math.sqrt(sum( ((nx[n][c] - x[c])*(nx[n][c] - x[c])) for c in range(components)))
+        if distance < minDistance:
+            minDistance = distance
+            index = n
+    return index
+
 def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness):
     '''
     From Hermite curve nx, nd1 with cross direction nd2, project normal to wall
@@ -232,8 +248,8 @@ def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness):
     :param wallThickness: Use positive from in to out, negative from outside to in.
     :return: x, d1, d2, d3
     '''
-    pointsCount = len(nx) - 1
-    assert (0 <= n <= pointsCount), 'projectHermiteCurvesThroughWall.  Invalid index'
+    maxPointIndex = len(nx) - 1
+    assert (0 <= n <= maxPointIndex), 'projectHermiteCurvesThroughWall.  Invalid index'
     unitNormal = vector.normalise(vector.crossproduct3(nd1[n], nd2[n]))
     x  = [ (nx[n][c] + wallThickness*unitNormal[c]) for c in range(3) ]
     # calculate inner d1 from curvature around
@@ -242,7 +258,7 @@ def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness):
     if (n > 0) and (nx[n - 1]):
         curvature += getCubicHermiteCurvature(nx[n - 1], nd1[n - 1], nx[n], nd1[n], unitNormal, 1.0)
         count += 1
-    if (n < pointsCount) and (nx[n + 1]):
+    if (n < maxPointIndex) and (nx[n + 1]):
         curvature += getCubicHermiteCurvature(nx[n], nd1[n], nx[n + 1], nd1[n + 1], unitNormal, 0.0)
         count += 1
     curvature /= count
