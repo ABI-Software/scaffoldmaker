@@ -45,7 +45,7 @@ class MeshType_3d_ostium1(Scaffold_base):
             'Vessel inner diameter' : 0.6,
             'Vessel wall thickness' : 0.04,
             'Vessel angle 1 degrees' : 0.0,
-            'Vessel angle 1 spread degrees' : 30.0,
+            'Vessel angle 1 spread degrees' : 0.0,
             'Vessel angle 2 degrees' : 0.0,
             'Use linear through vessel wall' : True,
             #'Use cross derivatives' : False,
@@ -256,16 +256,27 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     if vesselsCount == 1:
         elementLengthAroundOstiumEnd = circumference/elementsCountAroundOstium
         vesselOstiumPositions = [ centrePosition ]
-        ocx = [ cx ]
+        ocx  = [ cx ]
+        ocd1 = [ trackDirection1 ]
+        ocd2 = [ trackDirection2 ]
+        ocd3 = [ centreNormal ]
     else:
         elementLengthAroundOstiumEnd = (circumference + 2.0*interVesselDistance)/(elementsCountAroundOstium - 2*elementsCountAroundMid)
         if elementsCountAroundMid > 0:
             elementLengthAroundOstiumMid = interVesselDistance*(vesselsCount - 2)/elementsCountAroundMid
         vesselOstiumPositions = []
-        ocx = []
+        ocx  = []
+        ocd1 = []
+        ocd2 = []
+        ocd3 = []
         for v in range(vesselsCount):
             vesselOstiumPositions.append(trackSurface.trackVector(centrePosition, trackDirection1, (v/(vesselsCount - 1) - 0.5)*vesselsSpanAll))
-            ocx.append(trackSurface.evaluateCoordinates(vesselOstiumPositions[-1]))
+            x, d1, d2 = trackSurface.evaluateCoordinates(vesselOstiumPositions[-1], -1)
+            d1, d2, d3 = calculate_surface_axes(d1, d2, trackDirection1)
+            ocx .append(x)
+            ocd1.append(d1)
+            ocd2.append(d2)
+            ocd3.append(d3)
 
     # coordinates around ostium
     ox = [ [], [] ]
@@ -387,7 +398,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
         useVesselAngleRadians = vesselAngle1Radians
         if vesselsCount > 1:
             useVesselAngleRadians += (v/(vesselsCount - 1) - 0.5)*vesselAngle1SpreadRadians
-        vx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx[v], trackDirection1, trackDirection2, centreNormal, ostiumLength, useVesselAngleRadians, vesselAngle2Radians)
+        vx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx[v], ocd1[v], ocd2[v], ocd3[v], ostiumLength, useVesselAngleRadians, vesselAngle2Radians)
         vd1 = [    vesselOuterRadius*d for d in vd1 ]
         vd2 = [   -vesselOuterRadius*d for d in vd2 ]
         vd3 = [ -vesselEndDerivative*d for d in vd3 ]
@@ -422,10 +433,12 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     mvPointsd2 = [ None ]*vesselsCount
     mvPointsd3 = [ None ]*vesselsCount
     mvDerivativesMap = [ None ]*vesselsCount
+    mvMeanCount = [ None ]*vesselsCount  # stores 1 if first reference to common point between vessels, 2 if second. Otherwise 0.
     for v in range(vesselsCount):
         if vesselsCount == 1:
             mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvDerivativesMap[v] = \
                 ox, od1, od2, od3 if useCubicHermiteThroughOstiumWall else None, None
+            mvMeanCount[v] = [ 0 ]*elementsCountsAroundVessels[v]
         else:
             iv = max(0, v - 1)
             oa = elementsCountAroundMid - iv*oinc
@@ -459,6 +472,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                         mvPointsd3[v][n3] += reversed(xd3[iv][n3])
                     for i in range(elementsCountAcross - 1):
                         mvDerivativesMap[v][n3].append( ( (0, -1, 0), (1, 0, 0), None ) )
+                    if n3 == 0:
+                        mvMeanCount[v] = [ 1 ] + [ 0 ]*(nodesCountFreeEnd - 2) + [ 1 ]*elementsCountAcross
                 elif v < (vesselsCount - 1):  # middle vessels
                     # left:
                     mvPointsx [v][n3] += ox [n3][oa - oinc:oa + 1]
@@ -496,6 +511,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                         mvPointsd3[v][n3] += reversed(xd3[iv + 1][n3])
                     for i in range(elementsCountAcross - 1):
                         mvDerivativesMap[v][n3].append( ( (0, -1, 0), (1, 0, 0), None ) )
+                    if n3 == 0:
+                        mvMeanCount[v] = [ 1 ] + [ 0 ]*(oinc - 1) + [ 2 ]*(elementsCountAcross + 1) + [ 0 ]*(oinc - 1) + [ 1 ]*elementsCountAcross
                 else:  # last end vessel
                     mvPointsx [v][n3] += ox [n3][ob:] + [ ox [n3][0] ]
                     mvPointsd1[v][n3] += od1[n3][ob:] + [ od1[n3][0] ]
@@ -513,6 +530,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                         mvPointsd3[v][n3] += xd3[iv][n3]
                     for i in range(elementsCountAcross - 1):
                         mvDerivativesMap[v][n3].append( ( (0, 1, 0), (-1, 0, 0), None ) )
+                    if n3 == 0:
+                        mvMeanCount[v] = [ 2 ] + [ 0 ]*(nodesCountFreeEnd - 2) + [ 2 ]*elementsCountAcross
 
     # calculate derivative 2 around free sides of inlets to fit vessel derivatives
     for v in range(vesselsCount):
@@ -535,11 +554,11 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                     for c in range(3):
                         mvPointsd2[v][n3][n1][c] = sf2*ndf[c]
                 elif sf2 == 0:
-                    if v == 0:
+                    if mvMeanCount[v][n1] < 2:
                         for c in range(3):
                             mvPointsd1[v][n3][n1][c] = sf1*ndf[c]
                     else:
-                        # take mean of values from this and first vessel
+                        # take mean of values from this and last vessel
                         for c in range(3):
                             mvPointsd1[v][n3][n1][c] = 0.5*(mvPointsd1[v][n3][n1][c] + sf1*ndf[c])
                 else:
