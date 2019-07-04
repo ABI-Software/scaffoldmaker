@@ -77,6 +77,18 @@ class MeshType_3d_heart1(Scaffold_base):
             optionNames.append(optionName)
         return optionNames
 
+    @classmethod
+    def getOptionValidScaffoldTypes(cls, optionName):
+        return MeshType_3d_heartatria1.getOptionValidScaffoldTypes(optionName)
+
+    @classmethod
+    def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
+        return MeshType_3d_heartatria1.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType)
+
+    @classmethod
+    def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
+        return MeshType_3d_heartatria1.getOptionScaffoldPackage(optionName, scaffoldType, parameterSetName)
+
     @staticmethod
     def checkOptions(options):
         '''
