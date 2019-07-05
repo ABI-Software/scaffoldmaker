@@ -284,6 +284,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Fossa ovalis midpoint height'] = 0.18
             options['Fossa ovalis thickness'] = options['Atrial septum thickness']
             options['Atrial vestibule outer height'] = 0.1
+            options['Atrium venous anterior over'] = 0.75
             options['Common left-right pulmonary vein ostium'] = True
             options['Left pulmonary vein ostium angle degrees'] = -10.0
             options['Left pulmonary vein ostium position left'] = 0.36
@@ -1205,11 +1206,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # get points on left atrium over appendage, from aorta to laa end on vestibule top
         agn1 = 2 if commonLeftRightPvOstium else 1
         asn1 = elementsCountAroundAtrialSeptum + 1 if commonLeftRightPvOstium else elementsCountAroundAtrialSeptum
+        startScaling = 2.0 if commonLeftRightPvOstium else 1.0
         laoax, laoad1, laoad2, laoad3, laoaProportions = laTrackSurface.createHermiteCurvePoints(
             1.0 - ragProportions[agn1], 0.0,
             lavtProportions[lan1Mid][0], lavtProportions[lan1Mid][1],
             elementsCount = elementsCountAroundLeftAtriumRPV + elementsCountOverSideLeftAtriumLPV,
-            derivativeStart = [ 1.0*d for d in agd1[agn1] ],  # GRC
+            derivativeStart = [ startScaling*d for d in agd1[agn1] ],
             derivativeEnd = [ -1.0*d for d in lavtd2[1][lan1Mid] ])
         # get inner points
         laoax  = [ [ None ], laoax  ]
@@ -1718,7 +1720,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # calculate derivative 2 there and on nearest point on raap
         # raapd2[1][1] magnitude needs to be set to fit distance between nodes:
         d2mag = math.sqrt(sum((raapx[1][1][c] - raaqx[1][1][c])*(raapx[1][1][c] - raaqx[1][1][c]) for c in range(3)))
-        raaqd2[1][1] = interp.interpolateLagrangeHermiteDerivative(raaqx[1][1], raapx[1][1], vector.setMagnitude(raapd2[1][1], d2mag), 0.0)  
+        raapd2[1][1] = vector.setMagnitude(raapd2[1][1], d2mag)  # must reduce this otherwise smooth will converge wrongly
+        raaqd2[1][1] = interp.interpolateLagrangeHermiteDerivative(raaqx[1][1], raapx[1][1], raapd2[1][1], 0.0)
         raaqd2[1][1] = vector.setMagnitude(calculate_surface_axes(d1, d2, raaqd2[1][1])[0], vector.magnitude(raaqd2[1][1]))
         raaqd2[1][1], raapd2[1][1] = interp.smoothCubicHermiteDerivativesLine([ raaqx[1][1], raapx[1][1] ], [ raaqd2[1][1], raapd2[1][1] ], fixAllDirections = True)
         # get inner coordinates and derivatives
@@ -1828,8 +1831,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lavtNodeId = [ [ asNodeId[0][elementsCountAroundAtrialSeptum] ], [ agNodeId[1] ] ]
         for n3 in range(2):
             for n1 in range(1, len(lavtx[n3]) - 1):
-                if elementsCountAroundLeftAtriumAorta <= n1 < lan1Mid:
-                    # left atrial appendage; aorta substituted from laoa later
+                if (elementsCountAroundLeftAtriumAorta < n1 < lan1Mid) or ((not commonLeftRightPvOstium) and (n1 == elementsCountAroundLeftAtriumAorta)):
+                    # left atrial appendage
                     lavtNodeId[n3].append(None)
                     continue
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1863,7 +1866,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         ravtNodeId[1].append(agNodeId[1])
 
         # create nodes on left atrium over appendage
-        laoaNodeId = [ [ asNodeId[0][elementsCountAroundAtrialSeptum] ], [ agNodeId[1] ] ]
+        agn1 = 2 if commonLeftRightPvOstium else 1
+        asn1 = (elementsCountAroundAtrialSeptum + 1) if commonLeftRightPvOstium else elementsCountAroundAtrialSeptum
+        laoaNodeId = [ [ asNodeId[0][asn1] ], [ agNodeId[agn1] ] ]
         for n3 in range(2):
             for n1 in range(1, len(laoax[n3]) - 1):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1875,8 +1880,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 laoaNodeId[n3].append(nodeIdentifier)
                 nodeIdentifier += 1
             laoaNodeId[n3].append(lavtNodeId[n3][lan1Mid])
-            # use second laoa node as aorta vestibule top node
-            lavtNodeId[n3][lan1Aorta] = laoaNodeId[n3][1]
+            if not commonLeftRightPvOstium:
+                # use second laoa node as aorta vestibule top node
+                lavtNodeId[n3][lan1Aorta] = laoaNodeId[n3][1]
 
         if not commonLeftRightPvOstium:
             # create nodes on row above left atrium venous anterior to LPV ostium
@@ -2151,7 +2157,35 @@ class MeshType_3d_heartatria1(Scaffold_base):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
-        if not commonLeftRightPvOstium:
+        if commonLeftRightPvOstium:
+            # left atrium extra
+            meshGroups = [ laMeshGroup ]
+            for e1 in range(elementsCountAroundLeftAtriumAorta):
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+                nids = [ lavtNodeId[0][e1], lavtNodeId[0][e1 + 1], laoaNodeId[0][e1], laoaNodeId[0][e1 + 1],
+                         lavtNodeId[1][e1], lavtNodeId[1][e1 + 1], laoaNodeId[1][e1], laoaNodeId[1][e1 + 1] ]
+                scalefactors = None
+                if e1 == 0:
+                    # general linear map d3 adjacent to interatrial groove
+                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                    scalefactors = [ -1.0 ]
+                    elementtemplateX.defineField(coordinates, -1, eft1)
+                    elementtemplate1 = elementtemplateX
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = '-'
+                #print('create element laao', element.isValid(), elementIdentifier, result2, result3, nids)
+                elementIdentifier += 1
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+        else:  # not commonLeftRightPvOstium:
             # left atrium first row of elements above appendage, anterior
             meshGroups = [ laMeshGroup ]
             for e1 in range(elementsCountAroundLeftAtriumRPV):
@@ -2772,6 +2806,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, laamd3)
             nodeIdentifier += 1
         elementsCountAroundLaa = elementsCountAroundLeftAtrialAppendageBase + elementsCountAroundLeftAtriumRPV + elementsCountOverSideLeftAtriumLPV + 1
+        if commonLeftRightPvOstium:
+            elementsCountAroundLaa += 1
         #print('elementsCountAroundLaa', elementsCountAroundLaa)
         # get start points, nodes, derivative maps
         laasx  = [ [ None ]*elementsCountAroundLaa, [ None ]*elementsCountAroundLaa ]
@@ -2785,6 +2821,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
         ixRotation = round(elementsCountAroundLaa*0.5*laaAngleAxialRadians/math.pi)  # rotate indexes to align with axial angle
         ix = (ixStart - ixRotation) % elementsCountAroundLaa - elementsCountAroundLaa  # works for negative values as modulo is always non-negative in python
         #print('laa ixStart',ixStart,'ixRotation',ixRotation,'ix',ix)
+        if commonLeftRightPvOstium:
+            nv = 1
+            for n3 in range(2):
+                laasx [n3][ix] = lavtx [n3][nv]
+                laasd1[n3][ix] = lavtd1[n3][nv]
+                laasd2[n3][ix] = lavtd2[n3][nv]
+                laasd3[n3][ix] = lavtd3[n3][nv]
+                laasNodeId[n3][ix] = lavtNodeId[n3][nv]
+                laasDerivativesMap[n3][ix] = ( (0, -1, 0), (1, 0, 0), None)
+            ix += 1
         # left along base
         for n1 in range(elementsCountAroundLeftAtrialAppendageBase + 1):
             nb = n1 + elementsCountAroundLeftAtriumAorta
