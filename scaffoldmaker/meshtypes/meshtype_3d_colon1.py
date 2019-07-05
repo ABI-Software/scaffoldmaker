@@ -171,6 +171,8 @@ class MeshType_3d_colon1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         if 'Mouse' in parameterSetName:
             segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegmentsimplemesentery1, defaultParameterSetName = 'Mouse 1')
+        elif 'Pig' in parameterSetName:
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegmentteniacoli1, defaultParameterSetName = 'Pig 1')
         else:
             segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegmentteniacoli1, defaultParameterSetName = 'Human 1')
         options = {
@@ -182,6 +184,8 @@ class MeshType_3d_colon1(Scaffold_base):
             'Refine number of elements along' : 1,
             'Refine number of elements through wall' : 1
             }
+        if 'Pig' in parameterSetName:
+            options['Number of segments'] = 120
         return options
 
     @staticmethod
@@ -267,7 +271,6 @@ class MeshType_3d_colon1(Scaffold_base):
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             elementsCountAroundTC = segmentSettings['Number of elements around tenia coli']
             elementsCountAroundHaustrum = segmentSettings['Number of elements around haustrum']
-            elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*3
             cornerInnerRadiusFactor = segmentSettings['Corner inner radius factor']
             haustrumInnerRadiusFactor = segmentSettings['Haustrum inner radius factor']
             segmentLengthEndDerivativeFactor = segmentSettings['Segment length end derivative factor']
@@ -275,6 +278,7 @@ class MeshType_3d_colon1(Scaffold_base):
             tcCount = segmentSettings['Number of tenia coli']
             tcWidth = segmentSettings['Tenia coli width']
             tcThickness = segmentSettings['Tenia coli thickness']
+            elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
 
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
@@ -319,7 +323,7 @@ class MeshType_3d_colon1(Scaffold_base):
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                 useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
                 elementsCountAlong, elementsCountThroughWall, wallThickness, tcWidth, tcThickness, sx, curvatureAlong, factorList, uList,
-                arcLengthOuterMidLength, length)
+                arcLengthOuterMidLength, length, tcCount)
 
             annotationGroups += annotationGroupsTC
 
