@@ -86,17 +86,17 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
                 'Outlet' : False,
-                'Ostium diameter' : 0.2,
+                'Ostium diameter' : 0.17,
                 'Ostium length' : 0.04,
                 'Ostium wall thickness' : 0.02,
-                'Ostium inter-vessel distance' : 0.17,
+                'Ostium inter-vessel distance' : 0.15,
                 'Ostium inter-vessel height' : 0.02,
                 'Use linear through ostium wall' : False,
                 'Vessel end length factor' : 1.0,
                 'Vessel inner diameter' : 0.13,
-                'Vessel wall thickness' : 0.01,
+                'Vessel wall thickness' : 0.008,
                 'Vessel angle 1 degrees' : 0.0,
-                'Vessel angle 1 spread degrees' : 0.0,
+                'Vessel angle 1 spread degrees' : 20.0,
                 'Vessel angle 2 degrees' : 0.0,
                 'Use linear through vessel wall' : True,
                 }
@@ -187,6 +187,14 @@ class MeshType_3d_heartatria1(Scaffold_base):
         else:
             lpvOstium = cls.lpvOstiumDefaultScaffoldPackages['LPV Human 1']
             rpvOstium = cls.rpvOstiumDefaultScaffoldPackages['RPV Human 1']
+        # to avoid circular include, repeat inter-dependent ventriclesbase options here:
+        ventriclesbaseOptions = {}
+        if isMouse or isRat:
+            ventriclesbaseOptions['LV outlet inner diameter'] = 0.23
+            ventriclesbaseOptions['LV outlet wall thickness'] = 0.02
+        else:
+            ventriclesbaseOptions['LV outlet inner diameter'] = 0.3
+            ventriclesbaseOptions['LV outlet wall thickness'] = 0.025
         options = {}
         options['Number of elements around atrial septum'] = 3
         options['Number of elements around left atrium free wall'] = 8
@@ -210,7 +218,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Crista terminalis thickness'] = 0.03
         options['Atrial base wall thickness'] = 0.07
         options['Atrial base slope degrees'] = 30.0
-        options['Aorta outer plus diameter'] = 0.35
+        options['Aorta outer plus diameter'] = ventriclesbaseOptions['LV outlet inner diameter'] + 2.0*ventriclesbaseOptions['LV outlet wall thickness']
         options['Atrial base front incline degrees'] = 15.0
         options['Atrial base back incline degrees'] = 20.0
         options['Atrial base side incline degrees'] = 20.0
@@ -276,35 +284,63 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elif isMouse or isRat:
             if notUnitScale:
                 options['Unit scale'] = 5.0 if isMouse else 12.0
-            options['Atria base inner major axis length'] = 0.45
-            options['Atria base inner minor axis length'] = 0.38
+            options['Atria outer height'] = 0.4
+            options['Atrial base front incline degrees'] = 10.0
+            options['Atria base inner major axis length'] = 0.42
+            options['Atria base inner minor axis length'] = 0.35
             options['Atrial septum height'] = 0.27
+            options['Atrial septum length'] = 0.22
             options['Fossa ovalis height'] = 0.08
             options['Fossa ovalis length'] = 0.12
             options['Fossa ovalis midpoint height'] = 0.18
+            options['Atrial base wall thickness'] = 0.06
             options['Fossa ovalis thickness'] = options['Atrial septum thickness']
             options['Atrial vestibule outer height'] = 0.1
+            options['Atrial base back incline degrees'] = 0.0
+            options['Atrium venous midpoint over'] = 0.45
             options['Atrium venous anterior over'] = 0.75
+            options['Left atrial appendage angle axial degrees'] = -15.0
+            options['Left atrial appendage angle left degrees'] = 20.0
+            options['Left atrial appendage angle up degrees'] = -65.0
+            options['Left atrial appendage arc length'] = 0.6
+            options['Left atrial appendage arc radius'] = 0.2
+            options['Left atrial appendage base length'] = 0.3
+            options['Left atrial appendage left'] = 0.9
+            options['Left atrial appendage midpoint left'] = 0.55
+            options['Left atrial appendage midpoint over'] = 1.0
+            options['Left atrial appendage wall thickness'] = 0.025
+            options['Left atrial appendage wedge angle degrees'] = 60.0
+            options['Right atrial appendage angle axial degrees'] = 22.0
+            options['Right atrial appendage angle left degrees'] = -10.0
+            options['Right atrial appendage angle up degrees'] = -40.0
+            options['Right atrial appendage arc length'] = 0.6
+            options['Right atrial appendage arc radius'] = 0.2
+            options['Right atrial appendage base length'] = 0.3
+            options['Right atrial appendage midpoint right'] = 0.55
+            options['Right atrial appendage midpoint over'] = 0.97
+            options['Right atrial appendage pouch right'] = 1.0
+            options['Right atrial appendage wall thickness'] = 0.025
+            options['Right atrial appendage wedge angle degrees'] = 50.0
             options['Common left-right pulmonary vein ostium'] = True
-            options['Left pulmonary vein ostium angle degrees'] = -10.0
-            options['Left pulmonary vein ostium position left'] = 0.36
-            options['Left pulmonary vein ostium position over'] = 0.4
-            options['Inferior vena cava inlet position over'] = 0.2
-            options['Inferior vena cava inlet position right'] = 0.16
+            options['Left pulmonary vein ostium angle degrees'] = 15.0
+            options['Left pulmonary vein ostium position left'] = 0.34
+            options['Left pulmonary vein ostium position over'] = 0.45
+            options['Inferior vena cava inlet position over'] = 0.24
+            options['Inferior vena cava inlet position right'] = 0.2
             options['Inferior vena cava inlet angle left degrees'] = 0.0
-            options['Inferior vena cava inlet angle over degrees'] = -30.0
+            options['Inferior vena cava inlet angle over degrees'] = -20.0
             options['Inferior vena cava inlet derivative factor'] = 1.0
             options['Inferior vena cava inlet length'] = 0.12
-            options['Inferior vena cava inlet inner diameter'] = 0.18
-            options['Inferior vena cava inlet wall thickness'] = 0.012
+            options['Inferior vena cava inlet inner diameter'] = 0.16
+            options['Inferior vena cava inlet wall thickness'] = 0.011
             options['Superior vena cava inlet position over'] = 0.62
-            options['Superior vena cava inlet position right'] = 0.2
-            options['Superior vena cava inlet angle left degrees'] = -10.0
+            options['Superior vena cava inlet position right'] = 0.18
+            options['Superior vena cava inlet angle left degrees'] = 0.0
             options['Superior vena cava inlet angle over degrees'] = -10.0
             options['Superior vena cava inlet derivative factor'] = 1.0
             options['Superior vena cava inlet length'] = 0.12
-            options['Superior vena cava inlet inner diameter'] = 0.15
-            options['Superior vena cava inlet wall thickness'] = 0.012
+            options['Superior vena cava inlet inner diameter'] = 0.14
+            options['Superior vena cava inlet wall thickness'] = 0.01
         elif 'Pig' in parameterSetName:
             if notUnitScale:
                 options['Unit scale'] = 80.0
@@ -1353,6 +1389,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 # get precise inner d2
                 _, _d2inner, _, _ = interp.projectHermiteCurvesThroughWall(_x, _d2, _d1, 1, -laVenousFreeWallThickness)
                 lavqd2inner.append(_d2inner)
+            lavqd2inner.append(laoad1[0][-2])
             # add 2nd last point on laoa
             lavqx .append(laoax [1][-2])
             lavqd1.append([ -d for d in laoad2[1][-2] ])
@@ -1361,23 +1398,19 @@ class MeshType_3d_heartatria1(Scaffold_base):
             lavqProportions.append(laoaProportions[-2])
             # smooth d1:
             lavqd1 = interp.smoothCubicHermiteDerivativesLine(lavqx, lavqd1, fixAllDirections = True,
-                fixStartDerivative = True, fixEndDerivative = True, magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+                fixStartDerivative = True, magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
             # get inner points
             lavqx  = [ [ None ], lavqx  ]
             lavqd1 = [ [ None ], lavqd1 ]
             lavqd2 = [ [ None ], lavqd2 ]
             lavqd3 = [ [ None ], lavqd3 ]
-            for n1 in range(1, len(lavqx[1]) - 1):
+            for n1 in range(1, len(lavqx[1])):
                 x, d1, _, d3 = interp.projectHermiteCurvesThroughWall(lavqx[1], lavqd1[1], lavqd2[1], n1, -laVenousFreeWallThickness)
                 lavqx [0].append(x)
                 lavqd1[0].append(d1)
                 lavqd2[0].append(lavqd2inner[n1])
                 lavqd3[0].append(d3)
                 lavqd3[1][n1] = d3
-            lavqx [0].append(None)
-            lavqd1[0].append(None)
-            lavqd2[0].append(None)
-            lavqd3[0].append(None)
             # transfer/substitute known start and end coordinates
             asn1vp = -1
             lavqx [0][0] = asx [0][asn1vp]
@@ -1389,6 +1422,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             lavqd2[1][0] = asd2[0][agn1vp]
             lavqd3[1][0] = asd3[0][agn1vp]
             for n3 in range(2):
+                laoad2[n3][-2] = [ -d for d in lavqd1[n3][-1] ]  # use final d1 on laoa
                 lavqx [n3][-1] = laoax [n3][-2]
                 lavqd1[n3][-1] = laoad1[n3][-2]
                 lavqd2[n3][-1] = laoad2[n3][-2]

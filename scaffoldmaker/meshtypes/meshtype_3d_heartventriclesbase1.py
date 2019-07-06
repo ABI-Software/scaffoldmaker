@@ -8,7 +8,7 @@ from __future__ import division
 import copy
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
-from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import getAtriumBasePoints
+from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1, getAtriumBasePoints
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
@@ -50,6 +50,12 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         options = MeshType_3d_heartventricles1.getDefaultOptions(parameterSetName)
+        atriaOptions = MeshType_3d_heartatria1.getDefaultOptions(parameterSetName)
+        isHuman = 'Human' in parameterSetName
+        isMouse = 'Mouse' in parameterSetName
+        isPig = 'Pig' in parameterSetName
+        isRat = 'Rat' in parameterSetName
+        notUnitScale = 'Unit' not in parameterSetName
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 7
         options['Number of elements around RV free wall'] = 7
@@ -62,7 +68,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Base height'] = 0.15
         options['Base thickness'] = 0.06
         options['Fibrous ring thickness'] = 0.005
-        options['LV outlet front incline degrees'] = 15.0
+        options['LV outlet front incline degrees'] = atriaOptions['Atrial base front incline degrees']  # same for now
         options['LV outlet inner diameter'] = 0.3
         options['LV outlet wall thickness'] = 0.025
         options['RV outlet left incline degrees'] = 30.0
@@ -74,25 +80,40 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         options['Ventricles rotation degrees'] = 16.0
         options['Ventricles translation x'] = -0.19
         options['Ventricles translation y'] = -0.2
-        options['Atria base inner major axis length'] = 0.55
-        options['Atria base inner minor axis length'] = 0.45
-        options['Atria major axis rotation degrees'] = 40.0
-        options['Atrial septum length'] = 0.25
-        options['Atrial septum thickness'] = 0.07
-        options['Atrial base wall thickness'] = 0.07
-        options['Atrial base slope degrees'] = 30.0
-        options['Left atrial appendage left'] = 0.9
-        options['Left atrium venous midpoint left'] = 0.55
-        options['Right atrium venous right'] = 0.4
-        options['Right atrial appendage pouch right'] = 0.9
-        if 'Human' in parameterSetName:
-            pass
-        elif 'Mouse' in parameterSetName:
-            options['LV outer height'] = 1.0
-        elif 'Pig' in parameterSetName:
+        for key in [
+            'Atria base inner major axis length',
+            'Atria base inner minor axis length',
+            'Atria major axis rotation degrees',
+            'Atrial septum length',
+            'Atrial septum thickness',
+            'Atrial base slope degrees',
+            'Atrial base wall thickness',
+            'Left atrium venous midpoint left',
+            'Right atrium venous right',
+            'Left atrial appendage left',
+            'Right atrial appendage pouch right']:
+            options[key] = atriaOptions[key]
+        if isHuman:
+            options['LV outer height'] = 0.9
+        elif isMouse or isRat:
+            options['LV outer height'] = 0.85
+            options['Base height'] = 0.18
+            options['Base thickness'] = 0.08
+            options['Fibrous ring thickness'] = 0.005
+            options['LV outlet inner diameter'] = 0.23
+            options['LV outlet wall thickness'] = 0.02
+            options['RV outlet left incline degrees'] = 20.0
+            options['RV outlet inner diameter'] = 0.23
+            options['RV outlet wall thickness'] = 0.02
+            options['Ventricles outlet element length'] = 0.1
+            options['Ventricles outlet spacing y'] = 0.01
+            options['Ventricles outlet spacing z'] = 0.1
+            options['Ventricles rotation degrees'] = 22.0
+            options['Ventricles translation x'] = -0.14
+            options['Ventricles translation y'] = -0.18
+        elif isPig:
+            options['LV outer height'] = 0.9
             options['RV outlet left incline degrees'] = 10.0
-        elif 'Rat' in parameterSetName:
-            pass
         return options
 
     @staticmethod

@@ -43,43 +43,62 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
-        options = {
-            'Number of elements around LV free wall' : 5,
-            'Number of elements around RV free wall' : 7,
-            'Number of elements up LV apex' : 1,
-            'Number of elements up RV' : 4,
-            'Unit scale' : 1.0,
-            'Interventricular sulcus derivative factor' : 0.5,
-            'LV outer height' : 1.0,
-            'LV outer diameter' : 1.0,
-            'LV free wall thickness' : 0.12,
-            'LV apex thickness' : 0.06,
-            'RV inner height fraction' : 0.85,
-            'RV arc around degrees' : 155.0,
-            'RV arc apex fraction' : 0.6,
-            'RV free wall thickness' : 0.05,
-            'RV width' : 0.4,
-            'RV width growth factor' : 0.7,
-            'RV side extension' : 0.12,
-            'RV side extension growth factor' : 0.5,
-            'Ventricular septum thickness' : 0.1,
-            'Ventricular septum base radial displacement' : 0.05,
-            'Use cross derivatives' : False,
-            'Refine' : False,
-            'Refine number of elements surface' : 4,
-            'Refine number of elements through LV wall' : 1,
-            'Refine number of elements through wall' : 1
-        }
-        if 'Human' in parameterSetName:
+        isHuman = 'Human' in parameterSetName
+        isMouse = 'Mouse' in parameterSetName
+        isPig = 'Pig' in parameterSetName
+        isRat = 'Rat' in parameterSetName
+        notUnitScale = 'Unit' not in parameterSetName
+        options = {}
+        options['Number of elements around LV free wall'] = 5
+        options['Number of elements around RV free wall'] = 7
+        options['Number of elements up LV apex'] = 1
+        options['Number of elements up RV'] = 3
+        options['Unit scale'] = 1.0
+        options['Interventricular sulcus derivative factor'] = 0.5
+        options['LV outer height'] = 1.0
+        options['LV outer diameter'] = 1.0
+        options['LV free wall thickness'] = 0.12
+        options['LV apex thickness'] = 0.06
+        options['RV inner height fraction'] = 0.85
+        options['RV arc around degrees'] = 155.0
+        options['RV arc apex fraction'] = 0.6
+        options['RV free wall thickness'] = 0.05
+        options['RV width'] = 0.4
+        options['RV width growth factor'] = 0.7
+        options['RV side extension'] = 0.12
+        options['RV side extension growth factor'] = 0.5
+        options['Ventricular septum thickness'] = 0.1
+        options['Ventricular septum base radial displacement'] = 0.05
+        options['Use cross derivatives'] = False
+        options['Refine'] = False
+        options['Refine number of elements surface'] = 4
+        options['Refine number of elements through LV wall'] = 1
+        options['Refine number of elements through wall'] = 1
+        if isHuman:
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 80.0
-            options['LV outer height'] = 0.9
-        elif 'Mouse' in parameterSetName:
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 5.0
+        elif isMouse or isRat:
+            if notUnitScale:
+                options['Unit scale'] = 5.0 if isMouse else 12.0
+            #options['Interventricular sulcus derivative factor'] = 0.5
+            options['LV outer height'] = 0.95
+            options['LV outer diameter'] = 0.95
+            options['LV free wall thickness'] = 0.15
             options['LV apex thickness'] = 0.08
-            options['RV width'] = 0.35
-        elif 'Pig' in parameterSetName:
+            if isMouse:
+                options['RV inner height fraction'] = 0.9
+            else:
+                options['RV inner height fraction'] = 0.85
+            options['RV arc around degrees'] = 140.0
+            #options['RV arc apex fraction'] = 0.6
+            options['RV free wall thickness'] = 0.07
+            options['RV width'] = 0.25
+            options['RV width growth factor'] = 0.8
+            options['RV side extension'] = 0.05
+            options['RV side extension growth factor'] = 0.8
+            options['Ventricular septum thickness'] = 0.12
+            options['Ventricular septum base radial displacement'] = 0.08
+        elif isPig:
             options['Number of elements up LV apex'] = 2
             options['Number of elements up RV'] = 3
             if 'Unit' not in parameterSetName:
