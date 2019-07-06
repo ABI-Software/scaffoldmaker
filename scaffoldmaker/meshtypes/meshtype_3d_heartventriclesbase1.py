@@ -100,11 +100,11 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             options['Base height'] = 0.18
             options['Base thickness'] = 0.08
             options['Fibrous ring thickness'] = 0.005
-            options['LV outlet inner diameter'] = 0.23
-            options['LV outlet wall thickness'] = 0.02
+            options['LV outlet inner diameter'] = 0.23 if isRat else 0.21
+            options['LV outlet wall thickness'] = 0.018 if isRat else 0.016
             options['RV outlet left incline degrees'] = 20.0
-            options['RV outlet inner diameter'] = 0.23
-            options['RV outlet wall thickness'] = 0.02
+            options['RV outlet inner diameter'] = 0.23 if isRat else 0.21
+            options['RV outlet wall thickness'] = 0.018 if isRat else 0.016
             options['Ventricles outlet element length'] = 0.1
             options['Ventricles outlet spacing y'] = 0.01
             options['Ventricles outlet spacing z'] = 0.1

@@ -190,8 +190,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # to avoid circular include, repeat inter-dependent ventriclesbase options here:
         ventriclesbaseOptions = {}
         if isMouse or isRat:
-            ventriclesbaseOptions['LV outlet inner diameter'] = 0.23
-            ventriclesbaseOptions['LV outlet wall thickness'] = 0.02
+            ventriclesbaseOptions['LV outlet inner diameter'] = 0.23 if isRat else 0.21
+            ventriclesbaseOptions['LV outlet wall thickness'] =  0.018 if isRat else 0.016
         else:
             ventriclesbaseOptions['LV outlet inner diameter'] = 0.3
             ventriclesbaseOptions['LV outlet wall thickness'] = 0.025
