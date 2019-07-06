@@ -50,20 +50,22 @@ class MeshType_3d_heart1(Scaffold_base):
     def getOrderedOptionNames():
         optionNames = MeshType_3d_heartventriclesbase1.getOrderedOptionNames()
         optionNamesAtria = MeshType_3d_heartatria1.getOrderedOptionNames()
-        # insert numbers of elements in atria in initial group
-        for optionName in [
-            'Number of elements around atrial free wall',
+        # insert new numbers of elements from atria; others came with ventriclesbase1
+        optionNames.insert(7, 'Number of elements over atria')
+        # remove number of elements, unit scale and dependent options from atria options
+        for key in [
             'Number of elements around atrial septum',
-            'Number of elements up atria',
-            'Number of elements inlet']:
-            optionNames.insert(6, optionName)
-            optionNamesAtria.remove(optionName)
-        # remove dependent or repeated options in atria1
-        optionNamesAtria.remove('Aorta outer plus diameter')
-        for optionName in optionNames:
-            if optionName in optionNamesAtria:
-                optionNamesAtria.remove(optionName)
-        # add remaining atria options
+            'Number of elements around left atrium free wall',
+            'Number of elements around right atrium free wall',
+            'Number of elements over atria',
+            'Unit scale',
+            'Aorta outer plus diameter']:
+            optionNamesAtria.remove(key)
+        # remove duplicates from main options
+        for optionName in optionNamesAtria:
+            if optionName in optionNames:
+                optionNames.remove(optionName)
+        # add atria options all together
         optionNames += optionNamesAtria
         # want refinement options last
         for optionName in [
@@ -74,6 +76,18 @@ class MeshType_3d_heart1(Scaffold_base):
             optionNames.remove(optionName)
             optionNames.append(optionName)
         return optionNames
+
+    @classmethod
+    def getOptionValidScaffoldTypes(cls, optionName):
+        return MeshType_3d_heartatria1.getOptionValidScaffoldTypes(optionName)
+
+    @classmethod
+    def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
+        return MeshType_3d_heartatria1.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType)
+
+    @classmethod
+    def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
+        return MeshType_3d_heartatria1.getOptionScaffoldPackage(optionName, scaffoldType, parameterSetName)
 
     @staticmethod
     def checkOptions(options):
@@ -97,9 +111,11 @@ class MeshType_3d_heart1(Scaffold_base):
         """
         # set dependent outer diameter used in atria2
         options['Aorta outer plus diameter'] = options['LV outlet inner diameter'] + 2.0*options['LV outlet wall thickness']
-        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
-        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        elementsCountAroundLeftAtriumFreeWall = options['Number of elements around left atrium free wall']
+        elementsCountAroundLeftAtrium = elementsCountAroundLeftAtriumFreeWall + elementsCountAroundAtrialSeptum
+        elementsCountAroundRightAtriumFreeWall = options['Number of elements around right atrium free wall']
+        elementsCountAroundRightAtrium = elementsCountAroundRightAtriumFreeWall + elementsCountAroundAtrialSeptum
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
@@ -107,7 +123,7 @@ class MeshType_3d_heart1(Scaffold_base):
         coordinates = zinc_utils.getOrCreateCoordinateField(fm)
         cache = fm.createFieldcache()
 
-        # generate heartventriclesbase2 model and put atria2 on it
+        # generate heartventriclesbase1 model and put atria1 on it
         annotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         annotationGroups += MeshType_3d_heartatria1.generateBaseMesh(region, options)
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
@@ -133,53 +149,57 @@ class MeshType_3d_heart1(Scaffold_base):
 
         # discover left and right fibrous ring nodes from ventricles and atria
         # because nodes are iterated in identifier order, the lowest and first are on the lv outlet cfb, right and left on lower outer layers
-        lavInnerNodeId = [ [], [] ]  # [n2][n1]
-        lavOuterNodeId = [ [], [] ]  # [n2][n1]
+        # left fibrous ring
+        lavNodeId = [ [ [], [] ], [ [], [] ] ]  # [n3][n2][n1]
         iter = lFibrousRingGroup.getNodesetGroup(nodes).createNodeiterator()
+        # left fibrous ring, bottom row
         cfbNodeId = iter.next().getIdentifier()
         cfbLeftNodeId = iter.next().getIdentifier()
-        for n1 in range(elementsCountAroundAtria):
-            lavInnerNodeId[0].append(iter.next().getIdentifier())
-        lavOuterNodeId[0].append(cfbNodeId)
-        lavOuterNodeId[0].append(cfbLeftNodeId)
-        for n1 in range(elementsCountAroundAtrialFreeWall - 1):
-            lavOuterNodeId[0].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundLeftAtrium):
+            lavNodeId[0][0].append(iter.next().getIdentifier())
+        lavNodeId[1][0].append(cfbNodeId)
+        lavNodeId[1][0].append(cfbLeftNodeId)
+        for n1 in range(elementsCountAroundLeftAtriumFreeWall - 1):
+            lavNodeId[1][0].append(iter.next().getIdentifier())
         for n1 in range(elementsCountAroundAtrialSeptum - 1):
-            lavOuterNodeId[0].append(None)
-        for n1 in range(elementsCountAroundAtria):
-            lavInnerNodeId[1].append(iter.next().getIdentifier())
-        for n1 in range(elementsCountAroundAtrialFreeWall + 1):
-            lavOuterNodeId[1].append(iter.next().getIdentifier())
+            lavNodeId[1][0].append(None)  # no outer node on interatrial septum
+        # left fibrous ring, top row
+        for n1 in range(elementsCountAroundLeftAtrium):
+            lavNodeId[0][1].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundLeftAtriumFreeWall + 1):
+            lavNodeId[1][1].append(iter.next().getIdentifier())
         for n1 in range(elementsCountAroundAtrialSeptum - 1):
-            lavOuterNodeId[1].append(None)
-        ravInnerNodeId = [ [], [] ]  # [n2][n1]
-        ravOuterNodeId = [ [], [] ]  # [n2][n1]
+            lavNodeId[1][1].append(None)  # no outer node on interatrial septum
+        # right fibrous ring
+        ravNodeId = [ [ [], [] ], [ [], [] ] ]  # [n3][n2][n1]
         iter = rFibrousRingGroup.getNodesetGroup(nodes).createNodeiterator()
         cfbNodeId = iter.next().getIdentifier()
         cfbRightNodeId = iter.next().getIdentifier()
-        for n1 in range(elementsCountAroundAtria):
-            ravInnerNodeId[0].append(iter.next().getIdentifier())
+        # right fibrous ring, bottom row
+        for n1 in range(elementsCountAroundRightAtrium):
+            ravNodeId[0][0].append(iter.next().getIdentifier())
+        for n1 in range(elementsCountAroundRightAtriumFreeWall - 1):
+            ravNodeId[1][0].append(iter.next().getIdentifier())
+        ravNodeId[1][0].append(cfbRightNodeId)
+        ravNodeId[1][0].append(cfbNodeId)
         for n1 in range(elementsCountAroundAtrialSeptum - 1):
-            ravOuterNodeId[0].append(None)
-        for n1 in range(elementsCountAroundAtrialFreeWall - 1):
-            ravOuterNodeId[0].append(iter.next().getIdentifier())
-        ravOuterNodeId[0].append(cfbRightNodeId)
-        ravOuterNodeId[0].append(cfbNodeId)
-        for n1 in range(elementsCountAroundAtria):
-            ravInnerNodeId[1].append(iter.next().getIdentifier())
-        for n1 in range(elementsCountAroundAtrialSeptum - 1):
-            ravOuterNodeId[1].append(None)
+            ravNodeId[1][0].append(None)  # no outer node on interatrial septum
+        # right fibrous ring, top row
+        for n1 in range(elementsCountAroundRightAtrium):
+            ravNodeId[0][1].append(iter.next().getIdentifier())
         cfbUpperNodeId = iter.next().getIdentifier()  # cfb from left will be first
-        for n1 in range(elementsCountAroundAtrialFreeWall):
-            ravOuterNodeId[1].append(iter.next().getIdentifier())
-        ravOuterNodeId[1].append(cfbUpperNodeId)
+        for n1 in range(elementsCountAroundRightAtriumFreeWall):
+            ravNodeId[1][1].append(iter.next().getIdentifier())
+        ravNodeId[1][1].append(cfbUpperNodeId)
+        for n1 in range(elementsCountAroundAtrialSeptum - 1):
+            ravNodeId[1][1].append(None)  # no outer node on interatrial septum
 
         #for n2 in range(2):
         #    print('n2', n2)
-        #    print('lavInnerNodeId', lavInnerNodeId[n2])
-        #    print('lavOuterNodeId', lavOuterNodeId[n2])
-        #    print('ravInnerNodeId', ravInnerNodeId[n2])
-        #    print('ravOuterNodeId', ravOuterNodeId[n2])
+        #    print('lavNodeId[0]', lavNodeId[0][n2])
+        #    print('lavNodeId[1]', lavNodeId[1][n2])
+        #    print('ravNodeId[0]', ravNodeId[0][n2])
+        #    print('ravNodeId[1]', ravNodeId[1][n2])
 
         #################
         # Create elements
@@ -202,19 +222,19 @@ class MeshType_3d_heart1(Scaffold_base):
 
         # left fibrous ring, starting at crux / collapsed posterior interatrial sulcus
         cruxElementId = None
-        for e in range(-1, elementsCountAroundAtrialFreeWall):
+        for e in range(-1, elementsCountAroundLeftAtriumFreeWall):
             eft1 = eftFibrousRing
             n1 = e
             nids = [
-                lavInnerNodeId[0][n1], lavInnerNodeId[0][n1 + 1], lavInnerNodeId[1][n1], lavInnerNodeId[1][n1 + 1],
-                lavOuterNodeId[0][n1], lavOuterNodeId[0][n1 + 1], lavOuterNodeId[1][n1], lavOuterNodeId[1][n1 + 1]]
+                lavNodeId[0][0][n1], lavNodeId[0][0][n1 + 1], lavNodeId[0][1][n1], lavNodeId[0][1][n1 + 1],
+                lavNodeId[1][0][n1], lavNodeId[1][0][n1 + 1], lavNodeId[1][1][n1], lavNodeId[1][1][n1 + 1]]
             scalefactors = None
             meshGroups = [ lFibrousRingMeshGroup ]
 
             if e == -1:
                 # interatrial groove straddles left and right atria, collapsed to 6 node wedge
-                nids[0] = ravInnerNodeId[0][-1]
-                nids[2] = ravInnerNodeId[1][-1]
+                nids[0] = ravNodeId[0][0][elementsCountAroundRightAtriumFreeWall]
+                nids[2] = ravNodeId[0][1][elementsCountAroundRightAtriumFreeWall]
                 nids.pop(6)
                 nids.pop(4)
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
@@ -248,7 +268,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 scalefactors = [ -1.0 ]
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1]) ])
-            elif e == (elementsCountAroundAtrialFreeWall - 1):
+            elif e == (elementsCountAroundLeftAtriumFreeWall - 1):
                 # general linear map d3 adjacent to collapsed sulcus
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
@@ -269,20 +289,19 @@ class MeshType_3d_heart1(Scaffold_base):
                 meshGroup.addElement(element)
 
         # right fibrous ring, starting at crux / collapsed posterior interatrial sulcus
-        ran1FreeWallStart = elementsCountAroundAtrialSeptum - 1
-        for e in range(-1, elementsCountAroundAtrialFreeWall):
+        for e in range(-1, elementsCountAroundRightAtriumFreeWall):
             eft1 = eftFibrousRing
-            n1 = ran1FreeWallStart + e
+            n1 = e
             nids = [
-                ravInnerNodeId[0][n1], ravInnerNodeId[0][n1 + 1], ravInnerNodeId[1][n1], ravInnerNodeId[1][n1 + 1],
-                ravOuterNodeId[0][n1], ravOuterNodeId[0][n1 + 1], ravOuterNodeId[1][n1], ravOuterNodeId[1][n1 + 1]]
+                ravNodeId[0][0][n1], ravNodeId[0][0][n1 + 1], ravNodeId[0][1][n1], ravNodeId[0][1][n1 + 1],
+                ravNodeId[1][0][n1], ravNodeId[1][0][n1 + 1], ravNodeId[1][1][n1], ravNodeId[1][1][n1 + 1]]
             scalefactors = None
             meshGroups = [ rFibrousRingMeshGroup ]
 
             if e == -1:
                 # interatrial groove straddles left and right atria, collapsed to 6 node wedge
-                nids[0] = lavInnerNodeId[0][elementsCountAroundAtrialFreeWall]
-                nids[2] = lavInnerNodeId[1][elementsCountAroundAtrialFreeWall]
+                nids[0] = lavNodeId[0][0][elementsCountAroundLeftAtriumFreeWall]
+                nids[2] = lavNodeId[0][1][elementsCountAroundLeftAtriumFreeWall]
                 nids.pop(6)
                 nids.pop(4)
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
@@ -303,14 +322,14 @@ class MeshType_3d_heart1(Scaffold_base):
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
                 remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
-            elif e == (elementsCountAroundAtrialFreeWall - 2):
+            elif e == (elementsCountAroundRightAtriumFreeWall - 2):
                 # reverse d1, d3 on right cfb:
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [1]) ])
                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1]) ])
-            elif e == (elementsCountAroundAtrialFreeWall - 1):
+            elif e == (elementsCountAroundRightAtriumFreeWall - 1):
                 # general linear map d3 adjacent to collapsed cfb/anterior sulcus
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
@@ -338,12 +357,12 @@ class MeshType_3d_heart1(Scaffold_base):
         meshGroups = [ lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
         for e in range(elementsCountAroundAtrialSeptum):
             eft1 = eftFibrousRing
-            nlm = elementsCountAroundAtrialFreeWall + e
-            nlp = (nlm + 1)%elementsCountAroundAtria
-            nrm = elementsCountAroundAtrialSeptum - 1 - e
+            nlm = e - elementsCountAroundAtrialSeptum
+            nlp = nlm + 1
+            nrm = -e
             nrp = nrm - 1
-            nids = [ lavInnerNodeId[0][nlm], lavInnerNodeId[0][nlp], lavInnerNodeId[1][nlm], lavInnerNodeId[1][nlp],
-                     ravInnerNodeId[0][nrm], ravInnerNodeId[0][nrp], ravInnerNodeId[1][nrm], ravInnerNodeId[1][nrp] ]
+            nids = [ lavNodeId[0][0][nlm], lavNodeId[0][0][nlp], lavNodeId[0][1][nlm], lavNodeId[0][1][nlp],
+                     ravNodeId[0][0][nrm], ravNodeId[0][0][nrp], ravNodeId[0][1][nrm], ravNodeId[0][1][nrp] ]
 
             eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
             setEftScaleFactorIds(eft1, [1], [])
@@ -398,23 +417,23 @@ class MeshType_3d_heart1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
-        elementsCountAroundAtrialFreeWall = options['Number of elements around atrial free wall']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
-        elementsCountAroundAtria = elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum
+        elementsCountAroundLeftAtriumFreeWall = options['Number of elements around left atrium free wall']
+        elementsCountAroundRightAtriumFreeWall = options['Number of elements around right atrium free wall']
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
         MeshType_3d_heartventriclesbase1.refineMesh(meshrefinement, options)
         MeshType_3d_heartatria1.refineMesh(meshrefinement, options)
         element = meshrefinement._sourceElementiterator.next()
         startFibrousRingElementIdentifier = element.getIdentifier()
-        lastFibrousRingElementIdentifier = startFibrousRingElementIdentifier + 2*elementsCountAroundAtrialFreeWall + elementsCountAroundAtrialSeptum + 1
+        lastFibrousRingElementIdentifier = startFibrousRingElementIdentifier + elementsCountAroundLeftAtriumFreeWall + elementsCountAroundRightAtriumFreeWall + elementsCountAroundAtrialSeptum + 1
         i = -1
         while element.isValid():
             numberInXi1 = refineElementsCountSurface
             numberInXi2 = 1  # since fibrous ring is thin
             numberInXi3 = refineElementsCountThroughWall
             elementIdentifier = element.getIdentifier()
-            if i in [ -1, elementsCountAroundAtrialFreeWall ]:
+            if i in [ -1, elementsCountAroundLeftAtriumFreeWall ]:
                 numberInXi1 = refineElementsCountThroughWall
             meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
             if elementIdentifier == lastFibrousRingElementIdentifier:

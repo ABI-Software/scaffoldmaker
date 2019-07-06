@@ -223,6 +223,51 @@ def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     df3 = -1.0 + 2.0*xi
     return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
 
+def getNearestPointIndex(nx, x):
+    '''
+    :return: index of point in nx at shortest distance from x.
+    '''
+    pointCount = len(nx)
+    assert pointCount > 0
+    components = len(x)
+    minDistance = math.sqrt(sum( ((nx[0][c] - x[c])*(nx[0][c] - x[c])) for c in range(components)))
+    index = 0
+    for n in range(1, pointCount):
+        distance = math.sqrt(sum( ((nx[n][c] - x[c])*(nx[n][c] - x[c])) for c in range(components)))
+        if distance < minDistance:
+            minDistance = distance
+            index = n
+    return index
+
+def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness):
+    '''
+    From Hermite curve nx, nd1 with cross direction nd2, project normal to wall
+    by wall thickness to get coordinates, d1 affected by curvature etc.
+    Assumes 3 components.
+    :param n: Index into nx, nd1, nd2 of where to project.
+    :param wallThickness: Use positive from in to out, negative from outside to in.
+    :return: x, d1, d2, d3
+    '''
+    maxPointIndex = len(nx) - 1
+    assert (0 <= n <= maxPointIndex), 'projectHermiteCurvesThroughWall.  Invalid index'
+    unitNormal = vector.normalise(vector.crossproduct3(nd1[n], nd2[n]))
+    x  = [ (nx[n][c] + wallThickness*unitNormal[c]) for c in range(3) ]
+    # calculate inner d1 from curvature around
+    curvature = 0.0
+    count = 0
+    if (n > 0) and (nx[n - 1]):
+        curvature += getCubicHermiteCurvature(nx[n - 1], nd1[n - 1], nx[n], nd1[n], unitNormal, 1.0)
+        count += 1
+    if (n < maxPointIndex) and (nx[n + 1]):
+        curvature += getCubicHermiteCurvature(nx[n], nd1[n], nx[n + 1], nd1[n + 1], unitNormal, 0.0)
+        count += 1
+    curvature /= count
+    factor = 1.0 - curvature*wallThickness
+    d1 = [ factor*c for c in nd1[n] ]
+    d2 = copy.deepcopy(nd2[n])  # magnitude can't be determined here
+    d3 = vector.setMagnitude(unitNormal, math.fabs(wallThickness))
+    return x, d1, d2, d3
+
 def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     addLengthStart = 0.0, addLengthEnd = 0.0,
     lengthFractionStart = 1.0, lengthFractionEnd = 1.0,
@@ -264,8 +309,11 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
         lengths.append(length)
     proportionEnd = 2.0/(elementLengthStartEndRatio + 1)
     proportionStart = elementLengthStartEndRatio*proportionEnd
-    elementLengthMid = (length - addLengthStart - addLengthEnd) / \
-        (elementsCountOut - 2.0 + proportionStart*lengthFractionStart + proportionEnd*lengthFractionEnd)
+    if elementsCountOut == 1:
+        elementLengthMid = length
+    else:
+        elementLengthMid = (length - addLengthStart - addLengthEnd) / \
+            (elementsCountOut - 2.0 + proportionStart*lengthFractionStart + proportionEnd*lengthFractionEnd)
     elementLengthProportionStart = proportionStart*lengthFractionStart*elementLengthMid
     elementLengthProportionEnd = proportionEnd*lengthFractionEnd*elementLengthMid
     # get smoothly varying element lengths, not accounting for start and end
@@ -319,6 +367,78 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
                 break
             e += 1
         distance += elementLengths[eOut]
+    e = elementsCountIn
+    eOut = elementsCountOut
+    xi = 1.0
+    d1 = nd1[e]
+    sf = nodeDerivativeMagnitudes[eOut]/vector.magnitude(d1)
+    px.append(nx[e])
+    pd1.append([ sf*d for d in d1 ])
+    pe.append(e - 1)
+    pxi.append(xi)
+    psf.append(sf)
+    return px, pd1, pe, pxi, psf
+
+def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
+       derivativeMagnitudeStart, derivativeMagnitudeEnd):
+    """
+    Get smoothly spaced points and derivatives over cubic Hermite interpolated
+    curves with nodes nx and derivatives nd1. The first element uses the first two nodes.
+    Gives smooth variation of element size to fit the supplied start and end derivative
+    magnitudes.
+    :param nx: Coordinates of nodes along curves.
+    :param nd1: Derivatives of nodes along curves.
+    :param derivativeMagnitudeStart, derivativeMagnitudeEnd: Magnitudes of start and end
+    derivatives appropriate for elementsCountOut.
+    :return: px[], pd1[], pe[], pxi[], psf[], where pe[] and pxi[] are lists of element indices and
+    and xi locations in the 'in' elements to pass to partner interpolateSample functions. psf[] is
+    a list of scale factors for converting derivatives from old to new xi coordinates: dxi(old)/dxi(new).
+    """
+    elementsCountIn = len(nx) - 1
+    assert (elementsCountIn > 0) and (len(nd1) == (elementsCountIn + 1)) and (elementsCountOut > 0), \
+        'sampleCubicHermiteCurvesSmooth.  Invalid arguments'
+    lengths = [ 0.0 ]
+    length = 0.0
+    for e in range(elementsCountIn):
+        length += getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1])
+        lengths.append(length)
+    # sample over length to get distances to elements boundaries
+    x1 = 0.0
+    d1 = derivativeMagnitudeStart*elementsCountOut
+    x2 = length
+    d2 = derivativeMagnitudeEnd*elementsCountOut
+    nodeDistances = []
+    nodeDerivativeMagnitudes = []
+    for n in range(elementsCountOut + 1):
+        xi = n/elementsCountOut
+        f1, f2, f3, f4 = getCubicHermiteBasis(xi)
+        distance = f1*x1 + f2*d1 + f3*x2 + f4*d2
+        nodeDistances.append(distance)
+        f1, f2, f3, f4 = getCubicHermiteBasisDerivatives(xi)
+        derivative = f1*x1 + f2*d1 + f3*x2 + f4*d2
+        nodeDerivativeMagnitudes.append(derivative/elementsCountOut)
+    #print('nodeDerivativeMagnitudesIn ', [ vector.magnitude(d1) for d1 in nd1 ])
+    #print('nodeDerivativeMagnitudesOut', nodeDerivativeMagnitudes)
+    px = []
+    pd1 = []
+    pe = []
+    pxi = []
+    psf = []
+    e = 0
+    for eOut in range(elementsCountOut):
+        distance = nodeDistances[eOut]
+        while e < elementsCountIn:
+            if distance < lengths[e + 1]:
+                partDistance = distance - lengths[e]
+                x, d1, _, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
+                sf = nodeDerivativeMagnitudes[eOut]/vector.magnitude(d1)
+                px.append(x)
+                pd1.append([ sf*d for d in d1 ])
+                pe.append(e)
+                pxi.append(xi)
+                psf.append(sf)
+                break
+            e += 1
     e = elementsCountIn
     eOut = elementsCountOut
     xi = 1.0
@@ -401,6 +521,34 @@ def interpolateSampleLinear(v, pe, pxi):
             vOut.append(wm*v[pe[n]] + wp*v[pe[n] + 1])
     return vOut
 
+def sampleCubicElementLengths(length, elementsCount, startDerivative = None, endDerivative = None):
+    '''
+    Get lengths of elements gradually changing over length, satisfying the start and end derivatives.
+    :param startDerivative, endDerivative: Magnitudes of end derivatives to use with elementsCount,
+    or None to choose a natural size.
+    :return: List of elementsCount element lengths
+    '''
+    assert (elementsCount > 0), 'interpolation sampleCubicElementLengths:  Invalid number of elements'
+    x1 = 0.0
+    x2 = length
+    d1 = startDerivative*elementsCount if startDerivative else None
+    d2 = endDerivative*elementsCount if endDerivative else None
+    if not (d1 and d2):
+        d1 = d2 = length
+    elif not d2:
+        d2 = 2.0*length - d1
+    elif not d1:
+        d1 = 2.0*length - d2
+    elementLengths = []
+    lastx = 0.0
+    for n in range(1, elementsCount + 1):
+        xi = n/elementsCount
+        f1, f2, f3, f4 = getCubicHermiteBasis(xi)
+        x = f1*x1 + f2*d1 + f3*x2 + f4*d2
+        elementLengths.append(x - lastx)
+        lastx = x
+    return elementLengths
+
 def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
     """
     Get the coordinates, derivatives at distance along cubic Hermite curves.
@@ -436,6 +584,8 @@ def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
                 dist = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi)
                 distp = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi + xiDelta)
                 distm = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi - xiDelta)
+                if (xi - xiDelta) < 0.0:
+                    distm = -distm
                 dxi_ddist = 2.0*xiDelta/(distp - distm)
                 dxi = dxi_ddist*(partDistance - dist)
                 #print('iter',iter,'xi',xi,'--> dist',dist,'dxi',dxi,'dxiLimit',dxiLimit)
