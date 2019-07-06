@@ -99,17 +99,20 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             options['Ventricular septum thickness'] = 0.12
             options['Ventricular septum base radial displacement'] = 0.08
         elif isPig:
-            options['Number of elements up LV apex'] = 2
+            options['Number of elements up LV apex'] = 1
             options['Number of elements up RV'] = 3
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 80.0
             options['LV outer height'] = 0.9
-            options['LV free wall thickness'] = 0.15
+            options['LV free wall thickness'] = 0.17
             options['LV apex thickness'] = 0.07
             options['RV inner height fraction'] = 0.65
-            options['RV arc around degrees'] = 155.0
-            options['RV width growth factor'] = 0.65
-            options['Ventricular septum thickness'] = 0.12
+            options['RV arc around degrees'] = 140.0
+            options['RV free wall thickness'] = 0.06
+            options['RV width growth factor'] = 0.4
+            options['RV side extension'] = 0.1
+            options['RV side extension growth factor'] = 0.4
+            options['Ventricular septum thickness'] = 0.13
         elif 'Rat' in parameterSetName:
             if 'Unit' not in parameterSetName:
                 options['Unit scale'] = 12.0

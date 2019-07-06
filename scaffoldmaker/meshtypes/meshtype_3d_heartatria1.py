@@ -137,15 +137,15 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
                 'Outlet' : False,
-                'Ostium diameter' : 0.24,
+                'Ostium diameter' : 0.26,
                 'Ostium length' : 0.04,
                 'Ostium wall thickness' : 0.02,
                 'Ostium inter-vessel distance' : 0.16,
                 'Ostium inter-vessel height' : 0.0,
                 'Use linear through ostium wall' : False,
                 'Vessel end length factor' : 1.0,
-                'Vessel inner diameter' : 0.17,
-                'Vessel wall thickness' : 0.011,
+                'Vessel inner diameter' : 0.19,
+                'Vessel wall thickness' : 0.013,
                 'Vessel angle 1 degrees' : 0.0,
                 'Vessel angle 1 spread degrees' : 0.0,
                 'Vessel angle 2 degrees' : 0.0,
@@ -344,14 +344,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elif 'Pig' in parameterSetName:
             if notUnitScale:
                 options['Unit scale'] = 80.0
+            options['Atrial base side incline degrees'] = 0.0
             options['Left atrial appendage angle axial degrees'] = -10.0
             options['Left atrial appendage angle left degrees'] = 20.0
             options['Left atrial appendage angle up degrees'] = -60.0
             options['Left atrial appendage arc length'] = 0.4
             options['Left atrial appendage arc radius'] = 0.3
-            options['Left atrial appendage base length'] = 0.3
-            options['Left atrial appendage wedge angle degrees'] = 60.0
-            options['Right atrial appendage angle axial degrees'] = 5.0
+            options['Left atrial appendage base length'] = 0.35
+            options['Left atrial appendage left'] = 0.9
+            options['Left atrial appendage midpoint left'] = 0.55
+            options['Left atrial appendage midpoint over'] = 1.0
+            options['Left atrial appendage wedge angle degrees'] = 50.0
+            options['Right atrial appendage angle axial degrees'] = 10.0
             options['Right atrial appendage angle left degrees'] = -20.0
             options['Right atrial appendage angle up degrees'] = -10.0
             options['Right atrial appendage arc length'] = 0.5
@@ -359,10 +363,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Right atrial appendage base length'] = 0.25
             options['Right atrial appendage midpoint right'] = 0.55
             options['Right atrial appendage wedge angle degrees'] = 60.0
-            options['Inferior vena cava inlet position over'] = 0.18
-            options['Inferior vena cava inlet position right'] = 0.18
-            options['Inferior vena cava inlet angle left degrees'] = 30.0
-            options['Inferior vena cava inlet angle over degrees'] = -30.0
+            options['Right pulmonary vein ostium angle degrees'] = 80.0
+            options['Right pulmonary vein ostium position left'] = 0.22
+            options['Right pulmonary vein ostium position over'] = 0.33
+            options['Inferior vena cava inlet position over'] = 0.22
+            options['Inferior vena cava inlet position right'] = 0.2
+            options['Inferior vena cava inlet angle left degrees'] = 10.0
+            options['Inferior vena cava inlet angle over degrees'] = 0.0
             options['Inferior vena cava inlet derivative factor'] = 0.5
             options['Superior vena cava inlet position over'] = 0.6
             options['Superior vena cava inlet angle left degrees'] = -15.0

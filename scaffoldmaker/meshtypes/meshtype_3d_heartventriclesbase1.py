@@ -114,6 +114,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         elif isPig:
             options['LV outer height'] = 0.9
             options['RV outlet left incline degrees'] = 10.0
+            options['Ventricles rotation degrees'] = 19.0
+            options['Ventricles translation x'] = -0.16
+            options['Ventricles translation y'] = -0.18
         return options
 
     @staticmethod
