@@ -56,19 +56,19 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['Unit scale'] = 1.0
         options['Interventricular sulcus derivative factor'] = 0.5
         options['LV outer height'] = 1.0
-        options['LV outer diameter'] = 1.0
-        options['LV free wall thickness'] = 0.12
-        options['LV apex thickness'] = 0.06
+        options['LV outer diameter'] = 0.95
+        options['LV free wall thickness'] = 0.14
+        options['LV apex thickness'] = 0.08
         options['RV inner height fraction'] = 0.85
-        options['RV arc around degrees'] = 155.0
-        options['RV arc apex fraction'] = 0.6
+        options['RV arc around degrees'] = 145.0
+        options['RV arc apex fraction'] = 0.5
         options['RV free wall thickness'] = 0.05
-        options['RV width'] = 0.4
+        options['RV width'] = 0.3
         options['RV width growth factor'] = 0.7
         options['RV side extension'] = 0.12
         options['RV side extension growth factor'] = 0.5
-        options['Ventricular septum thickness'] = 0.1
-        options['Ventricular septum base radial displacement'] = 0.05
+        options['Ventricular septum thickness'] = 0.12
+        options['Ventricular septum base radial displacement'] = 0.1
         options['Use cross derivatives'] = False
         options['Refine'] = False
         options['Refine number of elements surface'] = 4
@@ -107,6 +107,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             options['LV free wall thickness'] = 0.15
             options['LV apex thickness'] = 0.07
             options['RV inner height fraction'] = 0.65
+            options['RV arc around degrees'] = 155.0
             options['RV width growth factor'] = 0.65
             options['Ventricular septum thickness'] = 0.12
         elif 'Rat' in parameterSetName:

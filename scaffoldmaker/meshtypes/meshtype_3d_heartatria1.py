@@ -38,7 +38,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
                 'Outlet' : False,
-                'Ostium diameter' : 0.2,
+                'Ostium diameter' : 0.19,
                 'Ostium length' : 0.04,
                 'Ostium wall thickness' : 0.02,
                 'Ostium inter-vessel distance' : 0.16,
@@ -193,22 +193,22 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ventriclesbaseOptions['LV outlet inner diameter'] = 0.23 if isRat else 0.21
             ventriclesbaseOptions['LV outlet wall thickness'] =  0.018 if isRat else 0.016
         else:
-            ventriclesbaseOptions['LV outlet inner diameter'] = 0.3
-            ventriclesbaseOptions['LV outlet wall thickness'] = 0.025
+            ventriclesbaseOptions['LV outlet inner diameter'] = 0.28
+            ventriclesbaseOptions['LV outlet wall thickness'] = 0.022
         options = {}
         options['Number of elements around atrial septum'] = 3
         options['Number of elements around left atrium free wall'] = 8
         options['Number of elements around right atrium free wall'] = 6
         options['Number of elements over atria'] = 6
         options['Unit scale'] = 1.0
-        options['Atria base inner major axis length'] = 0.55
-        options['Atria base inner minor axis length'] = 0.45
+        options['Atria base inner major axis length'] = 0.47
+        options['Atria base inner minor axis length'] = 0.41
         options['Atria major axis rotation degrees'] = 40.0
         options['Atria outer height'] = 0.45
         options['Atrial septum height'] = 0.25
         options['Atrial septum length'] = 0.25
         options['Atrial septum thickness'] = 0.07
-        options['Atrial vestibule outer height'] = 0.07
+        options['Atrial vestibule outer height'] = 0.08
         options['Fossa ovalis height'] = 0.1
         options['Fossa ovalis length'] = 0.15
         options['Fossa ovalis thickness'] = 0.035
@@ -216,41 +216,41 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Left atrium venous free wall thickness'] = 0.02
         options['Right atrium venous free wall thickness'] = 0.015
         options['Crista terminalis thickness'] = 0.03
-        options['Atrial base wall thickness'] = 0.07
+        options['Atrial base wall thickness'] = 0.06
         options['Atrial base slope degrees'] = 30.0
         options['Aorta outer plus diameter'] = ventriclesbaseOptions['LV outlet inner diameter'] + 2.0*ventriclesbaseOptions['LV outlet wall thickness']
         options['Atrial base front incline degrees'] = 15.0
         options['Atrial base back incline degrees'] = 20.0
         options['Atrial base side incline degrees'] = 20.0
-        options['Atrium venous anterior over'] = 0.7
-        options['Atrium venous midpoint over'] = 0.41
+        options['Atria venous anterior over'] = 0.7
+        options['Atria venous midpoint over'] = 0.41
         options['Left atrium venous midpoint left'] = 0.55
         options['Right atrium venous right'] = 0.4
-        options['Left atrial appendage angle axial degrees'] = -50.0
-        options['Left atrial appendage angle left degrees'] = -30.0
-        options['Left atrial appendage angle up degrees'] = 0.0
-        options['Left atrial appendage arc length'] = 0.4
+        options['Left atrial appendage angle axial degrees'] = 0.0
+        options['Left atrial appendage angle left degrees'] = 20.0
+        options['Left atrial appendage angle up degrees'] = -60.0
+        options['Left atrial appendage arc length'] = 0.3
         options['Left atrial appendage arc radius'] = 0.15
         options['Left atrial appendage base length'] = 0.3
-        options['Left atrial appendage left'] = 0.9
-        options['Left atrial appendage midpoint left'] = 0.5
+        options['Left atrial appendage left'] = 0.85
+        options['Left atrial appendage midpoint left'] = 0.45
         options['Left atrial appendage midpoint over'] = 0.95
         options['Left atrial appendage wall thickness'] = 0.025
-        options['Left atrial appendage wedge angle degrees'] = 90.0
-        options['Right atrial appendage angle axial degrees'] = 0.0
-        options['Right atrial appendage angle left degrees'] = 0.0
-        options['Right atrial appendage angle up degrees'] = -10.0
+        options['Left atrial appendage wedge angle degrees'] = 60.0
+        options['Right atrial appendage angle axial degrees'] = 30.0
+        options['Right atrial appendage angle left degrees'] = 40.0
+        options['Right atrial appendage angle up degrees'] = -20.0
         options['Right atrial appendage arc length'] = 0.5
-        options['Right atrial appendage arc radius'] = 0.2
+        options['Right atrial appendage arc radius'] = 0.17
         options['Right atrial appendage base length'] = 0.3
-        options['Right atrial appendage midpoint right'] = 0.5
-        options['Right atrial appendage midpoint over'] = 0.95
+        options['Right atrial appendage midpoint right'] = 0.47
+        options['Right atrial appendage midpoint over'] = 0.92
         options['Right atrial appendage pouch right'] = 0.9
         options['Right atrial appendage wall thickness'] = 0.025
-        options['Right atrial appendage wedge angle degrees'] = 60.0
+        options['Right atrial appendage wedge angle degrees'] = 90.0
         options['Common left-right pulmonary vein ostium'] = False
         options['Left pulmonary vein ostium'] = copy.deepcopy(lpvOstium)
-        options['Left pulmonary vein ostium angle degrees'] = 60.0
+        options['Left pulmonary vein ostium angle degrees'] = 65.0
         options['Left pulmonary vein ostium position left'] = 0.64
         options['Left pulmonary vein ostium position over'] = 0.47
         options['Right pulmonary vein ostium'] = copy.deepcopy(rpvOstium)
@@ -258,7 +258,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Right pulmonary vein ostium position left'] = 0.16
         options['Right pulmonary vein ostium position over'] = 0.4
         options['Inferior vena cava inlet position over'] = 0.18
-        options['Inferior vena cava inlet position right'] = 0.2
+        options['Inferior vena cava inlet position right'] = 0.22
         options['Inferior vena cava inlet angle left degrees'] = -15.0
         options['Inferior vena cava inlet angle over degrees'] = -30.0
         options['Inferior vena cava inlet derivative factor'] = 1.0
@@ -268,7 +268,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Superior vena cava inlet position over'] = 0.65
         options['Superior vena cava inlet position right'] = 0.2
         options['Superior vena cava inlet angle left degrees'] = -10.0
-        options['Superior vena cava inlet angle over degrees'] = 0.0
+        options['Superior vena cava inlet angle over degrees'] = -5.0
         options['Superior vena cava inlet derivative factor'] = 1.0
         options['Superior vena cava inlet length'] = 0.1
         options['Superior vena cava inlet inner diameter'] = 0.18
@@ -297,8 +297,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Fossa ovalis thickness'] = options['Atrial septum thickness']
             options['Atrial vestibule outer height'] = 0.1
             options['Atrial base back incline degrees'] = 0.0
-            options['Atrium venous midpoint over'] = 0.45
-            options['Atrium venous anterior over'] = 0.75
+            options['Atria venous midpoint over'] = 0.45
+            options['Atria venous anterior over'] = 0.75
             options['Left atrial appendage angle axial degrees'] = -15.0
             options['Left atrial appendage angle left degrees'] = 20.0
             options['Left atrial appendage angle up degrees'] = -65.0
@@ -399,8 +399,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Atrial base front incline degrees',
             'Atrial base back incline degrees',
             'Atrial base side incline degrees',
-            'Atrium venous anterior over',
-            'Atrium venous midpoint over',
+            'Atria venous anterior over',
+            'Atria venous midpoint over',
             'Left atrium venous midpoint left',
             'Right atrium venous right',
             'Left atrial appendage angle axial degrees',
@@ -546,8 +546,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
-            'Atrium venous anterior over',
-            'Atrium venous midpoint over',
+            'Atria venous anterior over',
+            'Atria venous midpoint over',
             'Left atrium venous midpoint left',
             'Right atrium venous right',
             'Left atrial appendage left',
@@ -670,8 +670,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cristaTerminalisThickness = unitScale*options['Crista terminalis thickness']
         aBaseWallThickness = unitScale*options['Atrial base wall thickness']
         aBaseSlopeRadians = math.radians(options['Atrial base slope degrees'])
-        aVenousAnteriorOver = options['Atrium venous anterior over']
-        aVenousMidpointOver = options['Atrium venous midpoint over']
+        aVenousAnteriorOver = options['Atria venous anterior over']
+        aVenousMidpointOver = options['Atria venous midpoint over']
         laVenousMidpointLeft = options['Left atrium venous midpoint left']
         raVenousRight = options['Right atrium venous right']
         laaAngleAxialRadians = math.radians(options['Left atrial appendage angle axial degrees'])

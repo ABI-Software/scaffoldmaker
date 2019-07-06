@@ -65,20 +65,20 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         # reduce LV outer height from default as adding to it
         options['LV outer height'] = 0.9
         # additional options
-        options['Base height'] = 0.15
-        options['Base thickness'] = 0.06
+        options['Base height'] = 0.16
+        options['Base thickness'] = 0.08
         options['Fibrous ring thickness'] = 0.005
         options['LV outlet front incline degrees'] = atriaOptions['Atrial base front incline degrees']  # same for now
-        options['LV outlet inner diameter'] = 0.3
-        options['LV outlet wall thickness'] = 0.025
+        options['LV outlet inner diameter'] = 0.28
+        options['LV outlet wall thickness'] = 0.022
         options['RV outlet left incline degrees'] = 30.0
-        options['RV outlet inner diameter'] = 0.27
-        options['RV outlet wall thickness'] = 0.025
+        options['RV outlet inner diameter'] = 0.26
+        options['RV outlet wall thickness'] = 0.02
         options['Ventricles outlet element length'] = 0.1
         options['Ventricles outlet spacing y'] = 0.02
         options['Ventricles outlet spacing z'] = 0.1
-        options['Ventricles rotation degrees'] = 16.0
-        options['Ventricles translation x'] = -0.19
+        options['Ventricles rotation degrees'] = 18.0
+        options['Ventricles translation x'] = -0.16
         options['Ventricles translation y'] = -0.2
         for key in [
             'Atria base inner major axis length',
