@@ -131,11 +131,13 @@ class MeshType_3d_heart1(Scaffold_base):
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
         # annotation fiducial points
+        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
         fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
         fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
         fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
         datapointTemplateInternal = datapoints.createNodetemplate()
         datapointTemplateInternal.defineField(fiducialCoordinates)
         datapointTemplateInternal.defineField(fiducialLabel)
@@ -400,7 +402,7 @@ class MeshType_3d_heart1(Scaffold_base):
         cruxXi = [ 0.0, 0.5, 1.0 ]
         cache.setMeshLocation(cruxElement, cruxXi)
         result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
-        datapoint = datapoints.createNode(-1, datapointTemplateInternal)
+        datapoint = fiducialPoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
         fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
         fiducialLabel.assignString(cache, 'crux')

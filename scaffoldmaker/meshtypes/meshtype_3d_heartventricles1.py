@@ -252,11 +252,13 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
+        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
         fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
         fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
         fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
         datapointTemplateInternal = datapoints.createNodetemplate()
         datapointTemplateInternal.defineField(fiducialCoordinates)
         datapointTemplateInternal.defineField(fiducialLabel)
@@ -1036,12 +1038,12 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         # apex annotation points
         element1 = mesh.findElementByIdentifier(1)
-        datapoint = datapoints.createNode(-1, datapointTemplateInternal)
+        datapoint = fiducialPoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
         fiducialCoordinates.assignReal(cache, lvApexInnerx)
         fiducialLabel.assignString(cache, 'apex endo')
         fiducialElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
-        datapoint = datapoints.createNode(-1, datapointTemplateInternal)
+        datapoint = fiducialPoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
         fiducialCoordinates.assignReal(cache, lvApexOuterx)
         fiducialLabel.assignString(cache, 'apex epi')

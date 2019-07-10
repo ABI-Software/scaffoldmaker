@@ -133,11 +133,13 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         annotationGroups = allGroups + cuspGroups
 
         # annotation fiducial points
+        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
         fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
         fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
         #fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
         datapointTemplateExternal = datapoints.createNodetemplate()
         datapointTemplateExternal.defineField(fiducialCoordinates)
         datapointTemplateExternal.defineField(fiducialLabel)
@@ -505,7 +507,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         # create annotation points
 
-        datapoint = datapoints.createNode(-1, datapointTemplateExternal)
+        datapoint = fiducialPoints.createNode(-1, datapointTemplateExternal)
         cache.setNode(datapoint)
         fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
         fiducialLabel.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
