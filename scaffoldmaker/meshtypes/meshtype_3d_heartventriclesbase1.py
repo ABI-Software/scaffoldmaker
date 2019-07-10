@@ -305,15 +305,15 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
-        # annotation points
-        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
+        # annotation fiducial points
+        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
+        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
+        fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
-        datapointTemplateExternal.defineField(dataCoordinates)
-        datapointTemplateExternal.defineField(dataLabel)
+        datapointTemplateExternal.defineField(fiducialCoordinates)
+        datapointTemplateExternal.defineField(fiducialLabel)
 
         #################
         # Create nodes
@@ -347,21 +347,21 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         fieldassignment.setNodeset(nodes)
         fieldassignment.assign()
         # also transform data point coordinates and/or re-evaluate from embedded locations
-        newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, dataCoordinates), ventriclesOffset)
-        fieldassignment = dataCoordinates.createFieldassignment(newCoordinates)
+        newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, fiducialCoordinates), ventriclesOffset)
+        fieldassignment = fiducialCoordinates.createFieldassignment(newCoordinates)
         fieldassignment.setNodeset(datapoints)
         fieldassignment.assign()
         fieldassignment = None
         newCoordinates = None
         ventriclesOffset = None
-        dataHostCoordinates = fm.createFieldEmbedded(coordinates, dataElementXi)
+        dataHostCoordinates = fm.createFieldEmbedded(coordinates, fiducialElementXi)
         iter = datapoints.createNodeiterator()
         datapoint = iter.next()
         while datapoint.isValid():
             cache.setNode(datapoint)
             result, datax = dataHostCoordinates.evaluateReal(cache, 3)
             if result == ZINC_OK:
-                dataCoordinates.assignReal(cache, datax)
+                fiducialCoordinates.assignReal(cache, datax)
             datapoint = iter.next()
         dataHostCoordinates = None
 
@@ -414,8 +414,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         datapoint = datapoints.createNode(-1, datapointTemplateExternal)
         cache.setNode(datapoint)
-        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletCentre)
-        dataLabel.assignString(cache, 'aortic valve ctr')
+        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletCentre)
+        fiducialLabel.assignString(cache, 'aortic valve ctr')
 
         # RV outlet points
         cosRvOutletLeftInclineRadians = math.cos(rvOutletLeftInclineRadians)
@@ -434,8 +434,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         datapoint = datapoints.createNode(-1, datapointTemplateExternal)
         cache.setNode(datapoint)
-        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletCentre)
-        dataLabel.assignString(cache, 'pulmonary valve ctr')
+        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletCentre)
+        fiducialLabel.assignString(cache, 'pulmonary valve ctr')
 
         # fix derivative 3 on lv outlet adjacent to rv outlet
         n1 = elementsCountAroundOutlet//2
@@ -550,13 +550,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         datapoint = datapoints.createNode(-1, datapointTemplateExternal)
         cache.setNode(datapoint)
-        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laCentre)
-        dataLabel.assignString(cache, 'mitral valve ctr')
+        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laCentre)
+        fiducialLabel.assignString(cache, 'mitral valve ctr')
 
         datapoint = datapoints.createNode(-1, datapointTemplateExternal)
         cache.setNode(datapoint)
-        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ -laCentre[0], laCentre[1], laCentre[2] ])
-        dataLabel.assignString(cache, 'tricuspid valve ctr')
+        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ -laCentre[0], laCentre[1], laCentre[2] ])
+        fiducialLabel.assignString(cache, 'tricuspid valve ctr')
 
         # set d2 at ra node mid supraventricular crest to be normal to surface; smooth to get final magnitude later
         ravsvcn1 = elementsCountAroundRightAtriumFreeWall - 2

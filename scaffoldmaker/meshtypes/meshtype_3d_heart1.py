@@ -130,16 +130,16 @@ class MeshType_3d_heart1(Scaffold_base):
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
-        # annotation points
-        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
+        # annotation fiducial points
+        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
+        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
+        fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateInternal = datapoints.createNodetemplate()
-        datapointTemplateInternal.defineField(dataCoordinates)
-        datapointTemplateInternal.defineField(dataLabel)
-        datapointTemplateInternal.defineField(dataElementXi)
+        datapointTemplateInternal.defineField(fiducialCoordinates)
+        datapointTemplateInternal.defineField(fiducialLabel)
+        datapointTemplateInternal.defineField(fiducialElementXi)
 
         ##############
         # Create nodes
@@ -395,16 +395,16 @@ class MeshType_3d_heart1(Scaffold_base):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
-        # annotation points
+        # annotation fiducial points
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
         cruxXi = [ 0.0, 0.5, 1.0 ]
         cache.setMeshLocation(cruxElement, cruxXi)
         result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
         datapoint = datapoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
-        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
-        dataLabel.assignString(cache, 'crux')
-        dataElementXi.assignMeshLocation(cache, cruxElement, cruxXi)
+        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
+        fiducialLabel.assignString(cache, 'crux')
+        fiducialElementXi.assignMeshLocation(cache, cruxElement, cruxXi)
 
         fm.endChange()
         return annotationGroups

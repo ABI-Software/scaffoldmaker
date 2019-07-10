@@ -251,16 +251,16 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         vSeptumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
-        # annotation points
-        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
-        dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
+        # annotation fiducial points
+        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
+        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
+        fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateInternal = datapoints.createNodetemplate()
-        datapointTemplateInternal.defineField(dataCoordinates)
-        datapointTemplateInternal.defineField(dataLabel)
-        datapointTemplateInternal.defineField(dataElementXi)
+        datapointTemplateInternal.defineField(fiducialCoordinates)
+        datapointTemplateInternal.defineField(fiducialLabel)
+        datapointTemplateInternal.defineField(fiducialElementXi)
 
         #################
         # Create nodes
@@ -1038,14 +1038,14 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         element1 = mesh.findElementByIdentifier(1)
         datapoint = datapoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
-        dataCoordinates.assignReal(cache, lvApexInnerx)
-        dataLabel.assignString(cache, 'apex endo')
-        dataElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
+        fiducialCoordinates.assignReal(cache, lvApexInnerx)
+        fiducialLabel.assignString(cache, 'apex endo')
+        fiducialElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
         datapoint = datapoints.createNode(-1, datapointTemplateInternal)
         cache.setNode(datapoint)
-        dataCoordinates.assignReal(cache, lvApexOuterx)
-        dataLabel.assignString(cache, 'apex epi')
-        dataElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
+        fiducialCoordinates.assignReal(cache, lvApexOuterx)
+        fiducialLabel.assignString(cache, 'apex epi')
+        fiducialElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
         fm.endChange()
         return annotationGroups

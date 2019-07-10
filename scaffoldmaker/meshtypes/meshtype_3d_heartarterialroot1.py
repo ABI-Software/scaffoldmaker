@@ -132,15 +132,15 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         allGroups = [ arterialRootGroup ]  # groups that all elements in scaffold will go in
         annotationGroups = allGroups + cuspGroups
 
-        # annotation points
-        dataCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'data_coordinates')
-        dataLabel = zinc_utils.getOrCreateLabelField(fm, 'data_label')
-        #dataElementXi = zinc_utils.getOrCreateElementXiField(fm, 'data_element_xi')
+        # annotation fiducial points
+        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
+        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
+        #fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         datapointTemplateExternal = datapoints.createNodetemplate()
-        datapointTemplateExternal.defineField(dataCoordinates)
-        datapointTemplateExternal.defineField(dataLabel)
+        datapointTemplateExternal.defineField(fiducialCoordinates)
+        datapointTemplateExternal.defineField(fiducialLabel)
 
         #################
         # Create nodes
@@ -507,8 +507,8 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         datapoint = datapoints.createNode(-1, datapointTemplateExternal)
         cache.setNode(datapoint)
-        dataCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
-        dataLabel.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
+        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
+        fiducialLabel.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
 
         fm.endChange()
         return annotationGroups
