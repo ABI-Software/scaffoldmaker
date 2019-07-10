@@ -66,19 +66,18 @@ class MeshType_3d_colon1(Scaffold_base):
             'scaffoldSettings' : {
                 'Coordinate dimensions' : 3,
                 'Length' : 1.0,
-                'Number of elements' : 8
+                'Number of elements' : 7
                 },
             'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
-                [ [  0.3, -0.2, -0.6 ], [  0.4,  1.3, -0.1 ], [ -0.1, 0.1, 0.4 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [  0.2,  1.4, -0.7 ], [ -1.9, -0.3, -0.5 ], [ -0.1, 0.0, 0.4 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [ -0.6, -0.3, -0.9 ], [ -2.8,  0.0, -1.4 ], [ -0.3, 0.0, 0.2 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [ -2.0,  0.8, -2.2 ], [ -1.8,  0.1,  0.0 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [ -2.6,  0.0, -1.6 ], [  0.7, -1.2,  1.0 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [ -0.9, -0.9, -1.6 ], [  1.3,  0.5, -1.6 ], [  0.0, 0.3, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [ -0.3,  0.6, -1.7 ], [  3.1,  0.3,  0.5 ], [ -0.2, 0.0, 0.2 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [  0.1, -1.0, -0.7 ], [ -0.3, -0.7,  0.4 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ],
-                [ [ -0.4, -2.3, -0.1 ], [ -0.4, -0.6,  0.3 ], [  0.0, 0.0, 0.5 ], [ 0.0, 0.0, 0.05 ] ] ] )
+                [ [  0.0,  0.0,  0.0 ], [  0.6,  1.2, -0.2 ], [  0.2,  0.1,  0.2 ], [ 0.6, 0.0, 0.30 ] ],
+                [ [ -0.2,  1.1, -0.3 ], [ -0.8,  0.4,  0.9 ], [  0.2,  0.2,  0.1 ], [ 0.0, 0.1, 0.20 ] ],
+                [ [ -0.3,  0.2,  0.3 ], [ -0.4, -0.8,  0.0 ], [  0.2, -0.1,  0.2 ], [ 0.1, 0.0, 0.20 ] ],
+                [ [ -1.1, -0.3, -0.4 ], [ -0.8, -0.3, -0.7 ], [  0.1, -0.2,  0.1 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -1.6, -0.4,  0.0 ], [  0.4, -0.3,  1.4 ], [  0.1, -0.3,  0.0 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.7, -0.8,  0.0 ], [  0.5, -0.1, -1.4 ], [  0.0, -0.3,  0.0 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.1, -0.6, -0.1 ], [  0.2, -0.2,  0.9 ], [  0.1, -0.3, -0.1 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -0.2, -1.4,  0.5 ], [ -0.2, -0.4,  0.2 ], [  0.1, -0.2, -0.2 ], [ 0.0, 0.0, 0.05 ] ] ] )
             } ),
         'Pig 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
@@ -291,6 +290,11 @@ class MeshType_3d_colon1(Scaffold_base):
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
         cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+        # for i in range(len(cx)):
+            # print('cx = ', i+1, cx[i])
+            # print('cd1 = ', i+1, cd1[i])
+            # print('cd2 = ', i+1, cd2[i])
+            # print('cd12 = ', i+1, cd12[i])
         del tmpRegion
 
         # find arclength of colon
@@ -302,6 +306,7 @@ class MeshType_3d_colon1(Scaffold_base):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
         segmentLength = length / segmentCount
+        # print(length)
 
         # Generate inner surface of a colon segment
         if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
