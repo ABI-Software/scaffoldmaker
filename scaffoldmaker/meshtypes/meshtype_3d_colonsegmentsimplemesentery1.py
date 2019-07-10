@@ -34,13 +34,13 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Number of elements around mesenteric zone' : 2,
-            'Number of elements around non-mesenteric zone' : 10,
+            'Number of elements around non-mesenteric zone' : 8,
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
-            'Inner radius': 0.2,
+            'Inner radius': 0.094,
             'Mesenteric zone width': 0.08,
             'Segment length': 1.5,
-            'Wall thickness': 0.02,
+            'Wall thickness': 0.055,
             'Use cross derivatives' : False,
             'Use linear through wall' : True,
             'Refine' : False,
