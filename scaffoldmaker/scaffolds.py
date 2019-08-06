@@ -101,8 +101,10 @@ class Scaffolds_JSONEncoder(json.JSONEncoder):
             dct = obj.toDict()
             dct['_ScaffoldPackage'] = True
             return dct
+        elif isinstance(obj, bytes):
+            return obj.decode("utf-8")
         else:
-            super().default(self, obj)
+            super().default(obj)
 
 
 def Scaffolds_decodeJSON(dct):
