@@ -162,6 +162,36 @@ def getOrCreateLabelField(fieldmodule, name='label'):
     fieldmodule.endChange()
     return labelField
 
+def getOrCreateGroupField(fieldmodule, name):
+    '''
+    Finds or creates a Group field of the supplied name.
+    Raises exception if existing field of name is not a group.
+    :param fieldmodule:  Zinc fieldmodule to find or create field in.
+    :param name:  Name of field to find or create.
+    '''
+    group = fieldmodule.findFieldByName(name)
+    if group.isValid():
+        group = group.castGroup()
+        assert group.isValid(), 'getOrCreateGroupField.  Existing field \'' + name + '\' is not a group type'
+        return group
+    fieldmodule.beginChange()
+    group = fieldmodule.createFieldGroup()
+    group.setName(name)
+    group.setManaged(True)
+    fieldmodule.endChange()
+    return group
+
+def getOrCreateNodesetGroup(group, nodeset):
+    '''
+    Gets or creates the NodesetGroup for the supplied nodeset in group.
+    :param group:  Zinc FieldGroup.
+    :param nodeset:  A nodeset from group region to get or create subgroup of.
+    '''
+    nodeGroup = group.getFieldNodeGroup(nodeset)
+    if not nodeGroup.isValid():
+        nodeGroup = group.createFieldNodeGroup(nodeset)
+    return nodeGroup.getNodesetGroup()
+
 def getElementNodeIdentifiers(element, eft):
     '''
     Get identifiers of all nodes used by eft in element.
