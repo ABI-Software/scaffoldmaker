@@ -79,6 +79,20 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ -0.1, -0.6, -0.1 ], [  0.2, -0.2,  0.9 ], [  0.1, -0.3, -0.1 ], [ 0.0, 0.0, 0.05 ] ],
                 [ [ -0.2, -1.4,  0.5 ], [ -0.2, -0.4,  0.2 ], [  0.1, -0.2, -0.2 ], [ 0.0, 0.0, 0.05 ] ] ] )
             } ),
+        'Mouse 2' : ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings' : {
+                'Coordinate dimensions' : 3,
+                'Length' : 1.0,
+                'Number of elements' : 4
+                },
+            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
+                [ [  0.0,  0.0,  0.0 ], [  0.0,  0.0,  1.3 ], [  0.0, -1.0,  0.0 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [  0.0,  0.0,  1.3 ], [  0.0,  0.2,  2.8 ], [  0.0, -1.0,  0.0 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -1.4, -0.2,  1.3 ], [  0.0, -0.3, -1.9 ], [  0.0, -1.0,  0.0 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -1.4, -0.1, -1.0 ], [  0.1,  0.1, -1.7 ], [  0.0, -1.0,  0.0 ], [ 0.0, 0.0, 0.05 ] ],
+                [ [ -1.4,  0.0, -2.8 ], [  0.0,  0.0, -1.1 ], [  0.0, -1.0,  0.0 ], [ 0.0, 0.0, 0.05 ] ] ] )
+            } ),
         'Pig 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
                 'Coordinate dimensions' : 3,
@@ -156,14 +170,17 @@ class MeshType_3d_colon1(Scaffold_base):
             'Human 1',
             'Human 2',
             'Mouse 1',
+            'Mouse 2',
             'Pig 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
-        elif 'Mouse' in parameterSetName:
+        elif 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
+        elif 'Mouse 2' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 2']
         elif 'Pig' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
         else:
@@ -183,7 +200,9 @@ class MeshType_3d_colon1(Scaffold_base):
             'Refine number of elements along' : 1,
             'Refine number of elements through wall' : 1
             }
-        if 'Pig' in parameterSetName:
+        if 'Mouse' in parameterSetName:
+            options['Number of segments'] = 10
+        elif 'Pig' in parameterSetName:
             options['Number of segments'] = 120
         return options
 

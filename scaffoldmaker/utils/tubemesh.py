@@ -121,7 +121,7 @@ def generatetubemesh(region,
     smoothd2InnerList = []
     d1List = []
 
-# Map each face along segment profile to central line
+    # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
         for nAlongSegment in range(elementsCountAlongSegment + 1):
             n2 = nSegment*elementsCountAlongSegment + nAlongSegment
@@ -130,21 +130,28 @@ def generatetubemesh(region,
                 segmentMid = [0.0, 0.0, segmentLength/elementsCountAlongSegment* nAlongSegment]
                 unitTangent = vector.normalise(sd1[n2])
                 cp = vector.crossproduct3(segmentAxis, unitTangent)
-                if vector.magnitude(cp)> 0.0:
+                dp = vector.dotproduct(segmentAxis, unitTangent)
+                if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
                     axisRot = vector.normalise(cp)
                     thetaRot = math.acos(vector.dotproduct(segmentAxis, unitTangent))
                     rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
                     midRot = [rotFrame[j][0]*segmentMid[0] + rotFrame[j][1]*segmentMid[1] + rotFrame[j][2]*segmentMid[2] for j in range(3)]
-                    translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
-                else:
-                    midRot = segmentMid
+                else: # path tangent parallel to segment axis (z-axis)
+                    if dp == -1.0: # path tangent opposite direction to segment axis
+                        thetaRot = math.pi
+                        axisRot = [1.0, 0, 0]
+                        rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
+                        midRot = [rotFrame[j][0]*segmentMid[0] + rotFrame[j][1]*segmentMid[1] + rotFrame[j][2]*segmentMid[2] for j in range(3)]
+                    else: # segment axis in same direction as unit tangent
+                        midRot = segmentMid
+                translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
 
                 for n1 in range(elementsCountAround):
                     n = nAlongSegment*elementsCountAround + n1
                     x = xInner[n]
                     d1 = d1Inner[n]
                     d2 = d2Inner[n]
-                    if vector.magnitude(cp)> 0.0:
+                    if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
                         xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                         d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                         d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
@@ -166,14 +173,25 @@ def generatetubemesh(region,
                                 rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, -signThetaRot2*thetaRot2)
                             else:
                                 rotFrame2 = [ [1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                        xRot2 = [rotFrame2[j][0]*xRot1[0] + rotFrame2[j][1]*xRot1[1] + rotFrame2[j][2]*xRot1[2] for j in range(3)]
-                        d1Rot2 = [rotFrame2[j][0]*d1Rot1[0] + rotFrame2[j][1]*d1Rot1[1] + rotFrame2[j][2]*d1Rot1[2] for j in range(3)]
-                        d2Rot2 = [rotFrame2[j][0]*d2Rot1[0] + rotFrame2[j][1]*d2Rot1[1] + rotFrame2[j][2]*d2Rot1[2] for j in range(3)]
-                    else:
-                        xRot2 = x
-                        d1Rot2 = d1
-                        d2Rot2 = d2
+
+                    else: # path tangent parallel to segment axis
+                        xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)] if dp == -1.0 else x
+                        d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)] if dp == -1.0 else d1
+                        d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)] if dp == -1.0 else d2
+
+                        # Rotate to align start of elementsAround with sd2
+                        if n1 == 0:
+                            v = vector.normalise(sd2[n2])
+                            startVector = vector.normalise([xRot1[j] - midRot[j] for j in range(3)])
+                            axisRot2 = unitTangent
+                            thetaRot2 = dp*-math.acos(vector.dotproduct(v, startVector))
+                            rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, thetaRot2)
+
+                    xRot2 = [rotFrame2[j][0]*xRot1[0] + rotFrame2[j][1]*xRot1[1] + rotFrame2[j][2]*xRot1[2] for j in range(3)]
+                    d1Rot2 = [rotFrame2[j][0]*d1Rot1[0] + rotFrame2[j][1]*d1Rot1[1] + rotFrame2[j][2]*d1Rot1[2] for j in range(3)]
+                    d2Rot2 = [rotFrame2[j][0]*d2Rot1[0] + rotFrame2[j][1]*d2Rot1[1] + rotFrame2[j][2]*d2Rot1[2] for j in range(3)]
                     xTranslate = [xRot2[j] + translateMatrix[j] for j in range(3)]
+
                     xInnerList.append(xTranslate)
                     d1InnerList.append(d1Rot2)
                     d2InnerList.append(d2Rot2)
