@@ -125,6 +125,12 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
+        # Calculate width along length
+        width = 2*math.pi*(radius + wallThickness)
+        lengthList = [0.0, segmentLength]
+        widthList = [width, width]
+        scaleFactorList = [1.0, 1.0]
+
         # Generate inner surface of a colon segment
         annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ,
            elementsCountAroundNonMZ, elementsCountAlongSegment, mzWidth, radius, segmentLength, wallThickness)
@@ -133,7 +139,7 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
             xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength)
+            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, lengthList, widthList, scaleFactorList)
 
         return annotationGroups
 

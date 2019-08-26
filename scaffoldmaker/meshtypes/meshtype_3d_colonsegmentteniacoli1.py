@@ -19,6 +19,7 @@ from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+# from scaffoldmaker.utils import tubemesh # remove
 
 class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
     '''
@@ -182,16 +183,21 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
+        width = 2*math.pi*(radius + wallThickness)
+        lengthList = [0.0, segmentLength]
+        widthList = [width, width]
+        scaleFactorList = [1.0, 1.0]
+
         # Generate inner surface of a colon segment
         annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xHaustraInner, d1HaustraInner, d2HaustraInner, haustraSegmentAxis = getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
             elementsCountAroundHaustrum, elementsCountAlongSegment, tcCount, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-            segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
+            segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness) #, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, haustraSegmentCount, cx, cd1, cd2, cd12,
             xHaustraInner, d1HaustraInner, d2HaustraInner, wallThickness, haustraSegmentAxis, segmentLength,
-            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength)
+            useCrossDerivatives, useCubicHermiteThroughWall, annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, lengthList, widthList, scaleFactorList)
 
         # Generate tenia coli
         annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
@@ -202,6 +208,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         annotationGroups += annotationGroupsTC
 
         return annotationGroups
+        # return
 
     @classmethod
     def generateMesh(cls, region, options):
@@ -225,7 +232,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         return meshrefinement.getAnnotationGroups()
 
 def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, tcCount, tcWidth, radius,
-    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness):
+    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness): #, useCrossDerivatives, useCubicHermiteThroughWall):
     """
     Generates a 3-D colon segment mesh with two or three tenia coli with variable
     numbers of elements around, along the central line, and through wall.
@@ -268,6 +275,53 @@ def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsC
 
     transitElementListHaustrum = [0]*int(elementsCountAroundTC*0.5) + [1] + [0]*int(elementsCountAroundHaustrum - 2) + [1] + [0]*int(elementsCountAroundTC*0.5)
     transitElementList = transitElementListHaustrum * tcCount
+    #print('transitElementList')
+    #for i in range(len(transitElementList)):
+    #    print(i+1, transitElementList[i])
+# ################################################################
+
+    TCElementListHaustrum = [-1]*int(elementsCountAroundTC*0.5 + 1) + [1] * int(elementsCountAroundHaustrum-1) + [-1]*int(elementsCountAroundTC*0.5)
+    TCElementList = TCElementListHaustrum * tcCount
+
+    # # print('TCElementList')
+    # # for i in range(len(TCElementList)):
+        # # print(i+1, TCElementList[i])
+
+    # fm = region.getFieldmodule()
+    # fm.beginChange()
+    # cache = fm.createFieldcache()
+    # coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+
+    # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    # nodetemplate = nodes.createNodetemplate()
+    # nodetemplate.defineField(coordinates)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    # if useCrossDerivatives:
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+    # if useCubicHermiteThroughWall:
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        # if useCrossDerivatives:
+            # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
+            # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
+            # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+
+    # mesh = fm.findMeshByDimension(3)
+
+    # if useCubicHermiteThroughWall:
+        # eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+    # else:
+        # eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+    # eft = eftfactory.createEftBasic()
+
+    # elementtemplate = mesh.createElementtemplate()
+    # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    # result = elementtemplate.defineField(coordinates, -1, eft)
+    # nodeIdentifier = 1
+    # elementIdentifier = 1
+    # zero = [0.0, 0.0, 0.0]
+# #####################################################################
 
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
@@ -499,6 +553,74 @@ def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsC
         xFinal = xFinal + xAlongList
         d1Final = d1Final + d1AlongList
         d2Final = d2Final + d2AlongList
+
+#############################################################
+    # xBase = xFinal[((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*2:((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*3]
+    # d1Base = d1Final[((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*2:((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*3]
+    # d2Base = d2Final[((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*2:((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*3]
+    # d3Base = []
+
+    # for n in range(len(xBase)):
+        # d3 = vector.normalise(vector.crossproduct3(vector.normalise(d1Base[n]), vector.normalise(d2Base[n])))
+        # d3Base.append(d3)
+    # dRadius = 0.2
+
+    # xScaled, curvatureInnerScaled = tubemesh.getOuterCoordinatesAndCurvatureFromInner(xBase, d1Base, d3Base, dRadius, 0, (elementsCountAroundHaustrum+elementsCountAroundTC)*3, transitElementList)
+    # d1Scaled = []
+    # for n1 in range(len(xScaled)):
+        # factor = 1.0 + TCElementList[n1] * dRadius * curvatureInnerScaled[n1]
+        # d1 = [ factor*c for c in d1Base[n1]]
+        # d1Scaled.append(d1)
+
+    # # # Redo x and d1 for points in TC and transition zone
+    # # xScaledSelected = []
+    # # d1ScaledSelected = []
+    # # d2ScaledSelected = []
+    # # TCMidArray = [1.0] + [0.0]*int(elementsCountAroundTC + elementsCountAroundHaustrum - 1) + [1.0] + [0.0]*int(elementsCountAroundTC + elementsCountAroundHaustrum - 1) + [1.0] + [0.0]*int(elementsCountAroundTC + elementsCountAroundHaustrum - 1)
+    # # for n in range((elementsCountAroundTC + elementsCountAroundHaustrum)*3):
+        # # print('check', n+1, TCElementList[n])
+        # # if TCElementList[n] == 0 and transitElementList[n] == 0:
+            # # xScaledSelected.append(xScaled[n])
+            # # d1ScaledSelected.append(d1Scaled[n])
+            # # d2ScaledSelected.append(d2Final[n])
+
+    # n1 = 0
+    # for n in range(((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*2,((elementsCountAroundTC + elementsCountAroundHaustrum)*3)*3): #((elementsCountAroundTC + elementsCountAroundHaustrum)*3): #(len(xFinal)):
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFinal[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Final[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Final[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Base[n1]) #dx_ds3List[n])
+        # n1 += 1
+        # if useCrossDerivatives:
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # # print('NodeIdentifier = ', nodeIdentifier, xList[n])
+        # nodeIdentifier = nodeIdentifier + 1
+
+    # for n in range(len(xScaled)): #(len(xFinal)):
+        # #print('check', n+1, TCElementList[n])
+        # #if TCElementList[n] == 0 and transitElementList[n] == 0:
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xScaled[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Scaled[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero) #d2Final[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero) #dx_ds3List[n])
+        # if useCrossDerivatives:
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        # # print('NodeIdentifier = ', nodeIdentifier, xList[n])
+        # nodeIdentifier = nodeIdentifier + 1
+
+    # fm.endChange()
+
+# ################################################################
 
     return annotationGroups, annotationArray, transitElementList, uList, totalArcLengthOuterMidLengthHaustra, xFinal, d1Final, d2Final, segmentAxis
 

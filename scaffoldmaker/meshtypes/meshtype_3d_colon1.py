@@ -5,6 +5,7 @@ variable radius and thickness along.
 """
 
 import copy
+import math
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentsimplemesentery1 import MeshType_3d_colonsegmentsimplemesentery1, getColonSegmentInnerPointsNoTeniaColi
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, getColonSegmentInnerPointsTeniaColi, getTeniaColi
@@ -195,6 +196,12 @@ class MeshType_3d_colon1(Scaffold_base):
             'Central path' : copy.deepcopy(centralPathOption),
             'Segment profile' : segmentProfileOption,
             'Number of segments': 30,
+            'Proximal length': 12.0,
+            'Proximal width': 6.5,
+            'Transverse length': 13.0,
+            'Transverse width': 6.0,
+            'Distal length': 20.0,
+            'Distal width': 6.5,
             'Refine' : False,
             'Refine number of elements around' : 1,
             'Refine number of elements along' : 1,
@@ -202,8 +209,20 @@ class MeshType_3d_colon1(Scaffold_base):
             }
         if 'Mouse' in parameterSetName:
             options['Number of segments'] = 10
+            options['Proximal length'] = 3.0
+            options['Proximal width'] = 1.0
+            options['Transverse length'] = 2.0
+            options['Transverse width'] = 0.9
+            options['Distal length'] = 2.5
+            options['Distal width'] = 0.8
         elif 'Pig' in parameterSetName:
             options['Number of segments'] = 120
+            options['Proximal length'] = 3.0
+            options['Proximal width'] = 6.9
+            options['Transverse length'] = 2.0
+            options['Transverse width'] = 6.9
+            options['Distal length'] = 2.5
+            options['Distal width'] = 6.9
         return options
 
     @staticmethod
@@ -212,6 +231,12 @@ class MeshType_3d_colon1(Scaffold_base):
             'Central path',
             'Segment profile',
             'Number of segments',
+            'Proximal length',
+            'Proximal width',
+            'Transverse length',
+            'Transverse width',
+            'Distal length',
+            'Distal width',
             'Refine',
             'Refine number of elements around',
             'Refine number of elements along',
@@ -266,6 +291,15 @@ class MeshType_3d_colon1(Scaffold_base):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
+        for key in [
+            'Proximal length',
+            'Proximal width',
+            'Transverse length',
+            'Transverse width',
+            'Distal length',
+            'Distal width']:
+            if options[key] < 0.0:
+                options[key] = 0.0
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -278,6 +312,12 @@ class MeshType_3d_colon1(Scaffold_base):
         centralPath = options['Central path']
         segmentProfile = options['Segment profile']
         segmentCount = options['Number of segments']
+        proximalLength = options['Proximal length']
+        proximalWidth = options['Proximal width']
+        transverseLength = options['Transverse length']
+        transverseWidth = options['Transverse width']
+        distalLength = options['Distal length']
+        distalWidth = options['Distal width']
         segmentScaffoldType = segmentProfile.getScaffoldType()
         segmentSettings = segmentProfile.getScaffoldSettings()
 
@@ -300,7 +340,6 @@ class MeshType_3d_colon1(Scaffold_base):
 
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
-        radius = segmentSettings['Inner radius']
         wallThickness = segmentSettings['Wall thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
@@ -325,22 +364,30 @@ class MeshType_3d_colon1(Scaffold_base):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
         segmentLength = length / segmentCount
-        # print(length)
+        # print('Length = ', length)
+
+        proximalRadius = proximalWidth / (2*math.pi) - wallThickness
+        # print('proximalRadius = ', proximalRadius)
+
+        lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
+        widthList = [proximalWidth, transverseWidth, distalWidth, distalWidth]
+        #scaleFactorList = [3.0, 1.0/proximalLength, 1.0/transverseLength, 1.0/(lengthList[-1] - lengthList[-2])]
+        scaleFactorList = [1.0, 1.0, 1.0, 1.0]
 
         # Generate inner surface of a colon segment
         if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
             annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
-                elementsCountAlongSegment, mzWidth, radius, segmentLength, wallThickness)
+                elementsCountAlongSegment, mzWidth, proximalRadius, segmentLength, wallThickness)
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlongSegment, tcCount, tcWidth, radius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+                elementsCountAlongSegment, tcCount, tcWidth, proximalRadius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
                 segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength)
+           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
+           xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
+           annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, lengthList, widthList, scaleFactorList)
 
         # Generate tenia coli
         if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
@@ -352,6 +399,7 @@ class MeshType_3d_colon1(Scaffold_base):
             annotationGroups += annotationGroupsTC
 
         return annotationGroups
+
 
     @classmethod
     def generateMesh(cls, region, options):

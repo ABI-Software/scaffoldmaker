@@ -25,6 +25,7 @@ def generatetubemesh(region,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
     annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength,
+    lengthList, widthList, scaleFactorList,
     firstNodeIdentifier = 1, firstElementIdentifier = 1
     ):
     '''
@@ -55,6 +56,10 @@ def generatetubemesh(region,
     profile
     :param arcLengthOuterMidLength: Total arclength of elements around outer surface
     along mid-length of a segment
+    :param lengthList: List of length along proximal, mid and distal sections
+    :param widthList: List of width along proximal, mid and distal sections
+    :param scaleFactorList: List of factors to scale rate of change of width along
+    tube length
     :return nodeIdentifier, elementIdentifier
     :return xList, d1List, d2List, d3List: List of coordinates and derivatives
     on tube
@@ -69,6 +74,18 @@ def generatetubemesh(region,
     # Sample central line to get same number of elements as elementsCountAlong
     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
     sd2, _ = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+
+    # Calculate width along length
+    nx = []
+    nd1 = []
+    for i in range(len(lengthList)):
+        v = [lengthList[i], widthList[i]*0.5, 0.0]
+        d1 = [(lengthList[i] - lengthList[i-1])*scaleFactorList[i] if i > 0 else (lengthList[i+1] - lengthList[i])*scaleFactorList[i], 0.0, 0.0]
+        nx.append(v)
+        nd1.append(d1)
+    sW = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlong)[0]
+    sHalfWidth = [c[1] for c in sW]
+    sRadius = [ c/math.pi - wallThickness for c in sHalfWidth]
 
     fm = region.getFieldmodule()
     fm.beginChange()
@@ -121,11 +138,32 @@ def generatetubemesh(region,
     smoothd2InnerList = []
     d1List = []
 
+    d3Inner = []
+
+    for n in range(len(xInner)):
+        d3 = vector.normalise(vector.crossproduct3(vector.normalise(d1Inner[n]), vector.normalise(d2Inner[n])))
+        d3Inner.append(d3)
+
     # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
         for nAlongSegment in range(elementsCountAlongSegment + 1):
-            n2 = nSegment*elementsCountAlongSegment + nAlongSegment
-            if nSegment == 0 or (nSegment > 0 and nAlongSegment > 0):
+            n2 = elementsCountAlongSegment*nSegment + nAlongSegment
+
+            # Scale segment to new inner radius
+            dRadius = sRadius[n2] - sRadius[0]
+            xFace = xInner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
+            d1Face = d1Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
+            d2Scaled = d2Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
+            d3Face = d3Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
+            xScaled, curvatureInnerScaled = getOuterCoordinatesAndCurvatureFromInner(xFace, d1Face, d3Face, dRadius, 0, elementsCountAround, transitElementList)
+
+            d1Scaled = []
+            for n in range(len(xScaled)):
+                factor = 1.0 + dRadius * curvatureInnerScaled[n]
+                d1 = [ factor*c for c in d1Face[n]]
+                d1Scaled.append(d1)
+
+            if nSegment == 0 or (nSegment > 0 and nAlongSegment > 0): # take whole of 1st segment and then all along except last for rest
                 # Rotate to align segment axis with tangent of central line
                 segmentMid = [0.0, 0.0, segmentLength/elementsCountAlongSegment* nAlongSegment]
                 unitTangent = vector.normalise(sd1[n2])
@@ -148,9 +186,9 @@ def generatetubemesh(region,
 
                 for n1 in range(elementsCountAround):
                     n = nAlongSegment*elementsCountAround + n1
-                    x = xInner[n]
-                    d1 = d1Inner[n]
-                    d2 = d2Inner[n]
+                    x = xScaled[n1]
+                    d1 = d1Scaled[n1]
+                    d2 = d2Scaled[n1]
                     if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
                         xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                         d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
@@ -197,6 +235,7 @@ def generatetubemesh(region,
                     d2InnerList.append(d2Rot2)
                     d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1Rot2), vector.normalise(d2Rot2)))
                     d3InnerUnitList.append(d3Unit)
+
 
     for n1 in range(elementsCountAround):
         nx = []
@@ -377,15 +416,10 @@ def generatetubemesh(region,
     flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
     flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
 
-    # Calculate texture coordinates and derivatives
-    totalLengthAlong = segmentLength*segmentCountAlong
-    d2 = [0.0, totalLengthAlong/elementsCountAlong, 0.0]
-
+    # Calculate flat coordinates and derivatives
     d1List = []
     for n1 in range(len(uList)):
-        d1 = [(uList[n1] - uList[n1-1])*arcLengthOuterMidLength if n1 > 0 else (uList[n1+1] - uList[n1])*arcLengthOuterMidLength,
-              0.0,
-              0.0]
+        d1 = (uList[n1] - uList[n1-1]) if n1 > 0 else (uList[n1+1] - uList[n1])
         d1List.append(d1)
 
     # To modify derivative along transition elements
@@ -393,28 +427,69 @@ def generatetubemesh(region,
         if transitElementList[i]:
             d1List[i+1] = d1List[i+2]
 
+    totalLengthAlong = segmentLength*segmentCountAlong
+    sd2 = [0.0, totalLengthAlong/elementsCountAlong, 0.0]
+
+    v = []
+    xFlatList = []
+    d1FlatList = []
+    d2FlatList = []
     nodeIdentifier = firstNodeIdentifier
+    for n3 in range(elementsCountThroughWall + 1):
+        z = wallThickness / elementsCountThroughWall * n3
+        for n2 in range(elementsCountAlong + 1):
+            xPad = sW[0][1] - sW[n2][1]
+            v1 = [ xPad, sW[n2][0], z ]
+            v2 = [ xPad + sW[n2][1], totalLengthAlong / elementsCountAlong*n2, z ]
+            v3 = [ xPad + sW[n2][1]*2, sW[n2][0], z ]
+            d1 = d2 = d3 = [ 1.0, 0.0, 0.0 ]
+            nx = [ v1, v2, v3 ]
+            nd1 = [ d1, d2, d3 ]
+            smoothd1 = interp.smoothCubicHermiteDerivativesLine(nx, nd1)
+
+            length = 0
+            for i in range(2):
+                length += interp.computeCubicHermiteArcLength(nx[i], smoothd1[i], nx[i+1], smoothd1[i+1], False)
+            for e in range(len(uList)):
+                arcDistance = uList[e]*length
+                xFlat, d1Flat, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, smoothd1, arcDistance)
+                d1Scaled = vector.setMagnitude(d1Flat, d1List[e]*length)
+                xFlatList.append(xFlat)
+                d1FlatList.append(d1Scaled)
+
+    for n3 in range(elementsCountThroughWall + 1):
+        for n2 in range(elementsCountAlong):
+            for n1 in range(elementsCountAround + 1 ):
+                nodeIdx = n3*(elementsCountAround + 1)*(elementsCountAlong + 1) + n2*(elementsCountAround + 1) + n1
+                nodeNextElementAlong = nodeIdx + (elementsCountAround+1)
+                # print(nodeIdx + 1, nodeNextElementAlong + 1)
+                v1 = xFlatList[nodeNextElementAlong]
+                v2 = xFlatList[nodeIdx]
+                d1 = d2 = [v1[i] - v2[i] for i in range(3)]
+                arclength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+                d2Flat = vector.setMagnitude(d1, arclength)
+                d2FlatList.append(d2Flat)
+        d2FlatList = d2FlatList + d2FlatList[-elementsCountAround-1:]
+
+    # Create nodes
     for n3 in range(elementsCountThroughWall + 1):
         for n2 in range(elementsCountAlong + 1):
             for n1 in range(elementsCountAround):
-                x = [ uList[n1]*arcLengthOuterMidLength,
-                      totalLengthAlong / elementsCountAlong * n2,
-                      wallThickness / elementsCountThroughWall * n3]
-                d1 = d1List[n1]
+                i = (elementsCountAround + 1)*(elementsCountAlong + 1)*n3 + (elementsCountAround + 1)*n2 + n1
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
                 cache.setNode(node)
-                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                # print('NodeIdentifier', nodeIdentifier, 'version 1, xList Index =', i+1)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFlatList[i])
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1FlatList[i])
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2FlatList[i])
                 if useCrossDerivatives:
                     flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 if n1 == 0:
-                    x = [ arcLengthOuterMidLength, totalLengthAlong / elementsCountAlong * n2, wallThickness / elementsCountThroughWall * n3]
-                    d1 = d1List[-1]
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, x)
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1)
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2)
+                    # print('NodeIdentifier', nodeIdentifier, 'version 2, xList Index =', i+elementsCountAround+1)
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xFlatList[i+elementsCountAround])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1FlatList[i+elementsCountAround])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2FlatList[i+elementsCountAround])
                     if useCrossDerivatives:
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                 nodeIdentifier = nodeIdentifier + 1
