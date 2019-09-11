@@ -7,8 +7,8 @@ variable radius and thickness along.
 import copy
 import math
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentsimplemesentery1 import MeshType_3d_colonsegmentsimplemesentery1, getColonSegmentInnerPointsNoTeniaColi
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, getColonSegmentInnerPointsTeniaColi, getTeniaColi
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentsimplemesentery1 import MeshType_3d_colonsegmentsimplemesentery1, TubeMeshSegmentInnerPointsNoTeniaColi
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, TubeMeshSegmentInnerPointsTeniaColi, getTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -217,11 +217,11 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Distal width'] = 0.8
         elif 'Pig' in parameterSetName:
             options['Number of segments'] = 120
-            options['Proximal length'] = 3.0
+            options['Proximal length'] = 50.0
             options['Proximal width'] = 6.9
-            options['Transverse length'] = 2.0
+            options['Transverse length'] = 80.0
             options['Transverse width'] = 6.9
-            options['Distal length'] = 2.5
+            options['Distal length'] = 70.0
             options['Distal width'] = 6.9
         return options
 
@@ -340,6 +340,12 @@ class MeshType_3d_colon1(Scaffold_base):
 
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
+        startRadius = segmentSettings['Start inner radius']
+        startRadiusLongDerivative = segmentSettings['Start radius longitudinal derivative']
+        startRadiusRadialDerivative = segmentSettings['Start radius radial derivative']
+        endRadius = segmentSettings['End inner radius']
+        endRadiusLongDerivative = segmentSettings['End radius longitudinal derivative']
+        endRadiusRadialDerivative = segmentSettings['End radius radial derivative']
         wallThickness = segmentSettings['Wall thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
@@ -364,37 +370,46 @@ class MeshType_3d_colon1(Scaffold_base):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             length += arcLength
         segmentLength = length / segmentCount
-        # print('Length = ', length)
+        print('Length = ', length)
 
-        proximalRadius = proximalWidth / (2*math.pi) - wallThickness
-        # print('proximalRadius = ', proximalRadius)
-
+        # Generate variation of radius along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
         widthList = [proximalWidth, transverseWidth, distalWidth, distalWidth]
-        #scaleFactorList = [3.0, 1.0/proximalLength, 1.0/transverseLength, 1.0/(lengthList[-1] - lengthList[-2])]
-        scaleFactorList = [1.0, 1.0, 1.0, 1.0]
+        radiusList = []
+        for i in range(len(widthList)):
+            radiusList.append(widthList[i] / (2*math.pi) - wallThickness)
+        nxRadius = []
+        nd1 = []
+        for i in range(len(lengthList)):
+            v = [lengthList[i], radiusList[i], 0.0]
+            d1 = [(lengthList[i+1] - lengthList[i]) if i < len(lengthList)-1 else (lengthList[i] - lengthList[i-1]), 0.0, 0.0]
+            nxRadius.append(v)
+            nd1.append(d1)
+        sxRadius, dRadiusList, _, _, _ = interp.sampleCubicHermiteCurves(nxRadius, nd1, segmentCount)
+        radiusList = [c[1] for c in sxRadius]
 
         # Generate inner surface of a colon segment
         if segmentScaffoldType == MeshType_3d_colonsegmentsimplemesentery1:
-            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
-                elementsCountAlongSegment, mzWidth, proximalRadius, segmentLength, wallThickness)
+            tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ,
+                elementsCountAroundNonMZ, elementsCountAlongSegment, mzWidth, segmentLength, wallThickness)
+
         else: # segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
-            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlongSegment, tcCount, tcWidth, proximalRadius, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-                segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor, segmentLength, wallThickness)
+            tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPointsTeniaColi(region,
+                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
+                tcCount, tcWidth, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
+                segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-           xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-           annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, lengthList, widthList, scaleFactorList)
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, flatWidthListOuter = tubemesh.generatetubemesh(region,
+           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,  radiusList, dRadiusList, tubeMeshSegmentInnerPoints,
+           wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         if segmentScaffoldType == MeshType_3d_colonsegmentteniacoli1:
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                 useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlong, elementsCountThroughWall, wallThickness, tcWidth, tcThickness, sx, curvatureAlong, factorList, uList,
-                arcLengthOuterMidLength, length, tcCount)
+                elementsCountAlong, elementsCountThroughWall, wallThickness, tcWidth, tcThickness, sx, curvatureAlong, factorList,
+                length, tcCount, uList, flatWidthListOuter)
 
             annotationGroups += annotationGroupsTC
 

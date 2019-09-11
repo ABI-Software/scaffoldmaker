@@ -12,6 +12,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import tubemesh
+from scaffoldmaker.utils import interpolation as interp
 
 class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
     '''
@@ -37,7 +38,12 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             'Number of elements around non-mesenteric zone' : 8,
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
-            'Inner radius': 0.094,
+            'Start inner radius': 0.094,
+            'Start radius longitudinal derivative': 1.5,
+            'Start radius radial derivative': 0.0,
+            'End inner radius': 0.094,
+            'End radius longitudinal derivative': 1.5,
+            'End radius radial derivative': 0.0,
             'Mesenteric zone width': 0.08,
             'Segment length': 1.5,
             'Wall thickness': 0.055,
@@ -56,7 +62,12 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             'Number of elements around non-mesenteric zone',
             'Number of elements along segment',
             'Number of elements through wall',
-            'Inner radius',
+            'Start inner radius',
+            'Start radius longitudinal derivative',
+            'Start radius radial derivative',
+            'End inner radius',
+            'End radius longitudinal derivative',
+            'End radius radial derivative',
             'Mesenteric zone width',
             'Segment length',
             'Wall thickness',
@@ -88,16 +99,17 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             if options[key] % 2 > 0:
                 options[key] = options[key] + 1
         for key in [
-            'Inner radius',
+            'Start inner radius',
+            'End inner radius',
             'Mesenteric zone width',
             'Segment length',
             'Wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['Mesenteric zone width'] < 10.0*math.pi/180.0*options['Inner radius']:
-           options['Mesenteric zone width'] = round(10.0*math.pi/180.0*options['Inner radius'], 2)
-        if options['Mesenteric zone width'] > math.pi*0.5*options['Inner radius']:
-           options['Mesenteric zone width'] = round(math.pi*0.5*options['Inner radius'], 2)
+        if options['Mesenteric zone width'] < 10.0*math.pi/180.0*min(options['Start inner radius'], options['End inner radius']) :
+           options['Mesenteric zone width'] = round(10.0*math.pi/180.0*min(options['Start inner radius'], options['End inner radius']), 2)
+        if options['Mesenteric zone width'] > math.pi*0.5*min(options['Start inner radius'], options['End inner radius']):
+           options['Mesenteric zone width'] = round(math.pi*0.5*min(options['Start inner radius'], options['End inner radius']), 2)
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -112,7 +124,12 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         elementsCountAround = elementsCountAroundMZ + elementsCountAroundNonMZ
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
-        radius = options['Inner radius']
+        startRadius = options['Start inner radius']
+        startRadiusLongDerivative = options['Start radius longitudinal derivative']
+        startRadiusRadialDerivative = options['Start radius radial derivative']
+        endRadius = options['End inner radius']
+        endRadiusLongDerivative = options['End radius longitudinal derivative']
+        endRadiusRadialDerivative = options['End radius radial derivative']
         segmentLength = options['Segment length']
         mzWidth = options['Mesenteric zone width']
         wallThickness = options['Wall thickness']
@@ -125,21 +142,18 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
-        # Calculate width along length
-        width = 2*math.pi*(radius + wallThickness)
-        lengthList = [0.0, segmentLength]
-        widthList = [width, width]
-        scaleFactorList = [1.0, 1.0]
+        # Generate variation of radius along length
+        radiusList = [startRadius, endRadius]
+        dRadiusList = [[startRadiusLongDerivative, startRadiusRadialDerivative], [endRadiusLongDerivative, endRadiusRadialDerivative]]
 
-        # Generate inner surface of a colon segment
-        annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, xInner, d1Inner, d2Inner, segmentAxis = getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ,
-           elementsCountAroundNonMZ, elementsCountAlongSegment, mzWidth, radius, segmentLength, wallThickness)
+        # Create object
+        tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
+            mzWidth, segmentLength, wallThickness)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList = tubemesh.generatetubemesh(region,
-            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-            xInner, d1Inner, d2Inner, wallThickness, segmentAxis, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall,
-            annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength, lengthList, widthList, scaleFactorList)
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, flatWidthListOuter = tubemesh.generatetubemesh(region,
+           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
+           radiusList, dRadiusList, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
 
@@ -164,8 +178,36 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
-    mzWidth, radius, segmentLength, wallThickness):
+class TubeMeshSegmentInnerPointsNoTeniaColi:
+    """
+    Generates a class object and function to pass the inner profile
+    of the colon segment to tubemesh.
+    """
+
+    def __init__(self, region, elementsCountAroundMZ, elementsCountAroundNonMZ,
+    elementsCountAlongSegment, mzWidth, segmentLength, wallThickness):
+
+        self._region = region
+        self._elementsCountAroundMZ = elementsCountAroundMZ
+        self._elementsCountAroundNonMZ = elementsCountAroundNonMZ
+        self._elementsCountAlongSegment = elementsCountAlongSegment
+        self._mzWidth = mzWidth
+        self._segmentLength = segmentLength
+        self._wallThickness = wallThickness
+
+    def getTubeMeshSegmentInnerPoints(self, startRadius, startRadiusLongDerivative,
+        startRadiusRadialDerivative, endRadius, endRadiusLongDerivative, endRadiusRadialDerivative):
+
+        return getColonSegmentInnerPointsNoTeniaColi(self._region, self._elementsCountAroundMZ,
+            self._elementsCountAroundNonMZ, self._elementsCountAlongSegment, self._mzWidth,
+            self._segmentLength, self._wallThickness,
+            startRadius, startRadiusLongDerivative, startRadiusRadialDerivative,
+            endRadius, endRadiusLongDerivative, endRadiusRadialDerivative)
+
+def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
+    elementsCountAlongSegment, mzWidth, segmentLength, wallThickness,
+    startRadius, startRadiusLongDerivative, startRadiusRadialDerivative,
+    endRadius, endRadiusLongDerivative, endRadiusRadialDerivative):
     """
     Generates a 3-D colon segment mesh with a simple mesentery
     (no tenia coli) with variable numbers of elements around,
@@ -175,17 +217,26 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     :param elementsCountAroundNonMZ: Number of elements around non-mesenteric zone.
     :param elementsCountAlongSegment: Number of elements along colon segment.
     :param mzWidth: Width of mesenteric zone in flat preparation.
-    :param radius: Inner radius of colon segment.
     :param segmentLength: Length of a colon segment.
     :param wallThickness: Thickness of wall.
+    :param startRadius: Inner radius at proximal end of colon segment.
+    :param startRadiusLongDerivative: Rate of change of radius along longitudinal
+    axis of segment at proximal end.
+    :param startRadiusRadialDerivative: Rate of change of radius along radial
+    axis of segment at proximal end.
+    :param endRadius: Inner radius at distal end of colon segment.
+    :param endRadiusLongDerivative: Rate of change of radius along longitudinal
+    axis of segment at distal end.
+    :param endRadiusRadialDerivative: Rate of change of radius along radial
+    axis of segment at distal end.
     :return annotationGroups, annotationArray: annotationArray stores annotation
     names of elements around
     :return transitElementList: stores true if element around is an element that
     transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
     :return uList: List of xi for node around
-    : return totalArcLengthOuterMidLength: total arclength of elements on outer
-    surface along mid-length of segment.
     :return coordinates, derivatives on inner surface of a colon segment.
+    :return segmentAxis: Axis of segment
+    :return sRadius: List of radius for each element along segment.
     """
     mzGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     nonmzGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
@@ -193,22 +244,77 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     annotationArray = ['mesenteric zone']*int(elementsCountAroundMZ*0.5) + ['non-mesenteric zone']*elementsCountAroundNonMZ + ['mesenteric zone']*int(elementsCountAroundMZ*0.5)
     transitElementList = [0]*int(elementsCountAroundMZ*0.5) + [1] + [0]*int(elementsCountAroundNonMZ - 2) + [1] + [0]*int(elementsCountAroundMZ*0.5)
 
+    # Determine how radius varies along length of segment
+    v1 = [0.0, startRadius, 0.0]
+    v2 = [segmentLength, endRadius, 0.0]
+    d1 = [startRadiusLongDerivative, startRadiusRadialDerivative, 0.0]
+    d2 = [endRadiusLongDerivative, endRadiusRadialDerivative, 0.0]
+    nx = [v1, v2]
+    nd1 = [d1, d2]
+    sRadius = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)[0]
+
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
     d1 = [ 0.0, 0.0, 0.0 ]
+    sampleElementOut = 20
     segmentAxis = [0.0, 0.0, 1.0]
+    elementsCountAround = elementsCountAroundMZ + elementsCountAroundNonMZ
 
-    xMZ = []
-    d1MZ = []
-    xListBaseLayer = []
-    d1ListBaseLayer = []
+    d2Raw = []
     xList = []
     d1List = []
     d2List = []
-    uList = []
+
+    for n2 in range(elementsCountAlongSegment + 1):
+        z = segmentLength / elementsCountAlongSegment * n2
+        x, d1 = createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mzWidth, sRadius[n2][1], sampleElementOut)
+        d1List = d1List + d1
+        for n1 in range(elementsCountAround):
+            xList.append([x[n1][0], x[n1][1], z])
+
+    for n1 in range(elementsCountAround):
+        xUp = []
+        d2Up = []
+        for n2 in range(elementsCountAlongSegment + 1):
+            n = elementsCountAround * n2 + n1
+            xUp.append(xList[n])
+            d2 = [ xList[n + elementsCountAround][i] - xList[n][i] if n2 < elementsCountAlongSegment else xList[n][i] - xList[n - elementsCountAround][i] for i in range(3)]
+            d2Up.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xUp, d2Up)
+        d2Raw.append(d2Smoothed)
+
+    # Re-arrange d2Raw
+    for n2 in range(elementsCountAlongSegment + 1):
+        for n1 in range(elementsCountAround):
+            d2List.append(d2Raw[n1][n2])
+
+    # # Calculate uList for elements on outer surface along mid-length of segment
+    sRadius2 = interp.sampleCubicHermiteCurves(nx, nd1, 2)[0]
+    xMid, d1Mid = createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mzWidth, sRadius2[1][1], sampleElementOut)
+    uList = getuListFromOuterMidLengthProfile(xMid, d1Mid, segmentAxis, wallThickness, transitElementList)
+
+    return annotationGroups, annotationArray, transitElementList, uList, xList, d1List, d2List, segmentAxis, sRadius
+
+def createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mzWidth, radius, sampleElementOut):
+    """
+    Find locations and derivative of nodes in a cross-sectional profile
+    of a colon segment with a simple mesentery.
+    :param elementsCountAroundMZ: Number of elements around mesenteric zone.
+    :param elementsCountAroundNonMZ: Number of elements around non-mesenteric zone.
+    :param mzWidth: Width of mesenteric zone in flat preparation.
+    :param radius: Inner radius of colon segment.
+    :param sampleElementOut: Number of sample points used to set up profile
+    :return: Node location and derivative of the cross-sectional profile of a segment.
+    """
+
+    xMZ = []
+    d1MZ = []
+    xList = []
+    d1List = []
+    xFaceProfile = []
+    d1FaceProfile = []
 
     #Set up profile
-    sampleElementOut = 20
     nx, nd1 = createCirclePoints([ 0.0, 0.0, 0.0 ], [ radius, 0.0, 0.0 ], [ 0.0, radius, 0.0 ], sampleElementOut, startRadians = 0.0)
 
     # Sample half mesenteric zone into equally spaced nodes
@@ -231,34 +337,18 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     # Sample half non-mesenteric zone into equally spaced nodes
     halfCircumference = math.pi*radius
     xNonMZ, d1NonMZ, arcLengthPerNonMZ, arcLengthPerTransition = sampleHaustrum(nx, nd1, xMZ[-1], d1MZ[-1], halfCircumference, mzWidth*0.5, elementsCountAroundNonMZ)
-
-    xListBaseLayer = xList + xMZ + xNonMZ[1:]
-    d1ListBaseLayer = d1List + d1MZ + d1NonMZ[1:]
-    lengthHalfList = len(xListBaseLayer)
+    xFaceProfile = xList + xMZ + xNonMZ[1:]
+    d1FaceProfile = d1List + d1MZ + d1NonMZ[1:]
+    lengthHalfList = len(xFaceProfile)
 
     # Reflect to get other half
     for n in range(1,int(lengthHalfList)-1):
         idx =  -n + lengthHalfList - 1
-        x = xListBaseLayer[idx]
-        d1 = d1ListBaseLayer[idx]
+        x = xFaceProfile[idx]
+        d1 = d1FaceProfile[idx]
         xReflect = [x[0], -x[1], x[2]]
         d1Reflect = [-d1[0], d1[1], d1[2]]
-        xListBaseLayer.append(xReflect)
-        d1ListBaseLayer.append(d1Reflect)
+        xFaceProfile.append(xReflect)
+        d1FaceProfile.append(d1Reflect)
 
-    # Generate node along segment length
-    lengthPerElementAlong = segmentLength / elementsCountAlongSegment
-    d2 = [0.0, 0.0, lengthPerElementAlong]
-    for n2 in range(elementsCountAlongSegment + 1):
-        for n1 in range(elementsCountAroundNonMZ + elementsCountAroundMZ):
-            z = lengthPerElementAlong*n2
-            x = [xListBaseLayer[n1][0], xListBaseLayer[n1][1], z]
-            d1 = d1ListBaseLayer[n1]
-            xList.append(x)
-            d1List.append(d1)
-            d2List.append(d2)
-
-    # Calculate uList for elements on outer surface along mid-length of segment
-    uList, totalArcLengthOuterMidLength = getuListFromOuterMidLengthProfile(xListBaseLayer, d1ListBaseLayer, segmentAxis, wallThickness, transitElementList)
-
-    return annotationGroups, annotationArray, transitElementList, uList, totalArcLengthOuterMidLength, xList, d1List, d2List, segmentAxis
+    return xFaceProfile, d1FaceProfile

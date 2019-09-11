@@ -20,14 +20,14 @@ def generatetubemesh(region,
     elementsCountThroughWall,
     segmentCountAlong,
     cx, cd1, cd2, cd12,
-    xInner, d1Inner, d2Inner, wallThickness,
-    segmentAxis, segmentLength,
+    radiusList, dRadiusList,
+    tubeMeshSegmentInnerPoints,
+    wallThickness,
+    segmentLength,
     useCrossDerivatives,
     useCubicHermiteThroughWall, # or Zinc Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE etc.
-    annotationGroups, annotationArray, transitElementList, uList, arcLengthOuterMidLength,
-    lengthList, widthList, scaleFactorList,
-    firstNodeIdentifier = 1, firstElementIdentifier = 1
-    ):
+    firstNodeIdentifier = 1, firstElementIdentifier = 1):
+
     '''
     Generates a 3-D tubular mesh with variable numbers of elements
     around, along the central axis, and radially through wall. The
@@ -41,31 +41,21 @@ def generatetubemesh(region,
     :param cd1: derivative along central line
     :param cd2: derivative representing cross axis
     :param cd12: rate of change of cd2 along cd1
-    :param xInner: coordinates on inner surface of segment profile
-    :param d1Inner: derivatives around inner surface of segment profile
-    :param d2Inner: derivatives along inner surface of segment profile
+    :param radiusList: list of radius along proximal, mid and distal length
+    :param dRadiusList: rate of change of radius along length
+    :param tubeMeshSegmentInnerPoints: class function for generating
+    coordinates and derivatives on inner surface of segment profile
     :param wallThickness: thickness of wall
-    :param segmentAxis: axis of segment profile
     :param segmentLength: length of segment profile
     :param useCubicHermiteThroughWall: use linear when false
-    :param annotationGroups: Empty when not required
-    :param annotationArray: Array storing annotation group name for elements around
-    :param transitElementList: True false list of where transition elements are
-    located around
-    :param uList: List of xi for each node around representative cross-sectional
-    profile
-    :param arcLengthOuterMidLength: Total arclength of elements around outer surface
-    along mid-length of a segment
-    :param lengthList: List of length along proximal, mid and distal sections
-    :param widthList: List of width along proximal, mid and distal sections
-    :param scaleFactorList: List of factors to scale rate of change of width along
-    tube length
     :return nodeIdentifier, elementIdentifier
-    :return xList, d1List, d2List, d3List: List of coordinates and derivatives
+    :return xList, d1List, d2List, d3List: list of coordinates and derivatives
     on tube
-    :return sx: List of coordinates sampled from central line
-    :return curvatureAlong, factorList: List of curvature and scale factor along mesh
+    :return sx: list of coordinates sampled from central line
+    :return curvatureAlong, factorList: list of curvature and scale factor along mesh
     for each node on inner surface of mesh.
+    :return uList: list of xi for each node around mid-length haustra.
+    :return flatWidthListOuter: list of width for elements along the flat coordinate field
     '''
 
     zero  = [0.0, 0.0, 0.0]
@@ -74,18 +64,6 @@ def generatetubemesh(region,
     # Sample central line to get same number of elements as elementsCountAlong
     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
     sd2, _ = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-
-    # Calculate width along length
-    nx = []
-    nd1 = []
-    for i in range(len(lengthList)):
-        v = [lengthList[i], widthList[i]*0.5, 0.0]
-        d1 = [(lengthList[i] - lengthList[i-1])*scaleFactorList[i] if i > 0 else (lengthList[i+1] - lengthList[i])*scaleFactorList[i], 0.0, 0.0]
-        nx.append(v)
-        nd1.append(d1)
-    sW = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlong)[0]
-    sHalfWidth = [c[1] for c in sW]
-    sRadius = [ c/math.pi - wallThickness for c in sHalfWidth]
 
     fm = region.getFieldmodule()
     fm.beginChange()
@@ -137,31 +115,34 @@ def generatetubemesh(region,
     smoothd2Raw = []
     smoothd2InnerList = []
     d1List = []
+    widthList = []
+    uList = []
 
-    d3Inner = []
-
-    for n in range(len(xInner)):
-        d3 = vector.normalise(vector.crossproduct3(vector.normalise(d1Inner[n]), vector.normalise(d2Inner[n])))
-        d3Inner.append(d3)
-
-    # Map each face along segment profile to central line
     for nSegment in range(segmentCountAlong):
+        # Unpack radius and rate of change of radius
+        startRadius = radiusList[nSegment]
+        startRadiusLongDerivative = dRadiusList[nSegment][0]
+        startRadiusRadialDerivative = dRadiusList[nSegment][1]
+        endRadius = radiusList[nSegment+1]
+        endRadiusLongDerivative = dRadiusList[nSegment+1][0]
+        endRadiusRadialDerivative = dRadiusList[nSegment+1][1]
+
+        # Create inner points
+        annotationGroups, annotationArray, transitElementList, uList, xInner, d1Inner, d2Inner, segmentAxis, sRadius = tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(startRadius,
+            startRadiusLongDerivative, startRadiusRadialDerivative,
+            endRadius, endRadiusLongDerivative, endRadiusRadialDerivative)
+
+        # Convert radius along segment to width for flat coordinates
+        startIdx = 0 if nSegment == 0 else 1
+        for i in range(startIdx, len(sRadius)):
+            widthList.append([sRadius[i][0]+nSegment*segmentLength, 2*math.pi*(sRadius[i][1] + wallThickness), sRadius[i][2]])
+
+        # Map each face along inner points to central line
         for nAlongSegment in range(elementsCountAlongSegment + 1):
             n2 = elementsCountAlongSegment*nSegment + nAlongSegment
-
-            # Scale segment to new inner radius
-            dRadius = sRadius[n2] - sRadius[0]
             xFace = xInner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
             d1Face = d1Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-            d2Scaled = d2Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-            d3Face = d3Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-            xScaled, curvatureInnerScaled = getOuterCoordinatesAndCurvatureFromInner(xFace, d1Face, d3Face, dRadius, 0, elementsCountAround, transitElementList)
-
-            d1Scaled = []
-            for n in range(len(xScaled)):
-                factor = 1.0 + dRadius * curvatureInnerScaled[n]
-                d1 = [ factor*c for c in d1Face[n]]
-                d1Scaled.append(d1)
+            d2Face = d2Inner[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
 
             if nSegment == 0 or (nSegment > 0 and nAlongSegment > 0): # take whole of 1st segment and then all along except last for rest
                 # Rotate to align segment axis with tangent of central line
@@ -186,13 +167,14 @@ def generatetubemesh(region,
 
                 for n1 in range(elementsCountAround):
                     n = nAlongSegment*elementsCountAround + n1
-                    x = xScaled[n1]
-                    d1 = d1Scaled[n1]
-                    d2 = d2Scaled[n1]
+                    x = xFace[n1]
+                    d1 = d1Face[n1]
+                    d2 = d2Face[n1]
                     if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
                         xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                         d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                         d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
+
                         if n1 == 0:
                             # Project sd2 onto plane normal to sd1
                             v = sd2[n2]
@@ -236,21 +218,26 @@ def generatetubemesh(region,
                     d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1Rot2), vector.normalise(d2Rot2)))
                     d3InnerUnitList.append(d3Unit)
 
+        # Smooth d2 for segment
+        smoothd2Raw = []
+        for n1 in range(elementsCountAround):
+            nx = []
+            nd2 = []
+            nIdx = []
+            for n2 in range(elementsCountAlongSegment + 1):
+                n = nSegment*(elementsCountAlongSegment+1 if nSegment == 0 else elementsCountAlongSegment)*elementsCountAround + n2*elementsCountAround + n1
+                nx.append(xInnerList[n])
+                nd2.append(d2InnerList[n])
+            smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)
+            smoothd2Raw.append(smoothd2)
 
-    for n1 in range(elementsCountAround):
-        nx = []
-        nd2 = []
-        for n2 in range(elementsCountAlong + 1):
-            n = n2*elementsCountAround + n1
-            nx.append(xInnerList[n])
-            nd2.append(d2InnerList[n])
-        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2)
-        smoothd2Raw.append(smoothd2)
+        # Re-arrange smoothd2
+        for n2 in range(startIdx, elementsCountAlongSegment + 1):
+            for n1 in range(elementsCountAround):
+                smoothd2InnerList.append(smoothd2Raw[n1][n2])
 
     for n2 in range(elementsCountAlong + 1):
         for n1 in range(elementsCountAround):
-            smoothd2InnerList.append(smoothd2Raw[n1][n2])
-            n = elementsCountAround * n2 + n1
             if n2 == 0:
                 curvature = abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0))
             elif n2 == elementsCountAlong:
@@ -267,7 +254,7 @@ def generatetubemesh(region,
     # Interpolate to get nodes through wall
     for n3 in range(elementsCountThroughWall + 1):
         xi3 = 1/elementsCountThroughWall * n3
-        x, dx_ds1, dx_ds2, dx_ds3, factorList = interpolatefromInnerAndOuter( xInnerList, xOuterList,
+        x, dx_ds1, dx_ds2, dx_ds3, factorList = interpolatefromInnerAndOuter(xInnerList, xOuterList,
             wallThickness, xi3, sx, curvatureInner, curvatureAlong, d1InnerList, smoothd2InnerList, d3InnerUnitList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall)
         xList = xList + x
@@ -428,28 +415,32 @@ def generatetubemesh(region,
             d1List[i+1] = d1List[i+2]
 
     totalLengthAlong = segmentLength*segmentCountAlong
-    sd2 = [0.0, totalLengthAlong/elementsCountAlong, 0.0]
 
     v = []
     xFlatList = []
     d1FlatList = []
     d2FlatList = []
+    flatWidthListOuter = []
     nodeIdentifier = firstNodeIdentifier
+
     for n3 in range(elementsCountThroughWall + 1):
         z = wallThickness / elementsCountThroughWall * n3
         for n2 in range(elementsCountAlong + 1):
-            xPad = sW[0][1] - sW[n2][1]
-            v1 = [ xPad, sW[n2][0], z ]
-            v2 = [ xPad + sW[n2][1], totalLengthAlong / elementsCountAlong*n2, z ]
-            v3 = [ xPad + sW[n2][1]*2, sW[n2][0], z ]
-            d1 = d2 = d3 = [ 1.0, 0.0, 0.0 ]
+            xPad = (widthList[0][1] - widthList[n2][1])*0.5
+            v1 = [ xPad, widthList[n2][0], z ]
+            v2 = [ xPad + widthList[n2][1]*0.5, totalLengthAlong / elementsCountAlong*n2, z ]
+            v3 = [ xPad + widthList[n2][1], widthList[n2][0], z ]
+            d1 = d2 = d3 = [ widthList[n2][1]*0.5, 0.0, 0.0 ]
             nx = [ v1, v2, v3 ]
             nd1 = [ d1, d2, d3 ]
             smoothd1 = interp.smoothCubicHermiteDerivativesLine(nx, nd1)
 
             length = 0
             for i in range(2):
-                length += interp.computeCubicHermiteArcLength(nx[i], smoothd1[i], nx[i+1], smoothd1[i+1], False)
+                length += interp.computeCubicHermiteArcLength(nx[i], nd1[i], nx[i+1], nd1[i+1], False)
+            if n3 == elementsCountThroughWall:
+                flatWidthListOuter.append(length)
+
             for e in range(len(uList)):
                 arcDistance = uList[e]*length
                 xFlat, d1Flat, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, smoothd1, arcDistance)
@@ -471,7 +462,7 @@ def generatetubemesh(region,
                 d2FlatList.append(d2Flat)
         d2FlatList = d2FlatList + d2FlatList[-elementsCountAround-1:]
 
-    # Create nodes
+    # Create nodes for flat coordinate field
     for n3 in range(elementsCountThroughWall + 1):
         for n2 in range(elementsCountAlong + 1):
             for n1 in range(elementsCountAround):
@@ -515,7 +506,7 @@ def generatetubemesh(region,
 
     fm.endChange()
 
-    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList
+    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList, uList, flatWidthListOuter
 
 def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround, transitElementList):
     """
