@@ -5,7 +5,6 @@ variable radius and thickness along.
 """
 
 import copy
-import math
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentsimplemesentery1 import MeshType_3d_colonsegmentsimplemesentery1, TubeMeshSegmentInnerPointsNoTeniaColi
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import MeshType_3d_colonsegmentteniacoli1, TubeMeshSegmentInnerPointsTeniaColi, getTeniaColi
