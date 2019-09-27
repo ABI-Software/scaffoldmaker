@@ -7,7 +7,7 @@ with variable radius and thickness along.
 
 import math
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import sampleHaustrum, getuListFromOuterMidLengthProfile
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegmentteniacoli1 import sampleHaustrum, getuListFromOuterLengthProfile
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -39,12 +39,13 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
             'Start inner radius': 0.094,
-            'Start radius longitudinal derivative': 1.5,
-            'Start radius radial derivative': 0.0,
+            'Start radius derivative': 0.0,
             'End inner radius': 0.094,
-            'End radius longitudinal derivative': 1.5,
-            'End radius radial derivative': 0.0,
-            'Mesenteric zone width': 0.08,
+            'End radius derivative': 0.0,
+            'Start mesenteric zone width': 0.08,
+            'Start mesenteric zone width derivative': 0.0,
+            'End mesenteric zone width': 0.08,
+            'End mesenteric zone width derivative': 0.0,
             'Segment length': 1.5,
             'Wall thickness': 0.055,
             'Use cross derivatives' : False,
@@ -63,12 +64,13 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             'Number of elements along segment',
             'Number of elements through wall',
             'Start inner radius',
-            'Start radius longitudinal derivative',
-            'Start radius radial derivative',
+            'Start radius derivative',
             'End inner radius',
-            'End radius longitudinal derivative',
-            'End radius radial derivative',
-            'Mesenteric zone width',
+            'End radius derivative',
+            'Start mesenteric zone width',
+            'Start mesenteric zone width derivative',
+            'End mesenteric zone width',
+            'End mesenteric zone width derivative',
             'Segment length',
             'Wall thickness',
             'Use cross derivatives',
@@ -101,15 +103,22 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         for key in [
             'Start inner radius',
             'End inner radius',
-            'Mesenteric zone width',
+            'Start mesenteric zone width',
+            'End mesenteric zone width',
             'Segment length',
             'Wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['Mesenteric zone width'] < 10.0*math.pi/180.0*min(options['Start inner radius'], options['End inner radius']) :
-           options['Mesenteric zone width'] = round(10.0*math.pi/180.0*min(options['Start inner radius'], options['End inner radius']), 2)
-        if options['Mesenteric zone width'] > math.pi*0.5*min(options['Start inner radius'], options['End inner radius']):
-           options['Mesenteric zone width'] = round(math.pi*0.5*min(options['Start inner radius'], options['End inner radius']), 2)
+        for key in [
+            'Start mesenteric zone width',
+            'End mesenteric zone width'
+            ]:
+            if options[key] < 10.0*math.pi/180.0*min(options['Start inner radius'], options['End inner radius']):
+                options[key] = round(10.0*math.pi/180.0*min(options['Start inner radius'], options['End inner radius']), 2)
+        if options['Start mesenteric zone width'] > math.pi*0.5*options['Start inner radius']:
+                options['Start mesenteric zone width'] = round(math.pi*0.5*options['Start inner radius'], 2)
+        if options['End mesenteric zone width'] > math.pi*0.5*options['End inner radius']:
+            options['End mesenteric zone width'] = round(math.pi*0.5*options['End inner radius'], 2)
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -125,13 +134,14 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         startRadius = options['Start inner radius']
-        startRadiusLongDerivative = options['Start radius longitudinal derivative']
-        startRadiusRadialDerivative = options['Start radius radial derivative']
+        startRadiusDerivative = options['Start radius derivative']
         endRadius = options['End inner radius']
-        endRadiusLongDerivative = options['End radius longitudinal derivative']
-        endRadiusRadialDerivative = options['End radius radial derivative']
+        endRadiusDerivative = options['End radius derivative']
         segmentLength = options['Segment length']
-        mzWidth = options['Mesenteric zone width']
+        startMZWidth = options['Start mesenteric zone width']
+        startMZWidthDerivative = options['Start mesenteric zone width derivative']
+        endMZWidth = options['End mesenteric zone width']
+        endMZWidthDerivative = options['End mesenteric zone width derivative']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
@@ -142,18 +152,20 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         cd2 = [ [ 0.0, 1.0, 0.0 ], [ 0.0, 1.0, 0.0 ] ]
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
-        # Generate variation of radius along length
+        # Generate variation of radius and mesenteric width along length
         radiusList = [startRadius, endRadius]
-        dRadiusList = [[startRadiusLongDerivative, startRadiusRadialDerivative], [endRadiusLongDerivative, endRadiusRadialDerivative]]
+        dRadiusList = [startRadiusDerivative, endRadiusDerivative]
+        mzWidthList = [startMZWidth, endMZWidth]
+        dMZWidthList = [startMZWidthDerivative, endMZWidthDerivative]
 
         # Create object
         tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ, elementsCountAlongSegment,
-            mzWidth, segmentLength, wallThickness)
+            segmentLength, wallThickness)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, flatWidthListOuter = tubemesh.generatetubemesh(region,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, _, _ = tubemesh.generatetubemesh(region,
            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-           radiusList, dRadiusList, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+           radiusList, dRadiusList, mzWidthList, dMZWidthList, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         return annotationGroups
 
@@ -185,29 +197,29 @@ class TubeMeshSegmentInnerPointsNoTeniaColi:
     """
 
     def __init__(self, region, elementsCountAroundMZ, elementsCountAroundNonMZ,
-    elementsCountAlongSegment, mzWidth, segmentLength, wallThickness):
+    elementsCountAlongSegment, segmentLength, wallThickness):
 
         self._region = region
         self._elementsCountAroundMZ = elementsCountAroundMZ
         self._elementsCountAroundNonMZ = elementsCountAroundNonMZ
         self._elementsCountAlongSegment = elementsCountAlongSegment
-        self._mzWidth = mzWidth
         self._segmentLength = segmentLength
         self._wallThickness = wallThickness
 
-    def getTubeMeshSegmentInnerPoints(self, startRadius, startRadiusLongDerivative,
-        startRadiusRadialDerivative, endRadius, endRadiusLongDerivative, endRadiusRadialDerivative):
+    def getTubeMeshSegmentInnerPoints(self, startRadius, startRadiusDerivative,
+        endRadius, endRadiusDerivative, startMZWidth, startMZWidthDerivative,
+        endMZWidth, endMZWidthDerivative):
 
         return getColonSegmentInnerPointsNoTeniaColi(self._region, self._elementsCountAroundMZ,
-            self._elementsCountAroundNonMZ, self._elementsCountAlongSegment, self._mzWidth,
+            self._elementsCountAroundNonMZ, self._elementsCountAlongSegment,
             self._segmentLength, self._wallThickness,
-            startRadius, startRadiusLongDerivative, startRadiusRadialDerivative,
-            endRadius, endRadiusLongDerivative, endRadiusRadialDerivative)
+            startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
+            startMZWidth, startMZWidthDerivative, endMZWidth, endMZWidthDerivative)
 
 def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, elementsCountAroundNonMZ,
-    elementsCountAlongSegment, mzWidth, segmentLength, wallThickness,
-    startRadius, startRadiusLongDerivative, startRadiusRadialDerivative,
-    endRadius, endRadiusLongDerivative, endRadiusRadialDerivative):
+    elementsCountAlongSegment, segmentLength, wallThickness,
+    startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
+    startMZWidth, startMZWidthDerivative, endMZWidth, endMZWidthDerivative):
     """
     Generates a 3-D colon segment mesh with a simple mesentery
     (no tenia coli) with variable numbers of elements around,
@@ -216,19 +228,18 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     :param elementsCountAroundMZ: Number of elements around mesenteric zone.
     :param elementsCountAroundNonMZ: Number of elements around non-mesenteric zone.
     :param elementsCountAlongSegment: Number of elements along colon segment.
-    :param mzWidth: Width of mesenteric zone in flat preparation.
     :param segmentLength: Length of a colon segment.
     :param wallThickness: Thickness of wall.
     :param startRadius: Inner radius at proximal end of colon segment.
-    :param startRadiusLongDerivative: Rate of change of radius along longitudinal
-    axis of segment at proximal end.
-    :param startRadiusRadialDerivative: Rate of change of radius along radial
-    axis of segment at proximal end.
+    :param startRadiusDerivative: Rate of change of radius at proximal end.
     :param endRadius: Inner radius at distal end of colon segment.
-    :param endRadiusLongDerivative: Rate of change of radius along longitudinal
-    axis of segment at distal end.
-    :param endRadiusRadialDerivative: Rate of change of radius along radial
-    axis of segment at distal end.
+    :param endRadiusDerivative: Rate of change of radius at distal end.
+    :param startMZWidth: Width of mesenteric zone in proximal end.
+    :param startMZWidthDerivative: Rate of change of mesenteric zone width
+    on proximal end.
+    :param endMZWidth: Width of mesenteric zone on distal end.
+    :param endMZWidthDerivative: Rate of change of mesenteric zone width
+    on distal end.
     :return annotationGroups, annotationArray: annotationArray stores annotation
     names of elements around
     :return transitElementList: stores true if element around is an element that
@@ -237,21 +248,23 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     :return coordinates, derivatives on inner surface of a colon segment.
     :return segmentAxis: Axis of segment
     :return sRadius: List of radius for each element along segment.
+    :return sMZWidth: List of width of mesenteric zone for each element along segment.
     """
+
     mzGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     nonmzGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
     annotationGroups = [mzGroup, nonmzGroup]
     annotationArray = ['mesenteric zone']*int(elementsCountAroundMZ*0.5) + ['non-mesenteric zone']*elementsCountAroundNonMZ + ['mesenteric zone']*int(elementsCountAroundMZ*0.5)
     transitElementList = [0]*int(elementsCountAroundMZ*0.5) + [1] + [0]*int(elementsCountAroundNonMZ - 2) + [1] + [0]*int(elementsCountAroundMZ*0.5)
 
-    # Determine how radius varies along length of segment
-    v1 = [0.0, startRadius, 0.0]
-    v2 = [segmentLength, endRadius, 0.0]
-    d1 = [startRadiusLongDerivative, startRadiusRadialDerivative, 0.0]
-    d2 = [endRadiusLongDerivative, endRadiusRadialDerivative, 0.0]
-    nx = [v1, v2]
-    nd1 = [d1, d2]
-    sRadius = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)[0]
+    sRadius = []
+    sMZWidth = []
+    for n2 in range(elementsCountAlongSegment + 1):
+        xi = 1/elementsCountAlongSegment * n2
+        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative], [endRadius], [endRadiusDerivative], xi)[0]
+        sRadius.append(radius)
+        mzWidth = interp.interpolateCubicHermite([startMZWidth], [startMZWidthDerivative], [endMZWidth], [endMZWidthDerivative], xi)[0]
+        sMZWidth.append(mzWidth)
 
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
@@ -265,12 +278,20 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
     d1List = []
     d2List = []
 
+    uList = []
+    lengthAroundFaceList = []
+
     for n2 in range(elementsCountAlongSegment + 1):
         z = segmentLength / elementsCountAlongSegment * n2
-        x, d1 = createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mzWidth, sRadius[n2][1], sampleElementOut)
+        x, d1 = createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, sMZWidth[n2], sRadius[n2], sampleElementOut)
         d1List = d1List + d1
+        xFace = []
         for n1 in range(elementsCountAround):
             xList.append([x[n1][0], x[n1][1], z])
+            xFace.append([x[n1][0], x[n1][1], z])
+        uFace, lengthAroundFace = getuListFromOuterLengthProfile(xFace, d1, segmentAxis, wallThickness, transitElementList)
+        uList.append(uFace)
+        lengthAroundFaceList.append(lengthAroundFace)
 
     for n1 in range(elementsCountAround):
         xUp = []
@@ -288,12 +309,7 @@ def getColonSegmentInnerPointsNoTeniaColi(region, elementsCountAroundMZ, element
         for n1 in range(elementsCountAround):
             d2List.append(d2Raw[n1][n2])
 
-    # # Calculate uList for elements on outer surface along mid-length of segment
-    sRadius2 = interp.sampleCubicHermiteCurves(nx, nd1, 2)[0]
-    xMid, d1Mid = createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mzWidth, sRadius2[1][1], sampleElementOut)
-    uList = getuListFromOuterMidLengthProfile(xMid, d1Mid, segmentAxis, wallThickness, transitElementList)
-
-    return annotationGroups, annotationArray, transitElementList, uList, xList, d1List, d2List, segmentAxis, sRadius
+    return annotationGroups, annotationArray, transitElementList, uList, lengthAroundFaceList, xList, d1List, d2List, segmentAxis, sRadius, sMZWidth
 
 def createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mzWidth, radius, sampleElementOut):
     """
@@ -301,7 +317,7 @@ def createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mz
     of a colon segment with a simple mesentery.
     :param elementsCountAroundMZ: Number of elements around mesenteric zone.
     :param elementsCountAroundNonMZ: Number of elements around non-mesenteric zone.
-    :param mzWidth: Width of mesenteric zone in flat preparation.
+    :param mzWidth: Width of mesenteric zone.
     :param radius: Inner radius of colon segment.
     :param sampleElementOut: Number of sample points used to set up profile
     :return: Node location and derivative of the cross-sectional profile of a segment.
@@ -318,7 +334,7 @@ def createSegmentNoTeniaColi(elementsCountAroundMZ, elementsCountAroundNonMZ, mz
     nx, nd1 = createCirclePoints([ 0.0, 0.0, 0.0 ], [ radius, 0.0, 0.0 ], [ 0.0, radius, 0.0 ], sampleElementOut, startRadians = 0.0)
 
     # Sample half mesenteric zone into equally spaced nodes
-    radiansAroundMZ = mzWidth/radius
+    radiansAroundMZ = 2*math.asin(mzWidth/(2*radius))
     radiansPerElementAroundMZ = radiansAroundMZ / elementsCountAroundMZ
     for n1 in range(int(elementsCountAroundMZ*0.5 + 1)):
         radiansAround = radiansPerElementAroundMZ * n1
