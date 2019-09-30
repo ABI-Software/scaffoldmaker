@@ -368,9 +368,9 @@ class MeshType_3d_colon1(Scaffold_base):
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
         startRadius = segmentSettings['Start inner radius']
-        startRadiusDerivative = segmentSettings['Start radius derivative']
+        startRadiusDerivative = segmentSettings['Start inner radius derivative']
         endRadius = segmentSettings['End inner radius']
-        endRadiusDerivative = segmentSettings['End radius derivative']
+        endRadiusDerivative = segmentSettings['End inner radius derivative']
         wallThickness = segmentSettings['Wall thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])

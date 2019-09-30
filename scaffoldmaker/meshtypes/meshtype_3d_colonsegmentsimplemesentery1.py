@@ -39,9 +39,9 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
             'Start inner radius': 0.094,
-            'Start radius derivative': 0.0,
+            'Start inner radius derivative': 0.0,
             'End inner radius': 0.094,
-            'End radius derivative': 0.0,
+            'End inner radius derivative': 0.0,
             'Start mesenteric zone width': 0.08,
             'Start mesenteric zone width derivative': 0.0,
             'End mesenteric zone width': 0.08,
@@ -64,9 +64,9 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
             'Number of elements along segment',
             'Number of elements through wall',
             'Start inner radius',
-            'Start radius derivative',
+            'Start inner radius derivative',
             'End inner radius',
-            'End radius derivative',
+            'End inner radius derivative',
             'Start mesenteric zone width',
             'Start mesenteric zone width derivative',
             'End mesenteric zone width',
@@ -134,9 +134,9 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         startRadius = options['Start inner radius']
-        startRadiusDerivative = options['Start radius derivative']
+        startRadiusDerivative = options['Start inner radius derivative']
         endRadius = options['End inner radius']
-        endRadiusDerivative = options['End radius derivative']
+        endRadiusDerivative = options['End inner radius derivative']
         segmentLength = options['Segment length']
         startMZWidth = options['Start mesenteric zone width']
         startMZWidthDerivative = options['Start mesenteric zone width derivative']

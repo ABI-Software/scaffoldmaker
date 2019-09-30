@@ -51,9 +51,9 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
             'Start inner radius': 1.0,
-            'Start radius derivative': 0.0,
+            'Start inner radius derivative': 0.0,
             'End inner radius': 1.5,
-            'End radius derivative': 0.0,
+            'End inner radius derivative': 0.0,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
             'Segment length end derivative factor': 0.5,
@@ -96,9 +96,9 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Number of elements along segment',
             'Number of elements through wall',
             'Start inner radius',
-            'Start radius derivative',
+            'Start inner radius derivative',
             'End inner radius',
-            'End radius derivative',
+            'End inner radius derivative',
             'Corner inner radius factor',
             'Haustrum inner radius factor',
             'Segment length end derivative factor',
@@ -185,9 +185,9 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         startRadius = options['Start inner radius']
-        startRadiusDerivative = options['Start radius derivative']
+        startRadiusDerivative = options['Start inner radius derivative']
         endRadius = options['End inner radius']
-        endRadiusDerivative = options['End radius derivative']
+        endRadiusDerivative = options['End inner radius derivative']
         cornerInnerRadiusFactor = options['Corner inner radius factor']
         haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
         segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
