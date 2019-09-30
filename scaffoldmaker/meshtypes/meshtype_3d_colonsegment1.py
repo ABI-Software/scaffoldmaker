@@ -1,7 +1,8 @@
 """
 Generates a single 3-D colon segment mesh along a central
 line, with variable numbers of elements around, along and
-through wall, with variable radius and thickness along.
+through wall and number of tenia coli, with variable radius
+and thickness along.
 """
 
 import math
@@ -20,13 +21,14 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
+class MeshType_3d_colonsegment1(Scaffold_base):
     '''
     Generates a single 3-D colon segment mesh with variable
     numbers of tenia coli, elements around, along the central
     line, and through wall. The cross-section profile of the colon
     segment varies with species and is dependent on the number
     of tenia coli.
+    Mouse: 1 "tenia coli", circular profile
     Pig: 2 tenia coli, bow tie profile
     Human (Default): 3 tenia coli, triangular profile with rounded
     corners at the inter-haustral septa, and a clover
@@ -34,13 +36,14 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
     '''
     @staticmethod
     def getName():
-        return '3D Colon Segment Tenia Coli 1'
+        return '3D Colon Segment 1'
 
     @staticmethod
     def getParameterSetNames():
         return [
             'Default',
             'Human 1',
+            'Mouse 1',
             'Pig 1']
 
     @staticmethod
@@ -73,8 +76,19 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Refine number of elements along segment' : 1,
             'Refine number of elements through wall' : 1
         }
-        if 'Pig' in parameterSetName:
-            options['Number of elements along segment'] = 4
+        if 'Mouse' in parameterSetName:
+            options['Start inner radius'] = 0.094
+            options['End inner radius'] = 0.094
+            options['Corner inner radius factor'] = 0.0
+            options['Haustrum inner radius factor'] = 0.0
+            options['Segment length end derivative factor'] = 0.01 # CHECK LATER
+            options['Segment length mid derivative factor'] = 0.01 # CHECK LATER
+            options['Number of tenia coli'] = 1
+            options['Start tenia coli width'] = 0.08
+            options['End tenia coli width'] = 0.08
+            options['Tenia coli thickness'] = 0.0
+            options['Wall thickness'] = 0.055
+        elif 'Pig' in parameterSetName:
             options['Start inner radius'] = 0.9
             options['End inner radius'] = 0.9
             options['Corner inner radius factor'] = 0.0
@@ -158,8 +172,8 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             'Segment length end derivative factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
-        if options['Number of tenia coli'] < 2:
-            options['Number of tenia coli'] = 2
+        if options['Number of tenia coli'] < 1:
+            options['Number of tenia coli'] = 1
         elif options['Number of tenia coli'] > 3:
             options['Number of tenia coli'] = 3
         for key in [
@@ -218,7 +232,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         dTCWidthList = [startTCWidthDerivative, endTCWidthDerivative]
 
         # Create object
-        tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPointsTeniaColi(region,
+        tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(region,
             elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor)
@@ -229,12 +243,13 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
             radiusList, dRadiusList, tcWidthList, dTCWidthList, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
-        annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
-           useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, segmentCount,
-           elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall, wallThickness,
-           tubeTCWidthList, tcThickness, sx, curvatureAlong, factorList, segmentLength, tcCount, uList, relaxedLengthList)
+        if tcCount > 1:
+            annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
+               useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, segmentCount,
+               elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall, wallThickness,
+               tubeTCWidthList, tcThickness, sx, curvatureAlong, factorList, segmentLength, tcCount, uList, relaxedLengthList)
 
-        annotationGroups += annotationGroupsTC
+            annotationGroups += annotationGroupsTC
 
         return annotationGroups
 
@@ -259,7 +274,7 @@ class MeshType_3d_colonsegmentteniacoli1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
 
-class TubeMeshSegmentInnerPointsTeniaColi:
+class TubeMeshSegmentInnerPoints:
     """
     Generates inner profile of a colon segment for use by tubemesh.
     """
@@ -285,7 +300,7 @@ class TubeMeshSegmentInnerPointsTeniaColi:
         endRadius, endRadiusDerivative, startTCWidth, startTCWidthDerivative,
         endTCWidth, endTCWidthDerivative):
 
-        return getColonSegmentInnerPointsTeniaColi(self._region, self._elementsCountAroundTC,
+        return getColonSegmentInnerPoints(self._region, self._elementsCountAroundTC,
             self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
             self._tcCount, self._segmentLengthEndDerivativeFactor,
             self._segmentLengthMidDerivativeFactor, self._segmentLength, self._wallThickness,
@@ -293,7 +308,7 @@ class TubeMeshSegmentInnerPointsTeniaColi:
             startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
             startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative)
 
-def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
+def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     elementsCountAroundHaustrum, elementsCountAlongSegment,
     tcCount, segmentLengthEndDerivativeFactor,
     segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
@@ -301,10 +316,11 @@ def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
     startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
     startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative):
     """
-    Generates a 3-D colon segment mesh with two or three tenia coli with variable
+    Generates a 3-D colon segment mesh with with variable numbers of tenia coli,
     numbers of elements around, along the central line, and through wall.
-    Colon segment with two tenia coli (pig) has a circular profile at the
-    inter-haustral septa, and a bowtie profile in the intra-haustral region.
+    Colon segment with one "tenia coli" (mouse) has a circular profile along
+    its length. Colon segment with two tenia coli (pig) has a circular profile
+    at the inter-haustral septa, and a bowtie profile in the intra-haustral region.
     Colon segment with three tenia coli (human) has a triangular profile
     with rounded corners at the inter-haustral septa, and a clover profile
     in the intra-haustral region.
@@ -363,19 +379,6 @@ def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
         tcWidth = interp.interpolateCubicHermite([startTCWidth], [startTCWidthDerivative], [endTCWidth], [endTCWidthDerivative], xi)[0]
         sTCWidthAlongSegment.append(tcWidth)
 
-    # Find parameter variation at start, mid and end of segment
-    sRadius = []
-    sdRadius = []
-    sTCWidth = []
-    for n2 in range(3):
-        xi = 1/2 * n2
-        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative], [endRadius], [endRadiusDerivative], xi)[0]
-        sRadius.append(radius)
-        dRadius = interp.interpolateCubicHermiteDerivative([startRadius], [startRadiusDerivative], [endRadius], [endRadiusDerivative], xi)[0]
-        sdRadius.append(dRadius)
-        tcWidth = interp.interpolateCubicHermite([startTCWidth], [startTCWidthDerivative], [endTCWidth], [endTCWidthDerivative], xi)[0]
-        sTCWidth.append(tcWidth)
-
     # create nodes
     x = [ 0.0, 0.0, 0.0 ]
     dx_ds1 = [ 0.0, 0.0, 0.0 ]
@@ -383,6 +386,8 @@ def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
     sampleElementOut = 20
     segmentAxis = [0.0, 0.0, 1.0]
 
+    d2HalfSet = []
+    d2Raw = []
     xInnerRaw = []
     dx_ds2InnerRaw = []
     xFinal = []
@@ -391,124 +396,175 @@ def getColonSegmentInnerPointsTeniaColi(region, elementsCountAroundTC,
     uList = []
     relaxedLengthList = []
 
-    # Calculate x and d1 at the start, mid and end faces
-    xHalfSetStart, d1HalfSetStart = createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-        tcCount, sTCWidth[0], sRadius[0], cornerInnerRadiusFactor, sampleElementOut)
+    elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
+    if tcCount < 2:
+        for n2 in range(elementsCountAlongSegment + 1):
+            xHalfSet, d1HalfSet = createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
+                tcCount, sTCWidthAlongSegment[n2], sRadiusAlongSegment[n2], cornerInnerRadiusFactor, sampleElementOut)
+            for i in range(len(xHalfSet)):
+                d2HalfSet.append([0.0, 0.0, 0.0])
+            x, d1, _ = getFullProfileFromHalfHaustrum(xHalfSet, d1HalfSet, d2HalfSet, tcCount)
+            z = segmentLength / elementsCountAlongSegment * n2
+            d1Final = d1Final + d1
+            xFace = []
+            for n1 in range(elementsCountAroundTC + elementsCountAroundHaustrum):
+                xFinal.append([x[n1][0], x[n1][1], z])
+                xFace.append([x[n1][0], x[n1][1], z])
+            uFace, lengthAroundFace = getuListFromOuterLengthProfile(xFace, d1, segmentAxis, wallThickness, transitElementList)
+            uList.append(uFace)
+            relaxedLengthList.append(lengthAroundFace)
 
-    xHalfSetMid, d1HalfSetMid = createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-        tcCount, sTCWidth[1], sRadius[1], cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
+        for n1 in range(elementsCountAround):
+            xUp = []
+            d2Up = []
+            for n2 in range(elementsCountAlongSegment + 1):
+                n = elementsCountAround * n2 + n1
+                xUp.append(xFinal[n])
+                d2 = [ xFinal[n + elementsCountAround][i] - xFinal[n][i] if n2 < elementsCountAlongSegment else xFinal[n][i] - xFinal[n - elementsCountAround][i] for i in range(3)]
+                d2Up.append(d2)
+            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xUp, d2Up)
+            d2Raw.append(d2Smoothed)
 
-    xHalfSetEnd, d1HalfSetEnd = createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-        tcCount, sTCWidth[2], sRadius[2], cornerInnerRadiusFactor, sampleElementOut)
+        # Re-arrange d2Raw
+        for n2 in range(elementsCountAlongSegment + 1):
+            for n1 in range(elementsCountAround):
+                d2Final.append(d2Raw[n1][n2])
 
-    # Sample arclength of haustra segment
-    elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
+    else:
+        # Find parameter variation at start, mid and end of segment
+        sRadius = []
+        sdRadius = []
+        sTCWidth = []
+        for n2 in range(3):
+            xi = 1/2 * n2
+            radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative], [endRadius], [endRadiusDerivative], xi)[0]
+            sRadius.append(radius)
+            dRadius = interp.interpolateCubicHermiteDerivative([startRadius], [startRadiusDerivative], [endRadius], [endRadiusDerivative], xi)[0]
+            sdRadius.append(dRadius)
+            tcWidth = interp.interpolateCubicHermite([startTCWidth], [startTCWidthDerivative], [endTCWidth], [endTCWidthDerivative], xi)[0]
+            sTCWidth.append(tcWidth)
 
-    for n1 in range(elementsCountAroundHalfHaustrum + 1):
-        radiansAround = (math.pi*2/6) / elementsCountAroundHalfHaustrum * n1
-        d2Start = [ sdRadius[0]*0.5, 0.0, segmentLength*0.5 ]
-        d2Mid   = [ sdRadius[1]*0.5, 0.0, segmentLength*0.5 ]
-        d2End   = [ sdRadius[2]*0.5, 0.0, segmentLength*0.5 ]
+        # Calculate x and d1 at the start, mid and end faces
+        xHalfSetStart, d1HalfSetStart = createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
+            tcCount, sTCWidth[0], sRadius[0], cornerInnerRadiusFactor, sampleElementOut)
 
-        if n1 > elementsCountAroundTC*0.5:
-            # Non tenia coli
-            # Rotate about segment axis (z-axis)
-            d2StartRot = matrix.rotateAboutZAxis(d2Start, radiansAround)
-            d2MidRot = matrix.rotateAboutZAxis(d2Mid, radiansAround)
-            d2EndRot = matrix.rotateAboutZAxis(d2End, radiansAround)
+        xHalfSetMid, d1HalfSetMid = createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
+            tcCount, sTCWidth[1], sRadius[1], cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
 
-            startArcLength = segmentLengthEndDerivativeFactor * segmentLength
-            midArcLength = segmentLengthMidDerivativeFactor * segmentLength
-            d1 = [ c*startArcLength for c in d2StartRot ]
-            d2 = [ c*midArcLength for c in d2MidRot ]
-            d3 = [ c*startArcLength for c in d2EndRot ]
+        xHalfSetEnd, d1HalfSetEnd = createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
+            tcCount, sTCWidth[2], sRadius[2], cornerInnerRadiusFactor, sampleElementOut)
 
-        else:
-            # Tenia coli do not have haustra so not subjected to derivative scaling along segment
-            d1 = d2Start
-            d2 = d2Mid
-            d3 = d2End
+        # Sample arclength of haustra segment
+        elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
 
-        v1 = [xHalfSetStart[n1][0], xHalfSetStart[n1][1], 0.0]
-        v2 = [xHalfSetMid[n1][0], xHalfSetMid[n1][1], segmentLength/2]
-        v3 = [xHalfSetEnd[n1][0], xHalfSetEnd[n1][1], segmentLength]
+        xTest = []
+        d1Test = []
+        for n1 in range(elementsCountAroundHalfHaustrum + 1):
+            radiansAround = (math.pi*2/(tcCount*2)) / elementsCountAroundHalfHaustrum * n1
+            d2Start = [ sdRadius[0]*0.5, 0.0, segmentLength*0.5 ]
+            d2Mid   = [ sdRadius[1]*0.5, 0.0, segmentLength*0.5 ]
+            d2End   = [ sdRadius[2]*0.5, 0.0, segmentLength*0.5 ]
 
-        nx = [v1, v2, v3]
-        nd1 = [d1, d2, d3]
-        sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)
-        xInnerRaw.append(sx)
-        dx_ds2InnerRaw.append(sd1)
+            if n1 > elementsCountAroundTC*0.5:
+                # Non tenia coli
+                # Rotate about segment axis (z-axis)
+                d2StartRot = matrix.rotateAboutZAxis(d2Start, radiansAround)
+                d2MidRot = matrix.rotateAboutZAxis(d2Mid, radiansAround)
+                d2EndRot = matrix.rotateAboutZAxis(d2End, radiansAround)
 
-    # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
-    for n2 in range(elementsCountAlongSegment + 1):
-        xAround = []
-        unitdx_ds1Around = []
-        d2Around = []
+                startArcLength = segmentLengthEndDerivativeFactor * segmentLength
+                midArcLength = segmentLengthMidDerivativeFactor * segmentLength
+                d1 = [ c*startArcLength for c in d2StartRot ]
+                d2 = [ c*midArcLength for c in d2MidRot ]
+                d3 = [ c*startArcLength for c in d2EndRot ]
 
-        for n1 in range(elementsCountAroundHalfHaustrum+1):
-            x = xInnerRaw[n1][n2]
-            dx_ds2 = dx_ds2InnerRaw[n1][n2]
-            unitTangent = vector.normalise(dx_ds2)
-
-            # Intra-Haustra segments
-            if n1 == 0:
-                unitdx_ds1 = vector.normalise(d1HalfSetStart[n1])
-            else: # points on clover
-                if n2 <= int(elementsCountAlongSegment/2): # first half of segmentLength
-                    axisRot = vector.crossproduct3(segmentAxis, unitTangent)
-                elif n2 > int(elementsCountAlongSegment/2): # second half of segmentLength
-                    axisRot = vector.crossproduct3(unitTangent, segmentAxis)
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
-                rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
-                unitdx_ds3 = vector.normalise(rotNormal)
-                unitdx_ds1 = vector.crossproduct3(unitTangent, unitdx_ds3)
-
-            xAround.append(x)
-            d2Around.append(dx_ds2)
-            unitdx_ds1Around.append(unitdx_ds1)
-
-        if n2 > 0 and n2 < elementsCountAlongSegment:
-            dx_ds1InnerAroundList = []
-            if elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5):
-                dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1HalfSetMid
             else:
-                for n1 in range(elementsCountAroundHalfHaustrum):
-                    v1 = xAround[n1]
-                    d1 = unitdx_ds1Around[n1]
-                    v2 = xAround[n1+1]
-                    d2 = unitdx_ds1Around[n1+1]
-                    arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                    dx_ds1 = [c*arcLengthAround for c in d1]
+                # Tenia coli do not have haustra so not subjected to derivative scaling along segment
+                d1 = d2Start
+                d2 = d2Mid
+                d3 = d2End
+
+            v1 = [xHalfSetStart[n1][0], xHalfSetStart[n1][1], 0.0]
+            v2 = [xHalfSetMid[n1][0], xHalfSetMid[n1][1], segmentLength/2]
+            v3 = [xHalfSetEnd[n1][0], xHalfSetEnd[n1][1], segmentLength]
+
+            nx = [v1, v2, v3]
+            nd1 = [d1, d2, d3]
+
+            sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)
+            xInnerRaw.append(sx)
+            dx_ds2InnerRaw.append(sd1)
+
+        # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
+        for n2 in range(elementsCountAlongSegment + 1):
+            xAround = []
+            unitdx_ds1Around = []
+            d2Around = []
+
+            for n1 in range(elementsCountAroundHalfHaustrum+1):
+                x = xInnerRaw[n1][n2]
+                dx_ds2 = dx_ds2InnerRaw[n1][n2]
+                unitTangent = vector.normalise(dx_ds2)
+
+                # Intra-Haustra segments
+                if n1 == 0:
+                    unitdx_ds1 = vector.normalise(d1HalfSetStart[n1])
+                else: # points on clover
+                    if n2 <= int(elementsCountAlongSegment/2): # first half of segmentLength
+                        axisRot = vector.crossproduct3(segmentAxis, unitTangent)
+                    elif n2 > int(elementsCountAlongSegment/2): # second half of segmentLength
+                        axisRot = vector.crossproduct3(unitTangent, segmentAxis)
+                    rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
+                    rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
+                    unitdx_ds3 = vector.normalise(rotNormal)
+                    unitdx_ds1 = vector.crossproduct3(unitTangent, unitdx_ds3)
+
+                xAround.append(x)
+                d2Around.append(dx_ds2)
+                unitdx_ds1Around.append(unitdx_ds1)
+
+            if n2 > 0 and n2 < elementsCountAlongSegment:
+                dx_ds1InnerAroundList = []
+                if elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5):
+                    dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1HalfSetMid
+                else:
+                    for n1 in range(elementsCountAroundHalfHaustrum):
+                        v1 = xAround[n1]
+                        d1 = unitdx_ds1Around[n1]
+                        v2 = xAround[n1+1]
+                        d2 = unitdx_ds1Around[n1+1]
+                        arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+                        dx_ds1 = [c*arcLengthAround for c in d1]
+                        dx_ds1InnerAroundList.append(dx_ds1)
+                    # Account for d1 of node sitting on half haustrum
+                    dx_ds1 = [c*arcLengthAround for c in unitdx_ds1Around[elementsCountAroundHalfHaustrum]]
                     dx_ds1InnerAroundList.append(dx_ds1)
-                # Account for d1 of node sitting on half haustrum
-                dx_ds1 = [c*arcLengthAround for c in unitdx_ds1Around[elementsCountAroundHalfHaustrum]]
-                dx_ds1InnerAroundList.append(dx_ds1)
-            d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList, fixStartDerivative = True)
-            d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
-            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
-            d1Corrected = []
-            d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC*0.5)]
-            d1Corrected.append(d1TCEdge)
-            d1Corrected.append(d1Transition)
-            d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC*0.5 + 2):]
-        elif n2 < 1:
-            d1Corrected = d1HalfSetStart
-        elif n2 > elementsCountAlongSegment - 1:
-            d1Corrected = d1HalfSetEnd
+                d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList, fixStartDerivative = True)
+                d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
+                d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
+                d1Corrected = []
+                d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC*0.5)]
+                d1Corrected.append(d1TCEdge)
+                d1Corrected.append(d1Transition)
+                d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC*0.5 + 2):]
+            elif n2 < 1:
+                d1Corrected = d1HalfSetStart
+            elif n2 > elementsCountAlongSegment - 1:
+                d1Corrected = d1HalfSetEnd
 
-        xAlongList, d1AlongList, d2AlongList = getFullProfileFromHalfHaustrum(xAround, d1Corrected, d2Around, tcCount)
+            xAlongList, d1AlongList, d2AlongList = getFullProfileFromHalfHaustrum(xAround, d1Corrected, d2Around, tcCount)
 
-        # Calculate uList for relaxed state
-        xHalfSetRelaxed, d1HalfSetRelaxed = createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-                tcCount, sTCWidthAlongSegment[n2], sRadiusAlongSegment[n2], cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
-        xRelaxed, d1Relaxed, _ = getFullProfileFromHalfHaustrum(xHalfSetRelaxed, d1HalfSetRelaxed, d2Around, tcCount)
-        uFace, relaxedLengthAroundFace = getuListFromOuterLengthProfile(xRelaxed, d1Relaxed, segmentAxis, wallThickness, transitElementList)
-        uList.append(uFace)
-        relaxedLengthList.append(relaxedLengthAroundFace)
+            # Calculate uList for relaxed state
+            xHalfSetRelaxed, d1HalfSetRelaxed = createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
+                    tcCount, sTCWidthAlongSegment[n2], sRadiusAlongSegment[n2], cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
+            xRelaxed, d1Relaxed, _ = getFullProfileFromHalfHaustrum(xHalfSetRelaxed, d1HalfSetRelaxed, d2Around, tcCount)
+            uFace, relaxedLengthAroundFace = getuListFromOuterLengthProfile(xRelaxed, d1Relaxed, segmentAxis, wallThickness, transitElementList)
+            uList.append(uFace)
+            relaxedLengthList.append(relaxedLengthAroundFace)
 
-        xFinal = xFinal + xAlongList
-        d1Final = d1Final + d1AlongList
-        d2Final = d2Final + d2AlongList
+            xFinal = xFinal + xAlongList
+            d1Final = d1Final + d1AlongList
+            d2Final = d2Final + d2AlongList
 
     return annotationGroups, annotationArray, transitElementList, uList, relaxedLengthList, xFinal, d1Final, d2Final, segmentAxis, sRadiusAlongSegment, sTCWidthAlongSegment
 
@@ -516,8 +572,8 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
     """
     Find locations and derivative of nodes in half of an
     inter-haustral segment. Circular profile for segment
-    with two tenia coli and triangular profile with round corners
-    for segment with three tenia coli.
+    with two or less tenia coli and triangular profile
+    with round corners for segment with three tenia coli.
     :param elementsCountAroundTC: Number of elements around tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :param tcCount: Number of tenia coli.
@@ -538,7 +594,7 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
     d1HalfSetInterHaustra = []
 
     # Set up profile
-    if tcCount == 2: # Circular profile
+    if tcCount < 3: # Circular profile
         xLoop, d1Loop = createCirclePoints([ 0.0, 0.0, 0.0 ], [ radius, 0.0, 0.0 ], [ 0.0, radius, 0.0 ], sampleElementOut, startRadians = 0.0)
 
     else: # tcCount == 3, Triangular profile
@@ -847,7 +903,7 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet, d2Haustr
     xHaustra = []
     d1Haustra = []
     d2Haustra = []
-    rotAng = 2/3*math.pi if tcCount == 3 else math.pi
+    rotAng = 2*math.pi/tcCount #2/3*math.pi if tcCount == 3 else math.pi
 
     for n in range(1,len(xHaustrumHalfSet)):
         idx =  -n + len(xHaustrumHalfSet) - 1
