@@ -192,8 +192,8 @@ class MeshType_3d_colonsegmentsimplemesentery1(Scaffold_base):
 
 class TubeMeshSegmentInnerPointsNoTeniaColi:
     """
-    Generates a class object and function to pass the inner profile
-    of the colon segment to tubemesh.
+    Generates inner profile of a simple mesentery colon segment
+    i.e. no tenia coli, for use by tubemesh.
     """
 
     def __init__(self, region, elementsCountAroundMZ, elementsCountAroundNonMZ,
