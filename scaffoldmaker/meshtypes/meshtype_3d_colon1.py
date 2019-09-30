@@ -471,8 +471,8 @@ def sampleParameterAlongLength(paramList, lengthList, segmentCount):
     xList = []
     d1List = []
     for i in range(len(lengthList)):
-        v = [lengthList[i], paramList[i], 0.0]
-        d1 = [(lengthList[i+1] - lengthList[i]) if i < len(lengthList)-1 else (lengthList[i] - lengthList[i-1]), 0.0, 0.0]
+        v = [lengthList[i], paramList[i]]
+        d1 = [(lengthList[i+1] - lengthList[i]) if i < len(lengthList)-1 else (lengthList[i] - lengthList[i-1]), 0.0]
         nx.append(v)
         nd1.append(d1)
     smoothd1 = interp.smoothCubicHermiteDerivativesLine(nx, nd1)
