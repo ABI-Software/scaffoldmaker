@@ -393,20 +393,20 @@ class MeshType_3d_colon1(Scaffold_base):
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
         innerRadiusList = [proximalInnerRadius, proximalTransverseInnerRadius, transverseDistalInnerRadius, distalInnerRadius]
-
         innerRadiusSegmentList, dInnerRadiusSegmentList = sampleParameterAlongLength(innerRadiusList, lengthList, segmentCount)
+
         tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
         tcWidthSegmentList, dTCWidthSegmentList = sampleParameterAlongLength(tcWidthList, lengthList, segmentCount)
 
         # Generate inner surface of a colon segment
         tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum,
             elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor)
+            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusSegmentList, dInnerRadiusSegmentList,
+            tcWidthSegmentList, dTCWidthSegmentList)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList, tubeTCWidthList = tubemesh.generatetubemesh(region,
-           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12, innerRadiusSegmentList, dInnerRadiusSegmentList,
-           tcWidthSegmentList, dTCWidthSegmentList, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         if tcCount > 1:

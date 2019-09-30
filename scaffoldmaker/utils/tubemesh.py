@@ -20,8 +20,6 @@ def generatetubemesh(region,
     elementsCountThroughWall,
     segmentCountAlong,
     cx, cd1, cd2, cd12,
-    innerRadiusList, dInnerRadiusList,
-    tcWidthList, dTCWidthList,
     tubeMeshSegmentInnerPoints,
     wallThickness,
     segmentLength,
@@ -41,11 +39,6 @@ def generatetubemesh(region,
     :param cd1: derivative along central line
     :param cd2: derivative representing cross axis
     :param cd12: rate of change of cd2 along cd1
-    :param innerRadiusList: list of inner radius along segments. Inner radius
-    is the radius of the biggest circle that intersects all tenia coli.
-    :param dInnerRadiusList: rate of change of inner radius along segments
-    :param tcWidthList: list of tenia coli width along segments.
-    :param dTCWidthList: rate of change of tenia coli width along segments
     :param tubeMeshSegmentInnerPoints: class function for generating
     coordinates and derivatives on inner surface of segment profile
     :param wallThickness: thickness of wall
@@ -126,22 +119,9 @@ def generatetubemesh(region,
     relaxedLengthList = []
 
     for nSegment in range(segmentCountAlong):
-        # Unpack radius and rate of change of inner radius
-        startInnerRadius = innerRadiusList[nSegment]
-        startInnerRadiusDerivative = dInnerRadiusList[nSegment]
-        endInnerRadius = innerRadiusList[nSegment+1]
-        endInnerRadiusDerivative = dInnerRadiusList[nSegment+1]
-
-        # Unpack tcWidth and rate of change of tcWidth
-        startTCWidth = tcWidthList[nSegment]
-        startTCWidthDerivative = dTCWidthList[nSegment]
-        endTCWidth = tcWidthList[nSegment+1]
-        endTCWidthDerivative = dTCWidthList[nSegment+1]
-
         # Create inner points
-        annotationGroups, annotationArray, transitElementList, uSegment, relaxedLengthSegment, xInner, d1Inner, d2Inner, segmentAxis, sRadius, sTCWidth = tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(startInnerRadius,
-            startInnerRadiusDerivative, endInnerRadius, endInnerRadiusDerivative,
-            startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative)
+        annotationGroups, annotationArray, transitElementList, uSegment, relaxedLengthSegment, xInner, d1Inner, d2Inner, segmentAxis, sRadius, sTCWidth = tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(
+            nSegment)
 
         startIdx = 0 if nSegment == 0 else 1
         u = uSegment[startIdx:len(sRadius)]

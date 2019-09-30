@@ -81,8 +81,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['End inner radius'] = 0.094
             options['Corner inner radius factor'] = 0.0
             options['Haustrum inner radius factor'] = 0.0
-            options['Segment length end derivative factor'] = 0.01 # CHECK LATER
-            options['Segment length mid derivative factor'] = 0.01 # CHECK LATER
+            options['Segment length end derivative factor'] = 0.0
+            options['Segment length mid derivative factor'] = 0.0
             options['Number of tenia coli'] = 1
             options['Start tenia coli width'] = 0.08
             options['End tenia coli width'] = 0.08
@@ -235,12 +235,13 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(region,
             elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor)
+            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            radiusList, dRadiusList, tcWidthList, dTCWidthList)
 
         # Generate tube mesh
         annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList, tubeTCWidthList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
-            radiusList, dRadiusList, tcWidthList, dTCWidthList, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+            tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         if tcCount > 1:
@@ -282,7 +283,8 @@ class TubeMeshSegmentInnerPoints:
     def __init__(self, region, elementsCountAroundTC, elementsCountAroundHaustrum,
     elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor,
     segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
-    cornerInnerRadiusFactor, haustrumInnerRadiusFactor):
+    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusSegmentList,
+    dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList):
 
         self._region = region
         self._elementsCountAroundTC = elementsCountAroundTC
@@ -295,10 +297,24 @@ class TubeMeshSegmentInnerPoints:
         self._wallThickness = wallThickness
         self._cornerInnerRadiusFactor = cornerInnerRadiusFactor
         self._haustrumInnerRadiusFactor = haustrumInnerRadiusFactor
+        self._innerRadiusSegmentList = innerRadiusSegmentList
+        self._dInnerRadiusSegmentList = dInnerRadiusSegmentList
+        self._tcWidthSegmentList = tcWidthSegmentList
+        self._dTCWidthSegmentList = dTCWidthSegmentList
 
-    def getTubeMeshSegmentInnerPoints(self, startRadius, startRadiusDerivative,
-        endRadius, endRadiusDerivative, startTCWidth, startTCWidthDerivative,
-        endTCWidth, endTCWidthDerivative):
+    def getTubeMeshSegmentInnerPoints(self, nSegment):
+
+        # Unpack radius and rate of change of inner radius
+        startRadius = self._innerRadiusSegmentList[nSegment]
+        startRadiusDerivative = self._dInnerRadiusSegmentList[nSegment]
+        endRadius = self._innerRadiusSegmentList[nSegment+1]
+        endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
+
+        # Unpack tcWidth and rate of change of tcWidth
+        startTCWidth = self._tcWidthSegmentList[nSegment]
+        startTCWidthDerivative = self._dTCWidthSegmentList[nSegment]
+        endTCWidth = self._tcWidthSegmentList[nSegment+1]
+        endTCWidthDerivative = self._dTCWidthSegmentList[nSegment+1]
 
         return getColonSegmentInnerPoints(self._region, self._elementsCountAroundTC,
             self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
