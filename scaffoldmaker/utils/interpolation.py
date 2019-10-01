@@ -788,15 +788,15 @@ def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
     magm = arcLengtha + arcLengthb - 0.5*(maga + magb)
     return vector.setMagnitude(md1, magm)
 
-def sampleParameterAlongCenterLine(paramList, lengthList, outputElementsCount):
+def sampleParameterAlongLine(lengthList, paramList, outputElementsCount):
     """
     Generates cubic hermite curve using parameter values in paramList at each
-    location along on the center line as defined in lengthList. The function
+    location along a line as defined in lengthList. The function
     generates parameter value and derivative at equally spaced points along the
-    center line.
+    line.
+    :param lengthList: List of length locations along a line.
     :param paramList: List of parameter values at length locations specified
     in lengthList.
-    :param lengthList: List of length locations along center line.
     :param outputElementsCount: Number of output elements along total length.
     :return paramList, dParamList: Parameter values and rate of change at each
     sampled point.
@@ -838,7 +838,7 @@ def sampleParameterAlongCenterLine(paramList, lengthList, outputElementsCount):
                 d1List.append(d1)
                 break
         if iter > 99:
-            print('Search for sampleParameterAlongCenterLine - Max iters reached:',iter)
+            print('Search for sampleParameterAlongLine - Max iters reached:',iter)
     smoothdList = smoothCubicHermiteDerivativesLine(xList, d1List)
 
     paramList = [c[1] for c in xList]

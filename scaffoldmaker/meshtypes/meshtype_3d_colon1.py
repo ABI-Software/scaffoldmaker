@@ -393,10 +393,10 @@ class MeshType_3d_colon1(Scaffold_base):
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
         innerRadiusList = [proximalInnerRadius, proximalTransverseInnerRadius, transverseDistalInnerRadius, distalInnerRadius]
-        innerRadiusSegmentList, dInnerRadiusSegmentList = interp.sampleParameterAlongCenterLine(innerRadiusList, lengthList, segmentCount)
+        innerRadiusSegmentList, dInnerRadiusSegmentList = interp.sampleParameterAlongLine(lengthList, innerRadiusList, segmentCount)
 
         tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
-        tcWidthSegmentList, dTCWidthSegmentList = interp.sampleParameterAlongCenterLine(tcWidthList, lengthList, segmentCount)
+        tcWidthSegmentList, dTCWidthSegmentList = interp.sampleParameterAlongLine(lengthList, tcWidthList, segmentCount)
 
         # Generate inner surface of a colon segment
         tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum,
