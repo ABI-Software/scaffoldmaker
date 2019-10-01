@@ -244,7 +244,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
-        if tcCount > 1:
+        if tcCount != 1:
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, segmentCount,
                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall, wallThickness,
@@ -413,7 +413,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     relaxedLengthList = []
 
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
-    if tcCount < 2:
+    if tcCount == 1:
         for n2 in range(elementsCountAlongSegment + 1):
             xHalfSet, d1HalfSet = createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
                 tcCount, sTCWidthAlongSegment[n2], sRadiusAlongSegment[n2], cornerInnerRadiusFactor, sampleElementOut)
