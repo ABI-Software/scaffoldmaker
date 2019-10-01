@@ -281,10 +281,10 @@ class TubeMeshSegmentInnerPoints:
     """
 
     def __init__(self, region, elementsCountAroundTC, elementsCountAroundHaustrum,
-    elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor,
-    segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
-    cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusSegmentList,
-    dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList):
+        elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor,
+        segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
+        cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusSegmentList,
+        dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList):
 
         self._region = region
         self._elementsCountAroundTC = elementsCountAroundTC
