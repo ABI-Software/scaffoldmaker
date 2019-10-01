@@ -393,10 +393,10 @@ class MeshType_3d_colon1(Scaffold_base):
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
         innerRadiusList = [proximalInnerRadius, proximalTransverseInnerRadius, transverseDistalInnerRadius, distalInnerRadius]
-        innerRadiusSegmentList, dInnerRadiusSegmentList = sampleParameterAlongLength(innerRadiusList, lengthList, segmentCount)
+        innerRadiusSegmentList, dInnerRadiusSegmentList = interp.sampleParameterAlongCenterLine(innerRadiusList, lengthList, segmentCount)
 
         tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
-        tcWidthSegmentList, dTCWidthSegmentList = sampleParameterAlongLength(tcWidthList, lengthList, segmentCount)
+        tcWidthSegmentList, dTCWidthSegmentList = interp.sampleParameterAlongCenterLine(tcWidthList, lengthList, segmentCount)
 
         # Generate inner surface of a colon segment
         tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum,
@@ -440,59 +440,3 @@ class MeshType_3d_colon1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
-
-def sampleParameterAlongLength(paramList, lengthList, segmentCount):
-    """
-    Generate parameter value and rate of change at segment intersections
-    along total length. Parameter is assumed to vary with a cubic hermite
-    function.
-    :param paramList: List of parameter values at length locations specified
-    in lengthList.
-    :param lengthList: List of length locations.
-    :param segmentCount: Number of segments along total length.
-    :return paramList, dParamList: Parameter values and rate of change at each segment.
-    """
-
-    nx = []
-    nd1 = []
-    xList = []
-    d1List = []
-    for i in range(len(lengthList)):
-        v = [lengthList[i], paramList[i]]
-        d1 = [(lengthList[i+1] - lengthList[i]) if i < len(lengthList)-1 else (lengthList[i] - lengthList[i-1]), 0.0]
-        nx.append(v)
-        nd1.append(d1)
-    smoothd1 = interp.smoothCubicHermiteDerivativesLine(nx, nd1)
-
-    # Get total arclength
-    arcLength = 0.0
-    for e in range(len(nx)-1):
-        arcLength += interp.getCubicHermiteArcLength(nx[e], smoothd1[e], nx[e + 1], smoothd1[e + 1])
-
-    # Find parameter value at each segment
-    xTol = 1.0E-6
-    for n in range(segmentCount + 1):
-        arcStart = 0.0
-        arcEnd = arcLength
-        xi = 1.0/segmentCount * n
-        for iter in range(100):
-            arcDistance = (arcStart + arcEnd)*0.5
-            x, d1, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, smoothd1, arcDistance)
-            diff = x[0] - xi*lengthList[-1]
-            if abs(diff) > xTol:
-                if diff < 0.0:
-                    arcStart = arcDistance
-                else:
-                    arcEnd = arcDistance
-            else:
-                xList.append(x)
-                d1List.append(d1)
-                break
-        if iter > 99:
-            print('Search for sampleParameterAlongLength - Max iters reached:',iter)
-    smoothdList = interp.smoothCubicHermiteDerivativesLine(xList, d1List)
-
-    paramList = [c[1] for c in xList]
-    dParamList = [c[1] for c in smoothdList]
-
-    return paramList, dParamList

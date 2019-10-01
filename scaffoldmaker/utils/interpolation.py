@@ -787,3 +787,61 @@ def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
     magb = vector.magnitude(bd1)
     magm = arcLengtha + arcLengthb - 0.5*(maga + magb)
     return vector.setMagnitude(md1, magm)
+
+def sampleParameterAlongCenterLine(paramList, lengthList, outputElementsCount):
+    """
+    Generates cubic hermite curve using parameter values in paramList at each
+    location along on the center line as defined in lengthList. The function
+    generates parameter value and derivative at equally spaced points along the
+    center line.
+    :param paramList: List of parameter values at length locations specified
+    in lengthList.
+    :param lengthList: List of length locations along center line.
+    :param outputElementsCount: Number of output elements along total length.
+    :return paramList, dParamList: Parameter values and rate of change at each
+    sampled point.
+    """
+
+    nx = []
+    nd1 = []
+    xList = []
+    d1List = []
+    for i in range(len(lengthList)):
+        v = [lengthList[i], paramList[i]]
+        d1 = [(lengthList[i+1] - lengthList[i]) if i < len(lengthList)-1 else (lengthList[i] - lengthList[i-1]), 0.0]
+        nx.append(v)
+        nd1.append(d1)
+    smoothd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
+
+    # Get total arclength
+    arcLength = 0.0
+    for e in range(len(nx)-1):
+        arcLength += getCubicHermiteArcLength(nx[e], smoothd1[e], nx[e + 1], smoothd1[e + 1])
+
+    # Find parameter value at each segment
+    xTol = 1.0E-6
+    for n in range(outputElementsCount + 1):
+        arcStart = 0.0
+        arcEnd = arcLength
+        xi = 1.0/outputElementsCount * n
+        for iter in range(100):
+            arcDistance = (arcStart + arcEnd)*0.5
+            x, d1, _, _ = getCubicHermiteCurvesPointAtArcDistance(nx, smoothd1, arcDistance)
+            diff = x[0] - xi*lengthList[-1]
+            if abs(diff) > xTol:
+                if diff < 0.0:
+                    arcStart = arcDistance
+                else:
+                    arcEnd = arcDistance
+            else:
+                xList.append(x)
+                d1List.append(d1)
+                break
+        if iter > 99:
+            print('Search for sampleParameterAlongCenterLine - Max iters reached:',iter)
+    smoothdList = smoothCubicHermiteDerivativesLine(xList, d1List)
+
+    paramList = [c[1] for c in xList]
+    dParamList = [c[1] for c in smoothdList]
+
+    return paramList, dParamList
