@@ -405,11 +405,12 @@ class MeshType_3d_colon1(Scaffold_base):
             tcWidthSegmentList, dTCWidthSegmentList)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList, tubeTCWidthList = tubemesh.generatetubemesh(region,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList = tubemesh.generatetubemesh(region,
            elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         if tcCount != 1:
+            tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                 useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, segmentCount, elementsCountAroundTC, elementsCountAroundHaustrum,
                 elementsCountAlong, elementsCountThroughWall, wallThickness, tubeTCWidthList, tcThickness, sx, curvatureAlong, factorList,

@@ -52,7 +52,6 @@ def generatetubemesh(region,
     for each node on inner surface of mesh.
     :return uList: list of xi for each node around mid-length haustra.
     :return relaxedLengthList: list of lengths around elements along tube length.
-    :return tubeTCWidthList: list of tenia coli width for elements along tube length.
     '''
 
     zero  = [0.0, 0.0, 0.0]
@@ -112,15 +111,13 @@ def generatetubemesh(region,
     smoothd2Raw = []
     smoothd2InnerList = []
     d1List = []
-    widthList = []
     flatWidthListOuter = []
-    tubeTCWidthList = []
     uList = []
     relaxedLengthList = []
 
     for nSegment in range(segmentCountAlong):
         # Create inner points
-        annotationGroups, annotationArray, transitElementList, uSegment, relaxedLengthSegment, xInner, d1Inner, d2Inner, segmentAxis, sRadius, sTCWidth = tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(
+        annotationGroups, annotationArray, transitElementList, uSegment, relaxedLengthSegment, xInner, d1Inner, d2Inner, segmentAxis, sRadius = tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(
             nSegment)
 
         startIdx = 0 if nSegment == 0 else 1
@@ -129,10 +126,6 @@ def generatetubemesh(region,
 
         relaxedLength = relaxedLengthSegment[startIdx:len(sRadius)]
         relaxedLengthList.append(relaxedLength)
-
-        for i in range(startIdx, len(sRadius)):
-            widthList.append([segmentLength/elementsCountAlongSegment*i+nSegment*segmentLength, relaxedLength[i-1], 0.0])
-            tubeTCWidthList.append(sTCWidth[i])
 
         # Map each face along inner points to central line
         for nAlongSegment in range(elementsCountAlongSegment + 1):
@@ -496,7 +489,7 @@ def generatetubemesh(region,
 
     fm.endChange()
 
-    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList, uList, relaxedLengthList, tubeTCWidthList
+    return annotationGroups, nodeIdentifier, elementIdentifier, xList, dx_ds1List, dx_ds2List, dx_ds3List, sx, curvatureAlong, factorList, uList, relaxedLengthList
 
 def getOuterCoordinatesAndCurvatureFromInner(xInner, d1Inner, d3Inner, wallThickness, elementsCountAlong, elementsCountAround, transitElementList):
     """

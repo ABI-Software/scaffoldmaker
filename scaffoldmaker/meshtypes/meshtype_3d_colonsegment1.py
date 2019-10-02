@@ -239,12 +239,13 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             radiusList, dRadiusList, tcWidthList, dTCWidthList)
 
         # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList, tubeTCWidthList = tubemesh.generatetubemesh(region,
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList = tubemesh.generatetubemesh(region,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12,
             tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
 
         # Generate tenia coli
         if tcCount != 1:
+            tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
             annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
                useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, segmentCount,
                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall, wallThickness,
@@ -301,6 +302,7 @@ class TubeMeshSegmentInnerPoints:
         self._dInnerRadiusSegmentList = dInnerRadiusSegmentList
         self._tcWidthSegmentList = tcWidthSegmentList
         self._dTCWidthSegmentList = dTCWidthSegmentList
+        self._tubeTCWidthList = []
 
     def getTubeMeshSegmentInnerPoints(self, nSegment):
 
@@ -316,13 +318,23 @@ class TubeMeshSegmentInnerPoints:
         endTCWidth = self._tcWidthSegmentList[nSegment+1]
         endTCWidthDerivative = self._dTCWidthSegmentList[nSegment+1]
 
-        return getColonSegmentInnerPoints(self._region, self._elementsCountAroundTC,
+        annotationGroups, annotationArray, transitElementList, uSegment, relaxedLengthSegment, xInner, d1Inner, d2Inner, segmentAxis, sRadius, sTCWidth = getColonSegmentInnerPoints(self._region, self._elementsCountAroundTC,
             self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
             self._tcCount, self._segmentLengthEndDerivativeFactor,
             self._segmentLengthMidDerivativeFactor, self._segmentLength, self._wallThickness,
             self._cornerInnerRadiusFactor, self._haustrumInnerRadiusFactor,
             startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
             startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative)
+
+        startIdx = 0 if nSegment == 0 else 1
+        for i in range(startIdx, self._elementsCountAlongSegment + 1):
+            self._tubeTCWidthList.append(sTCWidth[i])
+
+        return annotationGroups, annotationArray, transitElementList, uSegment, relaxedLengthSegment, xInner, d1Inner, d2Inner, segmentAxis, sRadius
+
+    def getTubeTCWidthList(self):
+        return self._tubeTCWidthList
+
 
 def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     elementsCountAroundHaustrum, elementsCountAlongSegment,
