@@ -6,7 +6,7 @@ variable radius and thickness along.
 
 import copy
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, TubeMeshSegmentInnerPoints, getTeniaColi
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, TubeMeshSegmentInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -369,6 +369,10 @@ class MeshType_3d_colon1(Scaffold_base):
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
 
+        firstNodeIdentifier = 1
+        firstElementIdentifier = 1
+
+        # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
         cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
@@ -390,6 +394,9 @@ class MeshType_3d_colon1(Scaffold_base):
         segmentLength = length / segmentCount
         # print('Length = ', length)
 
+        # Sample central path
+        sx, sd1, sd2, curvatureAlong = tubemesh.sampleCentralPath(cx, cd1, cd2, cd12, elementsCountAlongSegment*segmentCount)
+
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
         innerRadiusList = [proximalInnerRadius, proximalTransverseInnerRadius, transverseDistalInnerRadius, distalInnerRadius]
@@ -398,25 +405,76 @@ class MeshType_3d_colon1(Scaffold_base):
         tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
         tcWidthSegmentList, dTCWidthSegmentList = interp.sampleParameterAlongLine(lengthList, tcWidthList, segmentCount)
 
-        # Generate inner surface of a colon segment
-        tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum,
-            elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusSegmentList, dInnerRadiusSegmentList,
-            tcWidthSegmentList, dTCWidthSegmentList)
+        xExtrude = []
+        d1Extrude = []
+        d2Extrude = []
+        d3UnitExtrude = []
 
-        # Generate tube mesh
-        annotationGroups, nextNodeIdentifier, nextElementIdentifier, xList, d1List, d2List, d3List, sx, curvatureAlong, factorList, uList, relaxedLengthList = tubemesh.generatetubemesh(region,
-           elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, segmentCount, cx, cd1, cd2, cd12, tubeMeshSegmentInnerPoints, wallThickness, segmentLength, useCrossDerivatives, useCubicHermiteThroughWall)
+        # Create object
+        tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(
+            region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
+            tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
+            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            innerRadiusSegmentList, dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList)
 
-        # Generate tenia coli
+        for nSegment in range(segmentCount):
+            # Create inner points
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray = \
+                tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(nSegment)
+
+            # Warp segment points
+            xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
+                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
+                elementsCountAround, elementsCountAlongSegment, nSegment)
+
+            # Store points along length
+            xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
+            d1Extrude = d1Extrude + (d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:])
+            d2Extrude = d2Extrude + (d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:])
+            d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:])
+
+        contractedWallThicknessList = tubeMeshSegmentInnerPoints.getContractedWallThicknessList()
+
+        # Create coordinates and derivatives
+        xList, d1List, d2List, d3List = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
+            d2Extrude, d3UnitExtrude, sx, curvatureAlong, contractedWallThicknessList,
+            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
+
+        relaxedLengthList, xiList = tubeMeshSegmentInnerPoints.getRelaxedLengthAndXiList()
+
         if tcCount != 1:
+            # Create tenia coli
             tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
-            annotationGroupsTC, nextNodeIdentifier, nextElementIdentifier = getTeniaColi(region, nextNodeIdentifier, nextElementIdentifier,
-                useCrossDerivatives, useCubicHermiteThroughWall, xList, d1List, d2List, d3List, segmentCount, elementsCountAroundTC, elementsCountAroundHaustrum,
-                elementsCountAlong, elementsCountThroughWall, wallThickness, tubeTCWidthList, tcThickness, sx, curvatureAlong, factorList,
-                length, tcCount, uList, relaxedLengthList)
+            xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
+                region, xList, d1List, d2List, d3List, tcCount, elementsCountAroundTC,
+                elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
+                tubeTCWidthList, tcThickness, sx, curvatureAlong, annotationGroups, annotationArray)
 
-            annotationGroups += annotationGroupsTC
+            # Create flat and texture coordinates
+            xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
+                xiList, relaxedLengthList, length, wallThickness, tcCount, tcThickness,
+                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
+                elementsCountThroughWall, transitElementList)
+
+            # Create nodes and elements
+            nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
+                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
+                tcCount, annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
+                useCubicHermiteThroughWall, useCrossDerivatives)
+
+        else:
+            # Create flat and texture coordinates
+            xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
+                xiList, relaxedLengthList, length, wallThickness, elementsCountAround,
+                elementsCountAlong, elementsCountThroughWall, transitElementList)
+
+            # Create nodes and elements
+            nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
+                elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
+                useCubicHermiteThroughWall, useCrossDerivatives)
 
         return annotationGroups
 
