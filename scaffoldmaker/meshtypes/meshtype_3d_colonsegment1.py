@@ -53,22 +53,22 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements around haustrum' : 8,
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
-            'Start inner radius': 1.0,
+            'Start inner radius': 10.0,
             'Start inner radius derivative': 0.0,
-            'End inner radius': 1.5,
+            'End inner radius': 15.0,
             'End inner radius derivative': 0.0,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
             'Segment length end derivative factor': 0.5,
-            'Segment length mid derivative factor': 2.0,
-            'Segment length': 1.5,
+            'Segment length mid derivative factor': 3.0,
+            'Segment length': 15,
             'Number of tenia coli': 3,
-            'Start tenia coli width': 0.2,
+            'Start tenia coli width': 2.0,
             'Start tenia coli width derivative': 0.0,
-            'End tenia coli width': 0.2,
+            'End tenia coli width': 2.0,
             'End tenia coli width derivative': 0.0,
-            'Tenia coli thickness': 0.03,
-            'Wall thickness': 0.02,
+            'Tenia coli thickness': 0.3,
+            'Wall thickness': 0.2,
             'Use cross derivatives' : False,
             'Use linear through wall' : True,
             'Refine' : False,
@@ -77,29 +77,29 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Refine number of elements through wall' : 1
         }
         if 'Mouse' in parameterSetName:
-            options['Start inner radius'] = 0.094
-            options['End inner radius'] = 0.094
+            options['Start inner radius'] = 0.94
+            options['End inner radius'] = 0.94
             options['Corner inner radius factor'] = 0.0
             options['Haustrum inner radius factor'] = 0.0
             options['Segment length end derivative factor'] = 0.0
             options['Segment length mid derivative factor'] = 0.0
             options['Number of tenia coli'] = 1
-            options['Start tenia coli width'] = 0.08
-            options['End tenia coli width'] = 0.08
+            options['Start tenia coli width'] = 0.8
+            options['End tenia coli width'] = 0.8
             options['Tenia coli thickness'] = 0.0
-            options['Wall thickness'] = 0.055
+            options['Wall thickness'] = 0.55
         elif 'Pig' in parameterSetName:
-            options['Start inner radius'] = 0.9
-            options['End inner radius'] = 0.9
+            options['Start inner radius'] = 9.0
+            options['End inner radius'] = 9.0
             options['Corner inner radius factor'] = 0.0
             options['Haustrum inner radius factor'] = 0.2
             options['Segment length end derivative factor'] = 0.8
             options['Segment length mid derivative factor'] = 1.0
             options['Number of tenia coli'] = 2
-            options['Start tenia coli width'] = 0.5
-            options['End tenia coli width'] = 0.5
-            options['Tenia coli thickness'] = 0.05
-            options['Wall thickness'] = 0.2
+            options['Start tenia coli width'] = 5.0
+            options['End tenia coli width'] = 5.0
+            options['Tenia coli thickness'] = 0.5
+            options['Wall thickness'] = 2.0
         return options
 
     @staticmethod
@@ -566,8 +566,6 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
         # Sample arclength of haustra segment
         elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
 
-        xTest = []
-        d1Test = []
         for n1 in range(elementsCountAroundHalfHaustrum + 1):
             radiansAround = (math.pi*2/(tcCount*2)) / elementsCountAroundHalfHaustrum * n1
             d2Start = [ sdRadius[0]*0.5, 0.0, segmentLength*0.5 ]
@@ -581,11 +579,9 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 d2MidRot = matrix.rotateAboutZAxis(d2Mid, radiansAround)
                 d2EndRot = matrix.rotateAboutZAxis(d2End, radiansAround)
 
-                startArcLength = segmentLengthEndDerivativeFactor * segmentLength
-                midArcLength = segmentLengthMidDerivativeFactor * segmentLength
-                d1 = [ c*startArcLength for c in d2StartRot ]
-                d2 = [ c*midArcLength for c in d2MidRot ]
-                d3 = [ c*startArcLength for c in d2EndRot ]
+                d1 = [ c*segmentLengthEndDerivativeFactor for c in d2StartRot ]
+                d2 = [ c*segmentLengthMidDerivativeFactor for c in d2MidRot ]
+                d3 = [ c*segmentLengthEndDerivativeFactor for c in d2EndRot ]
 
             else:
                 # Tenia coli do not have haustra so not subjected to derivative scaling along segment
