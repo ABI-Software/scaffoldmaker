@@ -12,6 +12,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.node import Node
 
@@ -430,8 +431,27 @@ class MeshType_3d_colon1(Scaffold_base):
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
             d1Extrude = d1Extrude + (d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:])
-            d2Extrude = d2Extrude + (d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:])
-            d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:])
+
+            # Smooth d2 for nodes between segments and recalculate d3
+            if nSegment == 0:
+                d2Extrude = d2Extrude + (d2WarpedList[:-elementsCountAround])
+                d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[:-elementsCountAround])
+            else:
+                xSecondFace = xWarpedList[elementsCountAround:elementsCountAround*2]
+                d1SecondFace = d1WarpedList[elementsCountAround:elementsCountAround*2]
+                d2SecondFace = d2WarpedList[elementsCountAround:elementsCountAround*2]
+                for n1 in range(elementsCountAround):
+                    nx = [xLastTwoFaces[n1], xLastTwoFaces[n1 + elementsCountAround], xSecondFace[n1]]
+                    nd2 = [d2LastTwoFaces[n1], d2LastTwoFaces[n1 + elementsCountAround], d2SecondFace[n1]]
+                    d2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)[1]
+                    d2Extrude.append(d2)
+                    d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1LastTwoFaces[n1 + elementsCountAround]), vector.normalise(d2)))
+                    d3UnitExtrude.append(d3Unit)
+                d2Extrude = d2Extrude + (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else d2WarpedList[elementsCountAround:])
+                d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else d3WarpedUnitList[elementsCountAround:])
+            xLastTwoFaces = xWarpedList[-elementsCountAround*2:]
+            d1LastTwoFaces = d1WarpedList[-elementsCountAround*2:]
+            d2LastTwoFaces = d2WarpedList[-elementsCountAround*2:]
 
         contractedWallThicknessList = tubeMeshSegmentInnerPoints.getContractedWallThicknessList()
 

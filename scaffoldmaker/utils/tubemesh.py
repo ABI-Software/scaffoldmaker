@@ -69,7 +69,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     smoothd2WarpedList = []
     d3WarpedUnitList = []
 
-    startIdx = 0 if nSegment == 0 else 1
     for nAlongSegment in range(elementsCountAlongSegment + 1):
         n2 = elementsCountAlongSegment * nSegment + nAlongSegment
         xElementAlongSegment = xList[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
@@ -96,7 +95,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
                 midRot = xMid
         translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
 
-        for n1 in range(len(xElementAlongSegment)):
+        for n1 in range(elementsCountAround):
             x = xElementAlongSegment[n1]
             d1 = d1ElementAlongSegment[n1]
             d2 = d2ElementAlongSegment[n1]
@@ -152,7 +151,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     for n1 in range(elementsCountAround):
         nx = []
         nd2 = []
-        nIdx = []
         for n2 in range(elementsCountAlongSegment + 1):
             n = n2*elementsCountAround + n1
             nx.append(xWarpedList[n])
@@ -171,6 +169,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         d3WarpedUnitList.append(d3Unit)
 
     return xWarpedList, d1WarpedList, smoothd2WarpedList, d3WarpedUnitList
+
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     sx, curvatureAlong, wallThicknessList, elementsCountAround,
