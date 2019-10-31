@@ -396,7 +396,8 @@ class MeshType_3d_colon1(Scaffold_base):
         # print('Length = ', length)
 
         # Sample central path
-        sx, sd1, sd2, curvatureAlong = tubemesh.sampleCentralPath(cx, cd1, cd2, cd12, elementsCountAlongSegment*segmentCount)
+        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
+        sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
 
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
@@ -456,8 +457,8 @@ class MeshType_3d_colon1(Scaffold_base):
         contractedWallThicknessList = tubeMeshSegmentInnerPoints.getContractedWallThicknessList()
 
         # Create coordinates and derivatives
-        xList, d1List, d2List, d3List = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, sx, curvatureAlong, contractedWallThicknessList,
+        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
+            d2Extrude, d3UnitExtrude, sx, contractedWallThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = tubeMeshSegmentInnerPoints.getRelaxedLengthAndXiList()
@@ -466,9 +467,9 @@ class MeshType_3d_colon1(Scaffold_base):
             # Create tenia coli
             tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
             xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
-                region, xList, d1List, d2List, d3List, tcCount, elementsCountAroundTC,
+                region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sx, curvatureAlong, annotationGroups, annotationArray)
+                tubeTCWidthList, tcThickness, sx, annotationGroups, annotationArray)
 
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(

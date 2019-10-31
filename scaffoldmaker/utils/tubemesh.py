@@ -14,37 +14,6 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-def sampleCentralPath(cx, cd1, cd2, cd12, elementsCountOut):
-    """
-    Get systematically spaced points, derivatives and curvature
-    over a central path with nodes cx and derivatives cd1, cd2
-    and cd12.
-    :param cx: coordinates on central path
-    :param cd1: derivative along central path
-    :param cd2: derivative representing cross axis
-    :param cd12: rate of change of cd2 along cd1
-    :param elementsCountOut: Number of output elements
-    : return coordinates, derivatives and curvature on spaced points
-    """
-
-    curvatureAlong = []
-
-    sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountOut)
-    sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
-
-    # Find curvature along central path
-    for n2 in range(elementsCountOut + 1):
-        if n2 == 0:
-            curvature = abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0))
-        elif n2 == elementsCountOut:
-            curvature = abs(interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], vector.normalise(sd2[n2]), 1.0))
-        else:
-            curvature = 0.5*(
-                abs(interp.getCubicHermiteCurvature(sx[n2-1], sd1[n2-1], sx[n2], sd1[n2], vector.normalise(sd2[n2]), 1.0)) +
-                abs(interp.getCubicHermiteCurvature(sx[n2], sd1[n2], sx[n2+1], sd1[n2+1], vector.normalise(sd2[n2]), 0.0)))
-        curvatureAlong.append(curvature)
-
-    return sx, sd1, sd2, curvatureAlong
 
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment, nSegment):
@@ -172,7 +141,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
 
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
-    sx, curvatureAlong, wallThicknessList, elementsCountAround,
+    sx, wallThicknessList, elementsCountAround,
     elementsCountAlong, elementsCountThroughWall, transitElementList):
     """
     Generates coordinates from inner to outer surface using coordinates
@@ -182,18 +151,19 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     :param d2Inner: Derivatives on inner surface along tube
     :param d3Inner: Derivatives on inner surface through wall
     :param sx: coordinates of points on central path.
-    :param curvatureAlong: curvature along central path.
     :param wallThicknessList: Wall thickness for each element along tube
     :param elementsCountAround: Number of elements around tube
     :param elementsCountAlong: Number of elements along tube
     :param elementsCountThroughWall: Number of elements through tube wall
     :param transitElementList: stores true if element around is a transition
     element that is between a big and a small element.
-    return nodes and derivatives for mesh.
+    return nodes and derivatives for mesh, and curvature along inner surface.
     """
 
     xOuter = []
     curvatureAroundInner = []
+    curvatureAlong = []
+    curvatureList = []
     xList = []
     d1List = []
     d2List = []
@@ -220,6 +190,17 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
                 curvatureAround = kappap
             curvatureAroundInner.append(curvatureAround)
 
+            # Calculate curvature along
+            if n2 == 0:
+                curvature = abs(interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround], d2Inner[n + elementsCountAround], vector.normalise(d3Inner[n]), 0.0))
+            elif n2 == elementsCountAlong:
+                curvature = abs(interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround], xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0))
+            else:
+                curvature = 0.5*(
+                    abs(interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround], xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0)) +
+                    abs(interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround], d2Inner[n + elementsCountAround], vector.normalise(d3Inner[n]), 0.0)))
+            curvatureAlong.append(curvature)
+
         for n3 in range(elementsCountThroughWall + 1):
             xi3 = 1/elementsCountThroughWall * n3
             for n1 in range(elementsCountAround):
@@ -238,18 +219,18 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
                 d1List.append(d1)
 
                 # dx_ds2
-                curvature = curvatureAlong[n2]
-                distance = vector.magnitude([x[i] - sx[n2][i] for i in range(3)])
-                factor = 1.0 + curvature*distance
+                curvature = curvatureAlong[n]
+                distance = vector.magnitude([x[i] - xInner[n][i] for i in range(3)])
+                factor = 1.0 - curvature*distance
                 d2 = [ factor*c for c in d2Inner[n]]
                 d2List.append(d2)
-                # factorList.append(factor)
+                curvatureList.append(curvature)
 
                 #dx_ds3
                 d3 = [c * wallThickness/elementsCountThroughWall for c in norm]
                 d3List.append(d3)
 
-    return xList, d1List, d2List, d3List
+    return xList, d1List, d2List, d3List, curvatureList
 
 def createFlatAndTextureCoordinates(xiList, lengthAroundList,
     totalLengthAlong, wallThickness, elementsCountAround,

@@ -228,8 +228,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Sample central path
-        sx, sd1, sd2, curvatureAlong = tubemesh.sampleCentralPath(
-            cx, cd1, cd2, cd12, elementsCountAlongSegment*segmentCount)
+        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
+        sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
 
         # Radius and tenia coli width along segment length
         radiusList = [startRadius, endRadius]
@@ -256,8 +256,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         contractedWallThicknessList = tubeMeshSegmentInnerPoints.getContractedWallThicknessList()
 
         # Create coordinates and derivatives
-        xList, d1List, d2List, d3List = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
-            d2WarpedList, d3WarpedUnitList, sx, curvatureAlong, contractedWallThicknessList,
+        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
+            d2WarpedList, d3WarpedUnitList, sx, contractedWallThicknessList,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = tubeMeshSegmentInnerPoints.getRelaxedLengthAndXiList()
@@ -266,9 +266,9 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             # Create tenia coli
             tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
             xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
-                region, xList, d1List, d2List, d3List, tcCount, elementsCountAroundTC,
+                region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sx, curvatureAlong, annotationGroups, annotationArray)
+                tubeTCWidthList, tcThickness, sx, annotationGroups, annotationArray)
 
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
@@ -1139,10 +1139,10 @@ def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
 
     return xiList, totalArcLengthOuter
 
-def getTeniaColi(region, xList, d1List, d2List, d3List, tcCount,
-    elementsCountAroundTC, elementsCountAroundHaustrum,
+def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
+    tcCount, elementsCountAroundTC, elementsCountAroundHaustrum,
     elementsCountAlong, elementsCountThroughWall,
-    tubeTCWidthList, tcThickness, sx, curvatureAlong,
+    tubeTCWidthList, tcThickness, sx,
     annotationGroups, annotationArray):
     """
     Create equally spaced points for tenia coli over the outer
@@ -1157,6 +1157,7 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, tcCount,
     along its length.
     :param xList, d1List, d2List, d3List: Coordinates and derivatives of nodes
     on haustra.
+    :param curvatureList: Curvature of points along length.
     :param tcCount: Number of tenia coli.
     :param elementsCountAroundTC: Number of elements around tenia coli.
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
@@ -1165,7 +1166,6 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, tcCount,
     :param tubeTCWidthList: List of tenia coli width along tube length.
     :param tcThickness: Thickness of tenia coli at its thickest part.
     :param sx: Coordinates of central path.
-    :param curvatureAlong: Curvature along central path.
     :param annotationGroups, annotationArray: annotations for tube
     :return: coordinates, derivatives, annotationGroups for colon with tenia
     coli.
@@ -1215,13 +1215,10 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, tcCount,
                 d3List[xTCInnerSet[n]] = d3
 
                 innerIdx = xTCInnerSet[n] - elementsCountThroughWall*elementsCountAround
-                curvature = curvatureAlong[n2]
-                distanceToInnerIdx = vector.magnitude([xList[innerIdx][i] - sx[n2][i] for i in range(3)])
-                factor = 1.0 + curvature*distanceToInnerIdx
-                d2Unscaled = [1.0/factor*c for c in d2List[innerIdx]]
-                distance = vector.magnitude([xTCOuter[i] - sx[n2][i] for i in range(3)])
-                factor = 1.0 + curvature*distance
-                d2 = [ factor*c for c in d2Unscaled ]
+                curvature = curvatureList[innerIdx]
+                distanceToInnerIdx = vector.magnitude([xTCOuter[i] - xList[innerIdx][i] for i in range(3)])
+                factor = 1.0 - curvature*distanceToInnerIdx
+                d2 = [factor*c for c in d2List[innerIdx]]
                 d2TCRaw.append(d2)
 
         xTCArranged = xTCArranged + xTCRaw[int(elementsCountAroundTC*0.5 -1):] + xTCRaw[:int(elementsCountAroundTC*0.5 -1)]
