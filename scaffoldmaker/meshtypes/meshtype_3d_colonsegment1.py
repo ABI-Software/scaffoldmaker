@@ -53,22 +53,22 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements around haustrum' : 8,
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
-            'Start inner radius': 10.0,
+            'Start inner radius': 43.5,
             'Start inner radius derivative': 0.0,
-            'End inner radius': 15.0,
+            'End inner radius': 33.0,
             'End inner radius derivative': 0.0,
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.5,
             'Segment length end derivative factor': 0.5,
             'Segment length mid derivative factor': 3.0,
-            'Segment length': 15,
+            'Segment length': 50.0,
             'Number of tenia coli': 3,
-            'Start tenia coli width': 2.0,
+            'Start tenia coli width': 10.0,
             'Start tenia coli width derivative': 0.0,
-            'End tenia coli width': 2.0,
+            'End tenia coli width': 10.0,
             'End tenia coli width derivative': 0.0,
-            'Tenia coli thickness': 0.3,
-            'Wall thickness': 0.2,
+            'Tenia coli thickness': 1.6,
+            'Wall thickness': 1.6,
             'Use cross derivatives' : False,
             'Use linear through wall' : True,
             'Refine' : False,
@@ -95,6 +95,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['Haustrum inner radius factor'] = 0.2
             options['Segment length end derivative factor'] = 0.8
             options['Segment length mid derivative factor'] = 1.0
+            options['Segment length'] = 15.0
             options['Number of tenia coli'] = 2
             options['Start tenia coli width'] = 5.0
             options['End tenia coli width'] = 5.0
