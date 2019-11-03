@@ -263,8 +263,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
 
         relaxedLengthList, xiList = tubeMeshSegmentInnerPoints.getRelaxedLengthAndXiList()
 
-        if tcCount != 1:
-            # Create tenia coli
+        if tcThickness > 0:
             tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
             xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
