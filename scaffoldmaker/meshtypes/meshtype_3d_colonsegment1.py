@@ -1707,11 +1707,11 @@ def createNodesAndElementsTeniaColi(region,
             element.merge(textureElementtemplate1 if eTC < int(elementsCountAroundTC*0.5) - 1 else textureElementtemplate3)
             element.setNodesByIdentifier(eftTexture3 if eTC < int(elementsCountAroundTC*0.5) - 1 else eftTexture5, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            if annotationGroups:
-                    for annotationGroup in annotationGroups:
-                        if annotationArray[elementsCountAround + eTC] == annotationGroup._name:
-                            meshGroup = annotationGroup.getMeshGroup(mesh)
-                            meshGroup.addElement(element)
+            if tcCount == 3:
+                for annotationGroup in annotationGroups:
+                    if annotationArray[elementsCountAround + eTC] == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
         for N in range(tcCount - 1):
             for eTC in range(elementsCountAroundTC):
@@ -1741,7 +1741,7 @@ def createNodesAndElementsTeniaColi(region,
                     element.merge(textureElementtemplate3)
                     element.setNodesByIdentifier(eftTexture5, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
-                if annotationGroups:
+                if tcCount == 3:
                     for annotationGroup in annotationGroups:
                         if annotationArray[elementsCountAround + int(elementsCountAroundTC*0.5) + N*elementsCountAroundTC + eTC] == annotationGroup._name:
                             meshGroup = annotationGroup.getMeshGroup(mesh)
@@ -1768,7 +1768,7 @@ def createNodesAndElementsTeniaColi(region,
                 element.merge(textureElementtemplate5 if onOpening else textureElementtemplate4)
                 element.setNodesByIdentifier(eftTexture7 if onOpening else eftTexture6, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            if annotationGroups:
+            if tcCount == 3:
                 for annotationGroup in annotationGroups:
                     if annotationArray[elementsCountAround + int(elementsCountAroundTC*2.5) + eTC] == annotationGroup._name:
                         meshGroup = annotationGroup.getMeshGroup(mesh)
