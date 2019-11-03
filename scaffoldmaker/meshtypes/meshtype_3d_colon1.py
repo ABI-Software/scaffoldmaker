@@ -6,7 +6,7 @@ variable radius and thickness along.
 
 import copy
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, TubeMeshSegmentInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -417,7 +417,7 @@ class MeshType_3d_colon1(Scaffold_base):
         d3UnitExtrude = []
 
         # Create object
-        tubeMeshSegmentInnerPoints = TubeMeshSegmentInnerPoints(
+        colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
@@ -426,7 +426,7 @@ class MeshType_3d_colon1(Scaffold_base):
         for nSegment in range(segmentCount):
             # Create inner points
             xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray = \
-                tubeMeshSegmentInnerPoints.getTubeMeshSegmentInnerPoints(nSegment)
+                colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
@@ -458,17 +458,17 @@ class MeshType_3d_colon1(Scaffold_base):
             d1LastTwoFaces = d1WarpedList[-elementsCountAround*2:]
             d2LastTwoFaces = d2WarpedList[-elementsCountAround*2:]
 
-        contractedWallThicknessList = tubeMeshSegmentInnerPoints.getContractedWallThicknessList()
+        contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
             d2Extrude, d3UnitExtrude, sx, contractedWallThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
-        relaxedLengthList, xiList = tubeMeshSegmentInnerPoints.getRelaxedLengthAndXiList()
+        relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
 
         if tcThickness > 0:
-            tubeTCWidthList = tubeMeshSegmentInnerPoints.getTubeTCWidthList()
+            tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
             xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
