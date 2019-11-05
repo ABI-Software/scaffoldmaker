@@ -89,13 +89,13 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['Tenia coli thickness'] = 0.0
             options['Wall thickness'] = 0.55
         elif 'Pig' in parameterSetName:
-            options['Start inner radius'] = 9.0
-            options['End inner radius'] = 9.0
+            options['Start inner radius'] = 20.0
+            options['End inner radius'] = 20.0
             options['Corner inner radius factor'] = 0.0
-            options['Haustrum inner radius factor'] = 0.2
+            options['Haustrum inner radius factor'] = 0.3
             options['Segment length end derivative factor'] = 0.8
-            options['Segment length mid derivative factor'] = 1.0
-            options['Segment length'] = 15.0
+            options['Segment length mid derivative factor'] = 2.0
+            options['Segment length'] = 25.0
             options['Number of tenia coli'] = 2
             options['Start tenia coli width'] = 5.0
             options['End tenia coli width'] = 5.0
