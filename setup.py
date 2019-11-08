@@ -27,7 +27,7 @@ requires = [
 source_license = readfile("LICENSE")
 
 setup(name='scaffoldmaker',
-    version='0.1.1',
+    version='0.1.2',
     description='',
     long_description='\n'.join(readme) + source_license,
     classifiers=[
@@ -40,7 +40,7 @@ setup(name='scaffoldmaker',
     url='',
     license='APACHE',
     packages=find_packages(exclude=['ez_setup',]),
-    namespace_packages=['scaffoldmaker'],
+    package_dir={'': 'src'},
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,
