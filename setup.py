@@ -19,28 +19,29 @@ readme = readfile("README.rst", split=True)[3:]  # skip title
 # into the 'requirements.txt' file.
 requires = [
     # minimal requirements listing
-    'opencmiss.utils @ https://api.github.com/repos/OpenCMISS-Bindings/opencmiss.utils/tarball/master',
-    'ZincPythonTools @ https://api.github.com/repos/OpenCMISS-Bindings/ZincPythonTools/tarball/master',
-    'scipy',
-    'numpy',
+    "opencmiss.utils @ https://api.github.com/repos/OpenCMISS-Bindings/opencmiss.utils/tarball/master",
+    "ZincPythonTools @ https://api.github.com/repos/OpenCMISS-Bindings/ZincPythonTools/tarball/master",
+    "scipy",
+    "numpy",
 ]
 source_license = readfile("LICENSE")
 
-setup(name='scaffoldmaker',
-    version='0.1.1',
-    description='',
-    long_description='\n'.join(readme) + source_license,
+setup(
+    name="scaffoldmaker",
+    version="0.1.2",
+    description="Python client for generating anatomical scaffolds using OpenCMISS-Zinc",
+    long_description="\n".join(readme) + source_license,
     classifiers=[
-      "Development Status :: 3 - Alpha",
-      "License :: OSI Approved :: Apache Software License",
-      "Programming Language :: Python",
+        "Development Status :: 3 - Alpha",
+        "Programming Language :: Python",
+        "Topic :: Scientific/Engineering :: Medical Science Apps."
     ],
-    author='Richard Christie',
-    author_email='',
-    url='',
-    license='APACHE',
-    packages=find_packages(exclude=['ez_setup',]),
-    namespace_packages=['scaffoldmaker'],
+    author="Auckland Bioengineering Institute",
+    author_email="r.christie@auckland.ac.nz",
+    url="https://github.com/ABI-Software/scaffoldmaker",
+    license="Apache Software License",
+    packages=find_packages("src"),
+    package_dir={"": "src"},
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,
