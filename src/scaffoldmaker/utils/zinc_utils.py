@@ -415,6 +415,4 @@ def exnodeStringFromNodeValues(
         sir.setResourceGroupName(srm, groupName)
         region.write(sir)
         result, exString = srm.getBuffer()
-        #print('\n',nodeValues)
-        #print('exnodeStringFromNodeValues', result, exString)
     return exString

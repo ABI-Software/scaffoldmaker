@@ -13,7 +13,7 @@ def assertAlmostEqualList(testcase, actualList, expectedList, delta):
 
 class HeartScaffoldTestCase(unittest.TestCase):
 
-    def test1_heart1(self):
+    def test_heart1(self):
         """
         Test creation of heart scaffold.
         """
