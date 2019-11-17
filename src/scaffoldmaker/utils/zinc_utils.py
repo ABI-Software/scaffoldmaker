@@ -3,7 +3,9 @@ Utility functions for easing use of Zinc API.
 '''
 
 from opencmiss.zinc.context import Context
+from opencmiss.zinc.element import MeshGroup
 from opencmiss.zinc.field import Field
+from opencmiss.zinc.fieldmodule import Fieldmodule
 from opencmiss.zinc.node import Node, Nodeset
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
@@ -416,3 +418,17 @@ def exnodeStringFromNodeValues(
         region.write(sir)
         result, exString = srm.getBuffer()
     return exString
+
+def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType) -> MeshGroup:
+    """
+    Returns mesh group for the exterior surface on the face described
+    by elementFaceType.
+    """
+    with ZincCacheChanges(fieldmodule):
+        isExterior = fieldmodule.createFieldIsExterior()
+        isOnFace = fieldmodule.createFieldIsOnFace(elementFaceType)
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        faceElementGroup = fieldmodule.createFieldElementGroup(mesh2d)
+        faceMeshGroup = faceElementGroup.getMeshGroup()
+        faceMeshGroup.addElementsConditional(fieldmodule.createFieldAnd(isExterior, isOnFace))
+    return faceMeshGroup
