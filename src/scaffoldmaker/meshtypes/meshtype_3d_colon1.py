@@ -138,17 +138,6 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [   32.0, -49.3,  24.4 ], [   -51.1, -50.1,  -1.2 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -51.1, -45.3,  15.7 ], [   -38.0,  52.2, -16.2 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [ -122.9, 124.2, -36.0 ], [   -21.3,  64.5, -18.3 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ] ] )
-            } ),
-        'Test Line' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
-                'Length' : 1.0,
-                'Number of elements' : 1
-                },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
-                [ [ -40.0, 10.0, 30.0 ], [ 50.0, 10.0, -30.0 ], [ 8.0, -40.0, 0.0 ], [0.0, 0.0, 0.0 ] ],
-                [ [  10.0, 20.0,  0.0 ], [ 50.0, 10.0, -30.0 ], [ 8.0, -40.0, 0.0 ], [0.0, 0.0, 0.0 ] ] ])
             } )
         }
 
