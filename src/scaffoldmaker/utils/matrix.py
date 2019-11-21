@@ -19,3 +19,19 @@ def getRotationMatrixFromAxisAngle(rotAxis, theta):
         [rotAxis[2]*rotAxis[0]*C - rotAxis[1]*sinTheta, rotAxis[2]*rotAxis[1]*C + rotAxis[0]*sinTheta, rotAxis[2]*rotAxis[2]*C + cosTheta]])
 
     return rotMatrix
+
+def rotateAboutZAxis(x, theta):
+    """
+    Rotates matrix about z-axis.
+    : param x: matrix to be rotated.
+    : param theta: angle of rotation.
+    :return rotated matrix
+    """
+    cosTheta = math.cos(theta)
+    sinTheta = math.sin(theta)
+
+    xRot = [x[0]*cosTheta - x[1]*sinTheta,
+            x[0]*sinTheta + x[1]*cosTheta,
+            x[2]]
+
+    return xRot

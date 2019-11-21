@@ -4,9 +4,33 @@ Utility functions for easing use of Zinc API.
 
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from opencmiss.zinc.node import Node, Nodeset
+from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
+
+class ZincCacheChanges:
+    """
+    Context manager for ensuring beginChange, endChange always called on
+    supplied object, even with exceptions.
+    Usage:
+    with ZincCacheChanges(object):
+        # make multiple changes to object or objects it owns
+    """
+
+    def __init__(self, object):
+        """
+        :param object: Zinc object with beginChange/endChange methods.
+        """
+        self._object = object
+
+    def __enter__(self):
+        self._object.beginChange()
+        return self
+
+    def __exit__(self, *args):
+        self._object.endChange()
+
 
 def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=3):
     '''
@@ -25,15 +49,14 @@ def getOrCreateCoordinateField(fieldmodule, name='coordinates', componentsCount=
         assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
         assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
         return coordinates
-    fieldmodule.beginChange()
-    coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
-    coordinates.setName(name)
-    coordinates.setManaged(True)
-    coordinates.setTypeCoordinate(True)
-    coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-    for c in range(componentsCount):
-        coordinates.setComponentName(c + 1, ['x', 'y', 'z'][c])
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
+        coordinates.setName(name)
+        coordinates.setManaged(True)
+        coordinates.setTypeCoordinate(True)
+        coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+        for c in range(componentsCount):
+            coordinates.setComponentName(c + 1, ['x', 'y', 'z'][c])
     return coordinates
 
 def getOrCreateFibreField(fieldmodule, name='fibres', componentsCount=3):
@@ -53,13 +76,12 @@ def getOrCreateFibreField(fieldmodule, name='fibres', componentsCount=3):
         assert fibres.getNumberOfComponents() == componentsCount, 'getOrCreateFibreField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
         assert fibres.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_FIBRE, 'getOrCreateFibreField.  Existing field \'' + name + '\' is not fibre'
         return fibres
-    fieldmodule.beginChange()
-    fibres = fieldmodule.createFieldFiniteElement(componentsCount)
-    fibres.setName(name)
-    fibres.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_FIBRE)
-    for c in range(componentsCount):
-        fibres.setComponentName(c + 1, ['fibre angle', 'imbrication angle', 'sheet angle'][c])
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        fibres = fieldmodule.createFieldFiniteElement(componentsCount)
+        fibres.setName(name)
+        fibres.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_FIBRE)
+        for c in range(componentsCount):
+            fibres.setComponentName(c + 1, ['fibre angle', 'imbrication angle', 'sheet angle'][c])
     return fibres
 
 def getOrCreateTextureCoordinateField(fieldmodule, name='texture coordinates', componentsCount=3):
@@ -79,15 +101,14 @@ def getOrCreateTextureCoordinateField(fieldmodule, name='texture coordinates', c
         assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
         assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateTextureCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
         return coordinates
-    fieldmodule.beginChange()
-    coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
-    coordinates.setName(name)
-    coordinates.setManaged(True)
-    coordinates.setTypeCoordinate(True)
-    coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-    for c in range(componentsCount):
-        coordinates.setComponentName(c + 1, ['u', 'v', 'w'][c])
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
+        coordinates.setName(name)
+        coordinates.setManaged(True)
+        coordinates.setTypeCoordinate(True)
+        coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+        for c in range(componentsCount):
+            coordinates.setComponentName(c + 1, ['u', 'v', 'w'][c])
     return coordinates
 
 def getOrCreateFlatCoordinateField(fieldmodule, name='flat coordinates', componentsCount=3):
@@ -107,15 +128,14 @@ def getOrCreateFlatCoordinateField(fieldmodule, name='flat coordinates', compone
         assert coordinates.getNumberOfComponents() == componentsCount, 'getOrCreateFlatCoordinateField.  Existing field \'' + name + '\' does not have ' + str(componentsCount) + ' components'
         assert coordinates.getCoordinateSystemType() == Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN, 'getOrCreateFlatCoordinateField.  Existing field \'' + name + '\' is not rectangular Cartesian'
         return coordinates
-    fieldmodule.beginChange()
-    coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
-    coordinates.setName(name)
-    coordinates.setManaged(True)
-    coordinates.setTypeCoordinate(True)
-    coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-    for c in range(componentsCount):
-        coordinates.setComponentName(c + 1, ['x', 'y', 'z'][c])
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        coordinates = fieldmodule.createFieldFiniteElement(componentsCount)
+        coordinates.setName(name)
+        coordinates.setManaged(True)
+        coordinates.setTypeCoordinate(True)
+        coordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+        for c in range(componentsCount):
+            coordinates.setComponentName(c + 1, ['x', 'y', 'z'][c])
     return coordinates
 
 def getOrCreateElementXiField(fieldmodule, name='element_xi', mesh=None):
@@ -136,11 +156,10 @@ def getOrCreateElementXiField(fieldmodule, name='element_xi', mesh=None):
         elementXiField = elementXiField.castStoredMeshLocation()
         assert elementXiField.isValid(), 'getOrCreateElementXiField.  Existing field \'' + name + '\' is not stored mesh location type'
         return elementXiField
-    fieldmodule.beginChange()
-    elementXiField = fieldmodule.createFieldStoredMeshLocation(mesh)
-    elementXiField.setName(name)
-    elementXiField.setManaged(True)
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        elementXiField = fieldmodule.createFieldStoredMeshLocation(mesh)
+        elementXiField.setName(name)
+        elementXiField.setManaged(True)
     return elementXiField
 
 def getOrCreateLabelField(fieldmodule, name='label'):
@@ -155,11 +174,10 @@ def getOrCreateLabelField(fieldmodule, name='label'):
     if labelField.isValid():
         assert labelField.getValueType() == Field.VALUE_TYPE_STRING, 'getOrCreateLabelField.  Existing field \'' + name + '\' is not string valued'
         return labelField
-    fieldmodule.beginChange()
-    labelField = fieldmodule.createFieldStoredString()
-    labelField.setName(name)
-    labelField.setManaged(True)
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        labelField = fieldmodule.createFieldStoredString()
+        labelField.setName(name)
+        labelField.setManaged(True)
     return labelField
 
 def getOrCreateGroupField(fieldmodule, name):
@@ -174,11 +192,10 @@ def getOrCreateGroupField(fieldmodule, name):
         group = group.castGroup()
         assert group.isValid(), 'getOrCreateGroupField.  Existing field \'' + name + '\' is not a group type'
         return group
-    fieldmodule.beginChange()
-    group = fieldmodule.createFieldGroup()
-    group.setName(name)
-    group.setManaged(True)
-    fieldmodule.endChange()
+    with ZincCacheChanges(fieldmodule):
+        group = fieldmodule.createFieldGroup()
+        group.setName(name)
+        group.setManaged(True)
     return group
 
 def getOrCreateNodesetGroup(group, nodeset):
@@ -269,6 +286,24 @@ def getMaximumElementIdentifier(mesh):
         element = elementiterator.next()
     return maximumElementId
 
+def evaluateFieldRange(field : Field, nodeset : Nodeset):
+    """
+    :return: minimums, maximums (as lists for components).
+    """
+    fieldmodule = field.getFieldmodule()
+    componentsCount = field.getNumberOfComponents()
+    with ZincCacheChanges(fieldmodule):
+        fieldNodesetMinimum = fieldmodule.createFieldNodesetMinimum(field, nodeset)
+        fieldNodesetMaximum = fieldmodule.createFieldNodesetMaximum(field, nodeset)
+        fieldcache = fieldmodule.createFieldcache()
+        result, minimums = fieldNodesetMinimum.evaluateReal(fieldcache, componentsCount)
+        assert result == RESULT_OK
+        result, maximums = fieldNodesetMaximum.evaluateReal(fieldcache, componentsCount)
+        assert result == RESULT_OK
+        del fieldNodesetMinimum
+        del fieldNodesetMaximum
+    return minimums, maximums
+
 def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
         node1, derivative1, scale1, cross_derivative1, cross_scale1, \
         node2, derivative2, scale2, cross_derivative2, cross_scale2):
@@ -354,33 +389,30 @@ def exnodeStringFromNodeValues(
     componentsCount = len(nodeValues[0][0])
     context = Context('exnodeStringFromNodeValues')
     region = context.getDefaultRegion()
-    fm = region.getFieldmodule()
-    fm.beginChange()
-    cache = fm.createFieldcache()
-    coordinates = getOrCreateCoordinateField(fm, componentsCount = componentsCount)
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    group = fm.createFieldGroup()
-    group.setName(groupName)
-    nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
-    nodetemplate = nodes.createNodetemplate()
-    nodetemplate.defineField(coordinates)
-    if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
-    for nodeValueLabel in nodeValueLabels:
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
-    # create nodes
-    for n in range(nodesCount):
-        node = nodesetGroup.createNode(n + 1, nodetemplate)
-        cache.setNode(node)
-        for v in range(nodeValueLabelsCount):
-            coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
-    # serialise to string
-    sir = region.createStreaminformationRegion()
-    srm = sir.createStreamresourceMemory()
-    sir.setResourceGroupName(srm, groupName)
-    region.write(sir)
-    result, exString = srm.getBuffer()
-    #print('\n',nodeValues)
-    #print('exnodeStringFromNodeValues', result, exString)
-    fm.endChange()
+    fieldmodule = region.getFieldmodule()
+    with ZincCacheChanges(fieldmodule):
+        cache = fieldmodule.createFieldcache()
+        coordinates = getOrCreateCoordinateField(fieldmodule, componentsCount = componentsCount)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        group = fieldmodule.createFieldGroup()
+        group.setName(groupName)
+        nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+        for nodeValueLabel in nodeValueLabels:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
+        # create nodes
+        for n in range(nodesCount):
+            node = nodesetGroup.createNode(n + 1, nodetemplate)
+            cache.setNode(node)
+            for v in range(nodeValueLabelsCount):
+                coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
+        # serialise to string
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        sir.setResourceGroupName(srm, groupName)
+        region.write(sir)
+        result, exString = srm.getBuffer()
     return exString

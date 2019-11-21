@@ -787,3 +787,78 @@ def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
     magb = vector.magnitude(bd1)
     magm = arcLengtha + arcLengthb - 0.5*(maga + magb)
     return vector.setMagnitude(md1, magm)
+
+def sampleParameterAlongLine(lengthList, paramList, elementsCountOut):
+    """
+    Smooths derivative of parameter with linearly varying lengths, and
+    samples smoothed parameter at equal distances along the lengths
+    without including parameter as a component of coordinates.
+    :param lengthList: List of length locations along a line.
+    :param paramList: List of parameter values at length locations specified
+    in lengthList.
+    :param elementsCountOut: Number of output elements along length.
+    :return sP, sdP: Parameter values and rate of change at each sampled point.
+    """
+    assert len(lengthList) == len(paramList), 'sampleParameterAlongLine.  Mismatched number of lengths and parameters'
+    nodesCount = len(lengthList)
+
+    md1 = []
+    sP = []
+    sdP = []
+
+    # Find smoothed parameter derivatives
+    # Middle
+    for n in range(1, nodesCount - 1):
+        # get mean of directions from point n to points (n - 1) and (n + 1)
+        nm = n - 1
+        np = n + 1
+        dirm = paramList[n ] - paramList[nm]
+        dirp = paramList[np] - paramList[n ]
+        # mean weighted by fraction towards that end, equivalent to harmonic mean
+        arcLengthm = lengthList[n ] - lengthList[nm]
+        arcLengthn = lengthList[np] - lengthList[n ]
+        arcLengthmp = arcLengthm + arcLengthn
+        wm = arcLengthn/arcLengthmp
+        wp = arcLengthm/arcLengthmp
+        md1.append(wm*dirm + wp*dirp)
+
+    # Start
+    md1Start = interpolateLagrangeHermiteDerivative([paramList[0]], [paramList[1]], [md1[0]], 0.0)
+
+    # End
+    md1End = interpolateHermiteLagrangeDerivative([paramList[-2]], [md1[-1]], [paramList[-1]], 1.0)
+    md1All = md1Start + md1 + md1End
+
+    # Sample into equally spaced elements along line
+    distance = 0.0
+    e = 0
+    totalLength = lengthList[-1]
+    lengthPerElementOut = totalLength / elementsCountOut
+    dLength = []
+
+    for n in range(1, nodesCount):
+        dLength.append(lengthList[n] - lengthList[n-1])
+    dLength.append(dLength[-1])
+
+    for eOut in range(elementsCountOut):
+        while e < nodesCount - 1:
+            if distance < lengthList[e + 1]:
+                partDistance = distance - lengthList[e]
+                xi = partDistance/(lengthList[e+1] - lengthList[e])
+                p = interpolateCubicHermite([paramList[e]], [md1All[e]], [paramList[e+1]], [md1All[e+1]], xi)[0]
+                dpdxi = interpolateCubicHermiteDerivative([paramList[e]], [md1All[e]], [paramList[e+1]], [md1All[e+1]], xi)[0]
+                dxdxi = interpolateCubicHermiteDerivative([lengthList[e]], [dLength[e]], [lengthList[e+1]], [dLength[e+1]], xi)[0]
+                dpdx = dpdxi*1.0/dxdxi
+                dp = dpdx*lengthPerElementOut
+                sP.append(p)
+                sdP.append(dp)
+                break
+            e += 1
+        distance += lengthPerElementOut
+
+    # Last node
+    sP.append(paramList[-1])
+    dpdx = md1All[-1] * 1.0/dLength[-1]
+    sdP.append(dpdx*lengthPerElementOut)
+
+    return sP, sdP
