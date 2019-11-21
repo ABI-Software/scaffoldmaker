@@ -141,7 +141,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements around ostium': 8,
                 'Ostium position around': 0.55,
                 'Ostium position up': 0.65,
-                'Number of elements radially on annulus': 1,
+                'Number of elements radially on annulus': 2,
                 'Use cross derivatives': False
             }
         return options
