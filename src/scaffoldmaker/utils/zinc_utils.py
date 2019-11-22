@@ -431,4 +431,6 @@ def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType
         faceElementGroup = fieldmodule.createFieldElementGroup(mesh2d)
         faceMeshGroup = faceElementGroup.getMeshGroup()
         faceMeshGroup.addElementsConditional(fieldmodule.createFieldAnd(isExterior, isOnFace))
+        del isExterior
+        del isOnFace
     return faceMeshGroup
