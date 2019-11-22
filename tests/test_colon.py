@@ -10,11 +10,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import zinc_utils
-
-def assertAlmostEqualList(testcase, actualList, expectedList, delta):
-    assert len(actualList) == len(expectedList)
-    for actual, expected in zip(actualList, expectedList):
-        testcase.assertAlmostEqual(actual, expected, delta=delta)
+from tests.testutils import assertAlmostEqualList
 
 class ColonScaffoldTestCase(unittest.TestCase):
 
