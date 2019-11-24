@@ -101,4 +101,4 @@ ENV/
 .mypy_cache/
 
 # pycharm related projects
-./idea
+.idea/
