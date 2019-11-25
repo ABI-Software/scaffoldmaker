@@ -226,7 +226,6 @@ class MeshType_3d_bladder1(Scaffold_base):
         elementsCountUp2 = options['Number of elements up 2']
         elementsCountAround = options['Number of elements around']
         height = options['Height']
-        print('height =', height)
         majorDiameter = options['Major diameter']
         minorDiameter = options['Minor diameter']
         radius = options['Urethra radius']
