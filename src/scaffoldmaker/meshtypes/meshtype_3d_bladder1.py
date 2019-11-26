@@ -663,7 +663,7 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         # create elements
         for e3 in range(1):
-            ewl = elementsCountEachWallLayer = (e3 + 1) * ((elementsCountUp1 + elementsCountUp2) * elementsCountAround + 1)
+            newl = (e3 + 1) * ((elementsCountUp1 + elementsCountUp2) * elementsCountAround + 1)
             # create lower part of the bladder
             for e2 in range(elementsCountUp1):
                 for e1 in range(elementsCountAround):
@@ -676,7 +676,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                             bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
                             bni3 = bni1 + elementsCountAround
                             bni4 = bni2 + elementsCountAround
-                            nodeIdentifiers = [bni1 + ewl, bni2 + ewl, bni3 + ewl, bni4 + ewl,
+                            nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             elementIdentifier += 1
@@ -691,7 +691,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                             bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
                             bni3 = bni1 + elementsCountAround
                             bni4 = bni2 + elementsCountAround
-                            nodeIdentifiers = [bni1 + ewl, bni2 + ewl, bni3 + ewl, bni4 + ewl,
+                            nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             elementIdentifier += 1
@@ -710,7 +710,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                             bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
                             bni3 = bni1 + elementsCountAround
                             bni4 = bni2 + elementsCountAround
-                            nodeIdentifiers = [bni1 + ewl, bni2 + ewl, bni3 + ewl, bni4 + ewl,
+                            nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             elementIdentifier += 1
@@ -723,7 +723,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                     bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
                     bni3 = bni1 + elementsCountAround
                     bni4 = bni2 + elementsCountAround
-                    nodeIdentifiers = [bni1 + ewl, bni2 + ewl, bni3 + ewl, bni4 + ewl,
+                    nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
                                        bni1, bni2, bni3, bni4]
                     result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                     elementIdentifier += 1
@@ -742,7 +742,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 element = mesh.createElement(elementIdentifier, elementtemplateApex)
                 bni1 = bni3 - elementsCountAround + e1
                 bni2 = bni3 - elementsCountAround + (e1 + 1) % elementsCountAround
-                nodeIdentifiers = [bni1 + ewl, bni2 + ewl, bni3 + ewl, bni1, bni2, bni3]
+                nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni1, bni2, bni3]
                 result = element.setNodesByIdentifier(eftApex, nodeIdentifiers)
                 elementIdentifier += 1
 
