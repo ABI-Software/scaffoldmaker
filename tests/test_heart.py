@@ -5,11 +5,7 @@ from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
 from scaffoldmaker.utils.zinc_utils import evaluateFieldRange
-
-def assertAlmostEqualList(testcase, actualList, expectedList, delta):
-    assert len(actualList) == len(expectedList)
-    for actual, expected in zip(actualList, expectedList):
-        testcase.assertAlmostEqual(actual, expected, delta=delta)
+from tests.testutils import assertAlmostEqualList
 
 class HeartScaffoldTestCase(unittest.TestCase):
 
