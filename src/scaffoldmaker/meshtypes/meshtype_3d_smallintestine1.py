@@ -1,5 +1,5 @@
 """
-Generates a 3-D small intestines mesh along the central line,
+Generates a 3-D small intestine mesh along the central line,
 with variable numbers of elements around, along and through
 wall, with variable radius and thickness along.
 """
@@ -16,12 +16,12 @@ from scaffoldmaker.utils import vector
 from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.node import Node
 
-class MeshType_3d_smallintestines1(Scaffold_base):
+class MeshType_3d_smallintestine1(Scaffold_base):
     '''
-    Generates a 3-D small intestines mesh with variable numbers
+    Generates a 3-D small intestine mesh with variable numbers
     of elements around, along the central line, and through wall.
-    The small intestines is created by a function that generates
-    a small intestines segment and uses tubemesh to map the segment
+    The small intestine is created by a function that generates
+    a small intestine segment and uses tubemesh to map the segment
     along a central line profile.
     '''
 
@@ -85,7 +85,7 @@ class MeshType_3d_smallintestines1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '3D Small Intestines 1'
+        return '3D Small Intestine 1'
 
     @staticmethod
     def getParameterSetNames():
@@ -261,14 +261,14 @@ class MeshType_3d_smallintestines1(Scaffold_base):
         d3UnitExtrude = []
 
         # Create object
-        smallIntestinesSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
+        smallIntestineSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
             region, elementsCountAround, elementsCountAlongSegment, segmentLength,
             wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList)
 
         for nSegment in range(segmentCount):
             # Create inner points
             xInner, d1Inner, d2Inner, transitElementList, segmentAxis = \
-               smallIntestinesSegmentTubeMeshInnerPoints.getCylindricalSegmentTubeMeshInnerPoints(nSegment)
+               smallIntestineSegmentTubeMeshInnerPoints.getCylindricalSegmentTubeMeshInnerPoints(nSegment)
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
@@ -307,7 +307,7 @@ class MeshType_3d_smallintestines1(Scaffold_base):
             d2Extrude, d3UnitExtrude, sx, [wallThickness]*(elementsCountAlong+1),
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
-        flatWidthList, xiList = smallIntestinesSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()
+        flatWidthList, xiList = smallIntestineSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()
 
         # Create flat and texture coordinates
         xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(

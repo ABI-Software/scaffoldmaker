@@ -6,18 +6,18 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_smallintestines1 import MeshType_3d_smallintestines1
+from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import zinc_utils
 from tests.testutils import assertAlmostEqualList
 
-class SmallIntestinesScaffoldTestCase(unittest.TestCase):
+class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
-    def test_smallintestines1(self):
+    def test_smallintestine1(self):
         """
-        Test creation of small intestines scaffold.
+        Test creation of small intestine scaffold.
         """
-        parameterSetNames = MeshType_3d_smallintestines1.getParameterSetNames()
+        parameterSetNames = MeshType_3d_smallintestine1.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Mouse 1"])
         centralPathDefaultScaffoldPackages = {
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
@@ -36,7 +36,7 @@ class SmallIntestinesScaffoldTestCase(unittest.TestCase):
             })
         }
         centralPathOption = centralPathDefaultScaffoldPackages['Test line']
-        options = MeshType_3d_smallintestines1.getDefaultOptions("Mouse 1")
+        options = MeshType_3d_smallintestine1.getDefaultOptions("Mouse 1")
         options['Central path'] = copy.deepcopy(centralPathOption)
         options['Number of segments'] = 4
         options['Duodenum length'] = 5.0
@@ -66,7 +66,7 @@ class SmallIntestinesScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, cx[2], [ -18.3, 12.6, -1.5 ], 1.0E-6)
         del tmpRegion
 
-        annotationGroups = MeshType_3d_smallintestines1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)
         self.assertEqual(0, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
