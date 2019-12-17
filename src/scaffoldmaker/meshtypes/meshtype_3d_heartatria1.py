@@ -6,6 +6,11 @@ Generates a 3-D heart atria model, suitable for attachment to the
 from __future__ import division
 import copy
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
@@ -15,13 +20,9 @@ from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueL
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getCircleProjectionAxes, getEllipseAngleFromVector, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength, createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 class MeshType_3d_heartatria1(Scaffold_base):
     '''
@@ -732,7 +733,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         laGroup = AnnotationGroup(region, 'left atrium', FMANumber = 7097, lyphID = 'Lyph ID unknown')
@@ -814,11 +815,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = max(1, zinc_utils.getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         mesh = fm.findMeshByDimension(3)
 
-        elementIdentifier = max(1, zinc_utils.getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)

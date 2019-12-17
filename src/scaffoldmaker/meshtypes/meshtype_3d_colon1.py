@@ -13,7 +13,7 @@ from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils import zinc_utils
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.zinc.node import Node
 
 class MeshType_3d_colon1(Scaffold_base):
@@ -32,7 +32,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 8
                 },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+            'meshEdits' : exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
                 [ [   0.0,   0.0, 0.0 ], [ -50.7,  178.2, 0.0 ], [ -24.0,  -6.0, -12.0 ], [ -14.0,  -1.0, -12.0 ] ],
                 [ [ -47.4, 188.6, 0.0 ], [ -19.3,  177.1, 0.0 ], [ -22.0,  -4.0,  -8.0 ], [  -4.0,  19.0,  22.0 ] ],
@@ -50,7 +50,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 8
                 },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+            'meshEdits' : exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   0.0,   0.0,    0.0 ], [ -34.7,  104.1, -18.1 ], [ -24.0,  -6.0, -12.0 ], [ -14.0,  -1.0, -12.0 ] ],
                 [ [ -34.5,  114.0, -18.1 ], [   1.2,   86.6,  -3.4 ], [ -22.0,  -4.0,  -8.0 ], [  -4.0,  19.0,  22.0 ] ],
@@ -68,7 +68,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 7
                 },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+            'meshEdits' : exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   0.0,   0.0,  0.0 ], [  6.0, 12.0,  -2.0 ], [ 2.0,  1.0,  2.0 ], [ 6.0, 0.0, 3.0 ] ],
                 [ [  -2.0,  11.0, -3.0 ], [ -8.0,  4.0,   9.0 ], [ 2.0,  2.0,  1.0 ], [ 0.0, 1.0, 2.0 ] ],
@@ -85,7 +85,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 4
                 },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+            'meshEdits' : exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   0.0,  0.0,   0.0 ], [  0.0,  0.0,  13.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [   0.0,  0.0,  13.0 ], [  0.0,  2.0,  28.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
@@ -99,7 +99,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 36
                 },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+            'meshEdits' : exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [  163.7, -25.2,  12.2 ], [  -21.7,   50.1, -18.1 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  117.2,  32.8,  -2.6 ], [  -64.3,   34.4,  -3.9 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ],

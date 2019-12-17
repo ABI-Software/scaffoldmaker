@@ -5,14 +5,14 @@ around, up and through the thickness.
 
 from __future__ import division
 import math
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils import zinc_utils
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 class MeshType_3d_sphereshell1(Scaffold_base):
     '''
@@ -113,7 +113,7 @@ class MeshType_3d_sphereshell1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplateApex = nodes.createNodetemplate()

@@ -4,16 +4,16 @@ using a segment profile.
 '''
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldTextureCoordinates
+from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils import zinc_utils
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
@@ -365,7 +365,7 @@ def createNodesAndElements(region,
     cache = fm.createFieldcache()
 
     # Coordinates field
-    coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+    coordinates = getOrCreateFieldCoordinates(fm)
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
     nodetemplate.defineField(coordinates)
@@ -398,7 +398,7 @@ def createNodesAndElements(region,
     eftTexture1 = bicubichermitelinear.createEftBasic()
     eftTexture2 = bicubichermitelinear.createEftOpenTube()
 
-    flatCoordinates = zinc_utils.getOrCreateFlatCoordinateField(fm)
+    flatCoordinates = getOrCreateFieldCoordinates(fm, name="flat coordinates")
     flatNodetemplate1 = nodes.createNodetemplate()
     flatNodetemplate1.defineField(flatCoordinates)
     flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -424,7 +424,7 @@ def createNodesAndElements(region,
     flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
 
     # Texture coordinates field
-    textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
+    textureCoordinates = getOrCreateFieldTextureCoordinates(fm)
     textureNodetemplate1 = nodes.createNodetemplate()
     textureNodetemplate1.defineField(textureCoordinates)
     textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)

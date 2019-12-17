@@ -4,11 +4,11 @@ Generates a 3-D heart model including ventricles, base and atria.
 
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria2 import MeshType_3d_heartatria2
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase2 import MeshType_3d_heartventriclesbase2
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 class MeshType_3d_heart2(Scaffold_base):
@@ -78,7 +78,7 @@ class MeshType_3d_heart2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         # generate heartventriclesbase2 model and put atria2 on it

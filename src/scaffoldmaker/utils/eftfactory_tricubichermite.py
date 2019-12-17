@@ -1,15 +1,17 @@
 '''
 Definitions of standard element field templates shared by mesh generators.
 '''
-from scaffoldmaker.utils.eft_utils import mapEftFunction1Node1Term, remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
-from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import zinc_utils
-from scaffoldmaker.utils import vector
+import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.status import OK as ZINC_OK
-import math
+from scaffoldmaker.utils.eft_utils import mapEftFunction1Node1Term, remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import vector
+
 
 class eftfactory_tricubichermite:
     '''
@@ -956,7 +958,7 @@ class eftfactory_tricubichermite:
         cache = fm.createFieldcache()
         diff1 = self._mesh.getChartDifferentialoperator(1, 1)
         diff2 = self._mesh.getChartDifferentialoperator(1, 2)
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache.setMeshLocation(origElement, [0.5, 0.5, 1.0])
         result, fc = coordinates.evaluateReal(cache, 3)
         resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
@@ -1003,7 +1005,7 @@ class eftfactory_tricubichermite:
                 nodeIdentifier = nodeIdentifier + 1
 
         eft0 = origElement.getElementfieldtemplate(coordinates, -1)
-        nids0 = zinc_utils.getElementNodeIdentifiers(origElement, eft0)
+        nids0 = getElementNodeIdentifiers(origElement, eft0)
         orig_nids = [ nids0[0], nids0[2], nids0[3], nids0[1], nids0[4], nids0[6], nids0[7], nids0[5] ]
         #print('orig_nids',orig_nids)
 
@@ -1081,7 +1083,7 @@ class eftfactory_tricubichermite:
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         fm.beginChange()
         cache = fm.createFieldcache()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         a = vector.normalise(inletSide)
         b = vector.normalise(vector.crossproduct3(inletAxis, inletSide))
 
@@ -1113,9 +1115,9 @@ class eftfactory_tricubichermite:
                 nodeIdentifier = nodeIdentifier + 1
 
         eft0 = origElement1.getElementfieldtemplate(coordinates, -1)
-        nids1 = zinc_utils.getElementNodeIdentifiers(origElement1, eft0)
+        nids1 = getElementNodeIdentifiers(origElement1, eft0)
         eft0 = origElement2.getElementfieldtemplate(coordinates, -1)
-        nids2 = zinc_utils.getElementNodeIdentifiers(origElement2, eft0)
+        nids2 = getElementNodeIdentifiers(origElement2, eft0)
         orig_nids = [ nids1[0], nids1[2], nids2[2], nids2[3], nids1[3], nids1[1],
                       nids1[4], nids1[6], nids2[6], nids2[7], nids1[7], nids1[5] ]
         #print('orig_nids',orig_nids)

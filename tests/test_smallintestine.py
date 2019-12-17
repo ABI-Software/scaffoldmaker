@@ -1,5 +1,7 @@
 import copy
 import unittest
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from opencmiss.utils.zinc.general import ZincCacheChanges
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -8,8 +10,8 @@ from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils import zinc_utils
-from tests.testutils import assertAlmostEqualList
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues
+from testutils import assertAlmostEqualList
 
 class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
@@ -26,7 +28,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                     'Length': 1.0,
                     'Number of elements': 3
                 },
-                'meshEdits': zinc_utils.exnodeStringFromNodeValues(
+                'meshEdits': exnodeStringFromNodeValues(
                     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                      Node.VALUE_LABEL_D2_DS1DS2], [
                         [[-2.3, 18.5, -4.4], [-4.2, -0.8, 3.7], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]],
@@ -84,24 +86,24 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
-        minimums, maximums = zinc_utils.evaluateFieldRange(coordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [ -20.060907893509103, 11.403274743489126, -7.1653294859433965 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ -1.8300388314851923, 19.193885338090105, 0.9770592770891556 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
-        minimums, maximums = zinc_utils.evaluateFieldRange(flatCoordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ -1.3904291168857714, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 4.891272838311825, 25.32059684030755, 0.1 ], 1.0E-6)
 
         textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
-        minimums, maximums = zinc_utils.evaluateFieldRange(textureCoordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(textureCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 0.875, 1.0, 1.0 ], 1.0E-6)
 
-        with zinc_utils.ZincCacheChanges(fieldmodule):
+        with ZincCacheChanges(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
-            faceMeshGroup = zinc_utils.createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
+            faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, faceMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
             volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)

@@ -5,19 +5,21 @@ for attaching to a 6-element-around bicubic-linear orifice.
 
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldGroup, \
+    getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString, groupGetOrCreateNodesetGroup
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 class MeshType_3d_heartarterialroot1(Scaffold_base):
     '''
@@ -113,8 +115,10 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
+
+        mesh = fm.findMeshByDimension(3)
 
         if aorticNotPulmonary:
             arterialRootGroup = AnnotationGroup(region, 'root of aorta', FMANumber = 3740, lyphID = 'Lyph ID unknown')
@@ -133,13 +137,13 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         annotationGroups = allGroups + cuspGroups
 
         # annotation fiducial points
-        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
-        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
-        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
-        #fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
+        fiducialGroup = getOrCreateFieldGroup(fm, 'fiducial')
+        fiducialCoordinates = getOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
+        fiducialLabel = getOrCreateFieldStoredString(fm, name='fiducial_label')
+        #fiducialElementXi = getOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
+        fiducialPoints = groupGetOrCreateNodesetGroup(fiducialGroup, datapoints)
         datapointTemplateExternal = datapoints.createNodetemplate()
         datapointTemplateExternal.defineField(fiducialCoordinates)
         datapointTemplateExternal.defineField(fiducialLabel)
@@ -168,7 +172,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplateLinearS2S3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
-        nodeIdentifier = max(1, zinc_utils.getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         elementsCountAround = 6
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
@@ -386,8 +390,6 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         # Create elements
         #################
 
-        mesh = fm.findMeshByDimension(3)
-
         allMeshGroups = [ allGroup.getMeshGroup(mesh) for allGroup in allGroups ]
         cuspMeshGroups = [ cuspGroup.getMeshGroup(mesh) for cuspGroup in cuspGroups ]
 
@@ -400,7 +402,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eftDefault = bicubichermitelinear.createEftNoCrossDerivatives()
 
-        elementIdentifier = max(1, zinc_utils.getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

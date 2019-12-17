@@ -1,5 +1,7 @@
 import copy
 import unittest
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from opencmiss.utils.zinc.general import ZincCacheChanges
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -9,8 +11,8 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extract
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils import zinc_utils
-from tests.testutils import assertAlmostEqualList
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues
+from testutils import assertAlmostEqualList
 
 class ColonScaffoldTestCase(unittest.TestCase):
 
@@ -27,7 +29,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
                     'Length': 1.0,
                     'Number of elements': 1
                 },
-                'meshEdits': zinc_utils.exnodeStringFromNodeValues(
+                'meshEdits': exnodeStringFromNodeValues(
                     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                      Node.VALUE_LABEL_D2_DS1DS2], [
                         [[163.7, -25.2, 12.2], [-21.7, 50.1, -18.1], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]],
@@ -106,24 +108,24 @@ class ColonScaffoldTestCase(unittest.TestCase):
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
-        minimums, maximums = zinc_utils.evaluateFieldRange(coordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 108.05453644074798, -36.659788201178515, -25.896225462626255 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 185.4128545433126, 48.1410866643588, 34.90780743659052 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
-        minimums, maximums = zinc_utils.evaluateFieldRange(flatCoordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 186.72664370397405, 77.41890571041102, 3.2000000000000006 ], 1.0E-6)
 
         textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
-        minimums, maximums = zinc_utils.evaluateFieldRange(textureCoordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(textureCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 0.9812487204616481, 1.0, 2.0 ], 1.0E-6)
 
-        with zinc_utils.ZincCacheChanges(fieldmodule):
+        with ZincCacheChanges(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
-            faceMeshGroup = zinc_utils.createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
+            faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, faceMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
             volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
@@ -158,9 +160,9 @@ class ColonScaffoldTestCase(unittest.TestCase):
         textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
         self.assertTrue(textureCoordinates.isValid())
 
-        with zinc_utils.ZincCacheChanges(fieldmodule):
+        with ZincCacheChanges(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
-            faceMeshGroup = zinc_utils.createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
+            faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
             flatSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, flatCoordinates, faceMeshGroup)
             flatSurfaceAreaField.setNumbersOfPoints(4)
             textureSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, textureCoordinates, faceMeshGroup)

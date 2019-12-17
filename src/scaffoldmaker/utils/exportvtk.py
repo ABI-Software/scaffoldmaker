@@ -4,8 +4,8 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 
 import io
 from sys import version_info
-from scaffoldmaker.utils import zinc_utils
 from opencmiss.zinc.field import Field
+from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
 
 
 class ExportVtk:
@@ -80,10 +80,7 @@ class ExportVtk:
         element = elementIter.next()
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)  # assumes all components same
-            if localNodeCount == 4:
-                nodeIdentifiers = zinc_utils.getElementNodeIdentifiers4Node(element, eft)
-            else:
-                nodeIdentifiers = zinc_utils.getElementNodeIdentifiers8Node(element, eft)
+            nodeIdentifiers = getElementNodeIdentifiersBasisOrder(element, eft)
             outstream.write(localNodeCountStr)
             for localIndex in vtkIndexing:
                 index = nodeIdentifierToIndex[nodeIdentifiers[localIndex]]

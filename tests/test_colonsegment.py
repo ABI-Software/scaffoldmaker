@@ -1,11 +1,13 @@
 import unittest
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from opencmiss.utils.zinc.general import ZincCacheChanges
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
-from scaffoldmaker.utils.zinc_utils import evaluateFieldRange, ZincCacheChanges, createFaceMeshGroupExteriorOnFace
-from tests.testutils import assertAlmostEqualList
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
+from testutils import assertAlmostEqualList
 
 class ColonSegmentScaffoldTestCase(unittest.TestCase):
 
@@ -52,18 +54,18 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
-        minimums, maximums = evaluateFieldRange(coordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [ -2.172286248499807e-15, -58.70795100094912, -55.299531343601124 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 50.0, 48.620086017242905, 55.29953084925164 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
-        minimums, maximums = evaluateFieldRange(flatCoordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [397.26513766571264, 50.0, 3.2000000000000006], 1.0E-6)
 
         textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
-        minimums, maximums = evaluateFieldRange(textureCoordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(textureCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 0.9887754554800083, 1.0, 2.0 ], 1.0E-6)
 

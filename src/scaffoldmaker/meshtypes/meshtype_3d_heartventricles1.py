@@ -5,6 +5,11 @@ Variant using collapsed/wedge elements at septum junction.
 
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldGroup, \
+    getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString, groupGetOrCreateNodesetGroup
+from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
@@ -13,10 +18,6 @@ from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getElli
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import zinc_utils
-from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 
 class MeshType_3d_heartventricles1(Scaffold_base):
@@ -243,8 +244,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
+
+        mesh = fm.findMeshByDimension(3)
 
         lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
         rvGroup = AnnotationGroup(region, 'right ventricle', FMANumber = 7098, lyphID = 'Lyph ID unknown')
@@ -252,13 +255,13 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
-        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
-        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
-        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
-        fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
+        fiducialGroup = getOrCreateFieldGroup(fm, 'fiducial')
+        fiducialCoordinates = getOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
+        fiducialLabel = getOrCreateFieldStoredString(fm, name='fiducial_label')
+        fiducialElementXi = getOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
+        fiducialPoints = groupGetOrCreateNodesetGroup(fiducialGroup, datapoints)
         datapointTemplateInternal = datapoints.createNodetemplate()
         datapointTemplateInternal.defineField(fiducialCoordinates)
         datapointTemplateInternal.defineField(fiducialLabel)
@@ -705,8 +708,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         #################
         # Create elements
         #################
-
-        mesh = fm.findMeshByDimension(3)
 
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)

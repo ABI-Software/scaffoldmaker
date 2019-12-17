@@ -5,18 +5,20 @@ Generates a 3-D heart atria model, suitable for attachment to the
 
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import zinc_utils
+from scaffoldmaker.utils.zinc_utils import computeNodeDerivativeHermiteLagrange, interpolateNodesCubicHermite
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 class MeshType_3d_heartatria2(Scaffold_base):
     '''
@@ -185,7 +187,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         laGroup = AnnotationGroup(region, 'left atrium', FMANumber = 7097, lyphID = 'Lyph ID unknown')
@@ -218,7 +220,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = max(1, zinc_utils.getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         aBaseSlopeLength = aBaseWallThickness*math.cos(aBaseSlopeRadians)
         aBaseSlopeHeight = aBaseWallThickness*math.sin(aBaseSlopeRadians)
@@ -589,7 +591,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
 
                 node1 = nodes.findNodeByIdentifier(nid1)
                 node2 = nodes.findNodeByIdentifier(nid2)
-                x, dx_ds2, dx_ds1, dx_ds3 = zinc_utils.interpolateNodesCubicHermite(cache, coordinates, 0.5, aFreeWallThickness, \
+                x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.5, aFreeWallThickness, \
                     node1, Node.VALUE_LABEL_D_DS2,  2.0, Node.VALUE_LABEL_D_DS1, 1.0, \
                     node2, Node.VALUE_LABEL_D_DS2, -2.0, Node.VALUE_LABEL_D_DS1, -1.0)
                 node3 = nodes.findNodeByIdentifier(nid3)
@@ -620,7 +622,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
                     continue
                 node1 = nodes.findNodeByIdentifier(aNodeId[0][n1])
                 node2 = nodes.findNodeByIdentifier(aNodeId[1][n1])
-                dx_ds2 = zinc_utils.computeNodeDerivativeHermiteLagrange(cache, coordinates, node2, Node.VALUE_LABEL_D_DS2, -1.0, node1, -1.0)
+                dx_ds2 = computeNodeDerivativeHermiteLagrange(cache, coordinates, node2, Node.VALUE_LABEL_D_DS2, -1.0, node1, -1.0)
                 cache.setNode(node1)
                 result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
 
@@ -893,7 +895,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
 
-        elementIdentifier = max(1, zinc_utils.getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
         laMeshGroup = laGroup.getMeshGroup(mesh)
         raMeshGroup = raGroup.getMeshGroup(mesh)

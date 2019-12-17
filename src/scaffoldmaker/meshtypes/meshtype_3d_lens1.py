@@ -5,13 +5,13 @@ around, up the central axis, and radially.
 
 from __future__ import division
 import math
-from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import zinc_utils
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 class MeshType_3d_lens1(Scaffold_base):
     '''
@@ -93,7 +93,7 @@ class MeshType_3d_lens1(Scaffold_base):
 
         # generate solidsphere with unit diameter
         MeshType_3d_solidsphere1.generateBaseMesh(region, options)
-        sphereCoordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        sphereCoordinates = getOrCreateFieldCoordinates(fm)
 
         # Morph sphere surface to lens surface
         lensRC = getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness,

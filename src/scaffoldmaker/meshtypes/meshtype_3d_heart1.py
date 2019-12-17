@@ -4,17 +4,19 @@ Generates a 3-D heart model including ventricles, base and atria.
 
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldGroup, \
+    getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString, groupGetOrCreateNodesetGroup
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier
+from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils import zinc_utils
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 class MeshType_3d_heart1(Scaffold_base):
     '''
@@ -120,8 +122,10 @@ class MeshType_3d_heart1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = getOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
+
+        mesh = fm.findMeshByDimension(3)
 
         # generate heartventriclesbase1 model and put atria1 on it
         annotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
@@ -131,13 +135,13 @@ class MeshType_3d_heart1(Scaffold_base):
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
         # annotation fiducial points
-        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
-        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
-        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
-        fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
+        fiducialGroup = getOrCreateFieldGroup(fm, 'fiducial')
+        fiducialCoordinates = getOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
+        fiducialLabel = getOrCreateFieldStoredString(fm, name='fiducial_label')
+        fiducialElementXi = getOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
+        fiducialPoints = groupGetOrCreateNodesetGroup(fiducialGroup, datapoints)
         datapointTemplateInternal = datapoints.createNodetemplate()
         datapointTemplateInternal.defineField(fiducialCoordinates)
         datapointTemplateInternal.defineField(fiducialLabel)
@@ -207,12 +211,10 @@ class MeshType_3d_heart1(Scaffold_base):
         # Create elements
         #################
 
-        mesh = fm.findMeshByDimension(3)
-
         lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
         rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
 
-        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
