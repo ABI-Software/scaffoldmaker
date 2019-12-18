@@ -6,7 +6,7 @@ Variant using collapsed/wedge elements at septum junction.
 from __future__ import division
 import math
 from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldGroup, \
-    getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString, groupGetOrCreateNodesetGroup
+    getOrCreateFieldNodeGroup, getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -261,7 +261,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         fiducialElementXi = getOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = groupGetOrCreateNodesetGroup(fiducialGroup, datapoints)
+        fiducialPoints = getOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
         datapointTemplateInternal = datapoints.createNodetemplate()
         datapointTemplateInternal.defineField(fiducialCoordinates)
         datapointTemplateInternal.defineField(fiducialLabel)

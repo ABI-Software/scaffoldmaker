@@ -8,7 +8,7 @@ from __future__ import division
 import copy
 import math
 from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldGroup, \
-    getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString, groupGetOrCreateNodesetGroup
+    getOrCreateFieldNodeGroup, getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -316,7 +316,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         fiducialElementXi = getOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = groupGetOrCreateNodesetGroup(fiducialGroup, datapoints)
+        fiducialPoints = getOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
         datapointTemplateExternal = datapoints.createNodetemplate()
         datapointTemplateExternal.defineField(fiducialCoordinates)
         datapointTemplateExternal.defineField(fiducialLabel)
