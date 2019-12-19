@@ -2,8 +2,8 @@
 Utility functions for easing use of Zinc API.
 '''
 
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
-from opencmiss.utils.zinc.general import ZincCacheChanges
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import MeshGroup
 from opencmiss.zinc.field import Field
@@ -102,9 +102,9 @@ def exnodeStringFromNodeValues(
     context = Context('exnodeStringFromNodeValues')
     region = context.getDefaultRegion()
     fieldmodule = region.getFieldmodule()
-    with ZincCacheChanges(fieldmodule):
+    with ChangeManager(fieldmodule):
         cache = fieldmodule.createFieldcache()
-        coordinates = getOrCreateFieldCoordinates(fieldmodule, components_count = componentsCount)
+        coordinates = findOrCreateFieldCoordinates(fieldmodule, components_count = componentsCount)
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         group = fieldmodule.createFieldGroup()
         group.setName(groupName)
@@ -135,7 +135,7 @@ def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType
     Returns mesh group for the exterior surface on the face described
     by elementFaceType.
     """
-    with ZincCacheChanges(fieldmodule):
+    with ChangeManager(fieldmodule):
         isExterior = fieldmodule.createFieldIsExterior()
         isOnFace = fieldmodule.createFieldIsOnFace(elementFaceType)
         mesh2d = fieldmodule.findMeshByDimension(2)

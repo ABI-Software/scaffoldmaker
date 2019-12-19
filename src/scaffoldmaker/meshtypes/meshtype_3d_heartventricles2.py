@@ -4,7 +4,7 @@ Generates 3-D Left and Right ventricles mesh starting from modified sphere shell
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -150,7 +150,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateFieldCoordinates(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')

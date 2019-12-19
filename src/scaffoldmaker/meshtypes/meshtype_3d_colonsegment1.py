@@ -6,7 +6,7 @@ and thickness along.
 """
 
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldTextureCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -1466,7 +1466,7 @@ def createNodesAndElementsTeniaColi(region,
     fm = region.getFieldmodule()
     fm.beginChange()
     cache = fm.createFieldcache()
-    coordinates = getOrCreateFieldCoordinates(fm)
+    coordinates = findOrCreateFieldCoordinates(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -1507,7 +1507,7 @@ def createNodesAndElementsTeniaColi(region,
     elementtemplate2.defineField(coordinates, -1, eft2)
 
     # Create flat coordinates field
-    flatCoordinates = getOrCreateFieldCoordinates(fm, name="flat coordinates")
+    flatCoordinates = findOrCreateFieldCoordinates(fm, name="flat coordinates")
     flatNodetemplate1 = nodes.createNodetemplate()
     flatNodetemplate1.defineField(flatCoordinates)
     flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -1552,7 +1552,7 @@ def createNodesAndElementsTeniaColi(region,
     flatElementtemplate5.defineField(flatCoordinates, -1, eftTexture7)
 
     # Create texture coordinates field
-    textureCoordinates = getOrCreateFieldTextureCoordinates(fm)
+    textureCoordinates = findOrCreateFieldTextureCoordinates(fm)
     textureNodetemplate1 = nodes.createNodetemplate()
     textureNodetemplate1.defineField(textureCoordinates)
     textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)

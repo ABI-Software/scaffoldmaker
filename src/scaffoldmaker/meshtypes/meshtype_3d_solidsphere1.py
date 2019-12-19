@@ -5,7 +5,7 @@ around, up the central axis, and radially.
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -83,7 +83,7 @@ class MeshType_3d_solidsphere1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateFieldCoordinates(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplateApex = nodes.createNodetemplate()

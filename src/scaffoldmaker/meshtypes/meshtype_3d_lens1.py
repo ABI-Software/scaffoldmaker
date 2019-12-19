@@ -5,7 +5,7 @@ around, up the central axis, and radially.
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -93,7 +93,7 @@ class MeshType_3d_lens1(Scaffold_base):
 
         # generate solidsphere with unit diameter
         MeshType_3d_solidsphere1.generateBaseMesh(region, options)
-        sphereCoordinates = getOrCreateFieldCoordinates(fm)
+        sphereCoordinates = findOrCreateFieldCoordinates(fm)
 
         # Morph sphere surface to lens surface
         lensRC = getSphereToLensCoordinates(sphereCoordinates, radiusSphere, radiusAnt, radiusPos, lensThickness,

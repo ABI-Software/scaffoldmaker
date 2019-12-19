@@ -6,7 +6,7 @@ Generates a 3-D heart atria model, suitable for attachment to the
 from __future__ import division
 import copy
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -733,7 +733,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateFieldCoordinates(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         laGroup = AnnotationGroup(region, 'left atrium', FMANumber = 7097, lyphID = 'Lyph ID unknown')

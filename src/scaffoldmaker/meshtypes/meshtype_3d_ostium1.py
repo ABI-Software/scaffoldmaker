@@ -5,7 +5,7 @@ Generates a single or double/common ostium, where one or more vessels enters a c
 from __future__ import division
 import copy
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -237,7 +237,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
 
     fm = region.getFieldmodule()
     fm.beginChange()
-    coordinates = getOrCreateFieldCoordinates(fm)
+    coordinates = findOrCreateFieldCoordinates(fm)
     cache = fm.createFieldcache()
 
     # track points in shape of ostium

@@ -4,7 +4,7 @@ using a segment profile.
 '''
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldTextureCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -365,7 +365,7 @@ def createNodesAndElements(region,
     cache = fm.createFieldcache()
 
     # Coordinates field
-    coordinates = getOrCreateFieldCoordinates(fm)
+    coordinates = findOrCreateFieldCoordinates(fm)
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
     nodetemplate.defineField(coordinates)
@@ -398,7 +398,7 @@ def createNodesAndElements(region,
     eftTexture1 = bicubichermitelinear.createEftBasic()
     eftTexture2 = bicubichermitelinear.createEftOpenTube()
 
-    flatCoordinates = getOrCreateFieldCoordinates(fm, name="flat coordinates")
+    flatCoordinates = findOrCreateFieldCoordinates(fm, name="flat coordinates")
     flatNodetemplate1 = nodes.createNodetemplate()
     flatNodetemplate1.defineField(flatCoordinates)
     flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -424,7 +424,7 @@ def createNodesAndElements(region,
     flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
 
     # Texture coordinates field
-    textureCoordinates = getOrCreateFieldTextureCoordinates(fm)
+    textureCoordinates = findOrCreateFieldTextureCoordinates(fm)
     textureNodetemplate1 = nodes.createNodetemplate()
     textureNodetemplate1.defineField(textureCoordinates)
     textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)

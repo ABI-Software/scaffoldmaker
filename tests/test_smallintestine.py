@@ -1,7 +1,7 @@
 import copy
 import unittest
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
-from opencmiss.utils.zinc.general import ZincCacheChanges
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -101,7 +101,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 0.875, 1.0, 1.0 ], 1.0E-6)
 
-        with ZincCacheChanges(fieldmodule):
+        with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, faceMeshGroup)

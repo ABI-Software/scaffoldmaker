@@ -2,7 +2,7 @@
 Definitions of standard element field templates shared by mesh generators.
 '''
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
@@ -958,7 +958,7 @@ class eftfactory_tricubichermite:
         cache = fm.createFieldcache()
         diff1 = self._mesh.getChartDifferentialoperator(1, 1)
         diff2 = self._mesh.getChartDifferentialoperator(1, 2)
-        coordinates = getOrCreateFieldCoordinates(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         cache.setMeshLocation(origElement, [0.5, 0.5, 1.0])
         result, fc = coordinates.evaluateReal(cache, 3)
         resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
@@ -1083,7 +1083,7 @@ class eftfactory_tricubichermite:
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         fm.beginChange()
         cache = fm.createFieldcache()
-        coordinates = getOrCreateFieldCoordinates(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         a = vector.normalise(inletSide)
         b = vector.normalise(vector.crossproduct3(inletAxis, inletSide))
 

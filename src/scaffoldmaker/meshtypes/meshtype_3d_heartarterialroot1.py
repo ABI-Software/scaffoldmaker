@@ -5,8 +5,8 @@ for attaching to a 6-element-around bicubic-linear orifice.
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldGroup, \
-    getOrCreateFieldNodeGroup, getOrCreateFieldStoredMeshLocation, getOrCreateFieldStoredString
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -115,7 +115,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = getOrCreateFieldCoordinates(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         mesh = fm.findMeshByDimension(3)
@@ -137,13 +137,13 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         annotationGroups = allGroups + cuspGroups
 
         # annotation fiducial points
-        fiducialGroup = getOrCreateFieldGroup(fm, 'fiducial')
-        fiducialCoordinates = getOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
-        fiducialLabel = getOrCreateFieldStoredString(fm, name='fiducial_label')
-        #fiducialElementXi = getOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
+        fiducialGroup = findOrCreateFieldGroup(fm, 'fiducial')
+        fiducialCoordinates = findOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
+        fiducialLabel = findOrCreateFieldStoredString(fm, name='fiducial_label')
+        #fiducialElementXi = findOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = getOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
+        fiducialPoints = findOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
         datapointTemplateExternal = datapoints.createNodetemplate()
         datapointTemplateExternal.defineField(fiducialCoordinates)
         datapointTemplateExternal.defineField(fiducialLabel)

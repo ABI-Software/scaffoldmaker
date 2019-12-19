@@ -5,7 +5,7 @@ Provenance information at http://models.cellml.org/workspace/516
 
 from __future__ import division
 import numpy as np
-from opencmiss.utils.zinc.field import getOrCreateFieldCoordinates, getOrCreateFieldFibres
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFibres
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -9259,8 +9259,8 @@ Element: 264
     def generateTube(self,region,circumferentialElements,axialElements,wallElements,wallThickness=1):
         fieldModule = region.getFieldmodule()
         fieldModule.beginChange()
-        coordinates = getOrCreateFieldCoordinates(fieldModule)
-        fibres = getOrCreateFieldFibres(fieldModule)
+        coordinates = findOrCreateFieldCoordinates(fieldModule)
+        fibres = findOrCreateFieldFibres(fieldModule)
 
         nodeset = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodeset.createNodetemplate()
