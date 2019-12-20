@@ -13,7 +13,7 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshInnerPoints
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils import zinc_utils
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.zinc.node import Node
 
 class MeshType_3d_smallintestine1(Scaffold_base):
@@ -32,7 +32,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                 'Length' : 1.0,
                 'Number of elements' : 45
                 },
-            'meshEdits' : zinc_utils.exnodeStringFromNodeValues(
+            'meshEdits' : exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
                 [ [  -2.3, 18.5,  -4.4 ], [ -4.2, -0.8,   3.7 ], [  0.0,  5.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -8.6, 16.3,  -0.4 ], [ -7.1, -2.7,   1.6 ], [  0.0,  5.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],

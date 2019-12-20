@@ -7,21 +7,23 @@ pulmonary trunk and their valve regions.
 from __future__ import division
 import copy
 import math
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
+from opencmiss.zinc.result import RESULT_OK as ZINC_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1, getAtriumBasePoints
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import zinc_utils
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.result import RESULT_OK as ZINC_OK
 
 class MeshType_3d_heartventriclesbase1(Scaffold_base):
     '''
@@ -289,8 +291,10 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
+
+        mesh = fm.findMeshByDimension(3)
 
         # generate heartventricles1 model to add base plane to
         annotationGroups = MeshType_3d_heartventricles1.generateBaseMesh(region, options)
@@ -306,13 +310,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
         # annotation fiducial points
-        fiducialGroup = zinc_utils.getOrCreateGroupField(fm, 'fiducial')
-        fiducialCoordinates = zinc_utils.getOrCreateCoordinateField(fm, 'fiducial_coordinates')
-        fiducialLabel = zinc_utils.getOrCreateLabelField(fm, 'fiducial_label')
-        fiducialElementXi = zinc_utils.getOrCreateElementXiField(fm, 'fiducial_element_xi')
+        fiducialGroup = findOrCreateFieldGroup(fm, 'fiducial')
+        fiducialCoordinates = findOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
+        fiducialLabel = findOrCreateFieldStoredString(fm, name='fiducial_label')
+        fiducialElementXi = findOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
 
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = zinc_utils.getOrCreateNodesetGroup(fiducialGroup, datapoints)
+        fiducialPoints = findOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
         datapointTemplateExternal = datapoints.createNodetemplate()
         datapointTemplateExternal.defineField(fiducialCoordinates)
         datapointTemplateExternal.defineField(fiducialLabel)
@@ -336,7 +340,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = startNodeIdentifier = zinc_utils.getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
 
         # move ventricles to fit atria centred around aorta
         cosVRotationRadians = math.cos(-vRotationRadians)
@@ -763,8 +767,6 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         # Create elements
         #################
 
-        mesh = fm.findMeshByDimension(3)
-
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
@@ -773,7 +775,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
 
-        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)

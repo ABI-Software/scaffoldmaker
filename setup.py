@@ -19,7 +19,8 @@ readme = readfile("README.rst", split=True)[3:]  # skip title
 # into the 'requirements.txt' file.
 requires = [
     # minimal requirements listing
-    "opencmiss.utils @ https://api.github.com/repos/OpenCMISS-Bindings/opencmiss.utils/tarball/master",
+    "opencmiss.utils >= 0.2",
+    "opencmiss.zinc",  # not yet on pypi - need manual install from opencmiss.org
     "ZincPythonTools @ https://api.github.com/repos/OpenCMISS-Bindings/ZincPythonTools/tarball/master",
     "scipy",
     "numpy",
@@ -28,7 +29,7 @@ source_license = readfile("LICENSE")
 
 setup(
     name="scaffoldmaker",
-    version="0.1.2",
+    version="0.1.3",
     description="Python client for generating anatomical scaffolds using OpenCMISS-Zinc",
     long_description="\n".join(readme) + source_license,
     classifiers=[
