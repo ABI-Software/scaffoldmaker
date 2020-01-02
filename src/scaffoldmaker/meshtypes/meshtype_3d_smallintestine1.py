@@ -262,7 +262,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Create object
         smallIntestineSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
-            region, elementsCountAround, elementsCountAlongSegment, segmentLength,
+            elementsCountAround, elementsCountAlongSegment, segmentLength,
             wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList)
 
         for nSegment in range(segmentCount):
@@ -285,7 +285,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                 d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[:-elementsCountAround])
             else:
                 xSecondFace = xWarpedList[elementsCountAround:elementsCountAround*2]
-                d1SecondFace = d1WarpedList[elementsCountAround:elementsCountAround*2]
                 d2SecondFace = d2WarpedList[elementsCountAround:elementsCountAround*2]
                 for n1 in range(elementsCountAround):
                     nx = [xLastTwoFaces[n1], xLastTwoFaces[n1 + elementsCountAround], xSecondFace[n1]]
@@ -304,7 +303,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, sx, [wallThickness]*(elementsCountAlong+1),
+            d2Extrude, d3UnitExtrude, [wallThickness]*(elementsCountAlong+1),
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         flatWidthList, xiList = smallIntestineSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()

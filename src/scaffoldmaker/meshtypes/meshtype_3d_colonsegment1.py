@@ -7,7 +7,7 @@ and thickness along.
 
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
-from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
@@ -258,7 +258,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
-            d2WarpedList, d3WarpedUnitList, sx, contractedWallThicknessList,
+            d2WarpedList, d3WarpedUnitList, contractedWallThicknessList,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
@@ -1017,9 +1017,6 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet,
     xHaustrumHalfSet2 = []
     d1HaustrumHalfSet2 = []
     d2HaustrumHalfSet2 = []
-    xHaustrum = []
-    d1Haustrum = []
-    d2Haustrum = []
     xHaustra = []
     d1Haustra = []
     d2Haustra = []
@@ -1458,7 +1455,7 @@ def createNodesAndElementsTeniaColi(region,
     """
 
     nodeIdentifier = firstNodeIdentifier
-    elementIdentifier = firstNodeIdentifier
+    elementIdentifier = firstElementIdentifier
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum )*tcCount
 
     # Create coordinates field

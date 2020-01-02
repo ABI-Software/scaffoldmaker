@@ -15,7 +15,6 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
 
-
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment, nSegment):
     """
@@ -141,9 +140,9 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     return xWarpedList, d1WarpedList, smoothd2WarpedList, d3WarpedUnitList
 
 
-def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
-    sx, wallThicknessList, elementsCountAround,
-    elementsCountAlong, elementsCountThroughWall, transitElementList):
+def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList,
+                            elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                            transitElementList):
     """
     Generates coordinates from inner to outer surface using coordinates
     and derivatives of inner surface.
@@ -151,7 +150,6 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     :param d1Inner: Derivatives on inner surface around tube
     :param d2Inner: Derivatives on inner surface along tube
     :param d3Inner: Derivatives on inner surface through wall
-    :param sx: coordinates of points on central path.
     :param wallThicknessList: Wall thickness for each element along tube
     :param elementsCountAround: Number of elements around tube
     :param elementsCountAlong: Number of elements along tube
@@ -531,10 +529,9 @@ class CylindricalSegmentTubeMeshInnerPoints:
     Generates inner profile of a cylindrical segment for use by tubemesh.
     """
 
-    def __init__(self, region, elementsCountAround, elementsCountAlongSegment,
+    def __init__(self, elementsCountAround, elementsCountAlongSegment,
                  segmentLength, wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList):
 
-        self._region = region
         self._elementsCountAround = elementsCountAround
         self._elementsCountAlongSegment = elementsCountAlongSegment
         self._segmentLength = segmentLength
@@ -553,7 +550,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
         endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
 
         xInner, d1Inner, d2Inner, transitElementList, xiSegment,flatWidthSegment, segmentAxis \
-            = getCylindricalSegmentInnerPoints(self._region, self._elementsCountAround, self._elementsCountAlongSegment,
+            = getCylindricalSegmentInnerPoints(self._elementsCountAround, self._elementsCountAlongSegment,
                                                self._segmentLength, self._wallThickness,
                                                startRadius, startRadiusDerivative, endRadius, endRadiusDerivative)
         startIdx = 0 if nSegment == 0 else 1
@@ -568,7 +565,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
     def getFlatWidthAndXiList(self):
         return self._flatWidthList, self._xiList
 
-def getCylindricalSegmentInnerPoints(region, elementsCountAround, elementsCountAlongSegment, segmentLength,
+def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegment, segmentLength,
                                      wallThickness, startRadius, startRadiusDerivative, endRadius, endRadiusDerivative):
     """
     Generates a 3-D cylindrical segment mesh with variable numbers of elements

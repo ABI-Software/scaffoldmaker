@@ -332,7 +332,6 @@ class MeshType_3d_colon1(Scaffold_base):
         transverseDistalTCWidth = options['Transverse-distal tenia coli width']
         distalInnerRadius = options['Distal inner radius']
         distalTCWidth = options['Distal tenia coli width']
-        segmentScaffoldType = segmentProfile.getScaffoldType()
         segmentSettings = segmentProfile.getScaffoldSettings()
 
         elementsCountAroundTC = segmentSettings['Number of elements around tenia coli']
@@ -347,10 +346,6 @@ class MeshType_3d_colon1(Scaffold_base):
 
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
-        startRadius = segmentSettings['Start inner radius']
-        startRadiusDerivative = segmentSettings['Start inner radius derivative']
-        endRadius = segmentSettings['End inner radius']
-        endRadiusDerivative = segmentSettings['End inner radius derivative']
         wallThickness = segmentSettings['Wall thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
@@ -364,10 +359,7 @@ class MeshType_3d_colon1(Scaffold_base):
         centralPath.generate(tmpRegion)
         cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
         # for i in range(len(cx)):
-            # print('cx = ', i+1, cx[i])
-            # print('cd1 = ', i+1, cd1[i])
-            # print('cd2 = ', i+1, cd2[i])
-            # print('cd12 = ', i+1, cd12[i])
+            # print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
         del tmpRegion
 
         # find arclength of colon
@@ -426,7 +418,6 @@ class MeshType_3d_colon1(Scaffold_base):
                 d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[:-elementsCountAround])
             else:
                 xSecondFace = xWarpedList[elementsCountAround:elementsCountAround*2]
-                d1SecondFace = d1WarpedList[elementsCountAround:elementsCountAround*2]
                 d2SecondFace = d2WarpedList[elementsCountAround:elementsCountAround*2]
                 for n1 in range(elementsCountAround):
                     nx = [xLastTwoFaces[n1], xLastTwoFaces[n1 + elementsCountAround], xSecondFace[n1]]
@@ -445,7 +436,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, sx, contractedWallThicknessList,
+            d2Extrude, d3UnitExtrude, contractedWallThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
