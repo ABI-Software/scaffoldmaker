@@ -1,15 +1,11 @@
 import unittest
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
-from scaffoldmaker.utils.zinc_utils import evaluateFieldRange
-
-def assertAlmostEqualList(testcase, actualList, expectedList, delta):
-    assert len(actualList) == len(expectedList)
-    for actual, expected in zip(actualList, expectedList):
-        testcase.assertAlmostEqual(actual, expected, delta=delta)
+from testutils import assertAlmostEqualList
 
 class HeartScaffoldTestCase(unittest.TestCase):
 
@@ -50,7 +46,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
-        minimums, maximums = evaluateFieldRange(coordinates, nodes)
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [ -50.7876375290527, -57.76590573823474, -91.6 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 43.81084359764995, 39.03925080604259, 40.71693637558552 ], 1.0E-6)
 

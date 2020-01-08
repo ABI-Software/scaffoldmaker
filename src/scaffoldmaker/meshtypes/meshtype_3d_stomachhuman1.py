@@ -5,13 +5,13 @@ Provenance information at http://models.cellml.org/workspace/516
 
 from __future__ import division
 import numpy as np
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils import zinc_utils
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFibres
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scipy.interpolate import splprep, splev
 
 class Stomach:
@@ -9259,8 +9259,8 @@ Element: 264
     def generateTube(self,region,circumferentialElements,axialElements,wallElements,wallThickness=1):
         fieldModule = region.getFieldmodule()
         fieldModule.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fieldModule)
-        fibres = zinc_utils.getOrCreateFibreField(fieldModule)
+        coordinates = findOrCreateFieldCoordinates(fieldModule)
+        fibres = findOrCreateFieldFibres(fieldModule)
 
         nodeset = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodeset.createNodetemplate()

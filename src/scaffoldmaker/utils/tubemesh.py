@@ -4,15 +4,16 @@ using a segment profile.
 '''
 from __future__ import division
 import math
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils import vector
-from scaffoldmaker.utils import zinc_utils
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.geometry import createCirclePoints
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import matrix
+from scaffoldmaker.utils import vector
 
 
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
@@ -364,7 +365,7 @@ def createNodesAndElements(region,
     cache = fm.createFieldcache()
 
     # Coordinates field
-    coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+    coordinates = findOrCreateFieldCoordinates(fm)
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
     nodetemplate.defineField(coordinates)
@@ -397,7 +398,7 @@ def createNodesAndElements(region,
     eftTexture1 = bicubichermitelinear.createEftBasic()
     eftTexture2 = bicubichermitelinear.createEftOpenTube()
 
-    flatCoordinates = zinc_utils.getOrCreateFlatCoordinateField(fm)
+    flatCoordinates = findOrCreateFieldCoordinates(fm, name="flat coordinates")
     flatNodetemplate1 = nodes.createNodetemplate()
     flatNodetemplate1.defineField(flatCoordinates)
     flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -423,7 +424,7 @@ def createNodesAndElements(region,
     flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
 
     # Texture coordinates field
-    textureCoordinates = zinc_utils.getOrCreateTextureCoordinateField(fm)
+    textureCoordinates = findOrCreateFieldTextureCoordinates(fm)
     textureNodetemplate1 = nodes.createNodetemplate()
     textureNodetemplate1.defineField(textureCoordinates)
     textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -524,3 +525,123 @@ def createNodesAndElements(region,
     fm.endChange()
 
     return nodeIdentifier, elementIdentifier, annotationGroups
+
+class CylindricalSegmentTubeMeshInnerPoints:
+    """
+    Generates inner profile of a cylindrical segment for use by tubemesh.
+    """
+
+    def __init__(self, region, elementsCountAround, elementsCountAlongSegment,
+                 segmentLength, wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList):
+
+        self._region = region
+        self._elementsCountAround = elementsCountAround
+        self._elementsCountAlongSegment = elementsCountAlongSegment
+        self._segmentLength = segmentLength
+        self._wallThickness = wallThickness
+        self._innerRadiusSegmentList = innerRadiusSegmentList
+        self._dInnerRadiusSegmentList = dInnerRadiusSegmentList
+        self._xiList = []
+        self._flatWidthList = []
+
+    def getCylindricalSegmentTubeMeshInnerPoints(self, nSegment):
+
+        # Unpack radius and rate of change of inner radius
+        startRadius = self._innerRadiusSegmentList[nSegment]
+        startRadiusDerivative = self._dInnerRadiusSegmentList[nSegment]
+        endRadius = self._innerRadiusSegmentList[nSegment+1]
+        endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
+
+        xInner, d1Inner, d2Inner, transitElementList, xiSegment,flatWidthSegment, segmentAxis \
+            = getCylindricalSegmentInnerPoints(self._region, self._elementsCountAround, self._elementsCountAlongSegment,
+                                               self._segmentLength, self._wallThickness,
+                                               startRadius, startRadiusDerivative, endRadius, endRadiusDerivative)
+        startIdx = 0 if nSegment == 0 else 1
+        xi = xiSegment[startIdx:self._elementsCountAlongSegment + 1]
+        self._xiList += xi
+
+        flatWidth = flatWidthSegment[startIdx:self._elementsCountAlongSegment + 1]
+        self._flatWidthList += flatWidth
+
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis
+
+    def getFlatWidthAndXiList(self):
+        return self._flatWidthList, self._xiList
+
+def getCylindricalSegmentInnerPoints(region, elementsCountAround, elementsCountAlongSegment, segmentLength,
+                                     wallThickness, startRadius, startRadiusDerivative, endRadius, endRadiusDerivative):
+    """
+    Generates a 3-D cylindrical segment mesh with variable numbers of elements
+    around, along the central path, and through wall.
+    :param elementsCountAround: Number of elements around.
+    :param elementsCountAlongSegment: Number of elements along cylindrical segment.
+    :param segmentLength: Length of a cylindrical segment.
+    :param wallThickness: Thickness of wall.
+    :param startRadius: Inner radius at proximal end.
+    :param startRadiusDerivative: Rate of change of inner radius at proximal end.
+    :param endRadius: Inner radius at distal end.
+    :param endRadiusDerivative: Rate of change of inner radius at distal end.
+    :return coordinates, derivatives on inner surface of a cylindrical segment.
+    :return transitElementList: stores true if element around is an element that
+    transits between a big and small element.
+    :return xiList: List of xi for each node around. xi refers to node position
+    along the width when cylindrical segment is opened into a flat preparation,
+    nominally in [0.0, 1.0].
+    :return flatWidthList: List of width around elements for each element
+    along cylindrical segment when the segment is opened into a flat preparation.
+    :return segmentAxis: Axis of segment.
+    """
+
+    transitElementList = [0] * elementsCountAround
+
+    # Find parameter variation along elementsCountAlongSegment
+    sRadiusAlongSegment = []
+    for n2 in range(elementsCountAlongSegment + 1):
+        xi = 1 / elementsCountAlongSegment * n2
+        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative],
+                                                [endRadius], [endRadiusDerivative], xi)[0]
+        sRadiusAlongSegment.append(radius)
+
+    # create nodes
+    segmentAxis = [0.0, 0.0, 1.0]
+
+    xFinal = []
+    d1Final = []
+    d2Final = []
+    xiList = []
+    flatWidthList = []
+
+    for n2 in range(elementsCountAlongSegment + 1):
+        z = segmentLength/elementsCountAlongSegment * n2
+        radius = sRadiusAlongSegment[n2]
+        xLoop, d1Loop = createCirclePoints([0.0, 0.0, z], [radius, 0.0, 0.0], [0.0, radius, 0.0],
+                                           elementsCountAround, startRadians=0.0)
+        xFinal = xFinal + xLoop
+        d1Final = d1Final + d1Loop
+
+    # Smooth d2 for segment
+    smoothd2Raw = []
+    for n1 in range(elementsCountAround):
+        nx = []
+        nd2 = []
+        for n2 in range(elementsCountAlongSegment + 1):
+            n = n2 * elementsCountAround + n1
+            nx.append(xFinal[n])
+            nd2.append(segmentAxis)
+        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2)
+        smoothd2Raw.append(smoothd2)
+
+    # Re-arrange smoothd2
+    for n2 in range(elementsCountAlongSegment + 1):
+        radius = sRadiusAlongSegment[n2]
+        flatWidth = 2.0*math.pi*(radius + wallThickness)
+        flatWidthList.append(flatWidth)
+        xiFace = []
+        for n1 in range(elementsCountAround):
+            d2Final.append(smoothd2Raw[n1][n2])
+        for n1 in range(elementsCountAround + 1):
+            xi = 1.0/elementsCountAround * n1
+            xiFace.append(xi)
+        xiList.append(xiFace)
+
+    return xFinal, d1Final, d2Final, transitElementList, xiList, flatWidthList, segmentAxis

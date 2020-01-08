@@ -6,20 +6,22 @@ pulmonary trunk and their valve regions.
 
 from __future__ import division
 import math
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_heartventricles2
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import zinc_utils
+from scaffoldmaker.utils.zinc_utils import interpolateNodesCubicHermite
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 class MeshType_3d_heartventriclesbase2(Scaffold_base):
     '''
@@ -189,7 +191,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = zinc_utils.getOrCreateCoordinateField(fm)
+        coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         #################
@@ -210,7 +212,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = startNodeIdentifier = zinc_utils.getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
 
         # node offsets for row, wall in LV, plus first LV node on inside top
         norl = elementsCountAroundLV
@@ -717,7 +719,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         #print('lv crest interpolated from nodes', nida, nidb)
         node1 = nodes.findNodeByIdentifier(nida)
         node2 = nodes.findNodeByIdentifier(nidb)
-        x, dx_ds2, dx_ds1, dx_ds3 = zinc_utils.interpolateNodesCubicHermite(cache, coordinates, 0.5, baseThickness, \
+        x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.5, baseThickness, \
             node1, Node.VALUE_LABEL_D_DS2,  1.0, Node.VALUE_LABEL_D_DS1, 1.0, \
             node2, Node.VALUE_LABEL_D_DS3, -1.0, Node.VALUE_LABEL_D_DS1, 1.0)
 
@@ -784,7 +786,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         #print('lv bridge interpolated from nodes', nida, nidb)
         node1 = nodes.findNodeByIdentifier(nida)
         node2 = nodes.findNodeByIdentifier(nidb)
-        x, dx_ds2, dx_ds1, dx_ds3 = zinc_utils.interpolateNodesCubicHermite(cache, coordinates, 0.4, lvOutletWallThickness, \
+        x, dx_ds2, dx_ds1, dx_ds3 = interpolateNodesCubicHermite(cache, coordinates, 0.4, lvOutletWallThickness, \
             node1, Node.VALUE_LABEL_D_DS2, -1.0, Node.VALUE_LABEL_D_DS1, -1.0, \
             node2, Node.VALUE_LABEL_D_DS2,  1.0, Node.VALUE_LABEL_D_DS1,  1.0)
         # dx_ds1 needs to be larger
@@ -860,7 +862,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()
 
-        elementIdentifier = startElementIdentifier = zinc_utils.getMaximumElementIdentifier(mesh) + 1
+        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
