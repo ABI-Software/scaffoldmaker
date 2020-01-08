@@ -16,8 +16,10 @@ from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
 
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
-    sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment, nSegment):
+                      sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
+                      nSegmentStart, nSegmentEnd, faceMidPointZ):
     """
+    EDIT
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
     :param xList: coordinates of segment points.
@@ -28,7 +30,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     :param sd1: derivatives of points along central path.
     :param sd2: derivatives representing cross axes.
     :param elementsCountAround: Number of elements around segment.
-    :param elementsCountAlong: Number of elements along segment.
+    :param elementsCountAlongSegment: Number of elements along segment.
     :param nSegment: Segment index along central path.
     :return coordinates and derivatives of warped points.
     """
@@ -38,12 +40,15 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     smoothd2WarpedList = []
     d3WarpedUnitList = []
 
-    for nAlongSegment in range(elementsCountAlongSegment + 1):
-        n2 = elementsCountAlongSegment * nSegment + nAlongSegment
+    elementsCountAlongCurrentSegment = nSegmentEnd - nSegmentStart
+    # print('New segment')
+    for nAlongSegment in range(elementsCountAlongCurrentSegment + 1):
+        n2 = nSegmentStart + nAlongSegment # elementsCountAlongSegment * nSegment + nAlongSegment
+        # print('n2 = ', n2)
         xElementAlongSegment = xList[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d1ElementAlongSegment = d1List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d2ElementAlongSegment = d2List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-        xMid = [0.0, 0.0, segmentLength/elementsCountAlongSegment* nAlongSegment]
+        xMid = [0.0, 0.0, faceMidPointZ[nAlongSegment]] #segmentLength/elementsCountAlongSegment* nAlongSegment]
 
         # Rotate to align segment axis with tangent of central line
         unitTangent = vector.normalise(sd1[n2])
@@ -120,7 +125,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     for n1 in range(elementsCountAround):
         nx = []
         nd2 = []
-        for n2 in range(elementsCountAlongSegment + 1):
+        for n2 in range(elementsCountAlongCurrentSegment + 1):
             n = n2*elementsCountAround + n1
             nx.append(xWarpedList[n])
             nd2.append(d2WarpedList[n])
@@ -128,7 +133,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         smoothd2Raw.append(smoothd2)
 
     # Re-arrange smoothd2
-    for n2 in range(elementsCountAlongSegment + 1):
+    for n2 in range(elementsCountAlongCurrentSegment + 1):
         for n1 in range(elementsCountAround):
             smoothd2WarpedList.append(smoothd2Raw[n1][n2])
 
@@ -140,9 +145,9 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     return xWarpedList, d1WarpedList, smoothd2WarpedList, d3WarpedUnitList
 
 
-def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList,
-                            elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                            transitElementList):
+def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
+    wallThicknessList, elementsCountAround,
+    elementsCountAlong, elementsCountThroughWall, transitElementList):
     """
     Generates coordinates from inner to outer surface using coordinates
     and derivatives of inner surface.
