@@ -127,15 +127,14 @@ class MeshType_3d_bladder1(Scaffold_base):
         }
 
         if 'Rat' in parameterSetName:
-            options['Number of elements around'] = 16,  # should be even
-            options['Number of elements radially on annulus'] = 2,
-            options['Height'] = 3.0,
-            options['Major diameter'] = 5.0,
-            options['Minor diameter'] = 3.0,
-            options['Urethra diameter'] = 0.7,
-            options['Ureter'] = copy.deepcopy(ostiumOption),
-            options['Ostium position around'] = 0.55,
-            options['Ostium position up'] = 0.65,
+            options['Number of elements around'] = 16  # should be even
+            options['Number of elements radially on annulus'] = 2
+            options['Height'] = 3.0
+            options['Major diameter'] = 5.0
+            options['Minor diameter'] = 3.0
+            options['Urethra diameter'] = 0.7
+            options['Ostium position around'] = 0.55
+            options['Ostium position up'] = 0.65
         return options
 
     @staticmethod
