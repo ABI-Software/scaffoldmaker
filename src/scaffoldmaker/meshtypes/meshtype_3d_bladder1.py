@@ -127,17 +127,15 @@ class MeshType_3d_bladder1(Scaffold_base):
         }
 
         if 'Rat' in parameterSetName:
-            options = {
-                'Number of elements around': 16,  # should be even
-                'Number of elements radially on annulus': 2,
-                'Height': 3.0,
-                'Major diameter': 5.0,
-                'Minor diameter': 3.0,
-                'Urethra diameter': 0.7,
-                'Ureter': copy.deepcopy(ostiumOption),
-                'Ostium position around': 0.55,
-                'Ostium position up': 0.65,
-            }
+            options['Number of elements around'] = 16,  # should be even
+            options['Number of elements radially on annulus'] = 2,
+            options['Height'] = 3.0,
+            options['Major diameter'] = 5.0,
+            options['Minor diameter'] = 3.0,
+            options['Urethra diameter'] = 0.7,
+            options['Ureter'] = copy.deepcopy(ostiumOption),
+            options['Ostium position around'] = 0.55,
+            options['Ostium position up'] = 0.65,
         return options
 
     @staticmethod
@@ -271,7 +269,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         neckMeshGroup = neckGroup.getMeshGroup(mesh)
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
 
-        # # create nodes
+        # create nodes
         # create neck of the bladder
         nodeIdentifier = 1
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
@@ -294,21 +292,21 @@ class MeshType_3d_bladder1(Scaffold_base):
                 radiansUp = n2 * radiansPerElementUpNeck
                 cosRadiansUp = math.cos(radiansUp)
                 sinRadiansUp = math.sin(radiansUp)
-                MajorRadius = 0.5 * majorDiameter * sinRadiansUp - n3 * bladderWallThickness
-                MinorRadius = 0.5 * minorDiameter * sinRadiansUp - n3 * bladderWallThickness
+                majorRadius = 0.5 * majorDiameter * sinRadiansUp - n3 * bladderWallThickness
+                minorRadius = 0.5 * minorDiameter * sinRadiansUp - n3 * bladderWallThickness
                 if n2 == 0:
                     for n1 in range(elementsCountAround):
                         radiansAround = n1 * radiansPerElementAround
                         cosRadiansAround = math.cos(radiansAround)
                         sinRadiansAround = math.sin(radiansAround)
                         x = [
-                            -MajorRadius * sinRadiansAround,
-                            MinorRadius * cosRadiansAround,
+                            -majorRadius * sinRadiansAround,
+                            minorRadius * cosRadiansAround,
                             -height - neckHeight
                         ]
                         dx_ds1 = [
-                            -MajorRadius * cosRadiansAround * radiansPerElementAround,
-                            MinorRadius * -sinRadiansAround * radiansPerElementAround,
+                            -majorRadius * cosRadiansAround * radiansPerElementAround,
+                            minorRadius * -sinRadiansAround * radiansPerElementAround,
                             0.0
                         ]
                         dx_ds2 = [
@@ -326,13 +324,13 @@ class MeshType_3d_bladder1(Scaffold_base):
                         cosRadiansAround = math.cos(radiansAround)
                         sinRadiansAround = math.sin(radiansAround)
                         x = [
-                            -MajorRadius * sinRadiansAround,
-                            MinorRadius * cosRadiansAround,
+                            -majorRadius * sinRadiansAround,
+                            minorRadius * cosRadiansAround,
                             -height - neckHeight + n2 * 2 * neckHeight / elementsCountUpNeck
                         ]
                         dx_ds1 = [
-                            -MajorRadius * cosRadiansAround * radiansPerElementAround,
-                            MinorRadius * -sinRadiansAround * radiansPerElementAround,
+                            -majorRadius * cosRadiansAround * radiansPerElementAround,
+                            minorRadius * -sinRadiansAround * radiansPerElementAround,
                             0.0
                         ]
                         dx_ds2 = [
@@ -481,21 +479,21 @@ class MeshType_3d_bladder1(Scaffold_base):
                 radiansUp = (math.pi / 4) + n2 * radiansPerElementUpBody
                 cosRadiansUp = math.cos(radiansUp)
                 sinRadiansUp = math.sin(radiansUp)
-                MajorRadius = 0.5 * majorDiameter * sinRadiansUp - n3 * bladderWallThickness
-                MinorRadius = 0.5 * minorDiameter * sinRadiansUp - n3 * bladderWallThickness
+                majorRadius = 0.5 * majorDiameter * sinRadiansUp - n3 * bladderWallThickness
+                minorRadius = 0.5 * minorDiameter * sinRadiansUp - n3 * bladderWallThickness
                 for n1 in range(elementsCountAround):
                     radiansAround = n1 * radiansPerElementAround
                     cosRadiansAround = math.cos(radiansAround)
                     sinRadiansAround = math.sin(radiansAround)
                     et = (2 * height + neckHeight) / (elementsCountUpNeck + elementsCountUpBody)
                     x = [
-                        -MajorRadius * sinRadiansAround,
-                        MinorRadius * cosRadiansAround,
+                        -majorRadius * sinRadiansAround,
+                        minorRadius * cosRadiansAround,
                         -height * cosRadiansUp
                     ]
                     dx_ds1 = [
-                        -MajorRadius * cosRadiansAround * radiansPerElementAround,
-                        MinorRadius * -sinRadiansAround * radiansPerElementAround,
+                        -majorRadius * cosRadiansAround * radiansPerElementAround,
+                        minorRadius * -sinRadiansAround * radiansPerElementAround,
                         0.0
                     ]
                     dx_ds2 = [
@@ -520,7 +518,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, height*radiansPerElementUpBody/2, 0.0])
             nodeIdentifier += 1
 
-        # # create ureters on the surface
+        # create ureters on the surface
         elementIdentifier = 1
         # ureter 1
         centerUreter1_x, centerUreter1_d1, centerUreter1_d2 = tracksurfaceOstium1.evaluateCoordinates(ostium1Position, derivatives=True)
@@ -553,7 +551,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                            startNodeIdentifier=nodeIdentifier,
                            startElementIdentifier=elementIdentifier)
 
-        # # create annulus mesh around ostium
+        # create annulus mesh around ostium
         endPoints1_x = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
         endPoints1_d1 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
         endPoints1_d2 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
@@ -662,7 +660,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             endPoints2_x, endPoints2_d1, endPoints2_d2, None, endNode2_Id, endDerivativesMap,
             elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup])
 
-        # # create elements
+        # create elements
         for e3 in range(1):
             newl = (e3 + 1) * ((elementsCountUpNeck + elementsCountUpBody) * elementsCountAround + 1)
             # create bladder neck elements
