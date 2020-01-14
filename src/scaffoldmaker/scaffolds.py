@@ -8,6 +8,7 @@ from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
+from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
@@ -42,6 +43,7 @@ class Scaffolds(object):
             MeshType_2d_platehole1,
             MeshType_2d_sphere1,
             MeshType_2d_tube1,
+            MeshType_3d_bladder1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
             MeshType_3d_colon1,
