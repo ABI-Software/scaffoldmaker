@@ -111,5 +111,5 @@ class BladderScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, minimums, [-2.996386368615517, -2.996386368615517, -6.464466094067262], 1.0E-6)
         assertAlmostEqualList(self, maximums, [2.996386368615517, 2.996386368615517, 5.0], 1.0E-6)
 
-    if __name__ == "__main__":
-        unittest.main()
+if __name__ == "__main__":
+    unittest.main()
