@@ -18,7 +18,8 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         parameterSetNames = MeshType_3d_colonsegment1.getParameterSetNames()
         self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1" ])
         options = MeshType_3d_colonsegment1.getDefaultOptions("Human 1")
-        self.assertEqual(26, len(options))
+        self.assertEqual(27, len(options))
+        self.assertEqual(0.0, options.get("Start phase"))
         self.assertEqual(2, options.get("Number of elements around tenia coli"))
         self.assertEqual(4, options.get("Number of elements along segment"))
         self.assertEqual(1, options.get("Number of elements through wall"))
@@ -55,8 +56,8 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ -2.172286248499807e-15, -58.70795100094912, -55.299531343601124 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 50.0, 48.620086017242905, 55.29953084925164 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [ -2.172286248499807e-15, -58.62712329290882, -55.238690906983145 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 50.0, 48.62895323751933, 55.23869041193123 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
@@ -79,10 +80,10 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 20791.077901965793, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 20768.654960402902, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 36020.03580218517, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 35701.92758945683, delta=1.0E-6)
 
     def test_mousecolonsegment1(self):
         """

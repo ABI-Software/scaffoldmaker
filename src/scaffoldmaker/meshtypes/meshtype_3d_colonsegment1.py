@@ -53,6 +53,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements around haustrum' : 8,
             'Number of elements along segment' : 4,
             'Number of elements through wall' : 1,
+            'Start phase': 0.0,
             'Start inner radius': 43.5,
             'Start inner radius derivative': 0.0,
             'End inner radius': 33.0,
@@ -110,6 +111,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements around haustrum',
             'Number of elements along segment',
             'Number of elements through wall',
+            'Start phase',
             'Start inner radius',
             'Start inner radius derivative',
             'End inner radius',
@@ -199,6 +201,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         elementsCountAroundHaustrum = options['Number of elements around haustrum']
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
+        startPhase = options['Start phase'] % 360.0
         startRadius = options['Start inner radius']
         startRadiusDerivative = options['Start inner radius derivative']
         endRadius = options['End inner radius']
@@ -242,17 +245,18 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-            radiusList, dRadiusList, tcWidthList, dTCWidthList)
+            radiusList, dRadiusList, tcWidthList, dTCWidthList, startPhase)
 
         # Create inner points
         nSegment = 0
-        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray = \
+
+        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ = \
             colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
         # Warp segment points
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
             xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
-            elementsCountAround, elementsCountAlongSegment, nSegment)
+            elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
@@ -297,6 +301,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                 useCubicHermiteThroughWall, useCrossDerivatives)
 
         return annotationGroups
+        # return
 
     @classmethod
     def generateMesh(cls, region, options):
@@ -328,7 +333,7 @@ class ColonSegmentTubeMeshInnerPoints:
         elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor,
         segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
         cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusSegmentList,
-        dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList):
+        dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList, startPhase):
 
         self._region = region
         self._elementsCountAroundTC = elementsCountAroundTC
@@ -349,10 +354,11 @@ class ColonSegmentTubeMeshInnerPoints:
         self._xiList = []
         self._relaxedLengthList = []
         self._contractedWallThicknessList = []
+        self._startPhase = startPhase
 
     def getColonSegmentTubeMeshInnerPoints(self, nSegment):
 
-        # Unpack radius and rate of change of inner radius
+        # Find parameter variation along elements along 2 segments
         startRadius = self._innerRadiusSegmentList[nSegment]
         startRadiusDerivative = self._dInnerRadiusSegmentList[nSegment]
         endRadius = self._innerRadiusSegmentList[nSegment+1]
@@ -365,14 +371,15 @@ class ColonSegmentTubeMeshInnerPoints:
         endTCWidthDerivative = self._dTCWidthSegmentList[nSegment+1]
 
         xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, \
-            contractedWallThicknessSegment, sTCWidth, segmentAxis, annotationGroups, annotationArray \
+            contractedWallThicknessSegment, sTCWidth, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ \
             = getColonSegmentInnerPoints(self._region,
                 self._elementsCountAroundTC, self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
                 self._tcCount, self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
                 self._segmentLength, self._wallThickness,
                 self._cornerInnerRadiusFactor, self._haustrumInnerRadiusFactor,
                 startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
-                startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative)
+                startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative,
+                self._startPhase)
 
         startIdx = 0 if nSegment == 0 else 1
         for i in range(startIdx, self._elementsCountAlongSegment + 1):
@@ -387,7 +394,7 @@ class ColonSegmentTubeMeshInnerPoints:
         contractedWallThickness = contractedWallThicknessSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._contractedWallThicknessList += contractedWallThickness
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ
 
     def getTubeTCWidthList(self):
         return self._tubeTCWidthList
@@ -404,7 +411,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
     cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
     startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
-    startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative):
+    startTCWidth, startTCWidthDerivative, endTCWidth, endTCWidthDerivative,
+    startPhase):
     """
     Generates a 3-D colon segment mesh with variable numbers of tenia coli,
     numbers of elements around, along the central path, and through wall.
@@ -441,6 +449,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     :param startTCWidthDerivative: Rate of change of tenia coli width at proximal end.
     :param endTCWidth: Width of tenia coli at distal end of the colon segment.
     :param endTCWidthDerivative: Rate of change of tenia coli width at distal end.
+    :param startPhase: Phase at start.
     :return coordinates, derivatives on inner surface of a colon segment.
     :return transitElementList: stores true if element around is an element that
     transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
@@ -456,6 +465,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     :return segmentAxis: Axis of segment.
     :return annotationGroups, annotationArray: annotationArray stores annotation
     names of elements around.
+    :return faceMidPointsZ: z-coordinates of midpoint for each element group along
+     the segment.
     """
 
     transitElementListHaustrum = ([0]*int(elementsCountAroundTC*0.5) + [1] +
@@ -492,15 +503,23 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     contractedWallThicknessList = []
 
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
+
     if tcCount == 1:
         for n2 in range(elementsCountAlongSegment + 1):
+            phase = startPhase + n2* 360.0/elementsCountAlongSegment
+            xi = (phase if phase <= 360.0 else phase - 360.0) / 360.0
+            radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative],
+                                                    [endRadius], [endRadiusDerivative], xi)[0]
+            tcWidth = interp.interpolateCubicHermite([startTCWidth], [startTCWidthDerivative],
+                                                     [endTCWidth], [endTCWidthDerivative], xi)[0]
+
             xHalfSet, d1HalfSet = createHalfSetInterHaustralSegment(elementsCountAroundTC,
-                elementsCountAroundHaustrum, tcCount, sTCWidthAlongSegment[n2],
-                sRadiusAlongSegment[n2], cornerInnerRadiusFactor, sampleElementOut)
+                elementsCountAroundHaustrum, tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut)
+
             for i in range(len(xHalfSet)):
                 d2HalfSet.append([0.0, 0.0, 0.0])
             x, d1, _ = getFullProfileFromHalfHaustrum(xHalfSet, d1HalfSet, d2HalfSet, tcCount)
-            z = segmentLength / elementsCountAlongSegment * n2
+            z = segmentLength/elementsCountAlongSegment * n2 + startPhase / 360.0*segmentLength
             d1Final = d1Final + d1
             xFace = []
             for n1 in range(elementsCountAroundTC + elementsCountAroundHaustrum):
@@ -597,11 +616,43 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             nd1 = [d1, d2, d3]
 
             sx, sd1, se, sxi, _  = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAlongSegment)
-            xInnerRaw.append(sx)
-            dx_ds2InnerRaw.append(sd1)
+
+            # Find start point
+            phasePerElementAlongSegment = 360.0 / elementsCountAlongSegment
+            downstreamStartFaceIdx = int(math.floor(startPhase / phasePerElementAlongSegment))
+            xiStartPhase = (startPhase - downstreamStartFaceIdx * phasePerElementAlongSegment) / phasePerElementAlongSegment
+            xStart = interp.interpolateCubicHermite(sx[downstreamStartFaceIdx], sd1[downstreamStartFaceIdx],
+                                                    sx[downstreamStartFaceIdx + 1], sd1[downstreamStartFaceIdx + 1],
+                                                    xiStartPhase)
+            d1Start = interp.interpolateCubicHermiteDerivative(sx[downstreamStartFaceIdx], sd1[downstreamStartFaceIdx],
+                                                               sx[downstreamStartFaceIdx + 1], sd1[downstreamStartFaceIdx + 1],
+                                                               xiStartPhase)
+
+            # Collate points for re-sampling
+            xForSampling = [xStart]
+            d1ForSampling = [d1Start]
+
+            xForSampling += sx[downstreamStartFaceIdx + 1:]
+            d1ForSampling += sd1[downstreamStartFaceIdx + 1:]
+
+            # Next haustra
+            if startPhase > 0.0:
+                for i in range(1, downstreamStartFaceIdx + 1):
+                    xForSampling.append([sx[i][0], sx[i][1], sx[i][2] + segmentLength]) # this only works if diameter is constant along length
+                    d1ForSampling.append(sd1[i])
+                if startPhase % (360.0/elementsCountAlongSegment) > 0.0:
+                    xForSampling.append([ xStart[0], xStart[1], xStart[2] + segmentLength])
+                    d1ForSampling.append(d1Start)
+
+            xResampled, d1Resampled, se, sxi, _ = interp.sampleCubicHermiteCurves(xForSampling, d1ForSampling,
+                                                                                  elementsCountAlongSegment,
+                                                                                  arcLengthDerivatives = True)
+            xInnerRaw.append(xResampled)
+            dx_ds2InnerRaw.append(d1Resampled)
 
         # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
         for n2 in range(elementsCountAlongSegment + 1):
+            phase = (startPhase + n2*360.0/elementsCountAlongSegment) % 360.0
             xAround = []
             unitdx_ds1Around = []
             d2Around = []
@@ -615,9 +666,9 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 if n1 == 0:
                     unitdx_ds1 = vector.normalise(d1HalfSetStart[n1])
                 else: # points on clover
-                    if n2 <= int(elementsCountAlongSegment/2): # first half of segmentLength
+                    if phase <= 180.0: #n2 <= int(elementsCountAlongSegment/2): # first half of segmentLength
                         axisRot = vector.crossproduct3(segmentAxis, unitTangent)
-                    elif n2 > int(elementsCountAlongSegment/2): # second half of segmentLength
+                    elif phase > 180.0: #n2 > int(elementsCountAlongSegment/2): # second half of segmentLength
                         axisRot = vector.crossproduct3(unitTangent, segmentAxis)
                     rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, math.pi/2)
                     rotNormal = [rotFrame[j][0]*unitTangent[0] + rotFrame[j][1]*unitTangent[1] + rotFrame[j][2]*unitTangent[2] for j in range(3)]
@@ -628,22 +679,28 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 d2Around.append(dx_ds2)
                 unitdx_ds1Around.append(unitdx_ds1)
 
-            if n2 > 0 and n2 < elementsCountAlongSegment:
-                dx_ds1InnerAroundList = []
-                if elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5):
-                    dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1HalfSetMid
-                else:
-                    for n1 in range(elementsCountAroundHalfHaustrum):
-                        v1 = xAround[n1]
-                        d1 = unitdx_ds1Around[n1]
-                        v2 = xAround[n1+1]
-                        d2 = unitdx_ds1Around[n1+1]
-                        arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                        dx_ds1 = [c*arcLengthAround for c in d1]
-                        dx_ds1InnerAroundList.append(dx_ds1)
-                    # Account for d1 of node sitting on half haustrum
-                    dx_ds1 = [c*arcLengthAround for c in unitdx_ds1Around[elementsCountAroundHalfHaustrum]]
+            dx_ds1InnerAroundList = []
+            if startPhase == 0.0 and n2 < 1: # First face - interhaustral
+                d1Corrected = d1HalfSetStart
+            elif (startPhase == 0.0 and n2 > elementsCountAlongSegment - 1) or \
+                    (startPhase == 180.0 and elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5)):  # Last face - interhaustral
+                d1Corrected = d1HalfSetEnd
+            elif (startPhase == 0.0 and elementsCountAlongSegment%2 == 0 and n2 == int(elementsCountAlongSegment*0.5)) or\
+                    (startPhase == 180.0 and (n2 < 1 or n2 > elementsCountAlongSegment - 1)):
+                dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1HalfSetMid
+            else:
+                for n1 in range(elementsCountAroundHalfHaustrum):
+                    v1 = xAround[n1]
+                    d1 = unitdx_ds1Around[n1]
+                    v2 = xAround[n1+1]
+                    d2 = unitdx_ds1Around[n1+1]
+                    arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+                    dx_ds1 = [c*arcLengthAround for c in d1]
                     dx_ds1InnerAroundList.append(dx_ds1)
+                # Account for d1 of node sitting on half haustrum
+                dx_ds1 = [c*arcLengthAround for c in unitdx_ds1Around[elementsCountAroundHalfHaustrum]]
+                dx_ds1InnerAroundList.append(dx_ds1)
+            if dx_ds1InnerAroundList:
                 d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList, fixStartDerivative = True)
                 d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
                 d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
@@ -652,10 +709,6 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 d1Corrected.append(d1TCEdge)
                 d1Corrected.append(d1Transition)
                 d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC*0.5 + 2):]
-            elif n2 < 1:
-                d1Corrected = d1HalfSetStart
-            elif n2 > elementsCountAlongSegment - 1:
-                d1Corrected = d1HalfSetEnd
 
             xAlongList, d1AlongList, d2AlongList = getFullProfileFromHalfHaustrum(xAround, d1Corrected, d2Around, tcCount)
 
@@ -681,7 +734,15 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
         annotationGroups = []
         annotationArray = ['']*(elementsCountAround)
 
-    return xFinal, d1Final, d2Final, transitElementList, xiList, relaxedLengthList, contractedWallThicknessList, sTCWidthAlongSegment, segmentAxis, annotationGroups, annotationArray
+    # Calculate z mid-point for each element set along the segment
+    faceMidPointsZ = []
+    lengthToFirstPhase = startPhase / 360.0 * segmentLength
+    for n2 in range(elementsCountAlongSegment + 1):
+        faceMidPointsZ += [lengthToFirstPhase +
+                           n2 * segmentLength / elementsCountAlongSegment]
+
+    return xFinal, d1Final, d2Final, transitElementList, xiList, relaxedLengthList, contractedWallThicknessList, sTCWidthAlongSegment, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ
+
 
 def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
     tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut):

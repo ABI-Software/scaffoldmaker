@@ -138,7 +138,20 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [   32.0, -49.3,  24.4 ], [   -51.1, -50.1,  -1.2 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -51.1, -45.3,  15.7 ], [   -38.0,  52.2, -16.2 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [ -122.9, 124.2, -36.0 ], [   -21.3,  64.5, -18.3 ], [ 0.0, 0.0, 5.0 ], [ 0.0, 0.0, 0.5 ] ] ] )
-            } )
+            } ),
+        'Pig 2': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'Length': 90.0,
+                'Number of elements': 3
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                [ [  0.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
+                [ [ 30.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
+                [ [ 60.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
+                [ [ 90.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ] ] )
+            } ),
         }
 
     @staticmethod
@@ -153,7 +166,8 @@ class MeshType_3d_colon1(Scaffold_base):
             'Human 2',
             'Mouse 1',
             'Mouse 2',
-            'Pig 1']
+            'Pig 1',
+            'Pig 2']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -163,8 +177,10 @@ class MeshType_3d_colon1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
         elif 'Mouse 2' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 2']
-        elif 'Pig' in parameterSetName:
+        elif 'Pig 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
+        elif 'Pig 2' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 2']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         if 'Mouse' in parameterSetName:
@@ -177,6 +193,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Central path' : copy.deepcopy(centralPathOption),
             'Segment profile' : segmentProfileOption,
             'Number of segments': 30,
+            'Start phase': 0.0,
             'Proximal length': 420.0,
             'Transverse length': 460.0,
             'Distal length': 620.0,
@@ -210,7 +227,7 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Transverse-distal tenia coli width'] = 1.0
             options['Distal inner radius'] = 0.7
             options['Distal tenia coli width'] = 1.0
-        elif 'Pig' in parameterSetName:
+        elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 120
             options['Proximal length'] = 2610.0
             options['Transverse length'] = 200.0
@@ -223,6 +240,19 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Transverse-distal tenia coli width'] = 5.0
             options['Distal inner radius'] = 8.0
             options['Distal tenia coli width'] = 5.0
+        elif 'Pig 2' in parameterSetName:
+            options['Number of segments'] = 3
+            options['Proximal length'] = 30.0
+            options['Transverse length'] = 30.0
+            options['Distal length'] = 30.0
+            options['Proximal inner radius'] = 16.0
+            options['Proximal tenia coli width'] = 5.0
+            options['Proximal-transverse inner radius'] = 16.0
+            options['Proximal-transverse tenia coli width'] = 5.0
+            options['Transverse-distal inner radius'] = 16.0
+            options['Transverse-distal tenia coli width'] = 5.0
+            options['Distal inner radius'] = 16.0
+            options['Distal tenia coli width'] = 5.0
         return options
 
     @staticmethod
@@ -231,6 +261,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Central path',
             'Segment profile',
             'Number of segments',
+            'Start phase',
             'Proximal length',
             'Transverse length',
             'Distal length',
@@ -321,6 +352,7 @@ class MeshType_3d_colon1(Scaffold_base):
         centralPath = options['Central path']
         segmentProfile = options['Segment profile']
         segmentCount = options['Number of segments']
+        startPhase = options['Start phase'] % 360.0
         proximalLength = options['Proximal length']
         transverseLength = options['Transverse length']
         distalLength = options['Distal length']
@@ -396,41 +428,24 @@ class MeshType_3d_colon1(Scaffold_base):
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-            innerRadiusSegmentList, dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList)
+            innerRadiusSegmentList, dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList, startPhase)
 
         for nSegment in range(segmentCount):
             # Create inner points
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray = \
-                colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, \
+                faceMidPointsZ = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
                 xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
-                elementsCountAround, elementsCountAlongSegment, nSegment)
+                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
             d1Extrude = d1Extrude + (d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:])
-
-            # Smooth d2 for nodes between segments and recalculate d3
-            if nSegment == 0:
-                d2Extrude = d2Extrude + (d2WarpedList[:-elementsCountAround])
-                d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[:-elementsCountAround])
-            else:
-                xSecondFace = xWarpedList[elementsCountAround:elementsCountAround*2]
-                d2SecondFace = d2WarpedList[elementsCountAround:elementsCountAround*2]
-                for n1 in range(elementsCountAround):
-                    nx = [xLastTwoFaces[n1], xLastTwoFaces[n1 + elementsCountAround], xSecondFace[n1]]
-                    nd2 = [d2LastTwoFaces[n1], d2LastTwoFaces[n1 + elementsCountAround], d2SecondFace[n1]]
-                    d2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)[1]
-                    d2Extrude.append(d2)
-                    d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1LastTwoFaces[n1 + elementsCountAround]), vector.normalise(d2)))
-                    d3UnitExtrude.append(d3Unit)
-                d2Extrude = d2Extrude + (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else d2WarpedList[elementsCountAround:])
-                d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else d3WarpedUnitList[elementsCountAround:])
-            xLastTwoFaces = xWarpedList[-elementsCountAround*2:]
-            d1LastTwoFaces = d1WarpedList[-elementsCountAround*2:]
-            d2LastTwoFaces = d2WarpedList[-elementsCountAround*2:]
+            d2Extrude = d2Extrude + (d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:])
+            d3UnitExtrude = d3UnitExtrude + (
+                d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:])
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 

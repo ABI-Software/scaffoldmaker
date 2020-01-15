@@ -221,6 +221,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
+        startPhase = 0.0
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -263,17 +264,17 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         # Create object
         smallIntestineSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
             elementsCountAround, elementsCountAlongSegment, segmentLength,
-            wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList)
+            wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList, startPhase)
 
         for nSegment in range(segmentCount):
             # Create inner points
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis = \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, faceMidPointsZ = \
                smallIntestineSegmentTubeMeshInnerPoints.getCylindricalSegmentTubeMeshInnerPoints(nSegment)
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
                 xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
-                elementsCountAround, elementsCountAlongSegment, nSegment)
+                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])

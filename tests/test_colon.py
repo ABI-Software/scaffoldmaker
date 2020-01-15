@@ -21,7 +21,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         Test creation of colon scaffold.
         """
         parameterSetNames = MeshType_3d_colon1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Mouse 1", "Mouse 2", "Pig 1"])
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Mouse 1", "Mouse 2", "Pig 1", "Pig 2"])
         centralPathDefaultScaffoldPackages = {
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {
@@ -42,6 +42,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
             'Central path': copy.deepcopy(centralPathOption),
             'Segment profile': segmentProfileOption,
             'Number of segments': 3,
+            'Start phase': 0.0,
             'Proximal length': 25.0,
             'Transverse length': 25.0,
             'Distal length': 25.0,
@@ -58,7 +59,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
             'Refine number of elements along': 1,
             'Refine number of elements through wall': 1
         }
-        self.assertEqual(18, len(options))
+        self.assertEqual(19, len(options))
         centralPath = options['Central path']
         segmentProfile = options.get("Segment profile")
         segmentSettings = segmentProfile.getScaffoldSettings()
@@ -69,6 +70,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         self.assertEqual(3, segmentSettings.get("Number of tenia coli"))
         self.assertEqual(1.6, segmentSettings.get("Tenia coli thickness"))
         self.assertEqual(3, options.get("Number of segments"))
+        self.assertEqual(0.0, options.get("Start phase"))
         self.assertEqual(25.0, options.get("Transverse length"))
         self.assertEqual(20.0, options.get("Proximal inner radius"))
         self.assertEqual(6.0, options.get("Proximal-transverse tenia coli width"))
@@ -109,8 +111,8 @@ class ColonScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 108.05453644074798, -36.659788201178515, -25.896225462626255 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 185.4128545433126, 48.1410866643588, 34.90780743659052 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [ 108.01553835088, -36.659788201178515, -25.895023537543807 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 185.37195377093056, 48.11615480410062, 34.90780743659052 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
@@ -133,10 +135,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 14244.909601959167, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 14238.283966879982, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 24014.934316646588, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 23872.961861706706, delta=1.0E-6)
 
     def test_mousecolon1(self):
         """

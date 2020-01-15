@@ -17,9 +17,8 @@ from scaffoldmaker.utils import vector
 
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
                       sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
-                      nSegmentStart, nSegmentEnd, faceMidPointZ):
+                      nSegment, faceMidPointZ):
     """
-    EDIT
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
     :param xList: coordinates of segment points.
@@ -32,6 +31,8 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     :param elementsCountAround: Number of elements around segment.
     :param elementsCountAlongSegment: Number of elements along segment.
     :param nSegment: Segment index along central path.
+    :param faceMidPointZ: z-coordinate of midpoint for each element
+    groups along the segment.
     :return coordinates and derivatives of warped points.
     """
     xWarpedList = []
@@ -40,15 +41,12 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     smoothd2WarpedList = []
     d3WarpedUnitList = []
 
-    elementsCountAlongCurrentSegment = nSegmentEnd - nSegmentStart
-    # print('New segment')
-    for nAlongSegment in range(elementsCountAlongCurrentSegment + 1):
-        n2 = nSegmentStart + nAlongSegment # elementsCountAlongSegment * nSegment + nAlongSegment
-        # print('n2 = ', n2)
+    for nAlongSegment in range(elementsCountAlongSegment + 1):
+        n2 = elementsCountAlongSegment * nSegment + nAlongSegment
         xElementAlongSegment = xList[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d1ElementAlongSegment = d1List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d2ElementAlongSegment = d2List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-        xMid = [0.0, 0.0, faceMidPointZ[nAlongSegment]] #segmentLength/elementsCountAlongSegment* nAlongSegment]
+        xMid = [0.0, 0.0, faceMidPointZ[nAlongSegment]]
 
         # Rotate to align segment axis with tangent of central line
         unitTangent = vector.normalise(sd1[n2])
@@ -125,7 +123,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     for n1 in range(elementsCountAround):
         nx = []
         nd2 = []
-        for n2 in range(elementsCountAlongCurrentSegment + 1):
+        for n2 in range(elementsCountAlongSegment + 1):
             n = n2*elementsCountAround + n1
             nx.append(xWarpedList[n])
             nd2.append(d2WarpedList[n])
@@ -133,7 +131,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         smoothd2Raw.append(smoothd2)
 
     # Re-arrange smoothd2
-    for n2 in range(elementsCountAlongCurrentSegment + 1):
+    for n2 in range(elementsCountAlongSegment + 1):
         for n1 in range(elementsCountAround):
             smoothd2WarpedList.append(smoothd2Raw[n1][n2])
 
@@ -535,7 +533,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
     """
 
     def __init__(self, elementsCountAround, elementsCountAlongSegment,
-                 segmentLength, wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList):
+                 segmentLength, wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList, startPhase):
 
         self._elementsCountAround = elementsCountAround
         self._elementsCountAlongSegment = elementsCountAlongSegment
@@ -545,6 +543,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
         self._dInnerRadiusSegmentList = dInnerRadiusSegmentList
         self._xiList = []
         self._flatWidthList = []
+        self._startPhase = startPhase
 
     def getCylindricalSegmentTubeMeshInnerPoints(self, nSegment):
 
@@ -554,10 +553,11 @@ class CylindricalSegmentTubeMeshInnerPoints:
         endRadius = self._innerRadiusSegmentList[nSegment+1]
         endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
 
-        xInner, d1Inner, d2Inner, transitElementList, xiSegment,flatWidthSegment, segmentAxis \
+        xInner, d1Inner, d2Inner, transitElementList, xiSegment,flatWidthSegment, segmentAxis, faceMidPointsZ \
             = getCylindricalSegmentInnerPoints(self._elementsCountAround, self._elementsCountAlongSegment,
                                                self._segmentLength, self._wallThickness,
-                                               startRadius, startRadiusDerivative, endRadius, endRadiusDerivative)
+                                               startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
+                                               self._startPhase)
         startIdx = 0 if nSegment == 0 else 1
         xi = xiSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._xiList += xi
@@ -565,13 +565,14 @@ class CylindricalSegmentTubeMeshInnerPoints:
         flatWidth = flatWidthSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._flatWidthList += flatWidth
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, faceMidPointsZ
 
     def getFlatWidthAndXiList(self):
         return self._flatWidthList, self._xiList
 
 def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegment, segmentLength,
-                                     wallThickness, startRadius, startRadiusDerivative, endRadius, endRadiusDerivative):
+                                     wallThickness, startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
+                                     startPhase):
     """
     Generates a 3-D cylindrical segment mesh with variable numbers of elements
     around, along the central path, and through wall.
@@ -583,6 +584,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     :param startRadiusDerivative: Rate of change of inner radius at proximal end.
     :param endRadius: Inner radius at distal end.
     :param endRadiusDerivative: Rate of change of inner radius at distal end.
+    :param startPhase: Phase at start.
     :return coordinates, derivatives on inner surface of a cylindrical segment.
     :return transitElementList: stores true if element around is an element that
     transits between a big and small element.
@@ -592,17 +594,11 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     :return flatWidthList: List of width around elements for each element
     along cylindrical segment when the segment is opened into a flat preparation.
     :return segmentAxis: Axis of segment.
+    :return faceMidPointsZ: z-coordinate of midpoints for each element group
+    along segment.
     """
 
     transitElementList = [0] * elementsCountAround
-
-    # Find parameter variation along elementsCountAlongSegment
-    sRadiusAlongSegment = []
-    for n2 in range(elementsCountAlongSegment + 1):
-        xi = 1 / elementsCountAlongSegment * n2
-        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative],
-                                                [endRadius], [endRadiusDerivative], xi)[0]
-        sRadiusAlongSegment.append(radius)
 
     # create nodes
     segmentAxis = [0.0, 0.0, 1.0]
@@ -612,10 +608,16 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     d2Final = []
     xiList = []
     flatWidthList = []
+    sRadiusAlongSegment = []
 
     for n2 in range(elementsCountAlongSegment + 1):
-        z = segmentLength/elementsCountAlongSegment * n2
-        radius = sRadiusAlongSegment[n2]
+        phase = startPhase + n2 * 360.0 / elementsCountAlongSegment
+        xi = (phase if phase <= 360.0 else phase - 360.0) / 360.0
+        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative],
+                                                [endRadius], [endRadiusDerivative], xi)[0]
+        sRadiusAlongSegment.append(radius)
+        z = segmentLength / elementsCountAlongSegment * n2 + startPhase / 360.0 * segmentLength
+
         xLoop, d1Loop = createCirclePoints([0.0, 0.0, z], [radius, 0.0, 0.0], [0.0, radius, 0.0],
                                            elementsCountAround, startRadians=0.0)
         xFinal = xFinal + xLoop
@@ -646,4 +648,11 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
             xiFace.append(xi)
         xiList.append(xiFace)
 
-    return xFinal, d1Final, d2Final, transitElementList, xiList, flatWidthList, segmentAxis
+    # Calculate z mid-point for each element set along the segment
+    faceMidPointsZ = []
+    lengthToFirstPhase = startPhase / 360.0 * segmentLength
+    for n2 in range(elementsCountAlongSegment + 1):
+        faceMidPointsZ += [lengthToFirstPhase +
+                           n2 * segmentLength / elementsCountAlongSegment]
+
+    return xFinal, d1Final, d2Final, transitElementList, xiList, flatWidthList, segmentAxis, faceMidPointsZ
