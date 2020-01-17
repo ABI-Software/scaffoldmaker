@@ -300,9 +300,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         annotationGroups = MeshType_3d_heartventricles1.generateBaseMesh(region, options)
 
         # find/add annotation groups
-        lvGroup = findAnnotationGroupByName(annotationGroups, 'left ventricle')
-        rvGroup = findAnnotationGroupByName(annotationGroups, 'right ventricle')
-        vSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interventricular septum')
+        lvGroup = findAnnotationGroupByName(annotationGroups, "left ventricle myocardium")
+        rvGroup = findAnnotationGroupByName(annotationGroups, "right ventricle myocardium")
+        vSeptumGroup = findAnnotationGroupByName(annotationGroups, "interventricular septum")
         conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
         annotationGroups += [ conusArteriosusGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
@@ -1249,6 +1249,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 scaleEftNodeValueLabels(eft1, [ 7, 8 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ], [ 1 ])
                 ln_map = [ 1, 2, 1, 2, 3, 4, 5, 6 ]
                 remapEftLocalNodes(eft1, 6, ln_map)
+                meshGroups += [ vSeptumMeshGroup ]
             elif e == 1:
                 # 7-node collapsed rv crest inner 1, by RA-LV outlet junction
                 rvin1 = -elementsCountAroundAtrialSeptum - 1
@@ -1358,6 +1359,37 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
+        # create endocardium and epicardium groups
+        fm.defineAllFaces()
+        lvGroup.addSubelements()
+        rvGroup.addSubelements()
+        vSeptumGroup.addSubelements()
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_lv = lvGroup.getFieldElementGroup(mesh2d)
+        is_rv = rvGroup.getFieldElementGroup(mesh2d)
+        is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
+        is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_lv_endo)),
+                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
+        is_epi = fm.createFieldAnd(is_exterior_face_xi3_1,
+                                   fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
+        lvEndoGroup = AnnotationGroup(region, "Endocardium of left ventricle", FMANumber = 9559, lyphID = 'Lyph ID unknown')
+        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
+        rvEndoGroup = AnnotationGroup(region, "Endocardium of right ventricle", FMANumber = 9536, lyphID = 'Lyph ID unknown')
+        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
+        vEpiGroup = AnnotationGroup(region, "Epicardium of ventricle", FMANumber = 12150, lyphID = 'Lyph ID unknown')
+        vEpiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
+        del is_exterior
+        del is_exterior_face_xi3_0
+        del is_exterior_face_xi3_1
+        del is_lv
+        del is_rv
+        del is_lv_endo
+        del is_rv_endo
+        del is_epi
 
         fm.endChange()
         return annotationGroups

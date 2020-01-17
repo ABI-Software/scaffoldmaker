@@ -249,9 +249,9 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
 
-        lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
-        rvGroup = AnnotationGroup(region, 'right ventricle', FMANumber = 7098, lyphID = 'Lyph ID unknown')
-        vSeptumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
+        lvGroup = AnnotationGroup(region, "left ventricle myocardium", FMANumber = 9558, lyphID = 'Lyph ID unknown')
+        rvGroup = AnnotationGroup(region, "right ventricle myocardium", FMANumber = 9535, lyphID = 'Lyph ID unknown')
+        vSeptumGroup = AnnotationGroup(region, "interventricular septum", FMANumber = 7133, lyphID = 'Lyph ID unknown')
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
@@ -1036,6 +1036,39 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
+
+        # create endocardium and epicardium groups
+        fm.defineAllFaces()
+        lvGroup.addSubelements()
+        rvGroup.addSubelements()
+        vSeptumGroup.addSubelements()
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_lv = lvGroup.getFieldElementGroup(mesh2d)
+        is_rv = rvGroup.getFieldElementGroup(mesh2d)
+        is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
+        is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_lv_endo)),
+                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
+        is_epi = fm.createFieldAnd(is_exterior_face_xi3_1,
+                                   fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
+        lvEndoGroup = AnnotationGroup(region, "Endocardium of left ventricle", FMANumber = 9559, lyphID = 'Lyph ID unknown')
+        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
+        rvEndoGroup = AnnotationGroup(region, "Endocardium of right ventricle", FMANumber = 9536, lyphID = 'Lyph ID unknown')
+        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
+        vEpiGroup = AnnotationGroup(region, "Epicardium of ventricle", FMANumber = 12150, lyphID = 'Lyph ID unknown')
+        vEpiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
+        del is_exterior
+        del is_exterior_face_xi3_0
+        del is_exterior_face_xi3_1
+        del is_lv
+        del is_rv
+        del is_lv_endo
+        del is_rv_endo
+        del is_epi
+        annotationGroups += [ lvEndoGroup, rvEndoGroup, vEpiGroup ]
 
         # apex annotation points
         element1 = mesh.findElementByIdentifier(1)
