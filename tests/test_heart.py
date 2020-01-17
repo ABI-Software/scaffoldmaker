@@ -27,7 +27,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
         annotationGroups = MeshType_3d_heart1.generateBaseMesh(region, options)
 
-        self.assertEqual(18, len(annotationGroups))
+        self.assertEqual(24, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         if annotationGroups is not None:
@@ -40,9 +40,9 @@ class HeartScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(1356, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(523, nodes.getSize())
+        self.assertEqual(530, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        self.assertEqual(7, datapoints.getSize())
+        self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())

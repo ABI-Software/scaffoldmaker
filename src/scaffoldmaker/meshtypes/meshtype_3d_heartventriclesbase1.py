@@ -310,22 +310,20 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
 
         # annotation fiducial points
-        fiducialGroup = findOrCreateFieldGroup(fm, 'fiducial')
-        fiducialCoordinates = findOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
-        fiducialLabel = findOrCreateFieldStoredString(fm, name='fiducial_label')
-        fiducialElementXi = findOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = findOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
-        datapointTemplateExternal = datapoints.createNodetemplate()
-        datapointTemplateExternal.defineField(fiducialCoordinates)
-        datapointTemplateExternal.defineField(fiducialLabel)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateExternal = nodes.createNodetemplate()
+        markerTemplateExternal.defineField(markerCoordinates)
+        markerTemplateExternal.defineField(markerName)
 
         #################
         # Create nodes
         #################
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
@@ -353,21 +351,21 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         fieldassignment.setNodeset(nodes)
         fieldassignment.assign()
         # also transform data point coordinates and/or re-evaluate from embedded locations
-        newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, fiducialCoordinates), ventriclesOffset)
-        fieldassignment = fiducialCoordinates.createFieldassignment(newCoordinates)
-        fieldassignment.setNodeset(fiducialPoints)
+        newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, markerCoordinates), ventriclesOffset)
+        fieldassignment = markerCoordinates.createFieldassignment(newCoordinates)
+        fieldassignment.setNodeset(markerPoints)
         fieldassignment.assign()
         fieldassignment = None
         newCoordinates = None
         ventriclesOffset = None
-        fiducialHostCoordinates = fm.createFieldEmbedded(coordinates, fiducialElementXi)
-        iter = fiducialPoints.createNodeiterator()
+        fiducialHostCoordinates = fm.createFieldEmbedded(coordinates, markerLocation)
+        iter = markerPoints.createNodeiterator()
         fiducialPoint = iter.next()
         while fiducialPoint.isValid():
             cache.setNode(fiducialPoint)
             result, fiducialx = fiducialHostCoordinates.evaluateReal(cache, 3)
             if result == ZINC_OK:
-                fiducialCoordinates.assignReal(cache, fiducialx)
+                markerCoordinates.assignReal(cache, fiducialx)
             fiducialPoint = iter.next()
         fiducialHostCoordinates = None
 
@@ -418,10 +416,11 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         zero = [ 0.0, 0.0, 0.0 ]
         lvOutletOuterd3 = [ None ]*elementsCountAroundOutlet
 
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateExternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletCentre)
-        fiducialLabel.assignString(cache, 'aortic valve ctr')
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateExternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvOutletCentre)
+        markerName.assignString(cache, 'aortic valve ctr')
 
         # RV outlet points
         cosRvOutletLeftInclineRadians = math.cos(rvOutletLeftInclineRadians)
@@ -438,10 +437,11 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             vector.setMagnitude(axis1, rvOutletOuterRadius), vector.setMagnitude(axis2, rvOutletOuterRadius), elementsCountAroundOutlet)
         rvOutletd2 = [ vOutletElementLength*axis3[c] for c in range(3) ]
 
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateExternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletCentre)
-        fiducialLabel.assignString(cache, 'pulmonary valve ctr')
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateExternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvOutletCentre)
+        markerName.assignString(cache, 'pulmonary valve ctr')
 
         # fix derivative 3 on lv outlet adjacent to rv outlet
         n1 = elementsCountAroundOutlet//2
@@ -554,15 +554,17 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         pd2 = interp.smoothCubicHermiteDerivativesLine([ rvInnerx[nov], ravx[0][0][noa]], [ rvInnerd2[nov], d2 ], fixStartDerivative=True, fixEndDirection=True)
         ravd2[0][0][noa] = pd2[1]
 
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateExternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laCentre)
-        fiducialLabel.assignString(cache, 'mitral valve ctr')
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateExternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laCentre)
+        markerName.assignString(cache, 'mitral valve ctr')
 
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateExternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ -laCentre[0], laCentre[1], laCentre[2] ])
-        fiducialLabel.assignString(cache, 'tricuspid valve ctr')
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateExternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [ -laCentre[0], laCentre[1], laCentre[2] ])
+        markerName.assignString(cache, 'tricuspid valve ctr')
 
         # set d2 at ra node mid supraventricular crest to be normal to surface; smooth to get final magnitude later
         ravsvcn1 = elementsCountAroundRightAtriumFreeWall - 2

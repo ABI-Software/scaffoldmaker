@@ -255,23 +255,21 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
-        fiducialGroup = findOrCreateFieldGroup(fm, 'fiducial')
-        fiducialCoordinates = findOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
-        fiducialLabel = findOrCreateFieldStoredString(fm, name='fiducial_label')
-        fiducialElementXi = findOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = findOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
-        datapointTemplateInternal = datapoints.createNodetemplate()
-        datapointTemplateInternal.defineField(fiducialCoordinates)
-        datapointTemplateInternal.defineField(fiducialLabel)
-        datapointTemplateInternal.defineField(fiducialElementXi)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerCoordinates)
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
 
         #################
         # Create nodes
         #################
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -1072,16 +1070,18 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         # apex annotation points
         element1 = mesh.findElementByIdentifier(1)
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateInternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.assignReal(cache, lvApexInnerx)
-        fiducialLabel.assignString(cache, 'apex endo')
-        fiducialElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateInternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.assignReal(cache, lvApexOuterx)
-        fiducialLabel.assignString(cache, 'apex epi')
-        fiducialElementXi.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.assignReal(cache, lvApexInnerx)
+        markerName.assignString(cache, 'apex endo')
+        markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.assignReal(cache, lvApexOuterx)
+        markerName.assignString(cache, 'apex epi')
+        markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
         fm.endChange()
         return annotationGroups
