@@ -383,6 +383,12 @@ class MeshType_3d_colon1(Scaffold_base):
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
 
+        assert ((startPhase > 0.0 and proximalInnerRadius == proximalTransverseInnerRadius and
+                proximalInnerRadius == transverseDistalInnerRadius and proximalInnerRadius == distalInnerRadius and
+                proximalTCWidth == proximalTransverseTCWidth and proximalTCWidth == transverseDistalTCWidth and
+                proximalTCWidth == distalTCWidth) or startPhase == 0.0), \
+                'Non-zero start phase only works with constant inner radii and tenai coli widths'
+
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 

@@ -225,6 +225,9 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
+        assert ((startPhase > 0.0 and startRadius == endRadius and startTCWidth == endTCWidth) or startPhase == 0.0), \
+                'Non-zero start phase only works with constant inner radii and tenai coli widths'
+
         # Central path
         cx = [ [ 0.0, 0.0, 0.0 ], [ segmentLength, 0.0, 0.0 ] ]
         cd1 = [ [ segmentLength, 0.0, 0.0 ], [ segmentLength, 0.0, 0.0 ] ]
