@@ -181,9 +181,9 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
 
         # generate heartventricles2 model to add base plane to
         annotationGroups = MeshType_3d_heartventricles2.generateBaseMesh(region, options)
-        lvGroup = findAnnotationGroupByName(annotationGroups, 'left ventricle')
-        rvGroup = findAnnotationGroupByName(annotationGroups, 'right ventricle')
-        vSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interventricular septum')
+        lvGroup = findAnnotationGroupByName(annotationGroups, "left ventricle myocardium")
+        rvGroup = findAnnotationGroupByName(annotationGroups, "right ventricle myocardium")
+        vSeptumGroup = findAnnotationGroupByName(annotationGroups, "interventricular septum")
         conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
         lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
         rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')

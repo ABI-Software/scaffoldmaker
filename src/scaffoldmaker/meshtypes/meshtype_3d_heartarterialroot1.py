@@ -137,22 +137,20 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         annotationGroups = allGroups + cuspGroups
 
         # annotation fiducial points
-        fiducialGroup = findOrCreateFieldGroup(fm, 'fiducial')
-        fiducialCoordinates = findOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
-        fiducialLabel = findOrCreateFieldStoredString(fm, name='fiducial_label')
-        #fiducialElementXi = findOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        #markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = findOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
-        datapointTemplateExternal = datapoints.createNodetemplate()
-        datapointTemplateExternal.defineField(fiducialCoordinates)
-        datapointTemplateExternal.defineField(fiducialLabel)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateExternal = nodes.createNodetemplate()
+        markerTemplateExternal.defineField(markerCoordinates)
+        markerTemplateExternal.defineField(markerName)
 
         #################
         # Create nodes
         #################
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
@@ -509,10 +507,11 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         # create annotation points
 
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateExternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
-        fiducialLabel.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateExternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
+        markerName.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
 
         fm.endChange()
         return annotationGroups
