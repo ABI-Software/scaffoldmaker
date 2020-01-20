@@ -191,7 +191,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         cache = fm.createFieldcache()
 
         laGroup = AnnotationGroup(region, "left atrium myocardium", FMANumber = 7285, lyphID = "Lyph ID unknown")
-        raGroup = AnnotationGroup(region, "right atrium", FMANumber = 7282, lyphID = "Lyph ID unknown")
+        raGroup = AnnotationGroup(region, "right atrium myocardium", FMANumber = 7282, lyphID = "Lyph ID unknown")
         aSeptumGroup = AnnotationGroup(region, "interatrial septum", FMANumber = 7108, lyphID = "Lyph ID unknown")
         fossaGroup = AnnotationGroup(region, "fossa ovalis", FMANumber = 9246, lyphID = "Lyph ID unknown")
         lipvGroup = AnnotationGroup(region, 'left inferior pulmonary vein', FMANumber = 49913, lyphID = 'Lyph ID unknown')
