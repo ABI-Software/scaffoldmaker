@@ -15,6 +15,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.interpolation import getCubicHermiteBasis, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -48,7 +49,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
                 'Use linear through vessel wall': True,
-                # 'Use cross derivatives' : False,
+                # 'Use cross derivatives': False,
                 'Refine': False,
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
@@ -77,7 +78,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
                 'Use linear through vessel wall': True,
-                # 'Use cross derivatives' : False,
+                # 'Use cross derivatives': False,
                 'Refine': False,
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
@@ -125,13 +126,13 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements up': 4,
             'Refine number of elements through wall': 1
         }
-
         if 'Rat' in parameterSetName:
             options['Number of elements around'] = 16  # should be even
             options['Number of elements radially on annulus'] = 2
             options['Height'] = 3.0
             options['Major diameter'] = 5.0
             options['Minor diameter'] = 3.0
+            options['Bladder wall thickness'] = 0.02
             options['Urethra diameter'] = 0.7
             options['Ostium position around'] = 0.55
             options['Ostium position up'] = 0.65
@@ -203,6 +204,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             options['Number of elements around'] += 1
         if (options['Number of elements through wall'] != 1):
             options['Number of elements through wall'] = 1
+        if(options['Number of elements radially on annulus'] > 2):
+            options['Number of elements radially on annulus'] = 2
         if (options['Major diameter'] < options['Minor diameter']):
             options['Major diameter'] = options['Minor diameter']
 
@@ -273,222 +276,27 @@ class MeshType_3d_bladder1(Scaffold_base):
         nodeIdentifier = 1
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
         radiansPerElementUpNeck = (math.pi/4)/elementsCountUpNeck
-        zero = [0.0, 0.0, 0.0]
 
         # create lower part of the ellipsoidal
         neckHeight = height - height * math.cos(math.pi / 4)
-        listTotalLower_x = []
-        listTotalLower_d1 = []
-        listTotalLower_d2 = []
-        for n3 in range(2):
-            inner_x = []
-            inner_d1 = []
-            inner_d2 = []
-            outer_x = []
-            outer_d1 = []
-            outer_d2 = []
-            for n2 in range(0, elementsCountUpNeck+1):
-                radiansUp = n2 * radiansPerElementUpNeck
-                cosRadiansUp = math.cos(radiansUp)
-                sinRadiansUp = math.sin(radiansUp)
-                majorRadius = 0.5 * majorDiameter * sinRadiansUp - n3 * bladderWallThickness
-                minorRadius = 0.5 * minorDiameter * sinRadiansUp - n3 * bladderWallThickness
-                if n2 == 0:
-                    for n1 in range(elementsCountAround):
-                        radiansAround = n1 * radiansPerElementAround
-                        cosRadiansAround = math.cos(radiansAround)
-                        sinRadiansAround = math.sin(radiansAround)
-                        x = [
-                            -majorRadius * sinRadiansAround,
-                            minorRadius * cosRadiansAround,
-                            -height - neckHeight
-                        ]
-                        dx_ds1 = [
-                            -majorRadius * cosRadiansAround * radiansPerElementAround,
-                            minorRadius * -sinRadiansAround * radiansPerElementAround,
-                            0.0
-                        ]
-                        dx_ds2 = [
-                            -0.5 * majorDiameter * sinRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
-                            0.5 * minorDiameter * cosRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
-                            height * sinRadiansUp * radiansPerElementUpNeck
-                        ]
-                        outer_x.append(x)
-                        outer_d1.append(dx_ds1)
-                        outer_d2.append(dx_ds2)
-                else:
-                    for n1 in range(elementsCountAround):
-                        neckHeight = height - height * math.cos(math.pi/4)
-                        radiansAround = n1 * radiansPerElementAround
-                        cosRadiansAround = math.cos(radiansAround)
-                        sinRadiansAround = math.sin(radiansAround)
-                        x = [
-                            -majorRadius * sinRadiansAround,
-                            minorRadius * cosRadiansAround,
-                            -height - neckHeight + n2 * 2 * neckHeight / elementsCountUpNeck
-                        ]
-                        dx_ds1 = [
-                            -majorRadius * cosRadiansAround * radiansPerElementAround,
-                            minorRadius * -sinRadiansAround * radiansPerElementAround,
-                            0.0
-                        ]
-                        dx_ds2 = [
-                            -0.5 * majorDiameter * sinRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
-                            0.5 * minorDiameter * cosRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
-                            height * sinRadiansUp * radiansPerElementUpNeck
-                        ]
-                        outer_x.append(x)
-                        outer_d1.append(dx_ds1)
-                        outer_d2.append(dx_ds2)
-
-            # create tube nodes
-            radiansPerElementAround = 2.0 * math.pi / elementsCountAround
-            for n2 in range(0, elementsCountUpNeck + 1):
-                radiansUp = n2 * radiansPerElementUpNeck
-                cosRadiansUp = math.cos(radiansUp)
-                sinRadiansUp = math.sin(radiansUp)
-                Radius = radius - n3 * bladderWallThickness
-                if n2 == 0:
-                    for n1 in range(elementsCountAround):
-                        radiansAround = n1 * radiansPerElementAround
-                        cosRadiansAround = math.cos(radiansAround)
-                        sinRadiansAround = math.sin(radiansAround)
-                        x = [
-                            -Radius * sinRadiansAround,
-                            Radius * cosRadiansAround,
-                            -height - neckHeight
-                        ]
-                        dx_ds1 = [
-                            -radiansPerElementAround * Radius * cosRadiansAround,
-                            radiansPerElementAround * Radius * -sinRadiansAround,
-                            0.0
-                        ]
-                        dx_ds2 = [0, 0, height / (2 * elementsCountUpNeck)]
-                        inner_x.append(x)
-                        inner_d1.append(dx_ds1)
-                        inner_d2.append(dx_ds2)
-                else:
-                    for n1 in range(elementsCountAround):
-                        neckHeight = height - height* math.cos(math.pi/4)
-                        radiansAround = n1 * radiansPerElementAround
-                        cosRadiansAround = math.cos(radiansAround)
-                        sinRadiansAround = math.sin(radiansAround)
-                        x = [
-                            -Radius * sinRadiansAround,
-                            Radius * cosRadiansAround,
-                            -height - neckHeight + n2 * 2 * neckHeight / elementsCountUpNeck
-                        ]
-                        dx_ds1 = [
-                            -radiansPerElementAround * Radius * cosRadiansAround,
-                            radiansPerElementAround * Radius * -sinRadiansAround,
-                            0.0
-                        ]
-                        dx_ds2 = [0, 0, height / elementsCountUpNeck]
-                        inner_x.append(x)
-                        inner_d1.append(dx_ds1)
-                        inner_d2.append(dx_ds2)
-
-            # interpolation between the lower part of the ellipsoidal and the tube
-            m1 = 0
-            z_bottom = outer_x[-1][2]
-            z_top = outer_x[0][2]
-            delta_z = z_top - z_bottom
-            interpolatedNodes = []
-            interpolatedNodes_d1 = []
-            interpolatedNodes_d2 = []
-            for n2 in range(elementsCountUpNeck+1):
-                xi = 1.0 - (outer_x[m1][2] - z_bottom) / delta_z
-                for n1 in range(elementsCountAround):
-                    phi_inner, _, phi_outer, _ = getCubicHermiteBasis(xi)
-                    x = [(phi_inner*inner_x[m1][c] + phi_outer*outer_x[m1][c]) for c in range(3)]
-                    d1 = [(phi_inner*inner_d1[m1][c] + phi_outer*outer_d1[m1][c]) for c in range(3)]
-                    d2 = [(phi_inner*inner_d2[m1][c] + phi_outer*outer_d2[m1][c]) for c in range(3)]
-
-                    interpolatedNodes.append(x)
-                    interpolatedNodes_d1.append(d1)
-                    interpolatedNodes_d2.append(d2)
-                    m1 += 1
-
-            # smoothing the derivatives
-            sd2Raw = []
-            for n1 in range(elementsCountAround):
-                lineSmoothingNodes = []
-                lineSmoothingNodes_d2 = []
-                for n2 in range(elementsCountUpNeck+1):
-                        lineSmoothingNodes.append(interpolatedNodes[n1 + n2 * elementsCountAround])
-                        lineSmoothingNodes_d2.append(interpolatedNodes_d2[n1 + n2 * elementsCountAround])
-                sd2 = smoothCubicHermiteDerivativesLine(lineSmoothingNodes, lineSmoothingNodes_d2,
-                                                        fixAllDirections=False,
-                                                        fixStartDerivative=True, fixEndDerivative=True,
-                                                        fixStartDirection=False, fixEndDirection=False)
-                sd2Raw.append(sd2)
-
-            # rearrange the derivatives order
-            d2RearrangedList = []
-            for n2 in range(elementsCountUpNeck+1):
-                for n1 in range(elementsCountAround):
-                    d2 = sd2Raw[n1][n2]
-                    d2RearrangedList.append(d2)
-
-            # create tracksurface at the neck of the bladder
-            if n3 == 0:
-                nodesOnTrackSurface = []
-                nodesOnTrackSurface_d1 = []
-                nodesOnTrackSurface_d2 = []
-                for n2 in range(elementsCountUpNeck+1):
-                    for n1 in range(elementsCountAround):
-                        if (n1 <= elementsCountAround / 2):
-                            nodesOnTrackSurface.append(interpolatedNodes[n2 * elementsCountAround + n1])
-                            nodesOnTrackSurface_d1.append(interpolatedNodes_d1[n2 * elementsCountAround + n1])
-                            nodesOnTrackSurface_d2.append(d2RearrangedList[n2 * elementsCountAround + n1])
-
-            # set nodes and derivatives of the neck of the bladder
-            elementsCount1 = elementsCountAround // 2
-            elementsCount2 = elementsCountUpNeck
-            tracksurfaceOstium1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface, nodesOnTrackSurface_d1,
-                                        nodesOnTrackSurface_d2)
-            ostium1Position = tracksurfaceOstium1.createPositionProportion(ostiumPositionAround, ostiumPositionUp)
-            ostium1Position.xi1 = 1.0
-            ostium1Position.xi2 = 1.0
-            ostiumElementPositionAround = ostium1Position.e1
-            ostiumElementPositionUp = ostium1Position.e2
-            for n2 in range(len(interpolatedNodes)):
-                if n2 == (ostiumElementPositionUp + 1) * elementsCountAround + ostiumElementPositionAround + 1:
-                    pass
-                elif n2 == (ostiumElementPositionUp + 1) * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 1:
-                    pass
-                else:
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, interpolatedNodes[n2])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, interpolatedNodes_d1[n2])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2RearrangedList[n2])
-                    if useCrossDerivatives:
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                    listTotalLower_x.append(interpolatedNodes[n2])
-                    listTotalLower_d1.append(interpolatedNodes_d1[n2])
-                    listTotalLower_d2.append(d2RearrangedList[n2])
-                nodeIdentifier += 1
-
-            # create body of the bladder
-            radiansPerElementAround = 2.0 * math.pi / elementsCountAround
-            radiansPerElementUpBody = (3 * math.pi / 4) / elementsCountUpBody
-            # create regular rows
-            for n2 in range(1, elementsCountUpBody):
-                radiansUp = (math.pi / 4) + n2 * radiansPerElementUpBody
-                cosRadiansUp = math.cos(radiansUp)
-                sinRadiansUp = math.sin(radiansUp)
-                majorRadius = 0.5 * majorDiameter * sinRadiansUp - n3 * bladderWallThickness
-                minorRadius = 0.5 * minorDiameter * sinRadiansUp - n3 * bladderWallThickness
+        ellipsoidal_x = []
+        ellipsoidal_d1 = []
+        ellipsoidal_d2 = []
+        for n2 in range(0, elementsCountUpNeck+1):
+            radiansUp = n2 * radiansPerElementUpNeck
+            cosRadiansUp = math.cos(radiansUp)
+            sinRadiansUp = math.sin(radiansUp)
+            majorRadius = 0.5 * majorDiameter * sinRadiansUp
+            minorRadius = 0.5 * minorDiameter * sinRadiansUp
+            if n2 == 0:
                 for n1 in range(elementsCountAround):
                     radiansAround = n1 * radiansPerElementAround
                     cosRadiansAround = math.cos(radiansAround)
                     sinRadiansAround = math.sin(radiansAround)
-                    et = (2 * height + neckHeight) / (elementsCountUpNeck + elementsCountUpBody)
                     x = [
                         -majorRadius * sinRadiansAround,
                         minorRadius * cosRadiansAround,
-                        -height * cosRadiansUp
+                        -height - neckHeight
                     ]
                     dx_ds1 = [
                         -majorRadius * cosRadiansAround * radiansPerElementAround,
@@ -496,25 +304,239 @@ class MeshType_3d_bladder1(Scaffold_base):
                         0.0
                     ]
                     dx_ds2 = [
-                        -0.5 * majorDiameter * sinRadiansAround * cosRadiansUp * radiansPerElementUpBody,
-                        0.5 * minorDiameter * cosRadiansAround * cosRadiansUp * radiansPerElementUpBody,
-                        height*sinRadiansUp * radiansPerElementUpBody
+                        -0.5 * majorDiameter * sinRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
+                        0.5 * minorDiameter * cosRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
+                        height * sinRadiansUp * radiansPerElementUpNeck
                     ]
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-                    if useCrossDerivatives:
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                    nodeIdentifier += 1
+                    ellipsoidal_x.append(x)
+                    ellipsoidal_d1.append(dx_ds1)
+                    ellipsoidal_d2.append(dx_ds2)
+            else:
+                for n1 in range(elementsCountAround):
+                    neckHeight = height - height * math.cos(math.pi/4)
+                    radiansAround = n1 * radiansPerElementAround
+                    cosRadiansAround = math.cos(radiansAround)
+                    sinRadiansAround = math.sin(radiansAround)
+                    x = [
+                        -majorRadius * sinRadiansAround,
+                        minorRadius * cosRadiansAround,
+                        -height - neckHeight + n2 * 2 * neckHeight / elementsCountUpNeck
+                    ]
+                    dx_ds1 = [
+                        -majorRadius * cosRadiansAround * radiansPerElementAround,
+                        minorRadius * -sinRadiansAround * radiansPerElementAround,
+                        0.0
+                    ]
+                    dx_ds2 = [
+                        -0.5 * majorDiameter * sinRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
+                        0.5 * minorDiameter * cosRadiansAround * cosRadiansUp * radiansPerElementUpNeck,
+                        height * sinRadiansUp * radiansPerElementUpNeck
+                    ]
+                    ellipsoidal_x.append(x)
+                    ellipsoidal_d1.append(dx_ds1)
+                    ellipsoidal_d2.append(dx_ds2)
 
-            # create apex node
-            node = nodes.createNode(nodeIdentifier, nodetemplateApex)
+        # create tube nodes
+        radiansPerElementAround = 2.0 * math.pi / elementsCountAround
+        tube_x = []
+        tube_d1 = []
+        tube_d2 = []
+        for n2 in range(0, elementsCountUpNeck + 1):
+            radiansUp = n2 * radiansPerElementUpNeck
+            cosRadiansUp = math.cos(radiansUp)
+            sinRadiansUp = math.sin(radiansUp)
+            if n2 == 0:
+                for n1 in range(elementsCountAround):
+                    radiansAround = n1 * radiansPerElementAround
+                    cosRadiansAround = math.cos(radiansAround)
+                    sinRadiansAround = math.sin(radiansAround)
+                    x = [
+                        -radius * sinRadiansAround,
+                        radius * cosRadiansAround,
+                        -height - neckHeight
+                    ]
+                    dx_ds1 = [
+                        -radiansPerElementAround * radius * cosRadiansAround,
+                        radiansPerElementAround * radius * -sinRadiansAround,
+                        0.0
+                    ]
+                    dx_ds2 = [0, 0, height / (2 * elementsCountUpNeck)]
+                    tube_x.append(x)
+                    tube_d1.append(dx_ds1)
+                    tube_d2.append(dx_ds2)
+            else:
+                for n1 in range(elementsCountAround):
+                    neckHeight = height - height* math.cos(math.pi/4)
+                    radiansAround = n1 * radiansPerElementAround
+                    cosRadiansAround = math.cos(radiansAround)
+                    sinRadiansAround = math.sin(radiansAround)
+                    x = [
+                        -radius * sinRadiansAround,
+                        radius * cosRadiansAround,
+                        -height - neckHeight + n2 * 2 * neckHeight / elementsCountUpNeck
+                    ]
+                    dx_ds1 = [
+                        -radiansPerElementAround * radius * cosRadiansAround,
+                        radiansPerElementAround * radius * -sinRadiansAround,
+                        0.0
+                    ]
+                    dx_ds2 = [0, 0, height / elementsCountUpNeck]
+                    tube_x.append(x)
+                    tube_d1.append(dx_ds1)
+                    tube_d2.append(dx_ds2)
+
+        # interpolation between the lower part of the ellipsoidal and the tube
+        m1 = 0
+        z_bottom = ellipsoidal_x[-1][2]
+        z_top = ellipsoidal_x[0][2]
+        delta_z = z_top - z_bottom
+        interpolatedNodes = []
+        interpolatedNodes_d1 = []
+        interpolatedNodes_d2 = []
+        for n2 in range(elementsCountUpNeck+1):
+            xi = 1.0 - (ellipsoidal_x[m1][2] - z_bottom) / delta_z
+            for n1 in range(elementsCountAround):
+                phi_inner, _, phi_outer, _ = getCubicHermiteBasis(xi)
+                x = [(phi_inner*tube_x[m1][c] + phi_outer*ellipsoidal_x[m1][c]) for c in range(3)]
+                d1 = [(phi_inner*tube_d1[m1][c] + phi_outer*ellipsoidal_d1[m1][c]) for c in range(3)]
+                d2 = [(phi_inner*tube_d2[m1][c] + phi_outer*ellipsoidal_d2[m1][c]) for c in range(3)]
+
+                interpolatedNodes.append(x)
+                interpolatedNodes_d1.append(d1)
+                interpolatedNodes_d2.append(d2)
+                m1 += 1
+
+        # smoothing the derivatives
+        sd2Raw = []
+        for n1 in range(elementsCountAround):
+            lineSmoothingNodes = []
+            lineSmoothingNodes_d2 = []
+            for n2 in range(elementsCountUpNeck+1):
+                    lineSmoothingNodes.append(interpolatedNodes[n1 + n2 * elementsCountAround])
+                    lineSmoothingNodes_d2.append(interpolatedNodes_d2[n1 + n2 * elementsCountAround])
+            sd2 = smoothCubicHermiteDerivativesLine(lineSmoothingNodes, lineSmoothingNodes_d2,
+                                                    fixAllDirections=False,
+                                                    fixStartDerivative=True, fixEndDerivative=True,
+                                                    fixStartDirection=False, fixEndDirection=False)
+            sd2Raw.append(sd2)
+
+        # rearrange the derivatives order
+        d2RearrangedList = []
+        for n2 in range(elementsCountUpNeck+1):
+            for n1 in range(elementsCountAround):
+                d2 = sd2Raw[n1][n2]
+                d2RearrangedList.append(d2)
+
+        # create tracksurface at the outer layer of the neck
+        nodesOnTrackSurface = []
+        nodesOnTrackSurface_d1 = []
+        nodesOnTrackSurface_d2 = []
+        for n2 in range(elementsCountUpNeck+1):
+            for n1 in range(elementsCountAround):
+                if (n1 <= elementsCountAround / 2):
+                    nodesOnTrackSurface.append(interpolatedNodes[n2 * elementsCountAround + n1])
+                    nodesOnTrackSurface_d1.append(interpolatedNodes_d1[n2 * elementsCountAround + n1])
+                    nodesOnTrackSurface_d2.append(d2RearrangedList[n2 * elementsCountAround + n1])
+
+        # set nodes and derivatives of the neck of the bladder
+        listOuterNeck_x = []
+        listOuterNeck_d1 = []
+        listOuterNeck_d2 = []
+        elementsCount1 = elementsCountAround // 2
+        elementsCount2 = elementsCountUpNeck
+        tracksurfaceOstium1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface, nodesOnTrackSurface_d1,
+                                    nodesOnTrackSurface_d2)
+        ostium1Position = tracksurfaceOstium1.createPositionProportion(ostiumPositionAround, ostiumPositionUp)
+        ostium1Position.xi1 = 1.0
+        ostium1Position.xi2 = 1.0
+        ostiumElementPositionAround = ostium1Position.e1
+        ostiumElementPositionUp = ostium1Position.e2
+        for n2 in range(len(interpolatedNodes)):
+            if n2 == (ostiumElementPositionUp + 1) * elementsCountAround + ostiumElementPositionAround + 1:
+                pass
+            elif n2 == (ostiumElementPositionUp + 1) * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 1:
+                pass
+            else:
+                listOuterNeck_x.append(interpolatedNodes[n2])
+                listOuterNeck_d1.append(interpolatedNodes_d1[n2])
+                listOuterNeck_d2.append(d2RearrangedList[n2])
+
+        # create body of the bladder
+        radiansPerElementAround = 2.0 * math.pi / elementsCountAround
+        radiansPerElementUpBody = (3 * math.pi / 4) / elementsCountUpBody
+        # create regular rows
+        listOuterBody_x = []
+        listOuterBody_d1 = []
+        listOuterBody_d2 = []
+        for n2 in range(1, elementsCountUpBody):
+            radiansUp = (math.pi / 4) + n2 * radiansPerElementUpBody
+            cosRadiansUp = math.cos(radiansUp)
+            sinRadiansUp = math.sin(radiansUp)
+            majorRadius = 0.5 * majorDiameter * sinRadiansUp
+            minorRadius = 0.5 * minorDiameter * sinRadiansUp
+            for n1 in range(elementsCountAround):
+                radiansAround = n1 * radiansPerElementAround
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                et = (2 * height + neckHeight) / (elementsCountUpNeck + elementsCountUpBody)
+                x = [
+                    -majorRadius * sinRadiansAround,
+                    minorRadius * cosRadiansAround,
+                    -height * cosRadiansUp
+                ]
+                dx_ds1 = [
+                    -majorRadius * cosRadiansAround * radiansPerElementAround,
+                    minorRadius * -sinRadiansAround * radiansPerElementAround,
+                    0.0
+                ]
+                dx_ds2 = [
+                    -0.5 * majorDiameter * sinRadiansAround * cosRadiansUp * radiansPerElementUpBody,
+                    0.5 * minorDiameter * cosRadiansAround * cosRadiansUp * radiansPerElementUpBody,
+                    height*sinRadiansUp * radiansPerElementUpBody
+                ]
+                listOuterBody_x.append(x)
+                listOuterBody_d1.append(dx_ds1)
+                listOuterBody_d2.append(dx_ds2)
+
+        # create outer apex node
+        outerApexNode_x = []
+        outerApexNode_d1 = []
+        outerApexNode_d2 = []
+        x = [0.0, 0.0, height]
+        dx_ds1 = [height*radiansPerElementUpBody/2, 0.0, 0.0]
+        dx_ds2 = [0.0, height*radiansPerElementUpBody/2, 0.0]
+        outerApexNode_x.append(x)
+        outerApexNode_d1.append(dx_ds1)
+        outerApexNode_d2.append(dx_ds2)
+
+        # set nodes of outer layer of the bladder
+        listTotalOuter_x = listOuterNeck_x + listOuterBody_x + outerApexNode_x
+        listTotalOuter_d1 = listOuterNeck_d1 + listOuterBody_d1 + outerApexNode_d1
+        listTotalOuter_d2 = listOuterNeck_d2 + listOuterBody_d2 + outerApexNode_d2
+
+        for n2 in range(len(listTotalOuter_x)):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, [0.0, 0.0, height - n3 * bladderWallThickness])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [height*radiansPerElementUpBody/2, 0.0, 0.0])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, height*radiansPerElementUpBody/2, 0.0])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, listTotalOuter_x[n2])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, listTotalOuter_d1[n2])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, listTotalOuter_d2[n2])
+            nodeIdentifier += 1
+
+        # create and set nodes of inner layer of the bladder
+        listTotalInner_x = []
+        listTotalInner_d1 = []
+        listTotalInner_d2 = []
+        for n1 in range(len(listTotalOuter_x)):
+            x, d1, d2, d3 = interp.projectHermiteCurvesThroughWall(listTotalOuter_x, listTotalOuter_d1, listTotalOuter_d2, n1,
+                                                                   -bladderWallThickness)
+            listTotalInner_x.append(x)
+            listTotalInner_d1.append(d1)
+            listTotalInner_d2.append(d2)
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, listTotalInner_x[n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, listTotalInner_d1[n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, listTotalInner_d2[n1])
             nodeIdentifier += 1
 
         # create ureters on the surface
@@ -523,10 +545,9 @@ class MeshType_3d_bladder1(Scaffold_base):
         centerUreter1_x, centerUreter1_d1, centerUreter1_d2 = tracksurfaceOstium1.evaluateCoordinates(ostium1Position, derivatives=True)
         td1, td2, td3 = calculate_surface_axes(centerUreter1_d1, centerUreter1_d2, [1.0, 0.0, 0.0])
         m1 = ostiumElementPositionUp * elementsCountAround + ostiumElementPositionAround
-        ureter1StartCornerx = listTotalLower_x[m1]
+        ureter1StartCornerx = listOuterNeck_x[m1]
         v1 = [(ureter1StartCornerx[c] - centerUreter1_x[c]) for c in range(3)]
         ostium1Direction = vector.crossproduct3(td3, v1)
-
         nodeIdentifier, elementIdentifier, (o1_x, o1_d1, o1_d2, _, o1_NodeId, o1_Positions) = \
             generateOstiumMesh(region, ostiumDefaultOptions, tracksurfaceOstium1, ostium1Position, ostium1Direction,
                             startNodeIdentifier=nodeIdentifier,
@@ -541,10 +562,9 @@ class MeshType_3d_bladder1(Scaffold_base):
             m2 = ostiumElementPositionUp * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 1
         else:
             m2 = ostiumElementPositionUp * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 2
-        ureter2StartCornerx = listTotalLower_x[m2]
+        ureter2StartCornerx = listOuterNeck_x[m2]
         v2 = [(ureter2StartCornerx[c] - centerUreter2_x[c]) for c in range(3)]
         ostium2Direction = vector.crossproduct3(ad3, v2)
-
         nodeIdentifier, elementIdentifier, (o2_x, o2_d1, o2_d2, _, o2_NodeId, o2_Positions) = \
             generateOstiumMesh(region, ostiumDefaultOptions, tracksurfaceOstium2, ostium2Position, ostium2Direction,
                            startNodeIdentifier=nodeIdentifier,
@@ -561,65 +581,48 @@ class MeshType_3d_bladder1(Scaffold_base):
         endPoints2_d2 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
         endNode2_Id = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
 
-        nodeCountsEachWallLayer = (elementsCountUpNeck + elementsCountUpBody) * elementsCountAround + 1
-        nodeCountsUpperPart = elementsCountAround * (elementsCountUpBody - 1) + 1
-
+        nodeCountsEachWallLayer = (elementsCountUpNeck + elementsCountUpBody) * elementsCountAround - 1
         for n3 in range(2):
             n1 = 0
             endNode1_Id[n3][n1] = ((1 - n3) * nodeCountsEachWallLayer) + (ostiumElementPositionUp * elementsCountAround) + ostiumElementPositionAround + 1
             endNode1_Id[n3][n1 + 1] = endNode1_Id[n3][n1] + elementsCountAround
-            endNode1_Id[n3][n1 + 2] = endNode1_Id[n3][n1 + 1] + elementsCountAround
+            endNode1_Id[n3][n1 + 2] = endNode1_Id[n3][n1 + 1] + elementsCountAround - 2
             endNode1_Id[n3][n1 + 3] = endNode1_Id[n3][n1 + 2] + 1
             endNode1_Id[n3][n1 + 4] = endNode1_Id[n3][n1 + 3] + 1
-            endNode1_Id[n3][n1 + 5] = endNode1_Id[n3][n1 + 1] + 2
+            endNode1_Id[n3][n1 + 5] = endNode1_Id[n3][n1 + 1] + 1
             endNode1_Id[n3][n1 + 6] = endNode1_Id[n3][n1] + 2
             endNode1_Id[n3][n1 + 7] = endNode1_Id[n3][n1] + 1
             if ostiumElementPositionAround == 0:
                 endNode2_Id[n3][n1] = ((1 - n3) * nodeCountsEachWallLayer) + (ostiumElementPositionUp * elementsCountAround)\
                                         + elementsCountAround - ostiumElementPositionAround - 1
-                endNode2_Id[n3][n1 + 1] = endNode2_Id[n3][n1] + elementsCountAround
-                endNode2_Id[n3][n1 + 2] = endNode2_Id[n3][n1 + 1] + elementsCountAround
+                endNode2_Id[n3][n1 + 1] = endNode2_Id[n3][n1] + elementsCountAround - 1
+                endNode2_Id[n3][n1 + 2] = endNode2_Id[n3][n1 + 1] + elementsCountAround - 1
                 endNode2_Id[n3][n1 + 3] = endNode2_Id[n3][n1 + 2] + 1
                 endNode2_Id[n3][n1 + 4] = endNode2_Id[n3][n1 + 3] - elementsCountAround + 1
-                endNode2_Id[n3][n1 + 5] = endNode2_Id[n3][n1 + 4] - elementsCountAround
+                endNode2_Id[n3][n1 + 5] = endNode2_Id[n3][n1 + 4] - elementsCountAround + 2
                 endNode2_Id[n3][n1 + 6] = endNode2_Id[n3][n1 + 5] - elementsCountAround
                 endNode2_Id[n3][n1 + 7] = endNode2_Id[n3][n1] + 1
             else:
                 endNode2_Id[n3][n1] = ((1 - n3) * nodeCountsEachWallLayer) + (ostiumElementPositionUp * elementsCountAround)\
                                         + elementsCountAround - ostiumElementPositionAround - 1
-                endNode2_Id[n3][n1 + 1] = endNode2_Id[n3][n1] + elementsCountAround
-                endNode2_Id[n3][n1 + 2] = endNode2_Id[n3][n1 + 1] + elementsCountAround
+                endNode2_Id[n3][n1 + 1] = endNode2_Id[n3][n1] + elementsCountAround - 1
+                endNode2_Id[n3][n1 + 2] = endNode2_Id[n3][n1 + 1] + elementsCountAround - 1
                 endNode2_Id[n3][n1 + 3] = endNode2_Id[n3][n1 + 2] + 1
                 endNode2_Id[n3][n1 + 4] = endNode2_Id[n3][n1 + 3] + 1
-                endNode2_Id[n3][n1 + 5] = endNode2_Id[n3][n1 + 1] + 2
+                endNode2_Id[n3][n1 + 5] = endNode2_Id[n3][n1 + 1] + 1
                 endNode2_Id[n3][n1 + 6] = endNode2_Id[n3][n1] + 2
                 endNode2_Id[n3][n1 + 7] = endNode2_Id[n3][n1] + 1
 
         for n3 in range(2):
             for n1 in range(elementsCountAroundOstium):
-                if 1 < n1 < 5:
-                    nc1 = endNode1_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 2 - 2 * (1 - n3)
-                elif n1 == 5:
-                    nc1 = endNode1_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 1 - 2 * (1 - n3)
-                else:
-                    nc1 = endNode1_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 2 * (1 - n3)
-                endPoints1_x[n3][n1] = listTotalLower_x[nc1]
-                endPoints1_d1[n3][n1] = listTotalLower_d1[nc1]
-                endPoints1_d2[n3][n1] = [listTotalLower_d2[nc1][c] for c in range (3)]
-                if n1 == 1:
-                    nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 1 - 2 * (1 - n3)
-                elif 1 < n1 < 5:
-                    nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 2 - 2 * (1 - n3)
-                elif n1 == 5:
-                    if ostiumElementPositionAround == 0:
-                        nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 2 * (1 - n3)
-                    else:
-                        nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 2 - 2 * (1 - n3)
-                else:
-                    nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsUpperPart - 1 - 2 * (1 - n3)
-                endPoints2_x[n3][n1] = listTotalLower_x[nc2]
-                endPoints2_d1[n3][n1] = listTotalLower_d1[nc2]
-                endPoints2_d2[n3][n1] = listTotalLower_d2[nc2]
+                nc1 = endNode1_Id[n3][n1] - (1 - n3) * nodeCountsEachWallLayer - 1
+                endPoints1_x[n3][n1] = listTotalInner_x[nc1]
+                endPoints1_d1[n3][n1] = listTotalInner_d1[nc1]
+                endPoints1_d2[n3][n1] = [listTotalInner_d2[nc1][c] for c in range(3)]
+                nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsEachWallLayer - 1
+                endPoints2_x[n3][n1] = listTotalInner_x[nc2]
+                endPoints2_d1[n3][n1] = listTotalInner_d1[nc2]
+                endPoints2_d2[n3][n1] = listTotalInner_d2[nc2]
 
         for n1 in range(elementsCountAroundOstium):
             if n1 == 0:
@@ -661,66 +664,96 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         # create elements
         for e3 in range(1):
-            newl = (e3 + 1) * ((elementsCountUpNeck + elementsCountUpBody) * elementsCountAround + 1)
+            newl = (e3 + 1) * ((elementsCountUpNeck + elementsCountUpBody) * elementsCountAround - 1)
             # create bladder neck elements
             for e2 in range(elementsCountUpNeck):
                 for e1 in range(elementsCountAround):
-                    if elementsCountAroundOstium == 4:
-                        if e2 == ostiumElementPositionUp and (e1 == ostiumElementPositionAround or e1 == elementsCountAround - ostiumElementPositionAround - 1):
+                    if e2 == ostiumElementPositionUp:
+                        if (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
+                            pass
+                        elif (e1 == elementsCountAround - ostiumElementPositionAround - 2 or e1 == elementsCountAround - 1 - ostiumElementPositionAround):
                             pass
                         else:
-                            element = mesh.createElement(elementIdentifier, elementtemplate)
                             bni1 = e2 * elementsCountAround + e1 + 1
                             bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
-                            bni3 = bni1 + elementsCountAround
-                            bni4 = bni2 + elementsCountAround
+                            if e1 < ostiumElementPositionAround:
+                                bni3 = bni1 + elementsCountAround
+                                bni4 = bni2 + elementsCountAround
+                            elif (ostiumElementPositionAround + 1 < e1 < elementsCountAround - ostiumElementPositionAround - 2):
+                                bni3 = bni1 + elementsCountAround - 1
+                                bni4 = bni2 + elementsCountAround - 1
+                            elif e1 > elementsCountAround - ostiumElementPositionAround - 1:
+                                bni3 = bni1 + elementsCountAround - 2
+                                if e1 == elementsCountAround - 1:
+                                    bni4 = bni2 + elementsCountAround
+                                else:
+                                    bni4 = bni2 + elementsCountAround - 2
+                            element = mesh.createElement(elementIdentifier, elementtemplate)
                             nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             neckMeshGroup.addElement(element)
                             elementIdentifier += 1
-                    if elementsCountAroundOstium == 6:
-                        if e2 == ostiumElementPositionUp and (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
+                    elif e2 == ostiumElementPositionUp + 1:
+                        if (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
                             pass
-                        elif e2 == ostiumElementPositionUp and (e1 == elementsCountAround - ostiumElementPositionAround - 2 or e1 == elementsCountAround - 1 - ostiumElementPositionAround):
+                        elif (e1 == elementsCountAround - ostiumElementPositionAround - 2 or e1 == elementsCountAround - 1 - ostiumElementPositionAround):
                             pass
                         else:
+                            if e1 < ostiumElementPositionAround:
+                                bni1 = e2 * elementsCountAround + e1 + 1
+                                bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
+                                bni3 = bni1 + elementsCountAround - 2
+                                bni4 = bni2 + elementsCountAround - 2
+                            elif (ostiumElementPositionAround + 1 < e1 < elementsCountAround - ostiumElementPositionAround - 2):
+                                bni1 = e2 * elementsCountAround + e1
+                                bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround
+                                bni3 = bni1 + elementsCountAround - 1
+                                bni4 = bni2 + elementsCountAround - 1
+                            elif e1 > elementsCountAround - ostiumElementPositionAround - 1:
+                                bni1 = e2 * elementsCountAround + e1 - 1
+                                bni3 = bni1 + elementsCountAround
+                                if e1 == elementsCountAround - 1:
+                                    bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
+                                    bni4 = bni2 + elementsCountAround - 2
+                                else:
+                                    bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround - 1
+                                    bni4 = bni2 + elementsCountAround
                             element = mesh.createElement(elementIdentifier, elementtemplate)
-                            bni1 = e2 * elementsCountAround + e1 + 1
-                            bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
-                            bni3 = bni1 + elementsCountAround
-                            bni4 = bni2 + elementsCountAround
                             nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             neckMeshGroup.addElement(element)
                             elementIdentifier += 1
-                    if elementsCountAroundOstium == 8:
-                        if e2 == ostiumElementPositionUp and (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
-                            pass
-                        elif e2 == ostiumElementPositionUp + 1 and (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
-                            pass
-                        elif e2 == ostiumElementPositionUp and (e1 == elementsCountAround - ostiumElementPositionAround - 2 or e1 == elementsCountAround - 1 - ostiumElementPositionAround):
-                            pass
-                        elif e2 == ostiumElementPositionUp + 1 and (e1 == elementsCountAround - ostiumElementPositionAround - 2 or e1 == elementsCountAround - 1 - ostiumElementPositionAround):
-                            pass
-                        else:
-                            element = mesh.createElement(elementIdentifier, elementtemplate)
-                            bni1 = e2 * elementsCountAround + e1 + 1
-                            bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
-                            bni3 = bni1 + elementsCountAround
-                            bni4 = bni2 + elementsCountAround
-                            nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
-                                               bni1, bni2, bni3, bni4]
-                            result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                            neckMeshGroup.addElement(element)
-                            elementIdentifier += 1
+                    elif e2 > ostiumElementPositionUp + 1:
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                        bni1 = e2 * elementsCountAround + e1 - 1
+                        bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround - 1
+                        bni3 = bni1 + elementsCountAround
+                        bni4 = bni2 + elementsCountAround
+                        nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
+                                           bni1, bni2, bni3, bni4]
+                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+                        neckMeshGroup.addElement(element)
+                        elementIdentifier += 1
+                    else:
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                        bni1 = e2 * elementsCountAround + e1 + 1
+                        bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
+                        bni3 = bni1 + elementsCountAround
+                        bni4 = bni2 + elementsCountAround
+                        nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
+                                           bni1, bni2, bni3, bni4]
+                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+                        neckMeshGroup.addElement(element)
+                        elementIdentifier += 1
+
             # create bladder body elements
             for e2 in range(elementsCountUpNeck, (elementsCountUpNeck + elementsCountUpBody - 1)):
                 for e1 in range(elementsCountAround):
                     element = mesh.createElement(elementIdentifier, elementtemplate)
-                    bni1 = e2 * elementsCountAround + e1 + 1
-                    bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
+                    bni1 = e2 * elementsCountAround + e1 - 1
+                    bni2 = e2 * elementsCountAround + (e1 + 1) % elementsCountAround - 1
                     bni3 = bni1 + elementsCountAround
                     bni4 = bni2 + elementsCountAround
                     nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni4 + newl,
@@ -729,7 +762,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                     bodyMeshGroup.addElement(element)
                     elementIdentifier += 1
             # create apex elements
-            bni3 = 1 + (elementsCountUpNeck + elementsCountUpBody) * elementsCountAround
+            bni3 = (elementsCountUpNeck + elementsCountUpBody) * elementsCountAround - 1
             elementtemplateApex = mesh.createElementtemplate()
             elementtemplateApex.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             for e1 in range(elementsCountAround):
@@ -770,4 +803,3 @@ class MeshType_3d_bladder1(Scaffold_base):
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp, refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
-
