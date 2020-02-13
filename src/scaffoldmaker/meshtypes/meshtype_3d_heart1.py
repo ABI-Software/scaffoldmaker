@@ -6,7 +6,7 @@ from __future__ import division
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
-from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier
+from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -135,23 +135,23 @@ class MeshType_3d_heart1(Scaffold_base):
         annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
 
         # annotation fiducial points
-        fiducialGroup = findOrCreateFieldGroup(fm, 'fiducial')
-        fiducialCoordinates = findOrCreateFieldCoordinates(fm, 'fiducial_coordinates')
-        fiducialLabel = findOrCreateFieldStoredString(fm, name='fiducial_label')
-        fiducialElementXi = findOrCreateFieldStoredMeshLocation(fm, mesh, name='fiducial_element_xi')
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        fiducialPoints = findOrCreateFieldNodeGroup(fiducialGroup, datapoints).getNodesetGroup()
-        datapointTemplateInternal = datapoints.createNodetemplate()
-        datapointTemplateInternal.defineField(fiducialCoordinates)
-        datapointTemplateInternal.defineField(fiducialLabel)
-        datapointTemplateInternal.defineField(fiducialElementXi)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerCoordinates)
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
 
         ##############
         # Create nodes
         ##############
 
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         # discover left and right fibrous ring nodes from ventricles and atria
         # because nodes are iterated in identifier order, the lowest and first are on the lv outlet cfb, right and left on lower outer layers
@@ -404,11 +404,12 @@ class MeshType_3d_heart1(Scaffold_base):
         cruxXi = [ 0.0, 0.5, 1.0 ]
         cache.setMeshLocation(cruxElement, cruxXi)
         result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
-        datapoint = fiducialPoints.createNode(-1, datapointTemplateInternal)
-        cache.setNode(datapoint)
-        fiducialCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
-        fiducialLabel.assignString(cache, 'crux')
-        fiducialElementXi.assignMeshLocation(cache, cruxElement, cruxXi)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
+        markerName.assignString(cache, 'crux')
+        markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
 
         fm.endChange()
         return annotationGroups

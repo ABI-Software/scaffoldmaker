@@ -153,9 +153,9 @@ class MeshType_3d_heartventricles2(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        lvGroup = AnnotationGroup(region, 'left ventricle', FMANumber = 7101, lyphID = 'Lyph ID unknown')
-        rvGroup = AnnotationGroup(region, 'right ventricle', FMANumber = 7098, lyphID = 'Lyph ID unknown')
-        vSeptumGroup = AnnotationGroup(region, 'interventricular septum', FMANumber = 7133, lyphID = 'Lyph ID unknown')
+        lvGroup = AnnotationGroup(region, "left ventricle myocardium", FMANumber = 9558, lyphID = 'Lyph ID unknown')
+        rvGroup = AnnotationGroup(region, "right ventricle myocardium", FMANumber = 9535, lyphID = 'Lyph ID unknown')
+        vSeptumGroup = AnnotationGroup(region, "interventricular septum", FMANumber = 7133, lyphID = 'Lyph ID unknown')
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         #################

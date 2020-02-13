@@ -736,10 +736,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        laGroup = AnnotationGroup(region, 'left atrium', FMANumber = 7097, lyphID = 'Lyph ID unknown')
-        raGroup = AnnotationGroup(region, 'right atrium', FMANumber = 7096, lyphID = 'Lyph ID unknown')
-        aSeptumGroup = AnnotationGroup(region, 'interatrial septum', FMANumber = 7108, lyphID = 'Lyph ID unknown')
-        fossaGroup = AnnotationGroup(region, 'fossa ovalis', FMANumber = 9246, lyphID = 'Lyph ID unknown')
+        laGroup = AnnotationGroup(region, "left atrium myocardium", FMANumber = 7285, lyphID = "Lyph ID unknown")
+        raGroup = AnnotationGroup(region, "right atrium myocardium", FMANumber = 7282, lyphID = "Lyph ID unknown")
+        aSeptumGroup = AnnotationGroup(region, "interatrial septum", FMANumber = 7108, lyphID = "Lyph ID unknown")
+        fossaGroup = AnnotationGroup(region, "fossa ovalis", FMANumber = 9246, lyphID = "Lyph ID unknown")
         laaGroup = AnnotationGroup(region, 'left atrial appendage', FMANumber = 7219, lyphID = 'Lyph ID unknown')
         raaGroup = AnnotationGroup(region, 'right atrial appendage', FMANumber = 7218, lyphID = 'Lyph ID unknown')
         annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup ]
@@ -3163,6 +3163,41 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     element = mesh2d.createElement(-1, elementtemplate2d)  # since on 2-D mesh
                     nid1 = raTrackSurfaceFirstNodeIdentifier + e2*nodesCount1 + e1
                     element.setNodesByIdentifier(eft2d, [ nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1 ])
+
+        # create endocardium and epicardium groups
+        fm.defineAllFaces()
+        laGroup.addSubelements()
+        raGroup.addSubelements()
+        aSeptumGroup.addSubelements()
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_la = laGroup.getFieldElementGroup(mesh2d)
+        is_ra = raGroup.getFieldElementGroup(mesh2d)
+        is_la_endo = fm.createFieldAnd(is_la, is_exterior_face_xi3_0)
+        is_ra_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ra, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_la_endo)),
+                                      fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
+        is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_la, is_ra),
+                                     fm.createFieldAnd(is_exterior_face_xi3_1,
+                                                       fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
+        laEndoGroup = AnnotationGroup(region, "Endocardium of left atrium", FMANumber = 7286, lyphID = 'Lyph ID unknown')
+        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_la_endo)
+        raEndoGroup = AnnotationGroup(region, "Endocardium of right atrium", FMANumber = 7281, lyphID = 'Lyph ID unknown')
+        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ra_endo)
+        # Note I could not find any epicardium of atria
+        aEpiGroup = AnnotationGroup(region, "Epicardium of atrium", FMANumber = 0, lyphID = 'Lyph ID unknown')
+        aEpiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
+        del is_exterior
+        del is_exterior_face_xi3_0
+        del is_exterior_face_xi3_1
+        del is_la
+        del is_ra
+        del is_la_endo
+        del is_ra_endo
+        del is_a_epi
+        annotationGroups += [ laEndoGroup, raEndoGroup, aEpiGroup ]
 
         fm.endChange()
         return annotationGroups
