@@ -12,7 +12,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.zinc.node import Node
 
@@ -383,12 +382,6 @@ class MeshType_3d_colon1(Scaffold_base):
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
 
-        assert ((startPhase > 0.0 and proximalInnerRadius == proximalTransverseInnerRadius and
-                proximalInnerRadius == transverseDistalInnerRadius and proximalInnerRadius == distalInnerRadius and
-                proximalTCWidth == proximalTransverseTCWidth and proximalTCWidth == transverseDistalTCWidth and
-                proximalTCWidth == distalTCWidth) or startPhase == 0.0), \
-                'Non-zero start phase only works with constant inner radii and tenai coli widths'
-
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
@@ -418,11 +411,16 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
-        innerRadiusList = [proximalInnerRadius, proximalTransverseInnerRadius, transverseDistalInnerRadius, distalInnerRadius]
-        innerRadiusSegmentList, dInnerRadiusSegmentList = interp.sampleParameterAlongLine(lengthList, innerRadiusList, segmentCount)
+        innerRadiusList = [proximalInnerRadius, proximalTransverseInnerRadius,
+                           transverseDistalInnerRadius, distalInnerRadius]
+        innerRadiusAlongElementList, dInnerRadiusAlongElementList = interp.sampleParameterAlongLine(lengthList,
+                                                                                                    innerRadiusList,
+                                                                                                    elementsCountAlong)
 
         tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
-        tcWidthSegmentList, dTCWidthSegmentList = interp.sampleParameterAlongLine(lengthList, tcWidthList, segmentCount)
+        tcWidthAlongElementList, dTCWidthAlongElementList = interp.sampleParameterAlongLine(lengthList,
+                                                                                            tcWidthList,
+                                                                                            elementsCountAlong)
 
         xExtrude = []
         d1Extrude = []
@@ -434,7 +432,8 @@ class MeshType_3d_colon1(Scaffold_base):
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
-            innerRadiusSegmentList, dInnerRadiusSegmentList, tcWidthSegmentList, dTCWidthSegmentList, startPhase)
+            innerRadiusAlongElementList, dInnerRadiusAlongElementList, tcWidthAlongElementList,
+            startPhase)
 
         for nSegment in range(segmentCount):
             # Create inner points

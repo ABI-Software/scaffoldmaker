@@ -111,8 +111,8 @@ class ColonScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 108.01553835088, -36.659788201178515, -25.895023537543807 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 185.37195377093056, 48.11615480410062, 34.90780743659052 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [ 108.03261346519433, -36.87608293131954,  -25.89594001824669 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 185.46656314031185, 48.10029819910435, 34.995273914410724 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
@@ -135,10 +135,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 14238.283966879982, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 14265.760370377262, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 23872.961861706706, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 23911.026921747245, delta=1.0E-6)
 
     def test_mousecolon1(self):
         """
@@ -174,7 +174,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 641.9768900558535, delta=1.0E-3)
+        self.assertAlmostEqual(flatSurfaceArea, 641.8998709292947, delta=1.0E-6)
         result, textureSurfaceArea = textureSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(textureSurfaceArea, 1.0, delta=1.0E-6)
