@@ -6,6 +6,7 @@ Bicubic with linear through wall.
 
 from __future__ import division
 import math
+from opencmiss.utils.maths.vectorops import eulerToRotationMatrix3
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.utils.zinc.general import ChangeManager
@@ -35,19 +36,23 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         return {
             'Unit scale' : 1.0,
             'Centre height' : 0.5,
+            'Centre x' : 0.0,
+            'Centre y' : 0.0,
+            'Centre z' : 0.0,
             'Inner diameter' : 1.0,
             'Inner height' : 0.7,
-            'Inner radial displacement' : 0.05,
+            'Inner radial displacement' : 0.0,
+            'Inner sinus radial displacement' : 0.05,
             'Outer angle degrees' : 0.0,
             'Outer height' : 0.5,
-            'Outer radial displacement' : 0.1,
-            'Outer sinus displacement' : 0.05,
-            'Outlet length' : 0.4,
+            'Outer radial displacement' : 0.05,
+            'Outer sinus radial displacement' : 0.15,
+            'Outlet length' : 0.5,
             'Sinus angle degrees' : 35.0,
             'Wall thickness' : 0.05,
-            #'X rotation degrees' : 0.0,
-            #'Y rotation degrees' : 0.0,
-            #'Z rotation degrees' : 0.0,
+            'Rotation azimuth degrees' : 0.0,
+            'Rotation elevation degrees' : 0.0,
+            'Rotation roll degrees' : 0.0,
             'Refine' : False,
             'Refine number of elements surface' : 4,
             'Refine number of elements through wall' : 1,
@@ -59,19 +64,23 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         return [
             'Unit scale',
             'Centre height',
+            'Centre x',
+            'Centre y',
+            'Centre z',
             'Inner diameter',
             'Inner height',
             'Inner radial displacement',
+            'Inner sinus radial displacement',
             'Outer angle degrees',
             'Outer height',
             'Outer radial displacement',
-            'Outer sinus displacement',
+            'Outer sinus radial displacement',
             'Outlet length',
+            'Rotation azimuth degrees',
+            'Rotation elevation degrees',
+            'Rotation roll degrees',
             'Sinus angle degrees',
             'Wall thickness',
-            #'X rotation degrees',
-            #'Y rotation degrees',
-            #'Z rotation degrees',
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through wall'
@@ -86,12 +95,12 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         for key in [
             'Unit scale',
             'Centre height',
+            'Centre x',
+            'Centre y',
+            'Centre z',
             'Inner diameter',
             'Inner height',
-            'Inner radial displacement',
             'Outer height',
-            'Outer radial displacement',
-            'Outer sinus displacement',
             'Outlet length',
             'Wall thickness']:
             if options[key] < 0.0:
@@ -114,27 +123,34 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
          """
         unitScale = options['Unit scale']
         centreHeight = unitScale*options['Centre height']
+        centre = [ unitScale*options['Centre x'], unitScale*options['Centre y'], unitScale*options['Centre z'] ]
         innerRadius = unitScale*0.5*options['Inner diameter']
         innerHeight = unitScale*options['Inner height']
         innerRadialDisplacement = unitScale*options['Inner radial displacement']
+        innerSinusRadialDisplacement = unitScale*options['Inner sinus radial displacement']
         outerAngleRadians = math.radians(options['Outer angle degrees'])
         outerHeight = unitScale*options['Outer height']
         outerRadialDisplacement = unitScale*options['Outer radial displacement']
-        outerSinusDisplacement = unitScale*options['Outer sinus displacement']
+        outerSinusRadialDisplacement = unitScale*options['Outer sinus radial displacement']
         outletLength = unitScale*options['Outlet length']
         sinusAngleRadians = math.radians(options['Sinus angle degrees'])
         wallThickness = unitScale*options['Wall thickness']
+        rotationAzimuthRadians = math.radians(options['Rotation azimuth degrees'])
+        rotationElevationRadians = math.radians(options['Rotation elevation degrees'])
+        rotationRollRadians = math.radians(options['Rotation roll degrees'])
         outerRadius = innerRadius + wallThickness
-        innerInletRadius = innerSinusRadius = innerRadius + innerRadialDisplacement
+        innerInletRadius = innerRadius + innerRadialDisplacement
+        innerInletSinusRadius = innerRadius + innerSinusRadialDisplacement
 
         elementsCountAround = 6  # fixed
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
         pi_3 = radiansPerElementAround
 
-        centre = [ 0.0, 0.0, 0.0 ]
-        axis1 = [ 1.0, 0.0, 0.0 ]
-        axis2 = [ 0.0, 1.0, 0.0 ]
-        axis3 = vector.crossproduct3(axis1, axis2)
+        #centre = [ 0.0, 0.0, 0.0 ]
+        #axis1 = [ 1.0, 0.0, 0.0 ]
+        #axis2 = [ 0.0, 1.0, 0.0 ]
+        #axis3 = vector.crossproduct3(axis1, axis2)
+        axis1, axis2, axis3 = eulerToRotationMatrix3([ rotationAzimuthRadians, rotationElevationRadians, rotationRollRadians ])
 
         x  = [ [ None, None ], [ None, None ] ]
         d1 = [ [ None, None ], [ None, None ] ]
@@ -150,14 +166,14 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         sinusCentre  = [ (centre[c] +  sinusz*axis3[c]) for c in range(3) ]
         # calculate magnitude of d1, d2 at inner sinus
         leafd1mag = innerInletRadius*radiansPerElementAround  # was 0.5*
-        leafd2r, leafd2z = interpolateLagrangeHermiteDerivative([ -innerRadialDisplacement, 0.0 ], [ 0.0, outletLength ], [ 0.0, outletLength ], 0.0)
-        sinusd1mag = innerSinusRadius*radiansPerElementAround  # initial value only
+        leafd2r, leafd2z = interpolateLagrangeHermiteDerivative([ innerRadialDisplacement, 0.0 ], [ 0.0, outletLength ], [ 0.0, outletLength ], 0.0)
+        sinusd1mag = innerInletSinusRadius*radiansPerElementAround  # initial value only
         sinusd1mag = vector.magnitude(smoothCubicHermiteDerivativesLine(
-            [ [ innerInletRadius, 0.0, inletz ], [ innerSinusRadius*math.cos(pi_3), innerSinusRadius*math.sin(pi_3), sinusz ] ],
+            [ [ innerInletRadius, 0.0, inletz ], [ innerInletSinusRadius*math.cos(pi_3), innerInletSinusRadius*math.sin(pi_3), sinusz ] ],
             [ [ 0.0, leafd1mag, 0.0 ], [ -sinusd1mag*math.sin(pi_3), sinusd1mag*math.cos(pi_3), 0.0 ] ],
             fixStartDerivative = True, fixEndDirection = True)[1])
         sinusd2r, sinusd2z = smoothCubicHermiteDerivativesLine(
-            [ [ innerSinusRadius , -centreHeight ], [ innerInletRadius, innerHeight - centreHeight ] ],
+            [ [ innerInletSinusRadius , -centreHeight ], [ innerInletRadius, innerHeight - centreHeight ] ],
             [ [ outletLength*math.sin(sinusAngleRadians), outletLength*math.cos(sinusAngleRadians) ], [ 0.0, outletLength ] ],
             fixStartDirection = True, fixEndDerivative = True)[0]
         x [0][0] = []
@@ -178,7 +194,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             else:
                 # sinus / leaflet centre
                 cx = sinusCentre
-                r = innerSinusRadius
+                r = innerInletSinusRadius
                 d1mag = sinusd1mag
                 d2mag1 = sinusd2r*cosRadiansAround
                 d2mag2 = sinusd2r*sinRadiansAround
@@ -194,7 +210,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             [ [ -outerHeight*math.sin(outerAngleRadians), outerHeight*math.cos(outerAngleRadians) ], [ 0.0, outletLength ] ],
             fixStartDirection = True, fixEndDerivative = True)[0]
         # calculate magnitude of d1, d2 at outer sinus
-        extSinusRadius = extRadius + outerSinusDisplacement
+        extSinusRadius = outerRadius + outerSinusRadialDisplacement
         leafd1mag = extRadius*radiansPerElementAround
         sinusd1mag = extSinusRadius*radiansPerElementAround  # initial value only
         sinusd1mag = vector.magnitude(smoothCubicHermiteDerivativesLine(
