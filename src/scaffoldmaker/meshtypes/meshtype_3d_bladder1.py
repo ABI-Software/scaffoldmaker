@@ -106,8 +106,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Cat 1']
 
         options = {
-            'Number of elements up neck': 8,
-            'Number of elements up body': 16,
+            'Number of elements up neck': 4,
+            'Number of elements up body': 6,
             'Number of elements around': 8,  # should be even
             'Number of elements through wall': 1,
             'Number of elements around ostium': 8,  # implemented for 8
@@ -400,7 +400,6 @@ class MeshType_3d_bladder1(Scaffold_base):
                 x = [(phi_inner*tube_x[m1][c] + phi_outer*ellipsoidal_x[m1][c]) for c in range(3)]
                 d1 = [(phi_inner*tube_d1[m1][c] + phi_outer*ellipsoidal_d1[m1][c]) for c in range(3)]
                 d2 = [(phi_inner*tube_d2[m1][c] + phi_outer*ellipsoidal_d2[m1][c]) for c in range(3)]
-
                 interpolatedNodes.append(x)
                 interpolatedNodes_d1.append(d1)
                 interpolatedNodes_d2.append(d2)
@@ -420,7 +419,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                     fixStartDirection=False, fixEndDirection=False)
             sd2Raw.append(sd2)
 
-        # rearrange the derivatives order
+        # re-arrange the derivatives order
         d2RearrangedList = []
         for n2 in range(elementsCountUpNeck+1):
             for n1 in range(elementsCountAround):
@@ -438,7 +437,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                     nodesOnTrackSurface_d1.append(interpolatedNodes_d1[n2 * elementsCountAround + n1])
                     nodesOnTrackSurface_d2.append(d2RearrangedList[n2 * elementsCountAround + n1])
 
-        # set nodes and derivatives of the neck of the bladder
+        # nodes and derivatives of the neck of the bladder
         listOuterNeck_x = []
         listOuterNeck_d1 = []
         listOuterNeck_d2 = []
@@ -452,14 +451,9 @@ class MeshType_3d_bladder1(Scaffold_base):
         ostiumElementPositionAround = ostium1Position.e1
         ostiumElementPositionUp = ostium1Position.e2
         for n2 in range(len(interpolatedNodes)):
-            if n2 == (ostiumElementPositionUp + 1) * elementsCountAround + ostiumElementPositionAround + 1:
-                pass
-            elif n2 == (ostiumElementPositionUp + 1) * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 1:
-                pass
-            else:
-                listOuterNeck_x.append(interpolatedNodes[n2])
-                listOuterNeck_d1.append(interpolatedNodes_d1[n2])
-                listOuterNeck_d2.append(d2RearrangedList[n2])
+            listOuterNeck_x.append(interpolatedNodes[n2])
+            listOuterNeck_d1.append(interpolatedNodes_d1[n2])
+            listOuterNeck_d2.append(d2RearrangedList[n2])
 
         # create body of the bladder
         radiansPerElementAround = 2.0 * math.pi / elementsCountAround
@@ -478,7 +472,6 @@ class MeshType_3d_bladder1(Scaffold_base):
                 radiansAround = n1 * radiansPerElementAround
                 cosRadiansAround = math.cos(radiansAround)
                 sinRadiansAround = math.sin(radiansAround)
-                et = (2 * height + neckHeight) / (elementsCountUpNeck + elementsCountUpBody)
                 x = [
                     -majorRadius * sinRadiansAround,
                     minorRadius * cosRadiansAround,
@@ -514,30 +507,85 @@ class MeshType_3d_bladder1(Scaffold_base):
         listTotalOuter_d1 = listOuterNeck_d1 + listOuterBody_d1 + outerApexNode_d1
         listTotalOuter_d2 = listOuterNeck_d2 + listOuterBody_d2 + outerApexNode_d2
 
+        outerLayer_x = []
+        outerLayer_d1 = []
+        outerLayer_d2 = []
         for n2 in range(len(listTotalOuter_x)):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, listTotalOuter_x[n2])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, listTotalOuter_d1[n2])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, listTotalOuter_d2[n2])
-            nodeIdentifier += 1
+            if (n2 != (ostiumElementPositionUp + 1) * elementsCountAround + ostiumElementPositionAround + 1) and\
+                    (n2 != (ostiumElementPositionUp + 1) * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 1):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, listTotalOuter_x[n2])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, listTotalOuter_d1[n2])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, listTotalOuter_d2[n2])
+                nodeIdentifier += 1
+                outerLayer_x.append(listTotalOuter_x[n2])
+                outerLayer_d1.append(listTotalOuter_d1[n2])
+                outerLayer_d2.append(listTotalOuter_d2[n2])
 
         # create and set nodes of inner layer of the bladder
         listTotalInner_x = []
         listTotalInner_d1 = []
         listTotalInner_d2 = []
-        for n1 in range(len(listTotalOuter_x)):
-            x, d1, d2, d3 = interp.projectHermiteCurvesThroughWall(listTotalOuter_x, listTotalOuter_d1, listTotalOuter_d2, n1,
-                                                                   -bladderWallThickness)
-            listTotalInner_x.append(x)
-            listTotalInner_d1.append(d1)
-            listTotalInner_d2.append(d2)
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, listTotalInner_x[n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, listTotalInner_d1[n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, listTotalInner_d2[n1])
-            nodeIdentifier += 1
+        for n2 in range(elementsCountUpNeck + elementsCountUpBody):
+            loop_x = [listTotalOuter_x[n2 * elementsCountAround + n1] for n1 in range(elementsCountAround)]
+            loop_d1 = [listTotalOuter_d1[n2 * elementsCountAround + n1] for n1 in range(elementsCountAround)]
+            loop_d2 = [listTotalOuter_d2[n2 * elementsCountAround + n1] for n1 in range(elementsCountAround)]
+            for n1 in range(elementsCountAround):
+                x, d1, _, _ = interp.projectHermiteCurvesThroughWall(loop_x, loop_d1, loop_d2, n1,
+                                                                     -bladderWallThickness, loop=True)
+                listTotalInner_x.append(x)
+                listTotalInner_d1.append(d1)
+
+        listInner_d2 = []
+        for n2 in range(elementsCountAround):
+            nx = [listTotalOuter_x[n1 * elementsCountAround + n2] for n1 in range(elementsCountUpNeck + elementsCountUpBody)]
+            nd1 = [listTotalOuter_d1[n1 * elementsCountAround + n2] for n1 in range(elementsCountUpNeck + elementsCountUpBody)]
+            nd2 = [listTotalOuter_d2[n1 * elementsCountAround + n2] for n1 in range(elementsCountUpNeck + elementsCountUpBody)]
+            for n1 in range(elementsCountUpNeck + elementsCountUpBody):
+                _, d2, _, _ = interp.projectHermiteCurvesThroughWall(nx, nd2, nd1, n1,
+                                                                     bladderWallThickness, loop=False)
+                listInner_d2.append(d2)
+
+        # re-arrange the derivatives order
+        for n2 in range(elementsCountUpNeck + elementsCountUpBody):
+            for n1 in range(elementsCountAround):
+                rearranged_d2 = listInner_d2[n1 * (elementsCountUpNeck + elementsCountUpBody) + n2]
+                listTotalInner_d2.append(rearranged_d2)
+
+        innerLayer_x = []
+        innerLayer_d1 = []
+        innerLayer_d2 = []
+        for n2 in range(len(listTotalInner_x)):
+            if (n2 != (ostiumElementPositionUp + 1) * elementsCountAround + ostiumElementPositionAround + 1) and \
+                    (n2 != (ostiumElementPositionUp + 1) * elementsCountAround + elementsCountAround - ostiumElementPositionAround - 1):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, listTotalInner_x[n2])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, listTotalInner_d1[n2])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, listTotalInner_d2[n2])
+                nodeIdentifier += 1
+
+                innerLayer_x.append(listTotalInner_x[n2])
+                innerLayer_d1.append(listTotalInner_d1[n2])
+                innerLayer_d2.append(listTotalInner_d2[n2])
+
+        # create inner apex node
+        x = [0.0, 0.0, height - bladderWallThickness]
+        dx_ds1 = [height*radiansPerElementUpBody/2, 0.0, 0.0]
+        dx_ds2 = [0.0, height*radiansPerElementUpBody/2, 0.0]
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+        listTotalInner_x.append(x)
+        listTotalInner_d1.append(dx_ds1)
+        listTotalInner_d2.append(dx_ds2)
+        innerLayer_x.append(x)
+        innerLayer_d1.append(dx_ds1)
+        innerLayer_d2.append(dx_ds2)
+        nodeIdentifier += 1
 
         # create ureters on the surface
         elementIdentifier = 1
@@ -550,8 +598,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         ostium1Direction = vector.crossproduct3(td3, v1)
         nodeIdentifier, elementIdentifier, (o1_x, o1_d1, o1_d2, _, o1_NodeId, o1_Positions) = \
             generateOstiumMesh(region, ostiumDefaultOptions, tracksurfaceOstium1, ostium1Position, ostium1Direction,
-                            startNodeIdentifier=nodeIdentifier,
-                            startElementIdentifier=elementIdentifier)
+            startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier)
 
         # ureter 2
         tracksurfaceOstium2 = tracksurfaceOstium1.createMirrorX()
@@ -567,8 +614,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         ostium2Direction = vector.crossproduct3(ad3, v2)
         nodeIdentifier, elementIdentifier, (o2_x, o2_d1, o2_d2, _, o2_NodeId, o2_Positions) = \
             generateOstiumMesh(region, ostiumDefaultOptions, tracksurfaceOstium2, ostium2Position, ostium2Direction,
-                           startNodeIdentifier=nodeIdentifier,
-                           startElementIdentifier=elementIdentifier)
+            startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier)
 
         # create annulus mesh around ostium
         endPoints1_x = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
@@ -616,13 +662,13 @@ class MeshType_3d_bladder1(Scaffold_base):
         for n3 in range(2):
             for n1 in range(elementsCountAroundOstium):
                 nc1 = endNode1_Id[n3][n1] - (1 - n3) * nodeCountsEachWallLayer - 1
-                endPoints1_x[n3][n1] = listTotalInner_x[nc1]
-                endPoints1_d1[n3][n1] = listTotalInner_d1[nc1]
-                endPoints1_d2[n3][n1] = [listTotalInner_d2[nc1][c] for c in range(3)]
+                endPoints1_x[n3][n1] = innerLayer_x[nc1]
+                endPoints1_d1[n3][n1] = innerLayer_d1[nc1]
+                endPoints1_d2[n3][n1] = [innerLayer_d2[nc1][c] for c in range(3)]
                 nc2 = endNode2_Id[n3][n1] - (1 - n3) * nodeCountsEachWallLayer - 1
-                endPoints2_x[n3][n1] = listTotalInner_x[nc2]
-                endPoints2_d1[n3][n1] = listTotalInner_d1[nc2]
-                endPoints2_d2[n3][n1] = listTotalInner_d2[nc2]
+                endPoints2_x[n3][n1] = innerLayer_x[nc2]
+                endPoints2_d1[n3][n1] = innerLayer_d1[nc2]
+                endPoints2_d2[n3][n1] = innerLayer_d2[nc2]
 
         for n1 in range(elementsCountAroundOstium):
             if n1 == 0:
