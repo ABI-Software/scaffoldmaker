@@ -239,7 +239,7 @@ def getNearestPointIndex(nx, x):
             index = n
     return index
 
-def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness):
+def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop = False):
     '''
     From Hermite curve nx, nd1 with cross direction nd2, project normal to wall
     by wall thickness to get coordinates, d1 affected by curvature etc.
@@ -255,11 +255,11 @@ def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness):
     # calculate inner d1 from curvature around
     curvature = 0.0
     count = 0
-    if (n > 0) and (nx[n - 1]):
+    if loop or (n > 0) and (nx[n - 1]):
         curvature += getCubicHermiteCurvature(nx[n - 1], nd1[n - 1], nx[n], nd1[n], unitNormal, 1.0)
         count += 1
-    if (n < maxPointIndex) and (nx[n + 1]):
-        curvature += getCubicHermiteCurvature(nx[n], nd1[n], nx[n + 1], nd1[n + 1], unitNormal, 0.0)
+    if loop or (n < maxPointIndex) and (nx[n - maxPointIndex]):
+        curvature += getCubicHermiteCurvature(nx[n], nd1[n], nx[n - maxPointIndex], nd1[n - maxPointIndex], unitNormal, 0.0)
         count += 1
     curvature /= count
     factor = 1.0 - curvature*wallThickness
