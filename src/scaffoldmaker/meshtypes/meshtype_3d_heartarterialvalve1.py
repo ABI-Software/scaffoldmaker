@@ -16,7 +16,7 @@ from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
@@ -95,9 +95,6 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         for key in [
             'Unit scale',
             'Centre height',
-            'Centre x',
-            'Centre y',
-            'Centre z',
             'Inner diameter',
             'Inner height',
             'Outer height',
@@ -118,8 +115,9 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         Get point coordinates and derivatives for the arterial valve ring.
         Optional extra parameters allow centre and axes to be set.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: x, d1, d2 all indexed by [n3=wall][n2=inlet->outlet][n1=around] where
+        :return: x, d1, d2, d3 all indexed by [n3=wall][n2=inlet->outlet][n1=around] where
         d1 is around, d2 is in direction inlet->outlet.
+        d3 is radial and undefined at n2 == 1.
          """
         unitScale = options['Unit scale']
         centreHeight = unitScale*options['Centre height']
@@ -155,6 +153,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         x  = [ [ None, None ], [ None, None ] ]
         d1 = [ [ None, None ], [ None, None ] ]
         d2 = [ [ None, None ], [ None, None ] ]
+        d3 = [ [ None, None ], [ None, None ] ]
 
         # inlet
         # inner layer, with sinuses
@@ -176,9 +175,11 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             [ [ innerInletSinusRadius , -centreHeight ], [ innerInletRadius, innerHeight - centreHeight ] ],
             [ [ outletLength*math.sin(sinusAngleRadians), outletLength*math.cos(sinusAngleRadians) ], [ 0.0, outletLength ] ],
             fixStartDirection = True, fixEndDerivative = True)[0]
+        magd3 = wallThickness + outerRadialDisplacement - innerRadialDisplacement
         x [0][0] = []
         d1[0][0] = []
         d2[0][0] = []
+        d3[0][0] = []
         for n1 in range(elementsCountAround):
             radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
@@ -199,9 +200,13 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
                 d2mag1 = sinusd2r*cosRadiansAround
                 d2mag2 = sinusd2r*sinRadiansAround
                 d2mag3 = sinusd2z
+            d3mag1 = magd3*cosRadiansAround
+            d3mag2 = magd3*sinRadiansAround
+            d3mag3 = 0.0
             x [0][0].append([ (cx[c] + r*(cosRadiansAround*axis1[c] + sinRadiansAround*axis2[c])) for c in range(3) ])
             d1[0][0].append([ d1mag*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
             d2[0][0].append([ (d2mag1*axis1[c] + d2mag2*axis2[c] + d2mag3*axis3[c]) for c in range(3) ])
+            d3[0][0].append([ (d3mag1*axis1[c] + d3mag2*axis2[c] + d3mag3*axis3[c]) for c in range(3) ])
         # outer layer
         extz = innerHeight - centreHeight - outerHeight
         extRadius = outerRadius + outerRadialDisplacement
@@ -225,6 +230,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         x [1][0] = []
         d1[1][0] = []
         d2[1][0] = []
+        d3[1][0] = []
         for n1 in range(elementsCountAround):
             radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
@@ -245,27 +251,32 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
                 d2mag1 = sinusd2r*cosRadiansAround
                 d2mag2 = sinusd2r*sinRadiansAround
                 d2mag3 = sinusd2z
+            d3mag1 = magd3*cosRadiansAround
+            d3mag2 = magd3*sinRadiansAround
+            d3mag3 = 0.0
             x [1][0].append([ (extCentre[c] + r*(cosRadiansAround*axis1[c] + sinRadiansAround*axis2[c])) for c in range(3) ])
             d1[1][0].append([ d1mag*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
             d2[1][0].append([ (d2mag1*axis1[c] + d2mag2*axis2[c] + d2mag3*axis3[c]) for c in range(3) ])
+            d3[1][0].append([ (d3mag1*axis1[c] + d3mag2*axis2[c] + d3mag3*axis3[c]) for c in range(3) ])
 
         # outlet
         x[0][1], d1[0][1] = createCirclePoints(outletCentre, [ axis1[c]*innerRadius for c in range(3) ], [ axis2[c]*innerRadius for c in range(3) ], elementsCountAround)
         x[1][1], d1[1][1] = createCirclePoints(outletCentre, [ axis1[c]*outerRadius for c in range(3) ], [ axis2[c]*outerRadius for c in range(3) ], elementsCountAround)
         d2[1][1] = d2[0][1] = [ [ axis3[c]*outletLength for c in range(3) ] ]*elementsCountAround
+        d3[1][1] = d3[0][1] = None
 
-        return x, d1, d2
+        return x, d1, d2, d3
 
 
     @classmethod
-    def generateNodes(cls, fieldmodule, coordinates, x, d1, d2, startNodeIdentifier = 1):
+    def generateNodes(cls, fieldmodule, coordinates, x, d1, d2, d3, startNodeIdentifier = 1):
         """
         Create valve nodes from point coordinates.
         :param fieldmodule: Zinc fieldmodule to create nodes in.
         :param coordinates: Coordinate field to define.
-        :param x, d1, d2: Point coordinates and derivatives returned by getPoints().
+        :param x, d1, d2, d3: Point coordinates and derivatives returned by getPoints().
         All indexed by [n3=wall][n2=inlet->outlet][n1=around] where d1 is around,
-        d2 is in direction inlet->outlet.
+        d2 is in direction inlet->outlet. All d3 at n2==1 are None.
         :param startNodeIdentifier: First node identifier to use.
         :return: next nodeIdentifier, nodeId[n3][n2][n1].
          """
@@ -274,16 +285,23 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         elementsCountAround = 6  # fixed
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodes in this scaffold do not have a DS3 derivative
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        nodetemplateInlet = nodes.createNodetemplate()
+        nodetemplateInlet.defineField(coordinates)
+        nodetemplateInlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodetemplateInlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        nodetemplateInlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        nodetemplateInlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        # outlet nodes do not have a DS3 derivative
+        nodetemplateOutlet = nodes.createNodetemplate()
+        nodetemplateOutlet.defineField(coordinates)
+        nodetemplateOutlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodetemplateOutlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        nodetemplateOutlet.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         cache = fieldmodule.createFieldcache()
         with ChangeManager(fieldmodule):
             # order node creation to be fastest in n3, then n1, then n2
             for n2 in range(2):
+                nodetemplate = nodetemplateInlet if (n2 == 0) else nodetemplateOutlet
                 for n1 in range(elementsCountAround):
                     for n3 in range(2):
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -291,6 +309,8 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x [n3][n2][n1])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1[n3][n2][n1])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2[n3][n2][n1])
+                        if n2 == 0:
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3[n3][n2][n1])
                         nodeId[n3][n2].append(nodeIdentifier)
                         nodeIdentifier += 1
         return nodeIdentifier, nodeId
@@ -313,8 +333,12 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         useCrossDerivatives = False
 
         mesh = fieldmodule.findMeshByDimension(3)
-        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = bicubichermitelinear.createEftNoCrossDerivatives()
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft = tricubichermite.createEftNoCrossDerivatives()
+        setEftScaleFactorIds(eft, [1], [])
+        scalefactors = [ -1.0 ]
+        tricubichermite.setEftLinearDerivative(eft, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
+        tricubichermite.setEftLinearDerivative(eft, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
 
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
@@ -326,6 +350,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
                      nodeId[1][0][ea], nodeId[1][0][eb], nodeId[1][1][ea], nodeId[1][1][eb] ]
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids)
+            element.setScaleFactors(eft, scalefactors)
             elementId.append(elementIdentifier)
             elementIdentifier += 1
 
@@ -343,8 +368,8 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         fieldmodule = region.getFieldmodule()
         with ChangeManager(fieldmodule):
             coordinates = findOrCreateFieldCoordinates(fieldmodule)
-            x, d1, d2 = cls.getPoints(options)
-            nodeId = cls.generateNodes(fieldmodule, coordinates, x, d1, d2)[1]
+            x, d1, d2, d3 = cls.getPoints(options)
+            nodeId = cls.generateNodes(fieldmodule, coordinates, x, d1, d2, d3)[1]
             cls.generateElements(fieldmodule, coordinates, nodeId)[0]
         return []  # annotationGroups
 
