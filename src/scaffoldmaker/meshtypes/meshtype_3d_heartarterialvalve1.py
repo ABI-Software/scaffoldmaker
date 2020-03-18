@@ -35,12 +35,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Unit scale' : 1.0,
-            'Centre height' : 0.5,
-            'Centre x' : 0.0,
-            'Centre y' : 0.0,
-            'Centre z' : 0.0,
             'Inner diameter' : 1.0,
-            'Inner height' : 0.7,
             'Inner radial displacement' : 0.0,
             'Inner sinus radial displacement' : 0.05,
             'Outer angle degrees' : 0.0,
@@ -48,11 +43,15 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             'Outer radial displacement' : 0.05,
             'Outer sinus radial displacement' : 0.15,
             'Outlet length' : 0.5,
-            'Sinus angle degrees' : 35.0,
-            'Wall thickness' : 0.05,
             'Rotation azimuth degrees' : 0.0,
             'Rotation elevation degrees' : 0.0,
             'Rotation roll degrees' : 0.0,
+            'Sinus angle degrees' : 35.0,
+            'Sinus depth' : 0.2,
+            'Translation x' : 0.0,
+            'Translation y' : 0.0,
+            'Translation z' : 0.0,
+            'Wall thickness' : 0.05,
             'Refine' : False,
             'Refine number of elements surface' : 4,
             'Refine number of elements through wall' : 1,
@@ -63,12 +62,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             'Unit scale',
-            'Centre height',
-            'Centre x',
-            'Centre y',
-            'Centre z',
             'Inner diameter',
-            'Inner height',
             'Inner radial displacement',
             'Inner sinus radial displacement',
             'Outer angle degrees',
@@ -80,6 +74,10 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             'Rotation elevation degrees',
             'Rotation roll degrees',
             'Sinus angle degrees',
+            'Sinus depth',
+            'Translation x',
+            'Translation y',
+            'Translation z',
             'Wall thickness',
             'Refine',
             'Refine number of elements surface',
@@ -94,9 +92,8 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         dependentChanges = False
         for key in [
             'Unit scale',
-            'Centre height',
+            'Sinus depth',
             'Inner diameter',
-            'Inner height',
             'Outer height',
             'Outlet length',
             'Wall thickness']:
@@ -113,17 +110,14 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
     def getPoints(cls, options):
         """
         Get point coordinates and derivatives for the arterial valve ring.
-        Optional extra parameters allow centre and axes to be set.
+        Optional extra parameters allow origin and orientation to be set.
         :param options: Dict containing options. See getDefaultOptions().
         :return: x, d1, d2, d3 all indexed by [n3=wall][n2=inlet->outlet][n1=around] where
         d1 is around, d2 is in direction inlet->outlet.
         d3 is radial and undefined at n2 == 1.
          """
         unitScale = options['Unit scale']
-        centreHeight = unitScale*options['Centre height']
-        centre = [ unitScale*options['Centre x'], unitScale*options['Centre y'], unitScale*options['Centre z'] ]
         innerRadius = unitScale*0.5*options['Inner diameter']
-        innerHeight = unitScale*options['Inner height']
         innerRadialDisplacement = unitScale*options['Inner radial displacement']
         innerSinusRadialDisplacement = unitScale*options['Inner sinus radial displacement']
         outerAngleRadians = math.radians(options['Outer angle degrees'])
@@ -132,10 +126,12 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         outerSinusRadialDisplacement = unitScale*options['Outer sinus radial displacement']
         outletLength = unitScale*options['Outlet length']
         sinusAngleRadians = math.radians(options['Sinus angle degrees'])
+        sinusDepth = unitScale*options['Sinus depth']
         wallThickness = unitScale*options['Wall thickness']
         rotationAzimuthRadians = math.radians(options['Rotation azimuth degrees'])
         rotationElevationRadians = math.radians(options['Rotation elevation degrees'])
         rotationRollRadians = math.radians(options['Rotation roll degrees'])
+        centre = [ unitScale*options['Translation x'], unitScale*options['Translation y'], unitScale*options['Translation z'] ]
         outerRadius = innerRadius + wallThickness
         innerInletRadius = innerRadius + innerRadialDisplacement
         innerInletSinusRadius = innerRadius + innerSinusRadialDisplacement
@@ -157,9 +153,9 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
 
         # inlet
         # inner layer, with sinuses
-        outletz = innerHeight - centreHeight
+        outletz = outerHeight
         inletz  = outletz - outletLength
-        sinusz  = -centreHeight
+        sinusz = -sinusDepth
         outletCentre = [ (centre[c] + outletz*axis3[c]) for c in range(3) ]
         inletCentre  = [ (centre[c] +  inletz*axis3[c]) for c in range(3) ]
         sinusCentre  = [ (centre[c] +  sinusz*axis3[c]) for c in range(3) ]
@@ -172,7 +168,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             [ [ 0.0, leafd1mag, 0.0 ], [ -sinusd1mag*math.sin(pi_3), sinusd1mag*math.cos(pi_3), 0.0 ] ],
             fixStartDerivative = True, fixEndDirection = True)[1])
         sinusd2r, sinusd2z = smoothCubicHermiteDerivativesLine(
-            [ [ innerInletSinusRadius , -centreHeight ], [ innerInletRadius, innerHeight - centreHeight ] ],
+            [ [ innerInletSinusRadius , -sinusDepth ], [ innerInletRadius, outerHeight ] ],
             [ [ outletLength*math.sin(sinusAngleRadians), outletLength*math.cos(sinusAngleRadians) ], [ 0.0, outletLength ] ],
             fixStartDirection = True, fixEndDerivative = True)[0]
         magd3 = wallThickness + outerRadialDisplacement - innerRadialDisplacement
@@ -208,7 +204,6 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             d2[0][0].append([ (d2mag1*axis1[c] + d2mag2*axis2[c] + d2mag3*axis3[c]) for c in range(3) ])
             d3[0][0].append([ (d3mag1*axis1[c] + d3mag2*axis2[c] + d3mag3*axis3[c]) for c in range(3) ])
         # outer layer
-        extz = innerHeight - centreHeight - outerHeight
         extRadius = outerRadius + outerRadialDisplacement
         leafd2r, leafd2z = smoothCubicHermiteDerivativesLine(
             [ [ extRadius , 0.0 ], [ outerRadius, outerHeight ] ],
@@ -226,7 +221,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             [ [ extSinusRadius , 0.0 ], [ outerRadius, outerHeight ] ],
             [ [ -outerHeight*math.sin(outerAngleRadians), outerHeight*math.cos(outerAngleRadians) ], [ 0.0, outletLength ] ],
             fixStartDirection = True, fixEndDerivative = True)[0]
-        extCentre = [ (centre[c] + extz*axis3[c]) for c in range(3) ]
+        centre = centre
         x [1][0] = []
         d1[1][0] = []
         d2[1][0] = []
@@ -254,7 +249,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             d3mag1 = magd3*cosRadiansAround
             d3mag2 = magd3*sinRadiansAround
             d3mag3 = 0.0
-            x [1][0].append([ (extCentre[c] + r*(cosRadiansAround*axis1[c] + sinRadiansAround*axis2[c])) for c in range(3) ])
+            x [1][0].append([ (centre[c] + r*(cosRadiansAround*axis1[c] + sinRadiansAround*axis2[c])) for c in range(3) ])
             d1[1][0].append([ d1mag*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
             d2[1][0].append([ (d2mag1*axis1[c] + d2mag2*axis2[c] + d2mag3*axis3[c]) for c in range(3) ])
             d3[1][0].append([ (d3mag1*axis1[c] + d3mag2*axis2[c] + d3mag3*axis3[c]) for c in range(3) ])
