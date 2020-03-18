@@ -466,9 +466,9 @@ def interpolateSampleCubicHermite(v, d, pe, pxi, psf):
     from old to new xi spacing.
     :return: List of interpolated values, list of interpolated derivatives; scalar or vector as for v, d.
     '''
-    assert (len(v) > 1) and (len(d) == len(v)), 'interpolateSampleLinear. Invalid values v, d'
+    assert (len(v) > 1) and (len(d) == len(v)), 'interpolateSampleCubicHermite. Invalid values v, d'
     valuesCountOut = len(pe)
-    assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleLinear. Invalid element, xi'
+    assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleCubicHermite. Invalid element, xi'
     vOut = []
     dOut = []
     if isinstance(v[0], collections.Sequence):
