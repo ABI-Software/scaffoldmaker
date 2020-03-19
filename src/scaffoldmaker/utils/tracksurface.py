@@ -183,7 +183,7 @@ class TrackSurface:
         :param elementsCount:  Number of elements out.
         :return: nx[], nd1[], nd2[], nd3[], nProportions[]
         '''
-        print('createHermiteCurvePoints', aProportion1, aProportion2, bProportion1, bProportion2, elementsCount, derivativeStart, derivativeEnd)
+        #print('createHermiteCurvePoints', aProportion1, aProportion2, bProportion1, bProportion2, elementsCount, derivativeStart, derivativeEnd)
         if derivativeStart:
             position = self.createPositionProportion(aProportion1, aProportion2)
             _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
@@ -221,7 +221,7 @@ class TrackSurface:
                 dp2End = bProportion2 - aProportion2
             derivativeMagnitudeEnd = math.sqrt(dp1End*dp1End + dp2End*dp2End)/elementsCount
         maxProportion1 = 2.0 if self.loop1 else 1.0
-        print('derivativeMagnitudeStart', derivativeMagnitudeStart, 'derivativeMagnitudeEnd', derivativeMagnitudeEnd)
+        #print('derivativeMagnitudeStart', derivativeMagnitudeStart, 'derivativeMagnitudeEnd', derivativeMagnitudeEnd)
         proportions, dproportions = interp.sampleCubicHermiteCurvesSmooth([ [ aProportion1, aProportion2 ], [ bProportion1, bProportion2 ] ], \
             [ [ dp1Start, dp2Start ], [ dp1End, dp2End ] ], elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
         if curveMode != self.HermiteCurveMode.SMOOTH:

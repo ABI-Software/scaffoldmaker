@@ -16,7 +16,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createEllipsoidPoints
-from scaffoldmaker.utils.interpolation import interpolateSampleCubicHermite, sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, interpolateSampleCubicHermite, sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
@@ -69,7 +69,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         options['LV outer diameter'] = 1.0
         options['LV free wall thickness'] = 0.15
         options['RV apex cusp angle degrees'] = 10.0
-        options['RV apex proportion around LV'] = 0.07
+        options['RV apex length factor'] = 0.35
         options['RV proportion up LV'] = 0.85
         options['RV free wall thickness'] = 0.05
         options['RV inlet angle degrees'] = 80.0
@@ -98,6 +98,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             options['LV free wall thickness'] = 0.17
             options['Interventricular septum thickness'] = 0.14
             options['RV apex cusp angle degrees'] = 45.0
+            options['RV apex length factor'] = 0.7
             options['RV proportion up LV'] = 0.6
             options['RV free wall thickness'] = 0.06
             options['RV outlet angle degrees'] = 60.0
@@ -121,7 +122,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             'LV outer diameter',
             'LV free wall thickness',
             'RV apex cusp angle degrees',
-            'RV apex proportion around LV',
+            'RV apex length factor',
             'RV proportion up LV',
             'RV free wall thickness',
             'RV inlet angle degrees',
@@ -202,7 +203,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
-            'RV apex proportion around LV',
+            'RV apex length factor',
             'RV inlet position around LV',
             'RV outlet position around LV',
             'RV proportion up LV'
@@ -252,7 +253,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         lvOuterRadius = unitScale*0.5*options['LV outer diameter']
         lvFreeWallThickness = unitScale*options['LV free wall thickness']
         rvApexCuspAngleRadians = math.radians(options['RV apex cusp angle degrees'])
-        rvApexProportionAroundLV = options['RV apex proportion around LV']
+        rvApexLengthFactor = options['RV apex length factor']
         rvProportionUpLV = options['RV proportion up LV']
         rvFreeWallThickness = unitScale*options['RV free wall thickness']
         rvInletAngleRadians = math.radians(options['RV inlet angle degrees'])
@@ -302,8 +303,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvApexProportion1 = 0.5
         rvApexProportion2 = 1.0 - rvProportionUpLV
         rvApexPosition = lvTrackSurface.createPositionProportion(rvApexProportion1, rvApexProportion2)
-        x, sd1, sd2 = lvTrackSurface.evaluateCoordinates(rvApexPosition, derivatives = True)
-        rvApexd1 = [ (rvApexProportionAroundLV*elementsCountAroundLVTrackSurface)*sd1[c] for c in range(3) ]
+        rvApexCuspCoordinates, sd1, sd2 = lvTrackSurface.evaluateCoordinates(rvApexPosition, derivatives = True)
+        rvApexLengthDerivative = vector.setMagnitude(sd1, rvApexLengthFactor)
         rvApexCuspDirection = vector.setMagnitude(sd2, -1.0)
         rx, rd1, rd2, rd3 = cls.getRVEdgePoints(lvTrackSurface, rvApexPosition, rvApexCuspDirection, rvApexCuspAngleRadians, rvFreeWallThickness)
 
@@ -365,10 +366,33 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         elementsCountAroundHalf = elementsCountAroundFull//2
         elementsCountUpRVRegular = elementsCountUpRVFreeWall - 2
         elementsCountAroundRVFreeWallHalf = elementsCountAroundRVFreeWall//2
+
+        # get RV cusp curves from inlet -> apex -> outlet
+
+        inletPosition = lvTrackSurface.createPositionProportion(rvInletPositionAroundLV, 1.0)
+        rvInletCuspCoordinates, sd1, sd2 = lvTrackSurface.evaluateCoordinates(inletPosition, derivatives = True)
+        td1, td2, td3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+        cosAngle = math.cos(rvInletAngleRadians)
+        sinAngle = math.sin(rvInletAngleRadians)
+        rvBaseLengthFactor = (1.0 - rvApexLengthFactor)
+        rvInletDerivative = [ rvBaseLengthFactor*(cosAngle*td1[c] - sinAngle*td2[c]) for c in range(3) ]
+
+        outletPosition = lvTrackSurface.createPositionProportion(rvOutletPositionAroundLV, 1.0)
+        rvOutletCuspCoordinates, sd1, sd2 = lvTrackSurface.evaluateCoordinates(outletPosition, derivatives = True)
+        td1, td2, td3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+        cosAngle = math.cos(rvOutletAngleRadians)
+        sinAngle = math.sin(rvOutletAngleRadians)
+        rvOutletDerivative = [ rvBaseLengthFactor*(cosAngle*td1[c] + sinAngle*td2[c]) for c in range(3) ]
+
+        scaling = computeCubicHermiteDerivativeScaling(rvApexCuspCoordinates, rvApexLengthDerivative, rvOutletCuspCoordinates, rvOutletDerivative)/elementsCountAroundHalf
+        rvApexLengthDerivative = [ scaling*d for d in rvApexLengthDerivative ]
+        rvInletDerivative = [ scaling*d for d in rvInletDerivative ]
+        rvOutletDerivative = [ scaling*d for d in rvOutletDerivative ]
+
         rvix, rvid1, rvid2, rvid3, rviProportions = lvTrackSurface.createHermiteCurvePoints(rvInletPositionAroundLV, 1.0, rvApexProportion1, rvApexProportion2,
-            elementsCountAroundHalf, derivativeStart = None, derivativeEnd = rvApexd1, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+            elementsCountAroundHalf, derivativeStart = rvInletDerivative, derivativeEnd = rvApexLengthDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
         rvox, rvod1, rvod2, rvod3, rvoProportions = lvTrackSurface.createHermiteCurvePoints(rvApexProportion1, rvApexProportion2, rvOutletPositionAroundLV, 1.0,
-            elementsCountAroundHalf, derivativeStart = rvApexd1, derivativeEnd = None, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+            elementsCountAroundHalf, derivativeStart = rvApexLengthDerivative, derivativeEnd = rvOutletDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
         rvix  += rvox [1:]
         rvid1 += rvod1[1:]
         rvid2 += rvod2[1:]
