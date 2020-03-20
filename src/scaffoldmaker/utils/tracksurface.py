@@ -189,6 +189,8 @@ class TrackSurface:
             _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
             delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeStart)
             dp1Start = delta_xi1/self.elementsCount1
+            if self.loop1:
+                dp1Start *= 2.0
             dp2Start = delta_xi2/self.elementsCount2
             derivativeMagnitudeStart = math.sqrt(dp1Start*dp1Start + dp2Start*dp2Start)
             dp1Start *= elementsCount
@@ -203,6 +205,8 @@ class TrackSurface:
             dp2End = delta_xi2/self.elementsCount2
             derivativeMagnitudeEnd = math.sqrt(dp1End*dp1End + dp2End*dp2End)
             dp1End *= elementsCount
+            if self.loop1:
+                dp1End *= 2.0
             dp2End *= elementsCount
             #print('end delta_xi1', delta_xi1, 'delta_xi2', delta_xi2)
             #print('dp1End', dp1End, 'dp2End', dp2End)
