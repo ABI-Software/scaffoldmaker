@@ -15,7 +15,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
-from scaffoldmaker.utils.geometry import createEllipsoidPoints
+from scaffoldmaker.utils.geometry import createEllipsoidPoints, getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX
 from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, interpolateSampleCubicHermite, sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -296,90 +296,51 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         annotationGroups = []
         elementsCountAroundLVTrackSurface = 16
         elementsCountUpLVTrackSurface = 8
-        nx, nd1, nd2 = createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAroundLVTrackSurface, elementsCountUpLVTrackSurface, lvOuterHeight)
+
+        useHeight = min(max(0.0, lvOuterHeight), 2.0*lvOuterHeightAxisLength)
+        baseRadiansUp = getEllipseRadiansToX(lvOuterHeightAxisLength, 0.0, lvOuterHeightAxisLength - useHeight, initialTheta = 0.5*math.pi*useHeight/lvOuterHeightAxisLength)
+        baseProportionUp = 2.0*getEllipseArcLength(lvOuterHeightAxisLength, lvOuterRadius, 0.0, baseRadiansUp)/getApproximateEllipsePerimeter(lvOuterHeightAxisLength, lvOuterRadius)
+
+        nx, nd1, nd2 = createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAroundLVTrackSurface, elementsCountUpLVTrackSurface, 2.0*lvOuterHeightAxisLength)
 
         lvTrackSurface = TrackSurface(elementsCountAroundLVTrackSurface, elementsCountUpLVTrackSurface, nx, nd1, nd2, loop1 = True)
 
         rvApexProportion1 = 0.5
-        rvApexProportion2 = 1.0 - rvProportionUpLV
+        rvApexProportion2 = baseProportionUp*(1.0 - rvProportionUpLV)
         rvApexPosition = lvTrackSurface.createPositionProportion(rvApexProportion1, rvApexProportion2)
         rvApexCuspCoordinates, sd1, sd2 = lvTrackSurface.evaluateCoordinates(rvApexPosition, derivatives = True)
         rvApexLengthDerivative = vector.setMagnitude(sd1, rvApexLengthFactor)
         rvApexCuspDirection = vector.setMagnitude(sd2, -1.0)
-        rx, rd1, rd2, rd3 = cls.getRVEdgePoints(lvTrackSurface, rvApexPosition, rvApexCuspDirection, rvApexCuspAngleRadians, rvFreeWallThickness)
-
-        # get regular spacing up centre of RV
-        rvBaseCentrePosition = lvTrackSurface.createPositionProportion(0.5*(rvInletPositionAroundLV + rvOutletPositionAroundLV), 1.0)
-        x, sd1, sd2 = lvTrackSurface.evaluateCoordinates(rvBaseCentrePosition, derivatives = True)
-        td1, td2, td3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
-        rvBaseCentreAngleRadians = 0.5*(math.pi - rvInletAngleRadians + rvOutletAngleRadians)
-        rbcx = [ (x[c] + (rvWidth + rvFreeWallThickness)*td3[c]) for c in range(3) ]
-        cosAngleRadians = math.cos(rvBaseCentreAngleRadians)
-        sinAngleRadians = math.sin(rvBaseCentreAngleRadians)
-        rvBaseCentreDirection = [ (cosAngleRadians*td1[c] + sinAngleRadians*td2[c]) for c in range(3) ]
-        rcx = [ rx[1], rbcx ]
-        rcd1 = smoothCubicHermiteDerivativesLine(rcx, [ vector.setMagnitude(rd1[1], -1.0), rvBaseCentreDirection ], fixAllDirections = True)
-        #rscx, rscd1, rscpe, rscpxi, rscpsf = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)
-        rscx, rscd2 = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)[0:2]
-        # get d1, d3
-        rscd1 = []
-        rscd3 = []
-        for n in range(len(rscx)):
-            a = [ (rscx[n][c] - centre[c]) for c in range(3) ]
-            d1 = vector.normalise(vector.crossproduct3(rscd2[n], a))
-            d3 = vector.normalise(vector.crossproduct3(d1, rscd2[n]))
-            rscd1.append(d1)
-            rscd3.append(d3)
+        rvax, rvad1, rvad2, rvad3 = cls.getRVEdgePoints(lvTrackSurface, rvApexPosition, rvApexCuspDirection, rvApexCuspAngleRadians, rvFreeWallThickness)
 
         # transition to LV apex:
         p2 = lvTrackSurface.trackVector(rvApexPosition, rvApexCuspDirection, rvFreeWallThickness)
         x, sd1, sd2 = lvTrackSurface.evaluateCoordinates(p2, derivatives = True)
-        p3 = lvTrackSurface.trackVector(p2, vector.setMagnitude(sd2, -1.0), vector.magnitude([ (x[c] - rx[1][c]) for c in range(3) ]))
+        p3 = lvTrackSurface.trackVector(p2, vector.setMagnitude(sd2, -1.0), vector.magnitude([ (x[c] - rvax[1][c]) for c in range(3) ]))
         x, sd1, sd2 = lvTrackSurface.evaluateCoordinates(p3, derivatives = True)
         proportion2 = lvTrackSurface.getProportion(p3)[1]
-
-        lax = [ rscx[0] ]
-        lad1 = [ [ -s for s in rscd2[0] ] ]
-        if (elementsCountUpLVApex > 0) and (proportion2 > 0.0):
-            lax.append(x)
-            lad1.append(vector.setMagnitude(sd2, -vector.magnitude(lad1[0])))
-        lax.append(nx[0])
-        lad1.append(nd2[0])
-
-        if elementsCountUpLVApex > 0:
-            lax, lad1 = sampleCubicHermiteCurves(lax, lad1, elementsCountUpLVApex + 1,
-                addLengthStart = vector.magnitude(rscd2[0])*0.5, lengthFractionStart = 0.5, arcLengthDerivatives = True)[0:2]
-        else:
-            #print('lax', lax)
-            #print('lad1', lad1)
-            lad1 = smoothCubicHermiteDerivativesLine(lax, lad1, fixStartDerivative = True, fixEndDirection = True)
-
-        px, pd1, pd2, pd3, pProportions = lvTrackSurface.createHermiteCurvePoints(1.0, 0.0, 1.2, 1.0, elementsCountUpLVFreeWall,
-            derivativeStart = lad1[-1], derivativeEnd = None)
-        pd3[0] = [ 0.0, 0.0, -1.0 ]  # affected by orientation
 
         #print('mag rv apex', vector.magnitude(rscd2[0]), vector.magnitude(lad1[0]))
         #print('mag lv apex', vector.magnitude(lad1[-1]), vector.magnitude(pd1[0]))
         # Get RV inlet, outlet
         # sample curves around RV cusp
-        # GRC not respecting inlet/outlet angles yet (as don't have magnitude)
         elementsCountAroundHalf = elementsCountAroundFull//2
         elementsCountUpRVRegular = elementsCountUpRVFreeWall - 2
         elementsCountAroundRVFreeWallHalf = elementsCountAroundRVFreeWall//2
 
         # get RV cusp curves from inlet -> apex -> outlet
 
-        inletPosition = lvTrackSurface.createPositionProportion(rvInletPositionAroundLV, 1.0)
+        inletPosition = lvTrackSurface.createPositionProportion(rvInletPositionAroundLV, baseProportionUp)
         rvInletCuspCoordinates, sd1, sd2 = lvTrackSurface.evaluateCoordinates(inletPosition, derivatives = True)
-        td1, td2, td3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+        td1, td2, rvInletSurfaceNormal = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
         cosAngle = math.cos(rvInletAngleRadians)
         sinAngle = math.sin(rvInletAngleRadians)
         rvBaseLengthFactor = (1.0 - rvApexLengthFactor)
         rvInletDerivative = [ rvBaseLengthFactor*(cosAngle*td1[c] - sinAngle*td2[c]) for c in range(3) ]
 
-        outletPosition = lvTrackSurface.createPositionProportion(rvOutletPositionAroundLV, 1.0)
+        outletPosition = lvTrackSurface.createPositionProportion(rvOutletPositionAroundLV, baseProportionUp)
         rvOutletCuspCoordinates, sd1, sd2 = lvTrackSurface.evaluateCoordinates(outletPosition, derivatives = True)
-        td1, td2, td3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+        td1, td2, rvOutletSurfaceNormal = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
         cosAngle = math.cos(rvOutletAngleRadians)
         sinAngle = math.sin(rvOutletAngleRadians)
         rvOutletDerivative = [ rvBaseLengthFactor*(cosAngle*td1[c] + sinAngle*td2[c]) for c in range(3) ]
@@ -389,9 +350,9 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvInletDerivative = [ scaling*d for d in rvInletDerivative ]
         rvOutletDerivative = [ scaling*d for d in rvOutletDerivative ]
 
-        rvix, rvid1, rvid2, rvid3, rviProportions = lvTrackSurface.createHermiteCurvePoints(rvInletPositionAroundLV, 1.0, rvApexProportion1, rvApexProportion2,
+        rvix, rvid1, rvid2, rvid3, rviProportions = lvTrackSurface.createHermiteCurvePoints(rvInletPositionAroundLV, baseProportionUp, rvApexProportion1, rvApexProportion2,
             elementsCountAroundHalf, derivativeStart = rvInletDerivative, derivativeEnd = rvApexLengthDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
-        rvox, rvod1, rvod2, rvod3, rvoProportions = lvTrackSurface.createHermiteCurvePoints(rvApexProportion1, rvApexProportion2, rvOutletPositionAroundLV, 1.0,
+        rvox, rvod1, rvod2, rvod3, rvoProportions = lvTrackSurface.createHermiteCurvePoints(rvApexProportion1, rvApexProportion2, rvOutletPositionAroundLV, baseProportionUp,
             elementsCountAroundHalf, derivativeStart = rvApexLengthDerivative, derivativeEnd = rvOutletDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
         rvix  += rvox [1:]
         rvid1 += rvod1[1:]
@@ -429,6 +390,47 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         length /= (len(rvod2) - 1)
         rvid2 = smoothCubicHermiteDerivativesLine(rvox, [ vector.setMagnitude(rvid2[i], length) for i in range(len(rvid2)) ], fixAllDirections = True)
         rvod2 = smoothCubicHermiteDerivativesLine(rvox, [ vector.setMagnitude(rvod2[i], length) for i in range(len(rvod2)) ], fixAllDirections = True)
+
+        # get position of centre of RV freewall
+        td1 = smoothCubicHermiteDerivativesLine([ rvInletCuspCoordinates, rvOutletCuspCoordinates ],
+                                                [ vector.crossproduct3(rvInletSurfaceNormal, rvInletDerivative), vector.crossproduct3(rvOutletDerivative, rvOutletSurfaceNormal) ], fixAllDirections = True)
+        px, pd1, pd2, pd3, pProportions = lvTrackSurface.createHermiteCurvePoints(rvInletPositionAroundLV, baseProportionUp, rvOutletPositionAroundLV, baseProportionUp, elementsCount = 2,
+            derivativeStart = [ 0.5*d for d in td1[0] ], derivativeEnd = [ 0.5*d for d in td1[1] ], curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+        # get regular spacing up centre of RV
+        rbcx = [ (px[1][c] + (rvWidth + rvFreeWallThickness)*pd3[1][c]) for c in range(3) ]
+        rcx = [ rvax[1], rbcx ]
+        rcd1 = [ vector.setMagnitude(rvad1[1], -1.0), pd2[1] ]
+        #print("rcx ", rcx)
+        #print("rcd1", rcd1)
+        rcd1 = smoothCubicHermiteDerivativesLine(rcx, rcd1, fixAllDirections = True)
+        #rscx, rscd1, rscpe, rscpxi, rscpsf = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)
+        rscx, rscd2 = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)[0:2]
+        # get d1, d3
+        rscd1 = []
+        rscd3 = []
+        for n in range(len(rscx)):
+            a = [ (rscx[n][c] - centre[c]) for c in range(3) ]
+            d1 = vector.normalise(vector.crossproduct3(rscd2[n], a))
+            d3 = vector.normalise(vector.crossproduct3(d1, rscd2[n]))
+            rscd1.append(d1)
+            rscd3.append(d3)
+
+        lax = [ rscx[0] ]
+        lad1 = [ [ -s for s in rscd2[0] ] ]
+        if (elementsCountUpLVApex > 0) and (proportion2 > 0.0):
+            lax.append(x)
+            lad1.append(vector.setMagnitude(sd2, -vector.magnitude(lad1[0])))
+        lax.append(nx[0])
+        lad1.append(nd2[0])
+
+        if elementsCountUpLVApex > 0:
+            lax, lad1 = sampleCubicHermiteCurves(lax, lad1, elementsCountUpLVApex + 1,
+                addLengthStart = vector.magnitude(rscd2[0])*0.5, lengthFractionStart = 0.5, arcLengthDerivatives = True)[0:2]
+        else:
+            #print('lax', lax)
+            #print('lad1', lad1)
+            lad1 = smoothCubicHermiteDerivativesLine(lax, lad1, fixStartDerivative = True, fixEndDirection = True)
+
         rvx  = [ [], [] ]
         rvd1 = [ [], [] ]
         rvd2 = [ [], [] ]
@@ -464,12 +466,14 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 rvd2[1][n2][n1] = rvod2[n]
                 rvd3[1][n2][n1] = rvod3[n]
 
+        # around regular rows of RV
         for n2 in range(2, elementsCountUpRVFreeWall + 1):
             rvx[1][n2], rvd1[1][n2], pe, pxi, psf = sampleCubicHermiteCurves(
                 [ rvx[1][n2][0], rscx[n2], rvx[1][n2][-1] ], [ rvd1[1][n2][0], rscd1[n2], rvd1[1][n2][-1] ], elementsCountAroundRVFreeWall,
                                      arcLengthDerivatives = True)
             rvd2[1][n2] = interpolateSampleCubicHermite([ rvd2[1][n2][0], rscd2[n2], rvd2[1][n2][-1] ], [ [ 0.0, 0.0, 0.0 ] ]*3, pe, pxi, psf)[0]
 
+        # up regular columns of RV
         for n1 in range(2, elementsCountAroundRVFreeWall - 1):
             left = n1 < elementsCountAroundRVFreeWallHalf
             right = n1 > (elementsCountAroundRVFreeWall - elementsCountAroundRVFreeWallHalf)
@@ -645,7 +649,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 nodeIdentifier += 1
 
         if False:
-            for n in range(elementsCountUpLVFreeWall + 1):
+            for n in range(len(px)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, px [n])
