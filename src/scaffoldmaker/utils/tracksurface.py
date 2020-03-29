@@ -230,13 +230,13 @@ class TrackSurface:
             [ [ dp1Start, dp2Start ], [ dp1End, dp2End ] ], elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
         if curveMode != self.HermiteCurveMode.SMOOTH:
             if derivativeStart and (curveMode in [self.HermiteCurveMode.TRANSITION_START, self.HermiteCurveMode.TRANSITION_START_AND_END]):
-                addLengthStart = 0.5*vector.magnitude(derivativeStart)
+                addLengthStart = 0.5*derivativeMagnitudeStart
                 lengthFractionStart = 0.5
             else:
                 addLengthStart = 0.0
                 lengthFractionStart = 1.0
             if derivativeEnd and (curveMode in [self.HermiteCurveMode.TRANSITION_END, self.HermiteCurveMode.TRANSITION_START_AND_END]):
-                addLengthEnd = 0.5*vector.magnitude(derivativeEnd)
+                addLengthEnd = 0.5*derivativeMagnitudeEnd
                 lengthFractionEnd = 0.5
             else:
                 addLengthEnd = 0.0
