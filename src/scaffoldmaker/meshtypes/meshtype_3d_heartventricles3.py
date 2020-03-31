@@ -19,6 +19,7 @@ from scaffoldmaker.utils.geometry import createEllipsoidPoints, getApproximateEl
 from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, getCubicHermiteArcLength, interpolateSampleCubicHermite, sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.shieldmesh import ShieldMesh
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 
 
@@ -236,6 +237,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         px = [ (x[c] + pd3[c]) for c in range(3) ]
         return [x, px], [ pd1, pd1 ], [ pd2, pd2 ], [ pd3, pd3 ]
 
+
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
@@ -437,14 +439,11 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         #print('mag rv apex', vector.magnitude(rscd2[0]), vector.magnitude(lad2[0]))
         #print('mag lv apex', vector.magnitude(lad2[-1]), vector.magnitude(pd1[0]))
 
-        rvx  = [ [], [] ]
-        rvd1 = [ [], [] ]
-        rvd2 = [ [], [] ]
-        rvd3 = [ [], [] ]
-        for n3 in range(2):
-            for n2 in range(elementsCountUpRVFreeWall + 1):
-                for rv in [ rvx[n3], rvd1[n3], rvd2[n3], rvd3[n3] ]:
-                    rv.append([ None ]*(elementsCountAroundRVFreeWall + 1))
+        rvShield = ShieldMesh(elementsCountUpRVFreeWall, elementsCountAroundRVFreeWall, 0)
+        rvx  = rvShield.px
+        rvd1 = rvShield.pd1
+        rvd2 = rvShield.pd2
+        rvd3 = rvShield.pd3
         for n in range(elementsCountAroundFull + 1):
             if n <= elementsCountUpRVRegular:
                 n1 = 0
@@ -508,6 +507,9 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 rvd2[1][n2][n1] = td2[n2]
 
         # RV triple points
+        m1a = elementsCountAroundRVFreeWall
+        m1b = m1a - 1
+        m1c = m1a - 2
         ltx = []
         tx, td1 = sampleCubicHermiteCurves(
             [ rvx[1][0][2], rvx[1][2][1] ], [ [ (rvd1[1][0][2][c] + rvd2[1][0][2][c]) for c in range(3) ], rvd2[1][2][1] ], 2, arcLengthDerivatives = True)[0:2]
@@ -521,32 +523,27 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         ltx.append(rvx[1][2][0])
         rtx = []
         tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][0][-3], rvx[1][2][-2] ], [ [ (-rvd1[1][0][-3][c] + rvd2[1][0][-3][c]) for c in range(3) ], rvd2[1][2][-2] ], 2, arcLengthDerivatives = True)[0:2]
+            [ rvx[1][0][m1c], rvx[1][2][m1b] ], [ [ (-rvd1[1][0][m1c][c] + rvd2[1][0][m1c][c]) for c in range(3) ], rvd2[1][2][m1b] ], 2, arcLengthDerivatives = True)[0:2]
         rtx.append(tx[1])
         tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][0][-2], rvx[1][2][-3] ], [ [ -d for d in rvd1[1][0][-2] ], [ (-rvd1[1][2][-3][c] + rvd2[1][2][-3][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+            [ rvx[1][0][m1b], rvx[1][2][m1c] ], [ [ -d for d in rvd1[1][0][m1b] ], [ (-rvd1[1][2][m1c][c] + rvd2[1][2][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
         rtx.append(tx[1])
         tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][2][-1], rvx[1][1][-3] ], [ [ (-rvd1[1][2][-1][c] - rvd2[1][2][-1][c]) for c in range(3) ], [ -d for d in rvd1[1][1][-3] ] ], 2, arcLengthDerivatives = True)[0:2]
+            [ rvx[1][2][m1a], rvx[1][1][m1c] ], [ [ (-rvd1[1][2][m1a][c] - rvd2[1][2][m1a][c]) for c in range(3) ], [ -d for d in rvd1[1][1][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
         rtx.append(tx[1])
         rtx.append(rvx[1][2][0])
 
         rvx [1][1][1] = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
         rvd1[1][1][1] = [ (rvx[1][1][2][c] - rvx[1][1][1][c]) for c in range(3) ]
         rvd2[1][1][1] = [ (rvx[1][2][1][c] - rvx[1][1][1][c]) for c in range(3) ]
-        rvx [1][1][-2] = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
-        rvd1[1][1][-2] = [ (rvx[1][1][-2][c] - rvx[1][1][-3][c]) for c in range(3) ]
-        rvd2[1][1][-2] = [ (rvx[1][2][-2][c] - rvx[1][1][-2][c]) for c in range(3) ]
+        rvx [1][1][m1b] = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
+        rvd1[1][1][m1b] = [ (rvx[1][1][m1b][c] - rvx[1][1][m1c][c]) for c in range(3) ]
+        rvd2[1][1][m1b] = [ (rvx[1][2][m1b][c] - rvx[1][1][m1b][c]) for c in range(3) ]
 
-        # smooth RV row 1
-        tx = []
-        td1 = []
-        for n1 in range(1, elementsCountAroundRVFreeWall):
-            tx .append(rvx [1][1][n1])
-            td1.append(rvd1[1][1][n1])
-        td1 = smoothCubicHermiteDerivativesLine(tx, td1)
-        for n in range(elementsCountAroundRVFreeWall - 1):
-            rvd1[1][1][n + 1] = td1[n]
+        # smooth RV freewall row 1
+        n1b = 1
+        n2b = 1
+        rvd1[1][n2b][n1b:m1a] = smoothCubicHermiteDerivativesLine(rvx[1][n2b][n1b:m1a], rvd1[1][n2b][n1b:m1a])
 
         # smooth RV columns 1, -2
         for n1 in [ 1, -2 ]:
@@ -562,7 +559,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         # fix outer derivatives leading to triple points
         rvd1[1][0][1] = smoothCubicHermiteDerivativesLine([ rvx[1][0][1], rvx[1][1][1] ], [ rvd1[1][0][1], [ (rvd1[1][1][1][c] + rvd2[1][1][1][c]) for c in range(3) ] ],
                                                           fixEndDerivative = True, fixStartDirection = True)[0]
-        rvd1[1][0][-2] = smoothCubicHermiteDerivativesLine([ rvx[1][1][-2], rvx[1][0][-2] ], [ [ (rvd1[1][1][-2][c] - rvd2[1][1][-2][c]) for c in range(3) ], rvd1[1][0][-2] ],
+        rvd1[1][0][m1b] = smoothCubicHermiteDerivativesLine([ rvx[1][1][m1b], rvx[1][0][m1b] ], [ [ (rvd1[1][1][m1b][c] - rvd2[1][1][m1b][c]) for c in range(3) ], rvd1[1][0][m1b] ],
                                                           fixStartDerivative = True, fixEndDirection = True)[1]
 
         # get outer d3 and inner x, d3
@@ -612,21 +609,17 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         # fix inner derivatives leading to triple points
         rvd1[0][0][1] = smoothCubicHermiteDerivativesLine([ rvx[0][0][1], rvx[0][1][1] ], [ rvd1[0][0][1], [ (rvd1[0][1][1][c] + rvd2[0][1][1][c]) for c in range(3) ] ],
                                                           fixEndDerivative = True, fixStartDirection = True)[0]
-        rvd1[0][0][-2] = smoothCubicHermiteDerivativesLine([ rvx[0][1][-2], rvx[0][0][-2] ], [ [ (rvd1[0][1][-2][c] - rvd2[0][1][-2][c]) for c in range(3) ], rvd1[0][0][-2] ],
+        rvd1[0][0][m1b] = smoothCubicHermiteDerivativesLine([ rvx[0][1][m1b], rvx[0][0][m1b] ], [ [ (rvd1[0][1][m1b][c] - rvd2[0][1][m1b][c]) for c in range(3) ], rvd1[0][0][m1b] ],
                                                           fixStartDerivative = True, fixEndDirection = True)[1]
 
         # LV free wall
         elementsCountUpLV = elementsCountUpLVFreeWall + elementsCountUpLVApex
-        lvx  = [ [], [] ]
-        lvd1 = [ [], [] ]
-        lvd2 = [ [], [] ]
-        lvd3 = [ [], [] ]
-        lvProportions = []
-        for n2 in range(elementsCountUpLV + 1):
-            for n3 in range(2):
-                for lv in [ lvx[n3], lvd1[n3], lvd2[n3], lvd3[n3] ]:
-                    lv.append([ None ]*(elementsCountAroundLVFreeWall + 1))
-            lvProportions.append([ None ]*(elementsCountAroundLVFreeWall + 1))
+        lvShield = ShieldMesh(elementsCountUpLV, elementsCountAroundLVFreeWall, elementsCountUpLVApex)
+        lvx  = lvShield.px
+        lvd1 = lvShield.pd1
+        lvd2 = lvShield.pd2
+        lvd3 = lvShield.pd3
+        lvProportions = [ [ None ]*(elementsCountAroundLVFreeWall + 1) for n2 in range(elementsCountUpLV + 1) ]
 
         # sample around top of LV free wall to get centre
         #td1 = smoothCubicHermiteDerivativesLine([ rvOutletCuspCoordinates, rvInletCuspCoordinates ], [ rvOutletLateralDirection, rvInletLateralDirection ], fixAllDirections = True)
@@ -653,7 +646,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         for n2 in range(2 + elementsCountUpLVApex, elementsCountUpLV + 1):
             ix = elementsCountUpLV - n2
             ox = -1 - ix
-            print('n2',n2,'ix',ix,'ox',ox)
+            #print('n2',n2,'ix',ix,'ox',ox)
             # GRC fix:
             td1 = smoothCubicHermiteDerivativesLine([ lscx[ox], rvix[ix] ],
                 [ lscd1[ox], vector.setMagnitude(rvid1[ix], -sulcusDerivativeFactor*ivSulcusBaseTransitionLength) ], fixStartDirection=True, fixEndDerivative=True)
@@ -734,13 +727,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         # transition to LV apex, anterior and posterior
         n1 = elementsCountUpLVApex
-        print('derivativeStart', vector.setMagnitude(nd2[elementsCountAroundLVTrackSurface*3//4], -vector.magnitude(lad2[-1])))
-        print('derivativeEnd', lvd2[1][n2reg][n1])
-        print('n2reg', n2reg)
-        print('lvProportions[n2reg]', lvProportions[n2reg])
-        elementsCountRemaining = elementsCountAroundHalf - (elementsCountUpLVFreeWall - 2)
-        print('elementsCountRemaining',elementsCountRemaining)
         elementsCountAroundLVFreeWallHalf = elementsCountAroundLVFreeWall//2
+        elementsCountRemaining = elementsCountAroundHalf - (elementsCountUpLVFreeWall - 2)
         tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(0.75, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
             derivativeStart=vector.setMagnitude(nd2[elementsCountAroundLVTrackSurface*3//4], vector.magnitude(lad2[-1])), derivativeEnd=lvd2[1][n2reg][n1])
         n2 = elementsCountUpLVApex
@@ -762,6 +750,138 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
             lvProportions[n2][n1] = tProportions[n]
 
+        # up regular columns of LV
+        for n1 in range(2 + elementsCountUpLVApex, elementsCountAroundLVFreeWall - 1 - elementsCountUpLVApex):
+            n2apex = elementsCountUpLVApex
+            left = n1 < elementsCountAroundLVFreeWallHalf
+            right = n1 > (elementsCountAroundLVFreeWall - elementsCountAroundLVFreeWallHalf)
+            aProportions = lvProportions[n2apex][n1] if (left or right) else [ 1.0, 0.0 ]
+            tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(
+                aProportions[0], aProportions[1],
+                lvProportions[n2apex + 2][n1][0], lvProportions[n2apex + 2][n1][1],
+                elementsCount=2,
+                derivativeStart=lvd1[1][n2apex][n1] if left else [ -d for d in lvd1[1][n2apex][n1] ] if right else lvd2[1][n2apex][n1],
+                derivativeEnd = lvd2[1][n2apex + 2][n1])
+            lvx [1][n2apex + 1][n1] = tx [1]
+            lvd1[1][n2apex + 1][n1] = [-d for d in td1[1] ]
+            lvd2[1][n2apex + 1][n1] = td2[1]
+            lvd3[1][n2apex + 1][n1] = td3[1]
+            lvProportions[n2apex + 1][n1] = tProportions[1]
+
+        # LV triple points
+        n1a = elementsCountUpLVApex
+        n1b = n1a + 1
+        n1c = n1a + 2
+        m1a = elementsCountAroundLVFreeWall - elementsCountUpLVApex
+        m1b = m1a - 1
+        m1c = m1a - 2
+        n2a = elementsCountUpLVApex
+        n2b = n2a + 1
+        n2c = n2a + 2
+        ltx = []
+        tx, td1 = sampleCubicHermiteCurves(
+            [ lvx[1][n2a][n1c], lvx[1][n2c][n1b] ], [ [ (lvd1[1][n2a][n1c][c] + lvd2[1][n2a][n1c][c]) for c in range(3) ], lvd2[1][n2c][n1b] ], 2, arcLengthDerivatives = True)[0:2]
+        ltx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ lvx[1][n2a][n1b], lvx[1][n2c][n1c] ], [ lvd1[1][n2a][n1b], [ (lvd1[1][n2c][n1c][c] + lvd2[1][n2c][n1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+        ltx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ lvx[1][n2c][0], lvx[1][n2b][n1c] ], [ [ (lvd1[1][n2c][0][c] - lvd2[1][n2c][0][c]) for c in range(3) ], lvd1[1][n2b][n1c] ], 2, arcLengthDerivatives = True)[0:2]
+        ltx.append(tx[1])
+        ltx.append(lvx[1][n2c][0])
+        rtx = []
+        tx, td1 = sampleCubicHermiteCurves(
+            [ lvx[1][n2a][m1c], lvx[1][n2c][m1b] ], [ [ (-lvd1[1][n2a][m1c][c] + lvd2[1][n2a][m1c][c]) for c in range(3) ], lvd2[1][n2c][m1b] ], 2, arcLengthDerivatives = True)[0:2]
+        rtx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ lvx[1][n2a][m1b], lvx[1][n2c][m1c] ], [ [ -d for d in lvd1[1][n2a][m1b] ], [ (-lvd1[1][n2c][m1c][c] + lvd2[1][n2c][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+        rtx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ lvx[1][n2c][m1a], lvx[1][n2b][m1c] ], [ [ (-lvd1[1][n2c][m1a][c] - lvd2[1][n2c][m1a][c]) for c in range(3) ], [ -d for d in lvd1[1][n2b][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
+        rtx.append(tx[1])
+        rtx.append(lvx[1][n2c][0])
+
+        lvx [1][n2b][n1b] = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
+        lvd1[1][n2b][n1b] = [ (lvx[1][n2b][2][c] - lvx[1][n2b][n1b][c]) for c in range(3) ]
+        lvd2[1][n2b][n1b] = [ (lvx[1][n2c][n1b][c] - lvx[1][n2b][n1b][c]) for c in range(3) ]
+        lvx [1][n2b][m1b] = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
+        lvd1[1][n2b][m1b] = [ (lvx[1][n2b][m1b][c] - lvx[1][n2b][m1c][c]) for c in range(3) ]
+        lvd2[1][n2b][m1b] = [ (lvx[1][n2c][m1b][c] - lvx[1][n2b][m1b][c]) for c in range(3) ]
+
+        # smooth LV freewall row 1
+        lvd1[1][n2b][n1b:m1a] = smoothCubicHermiteDerivativesLine(lvx[1][n2b][n1b:m1a], lvd1[1][n2b][n1b:m1a])
+
+        # smooth LV columns 1, -2
+        for n1 in [ n1b, -1 - n1b ]:
+            tx = []
+            td2 = []
+            for n2 in range(n2b, elementsCountUpLV + 1):
+                tx .append(lvx [1][n2][n1])
+                td2.append(lvd2[1][n2][n1])
+            td2 = smoothCubicHermiteDerivativesLine(tx, td2)
+            for n2 in range(n2b, elementsCountUpLV + 1):
+                lvd2[1][n2][n1] = td2[n2 - n2b]
+
+        # fix outer derivatives leading to triple points
+        lvd1[1][n2a][n1b] = smoothCubicHermiteDerivativesLine([ lvx[1][n2a][n1b], lvx[1][n2b][n1b] ], [ lvd1[1][n2a][n1b], [ (lvd1[1][n2b][n1b][c] + lvd2[1][n2b][n1b][c]) for c in range(3) ] ],
+                                                              fixEndDerivative = True, fixStartDirection = True)[0]
+        lvd1[1][n2a][m1b] = smoothCubicHermiteDerivativesLine([ lvx[1][n2b][m1b], lvx[1][n2a][m1b] ], [ [ (lvd1[1][n2b][m1b][c] - lvd2[1][n2b][m1b][c]) for c in range(3) ], lvd1[1][n2a][m1b] ],
+                                                              fixStartDerivative = True, fixEndDirection = True)[1]
+
+        # get outer d3 and inner x, d3
+        for n2 in range(elementsCountUpLV + 1):
+            for n1 in range(elementsCountAroundLVFreeWall + 1):
+                if lvd1[1][n2][n1]:
+                    lvd3[0][n2][n1] = lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
+                    lvx [0][n2][n1] = [ (lvx [1][n2][n1][c] - lvd3[1][n2][n1][c]) for c in range(3) ]
+
+        # get inner d1, d2
+        # row 1
+        lvd1[0][n2b][n1b:-n1b] = smoothCubicHermiteDerivativesLine(lvx[0][n2b][n1b:-n1b], lvd1[1][n2b][n1b:-n1b], fixAllDirections = True)
+        # regular rows 2+
+        for n2 in range(n2c, elementsCountUpLV + 1):
+            lvd1[0][n2] = smoothCubicHermiteDerivativesLine(lvx[0][n2], lvd1[1][n2], fixAllDirections = True)
+        # column 1 and -2
+        # regular columns
+        for n1 in range(n1b, elementsCountAroundLVFreeWall + 1 - n1b):
+            startn2 = n2b if (n1 in [n1b, elementsCountAroundLVFreeWall - n1b]) else n2a
+            tx  = []
+            td2 = []
+            if startn2 == n2a:
+                tx .append(lvx [0][n2a][n1])
+                left = n1 < elementsCountAroundLVFreeWallHalf
+                right = n1 > (elementsCountAroundLVFreeWall - elementsCountAroundLVFreeWallHalf)
+                if left:
+                    td2.append(lvd1[1][n2a][n1])
+                elif right:
+                    td2.append([ -d for d in lvd1[1][n2a][n1] ])
+                else:  # middle:
+                    td2.append(lvd2[1][n2a][n1])
+            for n2 in range(n2b, elementsCountUpLV + 1):
+                tx .append(lvx [0][n2][n1])
+                td2.append(lvd2[1][n2][n1])
+            td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixAllDirections = True)
+            if startn2 == n2a:
+                if left:
+                    lvd1[0][n2a][n1] = td2[0]
+                elif right:
+                    lvd1[0][n2a][n1] = [ -d for d in td2[0] ]
+                else:  # middle
+                    lvd1[0][n2a][n1] = lvd2[0][n2a][n1]
+                    lvd2[0][n2a][n1] = td2[0]
+            for n2 in range(n2b, elementsCountUpLV + 1):
+                lvd2[0][n2][n1] = td2[n2 - startn2]
+
+        # fix inner derivatives leading to triple points
+        #print('px ', [ lvx[0][n2a][n1b], lvx[0][n2b][n1b] ])
+        #print('pd1', [ lvd1[0][n2a][n1b], [ (lvd1[0][n2b][n1b][c] + lvd2[0][n2b][n1b][c]) for c in range(3) ] ])
+        #lvd1[0][n2a][n1b] = smoothCubicHermiteDerivativesLine([ lvx[0][n2a][n1b], lvx[0][n2b][n1b] ], [ lvd1[0][n2a][n1b], [ (lvd1[0][n2b][n1b][c] + lvd2[0][n2b][n1b][c]) for c in range(3) ] ],
+        #                                                      fixEndDerivative = True, fixStartDirection = True)[0]
+        #lvd1[0][n2a][m1b] = smoothCubicHermiteDerivativesLine([ lvx[0][n2b][m1b], lvx[0][n2a][m1b] ], [ [ (lvd1[0][n2b][m1b][c] - lvd2[0][n2b][m1b][c]) for c in range(3) ], lvd1[0][n2a][m1b] ],
+        #                                                      fixStartDerivative = True, fixEndDirection = True)[1]
+
+
+
         #################
         # Create nodes
         #################
@@ -772,14 +892,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        # LV/RV outlet elements are linear through the wall, hence their nodes do not have D_DS3 parameters
-        nodetemplate12 = nodes.createNodetemplate()
-        nodetemplate12.defineField(coordinates)
-        nodetemplate12.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate12.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate12.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = startNodeIdentifier = getMaximumNodeIdentifier(nodes) + 1
+        nodeIdentifier = startNodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         if False:
             for n in range((elementsCountUpLVTrackSurface + 1)*elementsCountAroundLVTrackSurface):
@@ -860,40 +974,10 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 #coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lad3[n])
                 nodeIdentifier += 1
 
-        lvNodeId = [ [], [] ]
-        if True:
-            for n2 in range(elementsCountUpLV + 1):
-                for n3 in range(2):
-                    lvNodeId[n3].append([ None ]*(elementsCountAroundLVFreeWall + 1))
-                    for n1 in range(elementsCountAroundLVFreeWall + 1):
-                        if lvx[n3][n2][n1]:
-                            node = nodes.createNode(nodeIdentifier, nodetemplate)
-                            lvNodeId[n3][n2][n1] = nodeIdentifier
-                            cache.setNode(node)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lvx [n3][n2][n1])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lvd1[n3][n2][n1])
-                            if lvd2[n3][n2][n1]:  # GRC temp
-                                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lvd2[n3][n2][n1])
-                                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lvd3[n3][n2][n1])
-                            nodeIdentifier += 1
+        nodeIdentifier = lvShield.generateNodes(fieldmodule, coordinates, nodeIdentifier)
+        nodeIdentifier = rvShield.generateNodes(fieldmodule, coordinates, nodeIdentifier)
 
-        rvNodeId = [ [], [] ]
         if True:
-            for n2 in range(elementsCountUpRVFreeWall + 1):
-                for n3 in range(2):
-                    rvNodeId[n3].append([ None ]*(elementsCountAroundRVFreeWall + 1))
-                    for n1 in range(elementsCountAroundLVFreeWall + 1):
-                        if rvx[n3][n2][n1]:
-                            node = nodes.createNode(nodeIdentifier, nodetemplate)
-                            rvNodeId[n3][n2][n1] = nodeIdentifier
-                            cache.setNode(node)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rvx [n3][n2][n1])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rvd1[n3][n2][n1])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rvd2[n3][n2][n1])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rvd3[n3][n2][n1])
-                            nodeIdentifier += 1
-
-        if False:
             # RV triple points
             for n in range(len(ltx)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -914,82 +998,11 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
 
-        elementIdentifier = getMaximumElementIdentifier(mesh) + 1
-
-        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        eft = tricubichermite.createEftNoCrossDerivatives()
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        elementtemplate.defineField(coordinates, -1, eft)
-
-        elementtemplate1 = mesh.createElementtemplate()
-        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-
-        isEven = (elementsCountAroundRVFreeWall % 2) == 0
-        elementsCountAroundRVFreeWallPlusOneHalf = (elementsCountAroundRVFreeWall + 1)//2
-        for e2 in range(elementsCountUpRVFreeWall):
-
-            meshGroups = [ rvMeshGroup ]
-            for e1 in range(elementsCountAroundRVFreeWall):
-                eft1 = eft
-                scalefactors = None
-                nids = [ rvNodeId[0][e2][e1], rvNodeId[0][e2][e1 + 1], rvNodeId[0][e2 + 1][e1], rvNodeId[0][e2 + 1][e1 + 1], 
-                         rvNodeId[1][e2][e1], rvNodeId[1][e2][e1 + 1], rvNodeId[1][e2 + 1][e1], rvNodeId[1][e2 + 1][e1 + 1] ]
-                if e2 == 0:
-                    if (e1 == 0) or (e1 == (elementsCountAroundRVFreeWall - 1)):
-                        continue
-                    eft1 = tricubichermite.createEftNoCrossDerivatives()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    scalefactors = [ -1.0 ]
-                    if e1 < elementsCountAroundRVFreeWallPlusOneHalf:
-                        if e1 < (elementsCountAroundRVFreeWallPlusOneHalf - 1):
-                            if e1 == 1:
-                                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                            remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                            remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-                        else:
-                            remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                            remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-                    if e1 >= elementsCountAroundRVFreeWallPlusOneHalf:
-                        if e1 > elementsCountAroundRVFreeWallPlusOneHalf:
-                            if e1 == (elementsCountAroundRVFreeWall - 2):
-                                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                            remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                            remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                        else:
-                            remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                            remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                elif e2 == 1:
-                    if e1 == 0:
-                        nids[0] = rvNodeId[0][0][1]
-                        nids[4] = rvNodeId[1][0][1]
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [ -1.0 ]
-                        remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                    elif e1 == (elementsCountAroundRVFreeWall - 1):
-                        nids[1] = rvNodeId[0][0][-2]
-                        nids[5] = rvNodeId[1][0][-2]
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [ -1.0 ]
-                        remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-
-                if eft1 is not eft:
-                    elementtemplate1.defineField(coordinates, -1, eft1)
-                    element = mesh.createElement(elementIdentifier, elementtemplate1)
-                else:
-                    element = mesh.createElement(elementIdentifier, elementtemplate)
-                result2 = element.setNodesByIdentifier(eft1, nids)
-                if scalefactors:
-                    result3 = element.setScaleFactors(eft1, scalefactors)
-                else:
-                    result3 = 7
-                #print('create element rv', elementIdentifier, result2, result3, nids)
-                elementIdentifier = elementIdentifier + 1
-
-                for meshGroup in meshGroups:
-                    meshGroup.addElement(element)
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        #print("LV elements")
+        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ lvMeshGroup ])
+        #print("RV elements")
+        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ rvMeshGroup ])
 
         return annotationGroups
 
