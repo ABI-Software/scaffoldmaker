@@ -16,7 +16,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createEllipsoidPoints, getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX
-from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, getCubicHermiteArcLength, interpolateSampleCubicHermite, sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, getCubicHermiteArcLength, interpolateSampleCubicHermite, \
+    sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.shieldmesh import ShieldMesh
@@ -323,6 +324,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvApexCuspDirection = vector.setMagnitude(sd2, -1.0)
         rvax, rvad1, rvad2, rvad3 = cls.getRVEdgePoints(lvTrackSurface, rvApexPosition, rvApexCuspDirection, rvApexCuspAngleRadians, rvFreeWallThickness)
 
+        elementLengthUpLV = vector.magnitude(lvTrackSurface.createHermiteCurvePoints(0.0, 0.0, 0.0, baseProportionUp, elementsCountUpLVFreeWall)[2][-1])
+
         # Get RV inlet, outlet
         # sample curves around RV cusp
         elementsCountAroundHalf = elementsCountAroundFull//2
@@ -351,10 +354,14 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvInletDerivative = [ scaling*d for d in rvInletDerivative ]
         rvOutletDerivative = [ scaling*d for d in rvOutletDerivative ]
 
-        rvix, rvid1, rvid2, rvid3, rviProportions = lvTrackSurface.createHermiteCurvePoints(rvInletPositionAroundLV, baseProportionUp, rvApexProportion1, rvApexProportion2,
-            elementsCountAroundHalf, derivativeStart = rvInletDerivative, derivativeEnd = rvApexLengthDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
         rvox, rvod1, rvod2, rvod3, rvoProportions = lvTrackSurface.createHermiteCurvePoints(rvApexProportion1, rvApexProportion2, rvOutletPositionAroundLV, baseProportionUp,
             elementsCountAroundHalf, derivativeStart = rvApexLengthDerivative, derivativeEnd = rvOutletDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+        rvox, rvod1, rvod2, rvod3, rvoProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(rvox, rvod1, rvod2, rvod3, rvoProportions,
+            derivativeMagnitudeEnd=elementLengthUpLV)
+        rvix, rvid1, rvid2, rvid3, rviProportions = lvTrackSurface.createHermiteCurvePoints(rvInletPositionAroundLV, baseProportionUp, rvApexProportion1, rvApexProportion2,
+            elementsCountAroundHalf, derivativeStart = rvInletDerivative, derivativeEnd = rvApexLengthDerivative, curveMode = TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+        rvix, rvid1, rvid2, rvid3, rviProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(rvix, rvid1, rvid2, rvid3, rviProportions,
+            derivativeMagnitudeStart=elementLengthUpLV, derivativeMagnitudeEnd=vector.magnitude(rvod1[0]))
         rvix  += rvox [1:]
         rvid1 += rvod1[1:]
         rvid2 += rvod2[1:]
@@ -731,6 +738,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         elementsCountRemaining = elementsCountAroundHalf - (elementsCountUpLVFreeWall - 2)
         tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(0.75, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
             derivativeStart=vector.setMagnitude(nd2[elementsCountAroundLVTrackSurface*3//4], vector.magnitude(lad2[-1])), derivativeEnd=lvd2[1][n2reg][n1])
+        tx, td2, td1, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td2, td1, td3, tProportions,
+            derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1]))
         n2 = elementsCountUpLVApex
         for n in range(elementsCountRemaining):
             n1 = elementsCountAroundLVFreeWallHalf - n
@@ -742,6 +751,9 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         n1 = -1 - elementsCountUpLVApex
         tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(1.25, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
             derivativeStart=lvd2[1][n2][elementsCountAroundLVFreeWallHalf], derivativeEnd=lvd2[1][n2reg][n1])
+        tx, td2, td1, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td2, td1, td3, tProportions,
+            derivativeMagnitudeStart=vector.magnitude(lvd1[1][n2][elementsCountAroundLVFreeWallHalf]),
+            derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1]))
         for n in range(1, elementsCountRemaining):
             n1 = elementsCountAroundLVFreeWallHalf + n
             lvx [1][n2][n1] = tx [n]

@@ -380,7 +380,7 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     return px, pd1, pe, pxi, psf
 
 def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
-       derivativeMagnitudeStart, derivativeMagnitudeEnd):
+       derivativeMagnitudeStart=None, derivativeMagnitudeEnd=None):
     """
     Get smoothly spaced points and derivatives over cubic Hermite interpolated
     curves with nodes nx and derivatives nd1. The first element uses the first two nodes.
@@ -388,8 +388,9 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     magnitudes.
     :param nx: Coordinates of nodes along curves.
     :param nd1: Derivatives of nodes along curves.
-    :param derivativeMagnitudeStart, derivativeMagnitudeEnd: Magnitudes of start and end
-    derivatives appropriate for elementsCountOut.
+    :param derivativeMagnitudeStart, derivativeMagnitudeEnd: Optional magnitudes of start and end
+    derivatives appropriate for elementsCountOut. If unspecified these are calculated from the other
+    end or set to be equal for even spaced elements.
     :return: px[], pd1[], pe[], pxi[], psf[], where pe[] and pxi[] are lists of element indices and
     and xi locations in the 'in' elements to pass to partner interpolateSample functions. psf[] is
     a list of scale factors for converting derivatives from old to new xi coordinates: dxi(old)/dxi(new).
@@ -402,6 +403,14 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     for e in range(elementsCountIn):
         length += getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1])
         lengths.append(length)
+    if derivativeMagnitudeStart and derivativeMagnitudeEnd:
+        pass
+    elif derivativeMagnitudeEnd:
+        derivativeMagnitudeStart = (2.0*length - elementsCountOut*derivativeMagnitudeEnd)/elementsCountOut
+    elif derivativeMagnitudeStart:
+        derivativeMagnitudeEnd = (2.0*length - elementsCountOut*derivativeMagnitudeStart)/elementsCountOut
+    else:
+        derivativeMagnitudeStart = derivativeMagnitudeEnd = length/elementsCountOut
     # sample over length to get distances to elements boundaries
     x1 = 0.0
     d1 = derivativeMagnitudeStart*elementsCountOut

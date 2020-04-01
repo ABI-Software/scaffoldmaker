@@ -268,6 +268,28 @@ class TrackSurface:
         #print('createHermiteCurvePoints end \n nx', nx,'\nnd1',nd1,'\nnd2',nd2,'\nnd3',nd3)
         return nx, nd1, nd2, nd3, proportions
 
+    def resampleHermiteCurvePointsSmooth(self, nx, nd1, nd2, nd3, nProportions, derivativeMagnitudeStart=None, derivativeMagnitudeEnd=None):
+        '''
+        Call interp.sampleCubicHermiteCurvesSmooth on nx, nd1 and recalculate positions, nd2, nd3 for points.
+        :return: nx[], nd1[], nd2[], nd3[], nProportions[]
+        '''
+        elementsCount = len(nx) - 1
+        nx, nd1 = interp.sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
+        mag2 = vector.magnitude(nd2[0])
+        if mag2 > 0.0:
+            nd2[0] = vector.setMagnitude(nd2[0], vector.magnitude(nd1[0]))
+        for n in range(1, elementsCount):
+            p = self.findNearestPosition(nx[n], self.createPositionProportion(*nProportions[n]))
+            nProportions[n] = self.getProportion(p)
+            _, sd1, sd2 = self.evaluateCoordinates(p, derivatives=True)
+            _, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(nd1[n]))
+            nd2[n] = vector.setMagnitude(d2, vector.magnitude(nd1[n]))
+            nd3[n] = d3
+        mag2 = vector.magnitude(nd2[-1])
+        if mag2 > 0.0:
+            nd2[-1] = vector.setMagnitude(nd2[-1], vector.magnitude(nd1[-1]))
+        return nx, nd1, nd2, nd3, nProportions
+
     def findNearestPosition(self, targetx, startPosition = None):
         '''
         Find the nearest point to targetx on the track surface, with optional start position.
@@ -491,8 +513,10 @@ def calculate_surface_delta_xi(d1, d2, direction):
             delta_xi1 = 0.0
             delta_xi2 = (1.0 if (delta_xi2 > 0.0) else -1.0)*vector.magnitude(direction)/vector.magnitude(d2)
         else:
-            delta_xi1 = (1.0 if (delta_xi1 > 0.0) else -1.0)*vector.magnitude(direction)/vector.magnitude(d1)
-            delta_xi2 = 0.0
+            delta_xi1 = vector.dotproduct(d1, direction)
+            if math.fabs(delta_xi1) > 0.0:
+                delta_xi1 = (1.0 if (delta_xi1 > 0.0) else -1.0)*vector.magnitude(direction)/vector.magnitude(d1)
+                delta_xi2 = 0.0
     #delx = [ (delta_xi1*d1[c] + delta_xi2*d2[c]) for c in range(3) ]
     #print('delx', delx, 'dir', direction, 'diff', vector.magnitude([ (delx[c] - direction[c]) for c in range(3) ]))
     return delta_xi1, delta_xi2
@@ -503,10 +527,16 @@ def calculate_surface_axes(d1, d2, direction):
     ax2 in-plane normal to a and ax3 normal to the surface plane.
     Vectors all have unit magnitude.
     '''
-    ax3 = vector.normalise(vector.crossproduct3(d1, d2))
     delta_xi1, delta_xi2 = calculate_surface_delta_xi(d1, d2, direction)
     ax1 = vector.normalise([ delta_xi1*d1[c] + delta_xi2*d2[c] for c in range(3) ])
-    ax2 = vector.normalise(vector.crossproduct3(ax3, ax1))
+    ax3 = vector.crossproduct3(d1, d2)
+    mag3 = math.sqrt(ax3[0]*ax3[0] + ax3[1]*ax3[1] + ax3[2]*ax3[2])
+    if mag3 > 0.0:
+        ax3 = [ s/mag3 for s in ax3 ]
+        ax2 = vector.normalise(vector.crossproduct3(ax3, ax1))
+    else:
+        ax3 = [ 0.0, 0.0, 0.0 ]
+        ax2 = [ 0.0, 0.0, 0.0 ]
     return ax1, ax2, ax3
 
 def increment_xi_on_square(xi1, xi2, dxi1, dxi2):
