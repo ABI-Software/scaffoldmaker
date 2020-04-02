@@ -706,6 +706,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         # transition to LV apex, anterior and posterior
         n1 = elementsCountUpLVApex
         elementsCountAroundLVFreeWallHalf = elementsCountAroundLVFreeWall//2
+        print('elementsCountAroundLVFreeWallHalf', elementsCountAroundLVFreeWallHalf)
         elementsCountRemaining = elementsCountAroundHalf - (elementsCountUpLVFreeWall - 2)
         tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(0.75, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
             derivativeStart=vector.setMagnitude(nd2[elementsCountAroundLVTrackSurface*3//4], vector.magnitude(lad2[-1])), derivativeEnd=lvd2[1][n2reg][n1])
@@ -831,14 +832,10 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 lvd2[0][n2][n1] = td2[n2 - startn2]
 
         # fix inner derivatives leading to triple points
-        #print('px ', [ lvx[0][n2a][n1b], lvx[0][n2b][n1b] ])
-        #print('pd1', [ lvd1[0][n2a][n1b], [ (lvd1[0][n2b][n1b][c] + lvd2[0][n2b][n1b][c]) for c in range(3) ] ])
-        #lvd1[0][n2a][n1b] = smoothCubicHermiteDerivativesLine([ lvx[0][n2a][n1b], lvx[0][n2b][n1b] ], [ lvd1[0][n2a][n1b], [ (lvd1[0][n2b][n1b][c] + lvd2[0][n2b][n1b][c]) for c in range(3) ] ],
-        #                                                      fixEndDerivative = True, fixStartDirection = True)[0]
-        #lvd1[0][n2a][m1b] = smoothCubicHermiteDerivativesLine([ lvx[0][n2b][m1b], lvx[0][n2a][m1b] ], [ [ (lvd1[0][n2b][m1b][c] - lvd2[0][n2b][m1b][c]) for c in range(3) ], lvd1[0][n2a][m1b] ],
-        #                                                      fixStartDerivative = True, fixEndDirection = True)[1]
-
-
+        lvd1[0][n2a][n1b] = smoothCubicHermiteDerivativesLine([ lvx[0][n2a][n1b], lvx[0][n2b][n1b] ], [ lvd1[1][n2a][n1b], [ (lvd1[0][n2b][n1b][c] + lvd2[0][n2b][n1b][c]) for c in range(3) ] ],
+                                                              fixEndDerivative = True, fixStartDirection = True)[0]
+        lvd1[0][n2a][m1b] = smoothCubicHermiteDerivativesLine([ lvx[0][n2b][m1b], lvx[0][n2a][m1b] ], [ [ (lvd1[0][n2b][m1b][c] - lvd2[0][n2b][m1b][c]) for c in range(3) ], lvd1[1][n2a][m1b] ],
+                                                              fixStartDerivative = True, fixEndDirection = True)[1]
 
         #################
         # Create nodes
