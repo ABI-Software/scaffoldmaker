@@ -513,39 +513,10 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             for n2 in range(1, elementsCountUpRVFreeWall + 1):
                 rvd2[1][n2][n1] = td2[n2]
 
-        # RV triple points
+        rvShield.getTriplePoints(n3=1)
         m1a = elementsCountAroundRVFreeWall
         m1b = m1a - 1
         m1c = m1a - 2
-        ltx = []
-        tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][0][2], rvx[1][2][1] ], [ [ (rvd1[1][0][2][c] + rvd2[1][0][2][c]) for c in range(3) ], rvd2[1][2][1] ], 2, arcLengthDerivatives = True)[0:2]
-        ltx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][0][1], rvx[1][2][2] ], [ rvd1[1][0][1], [ (rvd1[1][2][2][c] + rvd2[1][2][2][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
-        ltx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][2][0], rvx[1][1][2] ], [ [ (rvd1[1][2][0][c] - rvd2[1][2][0][c]) for c in range(3) ], rvd1[1][1][2] ], 2, arcLengthDerivatives = True)[0:2]
-        ltx.append(tx[1])
-        ltx.append(rvx[1][2][0])
-        rtx = []
-        tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][0][m1c], rvx[1][2][m1b] ], [ [ (-rvd1[1][0][m1c][c] + rvd2[1][0][m1c][c]) for c in range(3) ], rvd2[1][2][m1b] ], 2, arcLengthDerivatives = True)[0:2]
-        rtx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][0][m1b], rvx[1][2][m1c] ], [ [ -d for d in rvd1[1][0][m1b] ], [ (-rvd1[1][2][m1c][c] + rvd2[1][2][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
-        rtx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ rvx[1][2][m1a], rvx[1][1][m1c] ], [ [ (-rvd1[1][2][m1a][c] - rvd2[1][2][m1a][c]) for c in range(3) ], [ -d for d in rvd1[1][1][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
-        rtx.append(tx[1])
-        rtx.append(rvx[1][2][0])
-
-        rvx [1][1][1] = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
-        rvd1[1][1][1] = [ (rvx[1][1][2][c] - rvx[1][1][1][c]) for c in range(3) ]
-        rvd2[1][1][1] = [ (rvx[1][2][1][c] - rvx[1][1][1][c]) for c in range(3) ]
-        rvx [1][1][m1b] = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
-        rvd1[1][1][m1b] = [ (rvx[1][1][m1b][c] - rvx[1][1][m1c][c]) for c in range(3) ]
-        rvd2[1][1][m1b] = [ (rvx[1][2][m1b][c] - rvx[1][1][m1b][c]) for c in range(3) ]
 
         # smooth RV freewall row 1
         n1b = 1
@@ -621,12 +592,12 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         # LV free wall
         elementsCountUpLV = elementsCountUpLVFreeWall + elementsCountUpLVApex
-        lvShield = ShieldMesh(elementsCountUpLV, elementsCountAroundLVFreeWall, elementsCountUpLVApex)
+        lvShield = ShieldMesh(elementsCountUpLV, elementsCountAroundLVFreeWall, elementsCountUpLVApex, lvTrackSurface)
         lvx  = lvShield.px
         lvd1 = lvShield.pd1
         lvd2 = lvShield.pd2
         lvd3 = lvShield.pd3
-        lvProportions = [ [ None ]*(elementsCountAroundLVFreeWall + 1) for n2 in range(elementsCountUpLV + 1) ]
+        lvProportions = lvShield.pProportions
 
         # sample around top of LV free wall to get centre
         #td1 = smoothCubicHermiteDerivativesLine([ rvOutletCuspCoordinates, rvInletCuspCoordinates ], [ rvOutletLateralDirection, rvInletLateralDirection ], fixAllDirections = True)
@@ -780,7 +751,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             lvd3[1][n2apex + 1][n1] = td3[1]
             lvProportions[n2apex + 1][n1] = tProportions[1]
 
-        # LV triple points
+        lvShield.getTriplePoints(n3=1)
         n1a = elementsCountUpLVApex
         n1b = n1a + 1
         n1c = n1a + 2
@@ -790,35 +761,6 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         n2a = elementsCountUpLVApex
         n2b = n2a + 1
         n2c = n2a + 2
-        ltx = []
-        tx, td1 = sampleCubicHermiteCurves(
-            [ lvx[1][n2a][n1c], lvx[1][n2c][n1b] ], [ [ (lvd1[1][n2a][n1c][c] + lvd2[1][n2a][n1c][c]) for c in range(3) ], lvd2[1][n2c][n1b] ], 2, arcLengthDerivatives = True)[0:2]
-        ltx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ lvx[1][n2a][n1b], lvx[1][n2c][n1c] ], [ lvd1[1][n2a][n1b], [ (lvd1[1][n2c][n1c][c] + lvd2[1][n2c][n1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
-        ltx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ lvx[1][n2c][0], lvx[1][n2b][n1c] ], [ [ (lvd1[1][n2c][0][c] - lvd2[1][n2c][0][c]) for c in range(3) ], lvd1[1][n2b][n1c] ], 2, arcLengthDerivatives = True)[0:2]
-        ltx.append(tx[1])
-        ltx.append(lvx[1][n2c][0])
-        rtx = []
-        tx, td1 = sampleCubicHermiteCurves(
-            [ lvx[1][n2a][m1c], lvx[1][n2c][m1b] ], [ [ (-lvd1[1][n2a][m1c][c] + lvd2[1][n2a][m1c][c]) for c in range(3) ], lvd2[1][n2c][m1b] ], 2, arcLengthDerivatives = True)[0:2]
-        rtx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ lvx[1][n2a][m1b], lvx[1][n2c][m1c] ], [ [ -d for d in lvd1[1][n2a][m1b] ], [ (-lvd1[1][n2c][m1c][c] + lvd2[1][n2c][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
-        rtx.append(tx[1])
-        tx, td1 = sampleCubicHermiteCurves(
-            [ lvx[1][n2c][m1a], lvx[1][n2b][m1c] ], [ [ (-lvd1[1][n2c][m1a][c] - lvd2[1][n2c][m1a][c]) for c in range(3) ], [ -d for d in lvd1[1][n2b][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
-        rtx.append(tx[1])
-        rtx.append(lvx[1][n2c][0])
-
-        lvx [1][n2b][n1b] = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
-        lvd1[1][n2b][n1b] = [ (lvx[1][n2b][2][c] - lvx[1][n2b][n1b][c]) for c in range(3) ]
-        lvd2[1][n2b][n1b] = [ (lvx[1][n2c][n1b][c] - lvx[1][n2b][n1b][c]) for c in range(3) ]
-        lvx [1][n2b][m1b] = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
-        lvd1[1][n2b][m1b] = [ (lvx[1][n2b][m1b][c] - lvx[1][n2b][m1c][c]) for c in range(3) ]
-        lvd2[1][n2b][m1b] = [ (lvx[1][n2c][m1b][c] - lvx[1][n2b][m1b][c]) for c in range(3) ]
 
         # smooth LV freewall row 1
         lvd1[1][n2b][n1b:m1a] = smoothCubicHermiteDerivativesLine(lvx[1][n2b][n1b:m1a], lvd1[1][n2b][n1b:m1a])
@@ -844,7 +786,11 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         for n2 in range(elementsCountUpLV + 1):
             for n1 in range(elementsCountAroundLVFreeWall + 1):
                 if lvd1[1][n2][n1]:
-                    lvd3[0][n2][n1] = lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
+                    if lvd3[1][n2][n1]:
+                        d3 = lvd3[1][n2][n1]
+                    else:
+                        d3 = vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1])
+                    lvd3[0][n2][n1] = lvd3[1][n2][n1] = vector.setMagnitude(d3, lvFreeWallThickness)
                     lvx [0][n2][n1] = [ (lvx [1][n2][n1][c] - lvd3[1][n2][n1][c]) for c in range(3) ]
 
         # get inner d1, d2
@@ -988,19 +934,6 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         nodeIdentifier = lvShield.generateNodes(fieldmodule, coordinates, nodeIdentifier)
         nodeIdentifier = rvShield.generateNodes(fieldmodule, coordinates, nodeIdentifier)
-
-        if True:
-            # RV triple points
-            for n in range(len(ltx)):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ltx[n])
-                nodeIdentifier += 1
-            for n in range(len(rtx)):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rtx[n])
-                nodeIdentifier += 1
 
         #################
         # Create elements

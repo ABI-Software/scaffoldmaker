@@ -9,8 +9,11 @@ import math
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves
+from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 
 
 class ShieldMesh:
@@ -18,10 +21,14 @@ class ShieldMesh:
     Shield mesh generator. Has one element through thickness.
     '''
 
-    def __init__(self, elementsCountUp, elementsCountAcross, elementsCountRim):
+    def __init__(self, elementsCountUp, elementsCountAcross, elementsCountRim, trackSurface : TrackSurface=None):
+        '''
+        :param trackSurface: Optional trackSurface to store or restrict points to.
+        '''
         self.elementsCountUp = elementsCountUp
         self.elementsCountAcross = elementsCountAcross
         self.elementsCountRim = elementsCountRim
+        self.trackSurface = trackSurface
         self.px  = [ [], [] ]
         self.pd1 = [ [], [] ]
         self.pd2 = [ [], [] ]
@@ -31,6 +38,8 @@ class ShieldMesh:
             for n2 in range(elementsCountUp + 1):
                 for p in [ self.px[n3], self.pd1[n3], self.pd2[n3], self.pd3[n3], self.nodeId[n3] ]:
                     p.append([ None ]*(elementsCountAcross + 1))
+        if trackSurface:
+            self.pProportions = [ [ None ]*(elementsCountAcross + 1) for n2 in range(elementsCountUp + 1) ]
         self.elementId = [ [ None ]*elementsCountAcross for n2 in range(elementsCountUp) ]
 
 
@@ -42,6 +51,69 @@ class ShieldMesh:
         self.pd1[n3][n2][n1] = d1
         self.pd2[n3][n2][n1] = d2
         self.pd3[n3][n2][n1] = d3
+
+
+    def getTriplePoints(self, n3):
+        '''
+        Compute coordinates and derivatives of points where 3 square elements merge.
+        :param n3: Index of through-wall coordinates to use.
+        '''
+        # LV triple points
+        n1a = self.elementsCountRim
+        n1b = n1a + 1
+        n1c = n1a + 2
+        m1a = self.elementsCountAcross - self.elementsCountRim
+        m1b = m1a - 1
+        m1c = m1a - 2
+        n2a = self.elementsCountRim
+        n2b = n2a + 1
+        n2c = n2a + 2
+        # left
+        ltx = []
+        tx, td1 = sampleCubicHermiteCurves(
+            [ self.px[n3][n2a][n1c], self.px[n3][n2c][n1b] ], [ [ (self.pd1[n3][n2a][n1c][c] + self.pd2[n3][n2a][n1c][c]) for c in range(3) ], self.pd2[n3][n2c][n1b] ], 2, arcLengthDerivatives = True)[0:2]
+        ltx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ self.px[n3][n2a][n1b], self.px[n3][n2c][n1c] ], [ self.pd1[n3][n2a][n1b], [ (self.pd1[n3][n2c][n1c][c] + self.pd2[n3][n2c][n1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+        ltx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ self.px[n3][n2c][0], self.px[n3][n2b][n1c] ], [ [ (self.pd1[n3][n2c][0][c] - self.pd2[n3][n2c][0][c]) for c in range(3) ], self.pd1[n3][n2b][n1c] ], 2, arcLengthDerivatives = True)[0:2]
+        ltx.append(tx[1])
+        x = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
+        if self.trackSurface:
+            p = self.trackSurface.findNearestPosition(x, startPosition=self.trackSurface.createPositionProportion(*(self.pProportions[n2b][n1c])))
+            self.pProportions[n2b][n1b] = self.trackSurface.getProportion(p)
+            x, sd1, sd2 = self.trackSurface.evaluateCoordinates(p, derivatives=True)
+            d1, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+            self.pd3[n3][n2b][n1b] = d3
+        self.px [n3][n2b][n1b] = x
+        self.pd1[n3][n2b][n1b] = [ (self.px[n3][n2b][2][c] - self.px[n3][n2b][n1b][c]) for c in range(3) ]
+        self.pd2[n3][n2b][n1b] = [ (self.px[n3][n2c][n1b][c] - self.px[n3][n2b][n1b][c]) for c in range(3) ]
+        if not self.trackSurface:
+            self.pd3[n3][n2b][n1b] = vector.normalise(vector.crossproduct3(self.pd1[n3][n2b][n1b], self.pd2[n3][n2b][n1b]))
+        # right
+        rtx = []
+        tx, td1 = sampleCubicHermiteCurves(
+            [ self.px[n3][n2a][m1c], self.px[n3][n2c][m1b] ], [ [ (-self.pd1[n3][n2a][m1c][c] + self.pd2[n3][n2a][m1c][c]) for c in range(3) ], self.pd2[n3][n2c][m1b] ], 2, arcLengthDerivatives = True)[0:2]
+        rtx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ self.px[n3][n2a][m1b], self.px[n3][n2c][m1c] ], [ [ -d for d in self.pd1[n3][n2a][m1b] ], [ (-self.pd1[n3][n2c][m1c][c] + self.pd2[n3][n2c][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+        rtx.append(tx[1])
+        tx, td1 = sampleCubicHermiteCurves(
+            [ self.px[n3][n2c][m1a], self.px[n3][n2b][m1c] ], [ [ (-self.pd1[n3][n2c][m1a][c] - self.pd2[n3][n2c][m1a][c]) for c in range(3) ], [ -d for d in self.pd1[n3][n2b][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
+        rtx.append(tx[1])
+        x = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
+        if self.trackSurface:
+            p = self.trackSurface.findNearestPosition(x, startPosition=self.trackSurface.createPositionProportion(*(self.pProportions[n2b][m1c])))
+            self.pProportions[n2b][m1b] = self.trackSurface.getProportion(p)
+            x, sd1, sd2 = self.trackSurface.evaluateCoordinates(p, derivatives=True)
+            d1, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+            self.pd3[n3][n2b][m1b] = d3
+        self.px [n3][n2b][m1b] = x
+        self.pd1[n3][n2b][m1b] = [ (self.px[n3][n2b][m1b][c] - self.px[n3][n2b][m1c][c]) for c in range(3) ]
+        self.pd2[n3][n2b][m1b] = [ (self.px[n3][n2c][m1b][c] - self.px[n3][n2b][m1b][c]) for c in range(3) ]
+        if not self.trackSurface:
+            self.pd3[n3][n2b][m1b] = vector.normalise(vector.crossproduct3(self.pd1[n3][n2b][m1b], self.pd2[n3][n2b][m1b]))
 
 
     def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier):
