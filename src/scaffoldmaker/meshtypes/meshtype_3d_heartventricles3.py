@@ -11,7 +11,7 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
@@ -144,8 +144,31 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             'Refine number of elements through wall'
         ]
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def getElementsCounts(cls, options):
+        elementsCountAcrossIVSeptum = options['Number of elements across septum']
+        elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
+        elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
+        #elementsCountThroughLVWall = options['Number of elements through LV wall']
+        elementsCountUpLVFreeWall = options['Number of elements up LV free wall']
+        elementsCountUpLVApex = options['Number of elements up LV apex']
+        nas = elementsCountAcrossIVSeptum//2
+        nal = elementsCountAroundLVFreeWall//2 - elementsCountUpLVApex
+        nar = elementsCountAroundRVFreeWall//2
+        nul = elementsCountUpLVFreeWall
+        # number around half = must be matched on RV and septum
+        nah = nal + elementsCountUpLVFreeWall - 2
+        elementsCountAroundFull = 2*nah + (options['Number of elements across septum'] % 2)
+        # number up rv, min 2
+        elementsCountUpRVFreeWall = nah + 2 - nar
+        elementsCountUpIVSeptum = nah + 2 - elementsCountAcrossIVSeptum//2
+        return elementsCountAroundFull, elementsCountUpLVApex, \
+            elementsCountAcrossIVSeptum, elementsCountUpIVSeptum, \
+            elementsCountAroundLVFreeWall, elementsCountUpLVFreeWall, \
+            elementsCountAroundRVFreeWall, elementsCountUpRVFreeWall
+
+    @classmethod
+    def checkOptions(cls, options):
         '''
         :return:  True if dependent options changed, otherwise False.
         '''
@@ -247,14 +270,11 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup
         """
-        elementsCountAcrossIVSeptum = options['Number of elements across septum']
-        elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
-        elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
-        #elementsCountThroughLVWall = options['Number of elements through LV wall']
-        elementsCountUpLVFreeWall = options['Number of elements up LV free wall']
-        elementsCountUpLVApex = options['Number of elements up LV apex']
+        elementsCountAroundFull, elementsCountUpLVApex, \
+            elementsCountAcrossIVSeptum, elementsCountUpIVSeptum, \
+            elementsCountAroundLVFreeWall, elementsCountUpLVFreeWall, \
+            elementsCountAroundRVFreeWall, elementsCountUpRVFreeWall = cls.getElementsCounts(options)
         unitScale = options['Unit scale']
-
         ivSeptumThickness = unitScale*options['Interventricular septum thickness']
         ivSulcusApexTransitionLength = options['Interventricular sulcus apex transition length']
         ivSulcusBaseTransitionLength = options['Interventricular sulcus base transition length']
@@ -276,17 +296,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvWidth = unitScale*options['RV width']
         useCrossDerivatives = options['Use cross derivatives']
 
-        nas = options['Number of elements across septum']//2
-        nal = options['Number of elements around LV free wall']//2 - options['Number of elements up LV apex']
-        nar = options['Number of elements around RV free wall']//2
-        nul = options['Number of elements up LV free wall']
-        # number around half = must be matched on RV and septum
-        nah = nal + nul - 2
-        elementsCountAroundFull = 2*nah + (options['Number of elements across septum'] % 2)
-        # number up rv, min 2
-        elementsCountUpRVFreeWall = nah + 2 - nar
-        print("elementsCountAroundFull", elementsCountAroundFull)
-        print("elementsCountUpRVFreeWall", elementsCountUpRVFreeWall)
+        #print("elementsCountAroundFull", elementsCountAroundFull)
+        #print("elementsCountUpRVFreeWall", elementsCountUpRVFreeWall)
 
         fieldmodule = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fieldmodule)
@@ -304,7 +315,6 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         poleAxis = vector.setMagnitude([ 0.0, 0.0, -1.0 ], lvOuterHeightAxisLength)
         sideAxis = vector.setMagnitude([ -1.0, 0.0, 0.0 ], lvOuterRadius)
 
-        annotationGroups = []
         elementsCountAroundLVTrackSurface = 16
         elementsCountUpLVTrackSurface = 8
 
@@ -368,9 +378,9 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvid3 += rvod3[1:]
         rviProportions += rvoProportions[1:]
 
-        print('elementsCountAroundHalf',elementsCountAroundHalf)
-        print('elementsCountUpRVRegular',elementsCountUpRVRegular)
-        print('elementsCountAroundRVFreeWallHalf',elementsCountAroundRVFreeWallHalf)
+        #print('elementsCountAroundHalf',elementsCountAroundHalf)
+        #print('elementsCountUpRVRegular',elementsCountUpRVRegular)
+        #print('elementsCountAroundRVFreeWallHalf',elementsCountAroundRVFreeWallHalf)
         rvox  = []
         rvod1 = []
         rvod2 = []
@@ -542,7 +552,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         # get outer d3 and inner x, d3
         for n2 in range(elementsCountUpRVFreeWall + 1):
-            for n1 in range(elementsCountAroundLVFreeWall + 1):
+            for n1 in range(elementsCountAroundRVFreeWall + 1):
                 if rvd1[1][n2][n1]:
                     rvd3[0][n2][n1] = rvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(rvd1[1][n2][n1], rvd2[1][n2][n1]), rvFreeWallThickness)
                     rvx [0][n2][n1] = [ (rvx [1][n2][n1][c] - rvd3[1][n2][n1][c]) for c in range(3) ]
@@ -706,7 +716,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         # transition to LV apex, anterior and posterior
         n1 = elementsCountUpLVApex
         elementsCountAroundLVFreeWallHalf = elementsCountAroundLVFreeWall//2
-        print('elementsCountAroundLVFreeWallHalf', elementsCountAroundLVFreeWallHalf)
+        #print('elementsCountAroundLVFreeWallHalf', elementsCountAroundLVFreeWallHalf)
         elementsCountRemaining = elementsCountAroundHalf - (elementsCountUpLVFreeWall - 2)
         tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(0.75, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
             derivativeStart=vector.setMagnitude(nd2[elementsCountAroundLVTrackSurface*3//4], vector.magnitude(lad2[-1])), derivativeEnd=lvd2[1][n2reg][n1])
@@ -794,6 +804,48 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                     lvd3[0][n2][n1] = lvd3[1][n2][n1] = vector.setMagnitude(d3, lvFreeWallThickness)
                     lvx [0][n2][n1] = [ (lvx [1][n2][n1][c] - lvd3[1][n2][n1][c]) for c in range(3) ]
 
+        # get inner d2 (d1 apex) around full rows up LV apex
+        for r in [ elementsCountUpLVApex ]:  # grc for now
+            tx = []
+            td2 = []
+            n1 = r
+            for n2 in range(elementsCountUpLV, n2b, -1):
+                tx .append(lvx [0][n2][n1])
+                td2.append([ -d for d in lvd2[1][n2][n1] ])
+                #print('  down', n2, n1, td2[-1])
+            n2 = n2a
+            for n1 in range(n1b, m1a):
+                tx .append(lvx [0][n2][n1])
+                if n1 < elementsCountAroundLVFreeWallHalf:
+                    td2.append([ -d for d in lvd2[1][n2][n1] ])
+                elif n1 > (elementsCountAroundLVFreeWall - elementsCountAroundLVFreeWallHalf):
+                    td2.append(lvd2[1][n2][n1])
+                else:
+                    td2.append(lvd1[1][n2][n1])
+                #print('across', n2, n1, td2[-1])
+            n1 = elementsCountAroundLVFreeWall - r
+            for n2 in range(n2c, elementsCountUpLV + 1):
+                tx .append(lvx [0][n2][n1])
+                td2.append(lvd2[1][n2][n1])
+                #print('    up', n2, n1, td2[-1])
+            #print(len(td2), td2)
+            td2 = smoothCubicHermiteDerivativesLine(tx, td2)
+            n1 = r
+            for n2 in range(elementsCountUpLV, n2b, -1):
+                lvd2[0][n2][n1] = [ -d for d in td2.pop(0) ]
+            n2 = n2a
+            for n1 in range(n1b, m1a):
+                if n1 < elementsCountAroundLVFreeWallHalf:
+                    lvd2[0][n2][n1] = [ -d for d in td2.pop(0) ]
+                elif n1 > (elementsCountAroundLVFreeWall - elementsCountAroundLVFreeWallHalf):
+                    lvd2[0][n2][n1] = td2.pop(0)
+                else:
+                    #print('n1',n1,'middle', td2[0])
+                    lvd1[0][n2][n1] = td2.pop(0)
+            n1 = elementsCountAroundLVFreeWall - r
+            for n2 in range(n2c, elementsCountUpLV + 1):
+                lvd2[0][n2][n1] = td2.pop(0)
+
         # get inner d1, d2
         # row 1
         lvd1[0][n2b][n1b:-n1b] = smoothCubicHermiteDerivativesLine(lvx[0][n2b][n1b:-n1b], lvd1[1][n2b][n1b:-n1b], fixAllDirections = True)
@@ -826,7 +878,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 elif right:
                     lvd1[0][n2a][n1] = [ -d for d in td2[0] ]
                 else:  # middle
-                    lvd1[0][n2a][n1] = lvd2[0][n2a][n1]
+                    #lvd1[0][n2a][n1] = lvd2[0][n2a][n1]
                     lvd2[0][n2a][n1] = td2[0]
             for n2 in range(n2b, elementsCountUpLV + 1):
                 lvd2[0][n2][n1] = td2[n2 - startn2]
@@ -957,40 +1009,33 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
-        elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
-        elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
-        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
-        elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
-        elementsCountUpLVApex = options['Number of elements up LV apex']
-        elementsCountUpRV = options['Number of elements up RV']
-        elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        elementsCountAroundFull, elementsCountUpLVApex, \
+            elementsCountAcrossIVSeptum, elementsCountUpIVSeptum, \
+            elementsCountAroundLVFreeWall, elementsCountUpLVFreeWall, \
+            elementsCountAroundRVFreeWall, elementsCountUpRVFreeWall = cls.getElementsCounts(options)
         refineElementsCountSurface = options['Refine number of elements surface']
-        refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
-        refineElementsCountThroughRVWall = options['Refine number of elements through wall']
-
-        startPostApexElementIdentifier = elementsCountAroundLV*elementsCountUpLVApex + 1
-        elementsCountPostApexLayer = elementsCountAroundLV + 2 + elementsCountAroundVSeptum
-        lastVentriclesElementIdentifier = startPostApexElementIdentifier + elementsCountAroundVSeptum + elementsCountUpRV*elementsCountPostApexLayer - 1
-
+        #refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
+        lvGroup = findAnnotationGroupByName(meshrefinement._sourceAnnotationGroups, "left ventricle myocardium")
+        rvGroup = findAnnotationGroupByName(meshrefinement._sourceAnnotationGroups, "right ventricle myocardium")
+        vSeptumGroup = findAnnotationGroupByName(meshrefinement._sourceAnnotationGroups, "interventricular septum")
+        lvMeshGroup = lvGroup.getMeshGroup(meshrefinement._sourceMesh)
+        rvMeshGroup = rvGroup.getMeshGroup(meshrefinement._sourceMesh)
+        vSeptumMeshGroup = vSeptumGroup.getMeshGroup(meshrefinement._sourceMesh)
+        elementsCountVentricles = refineElementsCountThroughWall*(
+            (elementsCountUpLVFreeWall - elementsCountUpLVApex - 2)*elementsCountAroundLVFreeWall + (elementsCountUpLVApex + 2)*(elementsCountAroundLVFreeWall - 2) +
+            (elementsCountUpRVFreeWall - 2)*elementsCountAroundRVFreeWall + 2*(elementsCountAroundRVFreeWall - 2) +
+            (elementsCountUpIVSeptum - 2)*elementsCountAcrossIVSeptum + 2*(elementsCountAcrossIVSeptum - 2) +
+            elementsCountAroundFull)
         element = meshrefinement._sourceElementiterator.next()
+        lastVentriclesElementIdentifier = element.getIdentifier() + elementsCountVentricles - 1
         while element.isValid():
+            elementIdentifier = element.getIdentifier()
             numberInXi1 = refineElementsCountSurface
             numberInXi2 = refineElementsCountSurface
-            numberInXi3 = refineElementsCountThroughLVWall
-            elementIdentifier = element.getIdentifier()
-            if elementIdentifier >= startPostApexElementIdentifier:
-                n1 = (elementIdentifier - startPostApexElementIdentifier - elementsCountAroundVSeptum)
-                if n1 < 0:
-                    # collapsed elements at RV apex
-                    numberInXi2 = refineElementsCountThroughLVWall
-                else:
-                    n1 = n1 % elementsCountPostApexLayer
-                    if (n1 == 0) or (n1 == (elementsCountAroundLVFreeWall + 1)):
-                        # collapsed elements on posterior or anterior interventricular sulcus:
-                        numberInXi1 = refineElementsCountThroughLVWall
-                        #print(n1,'refine collapse element', elementIdentifier, numberInXi1, numberInXi2, numberInXi3)
-                    elif (n1 > (elementsCountAroundLVFreeWall + 1)) and (n1 <= (elementsCountAroundLV + 1)):
-                        numberInXi3 = refineElementsCountThroughRVWall
+            numberInXi3 = refineElementsCountThroughWall
+            #if lvMeshGroup.containsElement(element):
+            #    numberInXi3 = refineElementsCountThroughLVWall
             meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
             if elementIdentifier == lastVentriclesElementIdentifier:
                 return  # finish on last so can continue in ventriclesbase
