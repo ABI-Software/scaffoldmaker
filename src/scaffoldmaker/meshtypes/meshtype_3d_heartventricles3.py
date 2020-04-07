@@ -261,6 +261,37 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         px = [ (x[c] + pd3[c]) for c in range(3) ]
         return [x, px], [ pd1, pd1 ], [ pd2, pd2 ], [ pd3, pd3 ]
 
+    @staticmethod
+    def getTransitionRVtoLV(lvTrackSurface, elementsCount, cuspProportions, cuspDerivative, endProportions, ivSulcusTransitionLength, rvx, rvd1):
+        '''
+        Transition from RV to a position on lvTrackSurface.
+        :return: tx, td1, td2, td3, tProportions
+        '''
+        tx, td1, td2, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(
+            cuspProportions[0], cuspProportions[1], endProportions[0], endProportions[1], elementsCount, derivativeStart=cuspDerivative)
+        if elementsCount > 1:
+            uniformLength = -ivSulcusTransitionLength
+            for n in range(elementsCount):
+                uniformLength += getCubicHermiteArcLength(tx[n], td1[n], tx[n + 1], td1[n + 1])
+            uniformLength /= (elementsCount - 1)
+            tx, td1 = sampleCubicHermiteCurves(tx, td1, elementsCount, addLengthStart=(ivSulcusTransitionLength - uniformLength))[0:2]
+        tx [0] = rvx
+        td1[0] = rvd1
+        tx, td1 = sampleCubicHermiteCurves(tx, td1, elementsCount, addLengthStart=0.5*vector.magnitude(td1[0]), lengthFractionStart=0.5, arcLengthDerivatives=True)[0:2]
+        p1 = lvTrackSurface.createPositionProportion(*cuspProportions)
+        for i in range(0, elementsCount + 1):
+            p1 = lvTrackSurface.findNearestPosition(tx[i], p1)
+            x, sd1, sd2 = lvTrackSurface.evaluateCoordinates(p1, derivatives = True)
+            d1, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(td1[i]))
+            magd2 = vector.magnitude(d2)
+            if magd2 > 0.0:
+                scale = vector.magnitude(td1[i])/magd2
+                td2[i] = [ d*scale for d in d2 ]
+            else:
+                td2[i] = [ 0.0, 0.0, 0.0 ]
+            td3[i] = d3
+            tProportions[i] = lvTrackSurface.getProportion(p1)
+        return tx, td1, td2, td3, tProportions
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -423,7 +454,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         #print("rcd1", rcd1)
         rcd1 = smoothCubicHermiteDerivativesLine(rcx, rcd1, fixAllDirections = True)
         #rscx, rscd1, rscpe, rscpxi, rscpsf = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)
-        rscx, rscd2 = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)[0:2]
+        rscx, rscd2 = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, lengthFractionStart=1.0, arcLengthDerivatives = True)[0:2]  # GRC fudge factor
         # get d1, d3
         rscd1 = []
         rscd3 = []
@@ -435,26 +466,16 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             rscd3.append(d3)
 
         # transition from RV apex to LV apex:
-        p2 = lvTrackSurface.trackVector(rvApexPosition, rvApexCuspDirection, ivSulcusApexTransitionLength)
-        proportion2 = lvTrackSurface.getProportion(p2)[1]
-        x, sd1, sd2 = lvTrackSurface.evaluateCoordinates(p2, derivatives = True)
-        lax = [ rscx[0] ]
-        lad2 = [ [ -s for s in rscd2[0] ] ]
-        if (elementsCountUpLVApex > 0) and (proportion2 > 0.0):
-            lax.append(x)
-            lad2.append(vector.setMagnitude(sd2, -ivSulcusApexTransitionLength))
-        lax.append(nx[0])
-        lad2.append(nd2[0])
-
-        if elementsCountUpLVApex > 0:
-            lax, lad2 = sampleCubicHermiteCurves(lax, lad2, elementsCountUpLVApex + 1,
-                addLengthStart = vector.magnitude(rscd2[0])*0.5, lengthFractionStart = 0.5, arcLengthDerivatives = True)[0:2]
-        else:
-            #print('lax', lax)
-            #print('lad2', lad2)
-            lad2 = smoothCubicHermiteDerivativesLine(lax, lad2, fixStartDerivative = True, fixEndDirection = True)
-        #print('mag rv apex', vector.magnitude(rscd2[0]), vector.magnitude(lad2[0]))
-        #print('mag lv apex', vector.magnitude(lad2[-1]), vector.magnitude(pd1[0]))
+        lax, lad2, lad1, lad3, laProportions = cls.getTransitionRVtoLV(lvTrackSurface, elementsCountUpLVApex + 1,
+            [ rvApexProportion1, rvApexProportion2 ], vector.setMagnitude(rvApexCuspDirection, ivSulcusApexTransitionLength),
+            [ 0.5, 0.0 ],
+            ivSulcusApexTransitionLength, rvx=rscx[0], rvd1=[ -s for s in rscd2[0] ])
+        # fix apex
+        lad3[-1] = vector.normalise(poleAxis)
+        lad1[-1] = vector.crossproduct3(lad3[-1], lad2[-1])
+        # reverse d1
+        lad1 = [ [-s for s in d ] for d in lad1 ]
+        lad3 = [ vector.setMagnitude(d, lvFreeWallThickness) for d in lad3 ]
 
         rvShield = ShieldMesh(elementsCountUpRVFreeWall, elementsCountAroundRVFreeWall, 0)
         rvx  = rvShield.px
@@ -492,7 +513,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         for n2 in range(2, elementsCountUpRVFreeWall + 1):
             rvx[1][n2], rvd1[1][n2], pe, pxi, psf = sampleCubicHermiteCurves(
                 [ rvx[1][n2][0], rscx[n2], rvx[1][n2][-1] ], [ rvd1[1][n2][0], rscd1[n2], rvd1[1][n2][-1] ], elementsCountAroundRVFreeWall,
-                                     arcLengthDerivatives = True)
+                lengthFractionStart=1.0, lengthFractionEnd=1.0, arcLengthDerivatives = True)  # GRC fudge factor
             rvd2[1][n2] = interpolateSampleCubicHermite([ rvd2[1][n2][0], rscd2[n2], rvd2[1][n2][-1] ], [ [ 0.0, 0.0, 0.0 ] ]*3, pe, pxi, psf)[0]
 
         # up regular columns of RV
@@ -501,7 +522,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             right = n1 > (elementsCountAroundRVFreeWall - elementsCountAroundRVFreeWallHalf)
             startd2 = rvd1[1][0][n1] if (not right) else [ -d for d in rvd1[1][0][n1] ]
             tx, td2, pe, pxi, psf = sampleCubicHermiteCurves(
-                [ rvx[1][0][n1], rvx[1][2][n1] ], [ startd2, rvd2[1][2][n1] ], 2, arcLengthDerivatives = True)
+                [ rvx[1][0][n1], rvx[1][2][n1] ], [ startd2, rvd2[1][2][n1] ], 2, lengthFractionStart=1.0, arcLengthDerivatives = True)  # GRC fudge factor
             for n2 in range(3, elementsCountUpRVFreeWall + 1):
                 tx .append(rvx [1][n2][n1])
                 td2.append(rvd2[1][n2][n1])
@@ -669,7 +690,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             # A = S - U = (8S - T)/6
             rx, rd1 = sampleCubicHermiteCurves(qx, qd1, elementsCountOut=8, addLengthStart=addLength, addLengthEnd=addLength)[0:2]
             hx = 1 - elementsCountUpRVFreeWall - ox
-            #print('hx', hx)
+            #print('hx', hx) GRC remove hx
             if hx < 1:
                 rx [0] = rvx [1][ox][-1]
                 rd1[0] = rvd1[1][ox][-1]
@@ -682,7 +703,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 rd1[-1] = rvd1[1][0][hx]
             tx, td1 = sampleCubicHermiteCurves(rx, rd1, elementsCountAroundLVFreeWall + 2,
                 addLengthStart=0.5*vector.magnitude(rd1[0]), lengthFractionStart=0.5,
-                addLengthEnd=0.5*vector.magnitude(rd1[0]), lengthFractionEnd=0.5,
+                addLengthEnd=0.5*vector.magnitude(rd1[-1]), lengthFractionEnd=0.5,
                 arcLengthDerivatives=True)[0:2]
             td2 = [ None ]*(elementsCountAroundLVFreeWall + 3)
             td3 = [ None ]*(elementsCountAroundLVFreeWall + 3)
@@ -714,35 +735,90 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 lvd2[1][n2][n1] = td2[n2 - n2reg]
 
         # transition to LV apex, anterior and posterior
-        n1 = elementsCountUpLVApex
         elementsCountAroundLVFreeWallHalf = elementsCountAroundLVFreeWall//2
         #print('elementsCountAroundLVFreeWallHalf', elementsCountAroundLVFreeWallHalf)
         elementsCountRemaining = elementsCountAroundHalf - (elementsCountUpLVFreeWall - 2)
-        tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(0.75, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
-            derivativeStart=vector.setMagnitude(nd2[elementsCountAroundLVTrackSurface*3//4], vector.magnitude(lad2[-1])), derivativeEnd=lvd2[1][n2reg][n1])
-        tx, td2, td1, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td2, td1, td3, tProportions,
-            derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1]))
-        n2 = elementsCountUpLVApex
-        for n in range(elementsCountRemaining):
-            n1 = elementsCountAroundLVFreeWallHalf - n
-            lvx [1][n2][n1] = tx [n]
-            lvd1[1][n2][n1] = [ -d for d in td1[n] ] if n else [ -d for d in td2[n] ]
-            lvd2[1][n2][n1] = td2[n] if n else lad2[-1]
-            lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
-            lvProportions[n2][n1] = tProportions[n]
-        n1 = -1 - elementsCountUpLVApex
-        tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(1.25, 0.0, lvProportions[n2reg][n1][0], lvProportions[n2reg][n1][1], elementsCountRemaining,
-            derivativeStart=lvd2[1][n2][elementsCountAroundLVFreeWallHalf], derivativeEnd=lvd2[1][n2reg][n1])
-        tx, td2, td1, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td2, td1, td3, tProportions,
-            derivativeMagnitudeStart=vector.magnitude(lvd1[1][n2][elementsCountAroundLVFreeWallHalf]),
-            derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1]))
-        for n in range(1, elementsCountRemaining):
-            n1 = elementsCountAroundLVFreeWallHalf + n
-            lvx [1][n2][n1] = tx [n]
-            lvd1[1][n2][n1] = [ -d for d in td1[n] ]
-            lvd2[1][n2][n1] = td2[n]
-            lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
-            lvProportions[n2][n1] = tProportions[n]
+        for n2 in range(0, elementsCountUpLVApex + 1):
+            n1reg = n2
+            lan = n2 + 1  # GRC elementsCountUpLVApex - n2
+            startProportion = laProportions[lan]
+            if n2 == elementsCountUpLVApex:
+                startProportion = [ 0.75, 0.0 ]
+            #print('ant n2', n2, '/', elementsCountUpLVApex, 'start', startProportion, 'end', lvProportions[n2reg][n1reg], 'derivativeStart', lad1[lan])
+            tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(startProportion[0], startProportion[1],
+                lvProportions[n2reg][n1reg][0], lvProportions[n2reg][n1reg][1], elementsCountRemaining,
+                derivativeStart=[ -d for d in lad1[lan] ],
+                derivativeEnd=lvd2[1][n2reg][n1reg])
+            tx, td2, td1, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td2, td1, td3, tProportions,
+                derivativeMagnitudeStart=vector.magnitude(lad1[lan]),
+                derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1reg]))
+            for n in range(elementsCountRemaining):
+                n1 = elementsCountAroundLVFreeWallHalf - n
+                lvx [1][n2][n1] = tx [n]
+                lvd1[1][n2][n1] = [ -d for d in td1[n] ] if n else [ -d for d in td2[n] ]
+                lvd2[1][n2][n1] = td2[n] if n else lad2[lan]
+                lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
+                #print('ant n2', n2, 'n1', n1)
+                lvProportions[n2][n1] = tProportions[n]
+                if False:
+                    # transition from RV
+                    if n:
+                        ix = elementsCountAroundHalf + n
+                        n1r, n2r = rvShield.convertRimIndex(ix)
+                        #print('ant ix', ix, '-->', n1r, n2r)
+                        elementsCount = 1 + elementsCountUpLVApex
+                        qx, qd1, qd2, qd3, qProportions = cls.getTransitionRVtoLV(lvTrackSurface, elementsCount,
+                            rviProportions[ix], vector.setMagnitude(rvid1[ix], ivSulcusBaseTransitionLength),  # GRC vary transition length from Apex to Base?
+                            tProportions[n],
+                            ivSulcusBaseTransitionLength, rvx[1][n2r][n1r], rvd1[1][n2r][n1r])
+                        for i in range(1, elementsCount + 1):
+                            n2l = i - 1
+                            lvd1[1][n2l][n1] = qd1[i]
+                            if i < elementsCount:
+                                lvx [1][n2l][n1] = qx[i]
+                                lvd2[1][n2l][n1] = vector.setMagnitude(qd2[i], vector.magnitude(qd1[i]))
+                                lvd3[1][n2l][n1] = vector.setMagnitude(qd3[i], lvFreeWallThickness)
+                                lvProportions[n2l][n1] = qProportions[i]
+            n1reg = -1 - n2
+            if n2 == elementsCountUpLVApex:
+                startProportion = [ 1.25, 0.0 ]
+            else:
+                startProportion = [ laProportions[lan][0] + 1.0, laProportions[lan][1] ]
+            #print('pos n2', n2, '/', elementsCountUpLVApex, 'start', startProportion, 'end', lvProportions[n2reg][n1reg])
+            tx, td2, td1, td3, tProportions = lvTrackSurface.createHermiteCurvePoints(startProportion[0], startProportion[1],
+                lvProportions[n2reg][n1reg][0], lvProportions[n2reg][n1reg][1], elementsCountRemaining,
+                #derivativeStart=lvd2[1][n2][elementsCountAroundLVFreeWallHalf],
+                derivativeStart=lad1[lan],
+                derivativeEnd=lvd2[1][n2reg][n1reg])
+            tx, td2, td1, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td2, td1, td3, tProportions,
+                derivativeMagnitudeStart=vector.magnitude(lad1[lan]),
+                derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1reg]))
+            for n in range(1, elementsCountRemaining):
+                n1 = elementsCountAroundLVFreeWallHalf + n
+                #print('pos n2', n2, 'n1', n1)
+                lvx [1][n2][n1] = tx [n]
+                lvd1[1][n2][n1] = [ -d for d in td1[n] ]
+                lvd2[1][n2][n1] = td2[n]
+                lvd3[1][n2][n1] = vector.setMagnitude(vector.crossproduct3(lvd1[1][n2][n1], lvd2[1][n2][n1]), lvFreeWallThickness)
+                lvProportions[n2][n1] = tProportions[n]
+                if False:
+                    # transition from RV
+                    ix = elementsCountAroundHalf - n
+                    n1r, n2r = rvShield.convertRimIndex(ix)
+                    #print('pos ix', ix, '-->', n1r, n2r)
+                    elementsCount = 1 + elementsCountUpLVApex
+                    qx, qd1, qd2, qd3, qProportions = cls.getTransitionRVtoLV(lvTrackSurface, elementsCount,
+                        [ rviProportions[ix][0] + 1.0, rviProportions[ix][1] ], vector.setMagnitude(rvid1[ix], -ivSulcusBaseTransitionLength),  # GRC vary transition length from Apex to Base?
+                        tProportions[n],
+                        ivSulcusBaseTransitionLength, rvx[1][n2r][n1r], [ -s for s in rvd1[1][n2r][n1r] ])
+                    for i in range(1, elementsCount + 1):
+                        n2l = i - 1
+                        lvd1[1][n2l][n1] = [ -s for s in qd1[i] ]
+                        if i < elementsCount:
+                            lvx [1][n2l][n1] = qx[i]
+                            lvd2[1][n2l][n1] = vector.setMagnitude(qd2[i], -vector.magnitude(qd1[i]))
+                            lvd3[1][n2l][n1] = vector.setMagnitude(qd3[i], lvFreeWallThickness)
+                            lvProportions[n2l][n1] = qProportions[i]
 
         # up regular columns of LV
         for n1 in range(2 + elementsCountUpLVApex, elementsCountAroundLVFreeWall - 1 - elementsCountUpLVApex):
@@ -976,12 +1052,14 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, lax [n])
-                #coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lad1[n])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, lad1[n])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, lad2[n])
-                #coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lad3[n])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, lad3[n])
                 nodeIdentifier += 1
 
+        #print("LV nodes")
         nodeIdentifier = lvShield.generateNodes(fieldmodule, coordinates, nodeIdentifier)
+        #print("RV nodes")
         nodeIdentifier = rvShield.generateNodes(fieldmodule, coordinates, nodeIdentifier)
 
         #################

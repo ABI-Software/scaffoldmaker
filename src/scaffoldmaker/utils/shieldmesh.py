@@ -28,6 +28,10 @@ class ShieldMesh:
         self.elementsCountUp = elementsCountUp
         self.elementsCountAcross = elementsCountAcross
         self.elementsCountRim = elementsCountRim
+        self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
+        self.elementsCountAcrossBottom = self.elementsCountAcross - 2*elementsCountRim
+        self.elementsCountAroundFull = 2*self.elementsCountUpRegular + self.elementsCountAcrossBottom
+        #self.elementsCountAroundHalf = self.elementsCountAroundFull//2
         self.trackSurface = trackSurface
         self.px  = [ [], [] ]
         self.pd1 = [ [], [] ]
@@ -43,14 +47,19 @@ class ShieldMesh:
         self.elementId = [ [ None ]*elementsCountAcross for n2 in range(elementsCountUp) ]
 
 
-    def setPoint(self, n3, n2, n1, x, d1, d2, d3):
+    def convertRimIndex(self, ix):
         '''
-        Set coordinates and derivatives at point[n3][n2][n1]
+        Convert point index around the lower rim to n1, n2
+        :param ix: index around from 0 to self.elementsCountAroundFull
+        :return: n1, n2
         '''
-        self.px [n3][n2][n1] = x
-        self.pd1[n3][n2][n1] = d1
-        self.pd2[n3][n2][n1] = d2
-        self.pd3[n3][n2][n1] = d3
+        assert 0 <= ix <= self.elementsCountAroundFull
+        if ix <= self.elementsCountUpRegular:
+            return 0, self.elementsCountUp - ix
+        rx = self.elementsCountAroundFull - ix
+        if rx <= self.elementsCountUpRegular:
+            return self.elementsCountAcross, self.elementsCountUp - rx
+        return self.elementsCountRim + ix - self.elementsCountUpRegular, 0
 
 
     def getTriplePoints(self, n3):
@@ -87,7 +96,7 @@ class ShieldMesh:
             d1, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
             self.pd3[n3][n2b][n1b] = d3
         self.px [n3][n2b][n1b] = x
-        self.pd1[n3][n2b][n1b] = [ (self.px[n3][n2b][2][c] - self.px[n3][n2b][n1b][c]) for c in range(3) ]
+        self.pd1[n3][n2b][n1b] = [ (self.px[n3][n2b][n1c][c] - self.px[n3][n2b][n1b][c]) for c in range(3) ]
         self.pd2[n3][n2b][n1b] = [ (self.px[n3][n2c][n1b][c] - self.px[n3][n2b][n1b][c]) for c in range(3) ]
         if not self.trackSurface:
             self.pd3[n3][n2b][n1b] = vector.normalise(vector.crossproduct3(self.pd1[n3][n2b][n1b], self.pd2[n3][n2b][n1b]))
@@ -134,6 +143,13 @@ class ShieldMesh:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
         cache = fieldmodule.createFieldcache()
+
+        if False:
+            for n2 in range(self.elementsCountUp, -1, -1):
+                s = ""
+                for n1 in range(self.elementsCountAcross + 1):
+                    s += str(n1) if self.px[1][n2][n1] else " "
+                print(n2, s, n2 - self.elementsCountUp - 1)
 
         for n2 in range(self.elementsCountUp + 1):
             for n3 in range(2):
@@ -185,41 +201,51 @@ class ShieldMesh:
         e1y = e1z - 1
         e2a = self.elementsCountRim
         e2b = self.elementsCountRim + 1
+        e2c = self.elementsCountRim + 2
         for e2 in range(self.elementsCountUp):
             for e1 in range(self.elementsCountAcross):
                 eft1 = eft
                 scalefactors = None
                 nids = [ self.nodeId[0][e2][e1], self.nodeId[0][e2][e1 + 1], self.nodeId[0][e2 + 1][e1], self.nodeId[0][e2 + 1][e1 + 1], 
                          self.nodeId[1][e2][e1], self.nodeId[1][e2][e1 + 1], self.nodeId[1][e2 + 1][e1], self.nodeId[1][e2 + 1][e1 + 1] ]
-                if e2 <= e2a:
+                if e2 < e2b:
                     if (e1 < e1b) or (e1 > e1y):
                         continue
-                    if (e2 == e2a) or ((e2 == e2a) and ((e1 == e1b) or (e1 == e1y))):  # GRC fix
+                    if e2 < e2a:
+                        if e1 < elementsCountAcrossPlusOneHalf:
+                            nids = [ nids[1], nids[3], nids[0], nids[2], nids[5], nids[7], nids[4], nids[6] ]
+                        else:
+                            nids = [ nids[2], nids[0], nids[3], nids[1], nids[6], nids[4], nids[7], nids[5] ]
+                    else:
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
-                        if e2 == e2a:
-                            if e1 < elementsCountAcrossPlusOneHalf:
-                                if e1 < (elementsCountAcrossPlusOneHalf - 1):
-                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-                                else:
-                                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-                            if e1 >= elementsCountAcrossPlusOneHalf:
-                                if e1 > elementsCountAcrossPlusOneHalf:
-                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                                else:
-                                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                        if e2 == self.elementsCountRim:
-                            if e1 == e1b:
-                                remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                            if e1 == e1y:
-                                remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                        if e1 < elementsCountAcrossPlusOneHalf:
+                            if e1 < (elementsCountAcrossPlusOneHalf - 1):
+                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                            else:
+                                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                        if e1 >= elementsCountAcrossPlusOneHalf:
+                            if e1 > elementsCountAcrossPlusOneHalf:
+                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                            else:
+                                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                        if e1 == e1b:
+                            remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                        if e1 == e1y:
+                            remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 elif e2 == e2b:
-                    if e1 == e1a:
+                    if e1 < e1a:
+                        e2r = e1
+                        nids[0] = self.nodeId[0][e2r    ][e1b]
+                        nids[1] = self.nodeId[0][e2r + 1][e1b]
+                        nids[4] = self.nodeId[1][e2r    ][e1b]
+                        nids[5] = self.nodeId[1][e2r + 1][e1b]
+                    elif e1 == e1a:
                         nids[0] = self.nodeId[0][e2a][e1b]
                         nids[4] = self.nodeId[1][e2a][e1b]
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -233,6 +259,12 @@ class ShieldMesh:
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
                         remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    elif e1 > e1z:
+                        e2r = self.elementsCountAcross - e1
+                        nids[0] = self.nodeId[0][e2r    ][e1z]
+                        nids[1] = self.nodeId[0][e2r - 1][e1z]
+                        nids[4] = self.nodeId[1][e2r    ][e1z]
+                        nids[5] = self.nodeId[1][e2r - 1][e1z]
                 if None in nids:
                     continue  # GRC temporary
                 if eft1 is not eft:
