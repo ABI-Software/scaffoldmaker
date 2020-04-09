@@ -14,7 +14,7 @@ from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createEllipsoidPoints, getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX
 from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, getCubicHermiteArcLength, interpolateSampleCubicHermite, \
     sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine
@@ -101,12 +101,11 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             options['LV apex thickness'] = 0.07
             options['LV free wall thickness'] = 0.17
             options['Interventricular septum thickness'] = 0.14
-            options['RV apex cusp angle degrees'] = 45.0
-            options['RV apex length factor'] = 0.7
-            options['RV proportion up LV'] = 0.6
+            options['RV apex cusp angle degrees'] = 30.0
+            options['RV apex length factor'] = 0.4
+            options['RV proportion up LV'] = 0.65
             options['RV free wall thickness'] = 0.06
             options['RV outlet angle degrees'] = 60.0
-            options['RV width'] = 0.35
         return options
 
     @staticmethod
@@ -918,6 +917,89 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ lvMeshGroup ])
         #print("RV elements")
         elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ rvMeshGroup ])
+
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        # interventricular sulcus elements
+        meshGroups = [ lvMeshGroup, rvMeshGroup ]
+        lvNodeId = lvShield.nodeId
+        rvNodeId = rvShield.nodeId
+        n1ln, n2ln = lvShield.convertRimIndex(0)
+        n1rn, n2rn = rvShield.convertRimIndex(elementsCountAroundFull)
+        scalefactors = [ -1.0 ]
+        for ix in range(elementsCountAroundFull):
+            n1lp, n2lp = n1ln, n2ln
+            n1ln, n2ln = lvShield.convertRimIndex(ix + 1)
+            n1rp, n2rp = n1rn, n2rn
+            n1rn, n2rn = rvShield.convertRimIndex(elementsCountAroundFull - ix - 1)
+
+            nids = [ rvNodeId[0][n2rp][n1rp], rvNodeId[0][n2rn][n1rn], lvNodeId[0][n2lp][n1lp], lvNodeId[0][n2ln][n1ln],
+                     rvNodeId[1][n2rp][n1rp], rvNodeId[1][n2rn][n1rn], lvNodeId[1][n2lp][n1lp], lvNodeId[1][n2ln][n1ln] ]
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+
+            if ix <= lvShield.elementsCountUpRegular:
+                nids = [ nids[1], nids[3], nids[0], nids[2], nids[5], nids[7], nids[4], nids[6] ]
+                if ix == lvShield.elementsCountUpRegular:
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                if ix == rvShield.elementsCountUpRegular:
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elif ix > rvShield.elementsCountUpRegular:
+                    remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 3, 5, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+            elif ix >= (elementsCountAroundFull - 1 - lvShield.elementsCountUpRegular):
+                nids = [ nids[2], nids[0], nids[3], nids[1], nids[6], nids[4], nids[7], nids[5] ]
+                if ix == (elementsCountAroundFull - 1 - lvShield.elementsCountUpRegular):
+                    remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                else:
+                    remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                if ix == (elementsCountAroundFull - 1 - rvShield.elementsCountUpRegular):
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                elif ix < (elementsCountAroundFull - 1 - rvShield.elementsCountUpRegular):
+                    remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+            else:
+                if ix == rvShield.elementsCountUpRegular:
+                    scaleEftNodeValueLabels(eft1, [ 2, 6 ], [ Node.VALUE_LABEL_D_DS1 , Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elif ix < rvShield.elementsCountUpRegular:
+                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elif ix == (elementsCountAroundFull - 1 - rvShield.elementsCountUpRegular):
+                    scaleEftNodeValueLabels(eft1, [ 1, 5 ], [ Node.VALUE_LABEL_D_DS1 , Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                elif ix > (elementsCountAroundFull - 1 - rvShield.elementsCountUpRegular):
+                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                else:
+                    scaleEftNodeValueLabels(eft1, [ 1, 2, 5, 6 ], [ Node.VALUE_LABEL_D_DS1 , Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                remapEftNodeValueLabel(eft1, [ 3, 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+
+            elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nids)
+            result3 = element.setScaleFactors(eft1, scalefactors)
+            #print('create element sulcus', elementIdentifier, result2, result3, nids)
+            #self.elementId[e2][e1] = elementIdentifier
+            elementIdentifier += 1
+
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+
 
         return annotationGroups
 

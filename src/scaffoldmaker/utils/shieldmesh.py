@@ -258,7 +258,6 @@ class ShieldMesh:
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         isEven = (self.elementsCountAcross % 2) == 0
-        elementsCountAcrossPlusOneHalf = (self.elementsCountAcross + 1)//2
         e1a = self.elementsCountRim
         e1b = e1a + 1
         e1z = self.elementsCountAcross - 1 - self.elementsCountRim
