@@ -65,7 +65,7 @@ class TrackSurface:
         nd1 = []
         nd2 = []
         nodesCount1 = self.elementsCount1 + (0 if self.loop1 else 1)
-        nodesCount2 = self.elementsCount2 + (0 if self.loop2 else 1)
+        nodesCount2 = self.elementsCount2 + 1
         for n2 in range(nodesCount2):
             for n1 in range(nodesCount1):
                 oi = n2*nodesCount1 + self.elementsCount1 - n1
@@ -274,6 +274,7 @@ class TrackSurface:
         :return: nx[], nd1[], nd2[], nd3[], nProportions[]
         '''
         elementsCount = len(nx) - 1
+        #print(nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)
         nx, nd1 = interp.sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
         mag2 = vector.magnitude(nd2[0])
         if mag2 > 0.0:
