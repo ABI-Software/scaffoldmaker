@@ -221,6 +221,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
+        startPhase = 0.0
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -262,18 +263,18 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Create object
         smallIntestineSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
-            region, elementsCountAround, elementsCountAlongSegment, segmentLength,
-            wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList)
+            elementsCountAround, elementsCountAlongSegment, segmentLength,
+            wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList, startPhase)
 
         for nSegment in range(segmentCount):
             # Create inner points
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis = \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, faceMidPointsZ = \
                smallIntestineSegmentTubeMeshInnerPoints.getCylindricalSegmentTubeMeshInnerPoints(nSegment)
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
                 xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
-                elementsCountAround, elementsCountAlongSegment, nSegment)
+                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
@@ -285,7 +286,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                 d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[:-elementsCountAround])
             else:
                 xSecondFace = xWarpedList[elementsCountAround:elementsCountAround*2]
-                d1SecondFace = d1WarpedList[elementsCountAround:elementsCountAround*2]
                 d2SecondFace = d2WarpedList[elementsCountAround:elementsCountAround*2]
                 for n1 in range(elementsCountAround):
                     nx = [xLastTwoFaces[n1], xLastTwoFaces[n1 + elementsCountAround], xSecondFace[n1]]
@@ -304,7 +304,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, sx, [wallThickness]*(elementsCountAlong+1),
+            d2Extrude, d3UnitExtrude, [wallThickness]*(elementsCountAlong+1),
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         flatWidthList, xiList = smallIntestineSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()
