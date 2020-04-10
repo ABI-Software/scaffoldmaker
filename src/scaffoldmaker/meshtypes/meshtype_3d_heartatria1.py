@@ -3218,9 +3218,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         sourceFm = meshrefinement._sourceFm
         annotationGroups = meshrefinement._sourceAnnotationGroups
-        laGroup = findAnnotationGroupByName(annotationGroups, 'left atrium')
+        laGroup = findAnnotationGroupByName(annotationGroups, 'left atrium myocardium')
         laElementGroupField = laGroup.getFieldElementGroup(meshrefinement._sourceMesh)
-        raGroup = findAnnotationGroupByName(annotationGroups, 'right atrium')
+        raGroup = findAnnotationGroupByName(annotationGroups, 'right atrium myocardium')
         raElementGroupField = raGroup.getFieldElementGroup(meshrefinement._sourceMesh)
         aSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interatrial septum')
         aSeptumElementGroupField = aSeptumGroup.getFieldElementGroup(meshrefinement._sourceMesh)
