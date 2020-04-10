@@ -89,7 +89,8 @@ class ShieldMesh:
         tx, td1 = sampleCubicHermiteCurves(
             [ self.px[n3][n2c][n1a], self.px[n3][n2b][n1c] ], [ [ (self.pd1[n3][n2c][n1a][c] - self.pd2[n3][n2c][n1a][c]) for c in range(3) ], self.pd1[n3][n2b][n1c] ], 2, arcLengthDerivatives = True)[0:2]
         ltx.append(tx[1])
-        x = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
+        #x = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
+        x = [ (ltx[0][c] + ltx[2][c])/2.0 for c in range(3) ]
         if self.trackSurface:
             p = self.trackSurface.findNearestPosition(x, startPosition=self.trackSurface.createPositionProportion(*(self.pProportions[n2b][n1c])))
             self.pProportions[n2b][n1b] = self.trackSurface.getProportion(p)
@@ -112,7 +113,8 @@ class ShieldMesh:
         tx, td1 = sampleCubicHermiteCurves(
             [ self.px[n3][n2c][m1a], self.px[n3][n2b][m1c] ], [ [ (-self.pd1[n3][n2c][m1a][c] - self.pd2[n3][n2c][m1a][c]) for c in range(3) ], [ -d for d in self.pd1[n3][n2b][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
         rtx.append(tx[1])
-        x = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
+        #x = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
+        x = [ (rtx[0][c] + rtx[2][c])/2.0 for c in range(3) ]
         if self.trackSurface:
             p = self.trackSurface.findNearestPosition(x, startPosition=self.trackSurface.createPositionProportion(*(self.pProportions[n2b][m1c])))
             self.pProportions[n2b][m1b] = self.trackSurface.getProportion(p)

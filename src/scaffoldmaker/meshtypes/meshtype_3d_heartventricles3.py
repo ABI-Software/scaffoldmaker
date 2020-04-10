@@ -77,10 +77,10 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         options['RV proportion up LV'] = 0.85
         options['RV free wall thickness'] = 0.05
         options['RV inlet angle degrees'] = 80.0
-        options['RV inlet cusp angle degrees'] = 80.0
+        options['RV inlet cusp angle degrees'] = 50.0
         options['RV inlet position around LV'] = 0.35
-        options['RV outlet angle degrees'] = 45.0
-        options['RV outlet cusp angle degrees'] = 70.0
+        options['RV outlet angle degrees'] = 60.0
+        options['RV outlet cusp angle degrees'] = 50.0
         options['RV outlet position around LV'] = 0.7
         options['RV width'] = 0.3
         options['Use cross derivatives'] = False
@@ -449,7 +449,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         #print("rcd1", rcd1)
         rcd1 = smoothCubicHermiteDerivativesLine(rcx, rcd1, fixAllDirections = True)
         #rscx, rscd1, rscpe, rscpxi, rscpsf = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, arcLengthDerivatives = True)
-        rscx, rscd2 = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, lengthFractionStart=1.0, arcLengthDerivatives = True)[0:2]  # GRC fudge factor
+        rvSulcusEdgeFactor=0.667  # GRC fudge factor
+        rscx, rscd2 = sampleCubicHermiteCurves(rcx, rcd1, elementsCountUpRVFreeWall, lengthFractionStart=rvSulcusEdgeFactor, arcLengthDerivatives = True)[0:2]
         # get d1, d3
         rscd1 = []
         rscd3 = []
@@ -501,7 +502,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         for n2 in range(rvShield.elementsCountRim + 2, rvShield.elementsCountUp + 1):
             rvx[1][n2], rvd1[1][n2], pe, pxi, psf = sampleCubicHermiteCurves(
                 [ rvx[1][n2][0], rscx[n2], rvx[1][n2][-1] ], [ rvd1[1][n2][0], rscd1[n2], rvd1[1][n2][-1] ], rvShield.elementsCountAcross,
-                lengthFractionStart=1.0, lengthFractionEnd=1.0, arcLengthDerivatives = True)  # GRC fudge factor
+                lengthFractionStart=rvSulcusEdgeFactor, lengthFractionEnd=rvSulcusEdgeFactor, arcLengthDerivatives = True)
             rvd2[1][n2] = interpolateSampleCubicHermite([ rvd2[1][n2][0], rscd2[n2], rvd2[1][n2][-1] ], [ [ 0.0, 0.0, 0.0 ] ]*3, pe, pxi, psf)[0]
 
         # up regular columns of RV: get d2, initial d1 below regular rows
@@ -509,7 +510,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             left = n1 < elementsCountAroundRVFreeWallHalf
             right = n1 > (elementsCountAroundRVFreeWall - elementsCountAroundRVFreeWallHalf)
             tx, td2, pe, pxi, psf = sampleCubicHermiteCurves(
-                [ rvx[1][0][n1], rvx[1][2][n1] ], [ rvd2[1][0][n1], rvd2[1][2][n1] ], 2, lengthFractionStart=1.0, arcLengthDerivatives = True)  # GRC fudge factor
+                [ rvx[1][0][n1], rvx[1][2][n1] ], [ rvd2[1][0][n1], rvd2[1][2][n1] ], 2, lengthFractionStart=rvSulcusEdgeFactor, arcLengthDerivatives = True)  # GRC fudge factor rvSulcusEdgeFactor
             for n2 in range(3, elementsCountUpRVFreeWall + 1):
                 tx .append(rvx [1][n2][n1])
                 td2.append(rvd2[1][n2][n1])
@@ -711,7 +712,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 derivativeEnd=lad1[lan])
             tx, td1, td2, td3, tProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(tx, td1, td2, td3, tProportions,
                 derivativeMagnitudeStart=vector.magnitude(lvd2[1][n2reg][n1reg]),
-                derivativeMagnitudeEnd=vector.magnitude(lad1[lan]))
+                derivativeMagnitudeEnd=None)  # vector.magnitude(lad1[lan]))
             # substitute apex derivatives:
             td2[-1] = lad2[lan]
             td3[-1] = lad3[lan]
@@ -728,7 +729,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 derivativeStart=lad1[lan],
                 derivativeEnd=lvd2[1][n2reg][n1reg])
             ux, ud1, ud2, ud3, uProportions = lvTrackSurface.resampleHermiteCurvePointsSmooth(ux, ud1, ud2, ud3, uProportions,
-                derivativeMagnitudeStart=vector.magnitude(lad1[lan]),
+                derivativeMagnitudeStart=vector.magnitude(td1[-1]),  # vector.magnitude(lad1[lan]),
                 derivativeMagnitudeEnd=vector.magnitude(lvd2[1][n2reg][n1reg]))
             lvx [1][n2][n1b:m1a] = tx [1:] + ux [1:-1]
             lvd1[1][n2][n1b:m1a] = td1[1:] + ud1[1:-1]
