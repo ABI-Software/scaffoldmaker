@@ -825,7 +825,6 @@ class MeshType_3d_bladder1(Scaffold_base):
                 bodyMeshGroup.addElement(element)
                 elementIdentifier += 1
 
-
         # create 2d mesh groups
         fm.defineAllFaces()
         bodyGroup.addSubelements()
