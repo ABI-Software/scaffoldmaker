@@ -136,14 +136,14 @@ class MeshType_3d_heart1(Scaffold_base):
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
+        #markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
         markerName = findOrCreateFieldStoredString(fm, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
         markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerCoordinates)
+        #markerTemplateInternal.defineField(markerCoordinates)
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
 
@@ -401,13 +401,13 @@ class MeshType_3d_heart1(Scaffold_base):
 
         # annotation fiducial points
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
-        cruxXi = [ 0.0, 0.5, 1.0 ]
+        cruxXi = [ 0.5, 0.5, 1.0 ]
         cache.setMeshLocation(cruxElement, cruxXi)
         result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
+        #markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
         markerName.assignString(cache, 'crux')
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
 

@@ -256,14 +256,14 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
+        #markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
         markerName = findOrCreateFieldStoredString(fm, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
         markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerCoordinates)
+        #markerTemplateInternal.defineField(markerCoordinates)
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
 
@@ -1073,13 +1073,13 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerCoordinates.assignReal(cache, lvApexInnerx)
+        #markerCoordinates.assignReal(cache, lvApexInnerx)
         markerName.assignString(cache, 'apex endo')
         markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerCoordinates.assignReal(cache, lvApexOuterx)
+        #markerCoordinates.assignReal(cache, lvApexOuterx)
         markerName.assignString(cache, 'apex epi')
         markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
