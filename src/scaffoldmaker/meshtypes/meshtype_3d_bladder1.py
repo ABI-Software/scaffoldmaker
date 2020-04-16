@@ -118,8 +118,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Bladder wall thickness': 0.05,
             'Urethra diameter': 1.0,
             'Ureter': copy.deepcopy(ostiumOption),
-            'Ostium position around': 0.15,
-            'Ostium position up': 0.25,
+            'Ostium position around': 0.55,  # should be on the dorsal part
+            'Ostium position up': 0.55,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements around': 4,
@@ -127,15 +127,15 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Rat' in parameterSetName:
+            options['Number of elements up neck'] = 6
             options['Number of elements around'] = 16  # should be even
-            options['Number of elements radially on annulus'] = 2
             options['Height'] = 3.0
             options['Major diameter'] = 5.0
             options['Minor diameter'] = 3.0
             options['Bladder wall thickness'] = 0.02
             options['Urethra diameter'] = 0.7
-            options['Ostium position around'] = 0.55
-            options['Ostium position up'] = 0.65
+            options['Ostium position around'] = 0.65  # should be on the dorsal part
+            options['Ostium position up'] = 0.75
         return options
 
     @staticmethod
