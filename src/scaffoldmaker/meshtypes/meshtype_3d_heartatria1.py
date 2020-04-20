@@ -11,7 +11,8 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -736,12 +737,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        laGroup = AnnotationGroup(region, "left atrium myocardium", FMANumber = 7285, lyphID = "Lyph ID unknown")
-        raGroup = AnnotationGroup(region, "right atrium myocardium", FMANumber = 7282, lyphID = "Lyph ID unknown")
-        aSeptumGroup = AnnotationGroup(region, "interatrial septum", FMANumber = 7108, lyphID = "Lyph ID unknown")
-        fossaGroup = AnnotationGroup(region, "fossa ovalis", FMANumber = 9246, lyphID = "Lyph ID unknown")
-        laaGroup = AnnotationGroup(region, 'left atrial appendage', FMANumber = 7219, lyphID = 'Lyph ID unknown')
-        raaGroup = AnnotationGroup(region, 'right atrial appendage', FMANumber = 7218, lyphID = 'Lyph ID unknown')
+        laGroup = AnnotationGroup(region, get_heart_term("left atrium myocardium"))
+        raGroup = AnnotationGroup(region, get_heart_term("right atrium myocardium"))
+        aSeptumGroup = AnnotationGroup(region, get_heart_term("interatrial septum"))
+        fossaGroup = AnnotationGroup(region, get_heart_term("fossa ovalis"))
+        laaGroup = AnnotationGroup(region, get_heart_term("left atrial appendage"))
+        raaGroup = AnnotationGroup(region, get_heart_term("right atrial appendage"))
         annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup ]
 
         lpvOstiumSettings = lpvOstium.getScaffoldSettings()
@@ -749,52 +750,33 @@ class MeshType_3d_heartatria1(Scaffold_base):
         if commonLeftRightPvOstium:
             # use only lpv:
             if lpvCount == 1:
-                pvGroup = AnnotationGroup(region, 'pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
+                pvGroup = AnnotationGroup(region, get_heart_term("pulmonary vein"))
                 lpvGroups = [ pvGroup ]
             else:
-                lpvGroup = AnnotationGroup(region, 'left pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
+                lpvGroup = AnnotationGroup(region, get_heart_term("left pulmonary vein"))
+                rpvGroup = AnnotationGroup(region, get_heart_term("right pulmonary vein"))
                 if lpvCount == 2:
-                    rpvGroup = AnnotationGroup(region, 'right pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
                     lpvGroups = [ lpvGroup, rpvGroup ]
                 else:
-                    rspvGroup = AnnotationGroup(region, 'right superior pulmonary vein', FMANumber = 49914, lyphID = 'Lyph ID unknown')
-                    ripvGroup = AnnotationGroup(region, 'right inferior pulmonary vein', FMANumber = 49911, lyphID = 'Lyph ID unknown')
-                    lpvGroups = [ lpvGroup, rspvGroup, ripvGroup ]
+                    mpvGroup = AnnotationGroup(region, get_heart_term("middle pulmonary vein"))
+                    lpvGroups = [ lpvGroup, mpvGroup, rpvGroup ]
             annotationGroups += lpvGroups
         else:  # separate left and right pulmonary vein ostia
-            if lpvCount == 1:
-                lpvGroup = AnnotationGroup(region, 'left pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
-                lpvGroups = [ lpvGroup ]
-            else:
-                lipvGroup = AnnotationGroup(region, 'left inferior pulmonary vein', FMANumber = 49913, lyphID = 'Lyph ID unknown')
-                lspvGroup = AnnotationGroup(region, 'left superior pulmonary vein', FMANumber = 49916, lyphID = 'Lyph ID unknown')
-                if lpvCount == 2:
-                    lpvGroups = [ lipvGroup, lspvGroup ]
-                else:  # lpvCount == 3:
-                    lmpvGroup = AnnotationGroup(region, 'left middle pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
-                    lpvGroups = [ lipvGroup, lmpvGroup, lspvGroup ]
-            annotationGroups += lpvGroups
+            lpvGroup = AnnotationGroup(region, get_heart_term("left pulmonary vein"))
+            lpvGroups = [ lpvGroup ]*lpvCount
+            annotationGroups.append(lpvGroup)
             rpvOstiumSettings = rpvOstium.getScaffoldSettings()
             rpvCount = rpvOstiumSettings['Number of vessels']
-            if rpvCount == 1:
-                rpvGroup = AnnotationGroup(region, 'right pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
-                rpvGroups = [ rpvGroup ]
-            else:
-                ripvGroup = AnnotationGroup(region, 'right inferior pulmonary vein', FMANumber = 49911, lyphID = 'Lyph ID unknown')
-                rspvGroup = AnnotationGroup(region, 'right superior pulmonary vein', FMANumber = 49914, lyphID = 'Lyph ID unknown')
-                if rpvCount == 2:
-                    rpvGroups = [ ripvGroup, rspvGroup ]
-                else:  # rpvCount == 3:
-                    rmpvGroup = AnnotationGroup(region, 'right middle pulmonary vein', FMANumber = 'FMA number unknown', lyphID = 'Lyph ID unknown')
-                    rpvGroups = [ ripvGroup, rmpvGroup, rspvGroup ]
-            annotationGroups += rpvGroups
+            rpvGroup = AnnotationGroup(region, get_heart_term("right pulmonary vein" ))
+            rpvGroups = [ rpvGroup ]*rpvCount
+            annotationGroups.append(rpvGroup)
 
-        ivcInletGroup = AnnotationGroup(region, 'inferior vena cava inlet', FMANumber = 10951, lyphID = 'Lyph ID unknown')
-        svcInletGroup = AnnotationGroup(region, 'superior vena cava inlet', FMANumber = 4720, lyphID = 'Lyph ID unknown')
+        ivcInletGroup = AnnotationGroup(region, get_heart_term("inferior vena cava inlet"))
+        svcInletGroup = AnnotationGroup(region, get_heart_term("superior vena cava inlet"))
         annotationGroups += [ ivcInletGroup, svcInletGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
-        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
-        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
+        lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
 
         ##############
         # Create nodes
@@ -3180,15 +3162,14 @@ class MeshType_3d_heartatria1(Scaffold_base):
                                                         fm.createFieldNot(is_la_endo)),
                                       fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
         is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_la, is_ra),
-                                     fm.createFieldAnd(is_exterior_face_xi3_1,
-                                                       fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
-        laEndoGroup = AnnotationGroup(region, "Endocardium of left atrium", FMANumber = 7286, lyphID = 'Lyph ID unknown')
+                                   fm.createFieldAnd(is_exterior_face_xi3_1,
+                                                     fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
+        epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
+        laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
         laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_la_endo)
-        raEndoGroup = AnnotationGroup(region, "Endocardium of right atrium", FMANumber = 7281, lyphID = 'Lyph ID unknown')
+        raEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right atrium"))
         raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ra_endo)
-        # Note I could not find any epicardium of atria
-        aEpiGroup = AnnotationGroup(region, "Epicardium of atrium", FMANumber = 0, lyphID = 'Lyph ID unknown')
-        aEpiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
         del is_exterior
         del is_exterior_face_xi3_0
         del is_exterior_face_xi3_1
@@ -3197,7 +3178,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
         del is_la_endo
         del is_ra_endo
         del is_a_epi
-        annotationGroups += [ laEndoGroup, raEndoGroup, aEpiGroup ]
 
         fm.endChange()
         return annotationGroups
@@ -3218,16 +3198,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         sourceFm = meshrefinement._sourceFm
         annotationGroups = meshrefinement._sourceAnnotationGroups
-        laGroup = findAnnotationGroupByName(annotationGroups, 'left atrium myocardium')
+        laGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
         laElementGroupField = laGroup.getFieldElementGroup(meshrefinement._sourceMesh)
-        raGroup = findAnnotationGroupByName(annotationGroups, 'right atrium myocardium')
+        raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
         raElementGroupField = raGroup.getFieldElementGroup(meshrefinement._sourceMesh)
-        aSeptumGroup = findAnnotationGroupByName(annotationGroups, 'interatrial septum')
+        aSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interatrial septum"))
         aSeptumElementGroupField = aSeptumGroup.getFieldElementGroup(meshrefinement._sourceMesh)
         isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
 
         # last atria element is last element in following group:
-        lastGroup = findAnnotationGroupByName(annotationGroups, 'right atrial appendage')
+        lastGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrial appendage"))
         lastMeshGroup = lastGroup.getMeshGroup(meshrefinement._sourceMesh)
         lastElementIdentifier = -1
         elementIter = lastMeshGroup.createElementiterator()

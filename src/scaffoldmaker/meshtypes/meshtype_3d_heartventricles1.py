@@ -11,6 +11,7 @@ from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
@@ -249,9 +250,9 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
 
-        lvGroup = AnnotationGroup(region, "left ventricle myocardium", FMANumber = 9558, lyphID = 'Lyph ID unknown')
-        rvGroup = AnnotationGroup(region, "right ventricle myocardium", FMANumber = 9535, lyphID = 'Lyph ID unknown')
-        vSeptumGroup = AnnotationGroup(region, "interventricular septum", FMANumber = 7133, lyphID = 'Lyph ID unknown')
+        lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
+        rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
+        vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
@@ -1052,12 +1053,12 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                                       fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
         is_epi = fm.createFieldAnd(is_exterior_face_xi3_1,
                                    fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
-        lvEndoGroup = AnnotationGroup(region, "Endocardium of left ventricle", FMANumber = 9559, lyphID = 'Lyph ID unknown')
+        epiGroup = AnnotationGroup(region, get_heart_term("epicardium"))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
+        lvEndoGroup = AnnotationGroup(region, get_heart_term("endocardium of left ventricle"))
         lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
-        rvEndoGroup = AnnotationGroup(region, "Endocardium of right ventricle", FMANumber = 9536, lyphID = 'Lyph ID unknown')
+        rvEndoGroup = AnnotationGroup(region, get_heart_term("endocardium of right ventricle"))
         rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
-        vEpiGroup = AnnotationGroup(region, "Epicardium of ventricle", FMANumber = 12150, lyphID = 'Lyph ID unknown')
-        vEpiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
         del is_exterior
         del is_exterior_face_xi3_0
         del is_exterior_face_xi3_1
@@ -1066,21 +1067,21 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         del is_lv_endo
         del is_rv_endo
         del is_epi
-        annotationGroups += [ lvEndoGroup, rvEndoGroup, vEpiGroup ]
+        annotationGroups += [ lvEndoGroup, rvEndoGroup, epiGroup ]
 
         # apex annotation points
         element1 = mesh.findElementByIdentifier(1)
-        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        nodeIdentifier += 1
-        cache.setNode(markerPoint)
-        #markerCoordinates.assignReal(cache, lvApexInnerx)
-        markerName.assignString(cache, 'apex endo')
-        markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
+        #markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        #nodeIdentifier += 1
+        #cache.setNode(markerPoint)
+        ##markerCoordinates.assignReal(cache, lvApexInnerx)
+        #markerName.assignString(cache, 'apex endo')
+        #markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 0.0 ])
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
         #markerCoordinates.assignReal(cache, lvApexOuterx)
-        markerName.assignString(cache, 'apex epi')
+        markerName.assignString(cache, 'APEX')  # interlex.org has 'apex of heart'
         markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
         fm.endChange()

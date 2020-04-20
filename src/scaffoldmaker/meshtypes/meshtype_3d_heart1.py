@@ -10,7 +10,8 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
@@ -130,20 +131,18 @@ class MeshType_3d_heart1(Scaffold_base):
         # generate heartventriclesbase1 model and put atria1 on it
         annotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         annotationGroups += MeshType_3d_heartatria1.generateBaseMesh(region, options)
-        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
-        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
-        annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
+        #epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
+        lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
-        #markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
         markerName = findOrCreateFieldStoredString(fm, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
         markerTemplateInternal = nodes.createNodetemplate()
-        #markerTemplateInternal.defineField(markerCoordinates)
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
 
@@ -407,8 +406,7 @@ class MeshType_3d_heart1(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        #markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
-        markerName.assignString(cache, 'crux')
+        markerName.assignString(cache, "crux of heart")
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
 
         fm.endChange()

@@ -14,7 +14,8 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK as ZINC_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1, getAtriumBasePoints
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -300,14 +301,14 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         annotationGroups = MeshType_3d_heartventricles1.generateBaseMesh(region, options)
 
         # find/add annotation groups
-        lvGroup = findAnnotationGroupByName(annotationGroups, "left ventricle myocardium")
-        rvGroup = findAnnotationGroupByName(annotationGroups, "right ventricle myocardium")
-        vSeptumGroup = findAnnotationGroupByName(annotationGroups, "interventricular septum")
-        conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
+        lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
+        rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
+        vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
+        conusArteriosusGroup = AnnotationGroup(region, get_heart_term("conus arteriosus"))
         annotationGroups += [ conusArteriosusGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
-        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
-        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
+        lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -320,6 +321,10 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         markerTemplateExternal = nodes.createNodetemplate()
         markerTemplateExternal.defineField(markerCoordinates)
         markerTemplateExternal.defineField(markerName)
+
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
 
         #################
         # Create nodes
@@ -857,6 +862,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             nids = None
             scalefactors = None
             meshGroups = [ rvMeshGroup ]
+            addMarker = None
 
             noa = e
             niv = e
@@ -976,6 +982,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 # outer infundibulum 5, above septum
                 nids = [ rvInnerNodeId[niv - 1],   rvInnerNodeId[niv], rvOutletNodeId[0][5], rvOutletNodeId[0][0],
                                       avsNodeId, lvOutletNodeId[1][3], rvOutletNodeId[1][5], rvOutletNodeId[1][0] ]
+                addMarker = { "name" : "Pulmonary valve-RV", "xi" : [ 1.0, 1.0, 0.0 ] }
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 scalefactors = [ -1.0 ]
@@ -1001,6 +1008,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 result3 = 7
             #print('create element rv base r1', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
+
+            if addMarker:
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
 
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
@@ -1117,6 +1131,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             nids = None
             scalefactors = None
             meshGroups = [ lvMeshGroup ]
+            addMarker = None
 
             eft1 = tricubichermite.createEftNoCrossDerivatives()
             setEftScaleFactorIds(eft1, [1], [])
@@ -1200,6 +1215,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 no = e - 5
                 ni = elementsCountAroundLVFreeWall + elementsCountAroundAtrialSeptum + no
                 nids = [ lvInnerNodeId[ni], lvInnerNodeId[ni + 1], lvOutletNodeId[0][no], lvOutletNodeId[0][no + 1], lvOutletNodeId[1][no], lvOutletNodeId[1][no + 1] ]
+                if nids[2] == lvOutletNodeId[0][2]:
+                    addMarker = { "name" : "Aortic Valve-Coronary vessel", "xi" : [ 0.0, 1.0, 0.0 ] }
                 if no == 0:
                     remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -1222,6 +1239,13 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 result3 = 7
             #print('create element lv base r2', elementIdentifier, result, result2, result3, nids)
             elementIdentifier += 1
+
+            if addMarker:
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
 
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
@@ -1378,12 +1402,12 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                                       fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
         is_epi = fm.createFieldAnd(is_exterior_face_xi3_1,
                                    fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
-        lvEndoGroup = AnnotationGroup(region, "Endocardium of left ventricle", FMANumber = 9559, lyphID = 'Lyph ID unknown')
+        epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
+        lvEndoGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("endocardium of left ventricle"))
         lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
-        rvEndoGroup = AnnotationGroup(region, "Endocardium of right ventricle", FMANumber = 9536, lyphID = 'Lyph ID unknown')
+        rvEndoGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("endocardium of right ventricle"))
         rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
-        vEpiGroup = AnnotationGroup(region, "Epicardium of ventricle", FMANumber = 12150, lyphID = 'Lyph ID unknown')
-        vEpiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
         del is_exterior
         del is_exterior_face_xi3_0
         del is_exterior_face_xi3_1

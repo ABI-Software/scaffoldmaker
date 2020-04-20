@@ -74,8 +74,7 @@ class MeshRefinement:
         self._sourceAndTargetMeshGroups = []
         for sourceAnnotationGroup in sourceAnnotationGroups:
             sourceMeshGroup = sourceAnnotationGroup.getMeshGroup(self._sourceMesh)
-            targetAnnotationGroup = AnnotationGroup(self._targetRegion, \
-                sourceAnnotationGroup.getName(), sourceAnnotationGroup.getFMANumber(), sourceAnnotationGroup.getLyphID())
+            targetAnnotationGroup = AnnotationGroup(self._targetRegion, sourceAnnotationGroup.getTerm())
             targetMeshGroup = targetAnnotationGroup.getMeshGroup(self._targetMesh)
             self._annotationGroups.append(targetAnnotationGroup)
             self._sourceAndTargetMeshGroups.append( ( sourceMeshGroup, targetMeshGroup) )

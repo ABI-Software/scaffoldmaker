@@ -11,7 +11,8 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, createCirclePoints
@@ -121,17 +122,17 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         mesh = fm.findMeshByDimension(3)
 
         if aorticNotPulmonary:
-            arterialRootGroup = AnnotationGroup(region, 'root of aorta', FMANumber = 3740, lyphID = 'Lyph ID unknown')
+            arterialRootGroup = AnnotationGroup(region, get_heart_term("root of aorta"))
             cuspGroups = [
-                AnnotationGroup(region, 'posterior cusp of aortic valve', FMANumber = 7253, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'right cusp of aortic valve',     FMANumber = 7252, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'left cusp of aortic valve',      FMANumber = 7251, lyphID = 'Lyph ID unknown') ]
+                AnnotationGroup(region, get_heart_term("posterior cusp of aortic valve")),
+                AnnotationGroup(region, get_heart_term("right cusp of aortic valve")),
+                AnnotationGroup(region, get_heart_term("left cusp of aortic valve")) ]
         else:
-            arterialRootGroup = AnnotationGroup(region, 'root of pulmonary trunk', FMANumber = 8612, lyphID = 'Lyph ID unknown')
+            arterialRootGroup = AnnotationGroup(region, get_heart_term("root of pulmonary trunk"))
             cuspGroups = [
-                AnnotationGroup(region, 'right cusp of pulmonary valve',    FMANumber = 7250, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'anterior cusp of pulmonary valve', FMANumber = 7249, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'left cusp of pulmonary valve',     FMANumber = 7247, lyphID = 'Lyph ID unknown') ]
+                AnnotationGroup(region, get_heart_term("right cusp of pulmonary valve")),
+                AnnotationGroup(region, get_heart_term("anterior cusp of pulmonary valve")),
+                AnnotationGroup(region, get_heart_term("left cusp of pulmonary valve")) ]
 
         allGroups = [ arterialRootGroup ]  # groups that all elements in scaffold will go in
         annotationGroups = allGroups + cuspGroups

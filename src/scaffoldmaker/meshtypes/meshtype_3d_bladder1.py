@@ -10,6 +10,7 @@ from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.bladder_terms import get_bladder_term
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -264,8 +265,8 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         cache = fm.createFieldcache()
 
-        neckGroup = AnnotationGroup(region, 'neck of bladder', FMANumber='unknown', lyphID='unknown')
-        bodyGroup = AnnotationGroup(region, 'body of bladder', FMANumber='unknown', lyphID='unknown')
+        neckGroup = AnnotationGroup(region, get_bladder_term("neck of urinary bladder"))
+        bodyGroup = AnnotationGroup(region, get_bladder_term("body of urinary bladder"))
         annotationGroups = [neckGroup, bodyGroup]
 
         neckMeshGroup = neckGroup.getMeshGroup(mesh)

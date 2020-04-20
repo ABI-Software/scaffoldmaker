@@ -11,6 +11,7 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength
@@ -190,16 +191,16 @@ class MeshType_3d_heartatria2(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        laGroup = AnnotationGroup(region, "left atrium myocardium", FMANumber = 7285, lyphID = "Lyph ID unknown")
-        raGroup = AnnotationGroup(region, "right atrium myocardium", FMANumber = 7282, lyphID = "Lyph ID unknown")
-        aSeptumGroup = AnnotationGroup(region, "interatrial septum", FMANumber = 7108, lyphID = "Lyph ID unknown")
-        fossaGroup = AnnotationGroup(region, "fossa ovalis", FMANumber = 9246, lyphID = "Lyph ID unknown")
-        lipvGroup = AnnotationGroup(region, 'left inferior pulmonary vein', FMANumber = 49913, lyphID = 'Lyph ID unknown')
-        lspvGroup = AnnotationGroup(region, 'left superior pulmonary vein', FMANumber = 49916, lyphID = 'Lyph ID unknown')
-        ripvGroup = AnnotationGroup(region, 'right inferior pulmonary vein', FMANumber = 49911, lyphID = 'Lyph ID unknown')
-        rspvGroup = AnnotationGroup(region, 'right superior pulmonary vein', FMANumber = 49914, lyphID = 'Lyph ID unknown')
-        ivcInletGroup = AnnotationGroup(region, 'inferior vena cava inlet', FMANumber = 10951, lyphID = 'Lyph ID unknown')
-        svcInletGroup = AnnotationGroup(region, 'superior vena cava inlet', FMANumber = 4720, lyphID = 'Lyph ID unknown')
+        laGroup = AnnotationGroup(region, get_heart_term("left atrium myocardium"))
+        raGroup = AnnotationGroup(region, get_heart_term("right atrium myocardium"))
+        aSeptumGroup = AnnotationGroup(region, get_heart_term("interatrial septum"))
+        fossaGroup = AnnotationGroup(region, get_heart_term("fossa ovalis"))
+        lipvGroup = AnnotationGroup(region, get_heart_term("left inferior pulmonary vein"))
+        lspvGroup = AnnotationGroup(region, get_heart_term("left superior pulmonary vein"))
+        ripvGroup = AnnotationGroup(region, get_heart_term("right inferior pulmonary vein"))
+        rspvGroup = AnnotationGroup(region, get_heart_term("right superior pulmonary vein"))
+        ivcInletGroup = AnnotationGroup(region, get_heart_term("inferior vena cava inlet"))
+        svcInletGroup = AnnotationGroup(region, get_heart_term("superior vena cava inlet"))
         annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, lipvGroup, lspvGroup, ripvGroup, rspvGroup, ivcInletGroup, svcInletGroup ]
 
         ##############

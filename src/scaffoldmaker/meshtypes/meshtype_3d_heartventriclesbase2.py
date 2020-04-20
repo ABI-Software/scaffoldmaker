@@ -11,7 +11,8 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_heartventricles2
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
@@ -181,13 +182,14 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
 
         # generate heartventricles2 model to add base plane to
         annotationGroups = MeshType_3d_heartventricles2.generateBaseMesh(region, options)
-        lvGroup = findAnnotationGroupByName(annotationGroups, "left ventricle myocardium")
-        rvGroup = findAnnotationGroupByName(annotationGroups, "right ventricle myocardium")
-        vSeptumGroup = findAnnotationGroupByName(annotationGroups, "interventricular septum")
-        conusArteriosusGroup = AnnotationGroup(region, 'conus arteriosus', FMANumber = 0, lyphID = 'Lyph ID unknown')
-        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
-        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
-        annotationGroups += [ conusArteriosusGroup, lFibrousRingGroup, rFibrousRingGroup ]
+        lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
+        rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
+        vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
+        conusArteriosusGroup = AnnotationGroup(region, get_heart_term("conus arteriosus"))
+        annotationGroups += [ conusArteriosusGroup ]
+        # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
+        lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
 
         fm = region.getFieldmodule()
         fm.beginChange()
