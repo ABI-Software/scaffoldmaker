@@ -143,3 +143,19 @@ def getAnnotationGroupForTerm(annotationGroups: list, term) -> AnnotationGroup:
         assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1] + "' does not match existing id '" + annotationGroup._id + "'"
         return annotationGroup
     raise NameError("Annotation group '" + name + "' not found.")
+
+
+def mergeAnnotationGroups(*annotationGroupsIn):
+    '''
+    Merge the supplied sequence of list(annotationGroups) to a single list,
+    without duplicates.
+    :param annotationGroupsIn: Variable number of list(AnnotationGroup) to merge.
+     Groups must be for the same region.
+    :return: Merged list(AnnotationGroup)
+    '''
+    annotationGroups = []
+    for agroups in annotationGroupsIn:
+        for agroup in agroups:
+            if not findAnnotationGroupByName(annotationGroups, agroup._name):
+                annotationGroups.append(agroup)
+    return annotationGroups
