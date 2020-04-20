@@ -131,7 +131,6 @@ class MeshType_3d_heart1(Scaffold_base):
         # generate heartventriclesbase1 model and put atria1 on it
         annotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         annotationGroups += MeshType_3d_heartatria1.generateBaseMesh(region, options)
-        #epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
         lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
 
@@ -408,6 +407,22 @@ class MeshType_3d_heart1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, "crux of heart")
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
+
+        # add to epicardium surface group
+        fm.defineAllFaces()
+        lFibrousRingGroup.addSubelements()
+        rFibrousRingGroup.addSubelements()
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_fibrous_ring = fm.createFieldOr(lFibrousRingGroup.getFieldElementGroup(mesh2d), rFibrousRingGroup.getFieldElementGroup(mesh2d))
+        is_fibrous_ring_epi = fm.createFieldAnd(is_fibrous_ring, is_exterior_face_xi3_1)
+        epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_fibrous_ring_epi)
+        del is_exterior
+        del is_exterior_face_xi3_1
+        del is_fibrous_ring
+        del is_fibrous_ring_epi
 
         fm.endChange()
         return annotationGroups
