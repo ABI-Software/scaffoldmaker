@@ -24,8 +24,10 @@ heart_terms = [
     ( "endocardium of right atrium", "FMA:7281", "UBERON:0009129" ),
     ( "interatrial septum", "FMA:7108" ),
     ( "fossa ovalis", "FMA:9246" ),
-    ( "left atrial appendage", "FMA:7219" ),  # GRC rename auricle
-    ( "right atrial appendage", "FMA:7218" ),  # GRC rename auricle
+    ( "left auricle", "FMA:7219", "UBERON:0006630" ),  # uncertain if just the tissue like myocardium
+    ( "right auricle", "FMA:7218", "UBERON:0006631" ),  # uncertain if just the tissue like myocardium
+    ( "endocardium of left auricle", "FMA:13236", "UBERON:0011006" ),
+    ( "endocardium of right auricle", "FMA:13235", "UBERON:0011007" ),
     ( "pulmonary vein", "FMA:66643", "UBERON:0002016" ),
     ( "left pulmonary vein", "UBERON:0009030" ),
     ( "left inferior pulmonary vein", "FMA:49913" ),

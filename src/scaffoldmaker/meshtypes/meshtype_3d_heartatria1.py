@@ -740,8 +740,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raGroup = AnnotationGroup(region, get_heart_term("right atrium myocardium"))
         aSeptumGroup = AnnotationGroup(region, get_heart_term("interatrial septum"))
         fossaGroup = AnnotationGroup(region, get_heart_term("fossa ovalis"))
-        laaGroup = AnnotationGroup(region, get_heart_term("left atrial appendage"))
-        raaGroup = AnnotationGroup(region, get_heart_term("right atrial appendage"))
+        laaGroup = AnnotationGroup(region, get_heart_term("left auricle"))
+        raaGroup = AnnotationGroup(region, get_heart_term("right auricle"))
         annotationGroups = [ laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup ]
 
         lpvOstiumSettings = lpvOstium.getScaffoldSettings()
@@ -3173,7 +3173,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
 
         # last atria element is last element in following group:
-        lastGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrial appendage"))
+        lastGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right auricle"))
         lastMeshGroup = lastGroup.getMeshGroup(meshrefinement._sourceMesh)
         lastElementIdentifier = -1
         elementIter = lastMeshGroup.createElementiterator()
@@ -3220,6 +3220,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         laGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
         raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
         aSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interatrial septum"))
+        laaGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left auricle"))
+        raaGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right auricle"))
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
@@ -3233,12 +3235,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
         is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_la, is_ra),
                                    fm.createFieldAnd(is_exterior_face_xi3_1,
                                                      fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
+        is_laa_endo = fm.createFieldAnd(laaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_0)
+        is_raa_endo = fm.createFieldAnd(raaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_0)
         epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
         epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
         laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
         laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_la_endo)
         raEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right atrium"))
         raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ra_endo)
+        laaEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left auricle"))
+        laaEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_laa_endo)
+        raaEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right auricle"))
+        raaEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_raa_endo)
 
 
 def getLeftAtriumPulmonaryVeinOstiaElementsCounts(elementsCountAroundLeftAtriumFreeWall, elementsCountOverAtria, commonLeftRightPvOstium):
