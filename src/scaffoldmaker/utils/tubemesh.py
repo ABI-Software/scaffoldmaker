@@ -3,6 +3,7 @@ Utility function for generating tubular mesh from a central line
 using a segment profile.
 '''
 from __future__ import division
+import copy
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
@@ -17,7 +18,8 @@ from scaffoldmaker.utils import vector
 
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
                       sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
-                      nSegment, faceMidPointZ):
+                      nSegment, faceMidPointZ, closedProximalEnd):
+                      # region, useCubicHermiteThroughWall, useCrossDerivatives, nodeIdentifier, closedProximalEnd):
     """
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
@@ -35,6 +37,32 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     groups along the segment.
     :return coordinates and derivatives of warped points.
     """
+
+    # ##################################################################################
+    # zero = [0.0, 0.0, 0.0]
+    # fm = region.getFieldmodule()
+    # fm.beginChange()
+    # cache = fm.createFieldcache()
+    # # nodeIdentifier = 1
+    #
+    # # Coordinates field
+    # coordinates = findOrCreateFieldCoordinates(fm)
+    # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    # nodetemplate = nodes.createNodetemplate()
+    # nodetemplate.defineField(coordinates)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    # if useCrossDerivatives:
+    #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+    # if useCubicHermiteThroughWall:
+    #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+    #     if useCrossDerivatives:
+    #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
+    #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
+    #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+    # #####################################################################################
+
     xWarpedList = []
     d1WarpedList = []
     d2WarpedList = []
@@ -46,7 +74,14 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         xElementAlongSegment = xList[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d1ElementAlongSegment = d1List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d2ElementAlongSegment = d2List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-        xMid = [0.0, 0.0, faceMidPointZ[nAlongSegment]]
+        xMidCentralPath = [0.0, 0.0, faceMidPointZ[nAlongSegment]]
+
+        zCentroid = 0.0
+        for n in range(elementsCountAround):
+            zCentroid += xElementAlongSegment[n][2]
+        zCentroid = zCentroid / elementsCountAround
+        centroid = [0.0, 0.0, zCentroid]
+        # print(zCentroid, faceMidPointZ[nAlongSegment])
 
         # Rotate to align segment axis with tangent of central line
         unitTangent = vector.normalise(sd1[n2])
@@ -56,16 +91,24 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
             axisRot = vector.normalise(cp)
             thetaRot = math.acos(vector.dotproduct(segmentAxis, unitTangent))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-            midRot = [rotFrame[j][0]*xMid[0] + rotFrame[j][1]*xMid[1] + rotFrame[j][2]*xMid[2] for j in range(3)]
+            midRot = [rotFrame[j][0]*xMidCentralPath[0] + rotFrame[j][1]*xMidCentralPath[1] + rotFrame[j][2]*xMidCentralPath[2] for j in range(3)]
+            centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] + rotFrame[j][2]*centroid[2] for j in range(3)]
         else: # path tangent parallel to segment axis (z-axis)
             if dp == -1.0: # path tangent opposite direction to segment axis
                 thetaRot = math.pi
                 axisRot = [1.0, 0, 0]
                 rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-                midRot = [rotFrame[j][0]*xMid[0] + rotFrame[j][1]*xMid[1] + rotFrame[j][2]*xMid[2] for j in range(3)]
+                midRot = [rotFrame[j][0] * xMidCentralPath[0] + rotFrame[j][1] * xMidCentralPath[1] + rotFrame[j][2] * xMidCentralPath[2] for j in range(3)]
+                centroidRot = [rotFrame[j][0] * centroid[0] + rotFrame[j][1] * centroid[1] + rotFrame[j][2] * centroid[2] for j in range(3)]
             else: # segment axis in same direction as unit tangent
-                midRot = xMid
-        translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)]
+                rotFrame = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                midRot = xMidCentralPath
+                centroidRot = centroid
+
+        translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)] #[sx[n2][j] - midRot[j] for j in range(3)]
+
+        if closedProximalEnd and nAlongSegment == 0:
+            translateMatrixForClosedEnd = copy.deepcopy(translateMatrix)
 
         for n1 in range(elementsCountAround):
             x = xElementAlongSegment[n1]
@@ -76,47 +119,83 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
                 xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                 d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                 d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
-
-                if n1 == 0:
-                    # Project sd2 onto plane normal to sd1
-                    v = sd2[n2]
-                    pt = [midRot[j] + sd2[n2][j] for j in range(3)]
-                    dist = vector.dotproduct(v, unitTangent)
-                    ptOnPlane = [pt[j] - dist*unitTangent[j] for j in range(3)]
-                    newVector = [ptOnPlane[j] - midRot[j] for j in range(3)]
-                    # Rotate first point to align with planar projection of sd2
-                    firstVector = vector.normalise([xRot1[j] - midRot[j] for j in range(3)])
-                    thetaRot2 = math.acos(vector.dotproduct(vector.normalise(newVector), firstVector))
-                    cp2 = vector.crossproduct3(vector.normalise(newVector), firstVector)
-                    if vector.magnitude(cp2) > 0.0:
-                        cp2 = vector.normalise(cp2)
-                        signThetaRot2 = vector.dotproduct(unitTangent, cp2)
-                        axisRot2 = unitTangent
-                        rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, -signThetaRot2*thetaRot2)
-                    else:
-                        rotFrame2 = [ [1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                #xTranslate = [xRot1[j] + translateMatrix[j] for j in range(3)]
 
             else: # path tangent parallel to segment axis
                 xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)] if dp == -1.0 else x
                 d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)] if dp == -1.0 else d1
                 d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)] if dp == -1.0 else d2
+                #xTranslate = [xRot1[j] + translateMatrix[j] for j in range(3)]
 
-                # Rotate to align start of elementsAround with sd2
-                if n1 == 0:
-                    v = vector.normalise(sd2[n2])
-                    startVector = vector.normalise([xRot1[j] - midRot[j] for j in range(3)])
-                    axisRot2 = unitTangent
-                    thetaRot2 = dp*-math.acos(vector.dotproduct(v, startVector))
-                    rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, thetaRot2)
+            if n1 == 0:  # Find angle between xCentroidRot and first node in the face
+                vectorToFirstNode = [xRot1[c] - (centroidRot[c] if closedProximalEnd else midRot[c]) for c in range(3)]
+                if vector.magnitude(vectorToFirstNode) > 0.0:
+                    cp = vector.normalise(vector.crossproduct3(vector.normalise(vectorToFirstNode), sd2[n2]))
+                    if vector.magnitude(cp) > 0:
+                        signThetaRot2 = vector.dotproduct(unitTangent, cp)
+                        thetaRot2 = math.acos(
+                            vector.dotproduct(vector.normalise(vectorToFirstNode), sd2[n2]))
+                        axisRot2 = unitTangent
+                        rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2*thetaRot2)
+                    else:
+                        rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                else:
+                    rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+            # Store how second face is rotated to align sd2 to manipulate closed end later
+            if closedProximalEnd and nAlongSegment == 1:
+                 rotFrame2ForClosedEnd = copy.deepcopy(rotFrame2)
 
             xRot2 = [rotFrame2[j][0]*xRot1[0] + rotFrame2[j][1]*xRot1[1] + rotFrame2[j][2]*xRot1[2] for j in range(3)]
             d1Rot2 = [rotFrame2[j][0]*d1Rot1[0] + rotFrame2[j][1]*d1Rot1[1] + rotFrame2[j][2]*d1Rot1[2] for j in range(3)]
             d2Rot2 = [rotFrame2[j][0]*d2Rot1[0] + rotFrame2[j][1]*d2Rot1[1] + rotFrame2[j][2]*d2Rot1[2] for j in range(3)]
             xTranslate = [xRot2[j] + translateMatrix[j] for j in range(3)]
 
+            ########################################################################################################
+            # node = nodes.createNode(nodeIdentifier, nodetemplate)
+            # cache.setNode(node)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTranslate)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Rot2)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Rot2)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+            # if useCrossDerivatives:
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+            # # print('NodeIdentifier = ', nodeIdentifier, xInner[n], d1Inner[n], d2Inner[n])
+            # nodeIdentifier = nodeIdentifier + 1
+            #
+            # fm.endChange()
+            ##########################################################################################################
+
             xWarpedList.append(xTranslate)
             d1WarpedList.append(d1Rot2)
             d2WarpedList.append(d2Rot2)
+
+    # Manipulate closed end to align with how second face was rotated
+    if closedProximalEnd:
+        closedNodesNew = []
+        closedD1New = []
+        closedD2New = []
+        for n1 in range(elementsCountAround):
+            closedNodesRot1 = [xWarpedList[n1][c] - translateMatrixForClosedEnd[c]  for c in range(3)]
+            closedNodesRot2 = [rotFrame2ForClosedEnd[j][0] * closedNodesRot1[0] + rotFrame2ForClosedEnd[j][1] * closedNodesRot1[1] + rotFrame2ForClosedEnd[j][2] * closedNodesRot1[2] for j in range(3)]
+            closedNodesTranslate = [closedNodesRot2[c] + translateMatrixForClosedEnd[c] for c in range(3)]
+            closedD1Rot1 = d1WarpedList[n1]
+            closedD1Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD1Rot1[0] + rotFrame2ForClosedEnd[j][1] * closedD1Rot1[1] + rotFrame2ForClosedEnd[j][2] * closedD1Rot1[2] for j in range(3)]
+            closedD2Rot1 = d2WarpedList[n1]
+            closedD2Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD2Rot1[0] + rotFrame2ForClosedEnd[j][1] * closedD2Rot1[1] + rotFrame2ForClosedEnd[j][2] * closedD2Rot1[2] for j in range(3)]
+            closedNodesNew.append(closedNodesRot2)
+            closedD1New.append(closedD1Rot2)
+            closedD2New.append(closedD2Rot2)
+        xWarpedListNew = closedNodesNew + xWarpedList[elementsCountAround:]
+        d1WarpedListNew = closedD1New + d1WarpedList[elementsCountAround:]
+        d2WarpedListNew = closedD2New + d2WarpedList[elementsCountAround:]
+    else:
+        xWarpedListNew = xWarpedList
+        d1WarpedListNew = d1WarpedList
+        d2WarpedListNew = d2WarpedList
 
     # Smooth d2 for segment
     smoothd2Raw = []
@@ -125,8 +204,8 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         nd2 = []
         for n2 in range(elementsCountAlongSegment + 1):
             n = n2*elementsCountAround + n1
-            nx.append(xWarpedList[n])
-            nd2.append(d2WarpedList[n])
+            nx.append(xWarpedListNew[n])
+            nd2.append(d2WarpedListNew[n])
         smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)
         smoothd2Raw.append(smoothd2)
 
@@ -135,12 +214,33 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         for n1 in range(elementsCountAround):
             smoothd2WarpedList.append(smoothd2Raw[n1][n2])
 
-    # Calculate unit d3
-    for n in range(len(xWarpedList)):
-        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedList[n]), vector.normalise(smoothd2WarpedList[n])))
+    # # Calculate unit d3
+    for n in range(len(xWarpedListNew)):
+        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedListNew[n]), vector.normalise(smoothd2WarpedList[n])))
         d3WarpedUnitList.append(d3Unit)
 
-    return xWarpedList, d1WarpedList, smoothd2WarpedList, d3WarpedUnitList
+    # # # #####################################################################################
+    # # # # Create nodes
+    # # # Coordinates field
+    # # for n in range(len(xWarpedListNew)):
+    # #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    # #     cache.setNode(node)
+    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xWarpedListNew[n])
+    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1WarpedListNew[n])
+    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, smoothd2WarpedList[n])
+    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3WarpedUnitList[n])
+    # #     if useCrossDerivatives:
+    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+    # #     # print('NodeIdentifier = ', nodeIdentifier, d3WarpedUnitList[n])
+    # #     nodeIdentifier = nodeIdentifier + 1
+    # # # ########################################################################################
+    # #     fm.endChange()
+
+    # return nodeIdentifier
+    return xWarpedListNew, d1WarpedListNew, smoothd2WarpedList, d3WarpedUnitList
 
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
@@ -336,7 +436,7 @@ def createNodesAndElements(region,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
     annotationGroups, annotationArray,
     firstNodeIdentifier, firstElementIdentifier,
-    useCubicHermiteThroughWall, useCrossDerivatives):
+    useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
     Create nodes and elements for the coordinates, flat coordinates,
     and texture coordinates field.
@@ -394,61 +494,63 @@ def createNodesAndElements(region,
     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
     result = elementtemplate.defineField(coordinates, -1, eft)
 
-    # Flat coordinates field
-    bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-    eftTexture1 = bicubichermitelinear.createEftBasic()
-    eftTexture2 = bicubichermitelinear.createEftOpenTube()
+    if xFlat:
+        # Flat coordinates field
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eftTexture1 = bicubichermitelinear.createEftBasic()
+        eftTexture2 = bicubichermitelinear.createEftOpenTube()
 
-    flatCoordinates = findOrCreateFieldCoordinates(fm, name="flat coordinates")
-    flatNodetemplate1 = nodes.createNodetemplate()
-    flatNodetemplate1.defineField(flatCoordinates)
-    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    if useCrossDerivatives:
-        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        flatCoordinates = findOrCreateFieldCoordinates(fm, name="flat coordinates")
+        flatNodetemplate1 = nodes.createNodetemplate()
+        flatNodetemplate1.defineField(flatCoordinates)
+        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        if useCrossDerivatives:
+            flatNodetemplate1.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
-    flatNodetemplate2 = nodes.createNodetemplate()
-    flatNodetemplate2.defineField(flatCoordinates)
-    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
-    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
-    flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
-    if useCrossDerivatives:
-        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+        flatNodetemplate2 = nodes.createNodetemplate()
+        flatNodetemplate2.defineField(flatCoordinates)
+        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+        flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+        if useCrossDerivatives:
+            flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
 
-    flatElementtemplate1 = mesh.createElementtemplate()
-    flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    flatElementtemplate1.defineField(flatCoordinates, -1, eftTexture1)
+        flatElementtemplate1 = mesh.createElementtemplate()
+        flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        flatElementtemplate1.defineField(flatCoordinates, -1, eftTexture1)
 
-    flatElementtemplate2 = mesh.createElementtemplate()
-    flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
+        flatElementtemplate2 = mesh.createElementtemplate()
+        flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
 
-    # Texture coordinates field
-    textureCoordinates = findOrCreateFieldTextureCoordinates(fm)
-    textureNodetemplate1 = nodes.createNodetemplate()
-    textureNodetemplate1.defineField(textureCoordinates)
-    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    if useCrossDerivatives:
-        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+    if xTexture:
+        # Texture coordinates field
+        textureCoordinates = findOrCreateFieldTextureCoordinates(fm)
+        textureNodetemplate1 = nodes.createNodetemplate()
+        textureNodetemplate1.defineField(textureCoordinates)
+        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        if useCrossDerivatives:
+            textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
-    textureNodetemplate2 = nodes.createNodetemplate()
-    textureNodetemplate2.defineField(textureCoordinates)
-    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
-    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
-    textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
-    if useCrossDerivatives:
-        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+        textureNodetemplate2 = nodes.createNodetemplate()
+        textureNodetemplate2.defineField(textureCoordinates)
+        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+        if useCrossDerivatives:
+            textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
 
-    elementtemplate1 = mesh.createElementtemplate()
-    elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    elementtemplate1.defineField(textureCoordinates, -1, eftTexture1)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate1.defineField(textureCoordinates, -1, eftTexture1)
 
-    elementtemplate2 = mesh.createElementtemplate()
-    elementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
+        elementtemplate2 = mesh.createElementtemplate()
+        elementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
 
     # Create nodes
     # Coordinates field
@@ -468,54 +570,94 @@ def createNodesAndElements(region,
         nodeIdentifier = nodeIdentifier + 1
 
     # Flat and texture coordinates fields
-    nodeIdentifier = firstNodeIdentifier
-    for n2 in range(elementsCountAlong + 1):
-        for n3 in range(elementsCountThroughWall + 1):
-            for n1 in range(elementsCountAround):
-                i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1
-                node = nodes.findNodeByIdentifier(nodeIdentifier)
-                node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
-                node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
-                cache.setNode(node)
-                # print('NodeIdentifier', nodeIdentifier, 'version 1, xList Index =', i+1)
-                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFlat[i])
-                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Flat[i])
-                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Flat[i])
-                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTexture[i])
-                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[i])
-                textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[i])
-                if useCrossDerivatives:
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                if n1 == 0:
-                    # print('NodeIdentifier', nodeIdentifier, 'version 2, xList Index =', i+elementsCountAround+1)
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xFlat[i+elementsCountAround])
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Flat[i+elementsCountAround])
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Flat[i+elementsCountAround])
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xTexture[i+elementsCountAround])
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Texture[i+elementsCountAround])
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Texture[i+elementsCountAround])
+    if xFlat and xTexture:
+        nodeIdentifier = firstNodeIdentifier
+        for n2 in range(elementsCountAlong + 1):
+            for n3 in range(elementsCountThroughWall + 1):
+                for n1 in range(elementsCountAround):
+                    i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1
+                    node = nodes.findNodeByIdentifier(nodeIdentifier)
+                    node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
+                    node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
+                    cache.setNode(node)
+                    # print('NodeIdentifier', nodeIdentifier, 'version 1, xList Index =', i+1)
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFlat[i])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Flat[i])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Flat[i])
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTexture[i])
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[i])
+                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[i])
                     if useCrossDerivatives:
-                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
-                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
-                nodeIdentifier = nodeIdentifier + 1
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                    if n1 == 0:
+                        # print('NodeIdentifier', nodeIdentifier, 'version 2, xList Index =', i+elementsCountAround+1)
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xFlat[i+elementsCountAround])
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Flat[i+elementsCountAround])
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Flat[i+elementsCountAround])
+                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xTexture[i+elementsCountAround])
+                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Texture[i+elementsCountAround])
+                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Texture[i+elementsCountAround])
+                        if useCrossDerivatives:
+                            flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+                            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
+                    nodeIdentifier = nodeIdentifier + 1
 
     # create elements
-    now = elementsCountAround*(elementsCountThroughWall+1)
-    for e2 in range(elementsCountAlong):
+    elementtemplate3 = mesh.createElementtemplate()
+    elementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    radiansPerElementAround = math.pi*2.0 / elementsCountAround
+
+    if closedProximalEnd:
+        # Create apex
         for e3 in range(elementsCountThroughWall):
             for e1 in range(elementsCountAround):
-                bni11 = e2*now + e3*elementsCountAround + e1 + 1
-                bni12 = e2*now + e3*elementsCountAround + (e1 + 1) % elementsCountAround + 1
-                bni21 = e2*now + (e3 + 1)*elementsCountAround + e1 + 1
-                bni22 = e2*now + (e3 + 1)*elementsCountAround + (e1 + 1) % elementsCountAround + 1
-                nodeIdentifiers = [ bni11, bni12, bni11 + now, bni12 + now, bni21, bni22, bni21 + now, bni22 + now ]
+                va = e1
+                vb = (e1 + 1) % elementsCountAround
+                eft1 = eftfactory.createEftShellPoleBottom(va * 100, vb * 100)
+                elementtemplate3.defineField(coordinates, -1, eft1)
+                element = mesh.createElement(elementIdentifier, elementtemplate3)
+                bni1 = e3 + 1
+                bni2 = e3 + 1 + elementsCountThroughWall + 1 + e1
+                bni3 = e3 + 1 + elementsCountThroughWall + 1 + (e1 + 1) % elementsCountAround
+                nodeIdentifiers = [bni1, bni2, bni3, bni1 + 1, bni2 + elementsCountAround, bni3 + elementsCountAround]
+                element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                # set general linear map coefficients
+                radiansAround = e1 * radiansPerElementAround
+                radiansAroundNext = ((e1 + 1) % elementsCountAround) * radiansPerElementAround
+                scalefactors = [
+                    -1.0,
+                    math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                    math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround,
+                    math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+                    math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
+                ]
+                result = element.setScaleFactors(eft1, scalefactors)
+                elementIdentifier = elementIdentifier + 1
+
+    # Create regular elements
+    now = elementsCountAround * (elementsCountThroughWall + 1)
+    for e2 in range(1 if closedProximalEnd else 0, elementsCountAlong):
+        for e3 in range(elementsCountThroughWall):
+            for e1 in range(elementsCountAround):
+                if closedProximalEnd:
+                    bni11 = (e2-1) * now + e3 * elementsCountAround + e1 + 1 + (elementsCountThroughWall + 1)
+                    bni12 = (e2-1) * now + e3 * elementsCountAround + (e1 + 1) % elementsCountAround + 1 + (elementsCountThroughWall + 1)
+                    bni21 = (e2-1) * now + (e3 + 1) * elementsCountAround + e1 + 1 + (elementsCountThroughWall + 1)
+                    bni22 = (e2-1) * now + (e3 + 1) * elementsCountAround + (e1 + 1) % elementsCountAround + 1 + (elementsCountThroughWall + 1)
+                else:
+                    bni11 = e2 * now + e3 * elementsCountAround + e1 + 1
+                    bni12 = e2 * now + e3 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
+                    bni21 = e2 * now + (e3 + 1) * elementsCountAround + e1 + 1
+                    bni22 = e2 * now + (e3 + 1) * elementsCountAround + (e1 + 1) % elementsCountAround + 1
+                nodeIdentifiers = [bni11, bni12, bni11 + now, bni12 + now, bni21, bni22, bni21 + now, bni22 + now]
                 onOpening = e1 > elementsCountAround - 2
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nodeIdentifiers)
-                element.merge(flatElementtemplate2 if onOpening else flatElementtemplate1)
-                element.merge(elementtemplate2 if onOpening else elementtemplate1)
-                element.setNodesByIdentifier(eftTexture2 if onOpening else eftTexture1, nodeIdentifiers)
+                if xFlat and xTexture:
+                    element.merge(flatElementtemplate2 if onOpening else flatElementtemplate1)
+                    element.merge(elementtemplate2 if onOpening else elementtemplate1)
+                    element.setNodesByIdentifier(eftTexture2 if onOpening else eftTexture1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
                 if annotationGroups:
                     for annotationGroup in annotationGroups:

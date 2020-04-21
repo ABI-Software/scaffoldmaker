@@ -11,6 +11,7 @@ from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
+from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
@@ -46,6 +47,7 @@ class Scaffolds(object):
             MeshType_3d_bladder1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
+            MeshType_3d_cecum1,
             MeshType_3d_colon1,
             MeshType_3d_colonsegment1,
             MeshType_3d_heart1,

@@ -12,8 +12,12 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.zinc.node import Node
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates # KM
+from opencmiss.zinc.field import Field #KM
+from opencmiss.zinc.element import Element, Elementbasis #KM
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
@@ -385,6 +389,8 @@ class MeshType_3d_colon1(Scaffold_base):
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
+        nextNodeIdentifier = 1 # KM
+
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
@@ -408,6 +414,16 @@ class MeshType_3d_colon1(Scaffold_base):
         # Sample central path
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
         sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
+
+        # Project sd2 to plane orthogonal to sd1
+        sd2ProjectedList = []
+
+        for n in range(len(sd2)):
+            sd1Normalised = vector.normalise(sd1[n])
+            dp = vector.dotproduct(sd2[n], sd1Normalised)
+            dpScaled = [dp*c for c in sd1Normalised]
+            sd2Projected = vector.normalise([sd2[n][c] - dpScaled[c] for c in range(3)])
+            sd2ProjectedList.append(sd2Projected)
 
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
@@ -442,8 +458,13 @@ class MeshType_3d_colon1(Scaffold_base):
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
-                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ)
+                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
+                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ, closedProximalEnd=False)
+
+            # nextNodeIdentifier = tubemesh.warpSegmentPoints(
+            #     xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
+            #     elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ,
+            #     region, useCubicHermiteThroughWall, useCrossDerivatives, nextNodeIdentifier, closedProximalEnd=False)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
@@ -492,8 +513,47 @@ class MeshType_3d_colon1(Scaffold_base):
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
                 annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-                useCubicHermiteThroughWall, useCrossDerivatives)
+                useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
 
+            ###################################################################################
+        # nodeIdentifier = nextNodeIdentifier
+        # fm = region.getFieldmodule()
+        # fm.beginChange()
+        # coordinates = findOrCreateFieldCoordinates(fm)
+        # cache = fm.createFieldcache()
+        #
+        # mesh = fm.findMeshByDimension(1)
+        # cubicHermiteBasis = fm.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        # eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
+        # elementtemplate = mesh.createElementtemplate()
+        # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
+        # result = elementtemplate.defineField(coordinates, -1, eft)
+        #
+        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # nodetemplate.defineField(coordinates)
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        #
+        # for n in range(len(sx)):
+        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #     cache.setNode(node)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, 0.0])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, 0.0])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sd1[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1,
+        #                                   [5.0*sd2ProjectedList[n][c] for c in range(3)])
+        #     # print('nodeIdentifier = ', nodeIdentifier, 'sd2Cecum = ', sd2Cecum[n])
+        #     nodeIdentifier = nodeIdentifier + 1
+        #
+        # fm.endChange()
+            ##################################################################################
+
+        # return
         return annotationGroups
 
     @classmethod

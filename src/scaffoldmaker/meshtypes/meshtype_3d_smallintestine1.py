@@ -250,6 +250,15 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
         sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
 
+        # Project sd2 to plane orthogonal to sd1
+        sd2ProjectedList = []
+        for n in range(len(sd2)):
+            sd1Normalised = vector.normalise(sd1[n])
+            dp = vector.dotproduct(sd2[n], sd1Normalised)
+            dpScaled = [dp * c for c in sd1Normalised]
+            sd2Projected = vector.normalise([sd2[n][c] - dpScaled[c] for c in range(3)])
+            sd2ProjectedList.append(sd2Projected)
+
         # Generate variation of radius & tc width along length
         lengthList = [0.0, duodenumLength, duodenumLength + jejunumLength, length]
         innerRadiusList = [duodenumInnerRadius, duodenumJejunumInnerRadius, jejunumIleumInnerRadius, ileumInnerRadius]
@@ -273,8 +282,8 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2,
-                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ)
+                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
+                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ, closedProximalEnd=False)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
@@ -323,7 +332,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-            useCubicHermiteThroughWall, useCrossDerivatives)
+            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
 
         return annotationGroups
 
