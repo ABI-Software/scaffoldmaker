@@ -2,6 +2,9 @@
 Scaffold abstract base class.
 Describes methods each scaffold must or may override.
 """
+import copy
+from opencmiss.utils.zinc.general import ChangeManager
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 class Scaffold_base:
     '''
@@ -9,16 +12,16 @@ class Scaffold_base:
     Not intended to be instantiated. Most methods must be overridden by actual scaffolds.
     '''
 
-    @staticmethod
-    def getName():
+    @classmethod
+    def getName(cls):
         '''
         Must override.
         :return: Unique type name for scaffold, for display in user interface.
         '''
         return None
 
-    @staticmethod
-    def getParameterSetNames():
+    @classmethod
+    def getParameterSetNames(cls):
         '''
         Optionally override to return additional default parameter set names supported by getDefaultOptions().
         Always have first set name 'Default'. Do not use name 'Custom' as clients may use internally.
@@ -38,8 +41,8 @@ class Scaffold_base:
             'Boolean option' : True
         }
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         '''
         Must override to get list of parameters in order for display and editing in user interface.
         Note can omit parameter names to remove from interface.
@@ -87,18 +90,63 @@ class Scaffold_base:
             options['Real option'] = 0.0
 
     @classmethod
-    def generateMesh(cls, region, options):
-        '''
-        Must override to generate scaffold mesh in region using Zinc API with options.
-        Scaffolds supporting refinement may switch to call other functions:
-        @classmethod
-        def generateBaseMesh(cls, region, options):
-        # generates base high order scaffold
-        @classmethod
-        def refineMesh(cls, meshrefinement, options):
-        # performs refinement
+    def generateBaseMesh(cls, region, options):
+        """
+        Override to generate scaffold mesh in region using Zinc API with options.
+        Some older classes may do this in an override of generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: List of AnnotationGroup or None if not supported.
-        '''
-        return None
+        :return: list of AnnotationGroup
+        """
+        return []
+
+    @classmethod
+    def refineMesh(cls, meshrefinement, options):
+        """
+        Override to refine/resample mesh if supported.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        pass
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Override in classes with face annotation groups.
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        pass
+
+    @classmethod
+    def generateMesh(cls, region, options):
+        """
+        Generate base or refined mesh.
+        Some classes may override to a simpler version just generating the base mesh.
+        :param region: Zinc region to create mesh in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        :return: list of AnnotationGroup for mesh.
+        """
+        fieldmodule = region.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            if options.get('Refine'):
+                baseRegion = region.createRegion()
+                annotationGroups = cls.generateBaseMesh(baseRegion, options)
+                meshrefinement = MeshRefinement(baseRegion, region, annotationGroups)
+                cls.refineMesh(meshrefinement, options)
+                annotationGroups = meshrefinement.getAnnotationGroups()
+            else:
+                annotationGroups = cls.generateBaseMesh(region, options)
+            fieldmodule.defineAllFaces()
+            oldAnnotationGroups = copy.copy(annotationGroups)
+            for annotationGroup in annotationGroups:
+                annotationGroup.addSubelements()
+            cls.defineFaceAnnotations(region, options, annotationGroups)
+            for annotation in annotationGroups:
+                if annotation not in oldAnnotationGroups:
+                    annotationGroup.addSubelements()
+        return annotationGroups

@@ -733,7 +733,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
@@ -3146,41 +3145,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     nid1 = raTrackSurfaceFirstNodeIdentifier + e2*nodesCount1 + e1
                     element.setNodesByIdentifier(eft2d, [ nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1 ])
 
-        # create endocardium and epicardium groups
-        fm.defineAllFaces()
-        laGroup.addSubelements()
-        raGroup.addSubelements()
-        aSeptumGroup.addSubelements()
-        mesh2d = fm.findMeshByDimension(2)
-        is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_la = laGroup.getFieldElementGroup(mesh2d)
-        is_ra = raGroup.getFieldElementGroup(mesh2d)
-        is_la_endo = fm.createFieldAnd(is_la, is_exterior_face_xi3_0)
-        is_ra_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ra, is_exterior_face_xi3_0),
-                                                        fm.createFieldNot(is_la_endo)),
-                                      fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
-        is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_la, is_ra),
-                                   fm.createFieldAnd(is_exterior_face_xi3_1,
-                                                     fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
-        epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
-        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
-        laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
-        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_la_endo)
-        raEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right atrium"))
-        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ra_endo)
-        del is_exterior
-        del is_exterior_face_xi3_0
-        del is_exterior_face_xi3_1
-        del is_la
-        del is_ra
-        del is_la_endo
-        del is_ra_endo
-        del is_a_epi
-
-        fm.endChange()
         return annotationGroups
+
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -3238,21 +3204,41 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 return  # finish on last so can continue elsewhere
             element = meshrefinement._sourceElementiterator.next()
 
+
     @classmethod
-    def generateMesh(cls, region, options):
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()
+        # create endocardium and epicardium groups
+        fm = region.getFieldmodule()
+        laGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
+        raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
+        aSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interatrial septum"))
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_la = laGroup.getFieldElementGroup(mesh2d)
+        is_ra = raGroup.getFieldElementGroup(mesh2d)
+        is_la_endo = fm.createFieldAnd(is_la, is_exterior_face_xi3_0)
+        is_ra_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ra, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_la_endo)),
+                                      fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
+        is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_la, is_ra),
+                                   fm.createFieldAnd(is_exterior_face_xi3_1,
+                                                     fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
+        epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
+        laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
+        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_la_endo)
+        raEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right atrium"))
+        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ra_endo)
 
 
 def getLeftAtriumPulmonaryVeinOstiaElementsCounts(elementsCountAroundLeftAtriumFreeWall, elementsCountOverAtria, commonLeftRightPvOstium):

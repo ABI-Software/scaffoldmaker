@@ -122,7 +122,6 @@ class MeshType_3d_heart1(Scaffold_base):
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
@@ -409,23 +408,6 @@ class MeshType_3d_heart1(Scaffold_base):
         markerName.assignString(cache, "crux of heart")
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
 
-        # add to epicardium surface group
-        fm.defineAllFaces()
-        lFibrousRingGroup.addSubelements()
-        rFibrousRingGroup.addSubelements()
-        mesh2d = fm.findMeshByDimension(2)
-        is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_fibrous_ring = fm.createFieldOr(lFibrousRingGroup.getFieldElementGroup(mesh2d), rFibrousRingGroup.getFieldElementGroup(mesh2d))
-        is_fibrous_ring_epi = fm.createFieldAnd(is_fibrous_ring, is_exterior_face_xi3_1)
-        epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
-        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_fibrous_ring_epi)
-        del is_exterior
-        del is_exterior_face_xi3_1
-        del is_fibrous_ring
-        del is_fibrous_ring_epi
-
-        fm.endChange()
         return annotationGroups
 
     @classmethod
@@ -461,17 +443,24 @@ class MeshType_3d_heart1(Scaffold_base):
             i += 1
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()
+        # add epicardium of fibrous ring
+        fm = region.getFieldmodule()
+        MeshType_3d_heartventriclesbase1.defineFaceAnnotations(region, options, annotationGroups)
+        MeshType_3d_heartatria1.defineFaceAnnotations(region, options, annotationGroups)
+        lFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right fibrous ring"))
+        epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior_face_xi3_1 = fm.createFieldAnd(fm.createFieldIsExterior(), fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_non_septal_fibrous_ring = fm.createFieldXor(lFibrousRingGroup.getFieldElementGroup(mesh2d), rFibrousRingGroup.getFieldElementGroup(mesh2d))
+        is_non_septal_fibrous_ring_epi = fm.createFieldAnd(is_non_septal_fibrous_ring, is_exterior_face_xi3_1)
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_non_septal_fibrous_ring_epi)

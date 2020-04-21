@@ -291,7 +291,6 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
@@ -1338,39 +1337,6 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
-        # create endocardium and epicardium groups
-        fm.defineAllFaces()
-        lvGroup.addSubelements()
-        rvGroup.addSubelements()
-        vSeptumGroup.addSubelements()
-        mesh2d = fm.findMeshByDimension(2)
-        is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_lv = lvGroup.getFieldElementGroup(mesh2d)
-        is_rv = rvGroup.getFieldElementGroup(mesh2d)
-        is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
-        is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
-                                                        fm.createFieldNot(is_lv_endo)),
-                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
-        is_epi = fm.createFieldAnd(is_exterior_face_xi3_1,
-                                   fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
-        epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
-        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
-        lvEndoGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("endocardium of left ventricle"))
-        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
-        rvEndoGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("endocardium of right ventricle"))
-        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
-        del is_exterior
-        del is_exterior_face_xi3_0
-        del is_exterior_face_xi3_1
-        del is_lv
-        del is_rv
-        del is_lv_endo
-        del is_rv_endo
-        del is_epi
-
-        fm.endChange()
         return annotationGroups
 
     @classmethod
@@ -1438,18 +1404,15 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 return  # finish on last so can continue in full heart mesh
             element = meshrefinement._sourceElementiterator.next()
 
+
     @classmethod
-    def generateMesh(cls, region, options):
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()
+        MeshType_3d_heartventricles1.defineFaceAnnotations(region, options, annotationGroups)

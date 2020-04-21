@@ -10,7 +10,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
@@ -244,7 +244,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
@@ -1034,40 +1033,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
 
-        # create endocardium and epicardium groups
-        fm.defineAllFaces()
-        lvGroup.addSubelements()
-        rvGroup.addSubelements()
-        vSeptumGroup.addSubelements()
-        mesh2d = fm.findMeshByDimension(2)
-        is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_lv = lvGroup.getFieldElementGroup(mesh2d)
-        is_rv = rvGroup.getFieldElementGroup(mesh2d)
-        is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
-        is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
-                                                        fm.createFieldNot(is_lv_endo)),
-                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
-        is_epi = fm.createFieldAnd(is_exterior_face_xi3_1,
-                                   fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
-        epiGroup = AnnotationGroup(region, get_heart_term("epicardium"))
-        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_epi)
-        lvEndoGroup = AnnotationGroup(region, get_heart_term("endocardium of left ventricle"))
-        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
-        rvEndoGroup = AnnotationGroup(region, get_heart_term("endocardium of right ventricle"))
-        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
-        del is_exterior
-        del is_exterior_face_xi3_0
-        del is_exterior_face_xi3_1
-        del is_lv
-        del is_rv
-        del is_lv_endo
-        del is_rv_endo
-        del is_epi
-        annotationGroups += [ lvEndoGroup, rvEndoGroup, epiGroup ]
-
-        # apex annotation points
+        # apex annotation point
         element1 = mesh.findElementByIdentifier(1)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
@@ -1075,7 +1041,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         markerName.assignString(cache, 'APEX')  # interlex.org has 'apex of heart'
         markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
 
-        fm.endChange()
         return annotationGroups
 
     @classmethod
@@ -1126,21 +1091,41 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                 return  # finish on last so can continue in ventriclesbase
             element = meshrefinement._sourceElementiterator.next()
 
+
     @classmethod
-    def generateMesh(cls, region, options):
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()
+        # create endocardium and epicardium groups
+        fm = region.getFieldmodule()
+        lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
+        rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
+        vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_lv = lvGroup.getFieldElementGroup(mesh2d)
+        is_rv = rvGroup.getFieldElementGroup(mesh2d)
+        is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
+        is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_lv_endo)),
+                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
+        is_v_epi = fm.createFieldAnd(fm.createFieldOr(is_lv, is_rv),
+                                     fm.createFieldAnd(is_exterior_face_xi3_1,
+                                                     fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d))))
+        epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_v_epi)
+        lvEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left ventricle"))
+        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
+        rvEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right ventricle"))
+        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
 
 
 def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundVSeptum, z, n3):
