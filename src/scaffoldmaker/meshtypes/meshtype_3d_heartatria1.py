@@ -6,7 +6,8 @@ Generates a 3-D heart atria model, suitable for attachment to the
 from __future__ import division
 import copy
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -733,6 +734,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
+        mesh = fm.findMeshByDimension(3)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
@@ -777,11 +780,19 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
 
+        # annotation fiducial points
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+
         ##############
         # Create nodes
         ##############
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
@@ -797,8 +808,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-
-        mesh = fm.findMeshByDimension(3)
 
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
@@ -2943,6 +2952,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 eft1 = eft
                 elementtemplate1 = elementtemplate
                 scalefactors = None
+                addMarker = None
+
                 nc = 2 + e1
                 if e2 == 0:
                     nids = [ ractNodeId[0][nc], ractNodeId[0][nc + 1], raaqNodeId[0][e1], raaqNodeId[0][e1 + 1],
@@ -2963,6 +2974,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                    addMarker = { "name" : "SVC-RA", "xi" : [ 0.0, 1.0, 0.0 ] }
                 elif (e2 == 1) and (e1 < (elementsCountOverSideRightAtriumPouch - 1)):
                     pass  # regular elements
                 else:
@@ -2992,6 +3004,14 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     result3 = '-'
                 #print('create element raa plain', element.isValid(), elementIdentifier, result2, result3, nids)
                 elementIdentifier += 1
+
+                if addMarker:
+                    markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                    nodeIdentifier += 1
+                    cache.setNode(markerPoint)
+                    markerName.assignString(cache, addMarker["name"])
+                    markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
 
