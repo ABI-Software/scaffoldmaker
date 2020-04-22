@@ -2142,8 +2142,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 continue  # right atrial appendage
             scalefactors = None
             meshGroups = [ raMeshGroup ]
-            if (e1 >= elementsCountAroundRightAtriumPosteriorVenous) and (e1 < elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtriumAorta - 1):
-                meshGroups += [ raaMeshGroup ]
+            # Anderson definition of right atrial appendage starts at crista terminalis:
+            #if (e1 >= elementsCountAroundRightAtriumPosteriorVenous) and (e1 < elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtriumAorta - 1):
+            #    meshGroups += [ raaMeshGroup ]
             if e1 == -1:
                 # crux/posterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                 nids[0] = labNodeId[0][elementsCountAroundLeftAtriumFreeWall]
@@ -2933,8 +2934,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
             elementsCountRadial = elementsCountLaaRadial,
             meshGroups = [ laMeshGroup, laaMeshGroup ])
 
-        # create right atrial appendage 'plain' elements
-        meshGroups = [ raMeshGroup, raaMeshGroup ]
+        # create right atrium plain elements
+        # Anderson considers these part of the right atrial appendage:
+        #meshGroups = [ raMeshGroup, raaMeshGroup ]
+        meshGroups = [ raMeshGroup ]
         for e2 in range(2):
             for e1 in range(elementsCountOverSideRightAtriumPouch):
                 eft1 = eft
