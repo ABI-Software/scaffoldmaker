@@ -75,12 +75,28 @@ class AnnotationGroup(object):
         '''
         return self.getFieldElementGroup(mesh).getMeshGroup()
 
+    def hasMeshGroup(self, mesh):
+        '''
+        :param mesh: The Zinc mesh to query a sub group of.
+        :return: True if MeshGroup for mesh exists and is not empty, otherwise False.
+        '''
+        elementGroup = self._group.getFieldElementGroup(mesh)
+        return elementGroup.isValid() and (elementGroup.getMeshGroup().getSize() > 0)
+
     def getNodesetGroup(self, nodeset):
         '''
         :param nodeset: The Zinc nodeset to manage a sub group of.
         :return: The Zinc nodesetGroup for adding nodes from nodeset in this AnnotationGroup.
         '''
         return self.getFieldNodeGroup(nodeset).getNodesetGroup()
+
+    def hasNodesetGroup(self, nodeset):
+        '''
+        :param nodeset: The Zinc nodeset to query a sub group of.
+        :return: True if NodesetGroup for nodeset exists and is not empty, otherwise False.
+        '''
+        nodeGroup = self._group.getFieldNodeGroup(nodeset)
+        return nodeGroup.isValid() and (nodeGroup.getNodesetGroup().getSize() > 0)
 
     def addSubelements(self):
         '''

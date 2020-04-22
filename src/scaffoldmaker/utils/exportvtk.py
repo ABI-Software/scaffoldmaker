@@ -7,7 +7,7 @@ from sys import version_info
 from opencmiss.zinc.field import Field
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
-
+from opencmiss.zinc.result import RESULT_OK
 
 class ExportVtk:
     '''
@@ -45,23 +45,37 @@ class ExportVtk:
         cache = self._fieldmodule.createFieldcache()
 
         nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # exclude marker point nodes from output
+        markerNodes = None
+        markerGroup = self._fieldmodule.findFieldByName("marker")
+        if markerGroup.isValid():
+            markerGroup = markerGroup.castGroup()
+            markerNodeGroup = markerGroup.getFieldNodeGroup(nodes)
+            if markerNodeGroup.isValid():
+                markerNodes = markerNodeGroup.getNodesetGroup()
         pointCount = nodes.getSize()
+        if markerNodes:
+            pointCount -= markerNodes.getSize()
         outstream.write('POINTS ' + str(pointCount) + ' double\n')
         nodeIter = nodes.createNodeiterator()
         node = nodeIter.next()
         index = 0
         while node.isValid():
-            nodeIdentifierToIndex[node.getIdentifier()] = index
-            cache.setNode(node)
-            result, x = self._coordinates.evaluateReal(cache, coordinatesCount)
-            first = True
-            for s in x:
-                if not first:
-                    outstream.write(' ')
-                outstream.write(str(s))
-                first = False
-            outstream.write('\n')
-            index += 1
+            if not (markerNodes and markerNodes.containsNode(node)):
+                nodeIdentifierToIndex[node.getIdentifier()] = index
+                cache.setNode(node)
+                result, x = self._coordinates.evaluateReal(cache, coordinatesCount)
+                if result != RESULT_OK:
+                    print("Coordinates not found for node", node.getIdentifier())
+                    x = [ 0.0, 0.0, 0.0 ]
+                first = True
+                for s in x:
+                    if not first:
+                        outstream.write(' ')
+                    outstream.write(str(s))
+                    first = False
+                outstream.write('\n')
+                index += 1
             node = nodeIter.next()
 
         # following assumes all hex (3-D) or all quad (2-D) elements
@@ -93,9 +107,19 @@ class ExportVtk:
             outstream.write(cellTypeString + ' ')
         outstream.write(cellTypeString + '\n')
 
-        if self._annotationGroups:
+        # use cell data for annotation groups containing elements of mesh dimension
+        # use point data for lower dimensional annotation groups
+        pointAnnotationGroups = []
+        cellAnnotationGroups = []
+        for annotationGroup in self._annotationGroups:
+            if annotationGroup.hasMeshGroup(self._mesh):
+                cellAnnotationGroups.append(annotationGroup)
+            elif annotationGroup.hasNodesetGroup(nodes):
+                pointAnnotationGroups.append(annotationGroup)
+
+        if cellAnnotationGroups:
             outstream.write('CELL_DATA ' + str(cellCount) + '\n')
-            for annotationGroup in self._annotationGroups:
+            for annotationGroup in cellAnnotationGroups:
                 safeName = annotationGroup.getName().replace(' ', '_')
                 outstream.write('SCALARS ' + safeName + ' int 1\n')
                 outstream.write('LOOKUP_TABLE default\n') 
@@ -105,6 +129,21 @@ class ExportVtk:
                 while element.isValid():
                     outstream.write('1 ' if meshGroup.containsElement(element) else '0 ')
                     element = elementIter.next()
+                outstream.write('\n')
+
+        if pointAnnotationGroups:
+            outstream.write('POINT_DATA ' + str(pointCount) + '\n')
+            for annotationGroup in pointAnnotationGroups:
+                safeName = annotationGroup.getName().replace(' ', '_')
+                outstream.write('SCALARS ' + safeName + ' int 1\n')
+                outstream.write('LOOKUP_TABLE default\n') 
+                nodesetGroup = annotationGroup.getNodesetGroup(nodes)
+                nodeIter = nodes.createNodeiterator()
+                node = nodeIter.next()
+                while node.isValid():
+                    if not (markerNodes and markerNodes.containsNode(node)):
+                        outstream.write('1 ' if nodesetGroup.containsNode(node) else '0 ')
+                    node = nodeIter.next()
                 outstream.write('\n')
 
 
