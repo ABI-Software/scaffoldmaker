@@ -9,35 +9,41 @@ class AnnotationGroup(object):
     Describes subdomains of a scaffold with attached names and terms.
     '''
 
-    def __init__(self, region, name, FMANumber, lyphID):
+    def __init__(self, region, term):
         '''
         :param region: The Zinc region the AnnotationGroup is to be made for.
-        :param name: The name of an annotation group e.g. common medical term.
-        :param FMANumber: The FMA Number of the group.
-        :param lyphID: The Apinatomy Lyph ID for the group.
+        :param term: Identifier for anatomical term, currently a tuple of name, id.
+        e.g. ("heart", "FMA:7088")
         '''
-        self._name = name
-        self._FMANumber = FMANumber
-        self._lyphID = lyphID
+        self._name = term[0]
+        self._id = term[1]
         fm = region.getFieldmodule()
-        field = fm.findFieldByName(name)
+        field = fm.findFieldByName(self._name)
         if field.isValid():
             self._group = field.castGroup()
-            assert self._group.isValid(), 'AnnotationGroup found existing non-group field called ' + name
+            assert self._group.isValid(), 'AnnotationGroup found existing non-group field called ' + self._name
         else:
             # assume client is calling between fm.begin/endChange()
             self._group = fm.createFieldGroup()
-            self._group.setName(name)
+            self._group.setName(self._name)
             self._group.setManaged(True)
 
     def getName(self):
         return self._name
 
-    def getFMANumber(self):
-        return self._FMANumber
+    def getId(self):
+        return self._id
 
-    def getLyphID(self):
-        return self._lyphID
+    def getFMANumber(self):
+        """
+        :return: Integer FMA number or None.
+        """
+        if self._id and (self.id[:4] == "FMA:"):
+            return int(self._id[4:])
+        return None
+
+    def getTerm(self):
+        return ( self._name, self._id )
 
     def getGroup(self):
         return self._group
@@ -69,12 +75,28 @@ class AnnotationGroup(object):
         '''
         return self.getFieldElementGroup(mesh).getMeshGroup()
 
+    def hasMeshGroup(self, mesh):
+        '''
+        :param mesh: The Zinc mesh to query a sub group of.
+        :return: True if MeshGroup for mesh exists and is not empty, otherwise False.
+        '''
+        elementGroup = self._group.getFieldElementGroup(mesh)
+        return elementGroup.isValid() and (elementGroup.getMeshGroup().getSize() > 0)
+
     def getNodesetGroup(self, nodeset):
         '''
         :param nodeset: The Zinc nodeset to manage a sub group of.
         :return: The Zinc nodesetGroup for adding nodes from nodeset in this AnnotationGroup.
         '''
         return self.getFieldNodeGroup(nodeset).getNodesetGroup()
+
+    def hasNodesetGroup(self, nodeset):
+        '''
+        :param nodeset: The Zinc nodeset to query a sub group of.
+        :return: True if NodesetGroup for nodeset exists and is not empty, otherwise False.
+        '''
+        nodeGroup = self._group.getFieldNodeGroup(nodeset)
+        return nodeGroup.isValid() and (nodeGroup.getNodesetGroup().getSize() > 0)
 
     def addSubelements(self):
         '''
@@ -92,13 +114,64 @@ class AnnotationGroup(object):
                 meshGroup.addElementsConditional(elementGroup)  # use FieldElementGroup as conditional field
 
 
-def findAnnotationGroupByName(annotationGroups, name):
+def findAnnotationGroupByName(annotationGroups: list, name: str):
     '''
+    Find existing annotation group for name.
     :param annotationGroups: list(AnnotationGroup)
     :param name: Name of group.
-    :return: AnnotationGroup or None.
+    :return: AnnotationGroup or None if not found.
     '''
     for annotationGroup in annotationGroups:
         if annotationGroup._name == name:
             return annotationGroup
     return None
+
+
+def findOrCreateAnnotationGroupForTerm(annotationGroups: list, region, term) -> AnnotationGroup:
+    '''
+    Find existing annotation group for term, or create it for region if not gound.
+    If annotation group created here, append it to annotationGroups.
+    :param annotationGroups: list(AnnotationGroup)
+    :param region: Zinc region to create group for.
+    :param term: Identifier for anatomical term, currently a tuple of name, id.
+    :return: AnnotationGroup.
+    '''
+    name = term[0]
+    annotationGroup = findAnnotationGroupByName(annotationGroups, name)
+    if annotationGroup:
+        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1] + "' does not match existing id '" + annotationGroup._id + "'"
+    else:
+        annotationGroup = AnnotationGroup(region, term)
+        annotationGroups.append(annotationGroup)
+    return annotationGroup
+
+
+def getAnnotationGroupForTerm(annotationGroups: list, term) -> AnnotationGroup:
+    '''
+    Get existing annotation group for term. Raise exception if not found.
+    :param annotationGroups: list(AnnotationGroup)
+    :param term: Identifier for anatomical term, currently a tuple of name, id.
+    :return: AnnotationGroup.
+    '''
+    name = term[0]
+    annotationGroup = findAnnotationGroupByName(annotationGroups, name)
+    if annotationGroup:
+        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1] + "' does not match existing id '" + annotationGroup._id + "'"
+        return annotationGroup
+    raise NameError("Annotation group '" + name + "' not found.")
+
+
+def mergeAnnotationGroups(*annotationGroupsIn):
+    '''
+    Merge the supplied sequence of list(annotationGroups) to a single list,
+    without duplicates.
+    :param annotationGroupsIn: Variable number of list(AnnotationGroup) to merge.
+     Groups must be for the same region.
+    :return: Merged list(AnnotationGroup)
+    '''
+    annotationGroups = []
+    for agroups in annotationGroupsIn:
+        for agroup in agroups:
+            if not findAnnotationGroupByName(annotationGroups, agroup._name):
+                annotationGroups.append(agroup)
+    return annotationGroups

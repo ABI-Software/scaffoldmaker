@@ -10,7 +10,8 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm, mergeAnnotationGroups
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.meshtypes.meshtype_3d_heartventriclesbase1 import MeshType_3d_heartventriclesbase1
@@ -121,29 +122,26 @@ class MeshType_3d_heart1(Scaffold_base):
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
         mesh = fm.findMeshByDimension(3)
 
         # generate heartventriclesbase1 model and put atria1 on it
-        annotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
-        annotationGroups += MeshType_3d_heartatria1.generateBaseMesh(region, options)
-        lFibrousRingGroup = AnnotationGroup(region, 'left fibrous ring', FMANumber = 77124, lyphID = 'Lyph ID unknown')
-        rFibrousRingGroup = AnnotationGroup(region, 'right fibrous ring', FMANumber = 77125, lyphID = 'Lyph ID unknown')
-        annotationGroups += [ lFibrousRingGroup, rFibrousRingGroup ]
+        ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
+        atriaAnnotationGroups = MeshType_3d_heartatria1.generateBaseMesh(region, options)
+        annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
+        lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
         markerName = findOrCreateFieldStoredString(fm, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
         markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerCoordinates)
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
 
@@ -401,17 +399,15 @@ class MeshType_3d_heart1(Scaffold_base):
 
         # annotation fiducial points
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
-        cruxXi = [ 0.0, 0.5, 1.0 ]
+        cruxXi = [ 0.5, 0.5, 1.0 ]
         cache.setMeshLocation(cruxElement, cruxXi)
         result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cruxCoordinates)
-        markerName.assignString(cache, 'crux')
+        markerName.assignString(cache, "crux of heart")
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
 
-        fm.endChange()
         return annotationGroups
 
     @classmethod
@@ -447,17 +443,24 @@ class MeshType_3d_heart1(Scaffold_base):
             i += 1
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()
+        # add epicardium of fibrous ring
+        fm = region.getFieldmodule()
+        MeshType_3d_heartventriclesbase1.defineFaceAnnotations(region, options, annotationGroups)
+        MeshType_3d_heartatria1.defineFaceAnnotations(region, options, annotationGroups)
+        lFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right fibrous ring"))
+        epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior_face_xi3_1 = fm.createFieldAnd(fm.createFieldIsExterior(), fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_non_septal_fibrous_ring = fm.createFieldXor(lFibrousRingGroup.getFieldElementGroup(mesh2d), rFibrousRingGroup.getFieldElementGroup(mesh2d))
+        is_non_septal_fibrous_ring_epi = fm.createFieldAnd(is_non_septal_fibrous_ring, is_exterior_face_xi3_1)
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_non_septal_fibrous_ring_epi)

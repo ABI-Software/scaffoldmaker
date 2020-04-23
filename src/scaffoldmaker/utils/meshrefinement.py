@@ -3,7 +3,8 @@ Class for refining a mesh from one region to another.
 '''
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -67,24 +68,54 @@ class MeshRefinement:
 
         self._nodeIdentifier = 1
         self._elementIdentifier = 1
-
+        # prepare annotation group map
         self._sourceAnnotationGroups = sourceAnnotationGroups
         self._annotationGroups = []
         self._sourceAndTargetMeshGroups = []
         for sourceAnnotationGroup in sourceAnnotationGroups:
             sourceMeshGroup = sourceAnnotationGroup.getMeshGroup(self._sourceMesh)
-            targetAnnotationGroup = AnnotationGroup(self._targetRegion, \
-                sourceAnnotationGroup.getName(), sourceAnnotationGroup.getFMANumber(), sourceAnnotationGroup.getLyphID())
+            targetAnnotationGroup = AnnotationGroup(self._targetRegion, sourceAnnotationGroup.getTerm())
             targetMeshGroup = targetAnnotationGroup.getMeshGroup(self._targetMesh)
             self._annotationGroups.append(targetAnnotationGroup)
             self._sourceAndTargetMeshGroups.append( ( sourceMeshGroup, targetMeshGroup) )
+        # prepare element -> marker point list map
+        self.elementMarkerMap = {}
+        sourceMarkerGroup = findOrCreateFieldGroup(self._sourceFm, "marker")
+        sourceMarkerName = findOrCreateFieldStoredString(self._sourceFm, name="marker_name")
+        sourceMarkerLocation = findOrCreateFieldStoredMeshLocation(self._sourceFm, self._sourceMesh, name="marker_location")
+        sourceMarkerNodes = findOrCreateFieldNodeGroup(sourceMarkerGroup, sourceNodes).getNodesetGroup()
+        nodeIter = sourceMarkerNodes.createNodeiterator()
+        node = nodeIter.next()
+        while node.isValid():
+            self._sourceCache.setNode(node)
+            element, xi = sourceMarkerLocation.evaluateMeshLocation(self._sourceCache, self._sourceMesh.getDimension())
+            if element.isValid():
+                elementIdentifier = element.getIdentifier()
+                markerName = sourceMarkerName.evaluateString(self._sourceCache)
+                markerList = self.elementMarkerMap.get(elementIdentifier)
+                if not markerList:
+                    markerList = []
+                    self.elementMarkerMap[elementIdentifier] = markerList
+                markerList.append( ( markerName, xi ) )
+            node = nodeIter.next()
+        if self.elementMarkerMap:
+            self._targetMarkerGroup = findOrCreateFieldGroup(self._targetFm, "marker")
+            self._targetMarkerName = findOrCreateFieldStoredString(self._targetFm, name="marker_name")
+            self._targetMarkerLocation = findOrCreateFieldStoredMeshLocation(self._targetFm, self._targetMesh, name="marker_location")
+            self._targetMarkerNodes = findOrCreateFieldNodeGroup(self._targetMarkerGroup, self._targetNodes).getNodesetGroup()
+            self._targetMarkerTemplate = self._targetMarkerNodes.createNodetemplate()
+            self._targetMarkerTemplate.defineField(self._targetMarkerName)
+            self._targetMarkerTemplate.defineField(self._targetMarkerLocation)
+
 
     def __del__(self):
         self._sourceFm.endChange()
         self._targetFm.endChange()
 
+
     def getAnnotationGroups(self):
         return self._annotationGroups
+
 
     def refineElementCubeStandard3d(self, sourceElement, numberInXi1, numberInXi2, numberInXi3,
             addNewNodesToOctree=True, shareNodeIds=None, shareNodeCoordinates=None):
@@ -146,6 +177,7 @@ class MeshRefinement:
                     nids.append(nodeId)
                     nx.append(x)
         # create elements
+        startElementIdentifier = self._elementIdentifier
         for k in range(numberInXi3):
             ok = (numberInXi2 + 1)*(numberInXi1 + 1)
             for j in range(numberInXi2):
@@ -162,7 +194,36 @@ class MeshRefinement:
 
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
+
+        # re-map any markers embedded in the source element
+        if self.elementMarkerMap:
+            markerList = self.elementMarkerMap.get(sourceElement.getIdentifier())
+            if markerList:
+                numberInXi = [ numberInXi1, numberInXi2, numberInXi3 ]
+                elementOffset = [ 1, numberInXi1, numberInXi1*numberInXi2 ]
+                targetXi = [ 0.0 ]*3
+                for marker in markerList:
+                    markerName, sourceXi = marker
+                    node = self._targetMarkerNodes.createNode(self._nodeIdentifier, self._targetMarkerTemplate)
+                    self._targetCache.setNode(node)
+                    self._targetMarkerName.assignString(self._targetCache, markerName)
+                    # determine which sub-element, targetXi that sourceXi maps to
+                    targetElementIdentifier = startElementIdentifier
+                    for i in range(3):
+                        targetXi[i] = sourceXi[i]*numberInXi[i]
+                        el = int(targetXi[i])
+                        if el < numberInXi[i]:
+                            targetXi[i] -= el
+                        else:
+                            el = numberInXi[i] - 1
+                            targetXi[i] = 1.0
+                        targetElementIdentifier += el*elementOffset[i]
+                    targetElement = self._targetMesh.findElementByIdentifier(targetElementIdentifier)
+                    result = self._targetMarkerLocation.assignMeshLocation(self._targetCache, targetElement, targetXi)
+                    self._nodeIdentifier += 1
+
         return nids, nx
+
 
     def refineAllElementsCubeStandard3d(self, numberInXi1, numberInXi2, numberInXi3):
         element = self._sourceElementiterator.next()
