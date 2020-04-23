@@ -201,7 +201,7 @@ class ShieldMesh:
         :param coordinates: Coordinate field to define.
         :param startElementIdentifier: First element identifier to use.
         :param meshGroups: Zinc mesh groups to add elements to.
-        :return: next elementIdentifier, elementId[e2][e1].
+        :return: next nodeIdentifier.
          """
         nodeIdentifier = startNodeIdentifier
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -246,7 +246,6 @@ class ShieldMesh:
         :return: next elementIdentifier.
          """
         elementIdentifier = startElementIdentifier
-        elementId = []
         useCrossDerivatives = False
         mesh = fieldmodule.findMeshByDimension(3)
 
