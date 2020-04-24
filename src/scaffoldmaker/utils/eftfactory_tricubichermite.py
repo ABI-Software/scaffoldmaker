@@ -833,6 +833,57 @@ class eftfactory_tricubichermite:
             eft.setTermNodeParameter(f, 2, localNode1, Node.VALUE_LABEL_VALUE, 1)
             eft.setTermScaling(f, 2, [minus1scaleFactorIndex])
 
+    def setEftLinearDerivative2(self, eft, basisNodes, derivative, crossDerivatives, localNodes=None, minus1scaleFactorIndex=1):
+        '''
+        Makes the derivative at basisNodes equal to the difference in the value parameter at the corresponding
+        localNodes to make the basis equivalent to linear Lagrange.
+        Specified cross derivatives are also set to equal linear differences in the other derivative.
+        :basisNodes: List of pairs of basis nodes to set derivative at, numbering from 1.
+        e.g. [ 1, 5, 2, 6 ] will set derivative at 1 and 5 to value[5] - value[1], and 2 and 6 to value[6] - value[2]
+        :derivative: Derivative to set from difference in value e.g. Node.VALUE_LABEL_D_DS3.
+        :crossDerivatives: List of cross derivatives to set from difference in other derivative.
+        Valid constants are mixed second cross derivatives including the specified derivative above,
+        e.g. [ Node.VALUE_LABEL_D2_DS1DS3 ] would be set to difference of Node.VALUE_LABEL_D_DS1 for derivative Node.VALUE_LABEL_D_DS3
+        :localNodes: List of pairs of local nodes to get values and derivatives for, numbering from 1. If None, use basisNodes.
+        :param minus1scaleFactorIndex: Local scale factor index for general value -1.0, default=1.
+        '''
+        if derivative == Node.VALUE_LABEL_D_DS3:
+            allowedSourceDerivatives = [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ]
+            allowedCrossDerivatives = [ Node.VALUE_LABEL_D2_DS1DS3, Node.VALUE_LABEL_D2_DS2DS3 ]
+        elif derivative == Node.VALUE_LABEL_D_DS2:
+            allowedSourceDerivatives = [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3 ]
+            allowedCrossDerivatives = [ Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS2DS3 ]
+        elif derivative == Node.VALUE_LABEL_D_DS1:
+            allowedSourceDerivatives = [ Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
+            allowedCrossDerivatives = [ Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3 ]
+        else:
+            assert False, 'setEftLinearDerivative2.  Invalid derivative'
+        sourceValueType = [ Node.VALUE_LABEL_VALUE ]
+        targetValueType = [ derivative ]
+        for crossDerivative in crossDerivatives:
+            for i in range(2):
+                if crossDerivative == allowedCrossDerivatives[i]:
+                    sourceValueType.append(allowedSourceDerivatives[i])
+                    targetValueType.append(allowedCrossDerivatives[i])
+                    break
+            else:
+                assert False, 'setEftLinearDerivative2.  Invalid cross derivative'
+        assert len(basisNodes) in [ 2, 4, 6, 8 ]
+        if localNodes:
+            assert len(localNodes) == len(basisNodes)
+        else:
+            localNodes = basisNodes
+        for i in range(len(sourceValueType)):
+            nodeFunctionIndex = targetValueType[i] - Node.VALUE_LABEL_VALUE + 1
+            for bi in range(len(basisNodes)):
+                li = bi - (bi % 2)
+                f = (basisNodes[bi] - 1)*8 + nodeFunctionIndex
+                eft.setFunctionNumberOfTerms(f, 2)
+                eft.setTermNodeParameter(f, 1, localNodes[li + 1], sourceValueType[i], 1)
+                eft.setTermScaling(f, 1, [])
+                eft.setTermNodeParameter(f, 2, localNodes[li    ], sourceValueType[i], 1)
+                eft.setTermScaling(f, 2, [minus1scaleFactorIndex])
+
     def setEftMidsideXi1HangingNode(self, eft, hangingBasisNode, otherBasisNode, localNode1, localNode2, scaleFactorIndexes):
         '''
         Makes the functions for eft at basisNode work as a hanging node interpolating the parameters

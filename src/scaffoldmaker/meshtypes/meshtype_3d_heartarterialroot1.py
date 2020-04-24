@@ -11,7 +11,8 @@ from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getM
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, createCirclePoints
@@ -121,32 +122,22 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         mesh = fm.findMeshByDimension(3)
 
         if aorticNotPulmonary:
-            arterialRootGroup = AnnotationGroup(region, 'root of aorta', FMANumber = 3740, lyphID = 'Lyph ID unknown')
+            arterialRootGroup = AnnotationGroup(region, get_heart_term("root of aorta"))
             cuspGroups = [
-                AnnotationGroup(region, 'posterior cusp of aortic valve', FMANumber = 7253, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'right cusp of aortic valve',     FMANumber = 7252, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'left cusp of aortic valve',      FMANumber = 7251, lyphID = 'Lyph ID unknown') ]
+                AnnotationGroup(region, get_heart_term("posterior cusp of aortic valve")),
+                AnnotationGroup(region, get_heart_term("right cusp of aortic valve")),
+                AnnotationGroup(region, get_heart_term("left cusp of aortic valve")) ]
         else:
-            arterialRootGroup = AnnotationGroup(region, 'root of pulmonary trunk', FMANumber = 8612, lyphID = 'Lyph ID unknown')
+            arterialRootGroup = AnnotationGroup(region, get_heart_term("root of pulmonary trunk"))
             cuspGroups = [
-                AnnotationGroup(region, 'right cusp of pulmonary valve',    FMANumber = 7250, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'anterior cusp of pulmonary valve', FMANumber = 7249, lyphID = 'Lyph ID unknown'),
-                AnnotationGroup(region, 'left cusp of pulmonary valve',     FMANumber = 7247, lyphID = 'Lyph ID unknown') ]
+                AnnotationGroup(region, get_heart_term("right cusp of pulmonary valve")),
+                AnnotationGroup(region, get_heart_term("anterior cusp of pulmonary valve")),
+                AnnotationGroup(region, get_heart_term("left cusp of pulmonary valve")) ]
 
         allGroups = [ arterialRootGroup ]  # groups that all elements in scaffold will go in
         annotationGroups = allGroups + cuspGroups
 
-        # annotation fiducial points
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerCoordinates = findOrCreateFieldCoordinates(fm, "marker_coordinates")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        #markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerTemplateExternal = nodes.createNodetemplate()
-        markerTemplateExternal.defineField(markerCoordinates)
-        markerTemplateExternal.defineField(markerName)
 
         #################
         # Create nodes
@@ -504,14 +495,6 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
-
-        # create annotation points
-
-        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateExternal)
-        nodeIdentifier += 1
-        cache.setNode(markerPoint)
-        markerCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, noduleCentre)
-        markerName.assignString(cache, 'aortic valve ctr' if aorticNotPulmonary else 'pulmonary valve ctr')
 
         fm.endChange()
         return annotationGroups

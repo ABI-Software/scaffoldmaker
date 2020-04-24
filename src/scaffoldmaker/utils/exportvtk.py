@@ -3,10 +3,13 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 '''
 
 import io
+import os
 from sys import version_info
-from opencmiss.zinc.field import Field
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
-
+from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.result import RESULT_OK
 
 class ExportVtk:
     '''
@@ -26,9 +29,17 @@ class ExportVtk:
             self._mesh = self._fieldmodule.findMeshByDimension(dimension)
             if self._mesh.getSize() > 0:
                 break
-        self._coordinates = self._fieldmodule.findFieldByName('coordinates')
+        self._nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self._coordinates = findOrCreateFieldCoordinates(self._fieldmodule)
         self._description = description
         self._annotationGroups = annotationGroups if annotationGroups else []
+        self._markerNodes = None
+        markerGroup = self._fieldmodule.findFieldByName("marker")
+        if markerGroup.isValid():
+            markerGroup = markerGroup.castGroup()
+            markerNodeGroup = markerGroup.getFieldNodeGroup(self._nodes)
+            if markerNodeGroup.isValid():
+                self._markerNodes = markerNodeGroup.getNodesetGroup()
 
 
     def _write(self, outstream):
@@ -39,28 +50,27 @@ class ExportVtk:
         outstream.write('ASCII\n')
         outstream.write('DATASET UNSTRUCTURED_GRID\n')
         nodeIdentifierToIndex = {}  # map needed since vtk points are zero index based, i.e. have no identifier
-        coordinates = self._coordinates
-        coordinatesCount = coordinates.getNumberOfComponents()
+        coordinatesCount = self._coordinates.getNumberOfComponents()
         cache = self._fieldmodule.createFieldcache()
 
-        nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        pointCount = nodes.getSize()
+        # exclude marker nodes from output
+        pointCount = self._nodes.getSize()
+        if self._markerNodes:
+            pointCount -= self._markerNodes.getSize()
         outstream.write('POINTS ' + str(pointCount) + ' double\n')
-        nodeIter = nodes.createNodeiterator()
+        nodeIter = self._nodes.createNodeiterator()
         node = nodeIter.next()
         index = 0
         while node.isValid():
-            nodeIdentifierToIndex[node.getIdentifier()] = index
-            cache.setNode(node)
-            result, x = self._coordinates.evaluateReal(cache, coordinatesCount)
-            first = True
-            for s in x:
-                if not first:
-                    outstream.write(' ')
-                outstream.write(str(s))
-                first = False
-            outstream.write('\n')
-            index += 1
+            if not (self._markerNodes and self._markerNodes.containsNode(node)):
+                nodeIdentifierToIndex[node.getIdentifier()] = index
+                cache.setNode(node)
+                result, x = self._coordinates.evaluateReal(cache, coordinatesCount)
+                if result != RESULT_OK:
+                    print("Coordinates not found for node", node.getIdentifier())
+                    x = [ 0.0 ]*coordinatesCount
+                outstream.write(" ".join(str(s) for s in x) + "\n")
+                index += 1
             node = nodeIter.next()
 
         # following assumes all hex (3-D) or all quad (2-D) elements
@@ -79,7 +89,7 @@ class ExportVtk:
         elementIter = self._mesh.createElementiterator()
         element = elementIter.next()
         while element.isValid():
-            eft = element.getElementfieldtemplate(coordinates, -1)  # assumes all components same
+            eft = element.getElementfieldtemplate(self._coordinates, -1)  # assumes all components same
             nodeIdentifiers = getElementNodeIdentifiersBasisOrder(element, eft)
             outstream.write(localNodeCountStr)
             for localIndex in vtkIndexing:
@@ -92,9 +102,19 @@ class ExportVtk:
             outstream.write(cellTypeString + ' ')
         outstream.write(cellTypeString + '\n')
 
-        if self._annotationGroups:
+        # use cell data for annotation groups containing elements of mesh dimension
+        # use point data for lower dimensional annotation groups
+        pointAnnotationGroups = []
+        cellAnnotationGroups = []
+        for annotationGroup in self._annotationGroups:
+            if annotationGroup.hasMeshGroup(self._mesh):
+                cellAnnotationGroups.append(annotationGroup)
+            elif annotationGroup.hasNodesetGroup(self._nodes):
+                pointAnnotationGroups.append(annotationGroup)
+
+        if cellAnnotationGroups:
             outstream.write('CELL_DATA ' + str(cellCount) + '\n')
-            for annotationGroup in self._annotationGroups:
+            for annotationGroup in cellAnnotationGroups:
                 safeName = annotationGroup.getName().replace(' ', '_')
                 outstream.write('SCALARS ' + safeName + ' int 1\n')
                 outstream.write('LOOKUP_TABLE default\n') 
@@ -106,6 +126,41 @@ class ExportVtk:
                     element = elementIter.next()
                 outstream.write('\n')
 
+        if pointAnnotationGroups:
+            outstream.write('POINT_DATA ' + str(pointCount) + '\n')
+            for annotationGroup in pointAnnotationGroups:
+                safeName = annotationGroup.getName().replace(' ', '_')
+                outstream.write('SCALARS ' + safeName + ' int 1\n')
+                outstream.write('LOOKUP_TABLE default\n') 
+                nodesetGroup = annotationGroup.getNodesetGroup(self._nodes)
+                nodeIter = self._nodes.createNodeiterator()
+                node = nodeIter.next()
+                while node.isValid():
+                    if not (self._markerNodes and self._markerNodes.containsNode(node)):
+                        outstream.write('1 ' if nodesetGroup.containsNode(node) else '0 ')
+                    node = nodeIter.next()
+                outstream.write('\n')
+
+
+    def _writeMarkers(self, outstream):
+        coordinatesCount = self._coordinates.getNumberOfComponents()
+        cache = self._fieldmodule.createFieldcache()
+        markerLocation = self._fieldmodule.findFieldByName("marker_location")
+        markerName = self._fieldmodule.findFieldByName("marker_name")
+        if markerLocation.isValid() and markerName.isValid():
+            with ChangeManager(self._fieldmodule):
+                markerCoordinates = self._fieldmodule.createFieldEmbedded(self._coordinates, markerLocation)
+                nodeIter = self._markerNodes.createNodeiterator()
+                node = nodeIter.next()
+                while node.isValid():
+                    cache.setNode(node)
+                    result, x = markerCoordinates.evaluateReal(cache, coordinatesCount)
+                    if result == RESULT_OK:
+                        name = markerName.evaluateString(cache)
+                        outstream.write(",".join(str(s) for s in x) + "," + name + "\n")
+                    node = nodeIter.next()
+                del markerCoordinates
+
 
     def writeFile(self, filename):
         '''
@@ -113,3 +168,7 @@ class ExportVtk:
         '''
         with open(filename, 'w') as outstream:
             self._write(outstream)
+        if self._markerNodes and (self._markerNodes.getSize() > 0):
+            markerFilename = os.path.splitext(filename)[0] + "_marker.csv"
+            with open(markerFilename, 'w') as outstream:
+                self._writeMarkers(outstream)
