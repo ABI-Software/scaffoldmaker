@@ -129,7 +129,7 @@ def findAnnotationGroupByName(annotationGroups: list, name: str):
 
 def findOrCreateAnnotationGroupForTerm(annotationGroups: list, region, term) -> AnnotationGroup:
     '''
-    Find existing annotation group for term, or create it for region if not gound.
+    Find existing annotation group for term, or create it for region if not found.
     If annotation group created here, append it to annotationGroups.
     :param annotationGroups: list(AnnotationGroup)
     :param region: Zinc region to create group for.

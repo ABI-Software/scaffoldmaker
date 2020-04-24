@@ -28,6 +28,8 @@ heart_terms = [
     ( "right auricle", "FMA:7218", "UBERON:0006631" ),  # uncertain if just the tissue like myocardium
     ( "endocardium of left auricle", "FMA:13236", "UBERON:0011006" ),
     ( "endocardium of right auricle", "FMA:13235", "UBERON:0011007" ),
+    ( "epicardium of left auricle", "FMA:13233" ),
+    ( "epicardium of right auricle", "FMA:13232" ),
     ( "pulmonary vein", "FMA:66643", "UBERON:0002016" ),
     ( "left pulmonary vein", "UBERON:0009030" ),
     ( "left inferior pulmonary vein", "FMA:49913" ),
