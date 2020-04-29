@@ -832,16 +832,15 @@ class MeshType_3d_bladder1(Scaffold_base):
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_interior = fm.createFieldIsExterior()
-        is_interior_face_xi3_0 = fm.createFieldAnd(is_interior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
 
         is_body = bodyGroup.getFieldElementGroup(mesh2d)
         is_body_serosa = fm.createFieldAnd(is_body, is_exterior_face_xi3_1)
-        is_body_lumen = fm.createFieldAnd(is_body, is_interior_face_xi3_0)
+        is_body_lumen = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
 
         is_neck = neckGroup.getFieldElementGroup(mesh2d)
         is_neck_outer_layer = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
-        is_neck_lumen = fm.createFieldAnd(is_neck, is_interior_face_xi3_0)
+        is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
 
         serosaOfBody = AnnotationGroup(region, "Serosa of urinary bladder", FMANumber='unknown', lyphID='unknown')
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa)
