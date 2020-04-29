@@ -266,10 +266,12 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         neckGroup = AnnotationGroup(region, 'neck of bladder', FMANumber='unknown', lyphID='unknown')
         bodyGroup = AnnotationGroup(region, 'body of bladder', FMANumber='unknown', lyphID='unknown')
-        annotationGroups = [neckGroup, bodyGroup]
+        urinaryBladderGroup = AnnotationGroup(region, 'urinary bladder', FMANumber='unknown', lyphID='unknown')
+        annotationGroups = [neckGroup, bodyGroup, urinaryBladderGroup]
 
         neckMeshGroup = neckGroup.getMeshGroup(mesh)
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
+        urinaryBladderMeshGroup = urinaryBladderGroup.getMeshGroup(mesh)
 
         # create nodes
         # create neck of the bladder
@@ -700,13 +702,13 @@ class MeshType_3d_bladder1(Scaffold_base):
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints1_x, endPoints1_d1, endPoints1_d2, None, endNode1_Id, endDerivativesMap,
-            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup])
+            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup, urinaryBladderMeshGroup])
 
         nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o2_x, o2_d1, o2_d2, None, o2_NodeId, None,
             endPoints2_x, endPoints2_d1, endPoints2_d2, None, endNode2_Id, endDerivativesMap,
-            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup])
+            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup, urinaryBladderMeshGroup])
 
         # create elements
         for e3 in range(1):
@@ -739,6 +741,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             neckMeshGroup.addElement(element)
+                            urinaryBladderMeshGroup.addElement(element)
                             elementIdentifier += 1
                     elif e2 == ostiumElementPositionUp + 1:
                         if (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
@@ -770,6 +773,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             neckMeshGroup.addElement(element)
+                            urinaryBladderMeshGroup.addElement(element)
                             elementIdentifier += 1
                     elif e2 > ostiumElementPositionUp + 1:
                         element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -781,6 +785,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                            bni1, bni2, bni3, bni4]
                         result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         neckMeshGroup.addElement(element)
+                        urinaryBladderMeshGroup.addElement(element)
                         elementIdentifier += 1
                     else:
                         element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -792,6 +797,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                            bni1, bni2, bni3, bni4]
                         result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         neckMeshGroup.addElement(element)
+                        urinaryBladderMeshGroup.addElement(element)
                         elementIdentifier += 1
 
             # create bladder body elements
@@ -806,6 +812,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                        bni1, bni2, bni3, bni4]
                     result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                     bodyMeshGroup.addElement(element)
+                    urinaryBladderMeshGroup.addElement(element)
                     elementIdentifier += 1
             # create apex elements
             bni3 = (elementsCountUpNeck + elementsCountUpBody) * elementsCountAround - 1
@@ -823,6 +830,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni1, bni2, bni3]
                 result = element.setNodesByIdentifier(eftApex, nodeIdentifiers)
                 bodyMeshGroup.addElement(element)
+                urinaryBladderMeshGroup.addElement(element)
                 elementIdentifier += 1
 
         # create 2d mesh groups
