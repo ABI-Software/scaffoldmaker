@@ -264,8 +264,8 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         cache = fm.createFieldcache()
 
-        neckGroup = AnnotationGroup(region, 'neck of bladder', FMANumber='unknown', lyphID='unknown')
-        bodyGroup = AnnotationGroup(region, 'body of bladder', FMANumber='unknown', lyphID='unknown')
+        neckGroup = AnnotationGroup(region, 'neck of urinary bladder', FMANumber='unknown', lyphID='unknown')
+        bodyGroup = AnnotationGroup(region, 'Dome of the Bladder', FMANumber='unknown', lyphID='unknown')
         urinaryBladderGroup = AnnotationGroup(region, 'urinary bladder', FMANumber='unknown', lyphID='unknown')
         annotationGroups = [neckGroup, bodyGroup, urinaryBladderGroup]
 
@@ -850,17 +850,17 @@ class MeshType_3d_bladder1(Scaffold_base):
         is_neck_outer_layer = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
         is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
 
-        serosaOfBody = AnnotationGroup(region, "Serosa of urinary bladder", FMANumber='unknown', lyphID='unknown')
+        serosaOfBody = AnnotationGroup(region, "Serosa of body of urinary bladder", FMANumber='unknown', lyphID='unknown')
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa)
         lumenOfBody = AnnotationGroup(region, "Lumen of body of urinary bladder", FMANumber='unknown', lyphID='unknown')
         lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen)
 
-        outerLayerOfNeck = AnnotationGroup(region, "Neck of urinary bladder", FMANumber='unknown', lyphID='unknown')
-        outerLayerOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_outer_layer)
+        SerosaOfNeck = AnnotationGroup(region, "Serosa of neck of urinary bladder", FMANumber='unknown', lyphID='unknown')
+        SerosaOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_outer_layer)
         lumenOfNeck = AnnotationGroup(region, "Lumen of neck of urinary bladder", FMANumber='unknown', lyphID='unknown')
         lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
 
-        annotationGroups += [serosaOfBody, lumenOfBody, outerLayerOfNeck, lumenOfNeck]
+        annotationGroups += [serosaOfBody, lumenOfBody, SerosaOfNeck, lumenOfNeck]
 
         fm.endChange()
         return annotationGroups
