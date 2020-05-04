@@ -1677,7 +1677,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractProportions[nc][0], ractProportions[nc][1],
             ravtProportions[ran1raap][0], ravtProportions[ran1raap][1],
             elementsCount = elementsCountOverSideRightAtriumPouch,
-            derivativeStart = [ (ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
+            #derivativeStart = [ (ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
+            derivativeStart = [ -d for d in ractd1[1][nc] ],
             derivativeEnd = [ -d for d in ravtd2[1][ran1raap] ])
         # get inner points
         raapx  = [ [ None ], raapx  ]
@@ -1708,7 +1709,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractProportions[nc][0], ractProportions[nc][1],
             ravtProportions[ran1raaq][0], ravtProportions[ran1raaq][1],
             elementsCount = elementsCountOverAtria//2 + elementsCountOverCristaTerminalisAnterior - 3,
-            derivativeStart = [ (ractd2[1][nc][c] - 0.5*ractd1[1][nc][c]) for c in range(3) ],
+            #derivativeStart = [ (ractd2[1][nc][c] - 0.5*ractd1[1][nc][c]) for c in range(3) ],
+            derivativeStart = [ (ractd2[1][nc][c] -ractd1[1][nc][c]) for c in range(3) ],
             derivativeEnd = [ -d for d in ravtd2[1][ran1raaq] ])
         # get inner points
         raaqx  = [ [ None ], raaqx  ]
@@ -2972,7 +2974,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                     addMarker = { "name" : "SVC-RA", "xi" : [ 0.0, 1.0, 0.0 ] }
                 elif (e2 == 1) and (e1 < (elementsCountOverSideRightAtriumPouch - 1)):
@@ -3072,7 +3075,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 if n1 == 0:
                     raasDerivativesMap[n3][ix] = ( None, (-1, 0, 0), None, (0, 1, 0) )  # compare ( None, (-1, 1, 0), None, (0, 1, 0) )
                 else: # n1 == 1:
-                    raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 1, 0) )  # compare ( (0, 1, 0), (-1, 0, 0), None, (-1, 1, 0) )
+                    #raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 1, 0) )  # compare ( (0, 1, 0), (-1, 0, 0), None, (-1, 1, 0) )
+                    raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 0, 0) )
             ix += 1
         # down right atrial appendage pouch limit, raap
         n1Last = len(raapx[1]) - 1
