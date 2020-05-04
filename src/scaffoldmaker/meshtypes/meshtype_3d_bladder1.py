@@ -9,7 +9,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.bladder_terms import get_bladder_term
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -119,8 +119,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Bladder wall thickness': 0.05,
             'Urethra diameter': 1.0,
             'Ureter': copy.deepcopy(ostiumOption),
-            'Ostium position around': 0.15,
-            'Ostium position up': 0.25,
+            'Ostium position around': 0.55,  # should be on the dorsal part
+            'Ostium position up': 0.55,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements around': 4,
@@ -128,15 +128,15 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Rat' in parameterSetName:
+            options['Number of elements up neck'] = 6
             options['Number of elements around'] = 16  # should be even
-            options['Number of elements radially on annulus'] = 2
             options['Height'] = 3.0
             options['Major diameter'] = 5.0
             options['Minor diameter'] = 3.0
             options['Bladder wall thickness'] = 0.02
             options['Urethra diameter'] = 0.7
-            options['Ostium position around'] = 0.55
-            options['Ostium position up'] = 0.65
+            options['Ostium position around'] = 0.65  # should be on the dorsal part
+            options['Ostium position up'] = 0.75
         return options
 
     @staticmethod
@@ -238,6 +238,9 @@ class MeshType_3d_bladder1(Scaffold_base):
         fm = region.getFieldmodule()
         fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
+        cache = fm.createFieldcache()
+
+        mesh = fm.findMeshByDimension(3)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplateApex = nodes.createNodetemplate()
@@ -255,7 +258,6 @@ class MeshType_3d_bladder1(Scaffold_base):
         else:
             nodetemplate = nodetemplateApex
 
-        mesh = fm.findMeshByDimension(3)
         eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eft = eftfactory.createEftBasic()
 
@@ -263,14 +265,14 @@ class MeshType_3d_bladder1(Scaffold_base):
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplate.defineField(coordinates, -1, eft)
 
-        cache = fm.createFieldcache()
-
         neckGroup = AnnotationGroup(region, get_bladder_term("neck of urinary bladder"))
-        bodyGroup = AnnotationGroup(region, get_bladder_term("body of urinary bladder"))
-        annotationGroups = [neckGroup, bodyGroup]
+        bodyGroup = AnnotationGroup(region, get_bladder_term("Dome of the Bladder"))
+        urinaryBladderGroup = AnnotationGroup(region, get_bladder_term("urinary bladder"))
+        annotationGroups = [neckGroup, bodyGroup, urinaryBladderGroup]
 
         neckMeshGroup = neckGroup.getMeshGroup(mesh)
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
+        urinaryBladderMeshGroup = urinaryBladderGroup.getMeshGroup(mesh)
 
         # create nodes
         # create neck of the bladder
@@ -701,13 +703,13 @@ class MeshType_3d_bladder1(Scaffold_base):
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints1_x, endPoints1_d1, endPoints1_d2, None, endNode1_Id, endDerivativesMap,
-            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup])
+            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup, urinaryBladderMeshGroup])
 
         nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o2_x, o2_d1, o2_d2, None, o2_NodeId, None,
             endPoints2_x, endPoints2_d1, endPoints2_d2, None, endNode2_Id, endDerivativesMap,
-            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup])
+            elementsCountRadial=elementsCountAnnulusRadially, meshGroups=[neckMeshGroup, urinaryBladderMeshGroup])
 
         # create elements
         for e3 in range(1):
@@ -740,6 +742,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             neckMeshGroup.addElement(element)
+                            urinaryBladderMeshGroup.addElement(element)
                             elementIdentifier += 1
                     elif e2 == ostiumElementPositionUp + 1:
                         if (e1 == ostiumElementPositionAround or e1 == ostiumElementPositionAround + 1):
@@ -771,6 +774,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                bni1, bni2, bni3, bni4]
                             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                             neckMeshGroup.addElement(element)
+                            urinaryBladderMeshGroup.addElement(element)
                             elementIdentifier += 1
                     elif e2 > ostiumElementPositionUp + 1:
                         element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -782,6 +786,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                            bni1, bni2, bni3, bni4]
                         result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         neckMeshGroup.addElement(element)
+                        urinaryBladderMeshGroup.addElement(element)
                         elementIdentifier += 1
                     else:
                         element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -793,6 +798,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                            bni1, bni2, bni3, bni4]
                         result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         neckMeshGroup.addElement(element)
+                        urinaryBladderMeshGroup.addElement(element)
                         elementIdentifier += 1
 
             # create bladder body elements
@@ -807,6 +813,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                        bni1, bni2, bni3, bni4]
                     result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                     bodyMeshGroup.addElement(element)
+                    urinaryBladderMeshGroup.addElement(element)
                     elementIdentifier += 1
             # create apex elements
             bni3 = (elementsCountUpNeck + elementsCountUpBody) * elementsCountAround - 1
@@ -824,29 +831,67 @@ class MeshType_3d_bladder1(Scaffold_base):
                 nodeIdentifiers = [bni1 + newl, bni2 + newl, bni3 + newl, bni1, bni2, bni3]
                 result = element.setNodesByIdentifier(eftApex, nodeIdentifiers)
                 bodyMeshGroup.addElement(element)
+                urinaryBladderMeshGroup.addElement(element)
                 elementIdentifier += 1
 
         fm.endChange()
         return annotationGroups
 
     @classmethod
-    def generateMesh(cls, region, options):
-        '''
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+    def refineMesh(cls, meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        Stops at end of ventricles, hence can be called from ventriclesbase.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
-        '''
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-
+        """
+        assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountUp = options['Refine number of elements up']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
+        element = meshrefinement._sourceElementiterator.next()
+        while element.isValid():
+            numberInXi1 = refineElementsCountAround
+            numberInXi2 = refineElementsCountUp
+            numberInXi3 = refineElementsCountThroughWall
+            meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3)
+            element = meshrefinement._sourceElementiterator.next()
 
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        # create 2d surface mesh groups
+        fm = region.getFieldmodule()
+        neckGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("neck of urinary bladder"))
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("Dome of the Bladder"))
+        urinaryBladderGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urinary bladder"))
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
 
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp, refineElementsCountThroughWall)
-        return meshrefinement.getAnnotationGroups()
+        is_body = bodyGroup.getFieldElementGroup(mesh2d)
+        is_body_serosa = fm.createFieldAnd(is_body, is_exterior_face_xi3_1)
+        is_body_lumen = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
+
+        is_neck = neckGroup.getFieldElementGroup(mesh2d)
+        is_neck_outer_layer = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
+        is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
+
+        serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Serosa of body of urinary bladder"))
+        serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa)
+        lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Lumen of body of urinary bladder"))
+        lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen)
+
+        SerosaOfNeck =findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Serosa of neck of urinary bladder"))
+        SerosaOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_outer_layer)
+        lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Lumen of neck of urinary bladder"))
+        lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
+
