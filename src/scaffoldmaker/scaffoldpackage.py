@@ -7,7 +7,7 @@ import copy
 import math
 from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.utils.maths import vectorops
+from opencmiss.utils.maths.vectorops import euler_to_rotation_matrix
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 class ScaffoldPackage:
@@ -141,7 +141,7 @@ class ScaffoldPackage:
         '''
         # apply transformation in order: scale then rotation then translation
         if not all((v == 0.0) for v in self._rotation):
-            rotationMatrix = vectorops.eulerToRotationMatrix3([ deg*math.pi/180.0 for deg in self._rotation ])
+            rotationMatrix = euler_to_rotation_matrix([ deg*math.pi/180.0 for deg in self._rotation ])
             return [
                 [ rotationMatrix[0][0]*self._scale[0], rotationMatrix[0][1]*self._scale[1], rotationMatrix[0][2]*self._scale[2], self._translation[0] ],
                 [ rotationMatrix[1][0]*self._scale[0], rotationMatrix[1][1]*self._scale[1], rotationMatrix[1][2]*self._scale[2], self._translation[1] ],
