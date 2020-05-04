@@ -839,12 +839,6 @@ class MeshType_3d_bladder1(Scaffold_base):
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
-        """
-        Refine source mesh into separate region, with change of basis.
-        Stops at end of ventricles, hence can be called from ventriclesbase.
-        :param meshrefinement: MeshRefinement, which knows source and target region.
-        :param options: Dict containing options. See getDefaultOptions().
-        """
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountUp = options['Refine number of elements up']
