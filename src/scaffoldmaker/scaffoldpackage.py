@@ -137,7 +137,7 @@ class ScaffoldPackage:
     def getTransformationMatrix(self):
         '''
         :return: 4x4 row-major transformation matrix with first index down rows, second across columns,
-        suitable for multiplication p' = Mp where p = [ x, y, Z, h ], or None if identity.
+        suitable for multiplication p' = Mp where p = [ x, y, z, h ], or None if identity.
         '''
         # apply transformation in order: scale then rotation then translation
         if not all((v == 0.0) for v in self._rotation):
