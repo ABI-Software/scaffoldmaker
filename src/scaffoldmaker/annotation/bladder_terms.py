@@ -6,7 +6,11 @@ Common resource for bladder annotation terms.
 bladder_terms = [
     ( "urinary bladder", "FMA:15900", "UBERON:0001255" ),
     ( "neck of urinary bladder", "FMA:15912", "UBERON:0001258"),
-    ( "body of urinary bladder", None)  # needs to be replaced with an actual term e.g. urinary bladder (which includes neck)
+    ( "Dome of the Bladder", None),  # needs to be replaced with an actual term e.g. urinary bladder (which includes neck)
+    ( "Serosa of body of urinary bladder", None),
+    ( "Lumen of body of urinary bladder", None),
+    ("Serosa of neck of urinary bladder", None),
+    ("Lumen of neck of urinary bladder", None)
    ]
 
 def get_bladder_term(name : str):
