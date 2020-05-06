@@ -343,8 +343,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 eft1 = eftFactory.createEftNoCrossDerivatives()
                 setEftScaleFactorIds(eft1, [1], [])
                 if mapStartLinearDerivativeXi3:
-                    eftFactory.setEftLinearDerivative(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS3, 1, 5, 1)
-                    eftFactory.setEftLinearDerivative(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS3, 2, 6, 1)
+                    eftFactory.setEftLinearDerivative2(eft1, [ 1, 5, 2, 6 ], Node.VALUE_LABEL_D_DS3, [ Node.VALUE_LABEL_D2_DS1DS3 ])
                 if mapStartDerivatives:
                     for i in range(2):
                         lns = [ 1, 5 ] if (i == 0) else [ 2, 6 ]
@@ -370,8 +369,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
                 if mapEndLinearDerivativeXi3:
-                    eftFactory.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
-                    eftFactory.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
+                    eftFactory.setEftLinearDerivative2(eft1, [ 3, 7, 4, 8 ], Node.VALUE_LABEL_D_DS3, [ Node.VALUE_LABEL_D2_DS1DS3 ])
                 if mapEndDerivatives:
                     for i in range(2):
                         lns = [ 3, 7 ] if (i == 0) else [ 4, 8 ]

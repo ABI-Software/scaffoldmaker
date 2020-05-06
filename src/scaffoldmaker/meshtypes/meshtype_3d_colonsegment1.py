@@ -12,6 +12,7 @@ from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -539,8 +540,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 d2Final.append(d2Raw[n1][n2])
 
         # Create annotation groups for mouse colon
-        mzGroup = AnnotationGroup(region, 'mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-        nonmzGroup = AnnotationGroup(region, 'non-mesenteric zone', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+        mzGroup = AnnotationGroup(region, get_colon_term("mesenteric zone"))
+        nonmzGroup = AnnotationGroup(region, get_colon_term("non-mesenteric zone"))
         annotationGroups = [mzGroup, nonmzGroup]
         annotationArray = (['mesenteric zone']*int(elementsCountAroundTC*0.5) +
                            ['non-mesenteric zone']*elementsCountAroundHaustrum +
@@ -1304,14 +1305,14 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
 
     # Update annotation groups
     if tcCount == 3:
-        tlGroup = AnnotationGroup(region, 'tenia libera', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-        tmGroup = AnnotationGroup(region, 'tenia mesocolica', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
-        toGroup = AnnotationGroup(region, 'tenia omentalis', FMANumber = 'FMANumber unknown', lyphID = 'Lyph ID unknown')
+        tlGroup = AnnotationGroup(region, get_colon_term("tenia libera"))
+        tmGroup = AnnotationGroup(region, get_colon_term("tenia mesocolica"))
+        toGroup = AnnotationGroup(region, get_colon_term("tenia omentalis"))
         annotationGroupsTC = [tlGroup, tmGroup, toGroup]
-        annotationArrayTC = (['tenia omentalis']*int(elementsCountAroundTC*0.5) +
+        annotationArrayTC = (['tenia omentalis']*(elementsCountAroundTC//2) +
                              ['tenia libera']*elementsCountAroundTC +
                              ['tenia mesocolica']*elementsCountAroundTC +
-                             ['tenia omentalis']*int(elementsCountAroundTC*0.5))
+                             ['tenia omentalis']*(elementsCountAroundTC//2))
         annotationGroups += annotationGroupsTC
         annotationArray += annotationArrayTC
 

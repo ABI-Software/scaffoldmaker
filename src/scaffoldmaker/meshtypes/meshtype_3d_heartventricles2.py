@@ -9,6 +9,7 @@ from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
@@ -153,9 +154,9 @@ class MeshType_3d_heartventricles2(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        lvGroup = AnnotationGroup(region, "left ventricle myocardium", FMANumber = 9558, lyphID = 'Lyph ID unknown')
-        rvGroup = AnnotationGroup(region, "right ventricle myocardium", FMANumber = 9535, lyphID = 'Lyph ID unknown')
-        vSeptumGroup = AnnotationGroup(region, "interventricular septum", FMANumber = 7133, lyphID = 'Lyph ID unknown')
+        lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
+        rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
+        vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
         annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
 
         #################
