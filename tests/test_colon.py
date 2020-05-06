@@ -111,8 +111,8 @@ class ColonScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 108.03261346519433, -36.87608293131954,  -25.89594001824669 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 185.46656314031185, 48.10029819910435, 34.995273914410724 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [ 108.02987286771165, -36.87608293131954,  -25.895888349581547 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 185.46718104326646, 48.09991198615451, 34.995273914410724 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
@@ -135,10 +135,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 14265.760370377262, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 14611.497578350145, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 23911.026921747245, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 26827.808239762675, delta=1.0E-6)
 
     def test_mousecolon1(self):
         """

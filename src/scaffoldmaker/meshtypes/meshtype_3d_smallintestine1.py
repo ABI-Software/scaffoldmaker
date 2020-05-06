@@ -152,7 +152,8 @@ class MeshType_3d_smallintestine1(Scaffold_base):
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
-        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
+        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
+            cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
         return scaffoldType.getParameterSetNames()
 
@@ -164,7 +165,8 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         '''
         if parameterSetName:
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
-                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
+                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
+                ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
         if optionName == 'Central path':
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
@@ -212,7 +214,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         elementsCountThroughWall = options['Number of elements through wall']
         duodenumLength = options['Duodenum length']
         jejunumLength = options['Jejunum length']
-        ileumLength = options['Ileum length']
         duodenumInnerRadius = options['Duodenum inner radius']
         duodenumJejunumInnerRadius = options['Duodenum-jejunum inner radius']
         jejunumIleumInnerRadius = options['Jejunum-ileum inner radius']
@@ -248,16 +249,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Sample central path
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
-        sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
-
-        # Project sd2 to plane orthogonal to sd1
-        sd2ProjectedList = []
-        for n in range(len(sd2)):
-            sd1Normalised = vector.normalise(sd1[n])
-            dp = vector.dotproduct(sd2[n], sd1Normalised)
-            dpScaled = [dp * c for c in sd1Normalised]
-            sd2Projected = vector.normalise([sd2[n][c] - dpScaled[c] for c in range(3)])
-            sd2ProjectedList.append(sd2Projected)
+        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
         # Generate variation of radius & tc width along length
         lengthList = [0.0, duodenumLength, duodenumLength + jejunumLength, length]
@@ -277,13 +269,22 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         for nSegment in range(segmentCount):
             # Create inner points
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, faceMidPointsZ = \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, radiusAlongSegmentList = \
                smallIntestineSegmentTubeMeshInnerPoints.getCylindricalSegmentTubeMeshInnerPoints(nSegment)
+
+            # Project reference point for warping onto central path
+            start = nSegment*elementsCountAlongSegment
+            end = (nSegment + 1)*elementsCountAlongSegment + 1
+            sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
+                tubemesh.getPlaneProjectionOnCentralPath(xInner, elementsCountAround, elementsCountAlongSegment,
+                                                         segmentLength, sx[start:end], sd1[start:end], sd2[start:end],
+                                                         sd12[start:end])
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
-                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ, closedProximalEnd=False)
+                xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
+                elementsCountAround, elementsCountAlongSegment, zRefList, radiusAlongSegmentList,
+                closedProximalEnd=False)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
@@ -305,8 +306,12 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                     d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1LastTwoFaces[n1 + elementsCountAround]),
                                                                    vector.normalise(d2)))
                     d3UnitExtrude.append(d3Unit)
-                d2Extrude = d2Extrude + (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else d2WarpedList[elementsCountAround:])
-                d3UnitExtrude = d3UnitExtrude + (d3WarpedUnitList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else d3WarpedUnitList[elementsCountAround:])
+                d2Extrude = d2Extrude + \
+                            (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else
+                             d2WarpedList[elementsCountAround:])
+                d3UnitExtrude = d3UnitExtrude + \
+                                (d3WarpedUnitList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else
+                                 d3WarpedUnitList[elementsCountAround:])
             xLastTwoFaces = xWarpedList[-elementsCountAround*2:]
             d1LastTwoFaces = d1WarpedList[-elementsCountAround*2:]
             d2LastTwoFaces = d2WarpedList[-elementsCountAround*2:]
@@ -355,5 +360,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
+                                                       refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()

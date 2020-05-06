@@ -7,7 +7,7 @@ variable radius and thickness along.
 import copy
 import math
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi, createHalfSetInterHaustralSegment, createHalfSetIntraHaustralSegment, getFullProfileFromHalfHaustrum, getXiListFromOuterLengthProfile
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi, createHalfSetInterHaustralSegment, createHalfSetIntraHaustralSegment, getFullProfileFromHalfHaustrum, getXiListFromOuterLengthProfile
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -19,7 +19,6 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.zinc.node import Node
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates # KM
 from opencmiss.zinc.field import Field #KM
-from opencmiss.zinc.element import Element, Elementbasis # Km
 
 class MeshType_3d_cecum1(Scaffold_base):
     '''
@@ -41,11 +40,16 @@ class MeshType_3d_cecum1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[40.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[80.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[120.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]])
-            } ),
+                    # [[0.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+                    # [[40.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+                    # [[80.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+                    # [[120.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]])
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 40.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 80.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 120.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
+
+    } ),
         'Human 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
                 'Coordinate dimensions' : 3,
@@ -79,10 +83,10 @@ class MeshType_3d_cecum1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Pig 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
-        else:
+        if 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
+        else:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
 
         # if 'Human 2' in parameterSetName:
         #     centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
@@ -106,7 +110,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Number of segments': 4,
             'Number of elements around tenia coli': 2,
             'Number of elements around haustrum': 8,
-            'Number of elements along segment': 4,
+            'Number of elements along segment': 8,
             'Number of elements through wall': 1,
             'Start inner radius': 20.0,
             'Start inner radius derivative': 0.0,
@@ -122,7 +126,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'End tenia coli width': 5.0,
             'End tenia coli width derivative': 0.0,
             'Tenia coli thickness': 0.5,
-            'Wall thickness': 2.0,
+            'Wall thickness': 0.5, #2.0,
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -269,22 +273,6 @@ class MeshType_3d_cecum1(Scaffold_base):
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
         elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
 
-        nodeIdentifier = 1 # KM
-
-        ###################################################################################
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        coordinates = findOrCreateFieldCoordinates(fm)
-        cache = fm.createFieldcache()
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
         ##################################################################################
         # zero = [0.0, 0.0, 0.0]
         # fm = region.getFieldmodule()
@@ -313,8 +301,6 @@ class MeshType_3d_cecum1(Scaffold_base):
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
-        nextNodeIdentifier = 1 #KM
-
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
@@ -335,18 +321,8 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         # Sample central path
         smoothd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
-        sxCecum, sd1Cecum, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, smoothd1, elementsCountAlongSegment*segmentCount)
-        sd2Cecum = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
-
-        # Project sd2 to plane orthogonal to sd1
-        sd2ProjectedListCecum = []
-
-        for n in range(len(sd2Cecum)):
-            sd1Normalised = vector.normalise(sd1Cecum[n])
-            dp = vector.dotproduct(sd2Cecum[n], sd1Normalised)
-            dpScaled = [dp * c for c in sd1Normalised]
-            sd2Projected = vector.normalise([sd2Cecum[n][c] - dpScaled[c] for c in range(3)])
-            sd2ProjectedListCecum.append(sd2Projected)
+        sxCecum, sd1Cecum, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, smoothd1, elementsCountAlong)
+        sd2Cecum, sd12Cecum = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
         # Calculate segment length
         segmentLength = cecumLength / segmentCount
@@ -369,10 +345,10 @@ class MeshType_3d_cecum1(Scaffold_base):
                                                      [endTCWidth], [endTCWidthDerivative], xi)[0]
             tcWidthAlongCecum.append(tcWidth)
 
-        xExtrude = []
-        d1Extrude = []
-        d2Extrude = []
-        d3UnitExtrude = []
+        xToSample = []
+        d1ToSample = []
+        d2ToSample = []
+        zFirstNodeAlongList = []
 
         elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
 
@@ -383,128 +359,85 @@ class MeshType_3d_cecum1(Scaffold_base):
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             innerRadiusAlongCecum, dInnerRadiusAlongCecum, tcWidthAlongCecum, startPhase)
 
-        faceMidPointsCecum = []
-        for n2 in range(elementsCountAlong + 1):
-            faceMidPointsCecum.append(cecumLength / elementsCountAlong * n2)
-
-        # Make apex cap - apex points like multiple points
-        xFirstSegment = [[ 0.0, 0.0, 0.0 ] for c in range(elementsCountAround)]
-
         for nSegment in range(segmentCount):
             # Make regular segments
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray \
                 = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Add apex to second half of first segment and sample along
             if nSegment == 0:
-                # Compile nodes and d2 for sampling
-                xFirstSegment += xInner[elementsCountAround * int(elementsCountAlongSegment * 0.5):] # second half of first regular segment
-                d1FirstDirectionVector = vector.normalise(d1Inner[elementsCountAround]) # Store direction vector of first d1 intra-haustral for later
-                d2Vector = xInner[elementsCountAround*int(elementsCountAlongSegment*0.5):elementsCountAround*(int(elementsCountAlongSegment*0.5)+1)] # half face of segment - apex
-                d2FirstSegment = []
-                for c in range(elementsCountAround):
-                    d2 = [d2Vector[c][0], d2Vector[c][1], 0.0 ]  # project onto x-y plane to get d2 pointing vertically
-                    d2FirstSegment.append(d2)
-                d2FirstSegment += d2Inner[elementsCountAround*int(elementsCountAlongSegment*0.5):]
+                xFirstSegmentSampled, d1FirstSegmentSampled, d2FirstSegmentSampled, d1FirstDirectionVector = \
+                    getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaustrum,
+                                           elementsCountAroundTC, elementsCountAround, elementsCountAlongSegment,
+                                           tcCount)
 
-                # Sample along first segment
-                xFirstSegmentSampledRaw = []
-                d2FirstSegmentSampledRaw = []
-                xFirstSegmentSampled = []
-                d1FirstSegmentSampled = []
-                d2FirstSegmentSampled = []
+                xToSample += xFirstSegmentSampled
+                d1ToSample += d1FirstSegmentSampled
+                d2ToSample += d2FirstSegmentSampled
+            else:
+                xInnerExtrude = []
+                for n in range(len(xInner)):
+                    xInnerExtrude.append([xInner[n][0], xInner[n][1], xInner[n][2] + segmentLength*nSegment])
+                xToSample += xInnerExtrude[elementsCountAround:]
+                d1ToSample += d1Inner[elementsCountAround:]
+                d2ToSample += d2Inner[elementsCountAround:]
 
-                for n1 in range(elementsCountAround):
-                    xForSamplingAlong = []
-                    d2ForSamplingAlong = []
-                    for n2 in range(1 + elementsCountAlongSegment - int(elementsCountAlongSegment*0.5) + 1):
-                        idx = elementsCountAround*n2 + n1
-                        xForSamplingAlong.append(xFirstSegment[idx])
-                        d2ForSamplingAlong.append(d2FirstSegment[idx])
-                    xResampled, d1Resampled, se, sxi, _ = interp.sampleCubicHermiteCurves(xForSamplingAlong, d2ForSamplingAlong,
-                                                                                          elementsCountAlongSegment,
-                                                                                          arcLengthDerivatives = True)
+        # Sample along length
+        xToWarp, d1ToWarp, d2ToWarp = sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVector,
+                                                             elementsCountAroundHalfHaustrum, elementsCountAroundTC,
+                                                             elementsCountAround, elementsCountAlong, tcCount)
 
-                    xFirstSegmentSampledRaw.append(xResampled)
-                    d2FirstSegmentSampledRaw.append(d1Resampled)
+        # Project reference point for warping onto central path
+        sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
+            tubemesh.getPlaneProjectionOnCentralPath(xToWarp, elementsCountAround, elementsCountAlong,
+                                                     cecumLength, sxCecum, sd1Cecum, sd2Cecum, sd12Cecum)
 
-                # Re-arrange sample order
-                for n2 in range(elementsCountAlongSegment + 1):
-                    xAround = []
-                    for n1 in range(elementsCountAround):
-                        x = xFirstSegmentSampledRaw[n1][n2]
-                        d2 = d2FirstSegmentSampledRaw[n1][n2]
-                        if n1 < elementsCountAroundHalfHaustrum + 1:
-                            xAround.append(x)
-                        xFirstSegmentSampled.append(x)
-                        d2FirstSegmentSampled.append(d2)
-                        if n2 == 0:
-                            d1 = matrix.rotateAboutZAxis(d2, math.pi*0.5)
-                            d1FirstSegmentSampled.append(d1)
+        # Warp points
+        xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
+            tubemesh.warpSegmentPoints(xToWarp, d1ToWarp, d2ToWarp, segmentAxis, sxRefList, sd1RefList,
+                                       sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
+                                       zRefList, innerRadiusAlongCecum, closedProximalEnd=True)
 
-                    if n2 > 0:
-                        d1Around = []
-                        for n1 in range(elementsCountAroundHalfHaustrum):
-                            v1 = xAround[n1]
-                            v2 = xAround[n1 + 1]
-                            d1 = d1FirstDirectionVector if n1 == 0 else [v2[c] - v1[c] for c in range(3)]
-                            d2 = [v2[c] - v1[c] for c in range(3)]
-                            arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                            dx_ds1 = [c*arcLengthAround for c in vector.normalise(d1)]
-                            d1Around.append(dx_ds1)
-                        # Account for d1 of node sitting on half haustrum
-                        d1 = vector.normalise(
-                            [xAround[elementsCountAroundHalfHaustrum][c] - xAround[elementsCountAroundHalfHaustrum - 1][c]
-                             for c in range(3)])
-                        dx_ds1 = [c * arcLengthAround for c in d1]
-                        d1Around.append(dx_ds1)
+        # xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
+        #     xToWarp, d1ToWarp, d2ToWarp, segmentAxis,
+        #     sxCentroidList, sd1CentroidList, sd2ProjectedListCentroid,
+        #     elementsCountAround, elementsCountAlong, 0, zFirstNodeAlongList, innerRadiusAlongCecum, #closedProximalEnd=True)
+        #     region, useCubicHermiteThroughWall, useCrossDerivatives, nodeIdentifier, closedProximalEnd=True)
+        # ##############################################################################################################
+        # Create nodes
+        # Coordinates field
+        # for n in range(len(xToWarped)):
+        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #     cache.setNode(node)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xToWarp[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        #     if useCrossDerivatives:
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        #     #print('NodeIdentifier = ', nodeIdentifier, xWarpedList[n], d1WarpedList[n], d2WarpedList[n])
+        #     nodeIdentifier = nodeIdentifier + 1
+        # fm.endChange()
+        # ###############################################################################################################
 
-                        d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1Around, fixStartDerivative=True)
-                        d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
-                                                       vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
-                        d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
-                                                           vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
-                        d1Corrected = []
-                        d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC * 0.5)]
-                        d1Corrected.append(d1TCEdge)
-                        d1Corrected.append(d1Transition)
-                        d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC * 0.5 + 2):]
-                        d1Full = getD1ForFullProfileFromHalfHaustrum(d1Corrected, tcCount)
-                        d1FirstSegmentSampled += d1Full
-
-                # Warp points
-                xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                            xFirstSegmentSampled, d1FirstSegmentSampled, d2FirstSegmentSampled, segmentAxis,
-                            segmentLength, sxCecum, sd1Cecum, sd2ProjectedListCecum, elementsCountAround, elementsCountAlongSegment,
-                            nSegment, faceMidPointsCecum, closedProximalEnd=True)
-
-                # nextNodeIdentifier = tubemesh.warpSegmentPoints(
-                #     xFirstSegmentSampled, d1FirstSegmentSampled, d2FirstSegmentSampled, segmentAxis,
-                #     segmentLength, sxCecum, sd1Cecum, sd2ProjectedListCecum, elementsCountAround,
-                #     elementsCountAlongSegment, nSegment, faceMidPointsCecum, # closedProximalEnd=True)
-                #     region, useCubicHermiteThroughWall, useCrossDerivatives, nextNodeIdentifier,
-                #     closedProximalEnd=True)
-
-            else: # Regular segments
-                # Warp points
-                xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                    xInner, d1Inner, d2Inner, segmentAxis, segmentLength,
-                    sxCecum, sd1Cecum, sd2ProjectedListCecum,
-                    elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsCecum,
-                    closedProximalEnd=False)
-
-            # Store points along length
-            xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
-            d1Extrude = d1Extrude + (d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:])
-            d2Extrude = d2Extrude + (d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:])
-            d3UnitExtrude = d3UnitExtrude + (
-                d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:])
+        # Calculate unit d3
+        # # xWarpedList = xToWarp
+        # # d1WarpedList = d1ToWarp
+        # # d2WarpedList = d2ToWarp
+        d3UnitWarpedList = []
+        for n in range(len(xWarpedList)):
+            d3Unit = vector.normalise(
+                vector.crossproduct3(vector.normalise(d1WarpedList[n]), vector.normalise(d2WarpedList[n])))
+            d3UnitWarpedList.append(d3Unit)
 
         # Create coordinates and derivatives
         wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, wallThicknessList,
+        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
+            d2WarpedList, d3UnitWarpedList, wallThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         # Deal with multiple nodes at end point for closed proximal end
@@ -536,6 +469,25 @@ class MeshType_3d_cecum1(Scaffold_base):
             annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
 
+        # ################################################################################################################
+        # nodeIdentifier = nextNodeIdentifier
+        # for n in range(len(sxCentroidList)):
+        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #     cache.setNode(node)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxCentroidList[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1CentroidList[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [30.0* sd2ProjectedListCentroid[n][c] for c in range(3)])
+        #     if useCrossDerivatives:
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        #     # print('NodeIdentifier = ', nodeIdentifier, xWarpedList[n], d1WarpedList[n], d2WarpedList[n])
+        #     nodeIdentifier = nodeIdentifier + 1
+        # fm.endChange()
+        ###############################################################################################################
+
         # if tcThickness > 0:
         #     tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
         #
@@ -562,12 +514,12 @@ class MeshType_3d_cecum1(Scaffold_base):
         ##############################################################################################################
         # # Create nodes
         # # Coordinates field
-        # for n in range(len(xFirstSegmentSampled)):
+        # for n in range(len(xSampled)):
         #     node = nodes.createNode(nodeIdentifier, nodetemplate)
         #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFirstSegmentSampled[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1FirstSegmentSampled[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2FirstSegmentSampled[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampled[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Sampled[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Sampled[n])
         #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
         #     if useCrossDerivatives:
         #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
@@ -650,8 +602,107 @@ class MeshType_3d_cecum1(Scaffold_base):
         baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
+                                                       refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
+
+def getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaustrum,
+                           elementsCountAroundTC, elementsCountAround, elementsCountAlongSegment, tcCount):
+    """
+    Generates the inner coordinates and derivatives for a cecum segment on the closed end.
+    The closed end is a single node and segment is created by sampling curves between the
+    point on closed end with nodes on the length along second half of a colon segment.
+    :param xInner: coordinates of a colon segment.
+    :param d1Inner: derivative around colon segment.
+    :param d2Inner: derivative along colon segment.
+    :param elementsCountAroundHalfHaustrum: half of total number of elements in haustrum and tenia coli.
+    :param elementsCountAroundTC: number of elements around a tenia coli.
+    :param elementsCountAround: number of elements around a cecum.
+    :param elementsCountAlongSegment: number of elements along a segment of cecum.
+    :param tcCount: number of tenia coli.
+    :return: coordinates and derivatives around and along closed segment of cecum, and directional derivative for node
+    on middle of tenia coli.
+    """
+
+    # Make apex cap - apex points like multiple points
+    xFirstSegment = [[0.0, 0.0, 0.0] for c in range(elementsCountAround)]
+
+    # Compile nodes and d2 for sampling
+    xFirstSegment += xInner[elementsCountAround * int(elementsCountAlongSegment * 0.5):] # second half of first regular segment
+    d1FirstDirectionVector = vector.normalise(d1Inner[elementsCountAround]) # Store direction vector of first d1 intra-haustral for later
+    d2Vector = xInner[elementsCountAround*int(elementsCountAlongSegment*0.5):elementsCountAround*(int(elementsCountAlongSegment*0.5)+1)] # half face of segment - apex
+    d2FirstSegment = []
+    for c in range(elementsCountAround):
+        d2 = [d2Vector[c][0], d2Vector[c][1], 0.0 ]  # project onto x-y plane to get d2 pointing vertically
+        d2FirstSegment.append(d2)
+    d2FirstSegment += d2Inner[elementsCountAround*int(elementsCountAlongSegment*0.5):]
+
+    # Sample along first segment
+    xFirstSegmentSampledRaw = []
+    d2FirstSegmentSampledRaw = []
+    xFirstSegmentSampled = []
+    d1FirstSegmentSampled = []
+    d2FirstSegmentSampled = []
+
+    for n1 in range(elementsCountAround):
+        xForSamplingAlong = []
+        d2ForSamplingAlong = []
+        for n2 in range(1 + elementsCountAlongSegment - int(elementsCountAlongSegment*0.5) + 1):
+            idx = elementsCountAround*n2 + n1
+            xForSamplingAlong.append(xFirstSegment[idx])
+            d2ForSamplingAlong.append(d2FirstSegment[idx])
+        xResampled, d1Resampled, se, sxi, _ = interp.sampleCubicHermiteCurves(xForSamplingAlong, d2ForSamplingAlong,
+                                                                              elementsCountAlongSegment,
+                                                                              arcLengthDerivatives = True)
+
+        xFirstSegmentSampledRaw.append(xResampled)
+        d2FirstSegmentSampledRaw.append(d1Resampled)
+
+    # Re-arrange sample order
+    for n2 in range(elementsCountAlongSegment + 1):
+        xAround = []
+        for n1 in range(elementsCountAround):
+            x = xFirstSegmentSampledRaw[n1][n2]
+            d2 = d2FirstSegmentSampledRaw[n1][n2]
+            if n1 < elementsCountAroundHalfHaustrum + 1:
+                xAround.append(x)
+            xFirstSegmentSampled.append(x)
+            d2FirstSegmentSampled.append(d2)
+            if n2 == 0:
+                d1 = matrix.rotateAboutZAxis(d2, math.pi*0.5)
+                d1FirstSegmentSampled.append(d1)
+
+        if n2 > 0:
+            d1Around = []
+            for n1 in range(elementsCountAroundHalfHaustrum):
+                v1 = xAround[n1]
+                v2 = xAround[n1 + 1]
+                d1 = d1FirstDirectionVector if n1 == 0 else [v2[c] - v1[c] for c in range(3)]
+                d2 = [v2[c] - v1[c] for c in range(3)]
+                arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+                dx_ds1 = [c*arcLengthAround for c in vector.normalise(d1)]
+                d1Around.append(dx_ds1)
+            # Account for d1 of node sitting on half haustrum
+            d1 = vector.normalise(
+                [xAround[elementsCountAroundHalfHaustrum][c] - xAround[elementsCountAroundHalfHaustrum - 1][c]
+                 for c in range(3)])
+            dx_ds1 = [c * arcLengthAround for c in d1]
+            d1Around.append(dx_ds1)
+
+            d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1Around, fixStartDerivative=True)
+            d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
+                                           vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
+            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
+                                               vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
+            d1Corrected = []
+            d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC * 0.5)]
+            d1Corrected.append(d1TCEdge)
+            d1Corrected.append(d1Transition)
+            d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC * 0.5 + 2):]
+            d1Full = getD1ForFullProfileFromHalfHaustrum(d1Corrected, tcCount)
+            d1FirstSegmentSampled += d1Full
+
+    return xFirstSegmentSampled, d1FirstSegmentSampled, d2FirstSegmentSampled, d1FirstDirectionVector
 
 def getD1ForFullProfileFromHalfHaustrum(d1HaustrumHalfSet, tcCount):
     """
@@ -689,3 +740,88 @@ def getD1ForFullProfileFromHalfHaustrum(d1HaustrumHalfSet, tcCount):
 
     return d1Haustra
 
+def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVector, elementsCountAroundHalfHaustrum,
+                           elementsCountAroundTC, elementsCountAround, elementsCountAlong, tcCount):
+    """
+    Get systematically spaced points and derivatives over cubic Hermite interpolated curves along the
+    length of the cecum.
+    :param xToSample: coordinates of nodes.
+    :param d1ToSample: derivative around elements.
+    :param d2ToSample: derivative along cecum length.
+    :param d1FirstDirectionVector: directional vector of derivative around for node on the middle of the tenia coli.
+    :param elementsCountAroundHalfHaustrum:half the total number of elements around tenia coli and haustrum.
+    :param elementsCountAroundTC: number of elements around tenia coli.
+    :param elementsCountAround: number of elements around cecum.
+    :param elementsCountAlong: number of elements along cecum length.
+    :param tcCount: number of tenia coli.
+    :return: nodes and derivatives for equally spaced points.
+    """
+
+    xInnerRaw = []
+    d2InnerRaw = []
+    xSampledAlongLength = []
+    d1SampledAlongLength = []
+    d2SampledAlongLength = []
+
+    for n1 in range(elementsCountAroundHalfHaustrum + 1):
+        xForSamplingAlong = []
+        d2ForSamplingAlong = []
+        for n2 in range(elementsCountAlong + 1):
+            idx = n2 * elementsCountAround + n1
+            xForSamplingAlong.append(xToSample[idx])
+            d2ForSamplingAlong.append(d2ToSample[idx])
+        xSampled, d2Sampled, se, sxi, _ = interp.sampleCubicHermiteCurves(xForSamplingAlong, d2ForSamplingAlong,
+                                                                          elementsCountAlong,
+                                                                          arcLengthDerivatives=True)
+        xInnerRaw.append(xSampled)
+        d2InnerRaw.append(d2Sampled)
+
+    # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
+    for n2 in range(elementsCountAlong + 1):
+        xAround = []
+        d2Around = []
+
+        for n1 in range(elementsCountAroundHalfHaustrum + 1):
+            x = xInnerRaw[n1][n2]
+            d2 = d2InnerRaw[n1][n2]
+            xAround.append(x)
+            d2Around.append(d2)
+
+        d1InnerAroundList = []
+        if n2 == 0:
+            d1Corrected = d1ToSample[:elementsCountAroundHalfHaustrum + 1]
+
+        else:
+            for n1 in range(elementsCountAroundHalfHaustrum):
+                v1 = xAround[n1]
+                v2 = xAround[n1 + 1]
+                d1 = d1FirstDirectionVector if n1 == 0 else [v2[c] - v1[c] for c in range(3)]
+                d2 = [v2[c] - v1[c] for c in range(3)]
+                arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+                dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
+                d1InnerAroundList.append(dx_ds1)
+            # Account for d1 of node sitting on half haustrum
+            d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] -
+                                   xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
+            dx_ds1 = [c * arcLengthAround for c in d1]
+            d1InnerAroundList.append(dx_ds1)
+
+        if d1InnerAroundList:
+            d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1InnerAroundList, fixStartDerivative=True)
+            d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
+                                           vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
+            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
+                                               vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
+            d1Corrected = []
+            d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC * 0.5)]
+            d1Corrected.append(d1TCEdge)
+            d1Corrected.append(d1Transition)
+            d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC * 0.5 + 2):]
+
+        xAlongList, d1AlongList, d2AlongList = getFullProfileFromHalfHaustrum(xAround, d1Corrected, d2Around, tcCount)
+
+        xSampledAlongLength += xAlongList
+        d1SampledAlongLength += d1AlongList
+        d2SampledAlongLength += d2AlongList
+
+    return xSampledAlongLength, d1SampledAlongLength, d2SampledAlongLength

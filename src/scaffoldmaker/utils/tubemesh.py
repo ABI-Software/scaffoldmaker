@@ -6,7 +6,7 @@ from __future__ import division
 import copy
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
-from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
@@ -16,10 +16,71 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
 
-def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
+def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
+                                    segmentLength, sx, sd1, sd2, sd12):
+    """
+    Projects reference point used for warping onto the central path and find coordinates
+    and derivatives at projected location.
+    :param x: coordinates of nodes.
+    :param elementsCountAround: number of elements around.
+    :param elementsCountAlong: number of elements along.
+    :param segmentLength: Length of segment.
+    :param sx: coordinates of equally spaced points on central path.
+    :param sd1: tangent of equally spaced points on central path.
+    :param sd2: derivative representing cross axis at equally spaced points on central path.
+    :param sd12: rate of change of cross axis at equally spaced points on central path.
+    :return: coordinates and derivatives on project points and z-coordinates of reference points.
+    """
+
+    # Use first node in each group of elements along as reference for warping later
+    zRefList = []
+    for n2 in range(elementsCountAlong + 1):
+        zFirstNodeAlong = x[n2*elementsCountAround][2]
+        zRefList.append(zFirstNodeAlong)
+
+    # Find sx, sd1, sd2 at projection of reference points on central path
+    lengthElementAlong = segmentLength / elementsCountAlong
+
+    # Append values from first node on central path
+    sxRefList = []
+    sd1RefList = []
+    sd2RefList = []
+    sxRefList.append(sx[0])
+    sd1RefList.append(sd1[0])
+    sd2RefList.append(sd2[0])
+
+    # Interpolate the ones in between
+    for n2 in range(1, elementsCountAlong):
+        ei = int(zRefList[n2]//lengthElementAlong + 1)
+        xi = (zRefList[n2] - lengthElementAlong*(ei-1))/lengthElementAlong
+        sxRef = interp.interpolateCubicHermite(sx[ei - 1], sd1[ei - 1], sx[ei], sd1[ei], xi)
+        sd1Ref = interp.interpolateCubicHermiteDerivative(sx[ei - 1], sd1[ei - 1], sx[ei], sd1[ei], xi)
+        sd2Ref = interp.interpolateCubicHermite(sd2[ei - 1], sd12[ei - 1], sd2[ei], sd12[ei], xi)
+        sxRefList.append(sxRef)
+        sd1RefList.append(sd1Ref)
+        sd2RefList.append(sd2Ref)
+
+    # Append values from last node on central path
+    sxRefList.append(sx[-1])
+    sd1RefList.append(sd1[-1])
+    sd2RefList.append(sd2[-1])
+
+    # Project sd2 to plane orthogonal to sd1
+    sd2ProjectedListRef = []
+
+    for n in range(len(sd2RefList)):
+        sd1Normalised = vector.normalise(sd1RefList[n])
+        dp = vector.dotproduct(sd2RefList[n], sd1Normalised)
+        dpScaled = [dp * c for c in sd1Normalised]
+        sd2Projected = vector.normalise([sd2RefList[n][c] - dpScaled[c] for c in range(3)])
+        sd2ProjectedListRef.append(sd2Projected)
+
+    return sxRefList, sd1RefList, sd2ProjectedListRef, zRefList
+
+def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                       sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
-                      nSegment, faceMidPointZ, closedProximalEnd):
-                      # region, useCubicHermiteThroughWall, useCrossDerivatives, nodeIdentifier, closedProximalEnd):
+                      refPointZ, innerRadiusAlong, closedProximalEnd):
+                      #region, useCubicHermiteThroughWall, useCrossDerivatives, nodeIdentifier, closedProximalEnd):
     """
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
@@ -32,13 +93,14 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     :param sd2: derivatives representing cross axes.
     :param elementsCountAround: Number of elements around segment.
     :param elementsCountAlongSegment: Number of elements along segment.
-    :param nSegment: Segment index along central path.
-    :param faceMidPointZ: z-coordinate of midpoint for each element
-    groups along the segment.
+    :param refPointZ: z-coordinate of reference point for each element
+    groups along the segment to be used for transformation.
+    :param innerRadiusAlong: radius of segment along length.
+    :param closedProximalEnd: True if proximal end of segment is a closed end.
     :return coordinates and derivatives of warped points.
     """
 
-    # ##################################################################################
+    ##################################################################################
     # zero = [0.0, 0.0, 0.0]
     # fm = region.getFieldmodule()
     # fm.beginChange()
@@ -61,51 +123,43 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
     #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
     #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
     #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-    # #####################################################################################
+    ####################################################################################
 
     xWarpedList = []
     d1WarpedList = []
     d2WarpedList = []
-    smoothd2WarpedList = []
+    d2WarpedListFinal = []
     d3WarpedUnitList = []
 
     for nAlongSegment in range(elementsCountAlongSegment + 1):
-        n2 = elementsCountAlongSegment * nSegment + nAlongSegment
         xElementAlongSegment = xList[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d1ElementAlongSegment = d1List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
         d2ElementAlongSegment = d2List[elementsCountAround*nAlongSegment: elementsCountAround*(nAlongSegment+1)]
-        xMidCentralPath = [0.0, 0.0, faceMidPointZ[nAlongSegment]]
 
-        zCentroid = 0.0
-        for n in range(elementsCountAround):
-            zCentroid += xElementAlongSegment[n][2]
-        zCentroid = zCentroid / elementsCountAround
-        centroid = [0.0, 0.0, zCentroid]
-        # print(zCentroid, faceMidPointZ[nAlongSegment])
+        centroid = [0.0, 0.0, refPointZ[nAlongSegment]]
 
         # Rotate to align segment axis with tangent of central line
-        unitTangent = vector.normalise(sd1[n2])
+        unitTangent = vector.normalise(sd1[nAlongSegment])
         cp = vector.crossproduct3(segmentAxis, unitTangent)
         dp = vector.dotproduct(segmentAxis, unitTangent)
         if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
             axisRot = vector.normalise(cp)
             thetaRot = math.acos(vector.dotproduct(segmentAxis, unitTangent))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-            midRot = [rotFrame[j][0]*xMidCentralPath[0] + rotFrame[j][1]*xMidCentralPath[1] + rotFrame[j][2]*xMidCentralPath[2] for j in range(3)]
             centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] + rotFrame[j][2]*centroid[2] for j in range(3)]
+
         else: # path tangent parallel to segment axis (z-axis)
             if dp == -1.0: # path tangent opposite direction to segment axis
                 thetaRot = math.pi
                 axisRot = [1.0, 0, 0]
                 rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-                midRot = [rotFrame[j][0] * xMidCentralPath[0] + rotFrame[j][1] * xMidCentralPath[1] + rotFrame[j][2] * xMidCentralPath[2] for j in range(3)]
                 centroidRot = [rotFrame[j][0] * centroid[0] + rotFrame[j][1] * centroid[1] + rotFrame[j][2] * centroid[2] for j in range(3)]
+
             else: # segment axis in same direction as unit tangent
                 rotFrame = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                midRot = xMidCentralPath
                 centroidRot = centroid
 
-        translateMatrix = [sx[n2][j] - midRot[j] for j in range(3)] #[sx[n2][j] - midRot[j] for j in range(3)]
+        translateMatrix = [sx[nAlongSegment][j] - centroidRot[j] for j in range(3)]
 
         if closedProximalEnd and nAlongSegment == 0:
             translateMatrixForClosedEnd = copy.deepcopy(translateMatrix)
@@ -119,22 +173,23 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
                 xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                 d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                 d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
-                #xTranslate = [xRot1[j] + translateMatrix[j] for j in range(3)]
+                # xTranslate = [xRot1[j] + translateMatrix[j] for j in range(3)]
 
             else: # path tangent parallel to segment axis
                 xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)] if dp == -1.0 else x
                 d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)] if dp == -1.0 else d1
                 d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)] if dp == -1.0 else d2
-                #xTranslate = [xRot1[j] + translateMatrix[j] for j in range(3)]
+                # xTranslate = [xRot1[j] + translateMatrix[j] for j in range(3)]
 
             if n1 == 0:  # Find angle between xCentroidRot and first node in the face
-                vectorToFirstNode = [xRot1[c] - (centroidRot[c] if closedProximalEnd else midRot[c]) for c in range(3)]
+                vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
                 if vector.magnitude(vectorToFirstNode) > 0.0:
-                    cp = vector.normalise(vector.crossproduct3(vector.normalise(vectorToFirstNode), sd2[n2]))
+                    cp = vector.crossproduct3(vector.normalise(vectorToFirstNode), sd2[nAlongSegment])
                     if vector.magnitude(cp) > 0:
+                        cp = vector.normalise(cp)
                         signThetaRot2 = vector.dotproduct(unitTangent, cp)
                         thetaRot2 = math.acos(
-                            vector.dotproduct(vector.normalise(vectorToFirstNode), sd2[n2]))
+                            vector.dotproduct(vector.normalise(vectorToFirstNode), sd2[nAlongSegment]))
                         axisRot2 = unitTangent
                         rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2*thetaRot2)
                     else:
@@ -179,13 +234,18 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         closedD1New = []
         closedD2New = []
         for n1 in range(elementsCountAround):
-            closedNodesRot1 = [xWarpedList[n1][c] - translateMatrixForClosedEnd[c]  for c in range(3)]
-            closedNodesRot2 = [rotFrame2ForClosedEnd[j][0] * closedNodesRot1[0] + rotFrame2ForClosedEnd[j][1] * closedNodesRot1[1] + rotFrame2ForClosedEnd[j][2] * closedNodesRot1[2] for j in range(3)]
-            closedNodesTranslate = [closedNodesRot2[c] + translateMatrixForClosedEnd[c] for c in range(3)]
+            closedNodesRot1 = [xWarpedList[n1][c] - translateMatrixForClosedEnd[c] for c in range(3)]
+            closedNodesRot2 = [rotFrame2ForClosedEnd[j][0] * closedNodesRot1[0] +
+                               rotFrame2ForClosedEnd[j][1] * closedNodesRot1[1] +
+                               rotFrame2ForClosedEnd[j][2] * closedNodesRot1[2] for j in range(3)]
             closedD1Rot1 = d1WarpedList[n1]
-            closedD1Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD1Rot1[0] + rotFrame2ForClosedEnd[j][1] * closedD1Rot1[1] + rotFrame2ForClosedEnd[j][2] * closedD1Rot1[2] for j in range(3)]
+            closedD1Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD1Rot1[0] +
+                             rotFrame2ForClosedEnd[j][1] * closedD1Rot1[1] +
+                             rotFrame2ForClosedEnd[j][2] * closedD1Rot1[2] for j in range(3)]
             closedD2Rot1 = d2WarpedList[n1]
-            closedD2Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD2Rot1[0] + rotFrame2ForClosedEnd[j][1] * closedD2Rot1[1] + rotFrame2ForClosedEnd[j][2] * closedD2Rot1[2] for j in range(3)]
+            closedD2Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD2Rot1[0] +
+                             rotFrame2ForClosedEnd[j][1] * closedD2Rot1[1] +
+                             rotFrame2ForClosedEnd[j][2] * closedD2Rot1[2] for j in range(3)]
             closedNodesNew.append(closedNodesRot2)
             closedD1New.append(closedD1Rot2)
             closedD2New.append(closedD2Rot2)
@@ -197,6 +257,41 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         d1WarpedListNew = d1WarpedList
         d2WarpedListNew = d2WarpedList
 
+    # Scale d2 with curvature of central path
+    d2WarpedListScaled = []
+    vProjectedList = []
+    for nAlongSegment in range(elementsCountAlongSegment + 1):
+        for n1 in range(elementsCountAround):
+            n = nAlongSegment * elementsCountAround + n1
+            # Calculate norm
+            sd1Normalised = vector.normalise(sd1[nAlongSegment])
+            v = [xWarpedListNew[n][c] - sx[nAlongSegment][c] for c in range(3)]
+            dp = vector.dotproduct(v, sd1Normalised)
+            dpScaled = [dp * c for c in sd1Normalised]
+            vProjected = [v[c] - dpScaled[c] for c in range(3)]
+            vProjectedList.append(vProjected)
+            if vector.magnitude(vProjected) > 0.0:
+                vProjectedNormlised = vector.normalise(vProjected)
+            else:
+                vProjectedNormlised = [0.0, 0.0, 0.0]
+
+            # Calculate curvature along at each node
+            if nAlongSegment == 0:
+                curvature = interp.getCubicHermiteCurvature(sx[0], sd1[0], sx[1], sd1[1], vProjectedNormlised, 0.0)
+            elif nAlongSegment == elementsCountAlongSegment:
+                curvature = interp.getCubicHermiteCurvature(sx[-2], sd1[-2], sx[-1], sd1[-1], vProjectedNormlised, 1.0)
+            else:
+                curvature = 0.5 * (interp.getCubicHermiteCurvature(sx[nAlongSegment - 1], sd1[nAlongSegment - 1],
+                                                                   sx[nAlongSegment], sd1[nAlongSegment],
+                                                                   vProjectedNormlised, 1.0) +
+                                   interp.getCubicHermiteCurvature(sx[nAlongSegment], sd1[nAlongSegment],
+                                                                   sx[nAlongSegment + 1], sd1[nAlongSegment + 1],
+                                                                   vProjectedNormlised, 0.0))
+            # Scale
+            factor = 1.0 - curvature * innerRadiusAlong[nAlongSegment]
+            d2 = [factor * c for c in d2WarpedListNew[n]]
+            d2WarpedListScaled.append(d2)
+
     # Smooth d2 for segment
     smoothd2Raw = []
     for n1 in range(elementsCountAround):
@@ -205,42 +300,22 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, segmentLength,
         for n2 in range(elementsCountAlongSegment + 1):
             n = n2*elementsCountAround + n1
             nx.append(xWarpedListNew[n])
-            nd2.append(d2WarpedListNew[n])
+            nd2.append(d2WarpedListScaled[n])
         smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)
         smoothd2Raw.append(smoothd2)
 
     # Re-arrange smoothd2
     for n2 in range(elementsCountAlongSegment + 1):
         for n1 in range(elementsCountAround):
-            smoothd2WarpedList.append(smoothd2Raw[n1][n2])
+            d2WarpedListFinal.append(smoothd2Raw[n1][n2])
 
-    # # Calculate unit d3
+    # Calculate unit d3
     for n in range(len(xWarpedListNew)):
-        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedListNew[n]), vector.normalise(smoothd2WarpedList[n])))
+        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedListNew[n]),
+                                                       vector.normalise(d2WarpedListFinal[n])))
         d3WarpedUnitList.append(d3Unit)
 
-    # # # #####################################################################################
-    # # # # Create nodes
-    # # # Coordinates field
-    # # for n in range(len(xWarpedListNew)):
-    # #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    # #     cache.setNode(node)
-    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xWarpedListNew[n])
-    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1WarpedListNew[n])
-    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, smoothd2WarpedList[n])
-    # #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3WarpedUnitList[n])
-    # #     if useCrossDerivatives:
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-    # #     # print('NodeIdentifier = ', nodeIdentifier, d3WarpedUnitList[n])
-    # #     nodeIdentifier = nodeIdentifier + 1
-    # # # ########################################################################################
-    # #     fm.endChange()
-
-    # return nodeIdentifier
-    return xWarpedListNew, d1WarpedListNew, smoothd2WarpedList, d3WarpedUnitList
+    return xWarpedListNew, d1WarpedListNew, d2WarpedListFinal, d3WarpedUnitList
 
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
@@ -294,13 +369,20 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
 
             # Calculate curvature along
             if n2 == 0:
-                curvature = abs(interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround], d2Inner[n + elementsCountAround], vector.normalise(d3Inner[n]), 0.0))
+                curvature = interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround],
+                                                            d2Inner[n + elementsCountAround],
+                                                            vector.normalise(d3Inner[n]), 0.0)
             elif n2 == elementsCountAlong:
-                curvature = abs(interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround], xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0))
+                curvature = interp.getCubicHermiteCurvature(xInner[n - elementsCountAround],
+                                                            d2Inner[n - elementsCountAround],
+                                                            xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0)
             else:
                 curvature = 0.5*(
-                    abs(interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround], xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0)) +
-                    abs(interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround], d2Inner[n + elementsCountAround], vector.normalise(d3Inner[n]), 0.0)))
+                    interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround],
+                                                    xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0) +
+                    interp.getCubicHermiteCurvature(xInner[n], d2Inner[n],
+                                                    xInner[n + elementsCountAround], d2Inner[n + elementsCountAround],
+                                                    vector.normalise(d3Inner[n]), 0.0))
             curvatureAlong.append(curvature)
 
         for n3 in range(elementsCountThroughWall + 1):
@@ -566,7 +648,7 @@ def createNodesAndElements(region,
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-        # print('NodeIdentifier = ', nodeIdentifier, xList[n])
+        # print('NodeIdentifier = ', nodeIdentifier, x[n], d1[n], d2[n])
         nodeIdentifier = nodeIdentifier + 1
 
     # Flat and texture coordinates fields
@@ -642,9 +724,11 @@ def createNodesAndElements(region,
             for e1 in range(elementsCountAround):
                 if closedProximalEnd:
                     bni11 = (e2-1) * now + e3 * elementsCountAround + e1 + 1 + (elementsCountThroughWall + 1)
-                    bni12 = (e2-1) * now + e3 * elementsCountAround + (e1 + 1) % elementsCountAround + 1 + (elementsCountThroughWall + 1)
+                    bni12 = (e2-1) * now + e3 * elementsCountAround + (e1 + 1) % elementsCountAround + 1 + \
+                            (elementsCountThroughWall + 1)
                     bni21 = (e2-1) * now + (e3 + 1) * elementsCountAround + e1 + 1 + (elementsCountThroughWall + 1)
-                    bni22 = (e2-1) * now + (e3 + 1) * elementsCountAround + (e1 + 1) % elementsCountAround + 1 + (elementsCountThroughWall + 1)
+                    bni22 = (e2-1) * now + (e3 + 1) * elementsCountAround + (e1 + 1) % elementsCountAround + 1 + \
+                            (elementsCountThroughWall + 1)
                 else:
                     bni11 = e2 * now + e3 * elementsCountAround + e1 + 1
                     bni12 = e2 * now + e3 * elementsCountAround + (e1 + 1) % elementsCountAround + 1
@@ -695,11 +779,12 @@ class CylindricalSegmentTubeMeshInnerPoints:
         endRadius = self._innerRadiusSegmentList[nSegment+1]
         endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
 
-        xInner, d1Inner, d2Inner, transitElementList, xiSegment,flatWidthSegment, segmentAxis, faceMidPointsZ \
+        xInner, d1Inner, d2Inner, transitElementList, xiSegment, flatWidthSegment, segmentAxis, radiusAlongSegmentList \
             = getCylindricalSegmentInnerPoints(self._elementsCountAround, self._elementsCountAlongSegment,
-                                               self._segmentLength, self._wallThickness,
-                                               startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
+                                               self._segmentLength, self._wallThickness, startRadius,
+                                               startRadiusDerivative, endRadius, endRadiusDerivative,
                                                self._startPhase)
+
         startIdx = 0 if nSegment == 0 else 1
         xi = xiSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._xiList += xi
@@ -707,7 +792,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
         flatWidth = flatWidthSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._flatWidthList += flatWidth
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, faceMidPointsZ
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, radiusAlongSegmentList
 
     def getFlatWidthAndXiList(self):
         return self._flatWidthList, self._xiList
@@ -736,8 +821,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     :return flatWidthList: List of width around elements for each element
     along cylindrical segment when the segment is opened into a flat preparation.
     :return segmentAxis: Axis of segment.
-    :return faceMidPointsZ: z-coordinate of midpoints for each element group
-    along segment.
+    :return sRadiusAlongSegment: radius of each element along segment.
     """
 
     transitElementList = [0] * elementsCountAround
@@ -790,11 +874,4 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
             xiFace.append(xi)
         xiList.append(xiFace)
 
-    # Calculate z mid-point for each element set along the segment
-    faceMidPointsZ = []
-    lengthToFirstPhase = startPhase / 360.0 * segmentLength
-    for n2 in range(elementsCountAlongSegment + 1):
-        faceMidPointsZ += [lengthToFirstPhase +
-                           n2 * segmentLength / elementsCountAlongSegment]
-
-    return xFinal, d1Final, d2Final, transitElementList, xiList, flatWidthList, segmentAxis, faceMidPointsZ
+    return xFinal, d1Final, d2Final, transitElementList, xiList, flatWidthList, segmentAxis, sRadiusAlongSegment

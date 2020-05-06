@@ -222,7 +222,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
-        segmentCount = 1
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
@@ -233,17 +232,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         cd12 = [ [0.0, 0.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ]
 
         # Sample central path
-        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
-        sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
-
-        # Project sd2 to plane orthogonal to sd1
-        sd2ProjectedList = []
-        for n in range(len(sd2)):
-            sd1Normalised = vector.normalise(sd1[n])
-            dp = vector.dotproduct(sd2[n], sd1Normalised)
-            dpScaled = [dp * c for c in sd1Normalised]
-            sd2Projected = vector.normalise([sd2[n][c] - dpScaled[c] for c in range(3)])
-            sd2ProjectedList.append(sd2Projected)
+        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment)
+        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
         # Find parameter variation along elementsCountAlongSegment
         radiusAlongSegment = []
@@ -271,13 +261,19 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         # Create inner points
         nSegment = 0
 
-        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ = \
+        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray = \
             colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+
+        # Project reference point for warping onto central path
+        sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
+            tubemesh.getPlaneProjectionOnCentralPath(xInner, elementsCountAround, elementsCountAlongSegment,
+                                                     segmentLength, sx, sd1, sd2, sd12)
 
         # Warp segment points
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-            xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
-            elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ, closedProximalEnd=False)
+            xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
+            elementsCountAround, elementsCountAlongSegment, zRefList, radiusAlongSegment,
+            closedProximalEnd=False)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
@@ -293,7 +289,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sx, annotationGroups, annotationArray)
+                tubeTCWidthList, tcThickness, sxRefList, annotationGroups, annotationArray)
 
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
@@ -307,7 +303,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
                 tcCount, annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
                 useCubicHermiteThroughWall, useCrossDerivatives)
-
         else:
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
@@ -322,7 +317,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                 useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
 
         return annotationGroups
-        # return
 
     @classmethod
     def generateMesh(cls, region, options):
@@ -387,7 +381,7 @@ class ColonSegmentTubeMeshInnerPoints:
                                                            (nSegment + 1)*self._elementsCountAlongSegment + 1]
 
         xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, \
-            contractedWallThicknessSegment, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ \
+            contractedWallThicknessSegment, segmentAxis, annotationGroups, annotationArray\
             = getColonSegmentInnerPoints(self._region,
                 self._elementsCountAroundTC, self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
                 self._tcCount, self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
@@ -409,7 +403,7 @@ class ColonSegmentTubeMeshInnerPoints:
         contractedWallThickness = contractedWallThicknessSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._contractedWallThicknessList += contractedWallThickness
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, faceMidPointsZ
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray
 
     def getTubeTCWidthList(self):
         return self._tubeTCWidthList
@@ -475,8 +469,6 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     :return segmentAxis: Axis of segment.
     :return annotationGroups, annotationArray: annotationArray stores annotation
     names of elements around.
-    :return faceMidPointsZ: z-coordinates of midpoint for each element group along
-     the segment.
     """
 
     transitElementListHaustrum = ([0]*int(elementsCountAroundTC*0.5) + [1] +
@@ -517,7 +509,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             for i in range(len(xHalfSet)):
                 d2HalfSet.append([0.0, 0.0, 0.0])
             x, d1, _ = getFullProfileFromHalfHaustrum(xHalfSet, d1HalfSet, d2HalfSet, tcCount)
-            z = segmentLength/elementsCountAlongSegment * n2 + startPhase / 360.0*segmentLength
+            z = segmentLength/elementsCountAlongSegment * n2
             d1Final = d1Final + d1
             xFace = []
             for n1 in range(elementsCountAroundTC + elementsCountAroundHaustrum):
@@ -535,7 +527,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             for n2 in range(elementsCountAlongSegment + 1):
                 n = elementsCountAround * n2 + n1
                 xUp.append(xFinal[n])
-                d2 = [ xFinal[n + elementsCountAround][i] - xFinal[n][i] if n2 < elementsCountAlongSegment else xFinal[n][i] - xFinal[n - elementsCountAround][i] for i in range(3)]
+                d2 = [ xFinal[n + elementsCountAround][i] - xFinal[n][i] if n2 < elementsCountAlongSegment else
+                       xFinal[n][i] - xFinal[n - elementsCountAround][i] for i in range(3)]
                 d2Up.append(d2)
             d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xUp, d2Up)
             d2Raw.append(d2Smoothed)
@@ -636,14 +629,16 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 # Find start point
                 phasePerElementAlongSegment = 360.0 / elementsCountAlongSegment
                 downstreamStartFaceIdx = int(math.floor(faceStartPhase / phasePerElementAlongSegment))
-                xiStartPhase = (faceStartPhase - downstreamStartFaceIdx * phasePerElementAlongSegment) / phasePerElementAlongSegment
+                xiStartPhase = (faceStartPhase - downstreamStartFaceIdx * phasePerElementAlongSegment) / \
+                               phasePerElementAlongSegment
                 xStart = interp.interpolateCubicHermite(sx[downstreamStartFaceIdx], sd1[downstreamStartFaceIdx],
                                                         sx[downstreamStartFaceIdx + 1], sd1[downstreamStartFaceIdx + 1],
                                                         xiStartPhase)
                 xStart[2] = xStart[2] + offsetLength*segmentLength
-                d1Start = interp.interpolateCubicHermiteDerivative(sx[downstreamStartFaceIdx], sd1[downstreamStartFaceIdx],
-                                                                   sx[downstreamStartFaceIdx + 1], sd1[downstreamStartFaceIdx + 1],
-                                                                   xiStartPhase)
+                d1Start = interp.interpolateCubicHermiteDerivative(sx[downstreamStartFaceIdx],
+                                                                   sd1[downstreamStartFaceIdx],
+                                                                   sx[downstreamStartFaceIdx + 1],
+                                                                   sd1[downstreamStartFaceIdx + 1], xiStartPhase)
                 xFace.append(xStart)
                 d1Face.append(d1Start)
 
@@ -666,13 +661,15 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
 
         # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
         for n2 in range(elementsCountAlongSegment + 1):
-            faceStartPhase = (360.0 / elementsCountAlongSegment * n2 + startPhase) % 360.0
+            lengthToFirstPhase = startPhase / 360.0 * segmentLength
+
             xAround = []
-            unitdx_ds1Around = []
             d2Around = []
 
             for n1 in range(elementsCountAroundHalfHaustrum+1):
                 x = xInnerRaw[n1][n2]
+                # Bring first face back to origin
+                x = [x[0], x[1], x[2] - lengthToFirstPhase]
                 dx_ds2 = dx_ds2InnerRaw[n1][n2]
                 xAround.append(x)
                 d2Around.append(dx_ds2)
@@ -702,27 +699,33 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                     dx_ds1 = [c*arcLengthAround for c in vector.normalise(d1) ]
                     dx_ds1InnerAroundList.append(dx_ds1)
                 # Account for d1 of node sitting on half haustrum
-                d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] - xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
+                d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] -
+                                       xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
                 dx_ds1 = [c*arcLengthAround for c in d1]
                 dx_ds1InnerAroundList.append(dx_ds1)
 
             if dx_ds1InnerAroundList:
-                d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList, fixStartDerivative = True)
-                d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
-                d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)], vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
+                d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList,
+                                                                      fixStartDerivative = True)
+                d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5)],
+                                               vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 - 1)]))
+                d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 1)],
+                                                   vector.magnitude(d1Smoothed[int(elementsCountAroundTC*0.5 + 2)]))
                 d1Corrected = []
                 d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC*0.5)]
                 d1Corrected.append(d1TCEdge)
                 d1Corrected.append(d1Transition)
                 d1Corrected = d1Corrected + d1Smoothed[int(elementsCountAroundTC*0.5 + 2):]
 
-            xAlongList, d1AlongList, d2AlongList = getFullProfileFromHalfHaustrum(xAround, d1Corrected, d2Around, tcCount)
+            xAlongList, d1AlongList, d2AlongList = getFullProfileFromHalfHaustrum(xAround, d1Corrected, d2Around,
+                                                                                  tcCount)
 
             # Calculate xiList for relaxed state
             xHalfSetRelaxed, d1HalfSetRelaxed = createHalfSetIntraHaustralSegment(elementsCountAroundTC,
                 elementsCountAroundHaustrum, tcCount, tcWidthSegmentList[n2], radiusSegmentList[n2],
                 cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
-            xRelaxed, d1Relaxed, _ = getFullProfileFromHalfHaustrum(xHalfSetRelaxed, d1HalfSetRelaxed, d2Around, tcCount)
+            xRelaxed, d1Relaxed, _ = getFullProfileFromHalfHaustrum(xHalfSetRelaxed, d1HalfSetRelaxed, d2Around,
+                                                                    tcCount)
             xiFace, relaxedLengthAroundFace = getXiListFromOuterLengthProfile(xRelaxed, d1Relaxed, segmentAxis,
                 wallThickness, transitElementList)
             xiList.append(xiFace)
@@ -741,15 +744,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
         annotationGroups = []
         annotationArray = ['']*(elementsCountAround)
 
-    # Calculate z mid-point for each element set along the segment
-    faceMidPointsZ = []
-    lengthToFirstPhase = startPhase / 360.0 * segmentLength
-    for n2 in range(elementsCountAlongSegment + 1):
-        faceMidPointsZ += [lengthToFirstPhase +
-                           n2 * segmentLength / elementsCountAlongSegment]
-
     return xFinal, d1Final, d2Final, transitElementList, xiList, relaxedLengthList, contractedWallThicknessList, \
-           segmentAxis, annotationGroups, annotationArray, faceMidPointsZ
+           segmentAxis, annotationGroups, annotationArray
 
 def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
     tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut):
@@ -808,7 +804,6 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
         d1Loop = interp.smoothCubicHermiteDerivativesLoop(sx[:-1], sd1[:-1])
 
     # Calculate arc length
-    arcLength = 0.0
     arcDistance = interp.getCubicHermiteArcLength(xLoop[0], d1Loop[0], xLoop[1], d1Loop[1])
     arcLength = arcDistance * sampleElementOut
     arcStart = 0.0
@@ -898,7 +893,8 @@ def createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAround
     xCircular, d1Circular = getCircleXandD1FromRadians(thetaCircularSet, RC, rotOriginRC)
     nxHaustrum = nxHaustrum + xCircular
     nd1Haustrum = nd1Haustrum + d1Circular
-    smoothd1 = interp.smoothCubicHermiteDerivativesLine(nxHaustrum, nd1Haustrum, fixStartDirection = True, fixEndDirection = True)
+    smoothd1 = interp.smoothCubicHermiteDerivativesLine(nxHaustrum, nd1Haustrum, fixStartDirection = True,
+                                                        fixEndDirection = True)
 
     # Find max x along path
     sxHaustrum, sd1Haustrum, _, _ , _ = interp.sampleCubicHermiteCurves(nxHaustrum, smoothd1, sampleElementOut)
@@ -925,7 +921,9 @@ def createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAround
     xTC, d1TC, arcLengthPerTC = sampleTeniaColi(nxHaustrum, smoothd1, arcDistanceTCEdge, elementsCountAroundTC)
 
     # Sample haustrum into equally sized elements
-    xHaustrum, d1Haustrum, arcLengthPerHaustrum, arcLengthPerTransition = sampleHaustrum(nxHaustrum, smoothd1, xTC[-1], d1TC[-1], arcLength, arcDistanceTCEdge, elementsCountAroundHaustrum)
+    xHaustrum, d1Haustrum, arcLengthPerHaustrum, arcLengthPerTransition = \
+        sampleHaustrum(nxHaustrum, smoothd1, xTC[-1], d1TC[-1], arcLength, arcDistanceTCEdge,
+                       elementsCountAroundHaustrum)
 
     xHalfSetIntraHaustra = xHalfSetIntraHaustra + xTC + xHaustrum[1:]
     d1HalfSetIntraHaustra = d1HalfSetIntraHaustra + d1TC + d1Haustrum[1:]
@@ -1011,12 +1009,11 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge,
     addLengthStart = 0.5 * vector.magnitude(d1TCLast)
     lengthFractionStart = 0.5
     proportionStart = 1.0
-    elementLengthMid = (length - addLengthStart) / (elementsCountOut - 1.0 + proportionStart*lengthFractionStart )
+    elementLengthMid = (length - addLengthStart) / (elementsCountOut - 1.0 + proportionStart*lengthFractionStart)
     elementLengthProportionStart = proportionStart*lengthFractionStart*elementLengthMid
     elementLengthProportionEnd = elementLengthMid
 
     for e in range(elementsCountOut):
-        xi = e/(elementsCountOut - 1)
         elementLengths.append(elementLengthMid)
     elementLengths[0] = addLengthStart + elementLengthProportionStart
     elementLengths[-1] = 0.0 + elementLengthProportionEnd
@@ -1175,7 +1172,7 @@ def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
             curvatureAround = 0.5*(kappam + kappap)
         elif transitElementList[n]:
             curvatureAround = kappam
-        elif transitElementList[(n-1)%(len(xInner))]:
+        elif transitElementList[(n-1) % (len(xInner))]:
             curvatureAround = kappap
         curvatureInner.append(curvatureAround)
 
@@ -1252,11 +1249,14 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
         d3TCRaw = []
         tcWidth = tubeTCWidthList[n2]
         for N in range(tcCount):
-            idxTCMid = n2*elementsCountAround*(elementsCountThroughWall + 1) + elementsCountAround*elementsCountThroughWall + N*(elementsCountAroundTC + elementsCountAroundHaustrum)
+            idxTCMid = n2*elementsCountAround*(elementsCountThroughWall + 1) + \
+                       elementsCountAround*elementsCountThroughWall + \
+                       N*(elementsCountAroundTC + elementsCountAroundHaustrum)
             unitNorm = vector.normalise(d3List[idxTCMid])
             xMid = [xList[idxTCMid][i] + unitNorm[i]*tcThickness for i in range(3)]
             d1Mid = d1List[idxTCMid]
-            TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5) if N > 0 else idxTCMid + tcCount*(elementsCountAroundTC + elementsCountAroundHaustrum) - int(elementsCountAroundTC*0.5)
+            TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5) if N > 0 else \
+                idxTCMid + tcCount*(elementsCountAroundTC + elementsCountAroundHaustrum) - int(elementsCountAroundTC*0.5)
             TCEndIdx = idxTCMid + int(elementsCountAroundTC*0.5)
             v1 = xList[TCStartIdx]
             v2 = xMid
@@ -1271,7 +1271,9 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
                 A = vector.dotproduct(unitNorm, p) # A<0 if v2 is higher than v1
                 d1 = [c*tcWidth*0.5 for c in vector.normalise(d1Mid)] if A < 0 else d1MidScaled
             d1TCRaw = d1TCRaw + sd1TC[1:-1] if elementsCountAroundTC > 2 else d1TCRaw + [d1]
-            xTCInnerSet = list(range(TCStartIdx+1, TCEndIdx)) if N > 0 else list(range(TCStartIdx + 1, TCStartIdx + int(elementsCountAroundTC * 0.5))) + list(range(idxTCMid, idxTCMid + int(elementsCountAroundTC * 0.5)))
+            xTCInnerSet = list(range(TCStartIdx+1, TCEndIdx)) if N > 0 else \
+                          list(range(TCStartIdx + 1, TCStartIdx + int(elementsCountAroundTC * 0.5))) +\
+                          list(range(idxTCMid, idxTCMid + int(elementsCountAroundTC * 0.5)))
 
             for n in range(elementsCountAroundTC - 1):
                 xTCInner = xList[xTCInnerSet[n]]
@@ -1287,10 +1289,14 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
                 d2 = [factor*c for c in d2List[innerIdx]]
                 d2TCRaw.append(d2)
 
-        xTCArranged = xTCArranged + xTCRaw[int(elementsCountAroundTC*0.5 -1):] + xTCRaw[:int(elementsCountAroundTC*0.5 -1)]
-        d1TCArranged = d1TCArranged + d1TCRaw[int(elementsCountAroundTC*0.5 -1):] + d1TCRaw[:int(elementsCountAroundTC*0.5 -1)]
-        d2TCArranged = d2TCArranged + d2TCRaw[int(elementsCountAroundTC*0.5 -1):] + d2TCRaw[:int(elementsCountAroundTC*0.5 -1)]
-        d3TCArranged = d3TCArranged + d3TCRaw[int(elementsCountAroundTC*0.5 -1):] + d3TCRaw[:int(elementsCountAroundTC*0.5 -1)]
+        xTCArranged = xTCArranged + xTCRaw[int(elementsCountAroundTC*0.5 -1):] + \
+                      xTCRaw[:int(elementsCountAroundTC*0.5 -1)]
+        d1TCArranged = d1TCArranged + d1TCRaw[int(elementsCountAroundTC*0.5 -1):] + \
+                       d1TCRaw[:int(elementsCountAroundTC*0.5 -1)]
+        d2TCArranged = d2TCArranged + d2TCRaw[int(elementsCountAroundTC*0.5 -1):] + \
+                       d2TCRaw[:int(elementsCountAroundTC*0.5 -1)]
+        d3TCArranged = d3TCArranged + d3TCRaw[int(elementsCountAroundTC*0.5 -1):] + \
+                       d3TCRaw[:int(elementsCountAroundTC*0.5 -1)]
 
     x, d1, d2, d3 = combineTeniaColiWithColon(xList, d1List, d2List, d3List, xTCArranged, d1TCArranged,
         d2TCArranged, d3TCArranged, (elementsCountAroundTC - 1)*tcCount, elementsCountAround,
@@ -1402,10 +1408,13 @@ def createFlatAndTextureCoordinatesTeniaColi(xiList, relaxedLengthList,
             idxTCMid = N*(elementsCountAroundTC + elementsCountAroundHaustrum)
             TCStartIdx = idxTCMid - int(elementsCountAroundTC*0.5)
             TCEndIdx = idxTCMid + int(elementsCountAroundTC*0.5)
-            dTC = (xiFace[idxTCMid] - xiFace[TCStartIdx])*relaxedLength if N > 0 else (xiFace[TCEndIdx] - xiFace[idxTCMid])*relaxedLength
-            v1 = [xiFace[TCStartIdx]*relaxedLength, 0.0, wallThickness] if N > 0 else [-dTC, 0.0, wallThickness]
+            dTC = (xiFace[idxTCMid] - xiFace[TCStartIdx])*relaxedLength if N > 0 else \
+                  (xiFace[TCEndIdx] - xiFace[idxTCMid])*relaxedLength
+            v1 = [xiFace[TCStartIdx]*relaxedLength, 0.0, wallThickness] if N > 0 else \
+                 [-dTC, 0.0, wallThickness]
             v2 = [  xiFace[idxTCMid]*relaxedLength, 0.0, wallThickness + tcThickness]
-            v3 = [  xiFace[TCEndIdx]*relaxedLength, 0.0, wallThickness] if N < tcCount else [ relaxedLength + dTC, 0.0, wallThickness]
+            v3 = [  xiFace[TCEndIdx]*relaxedLength, 0.0, wallThickness] if N < tcCount else \
+                 [ relaxedLength + dTC, 0.0, wallThickness]
             d1 = d3 = [dTC, 0.0, 0.0]
             d2 = [c*factor for c in [dTC, 0.0, 0.0]]
             nx = [v1, v2, v3]
@@ -1416,10 +1425,12 @@ def createFlatAndTextureCoordinatesTeniaColi(xiList, relaxedLengthList,
                 dw = sd1[1:-1] if elementsCountAroundTC > 2 else nd1[1:-1]
             elif N == 0:
                 w = sx[int(elementsCountAroundTC*0.5):-1]
-                dw = sd1[int(elementsCountAroundTC*0.5):-1] if elementsCountAroundTC > 2 else nd1[int(elementsCountAroundTC*0.5):-1]
+                dw = sd1[int(elementsCountAroundTC*0.5):-1] if elementsCountAroundTC > 2 else \
+                     nd1[int(elementsCountAroundTC*0.5):-1]
             else:
                 w = sx[1:int(elementsCountAroundTC*0.5)+1]
-                dw = sd1[1:int(elementsCountAroundTC*0.5)+1] if elementsCountAroundTC > 2 else nd1[1:int(elementsCountAroundTC*0.5)+1]
+                dw = sd1[1:int(elementsCountAroundTC*0.5)+1] if elementsCountAroundTC > 2 else \
+                     nd1[1:int(elementsCountAroundTC*0.5)+1]
             for n in range(len(w)):
                 x = [ xPad + w[n][0],
                     totalLengthAlong / elementsCountAlong * n2,
@@ -1464,10 +1475,12 @@ def createFlatAndTextureCoordinatesTeniaColi(xiList, relaxedLengthList,
             dw = sd1[1:-1] if elementsCountAroundTC > 2 else nd1[1:-1]
         elif N == 0:
             w = sx[int(elementsCountAroundTC*0.5):-1]
-            dw = sd1[int(elementsCountAroundTC*0.5):-1] if elementsCountAroundTC > 2 else nd1[int(elementsCountAroundTC*0.5):-1]
+            dw = sd1[int(elementsCountAroundTC*0.5):-1] if elementsCountAroundTC > 2 else \
+                 nd1[int(elementsCountAroundTC*0.5):-1]
         else:
             w = sx[1:int(elementsCountAroundTC*0.5)+1]
-            dw = sd1[1:int(elementsCountAroundTC*0.5)+1] if elementsCountAroundTC > 2 else nd1[1:int(elementsCountAroundTC*0.5)+1]
+            dw = sd1[1:int(elementsCountAroundTC*0.5)+1] if elementsCountAroundTC > 2 else \
+                 nd1[1:int(elementsCountAroundTC*0.5)+1]
         wList = wList + w
         dwList = dwList + dw
 
@@ -1668,7 +1681,7 @@ def createNodesAndElementsTeniaColi(region,
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-        # print('NodeIdentifier = ', nodeIdentifier, xList[n])
+        # print('NodeIdentifier = ', nodeIdentifier, x[n], d1[n], d2[n])
         nodeIdentifier = nodeIdentifier + 1
 
     # Create nodes for flat coordinates field
@@ -1676,7 +1689,8 @@ def createNodesAndElementsTeniaColi(region,
     for n2 in range(elementsCountAlong + 1):
         for n3 in range(elementsCountThroughWall + 1):
             for n1 in range(elementsCountAround):
-                i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1 + n2*((elementsCountAroundTC - 1)*tcCount + 1)
+                i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1 + \
+                    n2*((elementsCountAroundTC - 1)*tcCount + 1)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
                 node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
@@ -1743,7 +1757,8 @@ def createNodesAndElementsTeniaColi(region,
                 bni12 = e2*now + e3*elementsCountAround + (e1 + 1) % elementsCountAround + 1 + tcOffset1
                 bni21 = e2*now + (e3 + 1)*elementsCountAround + e1 + 1 + tcOffset1
                 bni22 = e2*now + (e3 + 1)*elementsCountAround + (e1 + 1) % elementsCountAround + 1 + tcOffset1
-                nodeIdentifiers = [ bni11, bni12, bni11 + now + tcOffset, bni12 + now + tcOffset, bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset]
+                nodeIdentifiers = [ bni11, bni12, bni11 + now + tcOffset, bni12 + now + tcOffset,
+                                    bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset]
                 onOpening = e1 > elementsCountAround - 2
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nodeIdentifiers)
@@ -1764,9 +1779,11 @@ def createNodesAndElementsTeniaColi(region,
             bni31 = (e2+1)*now + eTC + 1 + tcOffset1
             bni32 = (e2+1)*now + eTC + 2 + tcOffset1
             if eTC < int(elementsCountAroundTC*0.5) - 1:
-                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
+                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset,
+                                   bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
             else:
-                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni31, bni31 + now + tcOffset]
+                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset,
+                                   bni22 + now + tcOffset, bni31, bni31 + now + tcOffset]
             element = mesh.createElement(elementIdentifier, elementtemplate if eTC < int(elementsCountAroundTC*0.5) - 1 else elementtemplate1)
             element.setNodesByIdentifier(eft if eTC < int(elementsCountAroundTC*0.5) - 1 else eft1, nodeIdentifiers)
             element.merge(flatElementtemplate1 if eTC < int(elementsCountAroundTC*0.5) - 1 else flatElementtemplate3)
@@ -1781,26 +1798,33 @@ def createNodesAndElementsTeniaColi(region,
 
         for N in range(tcCount - 1):
             for eTC in range(elementsCountAroundTC):
-                bni21 = e2*now + (elementsCountThroughWall)*elementsCountAround + eTC + 1 + tcOffset1 + int(elementsCountAroundTC*0.5) + (N+1)*elementsCountAroundHaustrum + N*elementsCountAroundTC
-                bni22 = e2*now + (elementsCountThroughWall)*elementsCountAround + eTC + 2 + tcOffset1 + int(elementsCountAroundTC*0.5) + (N+1)*elementsCountAroundHaustrum + N*elementsCountAroundTC
-                bni31 = (e2+1)*now + eTC + 1 + tcOffset1 + int(elementsCountAroundTC*0.5) - 1 + N*(elementsCountAroundTC-1)
-                bni32 = (e2+1)*now + eTC + 2 + tcOffset1 + int(elementsCountAroundTC*0.5) - 1 + N*(elementsCountAroundTC-1)
+                bni21 = e2*now + (elementsCountThroughWall)*elementsCountAround + eTC + 1 + tcOffset1 + \
+                        int(elementsCountAroundTC*0.5) + (N+1)*elementsCountAroundHaustrum + N*elementsCountAroundTC
+                bni22 = e2*now + (elementsCountThroughWall)*elementsCountAround + eTC + 2 + tcOffset1 + \
+                        int(elementsCountAroundTC*0.5) + (N+1)*elementsCountAroundHaustrum + N*elementsCountAroundTC
+                bni31 = (e2+1)*now + eTC + 1 + tcOffset1 + int(elementsCountAroundTC*0.5) - 1 + \
+                        N*(elementsCountAroundTC-1)
+                bni32 = (e2+1)*now + eTC + 2 + tcOffset1 + int(elementsCountAroundTC*0.5) - 1 + \
+                        N*(elementsCountAroundTC-1)
                 if eTC == 0:
-                    nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni32, bni32 + now + tcOffset]
+                    nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset,
+                                       bni22 + now + tcOffset, bni32, bni32 + now + tcOffset]
                     element = mesh.createElement(elementIdentifier, elementtemplate2)
                     element.setNodesByIdentifier(eft2, nodeIdentifiers)
                     element.merge(flatElementtemplate4)
                     element.merge(textureElementtemplate4)
                     element.setNodesByIdentifier(eftTexture6, nodeIdentifiers)
                 elif eTC > 0 and eTC < elementsCountAroundTC - 1:
-                    nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
+                    nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset,
+                                       bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     element.setNodesByIdentifier(eft, nodeIdentifiers)
                     element.merge(flatElementtemplate1)
                     element.merge(textureElementtemplate1)
                     element.setNodesByIdentifier(eftTexture3, nodeIdentifiers)
                 else:
-                    nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni31, bni31 + now + tcOffset]
+                    nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset,
+                                       bni22 + now + tcOffset, bni31, bni31 + now + tcOffset]
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     element.setNodesByIdentifier(eft1, nodeIdentifiers)
                     element.merge(flatElementtemplate3)
@@ -1809,19 +1833,25 @@ def createNodesAndElementsTeniaColi(region,
                 elementIdentifier = elementIdentifier + 1
                 if tcCount == 3:
                     for annotationGroup in annotationGroups:
-                        if annotationArray[elementsCountAround + int(elementsCountAroundTC*0.5) + N*elementsCountAroundTC + eTC] == annotationGroup._name:
+                        if annotationArray[elementsCountAround + int(elementsCountAroundTC*0.5) +
+                                           N*elementsCountAroundTC + eTC] == annotationGroup._name:
                             meshGroup = annotationGroup.getMeshGroup(mesh)
                             meshGroup.addElement(element)
 
         for eTC in range(int(elementsCountAroundTC*0.5)):
-            bni21 = e2*now + (elementsCountThroughWall)*elementsCountAround + eTC + 1 + tcOffset1 + int(elementsCountAroundTC*0.5) + tcCount*elementsCountAroundHaustrum + (tcCount - 1)*elementsCountAroundTC
+            bni21 = e2*now + (elementsCountThroughWall)*elementsCountAround + eTC + 1 + tcOffset1 + \
+                    int(elementsCountAroundTC*0.5) + tcCount*elementsCountAroundHaustrum + \
+                    (tcCount - 1)*elementsCountAroundTC
             bni22 = e2*now + (elementsCountThroughWall)*elementsCountAround + 1 + tcOffset1 if eTC == int(elementsCountAroundTC*0.5 - 1) else bni21 + 1
-            bni31 = (e2+1)*now + eTC + 1 + tcOffset1 + int(elementsCountAroundTC*0.5) - 1 + (tcCount-1)*(elementsCountAroundTC-1)
+            bni31 = (e2+1)*now + eTC + 1 + tcOffset1 + int(elementsCountAroundTC*0.5) - 1 + \
+                    (tcCount-1)*(elementsCountAroundTC-1)
             bni32 = (e2+1)*now + 1 + tcOffset1 if eTC == int(elementsCountAroundTC*0.5 - 1) else bni31 + 1
             if eTC > 0:
-                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
+                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset,
+                                   bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
             else:
-                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset, bni32, bni32 + now + tcOffset]
+                nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset,
+                                   bni22 + now + tcOffset, bni32, bni32 + now + tcOffset]
             onOpening = (eTC == int(elementsCountAroundTC*0.5 - 1))
             element = mesh.createElement(elementIdentifier, elementtemplate if eTC > 0 else elementtemplate2)
             element.setNodesByIdentifier(eft if eTC > 0 else eft2, nodeIdentifiers)

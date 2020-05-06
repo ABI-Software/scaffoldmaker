@@ -12,12 +12,8 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.zinc.node import Node
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates # KM
-from opencmiss.zinc.field import Field #KM
-from opencmiss.zinc.element import Element, Elementbasis #KM
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
@@ -293,7 +289,8 @@ class MeshType_3d_colon1(Scaffold_base):
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
-        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
+        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
+            cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
         return scaffoldType.getParameterSetNames()
 
@@ -305,7 +302,8 @@ class MeshType_3d_colon1(Scaffold_base):
         '''
         if parameterSetName:
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
-                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
+                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
+                ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
         if optionName == 'Central path':
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
@@ -358,7 +356,6 @@ class MeshType_3d_colon1(Scaffold_base):
         startPhase = options['Start phase'] % 360.0
         proximalLength = options['Proximal length']
         transverseLength = options['Transverse length']
-        distalLength = options['Distal length']
         proximalInnerRadius = options['Proximal inner radius']
         proximalTCWidth = options['Proximal tenia coli width']
         proximalTransverseInnerRadius = options['Proximal-transverse inner radius']
@@ -389,8 +386,6 @@ class MeshType_3d_colon1(Scaffold_base):
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
-        nextNodeIdentifier = 1 # KM
-
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
@@ -412,18 +407,8 @@ class MeshType_3d_colon1(Scaffold_base):
         # print('Length = ', length)
 
         # Sample central path
-        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
-        sd2 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)[0]
-
-        # Project sd2 to plane orthogonal to sd1
-        sd2ProjectedList = []
-
-        for n in range(len(sd2)):
-            sd1Normalised = vector.normalise(sd1[n])
-            dp = vector.dotproduct(sd2[n], sd1Normalised)
-            dpScaled = [dp*c for c in sd1Normalised]
-            sd2Projected = vector.normalise([sd2[n][c] - dpScaled[c] for c in range(3)])
-            sd2ProjectedList.append(sd2Projected)
+        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
         # Generate variation of radius & tc width along length
         lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
@@ -442,6 +427,7 @@ class MeshType_3d_colon1(Scaffold_base):
         d1Extrude = []
         d2Extrude = []
         d3UnitExtrude = []
+        sxRefExtrudeList = []
 
         # Create object
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
@@ -453,25 +439,29 @@ class MeshType_3d_colon1(Scaffold_base):
 
         for nSegment in range(segmentCount):
             # Create inner points
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray, \
-                faceMidPointsZ = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray\
+                = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+
+            # Project reference point for warping onto central path
+            start = nSegment * elementsCountAlongSegment
+            end = (nSegment + 1) * elementsCountAlongSegment + 1
+            sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
+                tubemesh.getPlaneProjectionOnCentralPath(xInner, elementsCountAround, elementsCountAlongSegment,
+                                                         segmentLength, sx[start:end], sd1[start:end], sd2[start:end],
+                                                         sd12[start:end])
 
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
-                elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ, closedProximalEnd=False)
-
-            # nextNodeIdentifier = tubemesh.warpSegmentPoints(
-            #     xInner, d1Inner, d2Inner, segmentAxis, segmentLength, sx, sd1, sd2ProjectedList,
-            #     elementsCountAround, elementsCountAlongSegment, nSegment, faceMidPointsZ,
-            #     region, useCubicHermiteThroughWall, useCrossDerivatives, nextNodeIdentifier, closedProximalEnd=False)
+                xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
+                elementsCountAround, elementsCountAlongSegment, zRefList, innerRadiusAlongElementList[start:end],
+                closedProximalEnd=False)
 
             # Store points along length
-            xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])
-            d1Extrude = d1Extrude + (d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:])
-            d2Extrude = d2Extrude + (d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:])
-            d3UnitExtrude = d3UnitExtrude + (
-                d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:])
+            xExtrude +=  xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:]
+            d1Extrude += d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:]
+            d2Extrude += d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:]
+            d3UnitExtrude += d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:]
+            sxRefExtrudeList += sxRefList if nSegment == 0 else sxRefList[elementsCountAround:]
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
@@ -487,7 +477,7 @@ class MeshType_3d_colon1(Scaffold_base):
             xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sx, annotationGroups, annotationArray)
+                tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroups, annotationArray)
 
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
@@ -515,45 +505,6 @@ class MeshType_3d_colon1(Scaffold_base):
                 annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
                 useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
 
-            ###################################################################################
-        # nodeIdentifier = nextNodeIdentifier
-        # fm = region.getFieldmodule()
-        # fm.beginChange()
-        # coordinates = findOrCreateFieldCoordinates(fm)
-        # cache = fm.createFieldcache()
-        #
-        # mesh = fm.findMeshByDimension(1)
-        # cubicHermiteBasis = fm.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-        # eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
-        # elementtemplate = mesh.createElementtemplate()
-        # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
-        # result = elementtemplate.defineField(coordinates, -1, eft)
-        #
-        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(coordinates)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-        #
-        # for n in range(len(sx)):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, 0.0])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, 0.0])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sd1[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1,
-        #                                   [5.0*sd2ProjectedList[n][c] for c in range(3)])
-        #     # print('nodeIdentifier = ', nodeIdentifier, 'sd2Cecum = ', sd2Cecum[n])
-        #     nodeIdentifier = nodeIdentifier + 1
-        #
-        # fm.endChange()
-            ##################################################################################
-
-        # return
         return annotationGroups
 
     @classmethod
@@ -575,5 +526,6 @@ class MeshType_3d_colon1(Scaffold_base):
         baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
+                                                       refineElementsCountThroughWall)
         return meshrefinement.getAnnotationGroups()
