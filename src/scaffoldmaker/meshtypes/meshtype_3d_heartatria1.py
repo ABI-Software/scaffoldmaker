@@ -2943,7 +2943,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             forceMidLinearXi3 = True, forceEndLinearXi3 = True,
             maxStartThickness = laaWallThickness,
             elementsCountRadial = elementsCountLaaRadial,
-            meshGroups = [ laMeshGroup, laaMeshGroup ])
+            meshGroups = [ laaMeshGroup ])  # was laMeshGroup, laaMeshGroup
 
         # create right atrium plain elements
         # Anderson considers these part of the right atrial appendage:
@@ -3137,7 +3137,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             forceMidLinearXi3 = True, forceEndLinearXi3 = True,
             maxStartThickness = raaWallThickness,
             elementsCountRadial = elementsCountRaaRadial,
-            meshGroups = [ raMeshGroup, raaMeshGroup ])
+            meshGroups = [ raaMeshGroup ])  # was raMeshGroup, raaMeshGroup
 
         if drawLaTrackSurface:
             mesh2d = fm.findMeshByDimension(2)
