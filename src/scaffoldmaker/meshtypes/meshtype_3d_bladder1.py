@@ -107,8 +107,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Cat 1']
 
         options = {
-            'Number of elements up neck': 4,
-            'Number of elements up body': 6,
+            'Number of elements up neck': 6,
+            'Number of elements up body': 8,
             'Number of elements around': 8,  # should be even
             'Number of elements through wall': 1,
             'Number of elements around ostium': 8,  # implemented for 8
@@ -128,7 +128,6 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Rat' in parameterSetName:
-            options['Number of elements up neck'] = 6
             options['Number of elements around'] = 16  # should be even
             options['Height'] = 3.0
             options['Major diameter'] = 5.0
@@ -876,16 +875,16 @@ class MeshType_3d_bladder1(Scaffold_base):
         is_body_lumen = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
 
         is_neck = neckGroup.getFieldElementGroup(mesh2d)
-        is_neck_outer_layer = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
+        is_neck_serosa = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
         is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
 
-        serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Serosa of body of urinary bladder"))
+        serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of body of urinary bladder"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa)
-        lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Lumen of body of urinary bladder"))
+        lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of body of urinary bladder"))
         lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen)
 
-        SerosaOfNeck =findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Serosa of neck of urinary bladder"))
-        SerosaOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_outer_layer)
-        lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Lumen of neck of urinary bladder"))
+        SerosaOfNeck =findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of neck of urinary bladder"))
+        SerosaOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_serosa)
+        lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of neck of urinary bladder"))
         lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
 
