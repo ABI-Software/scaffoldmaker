@@ -140,6 +140,10 @@ class MeshType_3d_ostium1(Scaffold_base):
         nx = [ [ -scale, -scale, 0.0 ], [ scale, -scale, 0.0 ], [ -scale, scale, 0.0 ], [ scale, scale, 0.0 ] ]
         nd1 = [ [ 2.0*scale, 0.0, 0.0 ] ]*4
         nd2 = [ [ 0.0, 2.0*scale, 0.0 ] ]*4
+        # curve track surface:
+        #zf = 2.0
+        #nd1 = [ [ 2.0*scale, 0.0, zf*scale ], [ 2.0*scale, 0.0, -zf*scale ], [ 2.0*scale, 0.0, zf*scale ], [ 2.0*scale, 0.0, -zf*scale ] ]
+        #nd2 = [ [ 0.0, 2.0*scale, zf*scale ], [ 0.0, 2.0*scale, zf*scale ], [ 0.0, 2.0*scale, -zf*scale ], [ 0.0, 2.0*scale, -zf*scale ] ]
         trackSurface = TrackSurface(1, 1, nx, nd1, nd2)
         centrePosition = TrackSurfacePosition(0, 0, 0.5, 0.5)
         axis1 = [ 1.0, 0.0, 0.0 ]
@@ -147,22 +151,16 @@ class MeshType_3d_ostium1(Scaffold_base):
         return []  # no annotation groups
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def refineMesh(cls, meshrefinement, options):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
+        assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountAlong = options['Refine number of elements along']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
-        return meshrefinement.getAnnotationGroups()
 
 
 def getOstiumElementsCountsAroundVessels(elementsCountAroundOstium, elementsCountAcross, vesselsCount):
@@ -239,6 +237,24 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     fm.beginChange()
     coordinates = findOrCreateFieldCoordinates(fm)
     cache = fm.createFieldcache()
+
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodeIdentifier = startNodeIdentifier
+
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+    nodetemplateLinearS3 = nodes.createNodetemplate()
+    nodetemplateLinearS3.defineField(coordinates)
+    nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+
+    mesh = fm.findMeshByDimension(3)
+    elementIdentifier = startElementIdentifier
 
     # track points in shape of ostium
 
@@ -338,6 +354,11 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     xd1 = []
     xd2 = []
     xd3 = []
+    if (vesselWallThickness > 0.0) and (ostiumWallThickness > 0.0):
+        commonOstiumWallThickness = 2.0/(1.0/vesselWallThickness + 1.0/ostiumWallThickness)
+    else:
+        commonOstiumWallThickness = vesselWallThickness
+
     # coordinates across common ostium, between vessels
     nodesCountFreeEnd = elementsCountsAroundVessels[0] + 1 - elementsCountAcross
     oinc = 0 if (vesselsCount <= 2) else elementsCountAroundMid//(vesselsCount - 2)
@@ -365,7 +386,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
         nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections = True)
         px, pd2, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd2, elementsCountAcross)[0:4]
         pd1 = interp.interpolateSampleLinear(nd1, pe, pxi)
-        pd3 = [ vector.setMagnitude(vector.crossproduct3(pd1[n2], pd2[n2]), ostiumWallThickness) for n2 in range(elementsCountAcross + 1) ]
+        pd3 = [ vector.setMagnitude(vector.crossproduct3(pd1[n2], pd2[n2]), commonOstiumWallThickness) for n2 in range(elementsCountAcross + 1) ]
         lx = [ ([ (px[n2][c] - pd3[n2][c]) for c in range(3) ]) for n2 in range(elementsCountAcross + 1) ]
         ld2 = interp.smoothCubicHermiteDerivativesLine(lx, pd2, fixAllDirections = True)
         xx [iv][0] = lx [1:elementsCountAcross]
@@ -535,7 +556,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
 
     # calculate derivative 2 around free sides of inlets to fit vessel derivatives
     for v in range(vesselsCount):
-        for n3 in range(2):
+        for n3 in [1]:  # was range(2), now using curvature for inside:
             #print('v',v,'n3',n3,'elementsAround',elementsCountsAroundVessels[v])
             #print('mvPointsx [v][n3]', mvPointsx [v][n3])
             #print('mvPointsd1[v][n3]', mvPointsd1[v][n3])
@@ -565,6 +586,36 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                     #print('v', v, 'n3', n3, 'n1', n1, ':', vector.magnitude(ndf), 'vs.', vector.magnitude(nd2[1]), 'd2Map', d2Map)
                     pass
 
+    # calculate inner d2 derivatives around ostium from outer using track surface curvature
+    factor = 1.0
+    for n1 in range(elementsCountAroundOstium):
+        trackDirection = vector.normalise(od2[1][n1])
+        trackDistance = factor*vector.magnitude(od2[1][n1])
+        tx  = [ None, ox[1][n1], None ]
+        td1 = [ None, vector.setMagnitude(od2[1][n1], trackDistance), None ]
+        td2 = [ None, vector.setMagnitude(od1[1][n1], -trackDistance), None ]
+        positionBackward = trackSurface.trackVector(oPositions[n1], trackDirection, -trackDistance)
+        tx[0], d1, d2 = trackSurface.evaluateCoordinates(positionBackward, derivatives=True)
+        sd1, sd2, sd3 = calculate_surface_axes(d1, d2, trackDirection)
+        td1[0] = vector.setMagnitude(sd1, trackDistance)
+        td2[0] = vector.setMagnitude(sd2, trackDistance)
+        positionForward = trackSurface.trackVector(oPositions[n1], trackDirection, trackDistance)
+        tx[2], d1, d2 = trackSurface.evaluateCoordinates(positionForward, derivatives=True)
+        sd1, sd2, sd3 = calculate_surface_axes(d1, d2, trackDirection)
+        td1[2] = vector.setMagnitude(sd1, trackDistance)
+        td2[2] = vector.setMagnitude(sd2, trackDistance)
+        newd2 = interp.projectHermiteCurvesThroughWall(tx, td1, td2, 1, -ostiumWallThickness)[1]
+        # assign components to set in all lists:
+        for c in range(3):
+            od2[0][n1][c] = newd2[c]/factor
+        #for n in [ 0, 1, 2 ]:
+        #    node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
+        #    cache.setNode(node)
+        #    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, tx [n])
+        #    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
+        #    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
+        #    nodeIdentifier += 1
+
     if isOutlet:
         # reverse directions of d1 and d2 on vessels and ostium base
         for c in range(3):
@@ -586,22 +637,6 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     ##############
     # Create nodes
     ##############
-
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-
-    nodetemplate = nodes.createNodetemplate()
-    nodetemplate.defineField(coordinates)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-    nodetemplateLinearS3 = nodes.createNodetemplate()
-    nodetemplateLinearS3.defineField(coordinates)
-    nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-
-    nodeIdentifier = startNodeIdentifier
 
     oNodeId = []
     for n3 in range(2):
@@ -675,9 +710,6 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     # Create elementss
     #################
 
-    mesh = fm.findMeshByDimension(3)
-    elementIdentifier = startElementIdentifier
-
     tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
     #tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
@@ -724,6 +756,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
             forceMidLinearXi3 = not useCubicHermiteThroughVesselWall,
+            maxStartThickness = vesselWallThickness,
+            maxEndThickness = vesselWallThickness,
             elementsCountRadial = elementsCountAlong,
             meshGroups = vesselMeshGroups[v] if vesselMeshGroups else [])
 
