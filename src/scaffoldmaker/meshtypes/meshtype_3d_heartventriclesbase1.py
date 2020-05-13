@@ -99,19 +99,19 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         if isHuman:
             options['LV outer height'] = 0.9
         elif isMouse or isRat:
-            options['LV outer height'] = 0.85
-            options['Base height'] = 0.18
+            options['LV outer height'] = 0.8
+            options['Base height'] = 0.2
             options['Base thickness'] = 0.08
             options['Fibrous ring thickness'] = 0.005
-            options['LV outlet inner diameter'] = 0.23 if isRat else 0.21
-            options['LV outlet wall thickness'] = 0.018 if isRat else 0.016
-            options['RV outlet left incline degrees'] = 20.0
-            options['RV outlet inner diameter'] = 0.23 if isRat else 0.21
-            options['RV outlet wall thickness'] = 0.018 if isRat else 0.016
+            options['LV outlet inner diameter'] = 0.21
+            options['LV outlet wall thickness'] = 0.02
+            options['RV outlet left incline degrees'] = 45.0
+            options['RV outlet inner diameter'] = 0.21
+            options['RV outlet wall thickness'] = 0.018
             options['Ventricles outlet element length'] = 0.1
             options['Ventricles outlet spacing y'] = 0.01
-            options['Ventricles outlet spacing z'] = 0.1
-            options['Ventricles rotation degrees'] = 22.0
+            options['Ventricles outlet spacing z'] = 0.12
+            options['Ventricles rotation degrees'] = 10.0
             options['Ventricles translation x'] = -0.14
             options['Ventricles translation y'] = -0.18
         elif isPig:
