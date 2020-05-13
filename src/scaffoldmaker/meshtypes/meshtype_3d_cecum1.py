@@ -8,11 +8,13 @@ import copy
 import math
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi, createHalfSetInterHaustralSegment, createHalfSetIntraHaustralSegment, getFullProfileFromHalfHaustrum, getXiListFromOuterLengthProfile
+from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
@@ -70,6 +72,67 @@ class MeshType_3d_cecum1(Scaffold_base):
             } ),
         }
 
+    ostiumDefaultScaffoldPackages = {
+        'Pig 1': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,
+                'Number of elements along': 2,
+                'Number of elements through wall': 1,  # not implemented for > 1
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium diameter': 10.0,
+                'Ostium length': 5.0,
+                'Ostium wall thickness': 0.5, #2.0
+                'Ostium inter-vessel distance': 0.0,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 5.0,
+                'Vessel wall thickness': 0.5,
+                'Vessel angle 1 degrees': 0.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                # 'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        }),
+        'Human 1': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,
+                'Number of elements along': 1,
+                'Number of elements through wall': 1,  # not implemented for > 1
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium diameter': 0.15,
+                'Ostium length': 0.05,
+                'Ostium wall thickness': 0.02,
+                'Ostium inter-vessel distance': 0.8,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 0.04,
+                'Vessel wall thickness': 0.01,
+                'Vessel angle 1 degrees': 0.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                # 'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        })
+    }
+
     @staticmethod
     def getName():
         return '3D Cecum 1'
@@ -85,25 +148,10 @@ class MeshType_3d_cecum1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
-
-        # if 'Human 2' in parameterSetName:
-        #     centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
-        # elif 'Mouse 1' in parameterSetName:
-        #     centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
-        # elif 'Mouse 2' in parameterSetName:
-        #     centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 2']
-        # elif 'Pig 1' in parameterSetName:
-        #     centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
-        # else:
-        #     centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
-        # if 'Mouse' in parameterSetName:
-        #     segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Mouse 1')
-        # elif 'Pig' in parameterSetName:
-        #     segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Pig 1')
-        # else:
-        #     segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Human 1')
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
 
         options = {
             'Central path': copy.deepcopy(centralPathOption),
@@ -127,6 +175,9 @@ class MeshType_3d_cecum1(Scaffold_base):
             'End tenia coli width derivative': 0.0,
             'Tenia coli thickness': 0.5,
             'Wall thickness': 0.5, #2.0,
+            'Ileocecal junction': copy.deepcopy(ostiumOption),
+            'Ileocecal junction angular position degrees': 60,
+            'Ileocecal junction position along factor': 0.5,
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -160,6 +211,9 @@ class MeshType_3d_cecum1(Scaffold_base):
             'End tenia coli width derivative',
             'Tenia coli thickness',
             'Wall thickness',
+            'Ileocecal junction',
+            'Ileocecal junction angular position degrees',
+            'Ileocecal junction position along factor',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -171,14 +225,16 @@ class MeshType_3d_cecum1(Scaffold_base):
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
             return [ MeshType_1d_path1 ]
-        # if optionName == 'Segment profile':
-        #     return [ MeshType_3d_colonsegment1 ]
+        if optionName == 'Ileocecal junction':
+            return [ MeshType_3d_ostium1 ]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
+        if optionName == 'Ileocecal junction':
+            return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
         return scaffoldType.getParameterSetNames()
@@ -196,18 +252,18 @@ class MeshType_3d_cecum1(Scaffold_base):
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
-        # if optionName == 'Segment profile':
-        #     if not parameterSetName:
-        #         parameterSetName = scaffoldType.getParameterSetNames()[0]
-        #     return ScaffoldPackage(scaffoldType, defaultParameterSetName = parameterSetName)
+        if optionName == 'Ileocecal junction':
+            if not parameterSetName:
+                parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
+            return copy.deepcopy(cls.ostiumDefaultScaffoldPackages[parameterSetName])
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
-        # if not options['Segment profile'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Segment profile'):
-        #     options['Segment profile'] = cls.getOptionScaffoldPackage('Segment profile', MeshType_3d_colonsegmentteniacoli1)
+        if not options['Ileocecal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Ileocecal junction'):
+            options['Ileocecal junction'] = cls.getOptionScaffoldPackage('Ileocecal junction', MeshType_3d_ostium1)
         for key in [
             'Number of segments',
             'Refine number of elements around',
@@ -233,6 +289,8 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Start tenia coli width derivative',
             'End tenia coli width',
             'End tenia coli width derivative',
+            'Ileocecal junction angular position degrees',
+            'Ileocecal junction position along factor',
             'Tenia coli thickness',
             'Wall thickness']:
             if options[key] < 0.0:
@@ -272,6 +330,15 @@ class MeshType_3d_cecum1(Scaffold_base):
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
         elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
+        # Angle between the middle of first tenia coli to ostium location
+        ostiumPositionAngleAround = math.radians(options['Ileocecal junction angular position degrees'])
+        # Factor when scaled with segmentLength will give distance between the
+        # junction and distal end of the cecum
+        ostiumPositionAlongFactor = options['Ileocecal junction position along factor']
+
+        ostiumOptions = options['Ileocecal junction']
+        ostiumSettings = ostiumOptions.getScaffoldSettings()
+        ostiumDiameter = ostiumSettings['Ostium diameter']
 
         ##################################################################################
         # zero = [0.0, 0.0, 0.0]
@@ -563,7 +630,71 @@ class MeshType_3d_cecum1(Scaffold_base):
         #         elementsCountAround, elementsCountAlong, elementsCountThroughWall,
         #         annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
         #         useCubicHermiteThroughWall, useCrossDerivatives)
-        #
+
+        # Add ostium on track surface between two tenia on the last segment
+        elementsAroundTrackSurface = elementsCountAroundHaustrum
+        elementsAlongTrackSurface = elementsCountAlongSegment
+
+        # Find region where ostium sits
+        sectorIdx = ostiumPositionAngleAround // (2*math.pi/tcCount)
+        startIdxElementsAround = int((elementsCountAroundHaustrum + elementsCountAroundTC)*sectorIdx +
+                                     elementsCountAroundTC*0.5)
+        baseNodesIdx = (elementsCountThroughWall + 1) + elementsCountAround * (elementsCountThroughWall+1) * elementsCountAlongSegment \
+                       + elementsCountAround * (elementsCountThroughWall+1) * elementsCountAlongSegment * (segmentCount - 2) \
+                       + elementsCountAround
+        xTrackSurface = []
+        d1TrackSurface = []
+        d2TrackSurface = []
+        for n2 in range(elementsCountAlongSegment):
+            for n1 in range(elementsCountAroundHaustrum + 1):
+                idx = baseNodesIdx + elementsCountAround * (elementsCountThroughWall + 1) * n2 + \
+                      startIdxElementsAround + n1
+                xTrackSurface.append(xCecum[idx])
+                d1TrackSurface.append(d1Cecum[idx])
+                d2TrackSurface.append(d2Cecum[idx])
+
+        trackSurfaceOstium = TrackSurface(elementsAroundTrackSurface, elementsAlongTrackSurface,
+                                          xTrackSurface, d1TrackSurface, d2TrackSurface)
+        # Find centre position
+        v1 = xList[0]
+        v2 = xList[int(elementsCountAroundTC*0.5)]
+        d1 = d1List[0]
+        d2 = d1List[int(elementsCountAroundTC*0.5)]
+        arcLengthTC = interp.getCubicHermiteArcLength(v1, d1, v2, d2)
+        angleToTCEdge = arcLengthTC / startInnerRadius
+        angleOstium = ostiumDiameter / startInnerRadius
+        dAngle = (2 * math.pi / tcCount - 2 * angleToTCEdge) / elementsCountAroundHaustrum
+        angleAroundInSector = ostiumPositionAngleAround % (2 * math.pi / tcCount)
+        assert angleAroundInSector > angleToTCEdge + angleOstium * 0.5 and \
+               angleAroundInSector < (2*math.pi/tcCount) - angleToTCEdge - angleOstium*0.5,\
+               'Ileocecal junction cannot sit on tenia coli'
+
+        ei1 = int((angleAroundInSector - angleToTCEdge) // dAngle)
+        xi1 = ((angleAroundInSector - angleToTCEdge) - dAngle * ei1) / dAngle
+        # print('check =', math.degrees(angleAroundInSector), ei1, xi1)
+
+        ostiumDistanceFromCecumDistal = segmentLength * ostiumPositionAlongFactor
+        arcLength = interp.getCubicHermiteArcLength(sxRefList[-1], sd1RefList[-1],
+                                                   sxRefList[-2], sd1RefList[-2])
+        distance = arcLength
+
+        for e in range(len(sxRefList)-2, 0, -1):
+            if ostiumDistanceFromCecumDistal > distance:
+                arcLength = interp.getCubicHermiteArcLength(sxRefList[e - 1], sd1RefList[e - 1],
+                                                            sxRefList[e], sd1RefList[e])
+                distance += arcLength
+            else:
+                ei2 = e - (elementsCountAlongSegment*(segmentCount-1) + 1)
+                xi2 = (distance - ostiumDistanceFromCecumDistal) / arcLength
+                break
+
+        centrePosition = TrackSurfacePosition(ei1, ei2, xi1, xi2)
+        xCentre, d1Centre, d2Centre = trackSurfaceOstium.evaluateCoordinates(centrePosition, derivatives=True)
+        axis1 = d1Centre
+        nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
+            generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, centrePosition, axis1,
+                               nextNodeIdentifier, nextElementIdentifier)
+
         return annotationGroups
         # ########################################################################################################
         # nodeIdentifier = nextNodeIdentifier
