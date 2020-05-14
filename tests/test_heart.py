@@ -21,7 +21,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1",
             "Unit Human 1", "Unit Mouse 1", "Unit Pig 1", "Unit Rat 1" ]);
         options = scaffold.getDefaultOptions("Human 1")
-        self.assertEqual(116, len(options))
+        self.assertEqual(117, len(options))
         self.assertEqual(0.9, options.get("LV outer height"))
         self.assertEqual(80.0, options.get("Unit scale"))
         self.assertEqual(7, options.get("Number of elements around LV free wall"))
@@ -30,7 +30,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)
-        self.assertEqual(25, len(annotationGroups))
+        self.assertEqual(27, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(289, mesh3d.getSize())
@@ -54,8 +54,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
             "left ventricle myocardium" : 94,
             "right ventricle myocardium" : 79,
             "interventricular septum" : 30,
-            "left atrium myocardium" : 88,
-            "right atrium myocardium" : 76,
+            "left atrium myocardium" : 72,
+            "right atrium myocardium" : 46,
             "interatrial septum" : 17
             }
         for name in expectedSizes3d:
@@ -65,9 +65,9 @@ class HeartScaffoldTestCase(unittest.TestCase):
         expectedSizes2d = {
             "endocardium of left ventricle" : 74,
             "endocardium of right ventricle" : 59,
-            "endocardium of left atrium" : 82,
-            "endocardium of right atrium" : 70,
-            "epicardium" : 211
+            "endocardium of left atrium" : 66,
+            "endocardium of right atrium" : 40,
+            "epicardium" : 197
             }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_heart_term(name))
@@ -82,7 +82,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
                 removeAnnotationGroups.append(annotationGroup)
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(16, len(annotationGroups))
+        self.assertEqual(18, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -101,7 +101,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(25, len(annotationGroups))
+        self.assertEqual(27, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(2236, mesh3d.getSize())
