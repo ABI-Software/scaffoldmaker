@@ -198,9 +198,10 @@ def getOstiumElementsCountsAroundVessels(elementsCountAroundOstium, elementsCoun
 
 
 def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, startNodeIdentifier = 1, startElementIdentifier = 1,
-        vesselMeshGroups = None):
+        vesselMeshGroups = None, ostiumMeshGroups = None):
     '''
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
+    :param ostiumMeshGroups: List of mesh groups to add only row of elements at ostium end to.
     :return: nextNodeIdentifier, nextElementIdentifier, Ostium points tuple
     (ox[n3][n1][c], od1[n3][n1][c], od2[n3][n1][c], od3[n3][n1][c], oNodeId[n3][n1], oPositions).
     '''
@@ -722,6 +723,12 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     #elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
     for v in range(vesselsCount):
+        if vesselMeshGroups or ostiumMeshGroups:
+            rowMeshGroups = []
+            for i in range(elementsCountAlong):
+                rowMeshGroups.append(copy.copy(vesselMeshGroups[v]) if vesselMeshGroups else [])
+        else:
+            rowMeshGroups = None
         if isOutlet:
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
                 mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
@@ -740,17 +747,23 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                         derivativesMap = startDerivativesMap[n3][n1]
                         if len(derivativesMap) == 4:
                             startDerivativesMap[n3][n1] = derivativesMap[3], derivativesMap[1], derivativesMap[2], derivativesMap[0]
+            if ostiumMeshGroups:
+                rowMeshGroups[0] += ostiumMeshGroups
         else:
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
                 vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
                 mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
+            if ostiumMeshGroups:
+                rowMeshGroups[-1] += ostiumMeshGroups
+
         #print('endPointsx ', endPointsx )
         #print('endPointsd1', endPointsd1)
         #print('endPointsd2', endPointsd2)
         #print('endPointsd3', endPointsd3)
         #print('endNodeId', endNodeId)
         #print('endDerivativesMap', endDerivativesMap)
+
         nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nodeIdentifier, elementIdentifier,
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
@@ -759,7 +772,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             maxStartThickness = vesselWallThickness,
             maxEndThickness = vesselWallThickness,
             elementsCountRadial = elementsCountAlong,
-            meshGroups = vesselMeshGroups[v] if vesselMeshGroups else [])
+            meshGroups = rowMeshGroups)
 
     fm.endChange()
     return nodeIdentifier, elementIdentifier, (ox, od1, od2, od3, oNodeId, oPositions)
