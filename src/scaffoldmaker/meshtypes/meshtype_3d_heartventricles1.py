@@ -82,24 +82,21 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         elif isMouse or isRat:
             if notUnitScale:
                 options['Unit scale'] = 5.0 if isMouse else 12.0
-            #options['Interventricular sulcus derivative factor'] = 0.5
-            options['LV outer height'] = 0.95
-            options['LV outer diameter'] = 0.95
+            options['Interventricular sulcus derivative factor'] = 0.8
+            options['LV outer height'] = 0.8
+            options['LV outer diameter'] = 0.85
             options['LV free wall thickness'] = 0.15
-            options['LV apex thickness'] = 0.08
-            if isMouse:
-                options['RV inner height fraction'] = 0.9
-            else:
-                options['RV inner height fraction'] = 0.85
-            options['RV arc around degrees'] = 140.0
-            #options['RV arc apex fraction'] = 0.6
-            options['RV free wall thickness'] = 0.07
-            options['RV width'] = 0.25
+            options['LV apex thickness'] = 0.05
+            options['RV inner height fraction'] = 0.9
+            options['RV arc around degrees'] = 150.0
+            options['RV arc apex fraction'] = 0.7
+            options['RV free wall thickness'] = 0.05
+            options['RV width'] = 0.28
             options['RV width growth factor'] = 0.8
-            options['RV side extension'] = 0.05
-            options['RV side extension growth factor'] = 0.8
-            options['Ventricular septum thickness'] = 0.12
-            options['Ventricular septum base radial displacement'] = 0.08
+            options['RV side extension'] = 0.07
+            options['RV side extension growth factor'] = 0.1
+            options['Ventricular septum thickness'] = 0.15
+            options['Ventricular septum base radial displacement'] = 0.0
         elif isPig:
             options['Number of elements up LV apex'] = 1
             options['Number of elements up RV'] = 3

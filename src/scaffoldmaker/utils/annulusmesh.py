@@ -2,6 +2,7 @@
 Utility functions for generating annulus mesh between start and end loops of points.
 '''
 from __future__ import division
+import collections
 import copy
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
@@ -34,7 +35,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
     forceStartLinearXi3 = False, forceMidLinearXi3 = False, forceEndLinearXi3 = False,
     maxStartThickness = None, maxEndThickness = None, useCrossDerivatives = False,
-    elementsCountRadial = 1, meshGroups = []):
+    elementsCountRadial = 1, meshGroups = None):
     '''
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
@@ -63,7 +64,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     :param maxStartThickness, maxEndThickness: Optional maximum override on start/end thicknesses.
     :param useCrossDerivatives: May only be True if no derivatives maps are in use.
     :param elementsCountRadial: Optional number of elements in radial direction between start and end.
-    :param meshGroups:  Optional list of Zinc MeshGroup for adding new elements to.
+    :param meshGroups:  Optional sequence of Zinc MeshGroup for adding all new elements to, or a sequence of
+    length elementsCountRadial containing sequences of mesh groups to add rows of radial elements to
+    from start to end.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
     '''
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
@@ -98,6 +101,13 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             ((startDerivativesMap is None) or (len(startDerivativesMap[n3]) == nodesCountAround)) and \
             ((endDerivativesMap is None) or (len(endDerivativesMap[n3]) == nodesCountAround)), \
             'createAnnulusMesh3d:  Mismatch in number of points/nodes in layers through wall'
+    rowMeshGroups = meshGroups
+    if meshGroups:
+        assert isinstance(meshGroups, collections.Sequence), 'createAnnulusMesh3d:  Mesh groups is not a sequence'
+        if (len(meshGroups) == 0) or (not isinstance(meshGroups[0], collections.Sequence)):
+            rowMeshGroups = [ meshGroups ]*elementsCountRadial
+        else:
+            assert len(meshGroups) == elementsCountRadial, 'createAnnulusMesh3d:  Length of meshGroups sequence does not equal elementsCountRadial'
 
     fm = mesh.getFieldmodule()
     fm.beginChange()
@@ -409,8 +419,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             #print('create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
             elementIdentifier += 1
 
-            for meshGroup in meshGroups:
-                meshGroup.addElement(element)
+            if rowMeshGroups:
+                for meshGroup in rowMeshGroups[e2]:
+                    meshGroup.addElement(element)
 
     fm.endChange()
 
