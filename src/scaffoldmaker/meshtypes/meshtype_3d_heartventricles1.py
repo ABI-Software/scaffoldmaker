@@ -83,17 +83,17 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             if notUnitScale:
                 options['Unit scale'] = 5.0 if isMouse else 12.0
             options['Interventricular sulcus derivative factor'] = 0.8
-            options['LV outer height'] = 0.8
+            options['LV outer height'] = 0.85
             options['LV outer diameter'] = 0.85
-            options['LV free wall thickness'] = 0.15
+            options['LV free wall thickness'] = 0.12
             options['LV apex thickness'] = 0.05
             options['RV inner height fraction'] = 0.9
-            options['RV arc around degrees'] = 150.0
-            options['RV arc apex fraction'] = 0.7
+            options['RV arc around degrees'] = 140.0
+            options['RV arc apex fraction'] = 0.5
             options['RV free wall thickness'] = 0.05
             options['RV width'] = 0.28
             options['RV width growth factor'] = 0.8
-            options['RV side extension'] = 0.07
+            options['RV side extension'] = 0.05
             options['RV side extension growth factor'] = 0.1
             options['Ventricular septum thickness'] = 0.15
             options['Ventricular septum base radial displacement'] = 0.0
