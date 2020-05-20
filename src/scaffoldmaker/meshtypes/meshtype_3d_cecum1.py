@@ -11,6 +11,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMe
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -18,9 +19,11 @@ from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition,
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from opencmiss.utils.zinc.general import ChangeManager
+# from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates # KM
+from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates # KM
-from opencmiss.zinc.field import Field #KM
+
 
 class MeshType_3d_cecum1(Scaffold_base):
     '''
@@ -640,7 +643,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         startIdxElementsAround = int((elementsCountAroundHaustrum + elementsCountAroundTC)*sectorIdx +
                                      elementsCountAroundTC*0.5)
         baseNodesIdx = (elementsCountThroughWall + 1) + elementsCountAround * (elementsCountThroughWall+1) * elementsCountAlongSegment \
-                       + elementsCountAround * (elementsCountThroughWall+1) * elementsCountAlongSegment * (segmentCount - 2) \
+                       + elementsCountAround * (elementsCountThroughWall + 1) * elementsCountAlongSegment * (segmentCount - 2) \
                        + elementsCountAround
         xTrackSurface = []
         d1TrackSurface = []
@@ -669,9 +672,8 @@ class MeshType_3d_cecum1(Scaffold_base):
                angleAroundInSector < (2*math.pi/tcCount) - angleToTCEdge - angleOstium*0.5,\
                'Ileocecal junction cannot sit on tenia coli'
 
-        ei1 = int((angleAroundInSector - angleToTCEdge) // dAngle)
-        xi1 = ((angleAroundInSector - angleToTCEdge) - dAngle * ei1) / dAngle
-        # print('check =', math.degrees(angleAroundInSector), ei1, xi1)
+        ei1Centre = int((angleAroundInSector - angleToTCEdge) // dAngle)
+        xi1 = ((angleAroundInSector - angleToTCEdge) - dAngle * ei1Centre) / dAngle
 
         ostiumDistanceFromCecumDistal = segmentLength * ostiumPositionAlongFactor
         arcLength = interp.getCubicHermiteArcLength(sxRefList[-1], sd1RefList[-1],
@@ -684,16 +686,138 @@ class MeshType_3d_cecum1(Scaffold_base):
                                                             sxRefList[e], sd1RefList[e])
                 distance += arcLength
             else:
-                ei2 = e - (elementsCountAlongSegment*(segmentCount-1) + 1)
+                ei2Centre = e - (elementsCountAlongSegment*(segmentCount-1) + 1)
                 xi2 = (distance - ostiumDistanceFromCecumDistal) / arcLength
                 break
 
-        centrePosition = TrackSurfacePosition(ei1, ei2, xi1, xi2)
+        centrePosition = TrackSurfacePosition(ei1Centre, ei2Centre, xi1, xi2)
         xCentre, d1Centre, d2Centre = trackSurfaceOstium.evaluateCoordinates(centrePosition, derivatives=True)
         axis1 = d1Centre
+
+        # Find boundary of ostium on tracksurface
+        ei1Left, ei1Right, ei2Bottom, ei2Top = getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium,
+                                                                             ostiumDiameter)
+
+        # # Extend boundary
+        # ei1Left -= 1
+        # ei1Right += 1
+        # ei2Bottom -= 1
+        # ei2Top += 1
+
+        nodeStart = int(baseNodesIdx + elementsCountAround * (elementsCountThroughWall + 1) * ei2Bottom + ei1Centre +
+                        sectorIdx*(elementsCountAroundHaustrum + elementsCountAroundTC) + elementsCountAroundTC*0.5) - \
+                        elementsCountAround + 1 # only for 1 layer through wall
+
+        # Store elements and nodes to be deleted later from tracked surface
+        deleteElementsCountAcross = ei1Right - ei1Left + 1
+        deleteElementsCountAlong = ei2Top - ei2Bottom + 1
+        deleteElementIdxStart = int(elementsCountAround * (elementsCountAlong - elementsCountAlongSegment + ei2Bottom + 1)
+                                    *elementsCountThroughWall + elementsCountAroundTC*0.5 +
+                                    (elementsCountAroundTC + elementsCountAroundHaustrum)*sectorIdx + ei1Left + 1)
+        deleteElementIdentifier = []
+        for n2 in range(deleteElementsCountAlong):
+            for n1 in range(deleteElementsCountAcross):
+                elementIdx = deleteElementIdxStart + n1 + elementsCountAround*n2
+                deleteElementIdentifier.append(elementIdx)
+
+        deleteNodeIdxStart = nodeStart - int(deleteElementsCountAcross * 0.5)
+        deleteNodeIdentifier = []
+        for n2 in range(deleteElementsCountAlong + 1):
+            for n3 in range(elementsCountThroughWall + 1):
+                for n1 in range(deleteElementsCountAcross + 1):
+                    nodeIdx = deleteNodeIdxStart + n1 + elementsCountAround*n3 + \
+                              elementsCountAround*(elementsCountThroughWall+1)*n2
+                    deleteNodeIdentifier.append(nodeIdx)
+
+        innerEndPoints_Id = []
+        for n1 in range(ei1Centre - ei1Left + 1):
+            idx = nodeStart - n1
+            innerEndPoints_Id.append(idx)
+        for n2 in range(ei2Top - ei2Bottom + 1):
+            idx = idx + 2*elementsCountAround
+            innerEndPoints_Id.append(idx)
+        for n1 in range(1, ei1Right - ei1Left + 2):
+            idx = idx + 1
+            innerEndPoints_Id.append(idx)
+        for n2 in range(ei2Top - ei2Bottom + 1):
+            idx = idx - 2*elementsCountAround
+            innerEndPoints_Id.append(idx)
+        for n1 in range(ei1Right - ei1Centre):
+            idx = idx - 1
+            innerEndPoints_Id.append(idx)
+
+        innerEndPoints_x = []
+        innerEndPoints_d1 = []
+        innerEndPoints_d2 = []
+
+        outerEndPoints_Id = []
+        outerEndPoints_x = []
+        outerEndPoints_d1 = []
+        outerEndPoints_d2 = []
+
+        for i in range(len(innerEndPoints_Id)):
+            innerNode = innerEndPoints_Id[i]
+            innerEndPoints_x.append(xCecum[innerNode-1])
+            innerEndPoints_d1.append(d1Cecum[innerNode - 1])
+            innerEndPoints_d2.append(d2Cecum[innerNode - 1])
+
+            outerNode = innerNode + elementsCountAround
+            outerEndPoints_Id.append(outerNode)
+            outerEndPoints_x.append(xCecum[outerNode - 1])
+            outerEndPoints_d1.append(d1Cecum[outerNode - 1])
+            outerEndPoints_d2.append(d2Cecum[outerNode - 1])
+
+        endPoints_Id = [innerEndPoints_Id, outerEndPoints_Id]
+        endPoints_x = [innerEndPoints_x, outerEndPoints_x]
+        endPoints_d1 = [innerEndPoints_d1, outerEndPoints_d1]
+        endPoints_d2 = [innerEndPoints_d2, outerEndPoints_d2]
+
+        endDerivativesMap = [[None] * len(innerEndPoints_Id), [None] * len(innerEndPoints_Id)]
+        count = 0
+        for n1 in range(ei1Centre - ei1Left):
+            endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((-1, 0, 0), (0, -1, 0), None)
+            count += 1
+        endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
+        count += 1
+        for n2 in range(ei2Top - ei2Bottom):
+            endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((0, 1, 0), (-1, 0, 0), None)
+            count += 1
+        endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((0, 1, 0), (-1, 1, 0), None, (1, 0, 0))
+        count += 1
+        for n1 in range(1, ei1Right - ei1Left + 1):
+            endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((1, 0, 0), (0, 1, 0), None)
+            count += 1
+        endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
+        count += 1
+        for n2 in range(1, ei2Top - ei2Bottom + 1):
+            endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((0, -1, 0), (1, 0, 0), None)
+            count += 1
+        endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((0, -1, 0), (1, -1, 0), None, (-1, 0, 0))
+        count += 1
+        for n1 in range(ei1Right - ei1Centre):
+            endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((-1, 0, 0), (0, -1, 0), None)
+            count += 1
+
+        # for i in range(len(innerEndPoints_Id)):
+        #     print(innerEndPoints_Id[i], endDerivativesMap[0][i])
+
+        ostiumSettings['Number of elements around ostium'] = len(innerEndPoints_Id)
+
         nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
             generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, centrePosition, axis1,
                                nextNodeIdentifier, nextElementIdentifier)
+
+        fm = region.getFieldmodule()
+        mesh = fm.findMeshByDimension(3)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        nextNodeIdentifier, nextElementIdentifier = createAnnulusMesh3d(
+            nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
+            o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
+            endPoints_x, endPoints_d1, endPoints_d2, None, endPoints_Id, endDerivativesMap, elementsCountRadial = 1)
+
+        # Delete elements under annulus mesh
+        deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
 
         return annotationGroups
         # ########################################################################################################
@@ -956,3 +1080,145 @@ def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVe
         d2SampledAlongLength += d2AlongList
 
     return xSampledAlongLength, d1SampledAlongLength, d2SampledAlongLength
+
+def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiameter):
+    """
+    Finds the element indices of the boundaries of elements on tracksurface that surround
+    the ostium. Indices based on numbering for elements around and along tracksurface.
+    Boundary lies on xi=0 of elements on left and bottom boundaries and xi = 1 for right and
+    top boundaries.
+    :param centrePosition: surface description for centre of ostium.
+    :param trackSurfaceOstium: surface description for tracksurface.
+    :param ostiumDiameter: Diameter of ostium.
+    :return: element indices on the left, right, bottom and top boundaries around tracksurface.
+    """
+
+    elementsAroundTrackSurface = trackSurfaceOstium.elementsCount1
+    elementsAlongTrackSurface = trackSurfaceOstium.elementsCount2
+    ei1 = centrePosition.e1
+    ei2 = centrePosition.e2
+    xi1 = centrePosition.xi1
+    xi2 = centrePosition.xi2
+    xCentre, d1Centre, d2Centre = trackSurfaceOstium.evaluateCoordinates(centrePosition, derivatives=True)
+
+    # Left boundary
+    leftPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, 0, xi2)
+    xLeft, d1Left, _ = trackSurfaceOstium.evaluateCoordinates(leftPositionOfCentreElement, derivatives=True)
+    distxLeftToxCentre = interp.getCubicHermiteArcLength(xLeft, d1Left, xCentre, d1Centre) if xi1 > 0.0 else 0.0
+    remainingLength = ostiumDiameter * 0.5 - distxLeftToxCentre
+    xCurrent = xLeft
+    d1Current = d1Left
+
+    for n1 in range(ei1, -1, -1):
+        if remainingLength > 0.0:
+            prevPosition = TrackSurfacePosition(n1-1, ei2, 0, xi2)
+            xPrev, d1Prev, _ = trackSurfaceOstium.evaluateCoordinates(prevPosition, derivatives=True)
+            distPrevToxCurrent = interp.getCubicHermiteArcLength(xPrev, d1Prev, xCurrent, d1Current)
+            remainingLength -= distPrevToxCurrent
+            xCurrent = xPrev
+            d1Current = d1Prev
+        else:
+            ei1Left = n1
+            break
+
+    # Right boundary
+    rightPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, 1.0, xi2)
+    xRight, d1Right, _ = trackSurfaceOstium.evaluateCoordinates(rightPositionOfCentreElement, derivatives=True)
+    distxCentreToxRight = interp.getCubicHermiteArcLength(xCentre, d1Centre, xRight, d1Right) if xi1 < 1.0 else 0.0
+    remainingLength = ostiumDiameter * 0.5 - distxCentreToxRight
+    xCurrent = xRight
+    d1Current = d1Right
+
+    for n1 in range(ei1, elementsAroundTrackSurface):
+        if remainingLength > 0.0:
+            nextPosition = TrackSurfacePosition(n1+1, ei2, 1.0, xi2)
+            xNext, d1Next, _ = trackSurfaceOstium.evaluateCoordinates(nextPosition, derivatives=True)
+            distxCurrentToxNext = interp.getCubicHermiteArcLength(xCurrent, d1Current, xNext, d1Next)
+            remainingLength -= distxCurrentToxNext
+            xCurrent = xNext
+            d1Current = d1Next
+        else:
+            ei1Right = n1
+            break
+
+    # Bottom boundary
+    bottomPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, xi1, 0)
+    xBottom, _, d2Bottom = trackSurfaceOstium.evaluateCoordinates(bottomPositionOfCentreElement, derivatives=True)
+    distxBottomToxCentre = interp.getCubicHermiteArcLength(xBottom, d2Bottom, xCentre, d2Centre) if xi2 > 0.0 else 0.0
+    remainingLength = ostiumDiameter * 0.5 - distxBottomToxCentre
+    xCurrent = xBottom
+    d2Current = d2Bottom
+
+    for n2 in range(ei2, -1, -1):
+        if remainingLength > 0.0:
+            prevPosition = TrackSurfacePosition(ei1, n2 - 1, xi1, 0)
+            xPrev, _, d2Prev = trackSurfaceOstium.evaluateCoordinates(prevPosition, derivatives=True)
+            distPrevToxCurrent = interp.getCubicHermiteArcLength(xPrev, d2Prev, xCurrent, d2Current)
+            remainingLength -= distPrevToxCurrent
+            xCurrent = xPrev
+            d2Current = d2Prev
+        else:
+            ei2Bottom = n2
+            break
+
+    # Top boundary
+    topPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, xi1, 1.0)
+    xTop, _, d2Top = trackSurfaceOstium.evaluateCoordinates(topPositionOfCentreElement, derivatives=True)
+    distxCentreToxTop = interp.getCubicHermiteArcLength(xCentre, d2Centre, xTop, d2Top) if xi2 < 1.0 else 0.0
+    remainingLength = ostiumDiameter * 0.5 - distxCentreToxTop
+    xCurrent = xTop
+    d2Current = d2Top
+
+    for n2 in range(ei2, elementsAlongTrackSurface):
+        if remainingLength > 0.0:
+            nextPosition = TrackSurfacePosition(ei1, n2+1, xi1, 1.0)
+            xNext, _, d2Next = trackSurfaceOstium.evaluateCoordinates(nextPosition, derivatives=True)
+            distxCurrentToxNext = interp.getCubicHermiteArcLength(xCurrent, d2Current, xNext, d2Next)
+            remainingLength -= distxCurrentToxNext
+            xCurrent = xNext
+            d2Current = d2Next
+        else:
+            ei2Top = n2
+            break
+
+    return ei1Left, ei1Right, ei2Bottom, ei2Top
+
+def deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier):
+    """
+    Deletes elements and nodes on tracked surface under annulus mesh using element and node identifiers.
+    :param deleteElementIdentifier: Element identifiers for elements to be deleted.
+    :param deleteNodeIdentifier: Node identifiers for nodes to be deleted.
+    """
+
+    with ChangeManager(fm):
+        # put the elements in a group and use subelement handling to get nodes in use by it
+        destroyGroup = fm.createFieldGroup()
+        destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
+        destroyMesh = destroyElementGroup.getMeshGroup()
+        for i in range(len(deleteElementIdentifier)):
+            elementIdentifier = deleteElementIdentifier[i]
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            destroyMesh.addElement(element)
+        if destroyMesh.getSize() > 0:
+            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
+            destroyNodes = destroyNodeGroup.getNodesetGroup()
+            fieldcache = fm.createFieldcache()
+            for i in range(len(deleteNodeIdentifier)):
+                nodeIdentifier = deleteNodeIdentifier[i]
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                destroyNodes.addNode(node)
+            del fieldcache
+
+            # must destroy elements first as Zinc won't destroy nodes that are in use
+            mesh.destroyElementsConditional(destroyElementGroup)
+            nodes.destroyNodesConditional(destroyNodeGroup)
+            # clean up group so no external code hears is notified of its existence
+            del destroyNodes
+            del destroyNodeGroup
+        del destroyMesh
+        del destroyElementGroup
+        del destroyGroup
+
+    return
