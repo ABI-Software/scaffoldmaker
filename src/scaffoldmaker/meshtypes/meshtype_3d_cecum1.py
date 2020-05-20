@@ -343,6 +343,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         ostiumDiameter = ostiumSettings['Ostium diameter']
 
+        assert (elementsCountThroughWall == 1), 'Can only have one layer through wall due to limitation of annulus mesh'
         ##################################################################################
         # zero = [0.0, 0.0, 0.0]
         # fm = region.getFieldmodule()
@@ -418,7 +419,6 @@ class MeshType_3d_cecum1(Scaffold_base):
         xToSample = []
         d1ToSample = []
         d2ToSample = []
-        zFirstNodeAlongList = []
 
         elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
 
@@ -519,15 +519,22 @@ class MeshType_3d_cecum1(Scaffold_base):
         d3ApexUnit = vector.normalise(vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
         d3ApexInner = [d3ApexUnit[c] * wallThickness/elementsCountThroughWall for c in range(3)]
 
-        xApexOuter = [xApexInner[c] + d3ApexUnit[c] * wallThickness for c in range(3)]
-        d1ApexOuter = d1ApexInner # Probably need to scale to curvature
-        d2ApexOuter = d2ApexInner
-        d3ApexOuter = d3ApexInner
+        xCecum = []
+        d1Cecum = []
+        d2Cecum = []
+        d3Cecum = []
 
-        xCecum = [xApexInner] + [xApexOuter] + xList[elementsCountAround*2:]
-        d1Cecum = [d1ApexInner] + [d1ApexOuter] + d1List[elementsCountAround * 2:]
-        d2Cecum = [d2ApexInner] + [d2ApexOuter] + d2List[elementsCountAround * 2:]
-        d3Cecum = [d3ApexInner] + [d3ApexOuter] + d3List[elementsCountAround * 2:]
+        for n3 in range(elementsCountThroughWall + 1):
+            xApex = [xApexInner[c] + d3ApexUnit[c] * wallThickness/elementsCountThroughWall * n3 for c in range(3)]
+            xCecum.append(xApex)
+            d1Cecum.append(d1ApexInner) # Probably need to scale to curvature
+            d2Cecum.append(d2ApexInner)
+            d3Cecum.append(d3ApexInner)
+
+        xCecum += xList[(elementsCountThroughWall+1)*elementsCountAround:]
+        d1Cecum += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]
+        d2Cecum += d2List[(elementsCountThroughWall + 1) * elementsCountAround:]
+        d3Cecum += d3List[(elementsCountThroughWall + 1) * elementsCountAround:]
 
         xFlat = d1Flat = d2Flat = d3Flat = []
         xTexture = d1Texture = d2Texture = d3Texture = []
@@ -584,13 +591,13 @@ class MeshType_3d_cecum1(Scaffold_base):
         ##############################################################################################################
         # # Create nodes
         # # Coordinates field
-        # for n in range(len(xSampled)):
+        # for n in range(len(xCecum)):
         #     node = nodes.createNode(nodeIdentifier, nodetemplate)
         #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampled[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Sampled[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Sampled[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCecum[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Cecum[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Cecum[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Cecum[n])
         #     if useCrossDerivatives:
         #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
         #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)

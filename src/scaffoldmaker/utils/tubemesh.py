@@ -700,8 +700,8 @@ def createNodesAndElements(region,
                 elementtemplate3.defineField(coordinates, -1, eft1)
                 element = mesh.createElement(elementIdentifier, elementtemplate3)
                 bni1 = e3 + 1
-                bni2 = e3 + 1 + elementsCountThroughWall + 1 + e1
-                bni3 = e3 + 1 + elementsCountThroughWall + 1 + (e1 + 1) % elementsCountAround
+                bni2 = elementsCountThroughWall + 1 + elementsCountAround*e3 + e1 + 1
+                bni3 = elementsCountThroughWall + 1 + elementsCountAround*e3 + (e1 + 1) % elementsCountAround + 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni1 + 1, bni2 + elementsCountAround, bni3 + elementsCountAround]
                 element.setNodesByIdentifier(eft1, nodeIdentifiers)
                 # set general linear map coefficients
