@@ -49,11 +49,10 @@ class MeshType_3d_cecum1(Scaffold_base):
                     # [[40.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
                     # [[80.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
                     # [[120.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]])
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 40.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 80.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 120.0], [0.0, 0.0, 40.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
-
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 60.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 120.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 180.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
     } ),
         'Human 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
@@ -85,15 +84,15 @@ class MeshType_3d_cecum1(Scaffold_base):
                 'Number of elements through wall': 1,  # not implemented for > 1
                 'Unit scale': 1.0,
                 'Outlet': False,
-                'Ostium diameter': 10.0,
-                'Ostium length': 5.0,
-                'Ostium wall thickness': 0.5, #2.0
+                'Ostium diameter': 20.0,
+                'Ostium length': 10.0,
+                'Ostium wall thickness': 2.0,
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
-                'Vessel inner diameter': 5.0,
-                'Vessel wall thickness': 0.5,
+                'Vessel inner diameter': 10.0,
+                'Vessel wall thickness': 2.0,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -158,18 +157,18 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Number of segments': 4,
+            'Number of segments': 5,
             'Number of elements around tenia coli': 2,
             'Number of elements around haustrum': 8,
             'Number of elements along segment': 8,
             'Number of elements through wall': 1,
-            'Start inner radius': 20.0,
-            'Start inner radius derivative': 0.0,
-            'End inner radius': 20.0,
-            'End inner radius derivative': 0.0,
+            'Start inner radius': 35.0,
+            'Start inner radius derivative': 3.0,
+            'End inner radius': 38.0,
+            'End inner radius derivative': 3.0,
             'Corner inner radius factor': 0.5,
-            'Haustrum inner radius factor': 0.6,
-            'Segment length end derivative factor': 0.5,
+            'Haustrum inner radius factor': 0.25,
+            'Segment length end derivative factor': 1.0,
             'Segment length mid derivative factor': 4.0,
             'Number of tenia coli': 3,
             'Start tenia coli width': 5.0,
@@ -177,7 +176,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'End tenia coli width': 5.0,
             'End tenia coli width derivative': 0.0,
             'Tenia coli thickness': 0.5,
-            'Wall thickness': 0.5, #2.0,
+            'Wall thickness': 2.0,
             'Ileocecal junction': copy.deepcopy(ostiumOption),
             'Ileocecal junction angular position degrees': 60,
             'Ileocecal junction position along factor': 0.5,
@@ -343,7 +342,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         ostiumDiameter = ostiumSettings['Ostium diameter']
 
-        assert (elementsCountThroughWall == 1), 'Can only have one layer through wall due to limitation of annulus mesh'
+        assert (elementsCountThroughWall == 1), 'cecum1.py: Can only have one layer through wall due to limitation of annulus mesh'
         ##################################################################################
         # zero = [0.0, 0.0, 0.0]
         # fm = region.getFieldmodule()
@@ -389,6 +388,8 @@ class MeshType_3d_cecum1(Scaffold_base):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             # print(e+1, arcLength)
             cecumLength += arcLength
+
+        # print('cecum length = ', cecumLength)
 
         # Sample central path
         smoothd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
@@ -649,13 +650,13 @@ class MeshType_3d_cecum1(Scaffold_base):
         sectorIdx = ostiumPositionAngleAround // (2*math.pi/tcCount)
         startIdxElementsAround = int((elementsCountAroundHaustrum + elementsCountAroundTC)*sectorIdx +
                                      elementsCountAroundTC*0.5)
-        baseNodesIdx = (elementsCountThroughWall + 1) + elementsCountAround * (elementsCountThroughWall+1) * elementsCountAlongSegment \
-                       + elementsCountAround * (elementsCountThroughWall + 1) * elementsCountAlongSegment * (segmentCount - 2) \
+        baseNodesIdx = (elementsCountThroughWall + 1) + \
+                       + elementsCountAround * (elementsCountThroughWall + 1) * (elementsCountAlongSegment * (segmentCount - 1) - 1) \
                        + elementsCountAround
         xTrackSurface = []
         d1TrackSurface = []
         d2TrackSurface = []
-        for n2 in range(elementsCountAlongSegment):
+        for n2 in range(elementsCountAlongSegment + 1):
             for n1 in range(elementsCountAroundHaustrum + 1):
                 idx = baseNodesIdx + elementsCountAround * (elementsCountThroughWall + 1) * n2 + \
                       startIdxElementsAround + n1
@@ -683,6 +684,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         xi1 = ((angleAroundInSector - angleToTCEdge) - dAngle * ei1Centre) / dAngle
 
         ostiumDistanceFromCecumDistal = segmentLength * ostiumPositionAlongFactor
+
         arcLength = interp.getCubicHermiteArcLength(sxRefList[-1], sd1RefList[-1],
                                                    sxRefList[-2], sd1RefList[-2])
         distance = arcLength
@@ -693,7 +695,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                                                             sxRefList[e], sd1RefList[e])
                 distance += arcLength
             else:
-                ei2Centre = e - (elementsCountAlongSegment*(segmentCount-1) + 1)
+                ei2Centre = e - elementsCountAlongSegment*(segmentCount-1)
                 xi2 = (distance - ostiumDistanceFromCecumDistal) / arcLength
                 break
 
@@ -705,11 +707,14 @@ class MeshType_3d_cecum1(Scaffold_base):
         ei1Left, ei1Right, ei2Bottom, ei2Top = getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium,
                                                                              ostiumDiameter)
 
-        # # Extend boundary
-        # ei1Left -= 1
-        # ei1Right += 1
-        # ei2Bottom -= 1
-        # ei2Top += 1
+        # Extend boundary
+        ei1Left -= 1
+        ei1Right += 1
+        ei2Bottom -= 1
+        ei2Top += 1
+        assert (ei1Left > 0 and ei1Right < elementsAroundTrackSurface and
+                ei2Bottom > 0 and ei2Top < elementsAlongTrackSurface), \
+            'cecum1.py: Elements needed to make annulus mesh sit outside tracksurface.'
 
         nodeStart = int(baseNodesIdx + elementsCountAround * (elementsCountThroughWall + 1) * ei2Bottom + ei1Centre +
                         sectorIdx*(elementsCountAroundHaustrum + elementsCountAroundTC) + elementsCountAroundTC*0.5) - \
@@ -718,7 +723,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Store elements and nodes to be deleted later from tracked surface
         deleteElementsCountAcross = ei1Right - ei1Left + 1
         deleteElementsCountAlong = ei2Top - ei2Bottom + 1
-        deleteElementIdxStart = int(elementsCountAround * (elementsCountAlong - elementsCountAlongSegment + ei2Bottom + 1)
+        deleteElementIdxStart = int(elementsCountAround * (elementsCountAlong - elementsCountAlongSegment + ei2Bottom)
                                     *elementsCountThroughWall + elementsCountAroundTC*0.5 +
                                     (elementsCountAroundTC + elementsCountAroundHaustrum)*sectorIdx + ei1Left + 1)
         deleteElementIdentifier = []
@@ -784,6 +789,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         for n1 in range(ei1Centre - ei1Left):
             endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((-1, 0, 0), (0, -1, 0), None)
             count += 1
+
         endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
         count += 1
         for n2 in range(ei2Top - ei2Bottom):
@@ -805,9 +811,6 @@ class MeshType_3d_cecum1(Scaffold_base):
             endDerivativesMap[0][count] = endDerivativesMap[1][count] = ((-1, 0, 0), (0, -1, 0), None)
             count += 1
 
-        # for i in range(len(innerEndPoints_Id)):
-        #     print(innerEndPoints_Id[i], endDerivativesMap[0][i])
-
         ostiumSettings['Number of elements around ostium'] = len(innerEndPoints_Id)
 
         nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
@@ -821,29 +824,28 @@ class MeshType_3d_cecum1(Scaffold_base):
         nextNodeIdentifier, nextElementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
-            endPoints_x, endPoints_d1, endPoints_d2, None, endPoints_Id, endDerivativesMap, elementsCountRadial = 1)
+            endPoints_x, endPoints_d1, endPoints_d2, None, endPoints_Id, endDerivativesMap,
+            elementsCountRadial = 2)
 
         # Delete elements under annulus mesh
         deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
 
-        return annotationGroups
         # ########################################################################################################
-        # nodeIdentifier = nextNodeIdentifier
-        # for n in range(len(sxCecum)):
+        # nodeIdentifier = 10000 #nextNodeIdentifier
+        # for n in range(len(sxRefList)):
         #     node = nodes.createNode(nodeIdentifier, nodetemplate)
         #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxCecum[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, [0.0, 0.0, 0.0])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, [0.0, 0.0, 0.0])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sd1Cecum[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, [50*sd2Cecum[n][c] for c in range(3)])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxRefList[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sd1RefList[n])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero) #[50*sd2Cecum[n][c] for c in range(3)])
         #     # print('nodeIdentifier = ', nodeIdentifier, 'sd2Cecum = ', sd2Cecum[n])
         #     nodeIdentifier = nodeIdentifier + 1
-        #
         # fm.endChange()
-        # ######################################################################################################
-        #
-        # return
+        # # ######################################################################################################
+
+        return annotationGroups
 
     @classmethod
     def generateMesh(cls, region, options):
@@ -1111,7 +1113,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
     # Left boundary
     leftPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, 0, xi2)
     xLeft, d1Left, _ = trackSurfaceOstium.evaluateCoordinates(leftPositionOfCentreElement, derivatives=True)
-    distxLeftToxCentre = interp.getCubicHermiteArcLength(xLeft, d1Left, xCentre, d1Centre) if xi1 > 0.0 else 0.0
+    distxLeftToxCentre = interp.computeCubicHermiteArcLength(xLeft, d1Left, xCentre, d1Centre, False)
     remainingLength = ostiumDiameter * 0.5 - distxLeftToxCentre
     xCurrent = xLeft
     d1Current = d1Left
@@ -1120,7 +1122,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
         if remainingLength > 0.0:
             prevPosition = TrackSurfacePosition(n1-1, ei2, 0, xi2)
             xPrev, d1Prev, _ = trackSurfaceOstium.evaluateCoordinates(prevPosition, derivatives=True)
-            distPrevToxCurrent = interp.getCubicHermiteArcLength(xPrev, d1Prev, xCurrent, d1Current)
+            distPrevToxCurrent = interp.computeCubicHermiteArcLength(xPrev, d1Prev, xCurrent, d1Current, False)
             remainingLength -= distPrevToxCurrent
             xCurrent = xPrev
             d1Current = d1Prev
@@ -1131,7 +1133,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
     # Right boundary
     rightPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, 1.0, xi2)
     xRight, d1Right, _ = trackSurfaceOstium.evaluateCoordinates(rightPositionOfCentreElement, derivatives=True)
-    distxCentreToxRight = interp.getCubicHermiteArcLength(xCentre, d1Centre, xRight, d1Right) if xi1 < 1.0 else 0.0
+    distxCentreToxRight = interp.computeCubicHermiteArcLength(xCentre, d1Centre, xRight, d1Right, False)
     remainingLength = ostiumDiameter * 0.5 - distxCentreToxRight
     xCurrent = xRight
     d1Current = d1Right
@@ -1140,7 +1142,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
         if remainingLength > 0.0:
             nextPosition = TrackSurfacePosition(n1+1, ei2, 1.0, xi2)
             xNext, d1Next, _ = trackSurfaceOstium.evaluateCoordinates(nextPosition, derivatives=True)
-            distxCurrentToxNext = interp.getCubicHermiteArcLength(xCurrent, d1Current, xNext, d1Next)
+            distxCurrentToxNext = interp.computeCubicHermiteArcLength(xCurrent, d1Current, xNext, d1Next, False)
             remainingLength -= distxCurrentToxNext
             xCurrent = xNext
             d1Current = d1Next
@@ -1151,7 +1153,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
     # Bottom boundary
     bottomPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, xi1, 0)
     xBottom, _, d2Bottom = trackSurfaceOstium.evaluateCoordinates(bottomPositionOfCentreElement, derivatives=True)
-    distxBottomToxCentre = interp.getCubicHermiteArcLength(xBottom, d2Bottom, xCentre, d2Centre) if xi2 > 0.0 else 0.0
+    distxBottomToxCentre = interp.computeCubicHermiteArcLength(xBottom, d2Bottom, xCentre, d2Centre, False)
     remainingLength = ostiumDiameter * 0.5 - distxBottomToxCentre
     xCurrent = xBottom
     d2Current = d2Bottom
@@ -1160,7 +1162,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
         if remainingLength > 0.0:
             prevPosition = TrackSurfacePosition(ei1, n2 - 1, xi1, 0)
             xPrev, _, d2Prev = trackSurfaceOstium.evaluateCoordinates(prevPosition, derivatives=True)
-            distPrevToxCurrent = interp.getCubicHermiteArcLength(xPrev, d2Prev, xCurrent, d2Current)
+            distPrevToxCurrent = interp.computeCubicHermiteArcLength(xPrev, d2Prev, xCurrent, d2Current, False)
             remainingLength -= distPrevToxCurrent
             xCurrent = xPrev
             d2Current = d2Prev
@@ -1171,7 +1173,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
     # Top boundary
     topPositionOfCentreElement = TrackSurfacePosition(ei1, ei2, xi1, 1.0)
     xTop, _, d2Top = trackSurfaceOstium.evaluateCoordinates(topPositionOfCentreElement, derivatives=True)
-    distxCentreToxTop = interp.getCubicHermiteArcLength(xCentre, d2Centre, xTop, d2Top) if xi2 < 1.0 else 0.0
+    distxCentreToxTop = interp.computeCubicHermiteArcLength(xCentre, d2Centre, xTop, d2Top, False)
     remainingLength = ostiumDiameter * 0.5 - distxCentreToxTop
     xCurrent = xTop
     d2Current = d2Top
@@ -1180,7 +1182,7 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
         if remainingLength > 0.0:
             nextPosition = TrackSurfacePosition(ei1, n2+1, xi1, 1.0)
             xNext, _, d2Next = trackSurfaceOstium.evaluateCoordinates(nextPosition, derivatives=True)
-            distxCurrentToxNext = interp.getCubicHermiteArcLength(xCurrent, d2Current, xNext, d2Next)
+            distxCurrentToxNext = interp.computeCubicHermiteArcLength(xCurrent, d2Current, xNext, d2Next, False)
             remainingLength -= distxCurrentToxNext
             xCurrent = xNext
             d2Current = d2Next
