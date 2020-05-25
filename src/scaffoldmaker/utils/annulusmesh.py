@@ -35,8 +35,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
     forceStartLinearXi3 = False, forceMidLinearXi3 = False, forceEndLinearXi3 = False,
     maxStartThickness = None, maxEndThickness = None, useCrossDerivatives = False,
-    elementsCountRadial = 1, meshGroups = None):
-    '''
+    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportion = None, endProportion = None):
+    """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
     Derivative d3 is through the wall. Currently limited to single element layer through wall.
@@ -67,8 +67,12 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     :param meshGroups:  Optional sequence of Zinc MeshGroup for adding all new elements to, or a sequence of
     length elementsCountRadial containing sequences of mesh groups to add rows of radial elements to
     from start to end.
+    :param tracksurface: Description for surface used for creating annulus mesh. Provides information for creating
+    radial nodes on annulus that sit on tracksurface. Need startProportion and endProportion to work.
+    :param startProportion: Proportion around and along of start positions on track surface.
+    :param endProportion: Proportion around and along of end positions on track surface.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
-    '''
+    """
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
     startLinearXi3 = (not startPointsd3) or forceStartLinearXi3
     endLinearXi3 = (not endPointsd3) or forceEndLinearXi3
@@ -108,6 +112,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             rowMeshGroups = [ meshGroups ]*elementsCountRadial
         else:
             assert len(meshGroups) == elementsCountRadial, 'createAnnulusMesh3d:  Length of meshGroups sequence does not equal elementsCountRadial'
+    if tracksurface:
+        assert startProportion and endProportion, 'createAnnulusMesh3d: Missing start and/or end proportion for use with tracksurface'
 
     fm = mesh.getFieldmodule()
     fm.beginChange()
@@ -216,19 +222,41 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                             bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
 
             # scaling end derivatives to arc length gives even curvature along the curve
-            arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
-            scaledDerivatives = [ vector.setMagnitude(d2, arcLength) for d2 in [ ad2, bd2 ]]
-            mx, md2, me, mxi = interp.sampleCubicHermiteCurvesSmooth([ ax, bx ], scaledDerivatives, elementsCountRadial,
-                derivativeMagnitudeStart = vector.magnitude(ad2),
-                derivativeMagnitudeEnd = vector.magnitude(bd2))[0:4]
-            md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
-            thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
-            #md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
+            if tracksurface:
+                mx, md2, md1 = \
+                    tracksurface.createHermiteCurvePoints(startProportion[n1][0], startProportion[n1][1],
+                                                          endProportion[n1][0], endProportion[n1][1],
+                                                          elementsCountRadial, derivativeStart=ad2, derivativeEnd=bd2)[0:3]
+            else:
+                arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
+                scaledDerivatives = [ vector.setMagnitude(d2, arcLength) for d2 in [ ad2, bd2 ]]
+                mx, md2, me, mxi = interp.sampleCubicHermiteCurvesSmooth([ ax, bx ], scaledDerivatives, elementsCountRadial,
+                    derivativeMagnitudeStart = vector.magnitude(ad2),
+                    derivativeMagnitudeEnd = vector.magnitude(bd2))[0:4]
+                md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
+                thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
+
+                #md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
+
             for n2 in range(1, elementsCountRadial):
                 px [n3][n2][n1] = mx [n2]
                 pd1[n3][n2][n1] = md1[n2]
                 pd2[n3][n2][n1] = md2[n2]
-                thicknesses[n2][n1] = thi[n2]
+                if not tracksurface:
+                    thicknesses[n2][n1] = thi[n2]
+
+        # Interpolate thicknesses using xi calculated using arclength distances between points
+        if tracksurface:
+            for n1 in range(nodesCountAround):
+                arclengthInsideToOutside = 0.0
+                arcLengthInsideToRadialPoint = []
+                for n2 in range(elementsCountRadial):
+                    arclengthInsideToOutside += interp.computeCubicHermiteArcLength(px[n3][n2][n1], pd2[n3][n2][n1], px[n3][n2+1][n1], pd2[n3][n2+1][n1], False)
+                    if n2 < elementsCountRadial:
+                        arcLengthInsideToRadialPoint.append(arclengthInsideToOutside)
+                for n2 in range(elementsCountRadial - 1):
+                    xi = arcLengthInsideToRadialPoint[n2]/arclengthInsideToOutside
+                    thicknesses[n2+1][n1] = thicknesses[0][n1]*xi + thicknesses[-1][n1]*(1-xi)
 
         # now get inner positions from normal and thickness, derivatives from curvature
         for n2 in range(1, elementsCountRadial):
@@ -256,6 +284,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                     interp.getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
                 factor = 1.0 + curvature*thickness
                 pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
+                d2Scaled = [factor*d for d in pd2[1][n2][n1]]
+                if vector.dotproduct(vector.normalise(pd2[1][n2][n1]), vector.normalise(d2Scaled)) == -1:
+                    pd2[0][n2][n1] = [-factor * d for d in pd2[1][n2][n1]]
                 if not midLinearXi3:
                     pd3[0][n2][n1] = pd3[1][n2][n1] = d3
 

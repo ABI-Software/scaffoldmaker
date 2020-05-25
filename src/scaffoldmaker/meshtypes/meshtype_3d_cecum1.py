@@ -712,9 +712,10 @@ class MeshType_3d_cecum1(Scaffold_base):
         ei1Right += 1
         ei2Bottom -= 1
         ei2Top += 1
-        assert (ei1Left > 0 and ei1Right < elementsAroundTrackSurface and
-                ei2Bottom > 0 and ei2Top < elementsAlongTrackSurface), \
-            'cecum1.py: Elements needed to make annulus mesh sit outside tracksurface.'
+        # print(ei1Left, ei1Right, ei2Bottom, ei2Top)
+        assert (ei1Left >= 0 and ei1Right < elementsAroundTrackSurface and
+                ei2Bottom >= 0 and ei2Top < elementsAlongTrackSurface), \
+            'cecum1.py: Insufficient elements on tracksurface to make annulus mesh.'
 
         nodeStart = int(baseNodesIdx + elementsCountAround * (elementsCountThroughWall + 1) * ei2Bottom + ei1Centre +
                         sectorIdx*(elementsCountAroundHaustrum + elementsCountAroundTC) + elementsCountAroundTC*0.5) - \
@@ -742,21 +743,28 @@ class MeshType_3d_cecum1(Scaffold_base):
                     deleteNodeIdentifier.append(nodeIdx)
 
         innerEndPoints_Id = []
+        endProportion = []
         for n1 in range(ei1Centre - ei1Left + 1):
             idx = nodeStart - n1
             innerEndPoints_Id.append(idx)
+            endProportion.append([(ei1Centre - n1)/elementsAroundTrackSurface, ei2Bottom/elementsAlongTrackSurface])
         for n2 in range(ei2Top - ei2Bottom + 1):
             idx = idx + 2*elementsCountAround
             innerEndPoints_Id.append(idx)
+            endProportion.append([ei1Left/elementsAroundTrackSurface, (ei2Bottom + n2 + 1)/elementsAlongTrackSurface])
         for n1 in range(1, ei1Right - ei1Left + 2):
             idx = idx + 1
             innerEndPoints_Id.append(idx)
+            endProportion.append([(ei1Left + n1) / elementsAroundTrackSurface, (ei2Top+1) / elementsAlongTrackSurface])
         for n2 in range(ei2Top - ei2Bottom + 1):
             idx = idx - 2*elementsCountAround
             innerEndPoints_Id.append(idx)
+            endProportion.append(
+                [(ei1Right+1) / elementsAroundTrackSurface, (ei2Top - n2) / elementsAlongTrackSurface])
         for n1 in range(ei1Right - ei1Centre):
             idx = idx - 1
             innerEndPoints_Id.append(idx)
+            endProportion.append([(ei1Right - n1) / elementsAroundTrackSurface, ei2Bottom / elementsAlongTrackSurface])
 
         innerEndPoints_x = []
         innerEndPoints_d1 = []
@@ -821,11 +829,16 @@ class MeshType_3d_cecum1(Scaffold_base):
         mesh = fm.findMeshByDimension(3)
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
+        startProportion = []
+        for n in range(len(innerEndPoints_Id)):
+            startProportion.append(trackSurfaceOstium.getProportion(o1_Positions[n]))
+
         nextNodeIdentifier, nextElementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints_x, endPoints_d1, endPoints_d2, None, endPoints_Id, endDerivativesMap,
-            elementsCountRadial = 2)
+            elementsCountRadial = 2, tracksurface = trackSurfaceOstium, startProportion = startProportion,
+            endProportion = endProportion)
 
         # Delete elements under annulus mesh
         deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
