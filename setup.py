@@ -19,7 +19,7 @@ readme = readfile("README.rst", split=True)[3:]  # skip title
 # into the 'requirements.txt' file.
 requires = [
     # minimal requirements listing
-    "opencmiss.utils >= 0.2",
+    "opencmiss.utils >= 0.3",
     "opencmiss.zinc",  # not yet on pypi - need manual install from opencmiss.org
     "ZincPythonTools @ https://api.github.com/repos/OpenCMISS-Bindings/ZincPythonTools/tarball/master",
     "scipy",
