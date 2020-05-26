@@ -54,8 +54,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
             "left ventricle myocardium" : 94,
             "right ventricle myocardium" : 79,
             "interventricular septum" : 30,
-            "left atrium myocardium" : 72,
-            "right atrium myocardium" : 46,
+            "left atrium myocardium" : 88,
+            "right atrium myocardium" : 62,
             "interatrial septum" : 17
             }
         for name in expectedSizes3d:
@@ -65,8 +65,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
         expectedSizes2d = {
             "endocardium of left ventricle" : 74,
             "endocardium of right ventricle" : 59,
-            "endocardium of left atrium" : 66,
-            "endocardium of right atrium" : 40,
+            "endocardium of left atrium" : 82,
+            "endocardium of right atrium" : 56,
             "epicardium" : 197
             }
         for name in expectedSizes2d:
