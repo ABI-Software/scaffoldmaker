@@ -80,7 +80,6 @@ def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
 def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                       sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
                       refPointZ, innerRadiusAlong, closedProximalEnd):
-                      #region, useCubicHermiteThroughWall, useCrossDerivatives, nodeIdentifier, closedProximalEnd):
     """
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
@@ -99,31 +98,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
     :param closedProximalEnd: True if proximal end of segment is a closed end.
     :return coordinates and derivatives of warped points.
     """
-
-    ##################################################################################
-    # zero = [0.0, 0.0, 0.0]
-    # fm = region.getFieldmodule()
-    # fm.beginChange()
-    # cache = fm.createFieldcache()
-    # # nodeIdentifier = 1
-    #
-    # # Coordinates field
-    # coordinates = findOrCreateFieldCoordinates(fm)
-    # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    # nodetemplate = nodes.createNodetemplate()
-    # nodetemplate.defineField(coordinates)
-    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    # if useCrossDerivatives:
-    #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-    # if useCubicHermiteThroughWall:
-    #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-    #     if useCrossDerivatives:
-    #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
-    #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
-    #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-    ####################################################################################
 
     xWarpedList = []
     d1WarpedList = []
@@ -205,24 +179,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             d1Rot2 = [rotFrame2[j][0]*d1Rot1[0] + rotFrame2[j][1]*d1Rot1[1] + rotFrame2[j][2]*d1Rot1[2] for j in range(3)]
             d2Rot2 = [rotFrame2[j][0]*d2Rot1[0] + rotFrame2[j][1]*d2Rot1[1] + rotFrame2[j][2]*d2Rot1[2] for j in range(3)]
             xTranslate = [xRot2[j] + translateMatrix[j] for j in range(3)]
-
-            ########################################################################################################
-            # node = nodes.createNode(nodeIdentifier, nodetemplate)
-            # cache.setNode(node)
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTranslate)
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Rot2)
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Rot2)
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-            # if useCrossDerivatives:
-            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-            # # print('NodeIdentifier = ', nodeIdentifier, xInner[n], d1Inner[n], d2Inner[n])
-            # nodeIdentifier = nodeIdentifier + 1
-            #
-            # fm.endChange()
-            ##########################################################################################################
 
             xWarpedList.append(xTranslate)
             d1WarpedList.append(d1Rot2)
@@ -316,7 +272,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
         d3WarpedUnitList.append(d3Unit)
 
     return xWarpedListNew, d1WarpedListNew, d2WarpedListFinal, d3WarpedUnitList
-
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     wallThicknessList, elementsCountAround,

@@ -7,7 +7,7 @@ variable radius and thickness along.
 import copy
 import math
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi, createHalfSetInterHaustralSegment, createHalfSetIntraHaustralSegment, getFullProfileFromHalfHaustrum, getXiListFromOuterLengthProfile
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, getFullProfileFromHalfHaustrum
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -15,12 +15,11 @@ from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
+from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.utils.zinc.general import ChangeManager
-# from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates # KM
 from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
 
@@ -33,7 +32,7 @@ class MeshType_3d_cecum1(Scaffold_base):
     segment and uses tubemesh to map the segment along a central
     line profile. The proximal end of the cecum is closed up with
     an apex plate. An ostium is included to generate the
-    ileo-ceco-colic junction.
+    ileo-cecal junction.
     '''
 
     centralPathDefaultScaffoldPackages = {
@@ -45,33 +44,11 @@ class MeshType_3d_cecum1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    # [[0.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    # [[40.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    # [[80.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    # [[120.0, 0.0, 0.0], [40.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]])
                     [[0.0, 0.0, 0.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                     [[0.0, 0.0, 60.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                     [[0.0, 0.0, 120.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                     [[0.0, 0.0, 180.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
-    } ),
-        'Human 1' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
-                'Length' : 1.0,
-                'Number of elements' : 8
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
-                [ [   0.0,   0.0, 0.0 ], [ -50.7,  178.2, 0.0 ], [ -24.0,  -6.0, -12.0 ], [ -14.0,  -1.0, -12.0 ] ],
-                [ [ -47.4, 188.6, 0.0 ], [ -19.3,  177.1, 0.0 ], [ -22.0,  -4.0,  -8.0 ], [  -4.0,  19.0,  22.0 ] ],
-                [ [  -4.4, 396.5, 0.0 ], [ 206.0,   40.1, 0.0 ], [ -10.0,  20.0,   8.0 ], [  -6.0,   0.0,  51.0 ] ],
-                [ [ 130.0, 384.1, 0.0 ], [ 130.8,  -40.5, 0.0 ], [  -5.0,   4.0,  29.0 ], [   0.0,   1.0,  24.0 ] ],
-                [ [ 279.4, 383.0, 0.0 ], [ 118.0,   48.7, 0.0 ], [  -2.0,  10.0,  22.0 ], [   5.0,  25.0, -20.0 ] ],
-                [ [ 443.9, 390.8, 0.0 ], [ 111.3,  -97.0, 0.0 ], [  10.0,  17.0,   6.0 ], [   1.0,  -6.0, -35.0 ] ],
-                [ [ 475.2, 168.0, 0.0 ], [  -0.8, -112.4, 0.0 ], [  20.0,   0.0, -20.0 ], [  15.0,  -1.0, -10.0 ] ],
-                [ [ 432.6, -32.3, 0.0 ], [ -90.5,  -59.0, 0.0 ], [   6.0,  -9.0, -14.0 ], [   8.0, -11.0, -13.0 ] ],
-                [ [ 272.4,   7.5, 0.0 ], [ -79.0,   47.4, 0.0 ], [   1.0, -11.0, -18.0 ], [   4.0, -12.0, -12.0 ] ] ] )
-            } ),
+    } )
         }
 
     ostiumDefaultScaffoldPackages = {
@@ -97,36 +74,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
                 'Use linear through vessel wall': True,
-                # 'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Human 1': ScaffoldPackage(MeshType_3d_ostium1, {
-            'scaffoldSettings': {
-                'Number of vessels': 1,
-                'Number of elements across common': 2,
-                'Number of elements around ostium': 8,
-                'Number of elements along': 1,
-                'Number of elements through wall': 1,  # not implemented for > 1
-                'Unit scale': 1.0,
-                'Outlet': False,
-                'Ostium diameter': 0.15,
-                'Ostium length': 0.05,
-                'Ostium wall thickness': 0.02,
-                'Ostium inter-vessel distance': 0.8,
-                'Ostium inter-vessel height': 0.0,
-                'Use linear through ostium wall': True,
-                'Vessel end length factor': 1.0,
-                'Vessel inner diameter': 0.04,
-                'Vessel wall thickness': 0.01,
-                'Vessel angle 1 degrees': 0.0,
-                'Vessel angle 1 spread degrees': 0.0,
-                'Vessel angle 2 degrees': 0.0,
-                'Use linear through vessel wall': True,
-                # 'Use cross derivatives': False,
+                'Use cross derivatives': False,
                 'Refine': False,
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
@@ -143,17 +91,12 @@ class MeshType_3d_cecum1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Human 1',
             'Pig 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Human 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
-        else:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
+        centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
+        ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
 
         options = {
             'Central path': copy.deepcopy(centralPathOption),
@@ -184,7 +127,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements around': 1,
-            'Refine number of elements along segment': 1,
+            'Refine number of elements along': 1,
             'Refine number of elements through wall': 1
         }
         return options
@@ -220,7 +163,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
-            'Refine number of elements along segment',
+            'Refine number of elements along',
             'Refine number of elements through wall']
 
     @classmethod
@@ -269,7 +212,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         for key in [
             'Number of segments',
             'Refine number of elements around',
-            'Refine number of elements along segment',
+            'Refine number of elements along',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
@@ -343,30 +286,6 @@ class MeshType_3d_cecum1(Scaffold_base):
         ostiumDiameter = ostiumSettings['Ostium diameter']
 
         assert (elementsCountThroughWall == 1), 'cecum1.py: Can only have one layer through wall due to limitation of annulus mesh'
-        ##################################################################################
-        # zero = [0.0, 0.0, 0.0]
-        # fm = region.getFieldmodule()
-        # fm.beginChange()
-        # cache = fm.createFieldcache()
-        # nodeIdentifier = 1
-        #
-        # # Coordinates field
-        # coordinates = findOrCreateFieldCoordinates(fm)
-        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(coordinates)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # if useCrossDerivatives:
-        #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-        # if useCubicHermiteThroughWall:
-        #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        #     if useCrossDerivatives:
-        #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
-        #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
-        #         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-        #####################################################################################
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -388,8 +307,6 @@ class MeshType_3d_cecum1(Scaffold_base):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             # print(e+1, arcLength)
             cecumLength += arcLength
-
-        # print('cecum length = ', cecumLength)
 
         # Sample central path
         smoothd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
@@ -435,7 +352,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray \
                 = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
-            # Add apex to second half of first segment and sample along
+            # Replace first half of first segment with apex and sample along apex and second half of segment
             if nSegment == 0:
                 xFirstSegmentSampled, d1FirstSegmentSampled, d2FirstSegmentSampled, d1FirstDirectionVector = \
                     getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaustrum,
@@ -469,35 +386,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                                        sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
                                        zRefList, innerRadiusAlongCecum, closedProximalEnd=True)
 
-        # xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-        #     xToWarp, d1ToWarp, d2ToWarp, segmentAxis,
-        #     sxCentroidList, sd1CentroidList, sd2ProjectedListCentroid,
-        #     elementsCountAround, elementsCountAlong, 0, zFirstNodeAlongList, innerRadiusAlongCecum, #closedProximalEnd=True)
-        #     region, useCubicHermiteThroughWall, useCrossDerivatives, nodeIdentifier, closedProximalEnd=True)
-        # ##############################################################################################################
-        # Create nodes
-        # Coordinates field
-        # for n in range(len(xToWarped)):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xToWarp[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-        #     if useCrossDerivatives:
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-        #     #print('NodeIdentifier = ', nodeIdentifier, xWarpedList[n], d1WarpedList[n], d2WarpedList[n])
-        #     nodeIdentifier = nodeIdentifier + 1
-        # fm.endChange()
-        # ###############################################################################################################
-
         # Calculate unit d3
-        # # xWarpedList = xToWarp
-        # # d1WarpedList = d1ToWarp
-        # # d2WarpedList = d2ToWarp
         d3UnitWarpedList = []
         for n in range(len(xWarpedList)):
             d3Unit = vector.normalise(
@@ -513,7 +402,8 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         # Deal with multiple nodes at end point for closed proximal end
         xApexInner = xList[0]
-        mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[elementsCountAround*2], d2List[elementsCountAround*2]) # arclength between apex point and corresponding point on next face
+        # arclength between apex point and corresponding point on next face
+        mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[elementsCountAround*2], d2List[elementsCountAround*2])
         d2ApexInner = vector.setMagnitude(sd2Cecum[0], mag)
         d1ApexInner = vector.crossproduct3(sd1Cecum[0], d2ApexInner)
         d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
@@ -528,7 +418,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         for n3 in range(elementsCountThroughWall + 1):
             xApex = [xApexInner[c] + d3ApexUnit[c] * wallThickness/elementsCountThroughWall * n3 for c in range(3)]
             xCecum.append(xApex)
-            d1Cecum.append(d1ApexInner) # Probably need to scale to curvature
+            d1Cecum.append(d1ApexInner)
             d2Cecum.append(d2ApexInner)
             d3Cecum.append(d3ApexInner)
 
@@ -546,68 +436,6 @@ class MeshType_3d_cecum1(Scaffold_base):
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
-
-        # ################################################################################################################
-        # nodeIdentifier = nextNodeIdentifier
-        # for n in range(len(sxCentroidList)):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxCentroidList[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1CentroidList[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [30.0* sd2ProjectedListCentroid[n][c] for c in range(3)])
-        #     if useCrossDerivatives:
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-        #     # print('NodeIdentifier = ', nodeIdentifier, xWarpedList[n], d1WarpedList[n], d2WarpedList[n])
-        #     nodeIdentifier = nodeIdentifier + 1
-        # fm.endChange()
-        ###############################################################################################################
-
-        # if tcThickness > 0:
-        #     tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
-        #
-        #     xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
-        #         region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
-        #         elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-        #         tubeTCWidthList, tcThickness, sxCecum, annotationGroups, annotationArray, closedProximalEnd = True)
-        #
-        #     # Create nodes and elements
-        #     nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-        #         region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
-        #         elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-        #         tcCount, annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-        #         useCubicHermiteThroughWall, useCrossDerivatives)
-        #
-        # else:
-        #     # Create nodes and elements
-        #     nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-        #         region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
-        #         elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-        #         annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-        #         useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
-
-        ##############################################################################################################
-        # # Create nodes
-        # # Coordinates field
-        # for n in range(len(xCecum)):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCecum[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Cecum[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Cecum[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Cecum[n])
-        #     if useCrossDerivatives:
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-        #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-        #     #print('NodeIdentifier = ', nodeIdentifier, xWarpedList[n], d1WarpedList[n], d2WarpedList[n])
-        #     nodeIdentifier = nodeIdentifier + 1
-        # fm.endChange()
-        ###############################################################################################################
 
         # if tcThickness > 0:
         #     tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
@@ -712,7 +540,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         ei1Right += 1
         ei2Bottom -= 1
         ei2Top += 1
-        # print(ei1Left, ei1Right, ei2Bottom, ei2Top)
+
         assert (ei1Left >= 0 and ei1Right < elementsAroundTrackSurface and
                 ei2Bottom >= 0 and ei2Top < elementsAlongTrackSurface), \
             'cecum1.py: Insufficient elements on tracksurface to make annulus mesh.'
@@ -842,21 +670,6 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         # Delete elements under annulus mesh
         deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
-
-        # ########################################################################################################
-        # nodeIdentifier = 10000 #nextNodeIdentifier
-        # for n in range(len(sxRefList)):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxRefList[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sd1RefList[n])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero) #[50*sd2Cecum[n][c] for c in range(3)])
-        #     # print('nodeIdentifier = ', nodeIdentifier, 'sd2Cecum = ', sd2Cecum[n])
-        #     nodeIdentifier = nodeIdentifier + 1
-        # fm.endChange()
-        # # ######################################################################################################
 
         return annotationGroups
 
