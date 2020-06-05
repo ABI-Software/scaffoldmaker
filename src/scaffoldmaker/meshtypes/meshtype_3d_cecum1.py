@@ -121,7 +121,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Tenia coli thickness': 0.5,
             'Wall thickness': 2.0,
             'Ileocecal junction': copy.deepcopy(ostiumOption),
-            'Ileocecal junction angular position degrees': 60,
+            'Ileocecal junction angular position degrees': 60.0,
             'Ileocecal junction position along factor': 0.5,
             'Use cross derivatives': False,
             'Use linear through wall': True,
