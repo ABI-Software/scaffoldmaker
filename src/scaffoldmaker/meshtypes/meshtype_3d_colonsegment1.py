@@ -191,8 +191,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         if options['End tenia coli width'] > round(math.sqrt(3)*0.5*options['End inner radius'], 2):
             options['End tenia coli width'] = round(math.sqrt(3)*0.5*options['End inner radius'], 2)
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -320,25 +320,19 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         return annotationGroups
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def refineMesh(cls, meshrefinement, options):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountAlong = options['Refine number of elements along segment']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
-        return meshrefinement.getAnnotationGroups()
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
+                                                       refineElementsCountThroughWall)
+        return
 
 class ColonSegmentTubeMeshInnerPoints:
     """
