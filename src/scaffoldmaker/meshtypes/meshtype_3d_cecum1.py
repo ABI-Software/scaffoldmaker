@@ -130,6 +130,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Refine number of elements along': 1,
             'Refine number of elements through wall': 1
         }
+        cls.updateSubScaffoldOptions(options)
         return options
 
     @staticmethod
@@ -240,6 +241,17 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
+        cls.updateSubScaffoldOptions(options)
+
+    @classmethod
+    def updateSubScaffoldOptions(cls, options):
+        '''
+        Update ostium sub-scaffold options which depend on parent options.
+        '''
+        wallThickness = options['Wall thickness']
+        ostiumOptions = options['Ileocecal junction']
+        ostiumSettings = ostiumOptions.getScaffoldSettings()
+        ostiumSettings['Ostium wall thickness'] = wallThickness
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -249,6 +261,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: annotationGroups
         """
+        cls.updateSubScaffoldOptions(options)
         centralPath = options['Central path']
         segmentCount = options['Number of segments']
         startPhase = 0.0
