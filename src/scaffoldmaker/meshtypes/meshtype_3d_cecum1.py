@@ -437,39 +437,6 @@ class MeshType_3d_cecum1(Scaffold_base):
             annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
 
-        # if tcThickness > 0:
-        #     tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
-        #     xList, d1List, d2List, d3List, annotationGroups, annotationArray = getTeniaColi(
-        #         region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
-        #         elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-        #         tubeTCWidthList, tcThickness, sxCecum, annotationGroups, annotationArray)
-        #
-        #     # Create flat and texture coordinates
-        #     xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
-        #         xiList, relaxedLengthList, cecumLength, wallThickness, tcCount, tcThickness,
-        #         elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
-        #         elementsCountThroughWall, transitElementList)
-        #
-        #     # Create nodes and elements
-        #     nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-        #         region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
-        #         elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-        #         tcCount, annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-        #         useCubicHermiteThroughWall, useCrossDerivatives)
-        #
-        # else:
-        #     # Create flat and texture coordinates
-        #     xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
-        #         xiList, relaxedLengthList, length, wallThickness, elementsCountAround,
-        #         elementsCountAlong, elementsCountThroughWall, transitElementList)
-        #
-        #     # Create nodes and elements
-        #     nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-        #         region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
-        #         elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-        #         annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-        #         useCubicHermiteThroughWall, useCrossDerivatives)
-
         # Add ostium on track surface between two tenia on the last segment
         elementsAroundTrackSurface = elementsCountAroundHaustrum
         elementsAlongTrackSurface = elementsCountAlongSegment
