@@ -70,8 +70,10 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     :param tracksurface: Description for outer surface representation used for creating annulus mesh. Provides
     information for creating radial nodes on annulus that sit on tracksurface. Need startProportions and endProportions
     to work.
-    :param startProportions: Proportion around and along of start positions on track surface.
-    :param endProportions: Proportion around and along of end positions on track surface.
+    :param startProportions: Proportion around and along of startPoints on tracksurface. These vary with nodes
+    around as for startPoints. Values only given for tracksurface for outer layer (xi3 == 1).
+    :param endProportions: Proportion around and along of endPoints on track surface. These vary with nodes
+    around as for endPoints. Values only given for tracksurface for outer layer (xi3 == 1).
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
     """
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
