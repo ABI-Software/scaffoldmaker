@@ -67,8 +67,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     :param meshGroups:  Optional sequence of Zinc MeshGroup for adding all new elements to, or a sequence of
     length elementsCountRadial containing sequences of mesh groups to add rows of radial elements to
     from start to end.
-    :param tracksurface: Description for surface used for creating annulus mesh. Provides information for creating
-    radial nodes on annulus that sit on tracksurface. Need startProportion and endProportion to work.
+    :param tracksurface: Description for outer surface representation used for creating annulus mesh. Provides
+    information for creating radial nodes on annulus that sit on tracksurface. Need startProportions and endProportions
+    to work.
     :param startProportions: Proportion around and along of start positions on track surface.
     :param endProportions: Proportion around and along of end positions on track surface.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
