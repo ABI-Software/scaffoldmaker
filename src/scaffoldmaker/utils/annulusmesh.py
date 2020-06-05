@@ -117,6 +117,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             assert len(meshGroups) == elementsCountRadial, 'createAnnulusMesh3d:  Length of meshGroups sequence does not equal elementsCountRadial'
     if tracksurface:
         assert startProportions and endProportions, 'createAnnulusMesh3d: Missing start and/or end proportions for use with tracksurface'
+        assert len(startProportions) == nodesCountAround, 'createAnnulusMesh3d: Length of startProportions does not equal nodesCountAround'
+        assert len(endProportions) == nodesCountAround, 'createAnnulusMesh3d: Length of endProportions does not equal nodesCountAround'
 
     fm = mesh.getFieldmodule()
     fm.beginChange()
