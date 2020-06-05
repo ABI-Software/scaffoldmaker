@@ -221,7 +221,6 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Number of elements around tenia coli',
             'Number of elements around haustrum',
             'Number of elements along segment',
-            'Number of elements through wall',
             'Start inner radius',
             'Start inner radius derivative',
             'End inner radius',
@@ -241,6 +240,8 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
+            if options['Number of elements through wall'] != 1:
+                options['Number of elements through wall'] = 1
         cls.updateSubScaffoldOptions(options)
 
     @classmethod
@@ -297,8 +298,6 @@ class MeshType_3d_cecum1(Scaffold_base):
         ostiumOptions = options['Ileocecal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         ostiumDiameter = ostiumSettings['Ostium diameter']
-
-        assert (elementsCountThroughWall == 1), 'cecum1.py: Can only have one layer through wall due to limitation of annulus mesh'
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -523,7 +522,7 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         assert (ei1Left >= 0 and ei1Right < elementsAroundTrackSurface and
                 ei2Bottom >= 0 and ei2Top < elementsAlongTrackSurface), \
-            'cecum1.py: Insufficient elements on tracksurface to make annulus mesh.'
+            'cecum1.py: Insufficient elements around ostium on tracksurface to make annulus mesh.'
 
         nodeStart = int(baseNodesIdx + elementsCountAround * (elementsCountThroughWall + 1) * ei2Bottom + ei1Centre +
                         sectorIdx*(elementsCountAroundHaustrum + elementsCountAroundTC) + elementsCountAroundTC*0.5) - \
