@@ -35,7 +35,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
     forceStartLinearXi3 = False, forceMidLinearXi3 = False, forceEndLinearXi3 = False,
     maxStartThickness = None, maxEndThickness = None, useCrossDerivatives = False,
-    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportion = None, endProportion = None):
+    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportions = None, endProportions = None):
     """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
@@ -69,8 +69,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     from start to end.
     :param tracksurface: Description for surface used for creating annulus mesh. Provides information for creating
     radial nodes on annulus that sit on tracksurface. Need startProportion and endProportion to work.
-    :param startProportion: Proportion around and along of start positions on track surface.
-    :param endProportion: Proportion around and along of end positions on track surface.
+    :param startProportions: Proportion around and along of start positions on track surface.
+    :param endProportions: Proportion around and along of end positions on track surface.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
     """
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
@@ -113,7 +113,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
         else:
             assert len(meshGroups) == elementsCountRadial, 'createAnnulusMesh3d:  Length of meshGroups sequence does not equal elementsCountRadial'
     if tracksurface:
-        assert startProportion and endProportion, 'createAnnulusMesh3d: Missing start and/or end proportion for use with tracksurface'
+        assert startProportions and endProportions, 'createAnnulusMesh3d: Missing start and/or end proportions for use with tracksurface'
 
     fm = mesh.getFieldmodule()
     fm.beginChange()
@@ -224,8 +224,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             # scaling end derivatives to arc length gives even curvature along the curve
             if tracksurface:
                 mx, md2, md1 = \
-                    tracksurface.createHermiteCurvePoints(startProportion[n1][0], startProportion[n1][1],
-                                                          endProportion[n1][0], endProportion[n1][1],
+                    tracksurface.createHermiteCurvePoints(startProportions[n1][0], startProportions[n1][1],
+                                                          endProportions[n1][0], endProportions[n1][1],
                                                           elementsCountRadial, derivativeStart=ad2, derivativeEnd=bd2)[0:3]
             else:
                 arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
