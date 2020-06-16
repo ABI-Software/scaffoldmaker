@@ -95,7 +95,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['Start inner radius'] = 20.0
             options['End inner radius'] = 20.0
             options['Corner inner radius factor'] = 0.0
-            options['Haustrum inner radius factor'] = 0.3
+            options['Haustrum inner radius factor'] = 0.2
             options['Segment length end derivative factor'] = 0.8
             options['Segment length mid derivative factor'] = 2.0
             options['Segment length'] = 25.0
