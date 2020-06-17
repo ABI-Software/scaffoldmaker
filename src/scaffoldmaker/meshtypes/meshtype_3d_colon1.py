@@ -236,11 +236,11 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Proximal inner radius'] = 38.0
             options['Proximal tenia coli width'] = 5.0
             options['Proximal-transverse inner radius'] = 14.0
-            options['Proximal-transverse tenia coli width'] = 5.0
+            options['Proximal-transverse tenia coli width'] = 4.0
             options['Transverse-distal inner radius'] = 10.5
-            options['Transverse-distal tenia coli width'] = 5.0
+            options['Transverse-distal tenia coli width'] = 3.0
             options['Distal inner radius'] = 8.0
-            options['Distal tenia coli width'] = 5.0
+            options['Distal tenia coli width'] = 1.5
         elif 'Pig 2' in parameterSetName:
             options['Number of segments'] = 3
             options['Proximal length'] = 30.0
@@ -426,6 +426,14 @@ class MeshType_3d_colon1(Scaffold_base):
                                                                                             tcWidthList,
                                                                                             elementsCountAlong)
 
+        # Account for reduced haustrum appearance in transverse and distal pig colon
+        if tcCount == 2:
+            haustrumInnerRadiusFactorList = [haustrumInnerRadiusFactor, haustrumInnerRadiusFactor*0.75,
+                                             haustrumInnerRadiusFactor*0.5, haustrumInnerRadiusFactor*0.2]
+            haustrumInnerRadiusFactorAlongElementList = \
+                interp.sampleParameterAlongLine(lengthList, haustrumInnerRadiusFactorList, elementsCountAlong)[0]
+        else:
+            haustrumInnerRadiusFactorAlongElementList = [haustrumInnerRadiusFactor]*(elementsCountAlong+1)
         # Create annotation groups for colon sections
         elementsAlongInProximal = round(proximalLength/elementAlongLength)
         elementsAlongInTransverse = round(transverseLength/elementAlongLength)
@@ -467,7 +475,7 @@ class MeshType_3d_colon1(Scaffold_base):
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongElementList,
             innerRadiusAlongElementList, dInnerRadiusAlongElementList, tcWidthAlongElementList,
             startPhase)
 

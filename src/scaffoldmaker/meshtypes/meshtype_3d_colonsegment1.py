@@ -252,10 +252,12 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                                                      [endTCWidth], [endTCWidthDerivative], xi)[0]
             tcWidthAlongSegment.append(tcWidth)
 
+        haustrumInnerRadiusFactorAlongSegment = [haustrumInnerRadiusFactor]*(elementsCountAlongSegment + 1)
+
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongSegment,
             radiusAlongSegment, dRadiusAlongSegment, tcWidthAlongSegment, startPhase)
 
         annotationArrayAlong = [''] * elementsCountAlongSegment
@@ -343,7 +345,7 @@ class ColonSegmentTubeMeshInnerPoints:
     def __init__(self, region, elementsCountAroundTC, elementsCountAroundHaustrum,
         elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor,
         segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
-        cornerInnerRadiusFactor, haustrumInnerRadiusFactor, innerRadiusAlongElementList,
+        cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongElementList, innerRadiusAlongElementList,
         dInnerRadiusAlongElementList, tcWidthAlongElementList, startPhase):
 
         self._region = region
@@ -356,7 +358,7 @@ class ColonSegmentTubeMeshInnerPoints:
         self._segmentLength = segmentLength
         self._wallThickness = wallThickness
         self._cornerInnerRadiusFactor = cornerInnerRadiusFactor
-        self._haustrumInnerRadiusFactor = haustrumInnerRadiusFactor
+        self._haustrumInnerRadiusFactorAlongElementList = haustrumInnerRadiusFactorAlongElementList
         self._innerRadiusAlongElementList = innerRadiusAlongElementList
         self._dInnerRadiusAlongElementList = dInnerRadiusAlongElementList
         self._tcWidthAlongElementList = tcWidthAlongElementList
@@ -376,13 +378,16 @@ class ColonSegmentTubeMeshInnerPoints:
         tcWidthSegmentList = self._tcWidthAlongElementList[nSegment*self._elementsCountAlongSegment:
                                                            (nSegment + 1)*self._elementsCountAlongSegment + 1]
 
+        haustrumInnerRadiusFactorSegmentList = self._haustrumInnerRadiusFactorAlongElementList[nSegment * self._elementsCountAlongSegment:
+                                                              (nSegment + 1) * self._elementsCountAlongSegment + 1]
+
         xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, \
             contractedWallThicknessSegment, segmentAxis, annotationGroups, annotationArray\
             = getColonSegmentInnerPoints(self._region,
                 self._elementsCountAroundTC, self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
                 self._tcCount, self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
                 self._segmentLength, self._wallThickness,
-                self._cornerInnerRadiusFactor, self._haustrumInnerRadiusFactor,
+                self._cornerInnerRadiusFactor, haustrumInnerRadiusFactorSegmentList,
                 radiusSegmentList, dRadiusSegmentList, tcWidthSegmentList,
                 self._startPhase)
 
@@ -414,7 +419,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     elementsCountAroundHaustrum, elementsCountAlongSegment,
     tcCount, segmentLengthEndDerivativeFactor,
     segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
-    cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+    cornerInnerRadiusFactor, haustrumInnerRadiusFactorSegmentList,
     radiusSegmentList, dRadiusSegmentList, tcWidthSegmentList,
     startPhase):
     """
@@ -440,7 +445,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     inter-haustral septa. Factor is multiplied by inner radius
     to get a radius of curvature at the corners. Only applicable for three tenia
     coli. Set to zero for two tenia coli.
-    :param haustrumInnerRadiusFactor: Factor is multiplied by inner
+    :param haustrumInnerRadiusFactorSegmentList: Factor is multiplied by inner
     radius to obtain radius of intersecting circles in the middle cross-section
     along a haustra segment.
     :param radiusSegmentList: List of inner radius defined from center of triangular
@@ -551,6 +556,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             radius = radiusSegmentList[n2]
             sdRadius = dRadiusSegmentList[n2]
             tcWidth = tcWidthSegmentList[n2]
+            haustrumInnerRadiusFactor = haustrumInnerRadiusFactorSegmentList[n2]
 
             # Create segment of inner radius
             # Calculate x and d1 at the start, mid, and end faces

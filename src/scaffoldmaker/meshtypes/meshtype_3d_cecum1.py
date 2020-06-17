@@ -345,6 +345,8 @@ class MeshType_3d_cecum1(Scaffold_base):
                                                      [endTCWidth], [endTCWidthDerivative], xi)[0]
             tcWidthAlongCecum.append(tcWidth)
 
+        haustrumInnerRadiusFactorAlongCecum = [haustrumInnerRadiusFactor] * (elementsCountAlong + 1)
+
         xToSample = []
         d1ToSample = []
         d2ToSample = []
@@ -355,7 +357,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
+            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongCecum,
             innerRadiusAlongCecum, dInnerRadiusAlongCecum, tcWidthAlongCecum, startPhase)
 
         annotationArrayAlong = [''] * elementsCountAlongSegment
