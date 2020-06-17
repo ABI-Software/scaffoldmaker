@@ -471,7 +471,7 @@ def createNodesAndElements(region,
     xFlat, d1Flat, d2Flat,
     xTexture, d1Texture, d2Texture,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-    annotationGroups, annotationArray,
+    annotationGroups, annotationArrayAround, annotationArrayAlong,
     firstNodeIdentifier, firstElementIdentifier,
     useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
@@ -486,7 +486,8 @@ def createNodesAndElements(region,
     :param elementsCountAlong: Number of elements along tube.
     :param elementsCountThroughWall: Number of elements through wall.
     :param annotationGroups: stores information about annotation groups.
-    :param annotationArray: stores annotation names of elements around.
+    :param annotationArrayAround: stores annotation names of elements around.
+    :param annotationArrayAlong: stores annotation names of elements along.
     :param firstNodeIdentifier, firstElementIdentifier: first node and
     element identifier to use.
     :param useCubicHermiteThroughWall: use linear when false
@@ -700,7 +701,8 @@ def createNodesAndElements(region,
                 elementIdentifier = elementIdentifier + 1
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
-                        if annotationArray[e1] == annotationGroup._name:
+                        if annotationArrayAround[e1] == annotationGroup._name or \
+                                annotationArrayAlong[e2] == annotationGroup._name:
                             meshGroup = annotationGroup.getMeshGroup(mesh)
                             meshGroup.addElement(element)
 

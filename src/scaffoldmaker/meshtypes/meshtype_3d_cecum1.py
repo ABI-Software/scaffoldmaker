@@ -14,7 +14,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
@@ -359,9 +358,11 @@ class MeshType_3d_cecum1(Scaffold_base):
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactor,
             innerRadiusAlongCecum, dInnerRadiusAlongCecum, tcWidthAlongCecum, startPhase)
 
+        annotationArrayAlong = [''] * elementsCountAlongSegment
+
         for nSegment in range(segmentCount):
             # Make regular segments
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArrayAround \
                 = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Replace first half of first segment with apex and sample along apex and second half of segment
@@ -446,7 +447,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-            annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
+            annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
 
         # Add ostium on track surface between two tenia on the last segment

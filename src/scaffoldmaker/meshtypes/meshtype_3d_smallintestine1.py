@@ -8,7 +8,6 @@ import copy
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshInnerPoints
@@ -330,13 +329,14 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Create annotation groups
         annotationGroups = []
-        annotationArray = [''] * (elementsCountAround)
+        annotationArrayAround = [''] * (elementsCountAround)
+        annotationArrayAlong = [''] * (elementsCountAlong)
 
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-            annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
+            annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
 
         return annotationGroups
