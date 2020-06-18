@@ -164,8 +164,8 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     for e1 in range(paCount):
         eft = eftStd
         elementtemplate = elementtemplateStd
-        np = (e1 + paStartIndex) % paCount
-        nids = [ paNodeId[np], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
+        np = e1 + paStartIndex
+        nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
         scalefactors = None
         meshGroups = [ ]
 
@@ -199,8 +199,8 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         eft = eftStd
         elementtemplate = elementtemplateStd
         nr = e1
-        nc = (e1 + c1StartIndex) % c1Count
-        nids = [ roNodeId[nr], roNodeId[(nr + 1) % paCount], c1NodeId[nc], c1NodeId[(nc + 1) % c1Count] ]
+        nc = e1 + c1StartIndex
+        nids = [ roNodeId[nr % paCount], roNodeId[(nr + 1) % paCount], c1NodeId[nc % c1Count], c1NodeId[(nc + 1) % c1Count] ]
         if e1 >= pac1Count:
             nids[1] = roNodeId[0] if (e1 == (c1Count - 1)) else coNodeId[e1 - pac1Count]
             if e1 > pac1Count:
@@ -243,9 +243,9 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     for e1 in range(c2Count):
         eft = eftStd
         elementtemplate = elementtemplateStd
-        nr = 0 if (e1 == 0) else (paCount - c2Count + e1) % paCount
-        nc = (e1 + c2StartIndex) % c2Count
-        nids = [ roNodeId[nr], roNodeId[(nr + 1) % paCount], c2NodeId[nc], c2NodeId[(nc + 1) % c2Count] ]
+        nr = 0 if (e1 == 0) else (paCount - c2Count + e1)
+        nc = e1 + c2StartIndex
+        nids = [ roNodeId[nr % paCount], roNodeId[(nr + 1) % paCount], c2NodeId[nc % c2Count], c2NodeId[(nc + 1) % c2Count] ]
         if 0 <= e1 < (c1c2Count - 1):
             nids[1] = coNodeId[c1c2Count - e1 - 2]
         if 0 < e1 <= (c1c2Count - 1):
