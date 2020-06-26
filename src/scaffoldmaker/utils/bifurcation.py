@@ -7,9 +7,7 @@ from opencmiss.utils.maths.vectorops import add, cross, mult, normalize, sub
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
-from scaffoldmaker.utils.geometry import createCirclePoints
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
     smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
 
@@ -147,12 +145,12 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     c2Count = len(c2NodeId)
     pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
 
-    fm = region.getFieldmodule()
-    mesh = fm.findMeshByDimension(2)
+    fieldmodule = region.getFieldmodule()
+    mesh = fieldmodule.findMeshByDimension(2)
 
     elementtemplateStd = mesh.createElementtemplate()
     elementtemplateStd.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-    bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+    bicubicHermiteBasis = fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
     eftStd = mesh.createElementfieldtemplate(bicubicHermiteBasis)
     if not useCrossDerivatives:
         for n in range(4):
