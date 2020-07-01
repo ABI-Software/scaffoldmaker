@@ -401,18 +401,11 @@ class MeshType_3d_cecum1(Scaffold_base):
                                        sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
                                        zRefList, innerRadiusAlongCecum, closedProximalEnd=True)
 
-        # Calculate unit d3
-        d3UnitWarpedList = []
-        for n in range(len(xWarpedList)):
-            d3Unit = vector.normalise(
-                vector.crossproduct3(vector.normalise(d1WarpedList[n]), vector.normalise(d2WarpedList[n])))
-            d3UnitWarpedList.append(d3Unit)
-
         # Create coordinates and derivatives
         wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
-            d2WarpedList, d3UnitWarpedList, wallThicknessList,
+            d2WarpedList, d3WarpedUnitList, wallThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         # Deal with multiple nodes at end point for closed proximal end
