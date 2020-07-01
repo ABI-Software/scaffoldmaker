@@ -3,7 +3,6 @@ Utility function for generating tubular mesh from a central line
 using a segment profile.
 '''
 from __future__ import division
-import copy
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element
