@@ -392,9 +392,10 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         # Ensure cecum starts at z = 0.0
         minZ = xToWarp[0][2]
-        for n in range(len(xToWarp)):
-            if xToWarp[n][2] < minZ:
-                minZ = xToWarp[n][2]
+        for n2 in range(elementsCountAlong + 1):
+            zFirstNodeAlong = xToWarp[n2 * elementsCountAround][2]
+            if zFirstNodeAlong < minZ:
+                minZ = zFirstNodeAlong
 
         for n in range(len(xToWarp)):
             xToWarp[n][2] = xToWarp[n][2] - minZ
