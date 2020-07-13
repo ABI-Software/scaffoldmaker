@@ -272,6 +272,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                                 ['jejunum'] * elementsAlongJejunum +
                                 ['ileum'] * elementsAlongIleum)
         annotationArrayAround = [''] * (elementsCountAround)
+        annotationArrayThroughWall = [''] * elementsCountThroughWall
 
         xExtrude = []
         d1Extrude = []
@@ -348,8 +349,9 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-            annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier, firstElementIdentifier,
-            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
+            annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+            firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+            closedProximalEnd=False)
 
         return annotationGroups
 

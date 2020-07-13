@@ -6,6 +6,8 @@ variable radius and thickness along.
 
 import copy
 import math
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, \
     getFullProfileFromHalfHaustrum, getTeniaColi, createNodesAndElementsTeniaColi
@@ -364,11 +366,16 @@ class MeshType_3d_cecum1(Scaffold_base):
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongCecum,
             innerRadiusAlongCecum, dInnerRadiusAlongCecum, tcWidthAlongCecum, startPhase)
 
-        annotationArrayAlong = [''] * elementsCountAlongSegment * segmentCount
+        # Create annotation
+        cecumGroup = AnnotationGroup(region, get_colon_term("caecum"))
+        annotationGroups = [cecumGroup]
+        annotationArrayAlong = (['caecum'] * elementsCountAlong)
+
+        annotationArrayThroughWall = [''] * elementsCountThroughWall
 
         for nSegment in range(segmentCount):
             # Make regular segments
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArrayAround \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround, annotationArrayAround \
                 = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Replace first half of first segment with apex and sample along apex and second half of segment
@@ -416,6 +423,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                                        zRefList, innerRadiusAlongCecum, closedProximalEnd)
 
         # Create coordinates and derivatives
+        annotationGroups += annotationGroupsAround
         wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
@@ -466,15 +474,17 @@ class MeshType_3d_cecum1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
                     region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                     elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                    tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                    firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
+                    tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                    firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+                    closedProximalEnd)
 
         else:
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
                 region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
+                annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+                closedProximalEnd)
 
         # Add ostium on track surface between two tenia on the last segment
         elementsAroundTrackSurface = elementsCountAroundHaustrum
@@ -665,13 +675,15 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         ostiumSettings['Number of elements around ostium'] = len(innerEndPoints_Id)
 
-        nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
-            generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, centrePosition, axis1,
-                               nextNodeIdentifier, nextElementIdentifier)
-
         fm = region.getFieldmodule()
         mesh = fm.findMeshByDimension(3)
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        cecumMeshGroup = cecumGroup.getMeshGroup(mesh)
+
+        nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
+            generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, centrePosition, axis1,
+                               nextNodeIdentifier, nextElementIdentifier, ostiumMeshGroups= [cecumMeshGroup] )
 
         startProportions = []
         for n in range(len(innerEndPoints_Id)):
@@ -681,8 +693,8 @@ class MeshType_3d_cecum1(Scaffold_base):
             nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints_x, endPoints_d1, endPoints_d2, None, endPoints_Id, endDerivativesMap,
-            elementsCountRadial = 2, tracksurface = trackSurfaceOstium, startProportions = startProportions,
-            endProportions = endProportions)
+            elementsCountRadial = 2, meshGroups = [cecumMeshGroup], tracksurface = trackSurfaceOstium,
+            startProportions = startProportions, endProportions = endProportions)
 
         # Delete elements under annulus mesh
         deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)

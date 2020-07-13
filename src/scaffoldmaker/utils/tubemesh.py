@@ -438,7 +438,7 @@ def createNodesAndElements(region,
     xFlat, d1Flat, d2Flat,
     xTexture, d1Texture, d2Texture,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-    annotationGroups, annotationArrayAround, annotationArrayAlong,
+    annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
     useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
@@ -455,6 +455,7 @@ def createNodesAndElements(region,
     :param annotationGroups: stores information about annotation groups.
     :param annotationArrayAround: stores annotation names of elements around.
     :param annotationArrayAlong: stores annotation names of elements along.
+    :param annotationArrayThroughWall: stores annotation names of elements through wall.
     :param firstNodeIdentifier, firstElementIdentifier: first node and
     element identifier to use.
     :param useCubicHermiteThroughWall: use linear when false
@@ -639,6 +640,13 @@ def createNodesAndElements(region,
                 ]
                 result = element.setScaleFactors(eft1, scalefactors)
                 elementIdentifier = elementIdentifier + 1
+                if annotationGroups:
+                    for annotationGroup in annotationGroups:
+                        if annotationArrayAround[e1] == annotationGroup._name or \
+                                annotationArrayAlong[0] == annotationGroup._name or\
+                                annotationArrayThroughWall[e3] == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
     # Create regular elements
     now = elementsCountAround * (elementsCountThroughWall + 1)
@@ -669,7 +677,8 @@ def createNodesAndElements(region,
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
                         if annotationArrayAround[e1] == annotationGroup._name or \
-                                annotationArrayAlong[e2] == annotationGroup._name:
+                                annotationArrayAlong[e2] == annotationGroup._name or\
+                                annotationArrayThroughWall[e3] == annotationGroup._name:
                             meshGroup = annotationGroup.getMeshGroup(mesh)
                             meshGroup.addElement(element)
 

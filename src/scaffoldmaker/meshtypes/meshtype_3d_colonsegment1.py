@@ -260,13 +260,25 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongSegment,
             radiusAlongSegment, dRadiusAlongSegment, tcWidthAlongSegment, startPhase)
 
+        # Create annotation
+        annotationGroups = []
         annotationArrayAlong = [''] * elementsCountAlongSegment
+        # serosaGroup = AnnotationGroup(region, get_colon_term("serosa of colon"))
+        # submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+        # mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+        # annotationGroupsThroughWall = [serosaGroup, submucosaGroup, mucosaGroup]
+        # annotationGroups += annotationGroupsThroughWall
+        # annotationArrayThroughWall = ['colonic mucosa', 'submucosa of colon', 'serosa of colon']
+        annotationArrayThroughWall = [''] * elementsCountThroughWall
 
         # Create inner points
         nSegment = 0
+        closedProximalEnd = False
 
-        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArrayAround = \
+        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround, annotationArrayAround = \
             colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+
+        annotationGroups += annotationGroupsAround
 
         # Project reference point for warping onto central path
         sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
@@ -277,7 +289,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
             xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
             elementsCountAround, elementsCountAlongSegment, zRefList, radiusAlongSegment,
-            closedProximalEnd=False)
+            closedProximalEnd)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
@@ -287,8 +299,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
-
-        closedProximalEnd = False
 
         if tcThickness > 0:
             tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
@@ -307,8 +317,9 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
-                tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
+                tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+                closedProximalEnd)
         else:
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
@@ -319,8 +330,9 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall,
-                annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
+                annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+                closedProximalEnd)
 
         return annotationGroups
 
@@ -384,9 +396,9 @@ class ColonSegmentTubeMeshInnerPoints:
                                                nSegment * self._elementsCountAlongSegment:
                                                (nSegment + 1) * self._elementsCountAlongSegment + 1]
 
-        xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, \
-            contractedWallThicknessSegment, segmentAxis, annotationGroups, annotationArray\
-            = getColonSegmentInnerPoints(self._region,
+        xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, contractedWallThicknessSegment, \
+        segmentAxis, annotationGroupsAround, annotationArrayAround = \
+            getColonSegmentInnerPoints(self._region,
                 self._elementsCountAroundTC, self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
                 self._tcCount, self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
                 self._segmentLength, self._wallThickness,
@@ -407,7 +419,8 @@ class ColonSegmentTubeMeshInnerPoints:
         contractedWallThickness = contractedWallThicknessSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._contractedWallThicknessList += contractedWallThickness
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroups, annotationArray
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, \
+               annotationGroupsAround, annotationArrayAround
 
     def getTubeTCWidthList(self):
         return self._tubeTCWidthList
@@ -471,7 +484,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     along colon segment. Assume incompressiblity and a shortened length around will
     result in a thicker wall and vice-versa.
     :return segmentAxis: Axis of segment.
-    :return annotationGroups, annotationArray: annotationArray stores annotation
+    :return annotationGroupsAround, annotationArrayAround: annotationArray stores annotation
     names of elements around.
     """
 
@@ -545,8 +558,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
         # Create annotation groups for mouse colon
         mzGroup = AnnotationGroup(region, get_colon_term("mesenteric zone"))
         nonmzGroup = AnnotationGroup(region, get_colon_term("non-mesenteric zone"))
-        annotationGroups = [mzGroup, nonmzGroup]
-        annotationArray = (['mesenteric zone']*int(elementsCountAroundTC*0.5) +
+        annotationGroupsAround = [mzGroup, nonmzGroup]
+        annotationArrayAround = (['mesenteric zone']*int(elementsCountAroundTC*0.5) +
                            ['non-mesenteric zone']*elementsCountAroundHaustrum +
                            ['mesenteric zone']*int(elementsCountAroundTC*0.5))
 
@@ -746,11 +759,11 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             d2Final = d2Final + d2AlongList
 
         # Create annotation groups
-        annotationGroups = []
-        annotationArray = ['']*(elementsCountAround)
+        annotationGroupsAround = []
+        annotationArrayAround = ['']*(elementsCountAround)
 
     return xFinal, d1Final, d2Final, transitElementList, xiList, relaxedLengthList, contractedWallThicknessList, \
-           segmentAxis, annotationGroups, annotationArray
+           segmentAxis, annotationGroupsAround, annotationArrayAround
 
 def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
     tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut):
@@ -1540,7 +1553,7 @@ def createNodesAndElementsTeniaColi(region,
     xTexture, d1Texture, d2Texture,
     elementsCountAroundTC, elementsCountAroundHaustrum,
     elementsCountAlong, elementsCountThroughWall, tcCount,
-    annotationGroups, annotationArrayAround, annotationArrayAlong,
+    annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
     useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
@@ -1560,6 +1573,7 @@ def createNodesAndElementsTeniaColi(region,
     :param annotationGroups: stores information about annotation groups.
     :param annotationArrayAround: stores annotation names of elements around.
     :param annotationArrayAlong: stores annotation names of elements along.
+    :param annotationArrayThroughWall: stores annotation names of elements through wall.
     :param firstNodeIdentifier, firstElementIdentifier: first node and element
     identifier to use.
     :param useCubicHermiteThroughWall: use linear when false.
@@ -1822,7 +1836,8 @@ def createNodesAndElementsTeniaColi(region,
                 elementIdentifier = elementIdentifier + 1
                 for annotationGroup in annotationGroups:
                     if annotationArrayAround[e1] == annotationGroup._name or \
-                            annotationArrayAlong[0] == annotationGroup._name:
+                            annotationArrayAlong[0] == annotationGroup._name or \
+                            annotationArrayThroughWall[e3] == annotationGroup._name:
                         meshGroup = annotationGroup.getMeshGroup(mesh)
                         meshGroup.addElement(element)
 
@@ -1994,7 +2009,8 @@ def createNodesAndElementsTeniaColi(region,
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
                         if annotationArrayAround[e1] == annotationGroup._name or \
-                                annotationArrayAlong[e2] == annotationGroup._name:
+                                annotationArrayAlong[e2] == annotationGroup._name or \
+                                annotationArrayThroughWall[e3] == annotationGroup._name:
                             meshGroup = annotationGroup.getMeshGroup(mesh)
                             meshGroup.addElement(element)
 

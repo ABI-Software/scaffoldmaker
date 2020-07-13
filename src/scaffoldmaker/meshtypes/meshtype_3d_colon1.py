@@ -465,6 +465,8 @@ class MeshType_3d_colon1(Scaffold_base):
                                     ['transverse colon'] * elementsAlongInTransverse +
                                     ['descending colon'] * elementsAlongInDistal)
 
+        annotationArrayThroughWall = ([''] * elementsCountThroughWall)
+
         xExtrude = []
         d1Extrude = []
         d2Extrude = []
@@ -536,8 +538,9 @@ class MeshType_3d_colon1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
+                tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+                closedProximalEnd)
 
         else:
             # Create flat and texture coordinates
@@ -549,8 +552,9 @@ class MeshType_3d_colon1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
+                annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+                closedProximalEnd)
 
         return annotationGroups
 
