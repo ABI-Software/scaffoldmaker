@@ -516,25 +516,28 @@ class MeshType_3d_colon1(Scaffold_base):
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
 
+        closedProximalEnd = False
+
         if tcThickness > 0:
             tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
             xList, d1List, d2List, d3List, annotationGroups, annotationArrayAround = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroups, annotationArrayAround)
+                tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroups, annotationArrayAround,
+                closedProximalEnd)
 
             # Create flat and texture coordinates
             xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
                 xiList, relaxedLengthList, length, wallThickness, tcCount, tcThickness,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
-                elementsCountThroughWall, transitElementList)
+                elementsCountThroughWall, transitElementList, closedProximalEnd)
 
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
                 tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, firstNodeIdentifier,
-                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives)
+                firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
 
         else:
             # Create flat and texture coordinates
