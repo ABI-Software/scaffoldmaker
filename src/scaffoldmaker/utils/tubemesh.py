@@ -3,7 +3,6 @@ Utility function for generating tubular mesh from a central line
 using a segment profile.
 '''
 from __future__ import division
-import copy
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element
@@ -135,9 +134,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
 
         translateMatrix = [sx[nAlongSegment][j] - centroidRot[j] for j in range(3)]
 
-        if closedProximalEnd and nAlongSegment == 0:
-            translateMatrixForClosedEnd = copy.deepcopy(translateMatrix)
-
         for n1 in range(elementsCountAround):
             x = xElementAlongSegment[n1]
             d1 = d1ElementAlongSegment[n1]
@@ -171,10 +167,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                 else:
                     rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-            # Store how second face is rotated to align sd2 to manipulate closed end later
-            if closedProximalEnd and nAlongSegment == 1:
-                 rotFrame2ForClosedEnd = copy.deepcopy(rotFrame2)
-
             xRot2 = [rotFrame2[j][0]*xRot1[0] + rotFrame2[j][1]*xRot1[1] + rotFrame2[j][2]*xRot1[2] for j in range(3)]
             d1Rot2 = [rotFrame2[j][0]*d1Rot1[0] + rotFrame2[j][1]*d1Rot1[1] + rotFrame2[j][2]*d1Rot1[2] for j in range(3)]
             d2Rot2 = [rotFrame2[j][0]*d2Rot1[0] + rotFrame2[j][1]*d2Rot1[1] + rotFrame2[j][2]*d2Rot1[2] for j in range(3)]
@@ -184,34 +176,9 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             d1WarpedList.append(d1Rot2)
             d2WarpedList.append(d2Rot2)
 
-    # Manipulate closed end to align with how second face was rotated
-    if closedProximalEnd:
-        closedNodesNew = []
-        closedD1New = []
-        closedD2New = []
-        for n1 in range(elementsCountAround):
-            closedNodesRot1 = [xWarpedList[n1][c] - translateMatrixForClosedEnd[c] for c in range(3)]
-            closedNodesRot2 = [rotFrame2ForClosedEnd[j][0] * closedNodesRot1[0] +
-                               rotFrame2ForClosedEnd[j][1] * closedNodesRot1[1] +
-                               rotFrame2ForClosedEnd[j][2] * closedNodesRot1[2] for j in range(3)]
-            closedD1Rot1 = d1WarpedList[n1]
-            closedD1Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD1Rot1[0] +
-                             rotFrame2ForClosedEnd[j][1] * closedD1Rot1[1] +
-                             rotFrame2ForClosedEnd[j][2] * closedD1Rot1[2] for j in range(3)]
-            closedD2Rot1 = d2WarpedList[n1]
-            closedD2Rot2 = [ rotFrame2ForClosedEnd[j][0] * closedD2Rot1[0] +
-                             rotFrame2ForClosedEnd[j][1] * closedD2Rot1[1] +
-                             rotFrame2ForClosedEnd[j][2] * closedD2Rot1[2] for j in range(3)]
-            closedNodesNew.append(closedNodesRot2)
-            closedD1New.append(closedD1Rot2)
-            closedD2New.append(closedD2Rot2)
-        xWarpedListNew = closedNodesNew + xWarpedList[elementsCountAround:]
-        d1WarpedListNew = closedD1New + d1WarpedList[elementsCountAround:]
-        d2WarpedListNew = closedD2New + d2WarpedList[elementsCountAround:]
-    else:
-        xWarpedListNew = xWarpedList
-        d1WarpedListNew = d1WarpedList
-        d2WarpedListNew = d2WarpedList
+    # xWarpedListNew = xWarpedList
+    # d1WarpedListNew = d1WarpedList
+    # d2WarpedListNew = d2WarpedList
 
     # Scale d2 with curvature of central path
     d2WarpedListScaled = []
@@ -221,7 +188,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             n = nAlongSegment * elementsCountAround + n1
             # Calculate norm
             sd1Normalised = vector.normalise(sd1[nAlongSegment])
-            v = [xWarpedListNew[n][c] - sx[nAlongSegment][c] for c in range(3)]
+            v = [xWarpedList[n][c] - sx[nAlongSegment][c] for c in range(3)]
             dp = vector.dotproduct(v, sd1Normalised)
             dpScaled = [dp * c for c in sd1Normalised]
             vProjected = [v[c] - dpScaled[c] for c in range(3)]
@@ -245,7 +212,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                                                                    vProjectedNormlised, 0.0))
             # Scale
             factor = 1.0 - curvature * innerRadiusAlong[nAlongSegment]
-            d2 = [factor * c for c in d2WarpedListNew[n]]
+            d2 = [factor * c for c in d2WarpedList[n]]
             d2WarpedListScaled.append(d2)
 
     # Smooth d2 for segment
@@ -255,7 +222,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
         nd2 = []
         for n2 in range(elementsCountAlongSegment + 1):
             n = n2*elementsCountAround + n1
-            nx.append(xWarpedListNew[n])
+            nx.append(xWarpedList[n])
             nd2.append(d2WarpedListScaled[n])
         smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)
         smoothd2Raw.append(smoothd2)
@@ -266,12 +233,12 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             d2WarpedListFinal.append(smoothd2Raw[n1][n2])
 
     # Calculate unit d3
-    for n in range(len(xWarpedListNew)):
-        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedListNew[n]),
+    for n in range(len(xWarpedList)):
+        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedList[n]),
                                                        vector.normalise(d2WarpedListFinal[n])))
         d3WarpedUnitList.append(d3Unit)
 
-    return xWarpedListNew, d1WarpedListNew, d2WarpedListFinal, d3WarpedUnitList
+    return xWarpedList, d1WarpedList, d2WarpedListFinal, d3WarpedUnitList
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     wallThicknessList, elementsCountAround,
@@ -471,7 +438,7 @@ def createNodesAndElements(region,
     xFlat, d1Flat, d2Flat,
     xTexture, d1Texture, d2Texture,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-    annotationGroups, annotationArray,
+    annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
     useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
@@ -486,7 +453,9 @@ def createNodesAndElements(region,
     :param elementsCountAlong: Number of elements along tube.
     :param elementsCountThroughWall: Number of elements through wall.
     :param annotationGroups: stores information about annotation groups.
-    :param annotationArray: stores annotation names of elements around.
+    :param annotationArrayAround: stores annotation names of elements around.
+    :param annotationArrayAlong: stores annotation names of elements along.
+    :param annotationArrayThroughWall: stores annotation names of elements through wall.
     :param firstNodeIdentifier, firstElementIdentifier: first node and
     element identifier to use.
     :param useCubicHermiteThroughWall: use linear when false
@@ -671,6 +640,13 @@ def createNodesAndElements(region,
                 ]
                 result = element.setScaleFactors(eft1, scalefactors)
                 elementIdentifier = elementIdentifier + 1
+                if annotationGroups:
+                    for annotationGroup in annotationGroups:
+                        if annotationArrayAround[e1] == annotationGroup._name or \
+                                annotationArrayAlong[0] == annotationGroup._name or\
+                                annotationArrayThroughWall[e3] == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
     # Create regular elements
     now = elementsCountAround * (elementsCountThroughWall + 1)
@@ -700,7 +676,9 @@ def createNodesAndElements(region,
                 elementIdentifier = elementIdentifier + 1
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
-                        if annotationArray[e1] == annotationGroup._name:
+                        if annotationArrayAround[e1] == annotationGroup._name or \
+                                annotationArrayAlong[e2] == annotationGroup._name or\
+                                annotationArrayThroughWall[e3] == annotationGroup._name:
                             meshGroup = annotationGroup.getMeshGroup(mesh)
                             meshGroup.addElement(element)
 

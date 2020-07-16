@@ -5,10 +5,11 @@ wall, with variable radius and thickness along.
 """
 
 import copy
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshInnerPoints
@@ -245,6 +246,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             # print(e+1, arcLength)
             length += arcLength
         segmentLength = length / segmentCount
+        elementAlongLength = length / elementsCountAlong
         # print('Length = ', length)
 
         # Sample central path
@@ -256,6 +258,21 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         innerRadiusList = [duodenumInnerRadius, duodenumJejunumInnerRadius, jejunumIleumInnerRadius, ileumInnerRadius]
         innerRadiusSegmentList, dInnerRadiusSegmentList = interp.sampleParameterAlongLine(lengthList, innerRadiusList,
                                                                                           segmentCount)
+
+        # Create annotation groups for small intestine sections
+        elementsAlongDuodenum = round(duodenumLength / elementAlongLength)
+        elementsAlongJejunum = round(jejunumLength / elementAlongLength)
+        elementsAlongIleum = elementsCountAlong - elementsAlongDuodenum - elementsAlongJejunum
+
+        duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
+        jejunumGroup = AnnotationGroup(region, get_smallintestine_term("jejunum"))
+        ileumGroup = AnnotationGroup(region, get_smallintestine_term("ileum"))
+        annotationGroups = [duodenumGroup, jejunumGroup, ileumGroup]
+        annotationArrayAlong = (['duodenum'] * elementsAlongDuodenum +
+                                ['jejunum'] * elementsAlongJejunum +
+                                ['ileum'] * elementsAlongIleum)
+        annotationArrayAround = [''] * (elementsCountAround)
+        annotationArrayThroughWall = [''] * elementsCountThroughWall
 
         xExtrude = []
         d1Extrude = []
@@ -328,16 +345,13 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             xiList, flatWidthList, length, wallThickness, elementsCountAround,
             elementsCountAlong, elementsCountThroughWall, transitElementList)
 
-        # Create annotation groups
-        annotationGroups = []
-        annotationArray = [''] * (elementsCountAround)
-
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-            annotationGroups, annotationArray, firstNodeIdentifier, firstElementIdentifier,
-            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=False)
+            annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+            firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+            closedProximalEnd=False)
 
         return annotationGroups
 
