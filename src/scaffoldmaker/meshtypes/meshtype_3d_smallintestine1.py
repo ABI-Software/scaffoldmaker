@@ -263,16 +263,31 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         elementsAlongDuodenum = round(duodenumLength / elementAlongLength)
         elementsAlongJejunum = round(jejunumLength / elementAlongLength)
         elementsAlongIleum = elementsCountAlong - elementsAlongDuodenum - elementsAlongJejunum
+        elementsCountAlongGroups = [elementsAlongDuodenum, elementsAlongJejunum, elementsAlongIleum]
 
+        smallintestineGroup = AnnotationGroup(region, get_smallintestine_term("small intestine"))
         duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
         jejunumGroup = AnnotationGroup(region, get_smallintestine_term("jejunum"))
         ileumGroup = AnnotationGroup(region, get_smallintestine_term("ileum"))
-        annotationGroups = [duodenumGroup, jejunumGroup, ileumGroup]
-        annotationArrayAlong = (['duodenum'] * elementsAlongDuodenum +
-                                ['jejunum'] * elementsAlongJejunum +
-                                ['ileum'] * elementsAlongIleum)
-        annotationArrayAround = [''] * (elementsCountAround)
-        annotationArrayThroughWall = [''] * elementsCountThroughWall
+        annotationGroups = [smallintestineGroup, duodenumGroup, jejunumGroup, ileumGroup]
+
+        annotationGroupNamesAlong = [['small intestine', 'duodenum'],
+                                     ['small intestine', 'jejunum'],
+                                     ['small intestine', 'ileum']]
+
+        annotationArrayAlong = []
+        for i in range(len(elementsCountAlongGroups)):
+            elementsCount = elementsCountAlongGroups[i]
+            for n in range(elementsCount):
+                annotationArrayAlong.append(annotationGroupNamesAlong[i])
+
+        annotationArrayAround = []
+        for i in range(elementsCountAround):
+            annotationArrayAround.append([''])
+
+        annotationArrayThroughWall = []
+        for i in range(elementsCountThroughWall):
+            annotationArrayThroughWall.append([''])
 
         xExtrude = []
         d1Extrude = []

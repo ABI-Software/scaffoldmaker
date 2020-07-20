@@ -434,38 +434,54 @@ class MeshType_3d_colon1(Scaffold_base):
                 interp.sampleParameterAlongLine(lengthList, haustrumInnerRadiusFactorList, elementsCountAlong)[0]
         else:
             haustrumInnerRadiusFactorAlongElementList = [haustrumInnerRadiusFactor]*(elementsCountAlong+1)
+
         # Create annotation groups for colon sections
         elementsAlongInProximal = round(proximalLength/elementAlongLength)
         elementsAlongInTransverse = round(transverseLength/elementAlongLength)
         elementsAlongInDistal = elementsCountAlong - elementsAlongInProximal - elementsAlongInTransverse
+        elementsCountAlongGroups = [elementsAlongInProximal, elementsAlongInTransverse, elementsAlongInDistal]
+
+        annotationGroups = []
+        colonGroup = AnnotationGroup(region, get_colon_term("colon"))
+        annotationGroupsAlong = [colonGroup]
 
         if tcCount == 1:
             proximalGroup = AnnotationGroup(region, get_colon_term("proximal colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
             distalGroup = AnnotationGroup(region, get_colon_term("distal colon"))
-            annotationGroups = [proximalGroup, transverseGroup, distalGroup]
-            annotationArrayAlong = (['proximal colon'] * elementsAlongInProximal +
-                                    ['transverse colon'] * elementsAlongInTransverse +
-                                    ['distal colon'] * elementsAlongInDistal)
+            annotationGroupsAlong += [proximalGroup, transverseGroup, distalGroup]
+            annotationGroupNamesAlong = [['colon', 'proximal colon'],
+                                         ['colon', 'transverse colon'],
+                                         ['colon', 'distal colon']]
 
         elif tcCount == 2:
             spiralGroup = AnnotationGroup(region, get_colon_term("spiral colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
             distalGroup = AnnotationGroup(region, get_colon_term("distal colon"))
-            annotationGroups = [spiralGroup, transverseGroup, distalGroup]
-            annotationArrayAlong = (['spiral colon'] * elementsAlongInProximal +
-                                    ['transverse colon'] * elementsAlongInTransverse +
-                                    ['distal colon'] * elementsAlongInDistal)
+            annotationGroupsAlong += [spiralGroup, transverseGroup, distalGroup]
+            annotationGroupNamesAlong = [['colon', 'spiral colon'],
+                                         ['colon', 'transverse colon'],
+                                         ['colon', 'distal colon']]
+
         elif tcCount == 3:
             ascendingGroup = AnnotationGroup(region, get_colon_term("ascending colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
             descendingGroup = AnnotationGroup(region, get_colon_term("descending colon"))
-            annotationGroups = [ascendingGroup, transverseGroup, descendingGroup]
-            annotationArrayAlong = (['ascending colon'] * elementsAlongInProximal +
-                                    ['transverse colon'] * elementsAlongInTransverse +
-                                    ['descending colon'] * elementsAlongInDistal)
+            annotationGroupsAlong += [ascendingGroup, transverseGroup, descendingGroup]
+            annotationGroupNamesAlong = [['colon', 'ascending colon'],
+                                         ['colon', 'transverse colon'],
+                                         ['colon', 'descending colon']]
 
-        annotationArrayThroughWall = ([''] * elementsCountThroughWall)
+        annotationGroups += annotationGroupsAlong
+        annotationArrayAlong = []
+        for i in range(len(elementsCountAlongGroups)):
+            elementsCount = elementsCountAlongGroups[i]
+            for n in range(elementsCount):
+                annotationArrayAlong.append(annotationGroupNamesAlong[i])
+
+        annotationArrayThroughWall = []
+        for i in range(elementsCountThroughWall):
+            annotationArrayThroughWall.append([''])
 
         xExtrude = []
         d1Extrude = []

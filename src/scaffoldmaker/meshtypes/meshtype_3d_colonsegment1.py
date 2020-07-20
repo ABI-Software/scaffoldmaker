@@ -262,14 +262,20 @@ class MeshType_3d_colonsegment1(Scaffold_base):
 
         # Create annotation
         annotationGroups = []
-        annotationArrayAlong = [''] * elementsCountAlongSegment
+        annotationArrayAlong = []
+        for i in range(elementsCountAlongSegment):
+            annotationArrayAlong.append([''])
+
         # serosaGroup = AnnotationGroup(region, get_colon_term("serosa of colon"))
         # submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
         # mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
         # annotationGroupsThroughWall = [serosaGroup, submucosaGroup, mucosaGroup]
         # annotationGroups += annotationGroupsThroughWall
-        # annotationArrayThroughWall = ['colonic mucosa', 'submucosa of colon', 'serosa of colon']
-        annotationArrayThroughWall = [''] * elementsCountThroughWall
+        # annotationArrayThroughWall = [['colonic mucosa'], ['submucosa of colon'], ['serosa of colon']]
+
+        annotationArrayThroughWall = []
+        for i in range(elementsCountThroughWall):
+            annotationArrayThroughWall.append([''])
 
         # Create inner points
         nSegment = 0
@@ -559,9 +565,17 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
         mzGroup = AnnotationGroup(region, get_colon_term("mesenteric zone"))
         nonmzGroup = AnnotationGroup(region, get_colon_term("non-mesenteric zone"))
         annotationGroupsAround = [mzGroup, nonmzGroup]
-        annotationArrayAround = (['mesenteric zone']*int(elementsCountAroundTC*0.5) +
-                           ['non-mesenteric zone']*elementsCountAroundHaustrum +
-                           ['mesenteric zone']*int(elementsCountAroundTC*0.5))
+        elementsCountAroundGroups = [int(elementsCountAroundTC*0.5),
+                                     elementsCountAroundHaustrum,
+                                     int(elementsCountAroundTC * 0.5)]
+
+        annotationGroupNamesAround = [['mesenteric zone'], ['non-mesenteric zone'], ['mesenteric zone']]
+
+        annotationArrayAround = []
+        for i in range(len(elementsCountAroundGroups)):
+            elementsCount = elementsCountAroundGroups[i]
+            for n in range(elementsCount):
+                annotationArrayAround.append(annotationGroupNamesAround[i])
 
     else:
         elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum)*0.5)
@@ -760,7 +774,9 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
 
         # Create annotation groups
         annotationGroupsAround = []
-        annotationArrayAround = ['']*(elementsCountAround)
+        annotationArrayAround = []
+        for i in range(elementsCountAround):
+            annotationArrayAround.append([''])
 
     return xFinal, d1Final, d2Final, transitElementList, xiList, relaxedLengthList, contractedWallThicknessList, \
            segmentAxis, annotationGroupsAround, annotationArrayAround
@@ -1330,18 +1346,24 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
     if tcCount == 2 or closedProximalEnd:
         tcGroup = AnnotationGroup(region, get_colon_term("taenia coli"))
         annotationGroups += [tcGroup]
-        annotationArrayAround += (['taenia coli']*elementsCountAroundTC*tcCount)
+        for i in range(elementsCountAroundTC * tcCount):
+            annotationArrayAround.append(['taenia coli'])
+
     elif tcCount == 3:
         tlGroup = AnnotationGroup(region, get_colon_term("taenia libera"))
         tmGroup = AnnotationGroup(region, get_colon_term("taenia mesocolica"))
         toGroup = AnnotationGroup(region, get_colon_term("taenia omentalis"))
         annotationGroupsTC = [tlGroup, tmGroup, toGroup]
-        annotationArrayTC = (['taenia omentalis']*(elementsCountAroundTC//2) +
-                             ['taenia libera']*elementsCountAroundTC +
-                             ['taenia mesocolica']*elementsCountAroundTC +
-                             ['taenia omentalis']*(elementsCountAroundTC//2))
         annotationGroups += annotationGroupsTC
-        annotationArrayAround += annotationArrayTC
+        annotationGroupNamesAround = [['taenia omentalis'], ['taenia libera'], ['taenia mesocolica'],
+                                      ['taenia omentalis']]
+        elementsCountAroundGroups = [elementsCountAroundTC // 2, elementsCountAroundTC, elementsCountAroundTC,
+                                     elementsCountAroundTC // 2]
+
+        for i in range(len(elementsCountAroundGroups)):
+            elementsCount = elementsCountAroundGroups[i]
+            for n in range(elementsCount):
+                annotationArrayAround.append(annotationGroupNamesAround[i])
 
     return x, d1, d2, d3, annotationGroups, annotationArrayAround
 
@@ -1835,11 +1857,18 @@ def createNodesAndElementsTeniaColi(region,
                 result = element.setScaleFactors(eft3, scalefactors)
                 elementIdentifier = elementIdentifier + 1
                 for annotationGroup in annotationGroups:
-                    if annotationArrayAround[e1] == annotationGroup._name or \
-                            annotationArrayAlong[0] == annotationGroup._name or \
-                            annotationArrayThroughWall[e3] == annotationGroup._name:
-                        meshGroup = annotationGroup.getMeshGroup(mesh)
-                        meshGroup.addElement(element)
+                    for annotationAround in annotationArrayAround[e1]:
+                        if annotationAround == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
+                    for annotationAlong in annotationArrayAlong[0]:
+                        if annotationAlong == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
+                    for annotationThroughWall in annotationArrayThroughWall[e3]:
+                        if annotationThroughWall == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
         # Create tenia coli
         for eTC in range(int(elementsCountAroundTC * 0.5)):
@@ -1872,10 +1901,14 @@ def createNodesAndElementsTeniaColi(region,
             element.setScaleFactors(eft4 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
             for annotationGroup in annotationGroups:
-                if annotationArrayAround[elementsCountAround + eTC] == annotationGroup._name or \
-                        annotationArrayAlong[0] == annotationGroup._name:
-                    meshGroup = annotationGroup.getMeshGroup(mesh)
-                    meshGroup.addElement(element)
+                for annotationAround in annotationArrayAround[elementsCountAround + eTC]:
+                    if annotationAround == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
+                for annotationAlong in annotationArrayAlong[0]:
+                    if annotationAlong == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
         for N in range(tcCount - 1):
             for eTC in range(elementsCountAroundTC):
@@ -1923,11 +1956,15 @@ def createNodesAndElementsTeniaColi(region,
 
                 elementIdentifier = elementIdentifier + 1
                 for annotationGroup in annotationGroups:
-                    if annotationArrayAround[elementsCountAround + int(elementsCountAroundTC*0.5) +
-                                       N*elementsCountAroundTC + eTC] == annotationGroup._name or \
-                            annotationArrayAlong[0] == annotationGroup._name:
-                        meshGroup = annotationGroup.getMeshGroup(mesh)
-                        meshGroup.addElement(element)
+                    for annotationAround in annotationArrayAround[
+                            elementsCountAround + int(elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC]:
+                        if annotationAround == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
+                    for annotationAlong in annotationArrayAlong[0]:
+                        if annotationAlong == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
         for eTC in range(int(elementsCountAroundTC * 0.5)):
             va = int(elementsCountAround - elementsCountAroundTC * 0.5) + eTC
@@ -1970,10 +2007,14 @@ def createNodesAndElementsTeniaColi(region,
             element.setScaleFactors(eft5 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
             for annotationGroup in annotationGroups:
-                if annotationArrayAround[elementsCountAround + eTC] == annotationGroup._name or \
-                        annotationArrayAlong[0] == annotationGroup._name:
-                    meshGroup = annotationGroup.getMeshGroup(mesh)
-                    meshGroup.addElement(element)
+                for annotationAround in annotationArrayAround[elementsCountAround + eTC]:
+                    if annotationAround == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
+                for annotationAlong in annotationArrayAlong[0]:
+                    if annotationAlong == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
     # create regular elements
     now = elementsCountAround * (elementsCountThroughWall + 1)
@@ -2008,11 +2049,18 @@ def createNodesAndElementsTeniaColi(region,
                 elementIdentifier = elementIdentifier + 1
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
-                        if annotationArrayAround[e1] == annotationGroup._name or \
-                                annotationArrayAlong[e2] == annotationGroup._name or \
-                                annotationArrayThroughWall[e3] == annotationGroup._name:
-                            meshGroup = annotationGroup.getMeshGroup(mesh)
-                            meshGroup.addElement(element)
+                        for annotationAround in annotationArrayAround[e1]:
+                            if annotationAround == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
+                        for annotationAlong in annotationArrayAlong[e2]:
+                            if annotationAlong == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
+                        for annotationThroughWall in annotationArrayThroughWall[e3]:
+                            if annotationThroughWall == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
 
         # Add elements for tenia coli
         for eTC in range(int(elementsCountAroundTC*0.5)):
@@ -2043,10 +2091,14 @@ def createNodesAndElementsTeniaColi(region,
                 element.setNodesByIdentifier(eftTexture3 if eTC < int(elementsCountAroundTC*0.5) - 1 else eftTexture5, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
             for annotationGroup in annotationGroups:
-                if annotationArrayAround[elementsCountAround + eTC] == annotationGroup._name or \
-                        annotationArrayAlong[e2] == annotationGroup._name:
-                    meshGroup = annotationGroup.getMeshGroup(mesh)
-                    meshGroup.addElement(element)
+                for annotationAround in annotationArrayAround[elementsCountAround + eTC]:
+                    if annotationAround == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
+                for annotationAlong in annotationArrayAlong[e2]:
+                    if annotationAlong == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
         for N in range(tcCount - 1):
             for eTC in range(elementsCountAroundTC):
@@ -2103,11 +2155,15 @@ def createNodesAndElementsTeniaColi(region,
                         element.setNodesByIdentifier(eftTexture5, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
                 for annotationGroup in annotationGroups:
-                    if annotationArrayAround[elementsCountAround + int(elementsCountAroundTC*0.5) +
-                                       N*elementsCountAroundTC + eTC] == annotationGroup._name or \
-                            annotationArrayAlong[e2] == annotationGroup._name:
-                        meshGroup = annotationGroup.getMeshGroup(mesh)
-                        meshGroup.addElement(element)
+                    for annotationAround in annotationArrayAround[
+                            elementsCountAround + int(elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC]:
+                        if annotationAround == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
+                    for annotationAlong in annotationArrayAlong[e2]:
+                        if annotationAlong == annotationGroup._name:
+                            meshGroup = annotationGroup.getMeshGroup(mesh)
+                            meshGroup.addElement(element)
 
         for eTC in range(int(elementsCountAroundTC*0.5)):
             if closedProximalEnd:
@@ -2150,11 +2206,15 @@ def createNodesAndElementsTeniaColi(region,
                     element.setNodesByIdentifier(eftTexture7 if onOpening else eftTexture6, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
             for annotationGroup in annotationGroups:
-                if annotationArrayAround[elementsCountAround + int(elementsCountAroundTC*(tcCount - 0.5)) + eTC] \
-                        == annotationGroup._name \
-                        or annotationArrayAlong[e2] == annotationGroup._name:
-                    meshGroup = annotationGroup.getMeshGroup(mesh)
-                    meshGroup.addElement(element)
+                for annotationAround in annotationArrayAround[
+                        elementsCountAround + int(elementsCountAroundTC * (tcCount - 0.5)) + eTC]:
+                    if annotationAround == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
+                for annotationAlong in annotationArrayAlong[e2]:
+                    if annotationAlong == annotationGroup._name:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
     fm.endChange()
 

@@ -642,11 +642,18 @@ def createNodesAndElements(region,
                 elementIdentifier = elementIdentifier + 1
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
-                        if annotationArrayAround[e1] == annotationGroup._name or \
-                                annotationArrayAlong[0] == annotationGroup._name or\
-                                annotationArrayThroughWall[e3] == annotationGroup._name:
-                            meshGroup = annotationGroup.getMeshGroup(mesh)
-                            meshGroup.addElement(element)
+                        for annotationAround in annotationArrayAround[e1]:
+                            if annotationAround == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
+                        for annotationAlong in annotationArrayAlong[0]:
+                            if annotationAlong == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
+                        for annotationThroughWall in annotationArrayThroughWall[e3]:
+                            if annotationThroughWall == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
 
     # Create regular elements
     now = elementsCountAround * (elementsCountThroughWall + 1)
@@ -676,11 +683,18 @@ def createNodesAndElements(region,
                 elementIdentifier = elementIdentifier + 1
                 if annotationGroups:
                     for annotationGroup in annotationGroups:
-                        if annotationArrayAround[e1] == annotationGroup._name or \
-                                annotationArrayAlong[e2] == annotationGroup._name or\
-                                annotationArrayThroughWall[e3] == annotationGroup._name:
-                            meshGroup = annotationGroup.getMeshGroup(mesh)
-                            meshGroup.addElement(element)
+                        for annotationAround in annotationArrayAround[e1]:
+                            if annotationAround == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
+                        for annotationAlong in annotationArrayAlong[e2]:
+                            if annotationAlong == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
+                        for annotationThroughWall in annotationArrayThroughWall[e3]:
+                            if annotationThroughWall == annotationGroup._name:
+                                meshGroup = annotationGroup.getMeshGroup(mesh)
+                                meshGroup.addElement(element)
 
     fm.endChange()
 

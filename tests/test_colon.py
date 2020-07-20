@@ -90,7 +90,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         del tmpRegion
 
         annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
-        self.assertEqual(6, len(annotationGroups))
+        self.assertEqual(7, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -149,7 +149,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
-        self.assertEqual(5, len(annotationGroups))
+        self.assertEqual(6, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())

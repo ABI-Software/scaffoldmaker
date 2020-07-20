@@ -369,9 +369,14 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Create annotation
         cecumGroup = AnnotationGroup(region, get_colon_term("caecum"))
         annotationGroups = [cecumGroup]
-        annotationArrayAlong = (['caecum'] * elementsCountAlong)
 
-        annotationArrayThroughWall = [''] * elementsCountThroughWall
+        annotationArrayAlong = []
+        for i in range(elementsCountAlong):
+            annotationArrayAlong.append(['caecum'])
+
+        annotationArrayThroughWall = []
+        for i in range(elementsCountThroughWall):
+            annotationArrayThroughWall.append([''])
 
         for nSegment in range(segmentCount):
             # Make regular segments

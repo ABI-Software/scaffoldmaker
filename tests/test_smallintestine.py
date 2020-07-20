@@ -69,7 +69,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         del tmpRegion
 
         annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)
-        self.assertEqual(3, len(annotationGroups))
+        self.assertEqual(4, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
