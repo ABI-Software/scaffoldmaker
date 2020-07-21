@@ -54,9 +54,11 @@ class MeshType_3d_heart1(Scaffold_base):
         optionNames = MeshType_3d_heartventriclesbase1.getOrderedOptionNames()
         optionNamesAtria = MeshType_3d_heartatria1.getOrderedOptionNames()
         # insert new numbers of elements from atria; others came with ventriclesbase1
-        optionNames.insert(7, 'Number of elements over atria')
+        optionNames.insert(7, 'Number of elements along vena cava inlet')
+        optionNames.insert(8, 'Number of elements over atria')
         # remove number of elements, unit scale and dependent options from atria options
         for key in [
+            'Number of elements along vena cava inlet',
             'Number of elements around atrial septum',
             'Number of elements around left atrium free wall',
             'Number of elements around right atrium free wall',

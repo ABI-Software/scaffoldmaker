@@ -4,9 +4,13 @@ Common resource for bladder annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 bladder_terms = [
-    ( "urinary bladder", "FMA:15900", "UBERON:0001255" ),
-    ( "neck of urinary bladder", "FMA:15912", "UBERON:0001258"),
-    ( "body of urinary bladder", None)  # needs to be replaced with an actual term e.g. urinary bladder (which includes neck)
+    ("urinary bladder", "FMA:15900", "UBERON:0001255"),
+    ("neck of urinary bladder", "FMA:15912", "UBERON:0001258"),
+    ("Dome of the Bladder", "ILX:0738433"),
+    ("serosa of body of urinary bladder", "ILX:0739276"),
+    ("lumen of body of urinary bladder", "ILX:0739252"),
+    ("serosa of neck of urinary bladder", "ILX:0739277"),
+    ("lumen of neck of urinary bladder", "ILX:0739256")
    ]
 
 def get_bladder_term(name : str):

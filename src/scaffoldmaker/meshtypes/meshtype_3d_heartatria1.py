@@ -84,22 +84,46 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'scaffoldSettings' : {
                 'Number of vessels' : 3,
                 'Number of elements across common' : 2,
-                'Number of elements around ostium' : 12,
+                'Number of elements around ostium' : 10,
                 'Number of elements along' : 1,
                 'Number of elements through wall' : 1,
                 'Unit scale' : 1.0,
                 'Outlet' : False,
-                'Ostium diameter' : 0.17,
-                'Ostium length' : 0.04,
-                'Ostium wall thickness' : 0.02,
-                'Ostium inter-vessel distance' : 0.15,
-                'Ostium inter-vessel height' : 0.02,
+                'Ostium diameter' : 0.16,
+                'Ostium length' : 0.08,
+                'Ostium wall thickness' : 0.04,
+                'Ostium inter-vessel distance' : 0.13,
+                'Ostium inter-vessel height' : 0.01,
                 'Use linear through ostium wall' : False,
-                'Vessel end length factor' : 1.0,
-                'Vessel inner diameter' : 0.13,
-                'Vessel wall thickness' : 0.008,
+                'Vessel end length factor' : 1.5,
+                'Vessel inner diameter' : 0.1,
+                'Vessel wall thickness' : 0.01,
                 'Vessel angle 1 degrees' : 0.0,
-                'Vessel angle 1 spread degrees' : 20.0,
+                'Vessel angle 1 spread degrees' : 0.0,
+                'Vessel angle 2 degrees' : 0.0,
+                'Use linear through vessel wall' : True,
+                }
+            } ),
+        'LPV Rat 2' : ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings' : {
+                'Number of vessels' : 3,
+                'Number of elements across common' : 2,
+                'Number of elements around ostium' : 10,
+                'Number of elements along' : 2,
+                'Number of elements through wall' : 1,
+                'Unit scale' : 1.0,
+                'Outlet' : False,
+                'Ostium diameter' : 0.16,
+                'Ostium length' : 0.1,
+                'Ostium wall thickness' : 0.04,
+                'Ostium inter-vessel distance' : 0.13,
+                'Ostium inter-vessel height' : 0.01,
+                'Use linear through ostium wall' : False,
+                'Vessel end length factor' : 1.5,
+                'Vessel inner diameter' : 0.1,
+                'Vessel wall thickness' : 0.01,
+                'Vessel angle 1 degrees' : 0.0,
+                'Vessel angle 1 spread degrees' : 0.0,
                 'Vessel angle 2 degrees' : 0.0,
                 'Use linear through vessel wall' : True,
                 }
@@ -193,12 +217,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # to avoid circular include, repeat inter-dependent ventriclesbase options here:
         ventriclesbaseOptions = {}
         if isMouse or isRat:
-            ventriclesbaseOptions['LV outlet inner diameter'] = 0.23 if isRat else 0.21
-            ventriclesbaseOptions['LV outlet wall thickness'] =  0.018 if isRat else 0.016
+            ventriclesbaseOptions['LV outlet inner diameter'] = 0.21
+            ventriclesbaseOptions['LV outlet wall thickness'] =  0.02
         else:
             ventriclesbaseOptions['LV outlet inner diameter'] = 0.28
             ventriclesbaseOptions['LV outlet wall thickness'] = 0.022
         options = {}
+        options['Number of elements along vena cava inlet'] = 2
         options['Number of elements around atrial septum'] = 3
         options['Number of elements around left atrium free wall'] = 8
         options['Number of elements around right atrium free wall'] = 6
@@ -286,64 +311,73 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 options['Unit scale'] = 80.0
         elif isMouse or isRat:
             if notUnitScale:
-                options['Unit scale'] = 5.0 if isMouse else 12.0
+                options['Unit scale'] = 6.0 if isMouse else 12.0
+            options['Atria base inner major axis length'] = 0.32
+            options['Atria base inner minor axis length'] = 0.26
+            options['Atria major axis rotation degrees'] = 30.0
             options['Atria outer height'] = 0.4
-            options['Atrial base front incline degrees'] = 10.0
-            options['Atria base inner major axis length'] = 0.42
-            options['Atria base inner minor axis length'] = 0.35
-            options['Atrial septum height'] = 0.27
-            options['Atrial septum length'] = 0.22
-            options['Fossa ovalis height'] = 0.08
-            options['Fossa ovalis length'] = 0.12
-            options['Fossa ovalis midpoint height'] = 0.18
-            options['Atrial base wall thickness'] = 0.06
-            options['Fossa ovalis thickness'] = options['Atrial septum thickness']
-            options['Atrial vestibule outer height'] = 0.1
-            options['Atrial base back incline degrees'] = 0.0
-            options['Atria venous midpoint over'] = 0.45
             options['Atria venous anterior over'] = 0.75
-            options['Left atrial appendage angle axial degrees'] = -15.0
-            options['Left atrial appendage angle left degrees'] = 20.0
-            options['Left atrial appendage angle up degrees'] = -65.0
-            options['Left atrial appendage arc length'] = 0.6
-            options['Left atrial appendage arc radius'] = 0.2
-            options['Left atrial appendage base length'] = 0.3
-            options['Left atrial appendage left'] = 0.9
-            options['Left atrial appendage midpoint left'] = 0.55
-            options['Left atrial appendage midpoint over'] = 1.0
-            options['Left atrial appendage wall thickness'] = 0.025
-            options['Left atrial appendage wedge angle degrees'] = 60.0
-            options['Right atrial appendage angle axial degrees'] = 22.0
-            options['Right atrial appendage angle left degrees'] = -10.0
-            options['Right atrial appendage angle up degrees'] = -40.0
-            options['Right atrial appendage arc length'] = 0.6
-            options['Right atrial appendage arc radius'] = 0.2
-            options['Right atrial appendage base length'] = 0.3
-            options['Right atrial appendage midpoint right'] = 0.55
-            options['Right atrial appendage midpoint over'] = 0.97
-            options['Right atrial appendage pouch right'] = 1.0
-            options['Right atrial appendage wall thickness'] = 0.025
-            options['Right atrial appendage wedge angle degrees'] = 50.0
+            options['Atria venous midpoint over'] = 0.45
+            options['Atrial base back incline degrees'] = 0.0
+            options['Atrial base front incline degrees'] = 15.0
+            options['Atrial base side incline degrees'] = 20.0
+            options['Atrial base slope degrees'] = 20.0
+            options['Atrial base wall thickness'] = 0.04
+            options['Atrial septum height'] = 0.25
+            options['Atrial septum length'] = 0.14
+            options['Atrial septum thickness'] = 0.05
+            options['Atrial vestibule outer height'] = 0.06
             options['Common left-right pulmonary vein ostium'] = True
-            options['Left pulmonary vein ostium angle degrees'] = 15.0
-            options['Left pulmonary vein ostium position left'] = 0.34
-            options['Left pulmonary vein ostium position over'] = 0.45
-            options['Inferior vena cava inlet position over'] = 0.24
-            options['Inferior vena cava inlet position right'] = 0.2
+            options['Crista terminalis thickness'] = 0.03
+            options['Fossa ovalis height'] = 0.07
+            options['Fossa ovalis length'] = 0.07
+            options['Fossa ovalis midpoint height'] = 0.15
+            options['Fossa ovalis thickness'] = options['Atrial septum thickness']
             options['Inferior vena cava inlet angle left degrees'] = 0.0
             options['Inferior vena cava inlet angle over degrees'] = -20.0
-            options['Inferior vena cava inlet derivative factor'] = 1.0
-            options['Inferior vena cava inlet length'] = 0.12
+            options['Inferior vena cava inlet derivative factor'] = 2.0
             options['Inferior vena cava inlet inner diameter'] = 0.16
-            options['Inferior vena cava inlet wall thickness'] = 0.011
+            options['Inferior vena cava inlet length'] = 0.2
+            options['Inferior vena cava inlet position over'] = 0.2
+            options['Inferior vena cava inlet position right'] = 0.28
+            options['Inferior vena cava inlet wall thickness'] = 0.012
+            options['Left atrial appendage angle axial degrees'] = -10.0
+            options['Left atrial appendage angle left degrees'] = 0.0
+            options['Left atrial appendage angle up degrees'] = -60.0
+            options['Left atrial appendage arc length'] = 0.5
+            options['Left atrial appendage arc radius'] = 0.35
+            options['Left atrial appendage base length'] = 0.35
+            options['Left atrial appendage left'] = 0.99
+            options['Left atrial appendage midpoint left'] = 0.78
+            options['Left atrial appendage midpoint over'] = 1.0
+            options['Left atrial appendage wall thickness'] = 0.025
+            options['Left atrial appendage wedge angle degrees'] = 80.0
+            options['Left atrium venous free wall thickness'] = 0.04
+            options['Left atrium venous midpoint left'] = 0.45
+            options['Left pulmonary vein ostium angle degrees'] = 30.0
+            options['Left pulmonary vein ostium position left'] = 0.32
+            options['Left pulmonary vein ostium position over'] = 0.36
+            options['Right atrial appendage angle axial degrees'] = 35.0
+            options['Right atrial appendage angle left degrees'] = 20.0
+            options['Right atrial appendage angle up degrees'] = 0.0
+            options['Right atrial appendage arc length'] = 0.6
+            options['Right atrial appendage arc radius'] = 0.35
+            options['Right atrial appendage base length'] = 0.35
+            options['Right atrial appendage midpoint right'] = 0.45
+            options['Right atrial appendage midpoint over'] = 0.75
+            options['Right atrial appendage pouch right'] = 0.95
+            options['Right atrial appendage wall thickness'] = 0.025
+            options['Right atrial appendage wedge angle degrees'] = 90.0
+            options['Right atrium venous free wall thickness'] = 0.03
+            options['Right atrium venous right'] = 0.5
+            options['Superior vena cava inlet angle left degrees'] = 15.0
+            options['Superior vena cava inlet angle over degrees'] = -5.0
+            options['Superior vena cava inlet derivative factor'] = 2.0
+            options['Superior vena cava inlet inner diameter'] = 0.15
+            options['Superior vena cava inlet length'] = 0.2
             options['Superior vena cava inlet position over'] = 0.62
-            options['Superior vena cava inlet position right'] = 0.18
-            options['Superior vena cava inlet angle left degrees'] = 0.0
-            options['Superior vena cava inlet angle over degrees'] = -10.0
-            options['Superior vena cava inlet derivative factor'] = 1.0
-            options['Superior vena cava inlet length'] = 0.12
-            options['Superior vena cava inlet inner diameter'] = 0.14
-            options['Superior vena cava inlet wall thickness'] = 0.01
+            options['Superior vena cava inlet position right'] = 0.14
+            options['Superior vena cava inlet wall thickness'] = 0.012
         elif 'Pig' in parameterSetName:
             if notUnitScale:
                 options['Unit scale'] = 80.0
@@ -383,6 +417,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
+            'Number of elements along vena cava inlet',
             'Number of elements around atrial septum',
             'Number of elements around left atrium free wall',
             'Number of elements around right atrium free wall',
@@ -507,6 +542,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         :return:  True if dependent options changed, otherwise False.
         '''
         dependentChanges = False
+        if options['Number of elements along vena cava inlet'] < 1:
+            options['Number of elements along vena cava inlet'] = 1
         if options['Number of elements around atrial septum'] < 2:
             options['Number of elements around atrial septum'] = 2
         for key in [
@@ -652,6 +689,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         :return: list of AnnotationGroup
         """
         cls.updateSubScaffoldOptions(options)
+        elementsCountAlongVCInlet = options['Number of elements along vena cava inlet']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
         elementsCountAroundLeftAtriumFreeWall = options['Number of elements around left atrium free wall']
         elementsCountAroundLeftAtrium = elementsCountAroundLeftAtriumFreeWall + elementsCountAroundAtrialSeptum
@@ -775,7 +813,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         ivcInletGroup = AnnotationGroup(region, get_heart_term("inferior vena cava inlet"))
         svcInletGroup = AnnotationGroup(region, get_heart_term("superior vena cava inlet"))
-        annotationGroups += [ ivcInletGroup, svcInletGroup ]
+        ivcGroup = AnnotationGroup(region, get_heart_term("inferior vena cava"))
+        svcGroup = AnnotationGroup(region, get_heart_term("superior vena cava"))
+        annotationGroups += [ ivcInletGroup, svcInletGroup, ivcGroup, svcGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
@@ -822,6 +862,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             rpvMeshGroups = [ inletGroup.getMeshGroup(mesh) for inletGroup in rpvGroups ]
         ivcInletMeshGroup = ivcInletGroup.getMeshGroup(mesh)
         svcInletMeshGroup = svcInletGroup.getMeshGroup(mesh)
+        ivcMeshGroup = ivcGroup.getMeshGroup(mesh)
+        svcMeshGroup = svcGroup.getMeshGroup(mesh)
 
         # get elements count over atria, around left and right free wall base, and around ostia
         # note elementsCountOverAtriaCoronarySinus is assumed to be 1
@@ -875,9 +917,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cosAngle = math.cos(zAngleRadians + lpvOstiumAngleRadians)
         sinAngle = math.sin(zAngleRadians + lpvOstiumAngleRadians)
         lpvOstiumDirection = [ (cosAngle*-td2[c] + sinAngle*td1[c]) for c in range(3) ]
-        vesselMeshGroups = [ [ laMeshGroup, meshGroup ] for meshGroup in lpvMeshGroups ]
         nodeIdentifier, elementIdentifier, (lpvox, lpvod1, lpvod2, lpvod3, lpvoNodeId, lpvoPositions) = \
-            generateOstiumMesh(region, lpvOstiumSettings, laTrackSurface, lpvOstiumPosition, lpvOstiumDirection, nodeIdentifier, elementIdentifier, vesselMeshGroups)
+            generateOstiumMesh(region, lpvOstiumSettings, laTrackSurface, lpvOstiumPosition, lpvOstiumDirection, nodeIdentifier, elementIdentifier,
+                               vesselMeshGroups=[ [ meshGroup ] for meshGroup in lpvMeshGroups ], ostiumMeshGroups=[ laMeshGroup ])
 
         if not commonLeftRightPvOstium:
             # create right pulmonary vein ostium
@@ -890,9 +932,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
             cosAngle = math.cos(zAngleRadians + rpvOstiumAngleRadians)
             sinAngle = math.sin(zAngleRadians + rpvOstiumAngleRadians)
             rpvOstiumDirection = [ (cosAngle*-td2[c] + sinAngle*td1[c]) for c in range(3) ]
-            vesselMeshGroups = [ [ laMeshGroup, meshGroup ] for meshGroup in rpvMeshGroups ]
             nodeIdentifier, elementIdentifier, (rpvox, rpvod1, rpvod2, rpvod3, rpvoNodeId, rpvoPositions) = \
-                generateOstiumMesh(region, rpvOstiumSettings, laTrackSurface, rpvOstiumPosition, rpvOstiumDirection, nodeIdentifier, elementIdentifier, vesselMeshGroups)
+                generateOstiumMesh(region, rpvOstiumSettings, laTrackSurface, rpvOstiumPosition, rpvOstiumDirection, nodeIdentifier, elementIdentifier,
+                                   vesselMeshGroups=[ [ meshGroup ] for meshGroup in rpvMeshGroups ], ostiumMeshGroups=[ laMeshGroup ])
 
         # get points over interatrial septum on exterior groove
         agn1Mid = elementsCountOverRightAtriumNonVenousAnterior + elementsCountOverRightAtriumVenous//2
@@ -1677,7 +1719,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractProportions[nc][0], ractProportions[nc][1],
             ravtProportions[ran1raap][0], ravtProportions[ran1raap][1],
             elementsCount = elementsCountOverSideRightAtriumPouch,
-            derivativeStart = [ (ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
+            #derivativeStart = [ (ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
+            derivativeStart = [ -d for d in ractd1[1][nc] ],
             derivativeEnd = [ -d for d in ravtd2[1][ran1raap] ])
         # get inner points
         raapx  = [ [ None ], raapx  ]
@@ -1708,7 +1751,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractProportions[nc][0], ractProportions[nc][1],
             ravtProportions[ran1raaq][0], ravtProportions[ran1raaq][1],
             elementsCount = elementsCountOverAtria//2 + elementsCountOverCristaTerminalisAnterior - 3,
-            derivativeStart = [ (ractd2[1][nc][c] - 0.5*ractd1[1][nc][c]) for c in range(3) ],
+            #derivativeStart = [ (ractd2[1][nc][c] - 0.5*ractd1[1][nc][c]) for c in range(3) ],
+            derivativeStart = [ (ractd2[1][nc][c] -ractd1[1][nc][c]) for c in range(3) ],
             derivativeEnd = [ -d for d in ravtd2[1][ran1raaq] ])
         # get inner points
         raaqx  = [ [ None ], raaqx  ]
@@ -2633,7 +2677,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 elementsCountRadial = 1, meshGroups = [ laMeshGroup ])
 
         # create inferior and superior vena cavae inlets
-        elementsCountAlongVCInlet = 2  # GRC make into a setting?
         for v in range(2):
             if v == 0:
                 proportion1 = 1.0 - ivcPositionOver
@@ -2815,13 +2858,22 @@ class MeshType_3d_heartatria1(Scaffold_base):
             #print('vcaNodeId[1]',vcaNodeId[1])
             #print('vcaDerivativesMap[0]',vcaDerivativesMap[0])
             #print('vcaDerivativesMap[1]',vcaDerivativesMap[1])
+
+            # add rows of VC inlets to appropriate mesh groups
+            rowMeshGroups = []
+            vcMeshGroup = ivcMeshGroup if (v == 0) else svcMeshGroup
+            vcInletMeshGroup = ivcInletMeshGroup if (v == 0) else svcInletMeshGroup
+            if elementsCountAlongVCInlet == 1:
+                rowMeshGroups = [ [ vcMeshGroup, vcInletMeshGroup, raMeshGroup] ]
+            else:
+                rowMeshGroups = [ [ vcMeshGroup ] ]*max(0, (elementsCountAlongVCInlet - 2)) + [ [ vcMeshGroup, vcInletMeshGroup ], [ vcInletMeshGroup, raMeshGroup] ]
             nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
                 nodes, mesh, nodeIdentifier, elementIdentifier,
                 vcvx, vcvd1, vcvd2, None, None, None,
                 vcax, vcad1, vcad2, vcad3, vcaNodeId, vcaDerivativesMap,
                 maxEndThickness = 1.5*raVenousFreeWallThickness,
                 elementsCountRadial = elementsCountAlongVCInlet,
-                meshGroups = [ raMeshGroup, ivcInletMeshGroup if (v == 0) else svcInletMeshGroup])
+                meshGroups = rowMeshGroups)
 
         # create left atrial appendage
         position = laTrackSurface.createPositionProportion(laaMidpointOver, laaMidpointLeft)
@@ -2972,7 +3024,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    #remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                     addMarker = { "name" : "SVC-RA", "xi" : [ 0.0, 1.0, 0.0 ] }
                 elif (e2 == 1) and (e1 < (elementsCountOverSideRightAtriumPouch - 1)):
@@ -3072,7 +3125,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 if n1 == 0:
                     raasDerivativesMap[n3][ix] = ( None, (-1, 0, 0), None, (0, 1, 0) )  # compare ( None, (-1, 1, 0), None, (0, 1, 0) )
                 else: # n1 == 1:
-                    raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 1, 0) )  # compare ( (0, 1, 0), (-1, 0, 0), None, (-1, 1, 0) )
+                    #raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 1, 0) )  # compare ( (0, 1, 0), (-1, 0, 0), None, (-1, 1, 0) )
+                    raasDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, -1, 0), None, (-1, 0, 0) )
             ix += 1
         # down right atrial appendage pouch limit, raap
         n1Last = len(raapx[1]) - 1
@@ -3255,13 +3309,15 @@ class MeshType_3d_heartatria1(Scaffold_base):
         is_ra_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ra, is_exterior_face_xi3_0),
                                                         fm.createFieldNot(is_la_endo)),
                                       fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
-        is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_la, is_ra),
-                                   fm.createFieldAnd(is_exterior_face_xi3_1,
-                                                     fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
-        is_laa_endo = fm.createFieldAnd(laaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_0)
-        is_raa_endo = fm.createFieldAnd(raaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_0)
+        is_laa = laaGroup.getFieldElementGroup(mesh2d)
+        is_raa = raaGroup.getFieldElementGroup(mesh2d)
+        is_laa_endo = fm.createFieldAnd(is_laa, is_exterior_face_xi3_0)
+        is_raa_endo = fm.createFieldAnd(is_raa, is_exterior_face_xi3_0)
         is_laa_epi = fm.createFieldAnd(laaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1)
         is_raa_epi = fm.createFieldAnd(raaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1)
+        is_a_epi = fm.createFieldAnd(fm.createFieldOr(fm.createFieldOr(is_la, is_ra), fm.createFieldOr(is_laa, is_raa)),
+                                     fm.createFieldAnd(is_exterior_face_xi3_1,
+                                                       fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
         epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
         epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
         laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
