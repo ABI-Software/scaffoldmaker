@@ -368,19 +368,17 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         # Create annotation
         cecumGroup = AnnotationGroup(region, get_colon_term("caecum"))
-        annotationGroups = [cecumGroup]
-
-        annotationArrayAlong = []
+        annotationGroupsAlong = []
         for i in range(elementsCountAlong):
-            annotationArrayAlong.append(['caecum'])
+            annotationGroupsAlong.append([cecumGroup])
 
-        annotationArrayThroughWall = []
+        annotationGroupsThroughWall = []
         for i in range(elementsCountThroughWall):
-            annotationArrayThroughWall.append([''])
+            annotationGroupsThroughWall.append([ ])
 
         for nSegment in range(segmentCount):
             # Make regular segments
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround, annotationArrayAround \
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround \
                 = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Replace first half of first segment with apex and sample along apex and second half of segment
@@ -428,7 +426,6 @@ class MeshType_3d_cecum1(Scaffold_base):
                                        zRefList, innerRadiusAlongCecum, closedProximalEnd)
 
         # Create coordinates and derivatives
-        annotationGroups += annotationGroupsAround
         wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
@@ -470,16 +467,15 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Create nodes and elements
         if tcThickness > 0:
             tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
-            xCecum, d1Cecum, d2Cecum, d3Cecum, annotationGroups, annotationArrayAround = getTeniaColi(
+            xCecum, d1Cecum, d2Cecum, d3Cecum, annotationGroupsAround = getTeniaColi(
                 region, xCecum, d1Cecum, d2Cecum, d3Cecum, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sxRefList, annotationGroups, annotationArrayAround,
-                closedProximalEnd)
+                tubeTCWidthList, tcThickness, sxRefList, annotationGroupsAround, closedProximalEnd)
 
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
                     region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                     elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                    tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                    tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                     firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                     closedProximalEnd)
 
@@ -487,7 +483,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
                 region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)
 

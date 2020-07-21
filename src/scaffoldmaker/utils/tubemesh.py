@@ -8,6 +8,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
@@ -175,10 +176,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             xWarpedList.append(xTranslate)
             d1WarpedList.append(d1Rot2)
             d2WarpedList.append(d2Rot2)
-
-    # xWarpedListNew = xWarpedList
-    # d1WarpedListNew = d1WarpedList
-    # d2WarpedListNew = d2WarpedList
 
     # Scale d2 with curvature of central path
     d2WarpedListScaled = []
@@ -438,7 +435,7 @@ def createNodesAndElements(region,
     xFlat, d1Flat, d2Flat,
     xTexture, d1Texture, d2Texture,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-    annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+    annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
     useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
@@ -452,15 +449,14 @@ def createNodesAndElements(region,
     :param elementsCountAround: Number of elements around tube.
     :param elementsCountAlong: Number of elements along tube.
     :param elementsCountThroughWall: Number of elements through wall.
-    :param annotationGroups: stores information about annotation groups.
-    :param annotationArrayAround: stores annotation names of elements around.
-    :param annotationArrayAlong: stores annotation names of elements along.
-    :param annotationArrayThroughWall: stores annotation names of elements through wall.
+    :param annotationGroupsAround: Annotation groups of elements around.
+    :param annotationGroupsAlong: Annotation groups of elements along.
+    :param annotationGroupsThroughWall: Annotation groups of elements through wall.
     :param firstNodeIdentifier, firstElementIdentifier: first node and
     element identifier to use.
     :param useCubicHermiteThroughWall: use linear when false
     :param useCrossDerivatives: use cross derivatives when true
-    :return nodeIdentifier, elementIdentifier, annotationGroups
+    :return nodeIdentifier, elementIdentifier, allAnnotationGroups
     """
 
     nodeIdentifier = firstNodeIdentifier
@@ -614,6 +610,8 @@ def createNodesAndElements(region,
     elementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
     radiansPerElementAround = math.pi*2.0 / elementsCountAround
 
+    allAnnotationGroups = []
+
     if closedProximalEnd:
         # Create apex
         for e3 in range(elementsCountThroughWall):
@@ -640,20 +638,13 @@ def createNodesAndElements(region,
                 ]
                 result = element.setScaleFactors(eft1, scalefactors)
                 elementIdentifier = elementIdentifier + 1
+                annotationGroups = annotationGroupsAround[e1] + annotationGroupsAlong[0] + \
+                                   annotationGroupsThroughWall[e3]
                 if annotationGroups:
+                    allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
-                        for annotationAround in annotationArrayAround[e1]:
-                            if annotationAround == annotationGroup._name:
-                                meshGroup = annotationGroup.getMeshGroup(mesh)
-                                meshGroup.addElement(element)
-                        for annotationAlong in annotationArrayAlong[0]:
-                            if annotationAlong == annotationGroup._name:
-                                meshGroup = annotationGroup.getMeshGroup(mesh)
-                                meshGroup.addElement(element)
-                        for annotationThroughWall in annotationArrayThroughWall[e3]:
-                            if annotationThroughWall == annotationGroup._name:
-                                meshGroup = annotationGroup.getMeshGroup(mesh)
-                                meshGroup.addElement(element)
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
     # Create regular elements
     now = elementsCountAround * (elementsCountThroughWall + 1)
@@ -681,24 +672,18 @@ def createNodesAndElements(region,
                     element.merge(elementtemplate2 if onOpening else elementtemplate1)
                     element.setNodesByIdentifier(eftTexture2 if onOpening else eftTexture1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
+
+                annotationGroups = annotationGroupsAround[e1] + annotationGroupsAlong[e2] + \
+                                   annotationGroupsThroughWall[e3]
                 if annotationGroups:
+                    allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
-                        for annotationAround in annotationArrayAround[e1]:
-                            if annotationAround == annotationGroup._name:
-                                meshGroup = annotationGroup.getMeshGroup(mesh)
-                                meshGroup.addElement(element)
-                        for annotationAlong in annotationArrayAlong[e2]:
-                            if annotationAlong == annotationGroup._name:
-                                meshGroup = annotationGroup.getMeshGroup(mesh)
-                                meshGroup.addElement(element)
-                        for annotationThroughWall in annotationArrayThroughWall[e3]:
-                            if annotationThroughWall == annotationGroup._name:
-                                meshGroup = annotationGroup.getMeshGroup(mesh)
-                                meshGroup.addElement(element)
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
 
     fm.endChange()
 
-    return nodeIdentifier, elementIdentifier, annotationGroups
+    return nodeIdentifier, elementIdentifier, allAnnotationGroups
 
 class CylindricalSegmentTubeMeshInnerPoints:
     """

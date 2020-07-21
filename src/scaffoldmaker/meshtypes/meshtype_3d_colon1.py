@@ -441,47 +441,41 @@ class MeshType_3d_colon1(Scaffold_base):
         elementsAlongInDistal = elementsCountAlong - elementsAlongInProximal - elementsAlongInTransverse
         elementsCountAlongGroups = [elementsAlongInProximal, elementsAlongInTransverse, elementsAlongInDistal]
 
-        annotationGroups = []
         colonGroup = AnnotationGroup(region, get_colon_term("colon"))
-        annotationGroupsAlong = [colonGroup]
 
         if tcCount == 1:
             proximalGroup = AnnotationGroup(region, get_colon_term("proximal colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
             distalGroup = AnnotationGroup(region, get_colon_term("distal colon"))
-            annotationGroupsAlong += [proximalGroup, transverseGroup, distalGroup]
-            annotationGroupNamesAlong = [['colon', 'proximal colon'],
-                                         ['colon', 'transverse colon'],
-                                         ['colon', 'distal colon']]
+            annotationGroupAlong = [[colonGroup, proximalGroup],
+                                    [colonGroup, transverseGroup],
+                                    [colonGroup, distalGroup]]
 
         elif tcCount == 2:
             spiralGroup = AnnotationGroup(region, get_colon_term("spiral colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
             distalGroup = AnnotationGroup(region, get_colon_term("distal colon"))
-            annotationGroupsAlong += [spiralGroup, transverseGroup, distalGroup]
-            annotationGroupNamesAlong = [['colon', 'spiral colon'],
-                                         ['colon', 'transverse colon'],
-                                         ['colon', 'distal colon']]
+            annotationGroupAlong = [[colonGroup, spiralGroup],
+                                    [colonGroup, transverseGroup],
+                                    [colonGroup, distalGroup]]
 
         elif tcCount == 3:
             ascendingGroup = AnnotationGroup(region, get_colon_term("ascending colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
             descendingGroup = AnnotationGroup(region, get_colon_term("descending colon"))
-            annotationGroupsAlong += [ascendingGroup, transverseGroup, descendingGroup]
-            annotationGroupNamesAlong = [['colon', 'ascending colon'],
-                                         ['colon', 'transverse colon'],
-                                         ['colon', 'descending colon']]
+            annotationGroupAlong = [[colonGroup, ascendingGroup],
+                                    [colonGroup, transverseGroup],
+                                    [colonGroup, descendingGroup]]
 
-        annotationGroups += annotationGroupsAlong
-        annotationArrayAlong = []
+        annotationGroupsAlong = []
         for i in range(len(elementsCountAlongGroups)):
             elementsCount = elementsCountAlongGroups[i]
             for n in range(elementsCount):
-                annotationArrayAlong.append(annotationGroupNamesAlong[i])
+                annotationGroupsAlong.append(annotationGroupAlong[i])
 
-        annotationArrayThroughWall = []
+        annotationGroupsThroughWall = []
         for i in range(elementsCountThroughWall):
-            annotationArrayThroughWall.append([''])
+            annotationGroupsThroughWall.append([ ])
 
         xExtrude = []
         d1Extrude = []
@@ -499,7 +493,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         for nSegment in range(segmentCount):
             # Create inner points
-            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround, annotationArrayAround\
+            xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround \
                 = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
 
             # Project reference point for warping onto central path
@@ -525,8 +519,6 @@ class MeshType_3d_colon1(Scaffold_base):
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
-        annotationGroups += annotationGroupsAround
-
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
             d2Extrude, d3UnitExtrude, contractedWallThicknessList,
@@ -538,10 +530,10 @@ class MeshType_3d_colon1(Scaffold_base):
 
         if tcThickness > 0:
             tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
-            xList, d1List, d2List, d3List, annotationGroups, annotationArrayAround = getTeniaColi(
+            xList, d1List, d2List, d3List, annotationArrayAround = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroups, annotationArrayAround,
+                tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroupsAround,
                 closedProximalEnd)
 
             # Create flat and texture coordinates
@@ -554,7 +546,7 @@ class MeshType_3d_colon1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tcCount, annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)
 
@@ -568,7 +560,7 @@ class MeshType_3d_colon1(Scaffold_base):
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
                 region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+                annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)
 

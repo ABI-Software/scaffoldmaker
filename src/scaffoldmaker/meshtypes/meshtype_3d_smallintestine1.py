@@ -269,25 +269,24 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
         jejunumGroup = AnnotationGroup(region, get_smallintestine_term("jejunum"))
         ileumGroup = AnnotationGroup(region, get_smallintestine_term("ileum"))
-        annotationGroups = [smallintestineGroup, duodenumGroup, jejunumGroup, ileumGroup]
 
-        annotationGroupNamesAlong = [['small intestine', 'duodenum'],
-                                     ['small intestine', 'jejunum'],
-                                     ['small intestine', 'ileum']]
+        annotationGroupAlong = [[smallintestineGroup, duodenumGroup],
+                                [smallintestineGroup, jejunumGroup],
+                                [smallintestineGroup, ileumGroup]]
 
-        annotationArrayAlong = []
+        annotationGroupsAlong = []
         for i in range(len(elementsCountAlongGroups)):
             elementsCount = elementsCountAlongGroups[i]
             for n in range(elementsCount):
-                annotationArrayAlong.append(annotationGroupNamesAlong[i])
+                annotationGroupsAlong.append(annotationGroupAlong[i])
 
-        annotationArrayAround = []
+        annotationGroupsAround = []
         for i in range(elementsCountAround):
-            annotationArrayAround.append([''])
+            annotationGroupsAround.append([ ])
 
-        annotationArrayThroughWall = []
+        annotationGroupsThroughWall = []
         for i in range(elementsCountThroughWall):
-            annotationArrayThroughWall.append([''])
+            annotationGroupsThroughWall.append([ ])
 
         xExtrude = []
         d1Extrude = []
@@ -364,7 +363,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-            annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+            annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
             closedProximalEnd=False)
 
