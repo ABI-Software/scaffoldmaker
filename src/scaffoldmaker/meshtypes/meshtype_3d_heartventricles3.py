@@ -185,11 +185,11 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             ]:
             if options[key] < 4:
                 options[key] = 4
-        if options['Number of elements across septum'] % 1:
-            if 0 == (options['Number of elements around LV free wall'] % 1):
+        if options['Number of elements across septum'] % 2:
+            if 0 == (options['Number of elements around LV free wall'] % 2):
                 options['Number of elements around LV free wall'] += 1
                 dependentChanges = True
-            if 0 == (options['Number of elements around RV free wall'] % 1):
+            if 0 == (options['Number of elements around RV free wall'] % 2):
                 options['Number of elements around RV free wall'] += 1
                 dependentChanges = True
         nas = options['Number of elements across septum']//2
