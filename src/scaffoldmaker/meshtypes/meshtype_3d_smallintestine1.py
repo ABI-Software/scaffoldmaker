@@ -263,16 +263,30 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         elementsAlongDuodenum = round(duodenumLength / elementAlongLength)
         elementsAlongJejunum = round(jejunumLength / elementAlongLength)
         elementsAlongIleum = elementsCountAlong - elementsAlongDuodenum - elementsAlongJejunum
+        elementsCountAlongGroups = [elementsAlongDuodenum, elementsAlongJejunum, elementsAlongIleum]
 
+        smallintestineGroup = AnnotationGroup(region, get_smallintestine_term("small intestine"))
         duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
         jejunumGroup = AnnotationGroup(region, get_smallintestine_term("jejunum"))
         ileumGroup = AnnotationGroup(region, get_smallintestine_term("ileum"))
-        annotationGroups = [duodenumGroup, jejunumGroup, ileumGroup]
-        annotationArrayAlong = (['duodenum'] * elementsAlongDuodenum +
-                                ['jejunum'] * elementsAlongJejunum +
-                                ['ileum'] * elementsAlongIleum)
-        annotationArrayAround = [''] * (elementsCountAround)
-        annotationArrayThroughWall = [''] * elementsCountThroughWall
+
+        annotationGroupAlong = [[smallintestineGroup, duodenumGroup],
+                                [smallintestineGroup, jejunumGroup],
+                                [smallintestineGroup, ileumGroup]]
+
+        annotationGroupsAlong = []
+        for i in range(len(elementsCountAlongGroups)):
+            elementsCount = elementsCountAlongGroups[i]
+            for n in range(elementsCount):
+                annotationGroupsAlong.append(annotationGroupAlong[i])
+
+        annotationGroupsAround = []
+        for i in range(elementsCountAround):
+            annotationGroupsAround.append([ ])
+
+        annotationGroupsThroughWall = []
+        for i in range(elementsCountThroughWall):
+            annotationGroupsThroughWall.append([ ])
 
         xExtrude = []
         d1Extrude = []
@@ -349,7 +363,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-            annotationGroups, annotationArrayAround, annotationArrayAlong, annotationArrayThroughWall,
+            annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
             closedProximalEnd=False)
 
