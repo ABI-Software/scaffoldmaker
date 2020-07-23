@@ -21,17 +21,42 @@ class ShieldMesh:
     Shield mesh generator. Has one element through thickness.
     '''
 
-    def __init__(self, elementsCountUp, elementsCountAcross, elementsCountRim, trackSurface : TrackSurface=None):
+    def __init__(self, elementsCountAcross, elementsCountUp, elementsCountRim, trackSurface : TrackSurface=None):
         '''
+        Data structure for defining a shield-shaped mesh which is flat on the top and rounded around the bottom.
+        It is represented as a regular box of elementsCountAcross x elementsCountUp
+        but with strips of elements absent on the bottom left and right.
+        Example showing elements for 4 across, 2 up and 0 rim, and how nodes/coordinates are stored in ShieldMesh:
+
+        N___N___N___N___N           N___N___N___N___N
+        |   |   |   |   |               |   |   |
+        |   |   |   |   |               |   |   |
+        \   T---N---T   /    -->        T---N---T
+         \ /    |    \ /                |   |   |
+          N     |     N                 |   |   |
+           \----N----/                  N---N---N
+
+        The removal of 2 corners of the box is achieved by triple points T where 3 square elements
+        join in a triangle.
+        Extra rim elements go around the sides and bottom curve. Rim elements add nodes on the sides above the
+        triple points, and across the shorter bottom row.
+        Extra elements up add regular rows of nodes/elements on top, and extra non-rim elements across
+        add regular columns of nodes/elements up the centre.
+        The mesh currently only supports 1 element through the thickness of the wall.
+        :param elementsCountAcross: Number of elements across top of shield. Must be at least  4 + elementsCountRim.
+        :param elementsCountUp: Number of elements up central axis of shield. Must be at least 2 + elementsCountRim.
+        :param elementsCountRim: Number of elements around bottom rim (not top) outside of 'triple points'.
         :param trackSurface: Optional trackSurface to store or restrict points to.
         '''
-        self.elementsCountUp = elementsCountUp
+        assert elementsCountRim >= 0
+        assert elementsCountAcross >= (elementsCountRim + 4)
+        assert elementsCountUp >= (elementsCountRim + 2)
         self.elementsCountAcross = elementsCountAcross
+        self.elementsCountUp = elementsCountUp
         self.elementsCountRim = elementsCountRim
         self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
-        self.elementsCountAcrossBottom = self.elementsCountAcross - 2*elementsCountRim
-        self.elementsCountAroundFull = 2*self.elementsCountUpRegular + self.elementsCountAcrossBottom
-        #self.elementsCountAroundHalf = self.elementsCountAroundFull//2
+        elementsCountAcrossNonRim = self.elementsCountAcross - 2*elementsCountRim
+        self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
         self.trackSurface = trackSurface
         self.px  = [ [], [] ]
         self.pd1 = [ [], [] ]
@@ -49,7 +74,7 @@ class ShieldMesh:
 
     def convertRimIndex(self, ix, rx=0):
         '''
-        Convert point index around the lower rim to n1, n2
+        Convert point index around the lower rim to n1, n2 across and up box.
         :param ix: index around from 0 to self.elementsCountAroundFull
         :param rx: rim index from 0 (around outside) to self.elementsCountRim
         :return: n1, n2
@@ -196,11 +221,10 @@ class ShieldMesh:
 
     def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier):
         """
-        Create shield elements from nodes.
-        :param fieldmodule: Zinc fieldmodule to create elements in.
+        Create shield nodes from coordinates.
+        :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
-        :param startElementIdentifier: First element identifier to use.
-        :param meshGroups: Zinc mesh groups to add elements to.
+        :param startNodeIdentifier: First node identifier to use.
         :return: next nodeIdentifier.
          """
         nodeIdentifier = startNodeIdentifier
@@ -274,9 +298,10 @@ class ShieldMesh:
                          self.nodeId[1][e2][e1], self.nodeId[1][e2][e1 + 1], self.nodeId[1][e2 + 1][e1], self.nodeId[1][e2 + 1][e1 + 1] ]
                 if e2 < e2b:
                     if (e1 < e1b) or (e1 > e1y):
-                        continue
+                        continue  # no element due to triple point closure
                     if e2 == e2a:
                         if (e1 == e1b) or (e1 == e1y):
+                            # map bottom triple point element
                             eft1 = tricubichermite.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             scalefactors = [ -1.0 ]
@@ -286,6 +311,7 @@ class ShieldMesh:
                                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 elif e2 == e2b:
                     if (e1 <= e1a) or (e1 >= e1z):
+                        # map top 2 triple point elements
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]

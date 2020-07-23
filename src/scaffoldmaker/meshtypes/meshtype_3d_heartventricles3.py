@@ -84,7 +84,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         options['RV outlet cusp angle degrees'] = 50.0
         options['RV outlet position around LV'] = 0.7
         options['RV width'] = 0.3
-        options['Use cross derivatives'] = False
+        #options['Use cross derivatives'] = False  # Removed from interface until working
         options['Refine'] = False
         options['Refine number of elements surface'] = 4
         options['Refine number of elements through wall'] = 1
@@ -138,7 +138,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             'RV outlet cusp angle degrees',
             'RV outlet position around LV',
             'RV width',
-            #'Use cross derivatives',
+            #'Use cross derivatives',  # Removed from interface until working
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through wall'
@@ -325,7 +325,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         rvOutletCuspAngleRadians = math.radians(options['RV outlet cusp angle degrees'])
         rvOutletPositionAroundLV = options['RV outlet position around LV']
         rvWidth = unitScale*options['RV width']
-        useCrossDerivatives = options['Use cross derivatives']
+        useCrossDerivatives = False  # options['Use cross derivatives']  # Removed from interface until working
 
         #print("elementsCountAroundFull", elementsCountAroundFull)
         #print("elementsCountUpRVFreeWall", elementsCountUpRVFreeWall)
@@ -488,7 +488,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         lad1 = [ [-s for s in d ] for d in lad1 ]
         lad3 = [ vector.setMagnitude(d, lvFreeWallThickness) for d in lad3 ]
 
-        rvShield = ShieldMesh(elementsCountUpRVFreeWall, elementsCountAroundRVFreeWall, 0)
+        rvShield = ShieldMesh(elementsCountAroundRVFreeWall, elementsCountUpRVFreeWall, 0)
         rvx  = rvShield.px
         rvd1 = rvShield.pd1
         rvd2 = rvShield.pd2
@@ -599,7 +599,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         # LV free wall
         elementsCountUpLV = elementsCountUpLVFreeWall + elementsCountUpLVApex
-        lvShield = ShieldMesh(elementsCountUpLV, elementsCountAroundLVFreeWall, elementsCountUpLVApex, lvTrackSurface)
+        lvShield = ShieldMesh(elementsCountAroundLVFreeWall, elementsCountUpLV, elementsCountUpLVApex, lvTrackSurface)
         lvx  = lvShield.px
         lvd1 = lvShield.pd1
         lvd2 = lvShield.pd2

@@ -531,7 +531,7 @@ def calculate_surface_axes(d1, d2, direction):
     delta_xi1, delta_xi2 = calculate_surface_delta_xi(d1, d2, direction)
     ax1 = vector.normalise([ delta_xi1*d1[c] + delta_xi2*d2[c] for c in range(3) ])
     ax3 = vector.crossproduct3(d1, d2)
-    mag3 = math.sqrt(ax3[0]*ax3[0] + ax3[1]*ax3[1] + ax3[2]*ax3[2])
+    mag3 = vector.magnitude(ax3)
     if mag3 > 0.0:
         ax3 = [ s/mag3 for s in ax3 ]
         ax2 = vector.normalise(vector.crossproduct3(ax3, ax1))
