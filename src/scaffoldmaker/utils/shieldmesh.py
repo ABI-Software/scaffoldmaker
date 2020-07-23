@@ -237,12 +237,11 @@ class ShieldMesh:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
         cache = fieldmodule.createFieldcache()
 
-        if False:
-            for n2 in range(self.elementsCountUp, -1, -1):
-                s = ""
-                for n1 in range(self.elementsCountAcross + 1):
-                    s += str(n1) if self.px[1][n2][n1] else " "
-                print(n2, s, n2 - self.elementsCountUp - 1)
+        #for n2 in range(self.elementsCountUp, -1, -1):
+        #    s = ""
+        #    for n1 in range(self.elementsCountAcross + 1):
+        #        s += str(n1) if self.px[1][n2][n1] else " "
+        #    print(n2, s, n2 - self.elementsCountUp - 1)
 
         for n2 in range(self.elementsCountUp + 1):
             for n3 in range(2):
