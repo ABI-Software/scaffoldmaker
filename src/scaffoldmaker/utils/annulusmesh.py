@@ -6,8 +6,9 @@ import collections
 import copy
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
+from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -462,3 +463,43 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     fm.endChange()
 
     return nodeIdentifier, elementIdentifier
+
+def deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier):
+    """
+    Deletes elements and nodes on tracked surface under annulus mesh using element and node identifiers.
+    :param deleteElementIdentifier: Element identifiers for elements to be deleted.
+    :param deleteNodeIdentifier: Node identifiers for nodes to be deleted.
+    """
+
+    with ChangeManager(fm):
+        # put the elements in a group and use subelement handling to get nodes in use by it
+        destroyGroup = fm.createFieldGroup()
+        destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
+        destroyMesh = destroyElementGroup.getMeshGroup()
+        for i in range(len(deleteElementIdentifier)):
+            elementIdentifier = deleteElementIdentifier[i]
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            destroyMesh.addElement(element)
+        if destroyMesh.getSize() > 0:
+            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
+            destroyNodes = destroyNodeGroup.getNodesetGroup()
+            fieldcache = fm.createFieldcache()
+            for i in range(len(deleteNodeIdentifier)):
+                nodeIdentifier = deleteNodeIdentifier[i]
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                destroyNodes.addNode(node)
+            del fieldcache
+
+            # must destroy elements first as Zinc won't destroy nodes that are in use
+            mesh.destroyElementsConditional(destroyElementGroup)
+            nodes.destroyNodesConditional(destroyNodeGroup)
+            # clean up group so no external code hears is notified of its existence
+            del destroyNodes
+            del destroyNodeGroup
+        del destroyMesh
+        del destroyElementGroup
+        del destroyGroup
+
+    return
