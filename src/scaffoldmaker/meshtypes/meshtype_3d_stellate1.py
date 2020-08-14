@@ -119,7 +119,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         plot_graph = 0
         ecount = [elementsCount1, elementsCount2, elementsCount3]
         armRotationAngles = (2 * pi) / (numArm * 2)
-        xnodes, wheel_nodes = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
+        xnodes, wheelNodes, centreNodes = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
         nodeList_sh = range(1, len(xnodes) + 1)
 
         # Remove duplicate nodes, but keep the node correspondence
@@ -129,9 +129,17 @@ class MeshType_3d_stellate1(Scaffold_base):
             dupNodes_arr = np.array(dupNodes_dbl)
             dupNodes = list(dupNodes_arr[:,1])
 
+            # repeat for centre nodes - but no need really.
+            xc_in = [xnodes[ic-1][:3] for ic in centreNodes]
+            dupCntNodes_dbl = findDuplicateNodes(xc_in, centreNodes)
+            dupCntNodes_arr = np.array(dupCntNodes_dbl)
+            idupCntNodes = list(np.array(dupCntNodes_dbl)[:,1])
+            dupCntNodes = [centreNodes[id-1] for id in idupCntNodes]
+
+        armAngle = 2*pi/numArm
         xnodes_d1 = []
-        dx_ds1 = [ 1.0 / elementsCount1[na], 0.0, 0.0 ]
-        dx_ds2 = [ 0.0, 1.0 / elementsCount2, 0.0 ]
+        dx_ds1 = [ 1.0, 0.0, 0.0 ]
+        dx_ds2 = [ 0.0, 1.0, 0.0 ]
         nodeIdentifier = 1
 
         for n2 in range(len(xnodes)):
@@ -140,19 +148,23 @@ class MeshType_3d_stellate1(Scaffold_base):
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xnodes[n2])
                 if xnodes_d1:
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xnodes_d1[n2])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xnodes_d2[n2])
+                    ds1 = xnodes_d1[n2]
+                    ds2 = xnodes_d2[n2]
                 elif False:
                     ds2w = [0.0, 0.0, 1.0 / elementsCount3]
                     ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
                     ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2w if nodeIdentifier in wheel_nodes else ds2)
+                    if nodeIdentifier in wheelNodes:
+                        ds2 = ds2w.copy()
+                    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2w if nodeIdentifier in wheelNodes else ds2)
                 else: # default
                     ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
                     ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1) #ds1
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2) #ds2
+                if nodeIdentifier in centreNodes:
+                    ds1 = 1 * [cos(armAngle/2), -sin(armAngle/2), 0.0]
+                    ds2 = 1 * [cos(armAngle/2), sin(armAngle/2), 0.0]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1) #ds1
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2) #ds2
 
             nodeIdentifier += 1
 
@@ -307,9 +319,9 @@ def createArm(thAr, elen, ewid, armLength, armAngle, zheight, ecount, startingNo
     for j, n in enumerate(x):
         xnew = round(n[0]*cos(armAngle), 12) - round(n[1]*sin(armAngle), 12)
         ynew = round(n[1]*cos(armAngle), 12) + round(n[0]*sin(armAngle), 12)
-        if (abs(xnew) < tol) and (abs(xnew) > 0):
+        if (abs(xnew) < tol):
             xnew = 0
-        if (abs(ynew) < tol) and (abs(ynew) > 0):
+        if (abs(ynew) < tol):
             ynew = 0
 
         x[j] = [xnew, ynew, x[j][2]]
@@ -321,7 +333,10 @@ def createArm(thAr, elen, ewid, armLength, armAngle, zheight, ecount, startingNo
               startingNode + (2*(elementsCount1 + 1))]
     nWheel = nWheel + [n+nodes_per_layer for n in nWheel]
 
-    return (x, nodeIdentifier, nWheel)
+    nCentre = startingNode + elementsCount1 + 1
+    nCentre = [nCentre, nCentre + nodes_per_layer]
+
+    return (x, nodeIdentifier, nWheel, nCentre)
 
 
 def createBody(numArm, thAr, zheight, ecount, plot_):
@@ -336,6 +351,7 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
 
     x = []
     nWheel = []
+    nCentre = []
 
     if plot_:
         plt.figure()
@@ -344,10 +360,11 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
     x_out = []
     for i in range(numArm):
         ecount_i = [ecount[0][i], ecount[1], ecount[2]]
-        x_out, nextNode, nwhl = createArm(thAr, elen, ewid, armLength[i], minArmAngle*i, zheight, ecount_i, nextNode)
+        x_out, nextNode, nwhl, ncntr = createArm(thAr, elen, ewid, armLength[i], minArmAngle*i, zheight, ecount_i, nextNode)
 
         x.extend([ix+[minArmAngle*i] for ix in x_out])
         nWheel.extend(nwhl)
+        nCentre.extend(ncntr)
 
         endNode = 0
         if isinstance(x_out, list):
@@ -400,7 +417,7 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
         plt.show()
 
     # return ([ix.tolist() for ix in x])
-    return x, nWheel
+    return x, nWheel, nCentre
 
 # Remove duplicate nodes, but keep the node correspondence - replace duplicate node in nodelist with OG node
 def findDuplicateNodes(x, nodeList):
@@ -449,6 +466,6 @@ if __name__ == "__main__":
     ecount = [[4,2,2],2,1]
     armRotationAngles = (2*pi) / (numArm*2)
     plot_graph = True
-    xnodes, nWheel = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
+    xnodes, nWheel, nCentre = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
     x_in = [ix[:3] for ix in xnodes]
     nodeList_sh = findDuplicateNodes(x_in, (range(1, len(xnodes) + 1)))
