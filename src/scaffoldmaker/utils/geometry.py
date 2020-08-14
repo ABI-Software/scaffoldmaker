@@ -200,3 +200,31 @@ def getSurfaceProjectionAxes(ax, ad1, ad2, ad3, angle1radians, angle2radians, le
     bd1 = vector.crossproduct3(ad2, bd3)
     bd2 = vector.crossproduct3(bd3, bd1)
     return bx, bd1, bd2, bd3
+
+def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadians = 0.0):
+    '''
+    Create ellipse points centred at cx, from axis1 around through axis2.
+    Assumes axis1 and axis2 are orthogonal.
+    Dimension 3 only.
+    :param cx: centre
+    :param axis1: Vector from cx to inside at zero angle
+    :param axis2: Vector from cx to inside at 90 degree angle.
+    :param elementsCountAround: Number of elements around.
+    :return: lists ex, ed1
+    '''
+    ex = []
+    ed1 = []
+    radiansPerElementAround = radian / elementsCountAround
+    radiansAround = startRadians
+    for n in range(elementsCountAround):
+        cosRadiansAround = math.cos(radiansAround)
+        sinRadiansAround = math.sin(radiansAround)
+        x = [
+            cx[0] + cosRadiansAround * axis1[0] - sinRadiansAround * axis2[0],
+            cx[1] + cosRadiansAround * axis1[1] + sinRadiansAround * axis2[1],
+            cx[2] + cosRadiansAround * axis1[2] + sinRadiansAround * axis2[2]
+        ]
+        ex.append(x)
+        ed1.append([radiansPerElementAround * (-sinRadiansAround * axis1[c] + cosRadiansAround * axis2[c]) for c in range(3)])
+        radiansAround += radiansPerElementAround
+    return ex, ed1
