@@ -16,14 +16,14 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d, deleteElementsAndNodesUnderAnnulusMesh
+from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field, FieldGroup
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
 
@@ -784,35 +784,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             lumenOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of urethra"))
             lumenOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen)
 
-
-def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadians = 0.0):
-    '''
-    Create ellipse points centred at cx, from axis1 around through axis2.
-    Assumes axis1 and axis2 are orthogonal.
-    Dimension 3 only.
-    :param cx: centre
-    :param axis1: Vector from cx to inside at zero angle
-    :param axis2: Vector from cx to inside at 90 degree angle.
-    :param elementsCountAround: Number of elements around.
-    :return: lists px, pd1
-    '''
-    px = []
-    pd1 = []
-    radiansPerElementAround = radian / elementsCountAround
-    radiansAround = startRadians
-    for n in range(elementsCountAround):
-        cosRadiansAround = math.cos(radiansAround)
-        sinRadiansAround = math.sin(radiansAround)
-        x = [
-            cx[0] + cosRadiansAround * axis1[0] - sinRadiansAround * axis2[0],
-            cx[1] + cosRadiansAround * axis1[1] + sinRadiansAround * axis2[1],
-            cx[2] + cosRadiansAround * axis1[2] + sinRadiansAround * axis2[2]
-        ]
-        px.append(x)
-        pd1.append([radiansPerElementAround * (-sinRadiansAround * axis1[c] + cosRadiansAround * axis2[c]) for c in range(3)])
-        radiansAround += radiansPerElementAround
-    return px, pd1
-
 def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaultOptions,
                                           elementsCountAround, elementsCountAroundOstium,
                                           trackSurfaceOstium1, ostium1Position, trackSurfaceOstium2, ostium2Position,
@@ -957,40 +928,3 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
 
     return
 
-def deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier):
-    '''
-    Deletes elements and nodes on tracked surface under annulus mesh using element and node identifiers.
-    :param deleteElementIdentifier: Element identifiers for elements to be deleted.
-    :param deleteNodeIdentifier: Node identifiers for nodes to be deleted.
-    '''
-    with ChangeManager(fm):
-        # Put the elements in a group and use subelement handling to get nodes in use by it
-        destroyGroup = fm.createFieldGroup()
-        destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
-        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
-        destroyMesh = destroyElementGroup.getMeshGroup()
-        for i in range(len(deleteElementIdentifier)):
-            elementIdentifier = deleteElementIdentifier[i]
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            destroyMesh.addElement(element)
-        if destroyMesh.getSize() > 0:
-            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
-            destroyNodes = destroyNodeGroup.getNodesetGroup()
-            fieldcache = fm.createFieldcache()
-            for i in range(len(deleteNodeIdentifier)):
-                nodeIdentifier = deleteNodeIdentifier[i]
-                node = nodes.findNodeByIdentifier(nodeIdentifier)
-                fieldcache.setNode(node)
-                destroyNodes.addNode(node)
-            del fieldcache
-            # Must destroy elements first as Zinc won't destroy nodes that are in use
-            mesh.destroyElementsConditional(destroyElementGroup)
-            nodes.destroyNodesConditional(destroyNodeGroup)
-            # Clean up group so no external code hears is notified of its existence
-            del destroyNodes
-            del destroyNodeGroup
-        del destroyMesh
-        del destroyElementGroup
-        del destroyGroup
-
-    return
