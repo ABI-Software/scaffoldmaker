@@ -1,5 +1,5 @@
 """
-Generates a 3-D unit box mesh with variable numbers of elements in 3 directions.
+Stellate mesh, iteration 1
 """
 
 from __future__ import division
@@ -119,7 +119,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         plot_graph = 0
         ecount = [elementsCount1, elementsCount2, elementsCount3]
         armRotationAngles = (2 * pi) / (numArm * 2)
-        xnodes = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
+        xnodes, wheel_nodes = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
         nodeList_sh = range(1, len(xnodes) + 1)
 
         # Remove duplicate nodes, but keep the node correspondence
@@ -133,6 +133,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         dx_ds1 = [ 1.0 / elementsCount1[na], 0.0, 0.0 ]
         dx_ds2 = [ 0.0, 1.0 / elementsCount2, 0.0 ]
         nodeIdentifier = 1
+
         for n2 in range(len(xnodes)):
             if nodeIdentifier not in dupNodes:
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -141,7 +142,13 @@ class MeshType_3d_stellate1(Scaffold_base):
                 if xnodes_d1:
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xnodes_d1[n2])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xnodes_d2[n2])
-                else:
+                elif False:
+                    ds2w = [0.0, 0.0, 1.0 / elementsCount3]
+                    ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
+                    ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2w if nodeIdentifier in wheel_nodes else ds2)
+                else: # default
                     ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
                     ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1) #ds1
@@ -243,6 +250,7 @@ def createArm(thAr, elen, ewid, armLength, armAngle, zheight, ecount, startingNo
 
     nodes_per_layer = (elementsCount1 + 1) * (elementsCount2 + 1)
     x = []
+    dipMultiplier = 1
 
     if True: # 3Dbox1
         nodeIdentifier = startingNode
@@ -251,11 +259,11 @@ def createArm(thAr, elen, ewid, armLength, armAngle, zheight, ecount, startingNo
             for n2 in range(elementsCount2 + 1):
                 for n1 in range(elementsCount1 + 1):
                     if nodeIdentifier == startingNode or nodeIdentifier == startingNode + nodes_per_layer:
-                        x1 = round(elen * cos(thAr), 12)
-                        x2 = -round(elen * sin(thAr), 12)
+                        x1 = round(elen * dipMultiplier * cos(thAr), 12)
+                        x2 = -round(elen * dipMultiplier * sin(thAr), 12)
                     elif nodeIdentifier == startingNode + (2*(armLength+1)) or nodeIdentifier == startingNode + (2*(armLength+1)) + nodes_per_layer:
-                        x1 = round(elen * cos(thAr), 12)
-                        x2 = round(elen * sin(thAr), 12)
+                        x1 = round(elen * dipMultiplier * cos(thAr), 12)
+                        x2 = round(elen * dipMultiplier * sin(thAr), 12)
                     else:
                         x1 = n1
                         x2 = (n2 - 1) * ewid / 2
@@ -306,7 +314,14 @@ def createArm(thAr, elen, ewid, armLength, armAngle, zheight, ecount, startingNo
 
         x[j] = [xnew, ynew, x[j][2]]
 
-    return (x, nodeIdentifier, e_1d)
+    nWheel = [startingNode, \
+              startingNode + 1, \
+              startingNode + elementsCount1 + 2, \
+              startingNode + (2*(elementsCount1 + 1)) + 1, \
+              startingNode + (2*(elementsCount1 + 1))]
+    nWheel = nWheel + [n+nodes_per_layer for n in nWheel]
+
+    return (x, nodeIdentifier, nWheel)
 
 
 def createBody(numArm, thAr, zheight, ecount, plot_):
@@ -320,6 +335,7 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
     minArmAngle = 2*pi/numArm
 
     x = []
+    nWheel = []
 
     if plot_:
         plt.figure()
@@ -328,10 +344,10 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
     x_out = []
     for i in range(numArm):
         ecount_i = [ecount[0][i], ecount[1], ecount[2]]
-        x_out, nextNode, e_1d_out = createArm(thAr, elen, ewid, armLength[i], minArmAngle*i, zheight, ecount_i, nextNode)
+        x_out, nextNode, nwhl = createArm(thAr, elen, ewid, armLength[i], minArmAngle*i, zheight, ecount_i, nextNode)
 
         x.extend([ix+[minArmAngle*i] for ix in x_out])
-
+        nWheel.extend(nwhl)
 
         endNode = 0
         if isinstance(x_out, list):
@@ -343,6 +359,7 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
                 plt.text(x_out_nd[node][0], x_out_nd[node][1], str(node+1+endNode))
             endNode += len(x_out_nd)
             if False:
+                e_1d_out = [] # obsolete
                 for np in e_1d_out:
                     plt.plot(x_out[np][:2,0], x_out[np][:2,1], 'k-', linewidth = 1)
             plt.axis('equal')
@@ -383,7 +400,7 @@ def createBody(numArm, thAr, zheight, ecount, plot_):
         plt.show()
 
     # return ([ix.tolist() for ix in x])
-    return x
+    return x, nWheel
 
 # Remove duplicate nodes, but keep the node correspondence - replace duplicate node in nodelist with OG node
 def findDuplicateNodes(x, nodeList):
@@ -432,6 +449,6 @@ if __name__ == "__main__":
     ecount = [[4,2,2],2,1]
     armRotationAngles = (2*pi) / (numArm*2)
     plot_graph = True
-    xnodes = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
+    xnodes, nWheel = createBody(numArm, armRotationAngles, zheight, ecount, plot_graph)
     x_in = [ix[:3] for ix in xnodes]
     nodeList_sh = findDuplicateNodes(x_in, (range(1, len(xnodes) + 1)))
