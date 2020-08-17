@@ -9,8 +9,8 @@ from opencmiss.zinc.element import Element
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
-from scaffoldmaker.annotation.torso_terms import get_torso_term
-from scaffoldmaker.utils.cylindermesh2 import CylinderMesh, CylinderMode, CylinderType
+# from scaffoldmaker.annotation.torso_terms import get_torso_term
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderMode, CylinderType
 from scaffoldmaker.utils import vector
 
 class MeshType_3d_wholebody1(Scaffold_base):
@@ -128,8 +128,8 @@ class MeshType_3d_wholebody1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
 
 
-        btGroup = AnnotationGroup(region, get_torso_term("anterior of torso"))
-        annotationGroups = [ btGroup ]
+        # btGroup = AnnotationGroup(region, get_torso_term("anterior of torso"))
+        # annotationGroups = [ btGroup ]
 
         # set arms cylinder properties
         larmBaseCentre = vector.addVectors(axis1, axis3, armd*math.sin(armt), armh-armd*math.cos(armt))
@@ -166,7 +166,7 @@ class MeshType_3d_wholebody1(Scaffold_base):
 
 
         fm.endChange()
-        return annotationGroups
+        # return annotationGroups
 
     @classmethod
     def generateMesh(cls, region, options):
