@@ -5,7 +5,6 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 import io
 import os
 from sys import version_info
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field
@@ -30,7 +29,7 @@ class ExportVtk:
             if self._mesh.getSize() > 0:
                 break
         self._nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self._coordinates = findOrCreateFieldCoordinates(self._fieldmodule)
+        self._coordinates = self._fieldmodule.findFieldByName('coordinates').castFiniteElement()
         self._description = description
         self._annotationGroups = annotationGroups if annotationGroups else []
         self._markerNodes = None
@@ -69,6 +68,9 @@ class ExportVtk:
                 if result != RESULT_OK:
                     print("Coordinates not found for node", node.getIdentifier())
                     x = [ 0.0 ]*coordinatesCount
+                if coordinatesCount < 3:
+                    for c in range(coordinatesCount - 1, 3):
+                        x.append(0.0)
                 outstream.write(" ".join(str(s) for s in x) + "\n")
                 index += 1
             node = nodeIter.next()

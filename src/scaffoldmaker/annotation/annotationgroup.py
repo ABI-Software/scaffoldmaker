@@ -2,7 +2,12 @@
 Describes subdomains of a scaffold with attached names and terms.
 """
 
-from opencmiss.zinc.field import FieldGroup
+from opencmiss.zinc.field import Field, FieldGroup
+from opencmiss.utils.zinc.general import ChangeManager
+from scaffoldmaker.utils.zinc_utils import group_get_highest_dimension, \
+    identifier_ranges_from_string, identifier_ranges_to_string, \
+    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
+    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 
 class AnnotationGroup(object):
     '''
@@ -17,22 +22,87 @@ class AnnotationGroup(object):
         '''
         self._name = term[0]
         self._id = term[1]
-        fm = region.getFieldmodule()
-        field = fm.findFieldByName(self._name)
+        fieldmodule = region.getFieldmodule()
+        field = fieldmodule.findFieldByName(self._name)
         if field.isValid():
             self._group = field.castGroup()
             assert self._group.isValid(), 'AnnotationGroup found existing non-group field called ' + self._name
         else:
-            # assume client is calling between fm.begin/endChange()
-            self._group = fm.createFieldGroup()
-            self._group.setName(self._name)
-            self._group.setManaged(True)
+            with ChangeManager(fieldmodule):
+                self._group = fieldmodule.createFieldGroup()
+                self._group.setName(self._name)
+                self._group.setManaged(True)
+
+    def toDict(self):
+        '''
+        Encodes object into a dictionary for JSON serialisation.
+        Used only for user-defined annotation groups.
+        :return: Dictionary containing object encoding.
+        '''
+        # get identifier ranges from highest dimension domain in group
+        dimension = self.getDimension()
+        fieldmodule = self._group.getFieldmodule()
+        if dimension > 0:
+            mesh = fieldmodule.findMeshByDimension(dimension)
+            meshGroup = self._group.getFieldElementGroup(mesh).getMeshGroup()
+            identifierRanges = mesh_group_to_identifier_ranges(meshGroup)
+        else:
+            nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            nodesetGroup = self._group.getFieldNodeGroup(nodes).getNodesetGroup()
+            if nodesetGroup.isValid():
+                identifierRanges = nodeset_group_to_identifier_ranges(nodesetGroup)
+            else:
+                identifierRanges = []
+        dct = {
+            '_AnnotationGroup' : True,
+            'name' : self._name,
+            'ontId' : self._id,
+            'dimension' : dimension,
+            'identifierRanges' : identifier_ranges_to_string(identifierRanges)
+            }
+        return dct
+
+    @classmethod
+    def fromDict(cls, dct, region):
+        '''
+        Instantiate from dict. See toDict()
+        :param region: Zinc region.
+        :return: AnnotationGroup
+        '''
+        assert dct['_AnnotationGroup']
+        name = dct['name']
+        ontId = dct['ontId']
+        dimension = dct['dimension']
+        identifierRangesString = dct['identifierRanges']
+        identifierRanges = identifier_ranges_from_string(identifierRangesString)
+        fieldmodule = region.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            annotationGroup = cls(region, (name, ontId))
+            if dimension > 0:
+                meshGroup = annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(dimension))
+                mesh_group_add_identifier_ranges(meshGroup, identifierRanges)
+            else:
+                nodesetGroup = annotationGroup.getNodesetGroup(fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES))
+                nodeset_group_add_identifier_ranges(nodesetGroup, identifierRanges)
+        return annotationGroup
 
     def getName(self):
         return self._name
 
+    def setName(self, name):
+        '''
+        Client must ensure name is unique for all annotation groups.
+        '''
+        self._name = name
+
     def getId(self):
         return self._id
+
+    def setId(self, id):
+        '''
+        Client must ensure id is unique for all annotation groups.
+        '''
+        self._id = id
 
     def getFMANumber(self):
         """
@@ -47,6 +117,12 @@ class AnnotationGroup(object):
 
     def getGroup(self):
         return self._group
+
+    def getDimension(self):
+        '''
+        Get dimension 3, 2 or 1 of mesh which group is annotating, 0 if nodes or -1 if empty.
+        '''
+        return group_get_highest_dimension(self._group)
 
     def getFieldElementGroup(self, mesh):
         '''
