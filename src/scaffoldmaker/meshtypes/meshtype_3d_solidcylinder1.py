@@ -32,9 +32,9 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
             'Number of elements along' : 5,
             'Use cross derivatives' : False,
             'Refine' : False,
-            'Refine number of elements around' : 1,
             'Refine number of elements along' : 1,
-            'Refine number of elements through wall' : 1
+            'Refine number of elements across' : 1,
+            'Refine number of elements up' : 1
         }
 
     @staticmethod
@@ -49,25 +49,24 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
             'Number of elements along',
             'Use cross derivatives',
             'Refine',
-            'Refine number of elements around',
             'Refine number of elements along',
-            'Refine number of elements through wall'
+            'Refine number of elements across',
+            'Refine number of elements up'
         ]
 
     @staticmethod
     def checkOptions(options):
         for key in [
             'Number of elements along',
-            'Number of elements through wall',
-            'Refine number of elements around',
-            'Refine number of elements along',
-            'Refine number of elements through wall']:
+            'Number of elements across',
+            'Refine number of elements up',
+            'Refine number of elements along']:
             if options[key] < 1:
                 options[key] = 1
-        if (options['Number of elements through wall'] < 2) :
-            options['Number of elements through wall'] = 1
-        if (options['Number of elements around'] < 2) :
-            options['Number of elements around'] = 2
+        # if (options['Number of elements through wall'] < 2) :
+        #     options['Number of elements through wall'] = 1
+        # if (options['Number of elements around'] < 2) :
+        #     options['Number of elements around'] = 2
 
 
     @staticmethod
@@ -117,12 +116,12 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
             cls.generateBaseMesh(region, options)
             return
 
-        refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountAlong = options['Refine number of elements along']
-        refineElementsCountThroughWall = options['Refine number of elements through wall']
+        refineElementsCountAcross = options['Refine number of elements across']
+        refineElementsCountUp = options['Refine number of elements up']
 
         baseRegion = region.createRegion()
         cls.generateBaseMesh(baseRegion, options)
 
         meshrefinement = MeshRefinement(baseRegion, region)
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAlong, refineElementsCountAcross, refineElementsCountUp)

@@ -113,7 +113,7 @@ class CylinderMesh:
             self._baseCentre, self._majorAxis, minorAxis, elementsCountAround, majorRadius)
         majorRadius1 = majorRadius
         tnx, tnd1, tnd2, tnd3 = [], [], [], []
-        for n3 in range(self._elementsCountUp + 1):
+        for n3 in range(self._elementsCountAlong + 1):
             tbx, tbd1, tbd2, tbd3 = [], [], [], []
             for n in range(elementsCountAround + 1):
                 tbx.append(nx[n])
@@ -138,7 +138,7 @@ class CylinderMesh:
         btd2 = self._shield.pd2
         btd3 = self._shield.pd3
 
-        for n3 in range(self._elementsCountUp + 1):
+        for n3 in range(self._elementsCountAlong + 1):
             for n in range(self._shield.elementsCountAroundFull + 1):
                 n1, n2 = self._shield.convertRimIndex(n)
                 tx, td1, td2, td3 = tnx[n3], tnd1[n3], tnd2[n3], tnd3[n3]
@@ -317,7 +317,8 @@ class CylinderMesh:
         :return: Final values of nextNodeIdentifier, nextElementIdentifier.
         """
         assert (self._elementsCountAlong > 0), 'createCylinderMesh3d:  Invalid number of along elements'
-        assert (self._elementsCountAcross > 4), 'createCylinderMesh3d: Invalid number of around elements'
+        assert (self._elementsCountAcross > 4), 'createCylinderMesh3d: Invalid number of across elements'
+        assert (self._elementsCountAcross % 2 == 0), 'createCylinderMesh3d: number of across elements is not an even number'
         assert (self._elementsCountUp > 2), 'createCylinderMesh3d: Invalid number of up elements'
         assert (self._cylinderMode in [self._cylinderMode.CYLINDER_MODE_FULL, self._cylinderMode.CYLINDER_MODE_LOWER_HALF]), 'createCylinerMesh3d: Invalid cylinder mode.'
         plane=[-d for d in self._majorAxis]+[-vector.dotproduct(self._majorAxis,self._baseCentre)]
