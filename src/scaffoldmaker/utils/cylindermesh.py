@@ -21,6 +21,10 @@ class CylinderType(Enum):
     CYLIDNER_REGULAR = 1        # all the bases along the axis of the cylinder are the same.
     CYLIDNER_TRUNCATED_CONE = 2 # different ellipses along the cylinder axis
 
+class ConeBaseProgression(Enum):
+    GEOMETIRC_PROGRESSION  = 1 # geometirc sequence decrease for major radius of bases
+    ARITHMETIC_PROGRESSION = 2 # arithmetic sequence decrease for major radius of bases
+
 class CylinderMesh:
     '''
     Cylinder mesh generator. Extrudes an ellipse/circle.
@@ -30,7 +34,7 @@ class CylinderMesh:
                              elementsCountAcross, elementsCountUp, elementsCountAlong,
                              cylinderMode = CylinderMode.CYLINDER_MODE_FULL,
                              cylinderType = CylinderType.CYLIDNER_REGULAR,
-                             rate = 0.0, useCrossDerivatives = False):
+                             rate = 0.0, progressionMode=ConeBaseProgression.GEOMETIRC_PROGRESSION, useCrossDerivatives = False):
         '''
         :param fieldmodule: Zinc fieldmodule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -62,6 +66,7 @@ class CylinderMesh:
         self._height = vector.magnitude(alongAxis)
         self._majorRadius = vector.magnitude(majorAxis)
         self._radiusReductionRate = rate
+        self._progressionMode = progressionMode
         # generate the mesh
         self.createCylinderMesh3d(fieldModule, coordinates)
 
@@ -102,7 +107,8 @@ class CylinderMesh:
             radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
         return nx, nd1
 
-    def generateBasesMesh(self,majorRadius,elementsCountAround,arcLengthAlong,minorAxis,rate=0.08):
+    def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
+                          progressionMode = ConeBaseProgression.GEOMETIRC_PROGRESSION, rate=0.08):
         '''
         generate bases of the truncated cone along the cone axis.
         :param majorRadius: major radius of the cone ellipse base.
@@ -126,7 +132,10 @@ class CylinderMesh:
             tnd3.append(tbd3)
             if self._cylinderType == CylinderType.CYLIDNER_TRUNCATED_CONE:
                 nx = nd1 = []
-                majorRadius1 = majorRadius1 * (1 - rate)
+                if progressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
+                    majorRadius1 = majorRadius1 * (1 - rate)
+                elif progressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
+                    majorRadius1 -= rate
                 majorAxis1 = vector.setMagnitude(self._majorAxis, majorRadius1)
                 baseC = [self._baseCentre[c] + (n3 + 1) * arcLengthAlong * vector.normalise(self._alongAxis)[c] for c in
                          range(3)]
@@ -340,7 +349,8 @@ class CylinderMesh:
         self._shield = ShieldMesh(self._elementsCountAcross, self._elementsCountUp, elementsCountRim, None, self._elementsCountAlong, shieldMode)
 
         # generate bases mesh along cylinder axis
-        btx, btd1, btd2, btd3 = self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis, self._radiusReductionRate)
+        btx, btd1, btd2, btd3 = self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
+                                                       progressionMode=self._progressionMode, rate=  self._radiusReductionRate)
 
         n3Count = 0 if self._cylinderType == CylinderType.CYLIDNER_REGULAR else self._elementsCountAlong
         for n3 in range(n3Count+1):

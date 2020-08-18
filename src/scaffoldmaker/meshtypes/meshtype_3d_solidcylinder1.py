@@ -9,7 +9,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderMode
+from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderMode, ConeBaseProgression
 
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
@@ -101,7 +101,7 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
         cylinder1 = CylinderMesh(fm, coordinates, [0.0, 0.0, 0.0], vector.setMagnitude(axis3, height), vector.setMagnitude(axis1, majorRadius), minorRadius,
                              elementsCountAcross, elementsCountUp, elementsCountAlong,
                              cylinderMode=CylinderMode.CYLINDER_MODE_FULL, cylinderType=CylinderType.CYLIDNER_TRUNCATED_CONE,
-                             rate=rate, useCrossDerivatives=False)
+                             rate=rate,progressionMode = ConeBaseProgression.GEOMETIRC_PROGRESSION, useCrossDerivatives=False)
 
         fm.endChange()
 
