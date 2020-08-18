@@ -9,7 +9,7 @@ import math
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
-from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldMode
+from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldMode, SheildType
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite,\
     smoothCubicHermiteDerivativesLine
 
@@ -346,7 +346,7 @@ class CylinderMesh:
         elementsCountRim = 0
 
         shieldMode = ShieldMode.SHIELD_MODE_FULL if self._cylinderMode is self._cylinderMode.CYLINDER_MODE_FULL else ShieldMode.SHIELD_MODE_LOWER_HALF
-        self._shield = ShieldMesh(self._elementsCountAcross, self._elementsCountUp, elementsCountRim, None, self._elementsCountAlong, shieldMode)
+        self._shield = ShieldMesh(self._elementsCountAcross, self._elementsCountUp, elementsCountRim, None, self._elementsCountAlong, shieldMode, shieldType = SheildType.SHIELD_TYPE_CYLINDER)
 
         # generate bases mesh along cylinder axis
         btx, btd1, btd2, btd3 = self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
