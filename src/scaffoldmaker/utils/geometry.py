@@ -74,12 +74,17 @@ def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
     angle = inAngleRadians
     lengthMoved = 0.0
     lengthTol = (a + b)*1.0E-4  # broader tolerance due to reliance on inexact getEllipseArcLength()
+    counter=0
     #print('updateEllipseAngleByArcLength', a, b, 'inAngleRadians', inAngleRadians, ', arcLength', arcLength)
     while math.fabs(arcLength - lengthMoved) > lengthTol:
+        angleOld = angle
         t = ( -a*math.sin(angle), b*math.cos(angle) )
         dlength_dangle = math.sqrt(t[0]*t[0] + t[1]*t[1])
         angle += (arcLength - lengthMoved)/dlength_dangle
+        if counter >= 100:
+            angle=(angle+angleOld)/2
         lengthMoved = getEllipseArcLength(a, b, inAngleRadians, angle)
+        counter+=1
         #print('lengthMoved', lengthMoved)
     #print('updateEllipseAngleByArcLength a', a, 'b', b, ', angle', inAngleRadians, ', arcLength', arcLength, ' -> ', angle)
     return angle
