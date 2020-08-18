@@ -191,16 +191,16 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Neck diameter 2': 3.0,
             'Bladder wall thickness': 0.5,
             'Neck angle': 45,
-            'Include ureter': False,
-            'Ureter': copy.deepcopy(ostiumOption),
-            'Ostium position around': 0.65,  # should be on the dorsal part (> 0.5)
-            'Ostium position down': 0.75,
-            'Number of elements radially on annulus': 1,
             'Include urethra': True,
             'Urethra diameter 1': 1.5,
             'Urethra diameter 2': 1.0,
             'Urethra wall thickness': 0.5,
             'Length factor': 0.5,
+            'Include ureter': False,
+            'Ureter': copy.deepcopy(ostiumOption),
+            'Ostium position around': 0.65,  # should be on the dorsal part (> 0.5)
+            'Ostium position down': 0.75,
+            'Number of elements radially on annulus': 1,
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -219,14 +219,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Urethra diameter 1'] = 0.75
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
-            options['Length factor'] = 0.5
-
         return options
 
     @staticmethod
     def getOrderedOptionNames():
         optionNames = [
-            'Central path bladder',
             'Number of elements along',
             'Number of elements around',
             'Number of elements through wall',
@@ -236,16 +233,17 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Neck diameter 2',
             'Bladder wall thickness',
             'Neck angle',
-            'Include ureter',
-            'Ureter',
-            'Ostium position around',
-            'Ostium position down',
             'Include urethra',
             'Central path LUT',
             'Urethra diameter 1',
             'Urethra diameter 2',
             'Urethra wall thickness',
             'Length factor',
+            'Central path bladder',
+            'Include ureter',
+            'Ureter',
+            'Ostium position around',
+            'Ostium position down',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -347,6 +345,16 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         neckAngle_radian = math.pi * options['Neck angle'] / 180
 
+        includeUrethra = options['Include urethra']
+        urethraDiameter1 = options['Urethra diameter 1']
+        urethraDiameter2 = options['Urethra diameter 2']
+        urethraWallThickness = options['Urethra wall thickness']
+        lengthFactor = options['Length factor']
+        if includeUrethra:
+            centralPath = options['Central path LUT']
+        else:
+            centralPath = options['Central path bladder']
+
         includeUreter = options['Include ureter']
         ostiumOptions = options['Ureter']
         ostiumDefaultOptions = ostiumOptions.getScaffoldSettings()
@@ -355,25 +363,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         ostiumPositionAround = options['Ostium position around']
         ostiumPositionDown = options['Ostium position down']
 
-        includeUrethra = options['Include urethra']
-        urethraDiameter1 = options['Urethra diameter 1']
-        urethraDiameter2 = options['Urethra diameter 2']
-        lengthFactor = options['Length factor']
-        urethraWallThickness = options['Urethra wall thickness']
-
-        if includeUrethra:
-            centralPath = options['Central path LUT']
-        else:
-            centralPath = options['Central path bladder']
-
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
-        # Coordinates field
         fm = region.getFieldmodule()
         fm.beginChange()
-        coordinates = findOrCreateFieldCoordinates(fm)
-        cache = fm.createFieldcache()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fm.findMeshByDimension(3)
 
@@ -417,7 +411,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             a = length / 2
         b = R1_max
         xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngle_radian, [0.0, 0.0, a], [0.0, b, 0.0],
-                                            2 * elementsCountAlongBladder, startRadians=math.pi)
+                                            elementsCountAlongBladder, startRadians=math.pi)
         d1Loop = [0, 0, 0] * len(xLoop)
         nodesAlongMax_x = []
         nodesAlongMax_d1 = []
@@ -450,7 +444,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             a = length / 2
         b = R1_min
         xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngle_radian, [0.0, 0.0, a], [0.0, b, 0.0],
-                                            2 * elementsCountAlongBladder, startRadians=math.pi)
+                                            elementsCountAlongBladder, startRadians=math.pi)
         d1Loop = [0, 0, 0] * len(xLoop)
         nodesAlongMin_x = []
         nodesAlongMin_d1 = []
@@ -784,12 +778,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             lumenOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of urethra"))
             lumenOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen)
 
-def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaultOptions,
-                                          elementsCountAround, elementsCountAroundOstium,
-                                          trackSurfaceOstium1, ostium1Position, trackSurfaceOstium2, ostium2Position,
-                                          ostiumElementPositionDown, ostiumElementPositionAround, xBladder,
-                                          d1Bladder, d2Bladder, nextNodeIdentifier, nextElementIdentifier,
-                                          elementsCountAnnulusRadially, annulusMeshGroups = []):
+def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaultOptions,elementsCountAround,
+                                           elementsCountAroundOstium, trackSurfaceOstium1, ostium1Position,
+                                           trackSurfaceOstium2, ostium2Position, ostiumElementPositionDown,
+                                           ostiumElementPositionAround, xBladder, d1Bladder, d2Bladder,
+                                           nextNodeIdentifier, nextElementIdentifier, elementsCountAnnulusRadially,
+                                           annulusMeshGroups = []):
 
     # Create ureters on the surface
     # Ureter 1
@@ -927,4 +921,3 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
         deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
 
     return
-
