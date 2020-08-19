@@ -1,7 +1,9 @@
 """
-Stellate mesh, iteration 2-ish
+Stellate mesh, iteration 2
 
 All locations (x) and derivatives (ds) are found separately, and fed as a list to zinc.
+Custom elements are built for the central node, and for nodes at arm ends
+
 """
 
 from __future__ import division
@@ -17,14 +19,16 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 
-class MeshType_3d_stellate1(Scaffold_base):
+
+class MeshType_3d_stellate2(Scaffold_base):
     '''
     classdocs
     '''
     @staticmethod
     def getName():
-        return '3D Stellate 1'
+        return '3D Stellate 2'
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -113,11 +117,15 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = bicubichermitelinear.createEftBasic()
+        eft = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
+        eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
 
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         result = elementtemplate.defineField(coordinates, -1, eft)
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        result = elementtemplate1.defineField(coordinates, -1, eft1)
 
         cache = fm.createFieldcache()
 
@@ -209,7 +217,30 @@ class MeshType_3d_stellate1(Scaffold_base):
                                 iReplacementNode = np.where(dupNodes_arr[:,1] == (node))[0][0]
                                 replacementNode = dupNodes_dbl[iReplacementNode][0]
                                 nodeIdentifiers[ins] = replacementNode
-                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+
+                        # TESTING: set custom element for central area and arm ends
+                        if elementIdentifier == 1:
+                            if True:
+                                # Set up one global scale factor with ID=1, my standard ID for scale factor value -1
+                                setEftScaleFactorIds(eft1, [1], [])
+                                # The value of the scale factor to set later (we multiply by -1 to negate parameters)
+                                scalefactors = [-1.0]
+                                # negate d1 and d2 on exterior corner because they are pointing in the wrong direction:
+                                scaleEftNodeValueLabels(eft1, [1, 5], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+                                # remap what was d1 in the regular element to equal global d1 + d2. Note neither need scaling or negation on arm 1 (but will on the other arms).
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                # remap what was d2 in the regular element to -d1:
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                            else:
+                                scalefactors = []
+                            result1 = elementtemplate1.defineField(coordinates, -1, eft1)
+                            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                            result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+
+                        else:
+                            result = element.setNodesByIdentifier(eft, nodeIdentifiers)
                         elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
