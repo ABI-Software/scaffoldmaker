@@ -58,13 +58,13 @@ class MeshType_3d_box1(Scaffold_base):
             if options[key] < 1:
                 options[key] = 1
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
-        Generate the base tricubic Hermite mesh. See also generateMesh().
+        Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
         elementsCount1 = options['Number of elements 1']
         elementsCount2 = options['Number of elements 2']
@@ -140,24 +140,17 @@ class MeshType_3d_box1(Scaffold_base):
                     elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
+        return []
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def refineMesh(cls, meshrefinement, options):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
-
+        assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCount1 = options['Refine number of elements 1']
         refineElementsCount2 = options['Refine number of elements 2']
         refineElementsCount3 = options['Refine number of elements 3']
-
-        baseRegion = region.createRegion()
-        cls.generateBaseMesh(baseRegion, options)
-
-        meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount1, refineElementsCount2, refineElementsCount3)

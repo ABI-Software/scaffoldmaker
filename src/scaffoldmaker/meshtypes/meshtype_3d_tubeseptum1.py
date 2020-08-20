@@ -65,12 +65,13 @@ class MeshType_3d_tubeseptum1(Scaffold_base):
         if (options['Flange length'] < 0.0) :
             options['Flange length'] = 0.0
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
+        Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
         elementsCountAlong = options['Number of elements along']
         elementsCountAcross = options['Number of elements across']
@@ -301,4 +302,4 @@ class MeshType_3d_tubeseptum1(Scaffold_base):
             result = fieldassignment.assign()
 
         fm.endChange()
-
+        return []

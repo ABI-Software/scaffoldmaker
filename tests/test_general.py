@@ -146,6 +146,12 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(22, len(annotationGroups))
 
+        # rename group1 to fred
+        self.assertTrue(annotationGroup1.setName('fred'))
+        self.assertTrue(annotationGroup1.setId('FRED:1'))
+        self.assertEqual('fred', annotationGroup1.getName())
+        self.assertEqual('FRED:1', annotationGroup1.getId())
+
         self.assertTrue(scaffoldPackage.deleteAnnotationGroup(annotationGroup3))
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(21, len(annotationGroups))
@@ -164,9 +170,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         annotationGroups2 = scaffoldPackage2.getAnnotationGroups()
         self.assertEqual(21, len(annotationGroups2))
 
-        annotationGroup1 = scaffoldPackage2.findAnnotationGroupByName('group1')
-        self.assertEqual('group1', annotationGroup1.getName())
-        self.assertIsNone(annotationGroup1.getId())
+        annotationGroup1 = scaffoldPackage2.findAnnotationGroupByName('fred')
+        self.assertEqual('fred', annotationGroup1.getName())
+        self.assertEqual('FRED:1', annotationGroup1.getId())
         self.assertTrue(scaffoldPackage2.isUserAnnotationGroup(annotationGroup1))
         self.assertEqual(2, annotationGroup1.getDimension())
         mesh2d2 = fieldmodule2.findMeshByDimension(2)

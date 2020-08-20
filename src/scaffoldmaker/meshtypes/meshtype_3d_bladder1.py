@@ -209,10 +209,10 @@ class MeshType_3d_bladder1(Scaffold_base):
         if (options['Major diameter'] < options['Minor diameter']):
             options['Major diameter'] = options['Minor diameter']
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         '''
-        Generate the base bicubic Hermite mesh. See also generateMesh().
+        Generate the base bicubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup
