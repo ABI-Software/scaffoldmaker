@@ -70,40 +70,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[0.0, 0.0, 80.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]])
             })
         }
-    centralPathDefaultScaffoldPackages_bladder = {
-        'Cat 1': ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'Length': 1.0,
-                'Number of elements': 4
-                },
-            'meshEdits': exnodeStringFromNodeValues(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 15.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 30.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 45.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 60.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]])
-            }),
-        'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'Length': 1.0,
-                'Number of elements': 8
-            },
-            'meshEdits': exnodeStringFromNodeValues(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 5.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 10.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 15.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 20.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 25.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 30.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 35.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 40.0], [0.0, 0.0, 5.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]])
-            })
-        }
     ostiumDefaultScaffoldPackages = {
         'Ostium Cat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
@@ -171,17 +137,14 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Rat 1' in parameterSetName:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Rat 1']
-            centralPathOption_bladder = cls.centralPathDefaultScaffoldPackages_bladder['Rat 1']
         else:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Cat 1']
-            centralPathOption_bladder = cls.centralPathDefaultScaffoldPackages_bladder['Cat 1']
         if 'Rat 1' in parameterSetName:
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Rat 1']
         else:
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Cat 1']
         options = {
             'Central path LUT': copy.deepcopy(centralPathOption_LUT),
-            'Central path bladder': copy.deepcopy(centralPathOption_bladder),
             'Number of elements along': 20,
             'Number of elements around': 12,
             'Number of elements through wall': 1,
@@ -224,6 +187,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         optionNames = [
+            'Central path LUT',
             'Number of elements along',
             'Number of elements around',
             'Number of elements through wall',
@@ -234,12 +198,10 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Bladder wall thickness',
             'Neck angle degrees',
             'Include urethra',
-            'Central path LUT',
             'Urethra diameter 1',
             'Urethra diameter 2',
             'Urethra wall thickness',
             'Length factor',
-            'Central path bladder',
             'Include ureter',
             'Ureter',
             'Ostium position around',
@@ -254,7 +216,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path LUT' or 'Central path bladder':
+        if optionName == 'Central path LUT':
             return [MeshType_1d_path1]
         if optionName == 'Ureter':
             return [MeshType_3d_ostium1]
@@ -264,8 +226,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path LUT':
             return list(cls.centralPathDefaultScaffoldPackages_LUT.keys())
-        if optionName == 'Central path bladder':
-            return list(cls.centralPathDefaultScaffoldPackages_bladder.keys())
         if optionName == 'Ureter':
             return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
@@ -285,10 +245,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages_LUT.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages_LUT[parameterSetName])
-        if optionName == 'Central path bladder':
-            if not parameterSetName:
-                parameterSetName = list(cls.centralPathDefaultScaffoldPackages_bladder.keys())[0]
-            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages_bladder[parameterSetName])
         if optionName == 'Ureter':
             if not parameterSetName:
                 parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
@@ -299,8 +255,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
     def checkOptions(cls, options):
         if not options['Central path LUT'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path LUT'):
             options['Central path LUT'] = cls.getOptionScaffoldPackage('Central path LUT', MeshType_1d_path1)
-        if not options['Central path bladder'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path bladder'):
-            options['Central path bladder'] = cls.getOptionScaffoldPackage('Central path bladder', MeshType_1d_path1)
         for key in [
             'Number of elements along',
             'Number of elements around',
@@ -350,10 +304,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         urethraDiameter2 = options['Urethra diameter 2']
         urethraWallThickness = options['Urethra wall thickness']
         lengthFactor = options['Length factor']
-        if includeUrethra:
-            centralPath = options['Central path LUT']
-        else:
-            centralPath = options['Central path bladder']
+
+        centralPath = options['Central path LUT']
 
         includeUreter = options['Include ureter']
         ostiumOptions = options['Ureter']
@@ -397,8 +349,19 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             elementsCountAlongBladder = elementsCountAlong
 
         # Sample central path
-        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        # sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+        # sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        if includeUrethra:
+            sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+            sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        else:
+            m = int((1 - lengthFactor) * len(cx))
+            cx = cx[:m+1]
+            cd1 = cd1[:m+1]
+            cd2 = cd2[:m+1]
+            cd12 = cd12[:m+1]
+            sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongBladder)
+            sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
         # Create bladder
         # Create line down the bladder with major radius
@@ -491,7 +454,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     d2 = [segmentLength, 0.0, 0.0]
                 elif n1 == elementsCountAlongBladder:
                     if not includeUrethra:
-                        d2 = [0.0, 0.0, segmentLength]
+                        badderSegmentLength = (1 - lengthFactor) * length / elementsCountAlongBladder
+                        d2 = [0.0, 0.0, badderSegmentLength]
+                        # d2 = [0.0, 0.0, segmentLength]
                 else:
                     v1 = nodesInLineToDown_x[(elementsCountAlongBladder + 1) * n2 + n1 - 1]
                     v2 = nodesInLineToDown_x[(elementsCountAlongBladder + 1) * n2 + n1]
