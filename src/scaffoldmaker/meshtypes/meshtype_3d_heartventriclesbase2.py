@@ -134,7 +134,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
-        Generate the base tricubic Hermite mesh. See also generateMesh().
+        Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup
@@ -1459,19 +1459,3 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
             if elementId == (limitFibrousRingElementIdentifier - 1):
                 return  # finish on last so can continue in full heart mesh
             element = meshrefinement._sourceElementiterator.next()
-
-    @classmethod
-    def generateMesh(cls, region, options):
-        """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
-        :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
-        """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()

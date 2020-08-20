@@ -212,8 +212,7 @@ class ScaffoldPackage:
         '''
         #print('\nScaffoldPackage.generate: ', self.toDict())
         self._region = region
-        autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
-        self._autoAnnotationGroups = autoAnnotationGroups if autoAnnotationGroups else []
+        self._autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
         if self._meshEdits:
             # apply mesh edits, a Zinc-readable model file containing node edits
             # Note: these are untransformed coordinates

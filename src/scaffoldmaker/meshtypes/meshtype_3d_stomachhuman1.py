@@ -9577,15 +9577,15 @@ class MeshType_3d_stomachhuman1(Scaffold_base):
             options['Number of elements through the wall'] = 3
         if (options['Number of elements along the axis'] < 6) :
             options['Number of elements along the axis'] = 6
-            
+
     @classmethod
-    def generateMesh(cls, region, options):
+    def generateBaseMesh(cls, region, options):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
-        print(options)
+        #print(options)
         axialElements = options['Number of elements along the axis']
         circumferentialElements = options['Number of elements along the circumference']
         wallElements= options['Number of elements through the wall']
@@ -9593,3 +9593,4 @@ class MeshType_3d_stomachhuman1(Scaffold_base):
         
         cls.hostStomach.generateMesh(region, circumferentialElements,
             axialElements, wallElements, normalizeCircumferentialSegmentLengths,{}, {})
+        return []

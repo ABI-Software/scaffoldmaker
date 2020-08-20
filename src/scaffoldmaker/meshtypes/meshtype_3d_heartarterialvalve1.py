@@ -354,7 +354,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
-        Generate the base bicubic-linear Hermite mesh. See also generateMesh().
+        Generate the base bicubic-linear Hermite mesh.
         Optional extra parameters allow centre and axes to be set.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
@@ -367,26 +367,16 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             nodeId = cls.generateNodes(fieldmodule, coordinates, x, d1, d2, d3)[1]
             cls.generateElements(fieldmodule, coordinates, nodeId)[0]
         return []  # annotationGroups
-
-
+    
     @classmethod
-    def generateMesh(cls, region, options):
+    def refineMesh(cls, meshrefinement, options):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
         """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-
+        assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountAround = options['Refine number of elements surface']
         refineElementsCountAlong = refineElementsCountAround  # GRC make independent
         refineElementsCountThroughWall = options['Refine number of elements through wall']
-
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong, refineElementsCountThroughWall)
-        return meshrefinement.getAnnotationGroups()

@@ -43,12 +43,12 @@ class MeshType_1d_path1(Scaffold_base):
         if (options['Number of elements'] < 1) :
             options['Number of elements'] = 1
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
         coordinateDimensions = options['Coordinate dimensions']
         length = options['Length']
@@ -104,6 +104,7 @@ class MeshType_1d_path1(Scaffold_base):
             elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
+        return []
 
 
 def extractPathParametersFromRegion(region):

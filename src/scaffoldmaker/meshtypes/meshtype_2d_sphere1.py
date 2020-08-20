@@ -41,12 +41,12 @@ class MeshType_2d_sphere1(Scaffold_base):
         if (options['Number of elements around'] < 2) :
             options['Number of elements around'] = 2
 
-    @staticmethod
-    def generateMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
         elementsCountUp = options['Number of elements up']
         elementsCountAround = options['Number of elements around']
@@ -344,3 +344,4 @@ class MeshType_2d_sphere1(Scaffold_base):
             elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
+        return []
