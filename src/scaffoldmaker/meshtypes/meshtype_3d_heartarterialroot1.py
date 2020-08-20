@@ -94,7 +94,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
     @classmethod
     def generateBaseMesh(cls, region, options, baseCentre=[ 0.0, 0.0, 0.0 ], axisSide1=[ 0.0, -1.0, 0.0 ], axisUp=[ 0.0, 0.0, 1.0]):
         """
-        Generate the base bicubic-linear Hermite mesh. See also generateMesh().
+        Generate the base bicubic-linear Hermite mesh.
         Optional extra parameters allow centre and axes to be set.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
@@ -526,22 +526,6 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
                 element = meshrefinement._sourceElementiterator.next()
                 lastShareNodeIds, lastShareNodeCoordinates = meshrefinement.refineElementCubeStandard3d(element, numberInXi1, numberInXi2, numberInXi3,
                     addNewNodesToOctree=False, shareNodeIds=lastShareNodeIds, shareNodeCoordinates=lastShareNodeCoordinates)
-
-    @classmethod
-    def generateMesh(cls, region, options):
-        """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
-        :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
-        """
-        if not options['Refine']:
-            return cls.generateBaseMesh(region, options)
-        baseRegion = region.createRegion()
-        baseAnnotationGroups = cls.generateBaseMesh(baseRegion, options)
-        meshrefinement = MeshRefinement(baseRegion, region, baseAnnotationGroups)
-        cls.refineMesh(meshrefinement, options)
-        return meshrefinement.getAnnotationGroups()
 
 
 def getSemilunarValveSinusPoints(centre, axisSide1, axisSide2, radius, sinusRadialDisplacement, startMidCusp, elementsCountAround = 6):

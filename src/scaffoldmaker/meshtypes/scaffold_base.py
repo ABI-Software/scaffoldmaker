@@ -93,7 +93,6 @@ class Scaffold_base:
     def generateBaseMesh(cls, region, options):
         """
         Override to generate scaffold mesh in region using Zinc API with options.
-        Some older classes may do this in an override of generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup

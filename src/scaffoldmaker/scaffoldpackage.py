@@ -210,20 +210,19 @@ class ScaffoldPackage:
         :param applyTransformation: If True (default) apply scale, rotation and translation to
         node coordinates. Specify False if client will transform, e.g. with graphics transformations.
         '''
-        #print('\nScaffoldPackage.generate: ', self.toDict())
         self._region = region
-        autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
-        self._autoAnnotationGroups = autoAnnotationGroups if autoAnnotationGroups else []
-        if self._meshEdits:
-            # apply mesh edits, a Zinc-readable model file containing node edits
-            # Note: these are untransformed coordinates
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
-            region.read(sir)
-        # define user AnnotationGroups from serialised Dict
-        self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
-        if applyTransformation:
-            self.applyTransformation()
+        with ChangeManager(region.getFieldmodule()):
+            self._autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+            if self._meshEdits:
+                # apply mesh edits, a Zinc-readable model file containing node edits
+                # Note: these are untransformed coordinates
+                sir = region.createStreaminformationRegion()
+                srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
+                region.read(sir)
+            # define user AnnotationGroups from serialised Dict
+            self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
+            if applyTransformation:
+                self.applyTransformation()
 
     def getAnnotationGroups(self):
         '''
