@@ -16,11 +16,11 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d, deleteElementsAndNodesUnderAnnulusMesh
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -897,27 +897,18 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
         endPoints2_x, endPoints2_d1, endPoints2_d2, None, endNode2_Id, endDerivativesMap,
         elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups)
 
-    # Store elements and nodes to be deleted later from bladder nodes and elements
-    deleteElementIdentifier = []
-    deleteNodeIdentifier = []
-    for n3 in range(2):
-        nodeIdxUnderOstium1 = (ostiumElementPositionDown + 1) * elementsCountAround + 2 + ostiumElementPositionAround +\
-                              1 + n3 * elementsCountAround
-        nodeIdxUnderOstium2 = (ostiumElementPositionDown + 1) * elementsCountAround + 2 + elementsCountAround - \
-                              ostiumElementPositionAround - 1 + n3 * elementsCountAround
-        deleteNodeIdentifier.append(nodeIdxUnderOstium1)
-        deleteNodeIdentifier.append(nodeIdxUnderOstium2)
+    # Store elements to be deleted later from bladder mesh
+    element_identifiers = []
     for n3 in range(2):
         elementIdxUnderOstium1 = ostiumElementPositionDown * elementsCountAround + ostiumElementPositionAround + \
                                  n3 * elementsCountAround + 1
-        deleteElementIdentifier.append(elementIdxUnderOstium1)
-        deleteElementIdentifier.append(elementIdxUnderOstium1 + 1)
+        element_identifiers.append(elementIdxUnderOstium1)
+        element_identifiers.append(elementIdxUnderOstium1 + 1)
         elementIdxUnderOstium2 = ostiumElementPositionDown * elementsCountAround + elementsCountAround - \
                                  ostiumElementPositionAround + n3 * elementsCountAround
-        deleteElementIdentifier.append(elementIdxUnderOstium2)
-        deleteElementIdentifier.append(elementIdxUnderOstium2 - 1)
+        element_identifiers.append(elementIdxUnderOstium2)
+        element_identifiers.append(elementIdxUnderOstium2 - 1)
 
         # Delete elements under annulus mesh
-        deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
-
+        mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers)
     return
