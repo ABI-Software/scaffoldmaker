@@ -158,7 +158,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '3D Bladder Urethra 1'
+        return '3D Bladder with Urethra 1'
 
     @staticmethod
     def getParameterSetNames():
@@ -190,7 +190,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Neck diameter 1': 5.0,
             'Neck diameter 2': 3.0,
             'Bladder wall thickness': 0.5,
-            'Neck angle': 45,
+            'Neck angle degrees': 45,
             'Include urethra': True,
             'Urethra diameter 1': 1.5,
             'Urethra diameter 2': 1.0,
@@ -232,7 +232,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Neck diameter 1',
             'Neck diameter 2',
             'Bladder wall thickness',
-            'Neck angle',
+            'Neck angle degrees',
             'Include urethra',
             'Central path LUT',
             'Urethra diameter 1',
@@ -343,7 +343,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         bladderWallThickness = options['Bladder wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
-        neckAngle_radian = math.pi * options['Neck angle'] / 180
+        neckAngleRadians = math.radians(options['Neck angle degrees'])
 
         includeUrethra = options['Include urethra']
         urethraDiameter1 = options['Urethra diameter 1']
@@ -410,7 +410,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         else:
             a = length / 2
         b = R1_max
-        xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngle_radian, [0.0, 0.0, a], [0.0, b, 0.0],
+        xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngleRadians, [0.0, 0.0, a], [0.0, b, 0.0],
                                             elementsCountAlongBladder, startRadians=math.pi)
         d1Loop = [0, 0, 0] * len(xLoop)
         nodesAlongMax_x = []
@@ -443,7 +443,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         else:
             a = length / 2
         b = R1_min
-        xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngle_radian, [0.0, 0.0, a], [0.0, b, 0.0],
+        xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngleRadians, [0.0, 0.0, a], [0.0, b, 0.0],
                                             elementsCountAlongBladder, startRadians=math.pi)
         d1Loop = [0, 0, 0] * len(xLoop)
         nodesAlongMin_x = []
