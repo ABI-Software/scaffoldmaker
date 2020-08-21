@@ -2,7 +2,7 @@
 Stellate mesh, iteration 2
 
 All locations (x) and derivatives (ds) are found separately, and fed as a list to zinc.
-Custom elements are built for the central node, and for nodes at arm ends
+X elements are built for the central node, and for nodes at arm ends
 
 """
 
@@ -19,7 +19,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 
 
 class MeshType_3d_stellate2(Scaffold_base):
@@ -33,11 +33,9 @@ class MeshType_3d_stellate2(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of arms (1 <= 4)' : 3,
-            'Number of elements in arm1' : 4,
-            'Number of elements in arm2' : 2,
-            'Number of elements in arm3' : 2,
-            'Number of elements in arm4' : 2,
+            'Number of arms' : 2,
+            'Number of elements in long arm' : 4,
+            'Number of elements in short arms' : 2,
             'Element length x' : 1,
             'Element length y' : 1,
             'Element length z' : 1,
@@ -53,11 +51,9 @@ class MeshType_3d_stellate2(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of arms (1 <= 4)',
-            'Number of elements in arm1',
-            'Number of elements in arm2',
-            'Number of elements in arm3',
-            'Number of elements in arm4',
+            'Number of arms',
+            'Number of elements in long arm',
+            'Number of elements in short arms',
             'Element length x',
             'Element length y',
             'Element length z',
@@ -72,11 +68,9 @@ class MeshType_3d_stellate2(Scaffold_base):
     @staticmethod
     def checkOptions(options):
         for key in [
-            'Number of arms (1 <= 4)',
-            'Number of elements in arm1',
-            'Number of elements in arm2',
-            'Number of elements in arm3',
-            'Number of elements in arm4',
+            'Number of arms',
+            'Number of elements in long arm',
+            'Number of elements in short arms',
             'Refine number of elements 1',
             'Refine number of elements 2',
             'Refine number of elements 3']:
@@ -92,11 +86,12 @@ class MeshType_3d_stellate2(Scaffold_base):
         :return: None
         """
         elens = [0,0,0]
-        numArm = options['Number of arms (1 <= 4)']
+        numArm = options['Number of arms']
         elens[0] = options['Element length x']
         elens[1] = options['Element length y']
         elens[2] = options['Element length z']
-        elementsCount1 = [options['Number of elements in arm1'], options['Number of elements in arm2'], options['Number of elements in arm3'], options['Number of elements in arm4']]
+        elementsCount1 = [options['Number of elements in long arm'], options['Number of elements in short arms']]
+        elementsCount1 = elementsCount1 + [2]*(numArm-2)
         elementsCount2 = 2 #options['Element count 2']
         elementsCount3 = 1 #options['Element count 3']
         dipMultiplier = options['Central dip multiplier']
@@ -114,18 +109,6 @@ class MeshType_3d_stellate2(Scaffold_base):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         mesh = fm.findMeshByDimension(3)
-
-        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
-        eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
-
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate.defineField(coordinates, -1, eft)
-        elementtemplate1 = mesh.createElementtemplate()
-        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate1.defineField(coordinates, -1, eft1)
 
         cache = fm.createFieldcache()
 
@@ -162,85 +145,232 @@ class MeshType_3d_stellate2(Scaffold_base):
         wheelDvMult = [0.2, 0.3]
         nodeIdentifier = 1
 
-        if True:
-            for n2 in range(len(xnodes)):
-                for ia, j in enumerate(cumNumNodesPerArm[1:]):
-                    if ((n2+1) < j) and ((n2+1) > cumNumNodesPerArm[ia-1]):
-                        iArm = ia
-                if nodeIdentifier not in dupNodes:
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xnodes[n2])
-                    if xnodes_ds1:
-                        ds1 = xnodes_ds1[n2]
-                        ds2 = xnodes_ds2[n2]
-                    elif True:
-                        ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
-                        ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
-                        if nodeIdentifier in centreNodes:
-                            ds1 = [dipMultiplier *cos(armAngle/2), dipMultiplier *-sin(armAngle/2), 0.0]
-                            ds2 = [dipMultiplier *cos(armAngle/2), dipMultiplier *sin(armAngle/2), 0.0]
-                        elif nodeIdentifier in vertexNodes:
-                            if False:
-                                thNormal = -armAngle + xnodes[n2][-1] - pi
-                                ds1 = rotateByAngle_2D(dx_ds1, thNormal)
-                                ds2 = rotateByAngle_2D(dx_ds2, thNormal)
+        for n2 in range(len(xnodes)):
+            for ia, j in enumerate(cumNumNodesPerArm[1:]):
+                if ((n2+1) < j) and ((n2+1) > cumNumNodesPerArm[ia-1]):
+                    iArm = ia
+            if nodeIdentifier not in dupNodes:
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xnodes[n2])
+                if xnodes_ds1:
+                    ds1 = xnodes_ds1[n2]
+                    ds2 = xnodes_ds2[n2]
+                elif True:
+                    ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
+                    ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
+                    if nodeIdentifier in centreNodes:
+                        ds1 = [dipMultiplier *cos(armAngle/2), dipMultiplier *-sin(armAngle/2), 0.0]
+                        ds2 = [dipMultiplier *cos(armAngle/2), dipMultiplier *sin(armAngle/2), 0.0]
+                    elif nodeIdentifier in vertexNodes:
+                        if False:
+                            thNormal = -armAngle + xnodes[n2][-1] - pi
+                            ds1 = rotateByAngle_2D(dx_ds1, thNormal)
+                            ds2 = rotateByAngle_2D(dx_ds2, thNormal)
 
-                            [p, q] = xnodes[n2][:2]
-                            ds2 = [dx_ds2_unit[0]*p, dx_ds2_unit[1]*q, dx_ds2_unit[2]]
-                            ds1 = rotateByAngle_2D(ds2, -pi/2) # -pi/2 # -armAngle
-                            for i in range(2):
-                                ds1[i] *= wheelDvMult[0]
-                                # ds2[i] *= wheelDvMult[1]
-                            ds1 = [d*elens[0] for d in ds1]
-                    else: # default
-                        ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
-                        ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1) #ds1
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2) #ds2
-                nodeIdentifier += 1
+                        [p, q] = xnodes[n2][:2]
+                        ds2 = [dx_ds2_unit[0]*p, dx_ds2_unit[1]*q, dx_ds2_unit[2]]
+                        ds1 = rotateByAngle_2D(ds2, -pi/2) # -pi/2 # -armAngle
+                        for i in range(2):
+                            ds1[i] *= wheelDvMult[0]
+                            # ds2[i] *= wheelDvMult[1]
+                        ds1 = [d*elens[0] for d in ds1]
+                else: # default
+                    ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
+                    ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1) #ds1
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2) #ds2
+            nodeIdentifier += 1
 
         # create elements
+        testing = True
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eft = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
+
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate.defineField(coordinates, -1, eft)
+
+        eftBottom = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
+        eftTop = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
+
         elementIdentifier = 1
+        elementtemplateX = mesh.createElementtemplate()
+        elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         for na in range(numArm): # for every arm present ##############################
             no2 = (elementsCount1[na] + 1)
             no3 = (elementsCount2 + 1)*no2
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
                     for e1 in range(elementsCount1[na]):
-                        element = mesh.createElement(elementIdentifier, elementtemplate)
+
+                        ### NODES ###
                         offset = (cumNumNodesPerArm[na])
-                        bni = e3*no3 + e2*no2 + e1 + 1 + offset
-                        nodeIdentifiers = [ bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1, bni + no2 + no3, bni + no2 + no3 + 1 ]
+                        bni = e3 * no3 + e2 * no2 + e1 + 1 + offset
+                        nodeIdentifiers = [bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1,
+                                           bni + no2 + no3, bni + no2 + no3 + 1]
                         for ins, node in enumerate(nodeIdentifiers):
                             if node in dupNodes:
-                                iReplacementNode = np.where(dupNodes_arr[:,1] == (node))[0][0]
+                                iReplacementNode = np.where(dupNodes_arr[:, 1] == (node))[0][0]
                                 replacementNode = dupNodes_dbl[iReplacementNode][0]
                                 nodeIdentifiers[ins] = replacementNode
 
-                        # TESTING: set custom element for central area and arm ends
-                        if elementIdentifier == 1:
-                            if True:
-                                # Set up one global scale factor with ID=1, my standard ID for scale factor value -1
-                                setEftScaleFactorIds(eft1, [1], [])
-                                # The value of the scale factor to set later (we multiply by -1 to negate parameters)
-                                scalefactors = [-1.0]
-                                # negate d1 and d2 on exterior corner because they are pointing in the wrong direction:
-                                scaleEftNodeValueLabels(eft1, [1, 5], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
-                                # remap what was d1 in the regular element to equal global d1 + d2. Note neither need scaling or negation on arm 1 (but will on the other arms).
-                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                                # remap what was d2 in the regular element to -d1:
-                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
-                            else:
-                                scalefactors = []
-                            result1 = elementtemplate1.defineField(coordinates, -1, eft1)
-                            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-                            result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
-
+                        ### ELEMENTS ###
+                        if elementIdentifier == 13: # or elementIdentifier == 11 15:
+                            j = 10
+                        if e1 == 0:
+                            eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            scalefactors = [-1.0]
+                            if numArm == 3:
+                                if e2 == 0:
+                                    scaleEftNodeValueLabels(eft1, [1, 5],
+                                                            [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+                                    if na == 0:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                    elif na == 1:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    elif na == 2:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                else:  # e2 == 1
+                                    if na == 0:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                    elif na == 1:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                    elif na == 2:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+                            elif numArm == 4:
+                                if e2 == 0:
+                                    scaleEftNodeValueLabels(eft1, [1, 5],
+                                                            [Node.VALUE_LABEL_D_DS1,
+                                                             Node.VALUE_LABEL_D_DS2], [1])
+                                elif e2 == 1:
+                                    scaleEftNodeValueLabels(eft1, [3,7],
+                                                            [Node.VALUE_LABEL_D_DS1,
+                                                             Node.VALUE_LABEL_D_DS2], [1])
+                                if na == 0:
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                elif na == 1:
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                elif na == 2:
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                elif na == 3:
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+                            elif numArm == 2:
+                                if e2 == 0:
+                                    scaleEftNodeValueLabels(eft1, [1, 5],
+                                                            [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+                                    if na == 0:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                    elif na == 1:
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])]) #(Node.VALUE_LABEL_D_DS2, [1])
+                                else:  # e2 == 1
+                                    if na == 0:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                    elif na == 1:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
                         else:
-                            result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+                            eft1 = eft
+                            elementtemplate1 = elementtemplate
+                            scalefactors = None
+
+                        if eft1 is not eft:
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+
+                        element = mesh.createElement(elementIdentifier, elementtemplate1)
+                        result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                        result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+
+                        if False:
+                            if (elementIdentifier in wheelElemTop or elementIdentifier in wheelElemBottom) and True:
+                                xi = [[0,0,0],[1,0,0],[0, 1, 0],[1,1,0], [0,0,1]]
+                                field = fm.findFieldByName("coordinates")
+                                # while element.isValid():
+                                print('Element '+str(elementIdentifier))
+                                for n, ixx in enumerate(xi):
+                                    cache.setMeshLocation(element, ixx)
+                                    result, outValues = field.evaluateReal(cache, 3)
+                                    print(str(n+1), outValues)
+
                         elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
@@ -284,7 +414,7 @@ def extrude(x, zheight, e_1d = []):
         return x_ex
 
 
-def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingNode, dipMultiplier, armEndMult):
+def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingNode, dipMultiplier, armEndMult, numArm):
     '''
     Base length of element is 1
     direction: anticlockwise
@@ -336,6 +466,9 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
               startingNode + (2*(elementsCount1 + 1))]
     nWheel = nWheel + [n+nodes_per_layer for n in nWheel]
 
+    # armAngleConst = min(armAngleConst, pi/2)
+    if numArm == 2:
+        armAngleConst = min(armAngleConst, pi/2)
     dcent = [elen * cos(armAngleConst / 2), elen * sin(armAngleConst / 2), 0.0]
     dvertex = [round(elen * dipMultiplier * cos(thAr), 12),
                 round(elen * dipMultiplier * sin(thAr), 12)]
@@ -432,7 +565,7 @@ def createBody(elens, numArm, thAr, ecount, dipMultiplier, armEndMult, plot_):
     x_out = []
     for i in range(numArm):
         ecount_i = [ecount[0][i], ecount[1], ecount[2]]
-        x_out, nextNode, nwhl, ncntr, nvtx, ds1, ds2 = createArm(thAr, elens, armLength[i], minArmAngle*i, minArmAngle, ecount_i, nextNode, dipMultiplier, armEndMult)
+        x_out, nextNode, nwhl, ncntr, nvtx, ds1, ds2 = createArm(thAr, elens, armLength[i], minArmAngle*i, minArmAngle, ecount_i, nextNode, dipMultiplier, armEndMult, numArm)
 
         x.extend([ix+[minArmAngle*i] for ix in x_out])
         xds1.extend(ds1)
@@ -546,3 +679,6 @@ if __name__ == "__main__":
     xnodes, xds1, xds2, nWheel, nCentre, nWheelVertices = createBody(elens, numArm, armRotationAngles, ecount, dipMultiplier, armEndMult, plot_graph)
     x_in = [ix[:3] for ix in xnodes]
     nodeList_sh = findDuplicateNodes(x_in, (range(1, len(xnodes) + 1)))
+
+
+
