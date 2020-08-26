@@ -9,7 +9,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression
+from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression, Tapered
 
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
@@ -31,9 +31,11 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'oldFull' : True,
             'Length' : 1.0,
             'Major radius' : 1.0,
-            'Major radius end ratio': 0.08,
+            'Major radius geometric progression change': True,
+            'Major radius end ratio': 0.92,
             'Minor radius' : 1.0,
-            'Minor radius end ratio' : 0.08,
+            'Minor radius geometric progression change': True,
+            'Minor radius end ratio' : 0.92,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements along' : 1,
@@ -50,8 +52,10 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Full',
             'Length',
             'Major radius',
+            'Major radius geometric progression change',
             'Major radius end ratio',
             'Minor radius',
+            'Minor radius geometric progression change',
             'Minor radius end ratio',
             'Refine',
             'Refine number of elements along',
@@ -98,6 +102,8 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         full = options['Full']
         length = options['Length']
         majorRadius = options['Major radius']
+        majorGeometric = options['Major radius geometric progression change']
+        minorGeometric = options['Minor radius geometric progression change']
         minorRadius = options['Minor radius']
         majorRadiusEndRatio = options['Major radius end ratio']
         minorRadiusEndRatio = options['Minor radius end ratio']
@@ -113,13 +119,26 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
 
-        rate = majorRadiusEndRatio
+        if majorGeometric:
+            majorRatio = math.pow(majorRadiusEndRatio, 1.0 / elementsCountAlong)
+            majorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
+        else:
+            majorRatio = ( majorRadiusEndRatio*majorRadius - majorRadius)/elementsCountAlong
+            majorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
+
+        if minorGeometric:
+            minorRatio = math.pow(minorRadiusEndRatio,1.0/elementsCountAlong)
+            minorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
+        else:
+            minorRatio = (majorRadiusEndRatio * majorRadius - majorRadius) / elementsCountAlong
+            minorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
+        raidusChanges = Tapered(majorRatio,majorProgression,minorRatio,minorProgression)
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
         cylinder1 = CylinderMesh(fm, coordinates, [0.0, 0.0, 0.0], vector.setMagnitude(axis3, length), vector.setMagnitude(axis1, majorRadius), minorRadius,
                              elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountAlong,
-                             cylinderShape=cylinderShape, cylinderType=CylinderType.CYLIDNER_TAPERED,
-                             rate=rate,progressionMode = ConeBaseProgression.GEOMETIRC_PROGRESSION, useCrossDerivatives=False)
+                             cylinderShape=cylinderShape, tapered=raidusChanges,
+                                 useCrossDerivatives=False)
 
         annotationGroup = []
         return annotationGroup
