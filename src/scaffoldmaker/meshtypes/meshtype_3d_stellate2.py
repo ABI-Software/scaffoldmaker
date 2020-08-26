@@ -19,7 +19,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftLocalNodes
 
 
 class MeshType_3d_stellate2(Scaffold_base):
@@ -33,7 +33,7 @@ class MeshType_3d_stellate2(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of arms' : 2,
+            'Number of arms' : 3,
             'Number of elements in long arm' : 4,
             'Number of elements in short arms' : 2,
             'Element length x' : 1,
@@ -184,6 +184,7 @@ class MeshType_3d_stellate2(Scaffold_base):
 
         # create elements
         testing = True
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eft = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
 
@@ -191,8 +192,10 @@ class MeshType_3d_stellate2(Scaffold_base):
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplate.defineField(coordinates, -1, eft)
 
-        eftBottom = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
-        eftTop = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
+        elementtemplate0 = mesh.createElementtemplate()
+        elementtemplate0.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate3 = mesh.createElementtemplate()
+        elementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         elementIdentifier = 1
         elementtemplateX = mesh.createElementtemplate()
@@ -203,6 +206,7 @@ class MeshType_3d_stellate2(Scaffold_base):
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
                     for e1 in range(elementsCount1[na]):
+                        armEnd = False
 
                         ### NODES ###
                         offset = (cumNumNodesPerArm[na])
@@ -218,133 +222,152 @@ class MeshType_3d_stellate2(Scaffold_base):
                         ### ELEMENTS ###
                         if elementIdentifier == 13: # or elementIdentifier == 11 15:
                             j = 10
-                        if e1 == 0:
+                        # special treatment for node at armEnd
+                        if (e1 == elementsCount1[na] - 1):
+                            armEnd = True
+                            if True:
+                                if e2 == 0 and True:
+                                    eft0 = createEftShellPole90(bicubichermitelinear, quadrant=5, dir=[])
+                                    elementtemplate0.defineField(coordinates, -1, eft0)
+                                    element = mesh.createElement(elementIdentifier, elementtemplate0)
+                                    # nodeIdentifiers = [nodeIdentifiers[0]] + nodeIdentifiers[2:5] + nodeIdentifiers[-2:]
+                                    nodeIdentifiers = [nodeIdentifiers[0]] + [nodeIdentifiers[3]] + [nodeIdentifiers[2]] + [nodeIdentifiers[4]] + [nodeIdentifiers[7]] + [nodeIdentifiers[6]]
+                                    element.setNodesByIdentifier(eft0, nodeIdentifiers)
+                                else:
+                                    eft3 = createEftShellPole90(bicubichermitelinear, quadrant=3, dir=[])
+                                    elementtemplate3.defineField(coordinates, -1, eft3)
+                                    element = mesh.createElement(elementIdentifier, elementtemplate3)
+                                    nodeIdentifiers = nodeIdentifiers[:3] + nodeIdentifiers[4:7]
+                                    element.setNodesByIdentifier(eft3, nodeIdentifiers)
+                            else:
+                                eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                if e2 == 0:
+                                    nend = [2, 6]
+                                elif e2 == 1:
+                                    nend = [4, 8]
+                                remapEftNodeValueLabel(eft1, [ nend ], Node.VALUE_LABEL_D_DS2,
+                                                       [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                                remapEftNodeValueLabel(eft1, [ nend ], Node.VALUE_LABEL_D_DS1,
+                                                       [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                                # triangle element? numbers in ln_map are sequential. Max value = newNodeCount
+                                if e2 == 0:
+                                    ln_map = [1, 4,3,4,5,8,7,8]
+                                    ln_map = [1, 2,3,2,4,5,6,5]
+                                    remapEftLocalNodes(eft1, 6, ln_map) #(eft1, 6, ln_map)
+
+                        elif e1 == 0:
                             eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             scalefactors = [-1.0]
                             if numArm == 3:
                                 if e2 == 0:
                                     scaleEftNodeValueLabels(eft1, [1, 5],
-                                                            [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
-                                    if na == 0:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                            [Node.VALUE_LABEL_D_DS1,
+                                                             Node.VALUE_LABEL_D_DS2], [1])
+                                    ns = [3, 7]
+                                else:
+                                    ns = [1, 5]
+                                if na == 0:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, []),
+                                                            (Node.VALUE_LABEL_D_DS2, [])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
-                                    elif na == 1:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                elif na == 1:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS2, [1])])
-                                    elif na == 2:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
-                                else:  # e2 == 1
-                                    if na == 0:
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
-                                    elif na == 1:
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                    elif e2 == 1:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS2, [1])])
-                                    elif na == 2:
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                elif na == 2:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                    elif e2 == 1:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
                             elif numArm == 4:
                                 if e2 == 0:
                                     scaleEftNodeValueLabels(eft1, [1, 5],
                                                             [Node.VALUE_LABEL_D_DS1,
                                                              Node.VALUE_LABEL_D_DS2], [1])
-                                elif e2 == 1:
-                                    scaleEftNodeValueLabels(eft1, [3,7],
-                                                            [Node.VALUE_LABEL_D_DS1,
-                                                             Node.VALUE_LABEL_D_DS2], [1])
+                                    ns = [3,7]
+                                else:
+                                    ns = [1,5]
                                 if na == 0:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, []),
+                                                            (Node.VALUE_LABEL_D_DS2, [])])
                                     if e2 == 0:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
-                                    else:
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
                                 elif na == 1:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                            (Node.VALUE_LABEL_D_DS2, [])])
                                     if e2 == 0:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS2, [1])])
                                     else:
-                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [])])
-                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
                                 elif na == 2:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                            (Node.VALUE_LABEL_D_DS2, [1])])
                                     if e2 == 0:
-                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
                                     else:
-                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS2, [1])])
                                 elif na == 3:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, []),
+                                                            (Node.VALUE_LABEL_D_DS2, [1])])
                                     if e2 == 0:
-                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [3,7], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS2, [])])
                                     else:
-                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS1,
-                                                               [(Node.VALUE_LABEL_D_DS1, []),
-                                                                (Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [1,5], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
-                            elif numArm == 2:
+                            elif numArm == 2: # incorrect
                                 if e2 == 0:
-                                    scaleEftNodeValueLabels(eft1, [1, 5],
+                                    scaleEftNodeValueLabels(eft1, ns,
                                                             [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
                                     if na == 0:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                                [(Node.VALUE_LABEL_D_DS1, []),
                                                                 (Node.VALUE_LABEL_D_DS2, [])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
                                     elif na == 1:
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS2, [1])]) #(Node.VALUE_LABEL_D_DS2, [1])
                                 else:  # e2 == 1
                                     if na == 0:
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                                [(Node.VALUE_LABEL_D_DS1, []),
                                                                 (Node.VALUE_LABEL_D_DS2, [])])
                                     elif na == 1:
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS2, [1])])
-                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS2, [1])])
                         else:
@@ -356,9 +379,10 @@ class MeshType_3d_stellate2(Scaffold_base):
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
-                        element = mesh.createElement(elementIdentifier, elementtemplate1)
-                        result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-                        result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+                        if not armEnd:
+                            element = mesh.createElement(elementIdentifier, elementtemplate1)
+                            result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                            result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
 
                         if False:
                             if (elementIdentifier in wheelElemTop or elementIdentifier in wheelElemBottom) and True:
@@ -399,9 +423,9 @@ class MeshType_3d_stellate2(Scaffold_base):
 
 def extrude(x, zheight, e_1d = []):
     x = np.array(x)
-    x_0 = column_stack([x, [0] * len(x)])
-    x_1 = column_stack([x, [zheight] * len(x)])
-    x_ex = vstack([x_0, x_1])
+    x_0 = np.column_stack([x, [0] * len(x)])
+    x_1 = np.column_stack([x, [zheight] * len(x)])
+    x_ex = np.vstack([x_0, x_1])
 
     # 1D elements
     if e_1d:
@@ -440,6 +464,7 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
 
     elementsCount1, elementsCount2, elementsCount3 = ecount
     [elen, ewid, zheight] = elens
+    armBendCurve = False
 
     xnodes_ds1 = []
     xnodes_ds2 = []
@@ -483,7 +508,7 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
                 elif nodeIdentifier == startingNode + (2*(armLength+1)) or nodeIdentifier == startingNode + (2*(armLength+1)) + nodes_per_layer:
                     x1 = dvertex[0]
                     x2 = dvertex[1]
-                elif nodeIdentifier == startingNode + elementsCount1 or nodeIdentifier == startingNode + elementsCount1 + nodes_per_layer or nodeIdentifier == startingNode + (nodes_per_layer) - 1 or nodeIdentifier == startingNode + (2*nodes_per_layer) - 1:
+                elif armBendCurve and (nodeIdentifier in nArmCornerSth or nodeIdentifier in nArmCornerNth):
                     x1 = elen*(n1 - (1-armEndMult))
                     x2 = ((n2 - 1) * armEndMult * ewid / 2)
                 else:
@@ -510,10 +535,10 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
                         ds1[i] *= wheelDvMult[0]
                         # ds2[i] *= wheelDvMult[1]
                     ds1 = [d * elen for d in ds1]
-                elif nodeIdentifier in nArmCornerSth:
+                elif armBendCurve and nodeIdentifier in nArmCornerSth:
                     ds1 = [ds1[0]*curveAdjust[0], curveAdjust[0], 0]#[d for d in ds1]
                     ds2 = [curveAdjust[1], ds2[1]*curveAdjust[1], 0]
-                elif nodeIdentifier in nArmCornerNth:
+                elif False and nodeIdentifier in nArmCornerNth:
                     ds1 = [ds1[0]*curveAdjust[0], -curveAdjust[0], 0]#[d for d in ds1]
                     ds2 = [-curveAdjust[1], ds2[1]*curveAdjust[1], 0]
                 xnodes_ds1.append(ds1)
@@ -657,8 +682,34 @@ def findDuplicateNodes(x, nodeList):
                         j = 10
                 else:
                     x.extend([row])
-
     return dupNodes
+
+def createEftShellPole90(self, quadrant, dir):
+    '''
+    Create a 6-node wedge element for around a pole with 90 degrees between sides.
+    Xi1 is around, xi2 is toward pole, xi3 is out of surface.
+    :param quadrant: quadrant from 0 to 3 from +s1 direction around +s2 in first quadrant
+    :param dir: direction to collapse in. 1 (xi1) or 2 (xi2)
+    Element has two global scale factors to set: 1 = -1.0, 90 = math.pi/2.0
+    '''
+    eft = self.createEftNoCrossDerivatives()
+    setEftScaleFactorIds(eft, [ 1, 90 ], [])  # global scale factor 90 = pi/2
+    if quadrant == 3:
+        remapEftNodeValueLabel(eft, [3, 7, 4, 8], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+        ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
+    elif quadrant == 5:
+        remapEftNodeValueLabel(eft, [1,2,5,6], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+        remapEftNodeValueLabel(eft, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+        ln_map = [1, 2,3,2,4,5,6,5]
+    else:
+        assert False, 'createEftShellPole90:  Invalid quadrant'
+
+    remapEftLocalNodes(eft, 6, ln_map)
+
+    assert eft.validate(), 'createEftShellPole90:  Failed to validate eft'
+    return eft
 
 
 def rotateByAngle_2D(x, th):
