@@ -152,7 +152,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Minor diameter': 25.0,
             'Neck diameter 1': 5.0,
             'Neck diameter 2': 3.0,
-            'Bladder wall thickness': 0.5,
+            'Wall thickness': 0.5,
             'Neck angle degrees': 45,
             'Include urethra': True,
             'Urethra diameter 1': 1.5,
@@ -174,7 +174,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         if 'Rat' in parameterSetName:
             options['Major diameter'] = 20.0
             options['Minor diameter'] = 10.0
-            options['Bladder wall thickness'] = 0.2
+            options['Wall thickness'] = 0.2
             options['Neck diameter 1'] = 3.5
             options['Neck diameter 2'] = 2.0
             options['Ostium position around'] = 0.65  # should be on the dorsal part (> 0.5)
@@ -195,7 +195,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Minor diameter',
             'Neck diameter 1',
             'Neck diameter 2',
-            'Bladder wall thickness',
+            'Wall thickness',
             'Neck angle degrees',
             'Include urethra',
             'Urethra diameter 1',
@@ -273,7 +273,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         '''
         Update ostium sub-scaffold options which depend on parent options.
         '''
-        bladderWallThickness = options['Bladder wall thickness']
+        bladderWallThickness = options['Wall thickness']
         ostiumOptions = options['Ureter']
         ostiumDefaultOptions = ostiumOptions.getScaffoldSettings()
         ostiumDefaultOptions['Ostium wall thickness'] = bladderWallThickness
@@ -294,7 +294,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         minorDiameter = options['Minor diameter']
         neckDiameter1 = options['Neck diameter 1']
         neckDiameter2 = options['Neck diameter 2']
-        bladderWallThickness = options['Bladder wall thickness']
+        bladderWallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         neckAngleRadians = math.radians(options['Neck angle degrees'])
