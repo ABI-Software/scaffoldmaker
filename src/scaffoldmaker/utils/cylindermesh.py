@@ -25,6 +25,34 @@ class ConeBaseProgression(Enum):
     GEOMETIRC_PROGRESSION  = 1 # geometric sequence decrease for major radius of bases
     ARITHMETIC_PROGRESSION = 2 # arithmetic sequence decrease for major radius of bases
 
+class CylinderEnds:
+    '''
+    Stores base ellipse parameters.
+    '''
+    def __init__(self,elementsCountAcrossMajor,elementsCountAcrossMinor,
+                 centre,alongAxis, majorAxis, minorRadius):
+        '''
+        :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for half and 4 + elementsCountRim for full cylinder.
+        :param elementsCountAcrossMinor: Number of elements across minor axis.
+        :param centre: Centre of the ellipse.
+        :param alongAxis: The cylinder axis that the base is extruded along.
+        :param majorAxis: The major axis of the base. Should be perpendicular to alongAxis
+        :param minorRadius: The minor radius of the ellipse.
+        :param base: Stores coordinates and derivatives.
+        '''
+        self._centre = centre
+        self._alongAxis = alongAxis
+        self._majorAxis = majorAxis
+        self._minorRadius = minorRadius
+        self._minorAxis = vector.setMagnitude(vector.crossproduct3(alongAxis,majorAxis), minorRadius)
+        self._elementsCountAcrossMinor = elementsCountAcrossMinor
+        self._elementsCountAcrossMajor = elementsCountAcrossMajor
+        self._majorRadius = vector.magnitude(majorAxis)
+        self.px = None
+        self.pd1 = None
+        self.pd2 = None
+        self.pd3 = None
+
 class Tapered:
     '''
     Stores parameters for making a tapered cylinder.
@@ -46,31 +74,23 @@ class CylinderMesh:
     Cylinder mesh generator. Extrudes an ellipse/circle.
     '''
 
-    def __init__(self,fieldModule, coordinates, baseCentre, alongAxis, majorAxis, minorRadius,
-                             elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountAlong,
+    def __init__(self,fieldModule, coordinates, base, elementsCountAlong, end = None,
                              cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL,
                              tapered=None,useCrossDerivatives = False):
         '''
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
-        :param baseCentre: The centre of the base of the cylinder (ellipse/circle).
-        :param alongAxis: The cylinder axis that the base is extruded along.
-        :param majorAxis: The major axis of the base. Should be perpendicular to alongAxis
-        :param minorRadius: The minor radius of the base.
-        :param elementsCountAcrossMinor: Number of elements across minor axis.
-        :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for half and 4 + elementsCountRim for full cylinder.
+        :param base: Cylinder base ellipse. It is an instance of class CylinderEnds.
+        :param end: Cylinder end ellipse. It is an instance of class CylinderEnds.
         :param elementsCountAlong: Number of elements along the cylinder axis.
         :param cylinderShape: A value from enum CylinderMode specifying.
         '''
-        self._baseCentre = baseCentre
-        self._alongAxis = alongAxis
-        self._majorAxis = majorAxis
-        self._minorAxis = vector.crossproduct3(alongAxis,majorAxis)
-        self._minorRadius = minorRadius
+        self._base = base
+        self._end = end
         self._shield = None
-        self._elementsCountAcrossMinor = elementsCountAcrossMinor
-        self._elementsCountAcrossMajor = elementsCountAcrossMajor
-        self._elementsCountUp = elementsCountAcrossMajor//2 if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else elementsCountAcrossMajor
+        self._elementsCountAcrossMinor = base._elementsCountAcrossMinor
+        self._elementsCountAcrossMajor = base._elementsCountAcrossMajor
+        self._elementsCountUp = base._elementsCountAcrossMajor//2 if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else base._elementsCountAcrossMajor
         self._elementsCountAlong = elementsCountAlong
         self._startNodeIdentifier = 1
         self._startElementIdentifier = 1
@@ -82,8 +102,10 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLIDNER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
-        self._length = vector.magnitude(alongAxis)
-        self._majorRadius = vector.magnitude(majorAxis)
+        self._length = vector.magnitude(base._alongAxis)
+        self._majorRadius = vector.magnitude(base._majorAxis)
+        self._basesCentres = [None for _ in range(elementsCountAlong+1)]
+        self._basesCentres[0] = self._base._centre
         # generate the mesh
         self.createCylinderMesh3d(fieldModule, coordinates)
 
@@ -131,17 +153,22 @@ class CylinderMesh:
         :param elementsCountAround: major radius of the cone ellipse base.
         :return:
         '''
+        self._majorRadii = []
+        self._minorRadii = []
         nx, nd1 = self.createCylinderBaseMesh2D(
-            self._baseCentre, self._majorAxis, minorAxis, elementsCountAround, majorRadius)
+            self._base._centre, self._base._majorAxis, minorAxis, elementsCountAround, majorRadius)
         majorRadius1 = majorRadius
+        self._majorRadii.append(majorRadius1)
         minorRadius1 = vector.magnitude(minorAxis)
+        self._minorRadii.append(minorRadius1)
         tnx, tnd1, tnd2, tnd3 = [], [], [], []
+        self._basesCentres = [self._base._centre for _ in range(self._elementsCountAlong + 1)]
         for n3 in range(self._elementsCountAlong + 1):
             tbx, tbd1, tbd2, tbd3 = [], [], [], []
             for n in range(elementsCountAround + 1):
                 tbx.append(nx[n])
                 tbd1.append(nd1[n])
-                tbd2.append([arcLengthAlong * vector.normalise(self._alongAxis)[c] for c in range(3)])
+                tbd2.append([arcLengthAlong * vector.normalise(self._base._alongAxis)[c] for c in range(3)])
                 tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], tbd2[n])))
             tnx.append(tbx)
             tnd1.append(tbd1)
@@ -153,14 +180,17 @@ class CylinderMesh:
                     majorRadius1 = majorRadius1 * self._tapered.majorRatio
                 elif self._tapered.majorProgressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
                     majorRadius1 += self._tapered.majorRatio
-                majorAxis1 = vector.setMagnitude(self._majorAxis, majorRadius1)
+                majorAxis1 = vector.setMagnitude(self._base._majorAxis, majorRadius1)
                 if self._tapered.minorProgressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
                     minorRadius1 = minorRadius1 * self._tapered.minorRatio
                 elif self._tapered.minorProgressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
                     minorRadius1 += self._tapered.minorRatio
-                minorAxis1 = vector.setMagnitude(self._minorAxis, minorRadius1)
-                baseC = [self._baseCentre[c] + (n3+1) * arcLengthAlong * vector.normalise(self._alongAxis)[c] for c in
+                minorAxis1 = vector.setMagnitude(self._base._minorAxis, minorRadius1)
+                baseC = [self._base._centre[c] + (n3+1) * arcLengthAlong * vector.normalise(self._base._alongAxis)[c] for c in
                          range(3)]
+                self._basesCentres[n3+1] = baseC
+                self._majorRadii.append(majorRadius1)
+                self._minorRadii.append(minorRadius1)
                 nx, nd1 = self.createCylinderBaseMesh2D(
                     baseC, majorAxis1, minorAxis1, elementsCountAround, majorRadius1)
 
@@ -336,6 +366,20 @@ class CylinderMesh:
                     for n3 in range(self._elementsCountAlong + 1):
                         btd2[n3][n2][n1] = td2[n3]
 
+    def setEndsNodes(self):
+        '''
+        sets ellipse coordinates, derivatives and node ids.
+        :param end: 0 represents cylinder base and 1 represents cylinder end
+        '''
+        self._base.px = self._shield.px[0]
+        self._base.pd1 = self._shield.pd1[0]
+        self._base.pd2 = self._shield.pd2[0]
+        self._base.pd3 = self._shield.pd3[0]
+        self._end.px = self._shield.px[-1]
+        self._end.pd1 = self._shield.pd1[-1]
+        self._end.pd2 = self._shield.pd2[-1]
+        self._end.pd3 = self._shield.pd3[-1]
+
     def createCylinderMesh3d(self, fieldModule, coordinates):
         """
         Create an extruded shape (ellipse/circle) mesh. Currently limited to ellipse or circle base with the alongAxis
@@ -349,19 +393,19 @@ class CylinderMesh:
         assert (self._elementsCountAcrossMinor % 2 == 0), 'createCylinderMesh3d: number of across elements is not an even number'
         assert (self._elementsCountAcrossMajor > 2), 'createCylinderMesh3d: Invalid number of up elements'
         assert (self._cylinderShape in [self._cylinderShape.CYLINDER_SHAPE_FULL, self._cylinderShape.CYLINDER_SHAPE_LOWER_HALF]), 'createCylinerMesh3d: Invalid cylinder mode.'
-        plane=[-d for d in self._majorAxis]+[-vector.dotproduct(self._majorAxis,self._baseCentre)]
+        plane=[-d for d in self._base._majorAxis]+[-vector.dotproduct(self._base._majorAxis,self._base._centre)]
 
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
         cache = fieldModule.createFieldcache()
 
         # create the base ellipse
-        minorAxis = vector.setMagnitude(vector.crossproduct3(self._alongAxis, self._majorAxis), self._minorRadius)
-        majorRadius = vector.magnitude(self._majorAxis)
+        minorAxis = vector.setMagnitude(vector.crossproduct3(self._base._alongAxis, self._base._majorAxis), self._base._minorRadius)
+        majorRadius = vector.magnitude(self._base._majorAxis)
         elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcrossMinor
 
         # the bottom curve node coordinates and derivatives
-        arcLengthAlong = vector.magnitude(self._alongAxis)/self._elementsCountAlong
+        arcLengthAlong = vector.magnitude(self._base._alongAxis)/self._elementsCountAlong
         elementsCountRim = 0
 
         shieldMode = ShieldShape.SHIELD_SHAPE_FULL if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL else ShieldShape.SHIELD_SHAPE_LOWER_HALF
@@ -398,7 +442,7 @@ class CylinderMesh:
                 for n3 in range(self._elementsCountAlong + 1):
                     for n1 in range(self._elementsCountAcrossMinor + 1):
                         if self._shield.px[0][n2][n1]:
-                            temx = [self._shield.px[0][n2][n1][c] + n3*arcLengthAlong*vector.normalise(self._alongAxis)[c] for c in range(3)]
+                            temx = [self._shield.px[0][n2][n1][c] + n3*arcLengthAlong*vector.normalise(self._base._alongAxis)[c] for c in range(3)]
                             self._shield.px[n3][n2][n1]=temx
                             self._shield.pd1[n3][n2][n1]=self._shield.pd1[0][n2][n1]
                             self._shield.pd2[n3][n2][n1]=self._shield.pd2[0][n2][n1]
@@ -429,6 +473,7 @@ class CylinderMesh:
         elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
         self._endElementIdentifier = elementIdentifier
 
-
-
-
+        if self._end is None:
+            self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
+             self._basesCentres[-1], self._shield.pd2[-1][0][1], vector.setMagnitude(self._base._majorAxis, self._majorRadii[-1]), self._minorRadii[-1])
+        self.setEndsNodes()

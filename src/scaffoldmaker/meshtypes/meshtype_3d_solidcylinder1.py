@@ -9,7 +9,8 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression, Tapered
+from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression, Tapered, \
+    CylinderEnds
 
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
@@ -128,13 +129,15 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             minorRatio = math.pow(minorRadiusEndRatio,1.0/elementsCountAlong)
             minorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
         else:
-            minorRatio = (majorRadiusEndRatio * majorRadius - majorRadius) / elementsCountAlong
+            minorRatio = (minorRadiusEndRatio * minorRadius - minorRadius) / elementsCountAlong
             minorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
+
         raidusChanges = Tapered(majorRatio,majorProgression,minorRatio,minorProgression)
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        cylinder1 = CylinderMesh(fm, coordinates, [0.0, 0.0, 0.0], vector.setMagnitude(axis3, length), vector.setMagnitude(axis1, majorRadius), minorRadius,
-                             elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountAlong,
+        base = CylinderEnds(elementsCountAcrossMajor,elementsCountAcrossMinor,
+                 [0.0, 0.0, 0.0],vector.setMagnitude(axis3,length), vector.setMagnitude(axis1,majorRadius), minorRadius)
+        cylinder1 = CylinderMesh(fm, coordinates, base, elementsCountAlong,
                              cylinderShape=cylinderShape, tapered=raidusChanges,
                                  useCrossDerivatives=False)
 
