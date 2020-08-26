@@ -158,7 +158,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Urethra diameter 1': 1.5,
             'Urethra diameter 2': 1.0,
             'Urethra wall thickness': 0.5,
-            'Length factor': 0.5,
+            'Urethra length proportion to central path': 0.5,
             'Include ureter': False,
             'Ureter': copy.deepcopy(ostiumOption),
             'Ostium position around': 0.65,  # should be on the dorsal part (> 0.5)
@@ -201,7 +201,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Urethra diameter 1',
             'Urethra diameter 2',
             'Urethra wall thickness',
-            'Length factor',
+            'Urethra length proportion to central path',
             'Include ureter',
             'Ureter',
             'Ostium position around',
@@ -303,7 +303,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         urethraDiameter1 = options['Urethra diameter 1']
         urethraDiameter2 = options['Urethra diameter 2']
         urethraWallThickness = options['Urethra wall thickness']
-        lengthFactor = options['Length factor']
+        urethraproportion = options['Urethra length proportion to central path']
 
         centralPath = options['Central path LUT']
 
@@ -342,7 +342,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         segmentLength = length / elementsCountAlong
 
         if includeUrethra:
-            urethraLength = lengthFactor * length
+            urethraLength = urethraproportion * length
             elementsCountAlongUrethra = int(urethraLength / segmentLength)
             elementsCountAlongBladder = elementsCountAlong - elementsCountAlongUrethra
         else:
@@ -355,7 +355,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
             sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
         else:
-            m = int((1 - lengthFactor) * len(cx))
+            m = int((1 - urethraproportion) * len(cx))
             cx = cx[:m+1]
             cd1 = cd1[:m+1]
             cd2 = cd2[:m+1]
@@ -369,7 +369,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         R2_max = 0.5 * neckDiameter1
         # Create the body part
         if includeUrethra:
-            a = (1 - lengthFactor) * length / 2
+            a = (1 - urethraproportion) * length / 2
         else:
             a = length / 2
         b = R1_max
@@ -402,7 +402,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         R2_min = 0.5 * neckDiameter2
         # Create the body part
         if includeUrethra:
-            a = (1 - lengthFactor) * length / 2
+            a = (1 - urethraproportion) * length / 2
         else:
             a = length / 2
         b = R1_min
@@ -454,7 +454,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     d2 = [segmentLength, 0.0, 0.0]
                 elif n1 == elementsCountAlongBladder:
                     if not includeUrethra:
-                        badderSegmentLength = (1 - lengthFactor) * length / elementsCountAlongBladder
+                        badderSegmentLength = (1 - urethraproportion) * length / elementsCountAlongBladder
                         d2 = [0.0, 0.0, badderSegmentLength]
                         # d2 = [0.0, 0.0, segmentLength]
                 else:
