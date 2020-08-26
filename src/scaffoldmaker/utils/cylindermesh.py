@@ -1,6 +1,6 @@
 """
-Utility functions for generating a generalised 3-D solid cylinder (extruded ellipse/circle). It can be used to genrate a
-solid truncated cone. It also can be used for transition from a 2D base to another base (e.g., ellipse to a circle).
+Utility functions for generating a generalised 3-D solid cylinder (extruded ellipse/circle). It can be used to generate
+a solid truncated cone. It also can be used for transition from a 2D base to another base (e.g., ellipse to a circle).
 """
 
 from enum import Enum
@@ -9,20 +9,20 @@ import math
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
-from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldMode, SheildType
+from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite,\
     smoothCubicHermiteDerivativesLine
 
-class CylinderMode(Enum):
-    CYLINDER_MODE_FULL = 1  # full cylinder is createted
-    CYLINDER_MODE_LOWER_HALF = 2  # lower half cylinder
+class CylinderShape(Enum):
+    CYLINDER_SHAPE_FULL = 1  # full cylinder is created
+    CYLINDER_SHAPE_LOWER_HALF = 2  # lower half cylinder
 
 class CylinderType(Enum):
-    CYLIDNER_REGULAR = 1        # all the bases along the axis of the cylinder are the same.
-    CYLIDNER_TRUNCATED_CONE = 2 # different ellipses along the cylinder axis
+    CYLIDNER_STRAIGHT = 1  # regular cylinder
+    CYLIDNER_TAPERED = 2 # cylinder radius changes along the cylinder axis
 
 class ConeBaseProgression(Enum):
-    GEOMETIRC_PROGRESSION  = 1 # geometirc sequence decrease for major radius of bases
+    GEOMETIRC_PROGRESSION  = 1 # geometric sequence decrease for major radius of bases
     ARITHMETIC_PROGRESSION = 2 # arithmetic sequence decrease for major radius of bases
 
 class CylinderMesh:
@@ -31,9 +31,9 @@ class CylinderMesh:
     '''
 
     def __init__(self,fieldModule, coordinates, baseCentre, alongAxis, majorAxis, minorRadius,
-                             elementsCountAcross, elementsCountUp, elementsCountAlong,
-                             cylinderMode = CylinderMode.CYLINDER_MODE_FULL,
-                             cylinderType = CylinderType.CYLIDNER_REGULAR,
+                             elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountAlong,
+                             cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL,
+                             cylinderType = CylinderType.CYLIDNER_STRAIGHT,
                              rate = 0.0, progressionMode=ConeBaseProgression.GEOMETIRC_PROGRESSION, useCrossDerivatives = False):
         '''
         :param fieldmodule: Zinc fieldmodule to create elements in.
@@ -42,25 +42,27 @@ class CylinderMesh:
         :param alongAxis: The cylinder axis that the base is extruded along.
         :param majorAxis: The major axis of the base. Should be perpendicular to alongAxis
         :param minorRadius: The minor radius of the base.
-        :param elementsCountAcross: Number of elements across the base minor radius.
-        :param elementsCountUp: Number of elements up central axis of shield. Must be at least 2 + elementsCountRim.
+        :param elementsCountAcrossMinor: Number of elements across minor axis.
+        :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for half and 4 + elementsCountRim for full cylinder.
         :param elementsCountAlong: Number of elements along the cylinder axis.
         :param rate: Cone base radius reduction rate along cone axis.
-        :param cylinderMode: A value from enum CylinderMode specifying.
+        :param cylinderShape: A value from enum CylinderMode specifying.
+        :param progressionMode: controls the change in radius along cylinder axis. Could be arithmetic or geometric progression.
         '''
         self._baseCentre = baseCentre
         self._alongAxis = alongAxis
         self._majorAxis = majorAxis
         self._minorRadius = minorRadius
         self._shield = None
-        self._elementsCountAcross = elementsCountAcross
-        self._elementsCountUp = elementsCountUp
+        self._elementsCountAcrossMinor = elementsCountAcrossMinor
+        self._elementsCountAcrossMajor = elementsCountAcrossMajor
+        self._elementsCountUp = elementsCountAcrossMajor//2 if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else elementsCountAcrossMajor
         self._elementsCountAlong = elementsCountAlong
         self._startNodeIdentifier = 1
         self._startElementIdentifier = 1
         self._endNodeIdentifier = 1
         self._endElementIdentifier = 1
-        self._cylinderMode = cylinderMode
+        self._cylinderShape = cylinderShape
         self._cylinderType = cylinderType
         self._useCrossDerivatives = useCrossDerivatives
         self._height = vector.magnitude(alongAxis)
@@ -130,7 +132,7 @@ class CylinderMesh:
             tnd1.append(tbd1)
             tnd2.append(tbd2)
             tnd3.append(tbd3)
-            if self._cylinderType == CylinderType.CYLIDNER_TRUNCATED_CONE:
+            if self._cylinderType == CylinderType.CYLIDNER_TAPERED:
                 nx = nd1 = []
                 if progressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
                     majorRadius1 = majorRadius1 * (1 - rate)
@@ -148,7 +150,7 @@ class CylinderMesh:
         btd3 = self._shield.pd3
 
         for n3 in range(self._elementsCountAlong + 1):
-            for n in range(self._shield.elementsCountAroundFull + 1):
+            for n in range(elementsCountAround + 1):
                 n1, n2 = self._shield.convertRimIndex(n)
                 tx, td1, td2, td3 = tnx[n3], tnd1[n3], tnd2[n3], tnd3[n3]
                 btx[n3][n2][n1] = tx[n]
@@ -176,10 +178,10 @@ class CylinderMesh:
         btd3 = self._shield.pd3
 
         rcx = []
-        tmdx = btx[n3][0][(self._elementsCountAcross) // 2]
-        tmdd3 = btd3[n3][0][(self._elementsCountAcross) // 2]
+        tmdx = btx[n3][0][(self._elementsCountAcrossMinor) // 2]
+        tmdd3 = btd3[n3][0][(self._elementsCountAcrossMinor) // 2]
         tmux = [
-            0.5 * (btx[n3][self._elementsCountUp][0][c] + btx[n3][self._elementsCountUp][self._elementsCountAcross][c])
+            0.5 * (btx[n3][self._elementsCountUp][0][c] + btx[n3][self._elementsCountUp][self._elementsCountAcrossMinor][c])
             for c in range(3)]
         rcx.append(tmdx)
         rcx.append(tmux)
@@ -192,7 +194,7 @@ class CylinderMesh:
         rscd3 = []
         for n in range(len(rscx)):
             d3 = vector.normalise(
-                [btx[n3][self._elementsCountUp][self._elementsCountAcross][c] - btx[n3][self._elementsCountUp][0][c] for
+                [btx[n3][self._elementsCountUp][self._elementsCountAcrossMinor][c] - btx[n3][self._elementsCountUp][0][c] for
                  c in range(3)])
             d2 = vector.normalise(vector.crossproduct3(d3, rscd1[n]))
             rscd2.append(d2)
@@ -214,7 +216,7 @@ class CylinderMesh:
         for n2 in range(elementsCountRim + 2, self._elementsCountUp + 1):
             btx[n3][n2], btd3[n3][n2], pe, pxi, psf = sampleCubicHermiteCurves(
                 [btx[n3][n2][0], rscx[n2], btx[n3][n2][-1]],
-                [vector.setMagnitude(btd3[n3][n2][0], -1.0), rscd3[n2], btd3[n3][n2][-1]], self._elementsCountAcross,
+                [vector.setMagnitude(btd3[n3][n2][0], -1.0), rscd3[n2], btd3[n3][n2][-1]], self._elementsCountAcrossMinor,
                 lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
             btd1[n3][n2] = \
             interpolateSampleCubicHermite([[-btd1[n3][n2][0][c] for c in range(3)], rscd1[n2], btd1[n3][n2][-1]],
@@ -231,7 +233,7 @@ class CylinderMesh:
         btd2 = self._shield.pd2
         btd3 = self._shield.pd3
 
-        for n1 in range(2, self._elementsCountAcross - 1):
+        for n1 in range(2, self._elementsCountAcrossMinor - 1):
             tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
                 [btx[n3][0][n1], btx[n3][2][n1]], [[-btd3[n3][0][n1][c] for c in range(3)], btd1[n3][2][n1]], 2,
                 lengthFractionStart=1, arcLengthDerivatives=True)  # GRC fudge factor rvSulcusEdgeFactor
@@ -276,7 +278,7 @@ class CylinderMesh:
             for n in range(self._elementsCountUp):
                 btd1[n3][n + 1][n1] = td1[n]
 
-    def calculateD2Derivatives(self, n3, n3Count, arcLengthAlong):
+    def calculateD2Derivatives(self, n3, n3Count):
         '''
         calculate d2 derivatives.
         :param n3: Index of along cylinder axis coordinates to use
@@ -289,13 +291,10 @@ class CylinderMesh:
         btd3 = self._shield.pd3
         # get base d2 and next base x, d2
         for n2 in range(self._elementsCountUp + 1):
-            for n1 in range(self._elementsCountAcross + 1):
+            for n1 in range(self._elementsCountAcrossMinor + 1):
                 if btd1[n3][n2][n1]:
-                    if n3 < n3Count:
-                        btd2[n3][n2][n1] = [btx[n3 + 1][n2][n1][c] - btx[n3][n2][n1][c] for c in range(3)]
-                    else:
-                        btd2[n3][n2][n1] = vector.setMagnitude(vector.crossproduct3(btd3[n3][n2][n1], btd1[n3][n2][n1]),
-                                                               arcLengthAlong)
+                    n3n = n3 if (n3<n3Count) else n3-1
+                    btd2[n3][n2][n1] = [(btx[n3n + 1][n2][n1][c] - btx[n3n][n2][n1][c]) for c in range(3)]
 
     def smoothd2Derivatives(self):
         '''
@@ -306,7 +305,7 @@ class CylinderMesh:
         btd2 = self._shield.pd2
         btd3 = self._shield.pd3
         for n2 in range(self._elementsCountUp + 1):
-            for n1 in range(self._elementsCountAcross + 1):
+            for n1 in range(self._elementsCountAcrossMinor + 1):
                 td2 = []
                 tx = []
                 if btx[0][n2][n1]:
@@ -321,15 +320,15 @@ class CylinderMesh:
         """
         Create an extruded shape (ellipse/circle) mesh. Currently limited to ellipse or circle base with the alongAxis
         perpendicular to the base.
-        :param fieldmodule: Zinc fieldmodule to create elements in.
+        :param fieldModule: Zinc fieldmodule to create elements in.
         :param coordinates: Coordinate field to define.
         :return: Final values of nextNodeIdentifier, nextElementIdentifier.
         """
         assert (self._elementsCountAlong > 0), 'createCylinderMesh3d:  Invalid number of along elements'
-        assert (self._elementsCountAcross > 4), 'createCylinderMesh3d: Invalid number of across elements'
-        assert (self._elementsCountAcross % 2 == 0), 'createCylinderMesh3d: number of across elements is not an even number'
-        assert (self._elementsCountUp > 2), 'createCylinderMesh3d: Invalid number of up elements'
-        assert (self._cylinderMode in [self._cylinderMode.CYLINDER_MODE_FULL, self._cylinderMode.CYLINDER_MODE_LOWER_HALF]), 'createCylinerMesh3d: Invalid cylinder mode.'
+        assert (self._elementsCountAcrossMinor > 3), 'createCylinderMesh3d: Invalid number of across elements'
+        assert (self._elementsCountAcrossMinor % 2 == 0), 'createCylinderMesh3d: number of across elements is not an even number'
+        assert (self._elementsCountAcrossMajor > 2), 'createCylinderMesh3d: Invalid number of up elements'
+        assert (self._cylinderShape in [self._cylinderShape.CYLINDER_SHAPE_FULL, self._cylinderShape.CYLINDER_SHAPE_LOWER_HALF]), 'createCylinerMesh3d: Invalid cylinder mode.'
         plane=[-d for d in self._majorAxis]+[-vector.dotproduct(self._majorAxis,self._baseCentre)]
 
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -339,20 +338,21 @@ class CylinderMesh:
         # create the base ellipse
         minorAxis = vector.setMagnitude(vector.crossproduct3(self._alongAxis, self._majorAxis), self._minorRadius)
         majorRadius = vector.magnitude(self._majorAxis)
-        elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcross
+        elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcrossMinor
 
         # the bottom curve node coordinates and derivatives
         arcLengthAlong = vector.magnitude(self._alongAxis)/self._elementsCountAlong
         elementsCountRim = 0
 
-        shieldMode = ShieldMode.SHIELD_MODE_FULL if self._cylinderMode is self._cylinderMode.CYLINDER_MODE_FULL else ShieldMode.SHIELD_MODE_LOWER_HALF
-        self._shield = ShieldMesh(self._elementsCountAcross, self._elementsCountUp, elementsCountRim, None, self._elementsCountAlong, shieldMode, shieldType = SheildType.SHIELD_TYPE_CYLINDER)
+        shieldMode = ShieldShape.SHIELD_SHAPE_FULL if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL else ShieldShape.SHIELD_SHAPE_LOWER_HALF
+        self._shield = ShieldMesh(self._elementsCountAcrossMinor, self._elementsCountAcrossMajor, elementsCountRim, None,
+                                  self._elementsCountAlong, shieldMode, shieldType = ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
         # generate bases mesh along cylinder axis
         btx, btd1, btd2, btd3 = self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
                                                        progressionMode=self._progressionMode, rate=  self._radiusReductionRate)
 
-        n3Count = 0 if self._cylinderType == CylinderType.CYLIDNER_REGULAR else self._elementsCountAlong
+        n3Count = 0 if self._cylinderType == CylinderType.CYLIDNER_STRAIGHT else self._elementsCountAlong
         for n3 in range(n3Count+1):
             rscx, rscd1, rscd2, rscd3 = self.createMirrorCurve(n3)
             self.createRegularRowCurves(n3, rscx, rscd1, rscd3)
@@ -367,17 +367,17 @@ class CylinderMesh:
             self._shield.smoothDerivativesToTriplePoints(n3, fixAllDirections=True)
 
         for n3 in range(n3Count + 1):
-            self.calculateD2Derivatives(n3, n3Count, arcLengthAlong)
+            self.calculateD2Derivatives(n3, n3Count)
 
-        if self._cylinderType == CylinderType.CYLIDNER_TRUNCATED_CONE:
+        if self._cylinderType == CylinderType.CYLIDNER_TAPERED:
             self.smoothd2Derivatives()
 
         # The other bases.
         temx = []
-        if self._cylinderType == CylinderType.CYLIDNER_REGULAR:
+        if self._cylinderType == CylinderType.CYLIDNER_STRAIGHT:
             for n2 in range(self._elementsCountUp + 1):
                 for n3 in range(self._elementsCountAlong + 1):
-                    for n1 in range(self._elementsCountAcross + 1):
+                    for n1 in range(self._elementsCountAcrossMinor + 1):
                         if self._shield.px[0][n2][n1]:
                             temx = [self._shield.px[0][n2][n1][c] + n3*arcLengthAlong*vector.normalise(self._alongAxis)[c] for c in range(3)]
                             self._shield.px[n3][n2][n1]=temx
