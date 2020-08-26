@@ -38,9 +38,8 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Minor radius end ratio' : 0.92,
             'Use cross derivatives' : False,
             'Refine' : False,
-            'Refine number of elements along' : 1,
-            'Refine number of elements across' : 1,
-            'Refine number of elements up' : 1
+            'Refine number of elements across major' : 1,
+            'Refine number of elements along' : 1
         }
 
     @staticmethod
@@ -58,9 +57,8 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Minor radius geometric progression change',
             'Minor radius end ratio',
             'Refine',
-            'Refine number of elements along',
-            'Refine number of elements across',
-            'Refine number of elements up'
+            'Refine number of elements across major',
+            'Refine number of elements along'
         ]
 
     @staticmethod
@@ -151,7 +149,6 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshrefinement, MeshRefinement)
-        refineElementsCountAlong = options['Refine number of elements up']
-        refineElementsCountAcross = options['Refine number of elements along']
-        refineElementsCountUp = options['Refine number of elements across']
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAlong, refineElementsCountAcross, refineElementsCountUp)
+        refineElementsCountAcrossMajor = options['Refine number of elements across major']
+        refineElementsCountAlong = options['Refine number of elements along']
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
