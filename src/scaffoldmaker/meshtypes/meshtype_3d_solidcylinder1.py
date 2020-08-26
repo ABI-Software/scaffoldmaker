@@ -1,6 +1,6 @@
 """
-Generates a 3-D cylinder mesh with variable numbers of elements around, along and
-across.
+Generates a solid cylinder using a ShieldMesh of all cube elements,
+ with variable numbers of elements in major, minor and length directions.
 """
 
 from __future__ import division
@@ -9,12 +9,13 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderMode, ConeBaseProgression
+from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression
 
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
     '''
-    classdocs
+Generates a solid cylinder using a ShieldMesh of all cube elements,
+ with variable numbers of elements in major, minor and length directions.
     '''
     @staticmethod
     def getName():
@@ -23,13 +24,16 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Cylinder height' : 5.0,
-            'Major radius' : 2.5,
+            'Number of elements across major': 6,
+            'Number of elements across minor': 4,
+            'Number of elements along': 1,
+            'Full' : True,
+            'oldFull' : True,
+            'Length' : 1.0,
+            'Major radius' : 1.0,
+            'Major radius end ratio': 0.08,
             'Minor radius' : 1.0,
-            'Radius reduction rate' : 0.08,
-            'Number of elements across' : 8,
-            'Number of elements up' : 5,
-            'Number of elements along' : 5,
+            'Minor radius end ratio' : 0.08,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements along' : 1,
@@ -40,14 +44,15 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Cylinder height',
-            'Major radius',
-            'Minor radius',
-            'Radius reduction rate',
-            'Number of elements across',
-            'Number of elements up',
+            'Number of elements across major',
+            'Number of elements across minor',
             'Number of elements along',
-            'Use cross derivatives',
+            'Full',
+            'Length',
+            'Major radius',
+            'Major radius end ratio',
+            'Minor radius',
+            'Minor radius end ratio',
             'Refine',
             'Refine number of elements along',
             'Refine number of elements across',
@@ -56,18 +61,31 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
 
     @staticmethod
     def checkOptions(options):
-        for key in [
-            'Number of elements along',
-            'Number of elements across',
-            'Refine number of elements up',
-            'Refine number of elements along']:
-            if options[key] < 1:
-                options[key] = 1
-        # if (options['Number of elements through wall'] < 2) :
-        #     options['Number of elements through wall'] = 1
-        # if (options['Number of elements around'] < 2) :
-        #     options['Number of elements around'] = 2
+        dependentChanges = False
+        if options['Full'] != options['oldFull']:
+            if options['Full']:
+                options['Number of elements across major'] *= 2
+            else:
+                options['Number of elements across major'] //= 2
+            options['oldFull'] = options['Full']
+            dependentChanges = True
+        if options['Full']:
+            if options['Number of elements across major'] < 6:
+                options['Number of elements across major'] = 6
+            if options['Number of elements across major'] %2:
+                options['Number of elements across major'] = 6
+        else:
+            if options['Number of elements across major'] < 3:
+                options['Number of elements across major'] = 3
 
+        if options['Number of elements across minor'] < 4:
+            options['Number of elements across minor'] = 4
+        if options['Number of elements across minor'] % 2:
+            options['Number of elements across minor'] = 4
+        if options['Number of elements along'] < 1:
+            options['Number of elements along'] = 1
+
+        return dependentChanges
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -77,51 +95,44 @@ class MeshType_3d_solidcylinder1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        height = options['Cylinder height']
+        full = options['Full']
+        length = options['Length']
         majorRadius = options['Major radius']
         minorRadius = options['Minor radius']
-        rate = options['Radius reduction rate']
-        elementsCountAcross = options['Number of elements across']
-        elementsCountUp = options['Number of elements up']
+        majorRadiusEndRatio = options['Major radius end ratio']
+        minorRadiusEndRatio = options['Minor radius end ratio']
+        elementsCountAcrossMajor = options['Number of elements across major']
+        elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
 
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        coordinates = findOrCreateFieldCoordinates(fm)
+        rate = majorRadiusEndRatio
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        cylinder1 = CylinderMesh(fm, coordinates, [0.0, 0.0, 0.0], vector.setMagnitude(axis3, height), vector.setMagnitude(axis1, majorRadius), minorRadius,
-                             elementsCountAcross, elementsCountUp, elementsCountAlong,
-                             cylinderMode=CylinderMode.CYLINDER_MODE_FULL, cylinderType=CylinderType.CYLIDNER_TRUNCATED_CONE,
+        cylinder1 = CylinderMesh(fm, coordinates, [0.0, 0.0, 0.0], vector.setMagnitude(axis3, length), vector.setMagnitude(axis1, majorRadius), minorRadius,
+                             elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountAlong,
+                             cylinderShape=cylinderShape, cylinderType=CylinderType.CYLIDNER_TAPERED,
                              rate=rate,progressionMode = ConeBaseProgression.GEOMETIRC_PROGRESSION, useCrossDerivatives=False)
 
-        fm.endChange()
+        annotationGroup = []
+        return annotationGroup
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def refineMesh(cls, meshrefinement, options):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
-
-        refineElementsCountAlong = options['Refine number of elements along']
-        refineElementsCountAcross = options['Refine number of elements across']
-        refineElementsCountUp = options['Refine number of elements up']
-
-        baseRegion = region.createRegion()
-        cls.generateBaseMesh(baseRegion, options)
-
-        meshrefinement = MeshRefinement(baseRegion, region)
+        assert isinstance(meshrefinement, MeshRefinement)
+        refineElementsCountAlong = options['Refine number of elements up']
+        refineElementsCountAcross = options['Refine number of elements along']
+        refineElementsCountUp = options['Refine number of elements across']
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAlong, refineElementsCountAcross, refineElementsCountUp)
