@@ -25,6 +25,22 @@ class ConeBaseProgression(Enum):
     GEOMETIRC_PROGRESSION  = 1 # geometric sequence decrease for major radius of bases
     ARITHMETIC_PROGRESSION = 2 # arithmetic sequence decrease for major radius of bases
 
+class Tapered:
+    '''
+    Stores parameters for making a tapered cylinder.
+    '''
+    def __init__(self,majorRatio=1.0,majorProgressionMode=ConeBaseProgression.GEOMETIRC_PROGRESSION,
+                 minorRatio=1.0,minorProgressionMode=ConeBaseProgression.GEOMETIRC_PROGRESSION):
+        '''
+        :param ratio: radius common ratio increment along cylinder axis.
+        :param progressionMode: controls the change in radius along cylinder axis. r_n+1 = r_n+ratio for arithmetic, r_n+1 = r_n*ratio for geometric progression.
+        '''
+        self.majorRatio = majorRatio
+        self.majorProgressionMode = majorProgressionMode
+        self.minorRatio = minorRatio
+        self.minorProgressionMode = minorProgressionMode
+
+
 class CylinderMesh:
     '''
     Cylinder mesh generator. Extrudes an ellipse/circle.
@@ -33,10 +49,9 @@ class CylinderMesh:
     def __init__(self,fieldModule, coordinates, baseCentre, alongAxis, majorAxis, minorRadius,
                              elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountAlong,
                              cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL,
-                             cylinderType = CylinderType.CYLIDNER_STRAIGHT,
-                             rate = 0.0, progressionMode=ConeBaseProgression.GEOMETIRC_PROGRESSION, useCrossDerivatives = False):
+                             tapered=None,useCrossDerivatives = False):
         '''
-        :param fieldmodule: Zinc fieldmodule to create elements in.
+        :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
         :param baseCentre: The centre of the base of the cylinder (ellipse/circle).
         :param alongAxis: The cylinder axis that the base is extruded along.
@@ -45,13 +60,12 @@ class CylinderMesh:
         :param elementsCountAcrossMinor: Number of elements across minor axis.
         :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for half and 4 + elementsCountRim for full cylinder.
         :param elementsCountAlong: Number of elements along the cylinder axis.
-        :param rate: Cone base radius reduction rate along cone axis.
         :param cylinderShape: A value from enum CylinderMode specifying.
-        :param progressionMode: controls the change in radius along cylinder axis. Could be arithmetic or geometric progression.
         '''
         self._baseCentre = baseCentre
         self._alongAxis = alongAxis
         self._majorAxis = majorAxis
+        self._minorAxis = vector.crossproduct3(alongAxis,majorAxis)
         self._minorRadius = minorRadius
         self._shield = None
         self._elementsCountAcrossMinor = elementsCountAcrossMinor
@@ -63,12 +77,13 @@ class CylinderMesh:
         self._endNodeIdentifier = 1
         self._endElementIdentifier = 1
         self._cylinderShape = cylinderShape
-        self._cylinderType = cylinderType
+        self._cylinderType = CylinderType.CYLIDNER_STRAIGHT
+        if tapered is not None:
+            self._cylinderType = CylinderType.CYLIDNER_TAPERED
+            self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
-        self._height = vector.magnitude(alongAxis)
+        self._length = vector.magnitude(alongAxis)
         self._majorRadius = vector.magnitude(majorAxis)
-        self._radiusReductionRate = rate
-        self._progressionMode = progressionMode
         # generate the mesh
         self.createCylinderMesh3d(fieldModule, coordinates)
 
@@ -109,8 +124,7 @@ class CylinderMesh:
             radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
         return nx, nd1
 
-    def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
-                          progressionMode = ConeBaseProgression.GEOMETIRC_PROGRESSION, rate=0.08):
+    def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis):
         '''
         generate bases of the truncated cone along the cone axis.
         :param majorRadius: major radius of the cone ellipse base.
@@ -120,6 +134,7 @@ class CylinderMesh:
         nx, nd1 = self.createCylinderBaseMesh2D(
             self._baseCentre, self._majorAxis, minorAxis, elementsCountAround, majorRadius)
         majorRadius1 = majorRadius
+        minorRadius1 = vector.magnitude(minorAxis)
         tnx, tnd1, tnd2, tnd3 = [], [], [], []
         for n3 in range(self._elementsCountAlong + 1):
             tbx, tbd1, tbd2, tbd3 = [], [], [], []
@@ -132,17 +147,22 @@ class CylinderMesh:
             tnd1.append(tbd1)
             tnd2.append(tbd2)
             tnd3.append(tbd3)
-            if self._cylinderType == CylinderType.CYLIDNER_TAPERED:
+            if (self._cylinderType == CylinderType.CYLIDNER_TAPERED) and (n3<self._elementsCountAlong):
                 nx = nd1 = []
-                if progressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
-                    majorRadius1 = majorRadius1 * (1 - rate)
-                elif progressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
-                    majorRadius1 -= rate
+                if self._tapered.majorProgressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
+                    majorRadius1 = majorRadius1 * self._tapered.majorRatio
+                elif self._tapered.majorProgressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
+                    majorRadius1 += self._tapered.majorRatio
                 majorAxis1 = vector.setMagnitude(self._majorAxis, majorRadius1)
-                baseC = [self._baseCentre[c] + (n3 + 1) * arcLengthAlong * vector.normalise(self._alongAxis)[c] for c in
+                if self._tapered.minorProgressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
+                    minorRadius1 = minorRadius1 * self._tapered.minorRatio
+                elif self._tapered.minorProgressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
+                    minorRadius1 += self._tapered.minorRatio
+                minorAxis1 = vector.setMagnitude(self._minorAxis, minorRadius1)
+                baseC = [self._baseCentre[c] + (n3+1) * arcLengthAlong * vector.normalise(self._alongAxis)[c] for c in
                          range(3)]
                 nx, nd1 = self.createCylinderBaseMesh2D(
-                    baseC, majorAxis1, minorAxis, elementsCountAround, majorRadius1)
+                    baseC, majorAxis1, minorAxis1, elementsCountAround, majorRadius1)
 
         btx = self._shield.px
         btd1 = self._shield.pd1
@@ -349,8 +369,7 @@ class CylinderMesh:
                                   self._elementsCountAlong, shieldMode, shieldType = ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
         # generate bases mesh along cylinder axis
-        btx, btd1, btd2, btd3 = self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
-                                                       progressionMode=self._progressionMode, rate=  self._radiusReductionRate)
+        btx, btd1, btd2, btd3 = self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis)
 
         n3Count = 0 if self._cylinderType == CylinderType.CYLIDNER_STRAIGHT else self._elementsCountAlong
         for n3 in range(n3Count+1):
