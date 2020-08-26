@@ -333,7 +333,6 @@ class CylinderMesh:
         calculate d2 derivatives.
         :param n3: Index of along cylinder axis coordinates to use
         :param n3Count: number of bases to create coordinates for.
-        :param arcLengthAlong: arc length along cylinder axis
         '''
         btx = self._shield.px
         btd1 = self._shield.pd1
@@ -369,7 +368,6 @@ class CylinderMesh:
     def setEndsNodes(self):
         '''
         sets ellipse coordinates, derivatives and node ids.
-        :param end: 0 represents cylinder base and 1 represents cylinder end
         '''
         self._base.px = self._shield.px[0]
         self._base.pd1 = self._shield.pd1[0]

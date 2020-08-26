@@ -312,7 +312,7 @@ class ShieldMesh:
     def generateNodes(self, fieldModule, coordinates, startNodeIdentifier,mirrorPlane=None):
         """
         Create shield nodes from coordinates.
-        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param fieldModule: Zinc fieldModule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
         :param startNodeIdentifier: First node identifier to use.
         :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
