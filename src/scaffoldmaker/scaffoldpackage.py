@@ -8,6 +8,7 @@ import math
 from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.utils.maths.vectorops import euler_to_rotation_matrix
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 class ScaffoldPackage:
@@ -43,6 +44,15 @@ class ScaffoldPackage:
         if not self._translation:
             self._translation = [ 0.0, 0.0, 0.0 ]
         self._meshEdits = copy.deepcopy(dct.get('meshEdits'))
+        self._autoAnnotationGroups = []
+        # read user AnnotationGroups dict:
+        userAnnotationGroupsDict = dct.get('userAnnotationGroups')
+        # serialised form of user annotation groups, read from serialisation before generate(), updated before writing
+        self._userAnnotationGroupsDict = copy.deepcopy(userAnnotationGroupsDict) if userAnnotationGroupsDict else []
+        # can only have the actual user annotation groups once generate() is called
+        self._userAnnotationGroups = []
+        # region is set in generate(); can only instantiate user AnnotationGroups then
+        self._region = None
 
     def deepcopy(self, other):
         '''
@@ -78,6 +88,9 @@ class ScaffoldPackage:
             }
         if self._meshEdits:
             dct['meshEdits'] = self._meshEdits
+        if self._userAnnotationGroups:
+            self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
+            dct['userAnnotationGroups'] = self._userAnnotationGroupsDict
         return dct
 
     def getMeshEdits(self):
@@ -155,11 +168,13 @@ class ScaffoldPackage:
                 [ 0.0, 0.0, 0.0, 1.0 ] ]
         return None
 
-    def applyTransformation(self, region):
+    def applyTransformation(self):
         '''
         If rotation, scale or transformation are set, transform node coordinates.
+        Only call after generate().
         '''
-        fieldmodule = region.getFieldmodule()
+        assert self._region
+        fieldmodule = self._region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
         if not coordinates.isValid():
             print('Warning: ScaffoldPackage.applyTransformation: Missing coordinates field')
@@ -191,17 +206,76 @@ class ScaffoldPackage:
 
     def generate(self, region, applyTransformation=True):
         '''
+        Generate the finite element scaffold and define annotation groups.
         :param applyTransformation: If True (default) apply scale, rotation and translation to
         node coordinates. Specify False if client will transform, e.g. with graphics transformations.
         '''
-        #print('\nScaffoldPackage.generate: ', self.toDict())
-        annotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
-        if self._meshEdits:
-            # apply mesh edits, a Zinc-readable model file containing node edits
-            # Note: these are untransformed coordinates
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
-            region.read(sir)
-        if applyTransformation:
-            self.applyTransformation(region)
-        return annotationGroups
+        self._region = region
+        with ChangeManager(region.getFieldmodule()):
+            self._autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+            if self._meshEdits:
+                # apply mesh edits, a Zinc-readable model file containing node edits
+                # Note: these are untransformed coordinates
+                sir = region.createStreaminformationRegion()
+                srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
+                region.read(sir)
+            # define user AnnotationGroups from serialised Dict
+            self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
+            if applyTransformation:
+                self.applyTransformation()
+
+    def getAnnotationGroups(self):
+        '''
+        Empty until after call to generate().
+        :return: Alphabetically sorted list of annotation groups.
+        '''
+        return sorted(self._autoAnnotationGroups + self._userAnnotationGroups, key=AnnotationGroup.getName)
+
+    def findAnnotationGroupByName(self, name):
+        '''
+        Invalid until after call to generate().
+        :return: Annotation group with the given name or None.
+        '''
+        return findAnnotationGroupByName(self._autoAnnotationGroups + self._userAnnotationGroups, name)
+
+    def createUserAnnotationGroup(self, term=None):
+        '''
+        Create a new, empty user annotation group.
+        Only call after generate().
+        :param term: Identifier for anatomical term, currently a tuple of name, id.
+        e.g. ('heart', 'FMA:7088'). Or None to generate a unique name. Name must be
+        unique if supplied; id should be unique but may be None.
+        :return: New AnnotationGroup.
+        '''
+        assert self._region
+        if term:
+            assert not self.findAnnotationGroupByName(term[0])
+            useTerm = term
+        else:
+            number = 1
+            while True:
+                name = "group" + str(number)
+                if not self.findAnnotationGroupByName(name):
+                    break
+                number += 1
+            useTerm = (name, None)
+        annotationGroup = AnnotationGroup(self._region, useTerm)
+        self._userAnnotationGroups.append(annotationGroup)
+        return annotationGroup
+
+    def deleteAnnotationGroup(self, annotationGroup):
+        '''
+        Delete the annotation group. Must be a user annotation group.
+        :return: True on success, otherwise False
+        '''
+        if annotationGroup and self.isUserAnnotationGroup(annotationGroup):
+            self._userAnnotationGroups.remove(annotationGroup)
+            return True
+        return False
+
+    def isUserAnnotationGroup(self, annotationGroup):
+        '''
+        Invalid until after call to generate().
+        :return: True if annotationGroup is user-created and editable.
+        '''
+        return annotationGroup in self._userAnnotationGroups
