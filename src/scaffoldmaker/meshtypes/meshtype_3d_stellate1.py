@@ -1,13 +1,14 @@
 """
-Stellate mesh, iteration 2-ish
+Stellate mesh, iteration 2
 
 All locations (x) and derivatives (ds) are found separately, and fed as a list to zinc.
+X elements are built for the central node, and for nodes at arm ends
+
 """
 
 from __future__ import division
 from math import *
 import numpy as np
-# from numpy import *
 import matplotlib.pyplot as plt
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
@@ -17,6 +18,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftLocalNodes
+
 
 class MeshType_3d_stellate1(Scaffold_base):
     '''
@@ -29,16 +32,12 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of arms (1 <= 4)' : 3,
-            'Number of elements in arm1' : 4,
-            'Number of elements in arm2' : 2,
-            'Number of elements in arm3' : 2,
-            'Number of elements in arm4' : 2,
-            'Element length x' : 1,
-            'Element length y' : 1,
-            'Element length z' : 1,
-            'Central dip multiplier' : 0.75,
-            'Arm end position multiplier' : 0.8,
+            'Number of arms' : 3,
+            'Number of elements in long arm' : 4,
+            'Number of elements in short arms' : 2,
+            'Element length x' : 1.1,
+            'Element width y' : 0.5,
+            'Element height z' : 0.5,
             'Use cross derivatives' : False,
             'Refine' : False,
             'Refine number of elements 1' : 1,
@@ -49,16 +48,12 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of arms (1 <= 4)',
-            'Number of elements in arm1',
-            'Number of elements in arm2',
-            'Number of elements in arm3',
-            'Number of elements in arm4',
+            'Number of arms',
+            'Number of elements in long arm',
+            'Number of elements in short arms',
             'Element length x',
-            'Element length y',
-            'Element length z',
-            'Central dip multiplier',
-            'Arm end position multiplier',
+            'Element width y',
+            'Element height z',
             'Refine',
             'Refine number of elements 1',
             'Refine number of elements 2',
@@ -68,16 +63,16 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def checkOptions(options):
         for key in [
-            'Number of arms (1 <= 4)',
-            'Number of elements in arm1',
-            'Number of elements in arm2',
-            'Number of elements in arm3',
-            'Number of elements in arm4',
+            'Number of elements in long arm',
+            'Number of elements in short arms',
             'Refine number of elements 1',
             'Refine number of elements 2',
             'Refine number of elements 3']:
             if options[key] < 1:
                 options[key] = 1
+
+        if options['Number of arms'] < 3 or options['Number of arms'] > 4:
+            options['Number of arms'] = 3
 
     @staticmethod
     def generateBaseMesh(region, options):
@@ -88,15 +83,14 @@ class MeshType_3d_stellate1(Scaffold_base):
         :return: None
         """
         elens = [0,0,0]
-        numArm = options['Number of arms (1 <= 4)']
+        numArm = options['Number of arms']
         elens[0] = options['Element length x']
-        elens[1] = options['Element length y']
-        elens[2] = options['Element length z']
-        elementsCount1 = [options['Number of elements in arm1'], options['Number of elements in arm2'], options['Number of elements in arm3'], options['Number of elements in arm4']]
-        elementsCount2 = 2 #options['Element count 2']
-        elementsCount3 = 1 #options['Element count 3']
-        dipMultiplier = options['Central dip multiplier']
-        armEndMult = options['Arm end position multiplier']
+        elens[1] = (options['Element width y'])*2
+        elens[2] = options['Element height z']
+        elementsCount1 = [options['Number of elements in long arm'], options['Number of elements in short arms']]
+        elementsCount1 = elementsCount1 + [2]*(numArm-2)
+        elementsCount2 = 2
+        elementsCount3 = 1
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
@@ -110,42 +104,23 @@ class MeshType_3d_stellate1(Scaffold_base):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         mesh = fm.findMeshByDimension(3)
-
-        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eft = bicubichermitelinear.createEftBasic()
-
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        result = elementtemplate.defineField(coordinates, -1, eft)
-
         cache = fm.createFieldcache()
 
         # create nodes
         numNodesPerArm = [0]*(numArm+1)
-        # must be cumulative
         for na in range(numArm):
             numNodesPerArm[na+1] = (elementsCount1[na] + 1) * (elementsCount2 + 1) * (elementsCount3 + 1)
         cumNumNodesPerArm = [sum(numNodesPerArm[:i + 1]) for i in range(len(numNodesPerArm))]
-        plot_graph = 0
         ecount = [elementsCount1, elementsCount2, elementsCount3]
         armRotationAngles = (2 * pi) / (numArm * 2)
-        xnodes, xnodes_ds1, xnodes_ds2, wheelNodes, centreNodes, vertexNodes = createBody(elens, numArm, armRotationAngles, ecount, dipMultiplier, armEndMult, plot_graph)
-        nodeList_sh = range(1, len(xnodes) + 1)
+        dipMultiplier = elens[1] * 1.2 * 0.5
+        xnodes, xnodes_ds1, xnodes_ds2, wheelNodes, centreNodes, vertexNodes = createBody(elens, numArm, armRotationAngles, ecount, dipMultiplier)
 
         # Remove duplicate nodes, but keep the node correspondence
-        if True:
-            x_in = [ix[:3] for ix in xnodes]
-            dupNodes_dbl = findDuplicateNodes(x_in, nodeList_sh)
-            dupNodes_arr = np.array(dupNodes_dbl)
-            dupNodes = list(dupNodes_arr[:,1])
-
-            # repeat for centre nodes - but no need really.
-            xc_in = [xnodes[ic-1][:3] for ic in centreNodes]
-            dupCntNodes_dbl = findDuplicateNodes(xc_in, centreNodes)
-            dupCntNodes_arr = np.array(dupCntNodes_dbl)
-            idupCntNodes = list(np.array(dupCntNodes_dbl)[:,1])
-            dupCntNodes = [centreNodes[id-1] for id in idupCntNodes]
+        x_in = [ix[:3] for ix in xnodes]
+        dupNodes_dbl = findDuplicateNodes(x_in)
+        dupNodes_arr = np.array(dupNodes_dbl)
+        dupNodes = list(dupNodes_arr[:,1])
 
         armAngle = 2*pi/numArm
         dx_ds1 = [ elens[0], 0.0, 0.0 ]
@@ -154,63 +129,180 @@ class MeshType_3d_stellate1(Scaffold_base):
         wheelDvMult = [0.2, 0.3]
         nodeIdentifier = 1
 
-        if True:
-            for n2 in range(len(xnodes)):
-                for ia, j in enumerate(cumNumNodesPerArm[1:]):
-                    if ((n2+1) < j) and ((n2+1) > cumNumNodesPerArm[ia-1]):
-                        iArm = ia
-                if nodeIdentifier not in dupNodes:
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xnodes[n2])
-                    if xnodes_ds1:
-                        ds1 = xnodes_ds1[n2]
-                        ds2 = xnodes_ds2[n2]
-                    elif True:
-                        ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
-                        ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
-                        if nodeIdentifier in centreNodes:
-                            ds1 = [dipMultiplier *cos(armAngle/2), dipMultiplier *-sin(armAngle/2), 0.0]
-                            ds2 = [dipMultiplier *cos(armAngle/2), dipMultiplier *sin(armAngle/2), 0.0]
-                        elif nodeIdentifier in vertexNodes:
-                            if False:
-                                thNormal = -armAngle + xnodes[n2][-1] - pi
-                                ds1 = rotateByAngle_2D(dx_ds1, thNormal)
-                                ds2 = rotateByAngle_2D(dx_ds2, thNormal)
-
-                            [p, q] = xnodes[n2][:2]
-                            ds2 = [dx_ds2_unit[0]*p, dx_ds2_unit[1]*q, dx_ds2_unit[2]]
-                            ds1 = rotateByAngle_2D(ds2, -pi/2) # -pi/2 # -armAngle
-                            for i in range(2):
-                                ds1[i] *= wheelDvMult[0]
-                                # ds2[i] *= wheelDvMult[1]
-                            ds1 = [d*elens[0] for d in ds1]
-                    else: # default
-                        ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
-                        ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1) #ds1
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2) #ds2
-                nodeIdentifier += 1
+        for n2 in range(len(xnodes)):
+            for ia, j in enumerate(cumNumNodesPerArm[1:]):
+                if ((n2+1) < j) and ((n2+1) > cumNumNodesPerArm[ia-1]):
+                    iArm = ia
+            if nodeIdentifier not in dupNodes:
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xnodes[n2])
+                if xnodes_ds1:
+                    ds1 = xnodes_ds1[n2]
+                    ds2 = xnodes_ds2[n2]
+                else:
+                    ds1 = rotateByAngle_2D(dx_ds1, xnodes[n2][-1])
+                    ds2 = rotateByAngle_2D(dx_ds2, xnodes[n2][-1])
+                    if nodeIdentifier in centreNodes:
+                        ds1 = [dipMultiplier *cos(armAngle/2), dipMultiplier *-sin(armAngle/2), 0.0]
+                        ds2 = [dipMultiplier *cos(armAngle/2), dipMultiplier *sin(armAngle/2), 0.0]
+                    elif nodeIdentifier in vertexNodes:
+                        [p, q] = xnodes[n2][:2]
+                        ds2 = [dx_ds2_unit[0]*p, dx_ds2_unit[1]*q, dx_ds2_unit[2]]
+                        ds1 = rotateByAngle_2D(ds2, -pi/2)
+                        for i in range(2):
+                            ds1[i] *= wheelDvMult[0]
+                        ds1 = [d*elens[0] for d in ds1]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2)
+            nodeIdentifier += 1
 
         # create elements
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eft = bicubichermitelinear.createEftNoCrossDerivatives()
+
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate.defineField(coordinates, -1, eft)
+
         elementIdentifier = 1
-        for na in range(numArm): # for every arm present ##############################
+        elementtemplateX = mesh.createElementtemplate()
+        elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        for na in range(numArm):
             no2 = (elementsCount1[na] + 1)
             no3 = (elementsCount2 + 1)*no2
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
                     for e1 in range(elementsCount1[na]):
-                        element = mesh.createElement(elementIdentifier, elementtemplate)
+
+                        ### NODES ###
                         offset = (cumNumNodesPerArm[na])
-                        bni = e3*no3 + e2*no2 + e1 + 1 + offset
-                        nodeIdentifiers = [ bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1, bni + no2 + no3, bni + no2 + no3 + 1 ]
+                        bni = e3 * no3 + e2 * no2 + e1 + 1 + offset
+                        nodeIdentifiers = [bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1,
+                                           bni + no2 + no3, bni + no2 + no3 + 1]
                         for ins, node in enumerate(nodeIdentifiers):
                             if node in dupNodes:
-                                iReplacementNode = np.where(dupNodes_arr[:,1] == (node))[0][0]
+                                iReplacementNode = np.where(dupNodes_arr[:, 1] == (node))[0][0]
                                 replacementNode = dupNodes_dbl[iReplacementNode][0]
                                 nodeIdentifiers[ins] = replacementNode
-                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        elementIdentifier = elementIdentifier + 1
+
+                        ### ELEMENTS ###
+                        if e1 == 0:  # wheel
+                            eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            scalefactors = [-1.0]
+                            if numArm == 3:
+                                if e2 == 0:
+                                    scaleEftNodeValueLabels(eft1, [1, 5],
+                                                            [Node.VALUE_LABEL_D_DS1,
+                                                             Node.VALUE_LABEL_D_DS2], [1])
+                                    ns = [3, 7]
+                                else:
+                                    ns = [1, 5]
+                                if na == 0:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, []),
+                                                            (Node.VALUE_LABEL_D_DS2, [])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                elif na == 1:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    elif e2 == 1:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1])])
+                                elif na == 2:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS2, [])])
+                                    elif e2 == 1:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+                            elif numArm == 4:
+                                if e2 == 0:
+                                    scaleEftNodeValueLabels(eft1, [1, 5],
+                                                            [Node.VALUE_LABEL_D_DS1,
+                                                             Node.VALUE_LABEL_D_DS2], [1])
+                                    ns = [3, 7]
+                                else:
+                                    ns = [1, 5]
+                                if na == 0:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, []),
+                                                            (Node.VALUE_LABEL_D_DS2, [])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                elif na == 1:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                            (Node.VALUE_LABEL_D_DS2, [])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1])])
+                                elif na == 2:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]),
+                                                            (Node.VALUE_LABEL_D_DS2, [1])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1])])
+                                elif na == 3:
+                                    remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS1, []),
+                                                            (Node.VALUE_LABEL_D_DS2, [1])])
+                                    if e2 == 0:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+
+                        elif e1 < (elementsCount1[na] - 1):
+                            eft1 = eft
+                            elementtemplate1 = elementtemplate
+                            scalefactors = None
+                        else:
+                            # rounded ends of arms. Collapse xi2 at xi1 = 1
+                            eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
+                            remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS2, [])
+                            if e2 == 0:
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [])])
+                                nodeIdentifiers = [nodeIdentifiers[0], nodeIdentifiers[3], nodeIdentifiers[2],
+                                                   nodeIdentifiers[4], nodeIdentifiers[7], nodeIdentifiers[6]]
+                            else:  # e2 == 1
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                nodeIdentifiers = nodeIdentifiers[:3] + nodeIdentifiers[4:7]
+                            ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
+                            remapEftLocalNodes(eft1, 6, ln_map)
+
+                        if eft1 is not eft:
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+
+                        element = mesh.createElement(elementIdentifier, elementtemplate1)
+                        result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                        result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+
+                        elementIdentifier += 1
 
         fm.endChange()
 
@@ -238,9 +330,9 @@ class MeshType_3d_stellate1(Scaffold_base):
 
 def extrude(x, zheight, e_1d = []):
     x = np.array(x)
-    x_0 = column_stack([x, [0] * len(x)])
-    x_1 = column_stack([x, [zheight] * len(x)])
-    x_ex = vstack([x_0, x_1])
+    x_0 = np.column_stack([x, [0] * len(x)])
+    x_1 = np.column_stack([x, [zheight] * len(x)])
+    x_ex = np.vstack([x_0, x_1])
 
     # 1D elements
     if e_1d:
@@ -253,29 +345,32 @@ def extrude(x, zheight, e_1d = []):
         return x_ex
 
 
-def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingNode, dipMultiplier, armEndMult):
+def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, n0, dipMultiplier, numArm):
     '''
-    Base length of element is 1
-    direction: anticlockwise
-    minimum arm length is 2 elements
+    Create single arm unit.
+    Base length of element is 1.
+    Direction: anticlockwise
+    Minimum arm length is 2 elements.
 
     inputs:
         thAr: angle arising from base node (rad)
-        elen: element length
-        ewid: half element width
-        armLength: number of elements in arm
+        elens: [element length x, half element width y, element height z]
+        armLength: length of element in arm, specific to that arm.
         armAngle: angle from x axis of the arm about origin (rad)
+        armAngleConst: minimum angle from x axis of the first arm about origin (rad)
+        ecount: element counts in x,y,z directions
+        n0: starting node number of arm
+        dipMultiplier: factor that wheel nodes protrude by, relative to unit length
+        numArm: numbdr of arms in body
     outputs:
         x: positions of nodes in arm
-        e_1d: list of pairs of node numbers forming 1D line elements
+        nodeIdentifier: number of last node in arm +1
+        nWheel: nodes forming the 'wheel' about the central junction of arms
+        nCentre: nodes forming central junction of arms
+        nWheelVertices: nodes forming vertices of central wheel
+        xnodes_ds1: ds1 derivatives of nodes associated with x
+        xnodes_ds2: ds2 derivatives of nodes associated with x
     '''
-
-    def round_to_6sig(x, sig=6):
-        if x == 0:
-            return 0
-        else:
-            rounded = round(x, sig-int(floor(log10(abs(x))))-1)
-            return rounded
 
     elementsCount1, elementsCount2, elementsCount3 = ecount
     [elen, ewid, zheight] = elens
@@ -291,18 +386,20 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
     nodes_per_layer = (elementsCount1 + 1) * (elementsCount2 + 1)
     x = []
 
-    nodeIdentifier = startingNode
-    nCentre = startingNode + elementsCount1 + 1
+    nodeIdentifier = n0
+    nCentre = n0 + elementsCount1 + 1
     nCentre = [nCentre, nCentre + nodes_per_layer]
-    nWheelVertices = [startingNode, startingNode + nodes_per_layer,
-                      startingNode + 2 + (2*elementsCount1), startingNode + 2 + (2*elementsCount1) + nodes_per_layer ]
-    nArmCornerSth = [startingNode + elementsCount1, startingNode + elementsCount1 + nodes_per_layer]
-    nArmCornerNth = [startingNode + elementsCount1 + ((elementsCount1+1)*2), startingNode + elementsCount1 + ((elementsCount1+1)*2) + nodes_per_layer]
-    nWheel = [startingNode, \
-              startingNode + 1, \
-              startingNode + elementsCount1 + 2, \
-              startingNode + (2*(elementsCount1 + 1)) + 1, \
-              startingNode + (2*(elementsCount1 + 1))]
+    nWheelVertices = [n0, n0 + nodes_per_layer,
+                      n0 + 2 + (2*elementsCount1), n0 + 2 + (2*elementsCount1) + nodes_per_layer ]
+    nArmCornerSth = [n0 + elementsCount1, n0 + elementsCount1 + nodes_per_layer]
+    nArmCornerNth = [n0 + elementsCount1 + ((elementsCount1+1)*2),
+                     n0 + elementsCount1 + ((elementsCount1+1)*2) + nodes_per_layer]
+    nArmEndMid = [(n0-1) + ((elementsCount1+1)*2), (n0-1) + ((elementsCount1+1)*2) + nodes_per_layer]
+    nWheel = [n0, \
+              n0 + 1, \
+              n0 + elementsCount1 + 2, \
+              n0 + (2*(elementsCount1 + 1)) + 1, \
+              n0 + (2*(elementsCount1 + 1))]
     nWheel = nWheel + [n+nodes_per_layer for n in nWheel]
 
     dcent = [elen * cos(armAngleConst / 2), elen * sin(armAngleConst / 2), 0.0]
@@ -313,53 +410,40 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
         x3 = n3 * zheight
         for n2 in range(elementsCount2 + 1):
             for n1 in range(elementsCount1 + 1):
-                if nodeIdentifier == startingNode or nodeIdentifier == startingNode + nodes_per_layer:
+                if nodeIdentifier == n0 or nodeIdentifier == n0 + nodes_per_layer:
                     x1 = dvertex[0]
                     x2 = -dvertex[1]
-                elif nodeIdentifier == startingNode + (2*(armLength+1)) or nodeIdentifier == startingNode + (2*(armLength+1)) + nodes_per_layer:
+                elif nodeIdentifier == n0 + (2*(armLength+1)) or nodeIdentifier == n0 + (2*(armLength+1)) + nodes_per_layer:
                     x1 = dvertex[0]
                     x2 = dvertex[1]
-                elif nodeIdentifier == startingNode + elementsCount1 or nodeIdentifier == startingNode + elementsCount1 + nodes_per_layer or nodeIdentifier == startingNode + (nodes_per_layer) - 1 or nodeIdentifier == startingNode + (2*nodes_per_layer) - 1:
-                    x1 = elen*(n1 - (1-armEndMult))
-                    x2 = ((n2 - 1) * armEndMult * ewid / 2)
                 else:
                     x1 = (elen*n1)
                     x2 = ((n2 - 1) * ewid / 2)
                 x.append([x1, x2, x3])
 
                 # DERIVATIVES
-                # ds1 = rotateByAngle_2D(dx_ds1, armAngle)  # probably the wrong angle argument
-                # ds2 = rotateByAngle_2D(dx_ds2, armAngle)
                 ds1 = dx_ds1.copy()
                 ds2 = dx_ds2.copy()
                 if nodeIdentifier in nCentre:
-                    # these must consider elen
                     ds2 = dcent
                     ds1 = [dcent[0], -dcent[1], dcent[2]]
                 elif nodeIdentifier in nWheelVertices:
                     [p, q] = [x1/dipMultiplier, x2/dipMultiplier] # unit vector
                     ds2mag = round(2*np.linalg.norm([p,q]),6) - np.linalg.norm(dcent)
                     ds2 = [ds2mag*p, ds2mag*q]
-                    # ds2 = [dx_ds2_unit[1] * p, dx_ds2_unit[1] * q, dx_ds2_unit[2]] # [1] twice is not a typo
                     ds1 = rotateByAngle_2D(ds2, -pi / 2)  # -pi/2 # -armAngle
                     for i in range(2):
                         ds1[i] *= wheelDvMult[0]
-                        # ds2[i] *= wheelDvMult[1]
                     ds1 = [d * elen for d in ds1]
-                elif nodeIdentifier in nArmCornerSth:
-                    ds1 = [ds1[0]*curveAdjust[0], curveAdjust[0], 0]#[d for d in ds1]
-                    ds2 = [curveAdjust[1], ds2[1]*curveAdjust[1], 0]
-                elif nodeIdentifier in nArmCornerNth:
-                    ds1 = [ds1[0]*curveAdjust[0], -curveAdjust[0], 0]#[d for d in ds1]
-                    ds2 = [-curveAdjust[1], ds2[1]*curveAdjust[1], 0]
+                elif nodeIdentifier in (nArmEndMid+nArmCornerNth+nArmCornerSth):
+                    ds1 = [0.5 * ewid, 0, 0]
+                    ds2 = [0, 0.5 * (elen + 0.5 * ewid), 0]
                 xnodes_ds1.append(ds1)
                 xnodes_ds2.append(ds2)
 
                 nodeIdentifier += 1
-    e_1d = []
 
-
-    # rotate entire arm about origin by armAngle EXCEPT for centre nodes
+    # rotate entire arm about origin by armAngle except for centre nodes
     tol = 1e-12
     for j, n in enumerate(x):
         xynew = rotateByAngle_2D(n, armAngle)
@@ -374,13 +458,27 @@ def createArm(thAr, elens, armLength, armAngle, armAngleConst, ecount, startingN
             xnodes_ds1[j] = rotateByAngle_2D(xnodes_ds1[j], armAngle)
             xnodes_ds2[j] = rotateByAngle_2D(xnodes_ds2[j], armAngle)
 
-
     return (x, nodeIdentifier, nWheel, nCentre, nWheelVertices, xnodes_ds1, xnodes_ds2)
 
 
-def createBody(elens, numArm, thAr, ecount, dipMultiplier, armEndMult, plot_):
+def createBody(elens, numArm, thAr, ecount, dipMultiplier):
+    '''
+    Create amalgamation of arms about central junction.
 
-    import numpy as np
+    inputs:
+        elens: [element length x, half element width y, element height z]
+        numArm: numbdr of arms in body
+        thAr: angle arising from base node (rad)
+        ecount: element counts in x,y,z directions
+        dipMultiplier: factor that wheel nodes protrude by, relative to unit length
+    outputs:
+        x: positions of all nodes in body
+        xds1: ds1 derivatives of nodes associated with x
+        xds2: ds2 derivatives of nodes associated with x
+        nWheel: nodes forming the 'wheel' about the central junction of arms
+        nCentre: nodes forming central junction of arms
+        nWheelVertices: nodes forming vertices of central wheel
+    '''
 
     [elen, ewid, zheight] = elens
 
@@ -394,14 +492,11 @@ def createBody(elens, numArm, thAr, ecount, dipMultiplier, armEndMult, plot_):
     nCentre = []
     nWheelVertices = []
 
-    if plot_:
-        plt.figure()
-
     nextNode = 1
     x_out = []
     for i in range(numArm):
         ecount_i = [ecount[0][i], ecount[1], ecount[2]]
-        x_out, nextNode, nwhl, ncntr, nvtx, ds1, ds2 = createArm(thAr, elens, armLength[i], minArmAngle*i, minArmAngle, ecount_i, nextNode, dipMultiplier, armEndMult)
+        x_out, nextNode, nwhl, ncntr, nvtx, ds1, ds2 = createArm(thAr, elens, armLength[i], minArmAngle*i, minArmAngle, ecount_i, nextNode, dipMultiplier, numArm)
 
         x.extend([ix+[minArmAngle*i] for ix in x_out])
         xds1.extend(ds1)
@@ -413,59 +508,24 @@ def createBody(elens, numArm, thAr, ecount, dipMultiplier, armEndMult, plot_):
         endNode = 0
         if isinstance(x_out, list):
             x_out_nd = np.array(x_out)
-            # x = np.array(x_out)
-        if plot_:
-            plt.plot(x_out_nd[:, 0], x_out_nd[:, 1], 'x')
-            for node in range(int(len(x_out_nd)/1)):
-                plt.text(x_out_nd[node][0], x_out_nd[node][1], str(node+1+endNode))
-            endNode += len(x_out_nd)
-            if False:
-                e_1d_out = [] # obsolete
-                for np in e_1d_out:
-                    plt.plot(x_out[np][:2,0], x_out[np][:2,1], 'k-', linewidth = 1)
-            plt.axis('equal')
 
-    # extrude in z
+    # extrude in z if only a single 2D layer was made
     if len(x[0]) < 4:
         x = np.array(x)
-        x = extrude(x, zheight)  # x, e_1d = extrude(x, e_1d)
+        x = extrude(x, zheight)
 
-    # adjust value of x by small random offset
-    if False:
-        x += random.rand(len(x), len(x[0])) * 1e-2
-        x = list([list(ix) for ix in x])
-
-    # TESTING ELEMENT CREATION
-    if False:
-        numNodesPerArm = [0]*(numArm+1)
-        for na in range(numArm):
-            numNodesPerArm[na+1] = (ecount[0][na] + 1) * (ecount[1] + 1) * (ecount[2] + 1)
-        cumNumNodesPerArm = [sum(numNodesPerArm[:i + 1]) for i in range(len(numNodesPerArm))]
-        elementIdentifier = 1
-        scr = dict()
-        for na in range(numArm): # for every arm present ##############################
-            no2 = (ecount[0][na] + 1) #+ (numArm-1)*(na>0)
-            no3 = (ecount[1] + 1)*no2
-            for e3 in range(ecount[2]):
-                for e2 in range(ecount[1]):
-                    for e1 in range(ecount[0][na]):
-                        bni = e3*no3 + e2*no2 + e1 + 1 + (cumNumNodesPerArm[na])
-                        nodeIdentifiers = [ bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1, bni + no2 + no3, bni + no2 + no3 + 1 ]
-                        scr[elementIdentifier] = nodeIdentifiers
-                        elementIdentifier = elementIdentifier + 1
-
-    print('Node number (length of x) = ' + str(len(x)))
-
-    if plot_:
-        plt.axis('equal')
-        plt.show()
-
-    # return ([ix.tolist() for ix in x])
     return x, xds1, xds2, nWheel, nCentre, nWheelVertices
 
-# Remove duplicate nodes, but keep the node correspondence - replace duplicate node in nodelist with OG node
-def findDuplicateNodes(x, nodeList):
 
+def findDuplicateNodes(x):
+    '''
+    Find repeated rows in x
+
+    input:
+        x: list
+    output:
+        dupNodes: [first instance of row, index of where duplicate occured]
+    '''
     xnew = []
     x_orig = x.copy()
     dupNodes = []
@@ -476,42 +536,21 @@ def findDuplicateNodes(x, nodeList):
         else:
             xnew.extend(row)
 
-    j = 10
-
-    if False:
-        if i == 0:
-            x.extend(x_out)
-        else:
-            x2 = x.copy()
-            xarr = np.array(x2)
-            for row in x_out:
-                if True:
-                    # if ~(all(xarr == np.array(row), 1)).any():
-                    if ~(xarr == np.array(row), 1)[1]:
-                        x.extend([row])
-                    else:
-                        j = 10
-                else:
-                    x.extend([row])
-
     return dupNodes
 
 
 def rotateByAngle_2D(x, th):
+    '''
+    Stiff rotation in xy plane about (0,0)
+
+    inputs:
+        x: list
+        th: angle to rotate anticlockwise by (rad)
+    output:
+        xRot: transformed list
+    '''
+
     xRot = [x[0] * cos(th) - x[1] * sin(th),
             x[1] * cos(th) + x[0] * sin(th),
             0]
     return xRot
-
-if __name__ == "__main__":
-
-    elens = [1,1, 1] # [x, y] element lengths
-    numArm = 3
-    ecount = [[4,2,2],2,1]
-    armRotationAngles = (2*pi) / (numArm*2)
-    dipMultiplier = 0.75
-    armEndMult = 0.75
-    plot_graph = True
-    xnodes, xds1, xds2, nWheel, nCentre, nWheelVertices = createBody(elens, numArm, armRotationAngles, ecount, dipMultiplier, armEndMult, plot_graph)
-    x_in = [ix[:3] for ix in xnodes]
-    nodeList_sh = findDuplicateNodes(x_in, (range(1, len(xnodes) + 1)))
