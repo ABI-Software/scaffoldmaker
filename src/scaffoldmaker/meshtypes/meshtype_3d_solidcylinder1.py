@@ -5,26 +5,47 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
 
 from __future__ import division
 import math
+import copy
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression, Tapered, \
     CylinderEnds
-
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from opencmiss.zinc.node import Node
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
     '''
 Generates a solid cylinder using a ShieldMesh of all cube elements,
  with variable numbers of elements in major, minor and length directions.
     '''
+
+    centralPathDefaultScaffoldPackages = {
+        'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'Length': 1.0,
+                'Number of elements': 1
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.5]],
+                    [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.5]]])
+        })
+    }
+
     @staticmethod
     def getName():
         return '3D Solid Cylinder 1'
 
-    @staticmethod
-    def getDefaultOptions(parameterSetName='Default'):
-        return {
+    @classmethod
+    def getDefaultOptions(cls,parameterSetName='Default'):
+        centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
+        options = {
+            'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 6,
             'Number of elements across minor': 4,
             'Number of elements along': 1,
@@ -42,10 +63,12 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Refine number of elements across major' : 1,
             'Refine number of elements along' : 1
         }
+        return options
 
     @staticmethod
     def getOrderedOptionNames():
         return [
+            'Central path',
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
@@ -62,8 +85,41 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Refine number of elements along'
         ]
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def getOptionValidScaffoldTypes(cls, optionName):
+        if optionName == 'Central path':
+            return [MeshType_1d_path1]
+        return []
+
+    @classmethod
+    def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
+        if optionName == 'Central path':
+            return list(cls.centralPathDefaultScaffoldPackages.keys())
+        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
+            cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
+            'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
+        return scaffoldType.getParameterSetNames()
+
+    @classmethod
+    def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
+        '''
+        :param parameterSetName:  Name of valid parameter set for option Scaffold, or None for default.
+        :return: ScaffoldPackage.
+        '''
+        if parameterSetName:
+            assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
+                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
+                ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
+        if optionName == 'Central path':
+            if not parameterSetName:
+                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
+            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+        assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
+
+    @classmethod
+    def checkOptions(cls,options):
+        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
+            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
         if options['Full'] != options['oldFull']:
             if options['Full']:
@@ -98,6 +154,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+        centralPath = options['Central path']
         full = options['Full']
         length = options['Length']
         majorRadius = options['Major radius']
@@ -110,6 +167,14 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']
+
+        # Central path
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+        # for i in range(len(cx)):
+        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i],',', cd12[i], '],')
+        del tmpRegion
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
