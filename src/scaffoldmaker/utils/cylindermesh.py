@@ -68,6 +68,16 @@ class Tapered:
         self.minorRatio = minorRatio
         self.minorProgressionMode = minorProgressionMode
 
+# class CylinderCentralPath:
+#     '''
+#     Stores ellipses parameters a long the central path.
+#     '''
+#     def __init__(self):
+#         self.majorRadii
+#         self.majorAxis
+#         self.minorRadii
+#         self.minorAxis
+#         self.centres
 
 class CylinderMesh:
     '''
@@ -92,6 +102,7 @@ class CylinderMesh:
         self._elementsCountAcrossMajor = base._elementsCountAcrossMajor
         self._elementsCountUp = base._elementsCountAcrossMajor//2 if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else base._elementsCountAcrossMajor
         self._elementsCountAlong = elementsCountAlong
+        self._elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcrossMinor
         self._startNodeIdentifier = 1
         self._startElementIdentifier = 1
         self._endNodeIdentifier = 1
@@ -146,7 +157,7 @@ class CylinderMesh:
             radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
         return nx, nd1
 
-    def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis):
+    def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis, cylinderCentralPath=None):
         '''
         generate bases of the truncated cone along the cone axis.
         :param majorRadius: major radius of the cone ellipse base.
@@ -155,6 +166,7 @@ class CylinderMesh:
         '''
         self._majorRadii = []
         self._minorRadii = []
+        centre = self._base._centre
         nx, nd1 = self.createCylinderBaseMesh2D(
             self._base._centre, self._base._majorAxis, minorAxis, elementsCountAround, majorRadius)
         majorRadius1 = majorRadius
@@ -176,33 +188,39 @@ class CylinderMesh:
             tnd3.append(tbd3)
             if (self._cylinderType == CylinderType.CYLIDNER_TAPERED) and (n3<self._elementsCountAlong):
                 nx = nd1 = []
-                if self._tapered.majorProgressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
-                    majorRadius1 = majorRadius1 * self._tapered.majorRatio
-                elif self._tapered.majorProgressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
-                    majorRadius1 += self._tapered.majorRatio
-                majorAxis1 = vector.setMagnitude(self._base._majorAxis, majorRadius1)
-                if self._tapered.minorProgressionMode == ConeBaseProgression.GEOMETIRC_PROGRESSION:
-                    minorRadius1 = minorRadius1 * self._tapered.minorRatio
-                elif self._tapered.minorProgressionMode == ConeBaseProgression.ARITHMETIC_PROGRESSION:
-                    minorRadius1 += self._tapered.minorRatio
-                minorAxis1 = vector.setMagnitude(self._base._minorAxis, minorRadius1)
-                baseC = [self._base._centre[c] + (n3+1) * arcLengthAlong * vector.normalise(self._base._alongAxis)[c] for c in
-                         range(3)]
-                self._basesCentres[n3+1] = baseC
+                if cylinderCentralPath:
+                    majorRadius1 = cylinderCentralPath.majorRadii[n3+1]
+                    majorAxis1   = cylinderCentralPath.majorAxis[n3+1]
+                    minorRadius1 = cylinderCentralPath.minorRadii[n3+1]
+                    minorAxis1   = cylinderCentralPath.minorAxis[n3+1]
+                    centre       = cylinderCentralPath.centres[n3+1]
+                else:
+                    majorRadius1, majorAxis1 = computeNextRadius(majorRadius1,self._base._majorAxis,self._tapered.majorRatio,self._tapered.majorProgressionMode)
+                    minorRadius1, minorAxis1 = computeNextRadius(minorRadius1,self._base._minorAxis,self._tapered.minorRatio,self._tapered.minorProgressionMode)
+                    centre = computeNextCentre(centre, arcLengthAlong, self._base._alongAxis)
+                self._basesCentres[n3+1] = centre
                 self._majorRadii.append(majorRadius1)
                 self._minorRadii.append(minorRadius1)
                 nx, nd1 = self.createCylinderBaseMesh2D(
-                    baseC, majorAxis1, minorAxis1, elementsCountAround, majorRadius1)
+                    centre, majorAxis1, minorAxis1, elementsCountAround, majorRadius1)
 
+        btx, btd1, btd2, btd3 = self.setRimNodes(tnx,tnd1,tnd2,tnd3,minorAxis)
+        return btx, btd1, btd2, btd3
+
+    def setRimNodes(self,nx,nd1,nd2,nd3,minorAxis):
+        '''
+        sets nodes of the ellipse boundary in order needed for creating a shield mesh.
+        :return: coordinates and derivatives of the ellipse boundary nodes.
+        '''
         btx = self._shield.px
         btd1 = self._shield.pd1
         btd2 = self._shield.pd2
         btd3 = self._shield.pd3
 
         for n3 in range(self._elementsCountAlong + 1):
-            for n in range(elementsCountAround + 1):
+            for n in range(self._elementsCountAround + 1):
                 n1, n2 = self._shield.convertRimIndex(n)
-                tx, td1, td2, td3 = tnx[n3], tnd1[n3], tnd2[n3], tnd3[n3]
+                tx, td1, td2, td3 = nx[n3], nd1[n3], nd2[n3], nd3[n3]
                 btx[n3][n2][n1] = tx[n]
                 if n2 > self._shield.elementsCountRim:  # regular rows
                     btd1[n3][n2][n1] = td1[n]
@@ -400,7 +418,7 @@ class CylinderMesh:
         # create the base ellipse
         minorAxis = vector.setMagnitude(vector.crossproduct3(self._base._alongAxis, self._base._majorAxis), self._base._minorRadius)
         majorRadius = vector.magnitude(self._base._majorAxis)
-        elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcrossMinor
+        elementsCountAround = self._elementsCountAround
 
         # the bottom curve node coordinates and derivatives
         arcLengthAlong = vector.magnitude(self._base._alongAxis)/self._elementsCountAlong
@@ -475,3 +493,30 @@ class CylinderMesh:
             self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
              self._basesCentres[-1], self._shield.pd2[-1][0][1], vector.setMagnitude(self._base._majorAxis, self._majorRadii[-1]), self._minorRadii[-1])
         self.setEndsNodes()
+
+def computeNextRadius(radius, axis, ratio, progression):
+    '''
+    calculate next radius based on the progression method. r_n+1=r_n*ratio for geometric. r_n+1=r_ratio for arithmetic.
+    :param radius: radius (major or minor) along the central path.
+    :param axis: major or minor axis along the central path.
+    :param ratio: common ratio (common difference) for changing the next radius.
+    :param progression: arithmetic or geometric.
+    :return: next radius and axis.
+    '''
+    if progression == ConeBaseProgression.GEOMETIRC_PROGRESSION:
+        radius = radius * ratio
+    elif progression == ConeBaseProgression.ARITHMETIC_PROGRESSION:
+        radius += ratio
+    axis = vector.setMagnitude(axis, radius)
+    return radius, axis
+
+def computeNextCentre(centre, arcLength,axis):
+    '''
+    compute next centre coordinate
+    :param arcLength: the length to go forward.
+    :param centre: the start centre.
+    :return: next centre coordinates.(n3 + 1) *
+    '''
+    centre = [centre[c]+arcLength * vector.normalise(axis)[c] for c in
+     range(3)]
+    return centre

@@ -16,6 +16,8 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from opencmiss.zinc.node import Node
+from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite,\
+    smoothCubicHermiteDerivativesLine, getCubicHermiteArcLength,DerivativeScalingMode, sampleParameterAlongLine
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
     '''
@@ -46,6 +48,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
+            'Use central path': False,
             'Number of elements across major': 6,
             'Number of elements across minor': 4,
             'Number of elements along': 1,
@@ -69,6 +72,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
     def getOrderedOptionNames():
         return [
             'Central path',
+            'Use central path',
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
@@ -155,6 +159,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         :return: None
         """
         centralPath = options['Central path']
+        useCentralPath = options['Use central path']
         full = options['Full']
         length = options['Length']
         majorRadius = options['Major radius']
@@ -168,13 +173,37 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']
 
-        # Central path
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
-        # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i],',', cd12[i], '],')
-        del tmpRegion
+        if useCentralPath:
+            # Central path
+            tmpRegion = region.createRegion()
+            centralPath.generate(tmpRegion)
+            cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+            # for i in range(len(cx)):
+            #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i],',', cd12[i], '],')
+            del tmpRegion
+
+            # find arclength of cylinder
+            totalLength = 0.0
+            elementsCountIn = len(cx) - 1
+            sd1 = smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True,
+                                                           magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+            for e in range(elementsCountIn):
+                arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+                # print(e+1, arcLength)
+                totalLength += arcLength
+            # segmentLength = length / segmentCount
+            # elementAlongLength = length / elementsCountAlong
+            # # print('Length = ', length)
+
+            # Sample central path
+            # sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment * segmentCount)
+            # sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+
+            # # Generate variation of radius & tc width along length
+            # lengthList = [0.0, duodenumLength, duodenumLength + jejunumLength, length]
+            # innerRadiusList = [duodenumInnerRadius, duodenumJejunumInnerRadius, jejunumIleumInnerRadius, ileumInnerRadius]
+            # innerRadiusSegmentList, dInnerRadiusSegmentList = sampleParameterAlongLine(lengthList, innerRadiusList,
+            #                                                                                   segmentCount)
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -183,19 +212,9 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
 
-        if majorGeometric:
-            majorRatio = math.pow(majorRadiusEndRatio, 1.0 / elementsCountAlong)
-            majorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
-        else:
-            majorRatio = ( majorRadiusEndRatio*majorRadius - majorRadius)/elementsCountAlong
-            majorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
-
-        if minorGeometric:
-            minorRatio = math.pow(minorRadiusEndRatio,1.0/elementsCountAlong)
-            minorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
-        else:
-            minorRatio = (minorRadiusEndRatio * minorRadius - minorRadius) / elementsCountAlong
-            minorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
+        if not useCentralPath:
+            majorRatio, majorProgression = radiusChange(majorRadius, majorRadiusEndRatio, elementsCountAlong, geometric=majorGeometric)
+            minorRatio, minorProgression = radiusChange(minorRadius, minorRadiusEndRatio, elementsCountAlong, geometric=minorGeometric)
 
         raidusChanges = Tapered(majorRatio,majorProgression,minorRatio,minorProgression)
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
@@ -220,3 +239,19 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         refineElementsCountAcrossMajor = options['Refine number of elements across major']
         refineElementsCountAlong = options['Refine number of elements along']
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
+
+def radiusChange(radius,radiusEndRatio,elementsCountAlong,geometric=True):
+    '''
+    returns common ratio ro common difference for radius change.
+    :param radius: cylinder base radius
+    :param geometric: if True the radius change as r_n+1=r_n*ratio otherwise r_n+1 = r_n + ratio
+    :return: common ratio (difference) and type of progression (either geometric or arithmetic).
+    '''
+    if geometric:
+        ratio = math.pow(radiusEndRatio, 1.0 / elementsCountAlong)
+        progression = ConeBaseProgression.GEOMETIRC_PROGRESSION
+    else:
+        ratio = (radiusEndRatio * radius - radius) / elementsCountAlong
+        progression = ConeBaseProgression.ARITHMETIC_PROGRESSION
+
+    return ratio, progression
