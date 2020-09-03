@@ -120,14 +120,14 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
 
         if majorGeometric:
             majorRatio = math.pow(majorRadiusEndRatio, 1.0 / elementsCountAlong)
-            majorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
+            majorProgression = ConeBaseProgression.GEOMETRIC_PROGRESSION
         else:
             majorRatio = ( majorRadiusEndRatio*majorRadius - majorRadius)/elementsCountAlong
             majorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
 
         if minorGeometric:
             minorRatio = math.pow(minorRadiusEndRatio,1.0/elementsCountAlong)
-            minorProgression = ConeBaseProgression.GEOMETIRC_PROGRESSION
+            minorProgression = ConeBaseProgression.GEOMETRIC_PROGRESSION
         else:
             minorRatio = (minorRadiusEndRatio * minorRadius - minorRadius) / elementsCountAlong
             minorProgression = ConeBaseProgression.ARITHMETIC_PROGRESSION
