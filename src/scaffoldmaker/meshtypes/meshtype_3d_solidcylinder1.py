@@ -25,11 +25,10 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of elements across major': 6,
+            'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements along': 1,
-            'Full': True,
-            'oldFull': True,
+            'Lower half': False,
             'Length': 1.0,
             'Major radius': 1.0,
             'Major radius geometric progression change': True,
@@ -49,7 +48,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
-            'Full',
+            'Lower half',
             'Length',
             'Major radius',
             'Major radius geometric progression change',
@@ -65,26 +64,16 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
     @staticmethod
     def checkOptions(options):
         dependentChanges = False
-        if options['Full'] != options['oldFull']:
-            if options['Full']:
-                options['Number of elements across major'] *= 2
-            else:
-                options['Number of elements across major'] //= 2
-            options['oldFull'] = options['Full']
-            dependentChanges = True
-        if options['Full']:
-            if options['Number of elements across major'] < 6:
-                options['Number of elements across major'] = 6
-            if options['Number of elements across major'] % 2:
-                options['Number of elements across major'] = 6
-        else:
-            if options['Number of elements across major'] < 3:
-                options['Number of elements across major'] = 3
+
+        if options['Number of elements across major'] < 4:
+            options['Number of elements across major'] = 4
+        if options['Number of elements across major'] % 2:
+            options['Number of elements across major'] += 1
 
         if options['Number of elements across minor'] < 4:
             options['Number of elements across minor'] = 4
         if options['Number of elements across minor'] % 2:
-            options['Number of elements across minor'] = 4
+            options['Number of elements across minor'] += 1
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
 
@@ -98,7 +87,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        full = options['Full']
+        full = not options['Lower half']
         length = options['Length']
         majorRadius = options['Major radius']
         majorGeometric = options['Major radius geometric progression change']
@@ -107,6 +96,8 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         majorRadiusEndRatio = options['Major radius end ratio']
         minorRadiusEndRatio = options['Minor radius end ratio']
         elementsCountAcrossMajor = options['Number of elements across major']
+        if not full:
+            elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']

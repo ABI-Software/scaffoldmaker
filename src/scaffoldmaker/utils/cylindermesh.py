@@ -404,7 +404,7 @@ class CylinderMesh:
         assert (self._elementsCountAcrossMinor > 3), 'createCylinderMesh3d: Invalid number of across elements'
         assert (self._elementsCountAcrossMinor % 2 == 0), 'createCylinderMesh3d: number of across elements' \
                                                           ' is not an even number'
-        assert (self._elementsCountAcrossMajor > 2), 'createCylinderMesh3d: Invalid number of up elements'
+        assert (self._elementsCountAcrossMajor > 1), 'createCylinderMesh3d: Invalid number of up elements'
         assert (self._cylinderShape in [self._cylinderShape.CYLINDER_SHAPE_FULL,
                                         self._cylinderShape.CYLINDER_SHAPE_LOWER_HALF]), \
             'createCylinderMesh3d: Invalid cylinder mode.'
