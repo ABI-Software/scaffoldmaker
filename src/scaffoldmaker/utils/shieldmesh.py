@@ -309,24 +309,24 @@ class ShieldMesh:
                         self.pd2[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd2[n3][n2][n1])
                         self.pd3[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd3[n3][n2][n1])
 
-    def generateNodes(self, fieldModule, coordinates, startNodeIdentifier,mirrorPlane=None):
+    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier,mirrorPlane=None):
         """
         Create shield nodes from coordinates.
-        :param fieldModule: Zinc fieldModule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
         :param startNodeIdentifier: First node identifier to use.
         :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
         :return: next nodeIdentifier.
          """
         nodeIdentifier = startNodeIdentifier
-        nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        cache = fieldModule.createFieldcache()
+        cache = fieldmodule.createFieldcache()
 
         #for n2 in range(self.elementsCountUp, -1, -1):
         #    s = ""
@@ -353,10 +353,10 @@ class ShieldMesh:
         return nodeIdentifier
 
 
-    def generateElements(self, fieldModule, coordinates, startElementIdentifier, meshGroups=[]):
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
         """
         Create shield elements from nodes.
-        :param fieldModule: Zinc fieldModule to create elements in.
+        :param fieldmodule: Zinc fieldmodule to create elements in.
         :param coordinates: Coordinate field to define.
         :param startElementIdentifier: First element identifier to use.
         :param meshGroups: Zinc mesh groups to add elements to.
@@ -364,7 +364,7 @@ class ShieldMesh:
          """
         elementIdentifier = startElementIdentifier
         useCrossDerivatives = False
-        mesh = fieldModule.findMeshByDimension(3)
+        mesh = fieldmodule.findMeshByDimension(3)
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         eft = tricubichermite.createEftNoCrossDerivatives()

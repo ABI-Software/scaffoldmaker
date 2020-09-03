@@ -10,7 +10,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.cylindermesh import CylinderType, CylinderMesh, CylinderShape, ConeBaseProgression, Tapered, \
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, ConeBaseProgression, Tapered, \
     CylinderEnds
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -20,10 +20,10 @@ from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpol
     smoothCubicHermiteDerivativesLine, getCubicHermiteArcLength,DerivativeScalingMode, sampleParameterAlongLine
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
-    '''
+    """
 Generates a solid cylinder using a ShieldMesh of all cube elements,
  with variable numbers of elements in major, minor and length directions.
-    '''
+    """
 
     centralPathDefaultScaffoldPackages = {
         'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -43,28 +43,28 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
     def getName():
         return '3D Solid Cylinder 1'
 
+
     @classmethod
     def getDefaultOptions(cls,parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Use central path': False,
-            'Number of elements across major': 6,
+            'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements along': 1,
-            'Full' : True,
-            'oldFull' : True,
-            'Length' : 1.0,
-            'Major radius' : 1.0,
+            'Lower half': False,
+            'Length': 1.0,
+            'Major radius': 1.0,
             'Major radius geometric progression change': True,
             'Major radius end ratio': 0.92,
-            'Minor radius' : 1.0,
+            'Minor radius': 1.0,
             'Minor radius geometric progression change': True,
-            'Minor radius end ratio' : 0.92,
-            'Use cross derivatives' : False,
-            'Refine' : False,
-            'Refine number of elements across major' : 1,
-            'Refine number of elements along' : 1
+            'Minor radius end ratio': 0.92,
+            'Use cross derivatives': False,
+            'Refine': False,
+            'Refine number of elements across major': 1,
+            'Refine number of elements along': 1
         }
         return options
 
@@ -76,7 +76,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
-            'Full',
+            'Lower half',
             'Length',
             'Major radius',
             'Major radius geometric progression change',
@@ -125,26 +125,16 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
-        if options['Full'] != options['oldFull']:
-            if options['Full']:
-                options['Number of elements across major'] *= 2
-            else:
-                options['Number of elements across major'] //= 2
-            options['oldFull'] = options['Full']
-            dependentChanges = True
-        if options['Full']:
-            if options['Number of elements across major'] < 6:
-                options['Number of elements across major'] = 6
-            if options['Number of elements across major'] %2:
-                options['Number of elements across major'] = 6
-        else:
-            if options['Number of elements across major'] < 3:
-                options['Number of elements across major'] = 3
+
+        if options['Number of elements across major'] < 4:
+            options['Number of elements across major'] = 4
+        if options['Number of elements across major'] % 2:
+            options['Number of elements across major'] += 1
 
         if options['Number of elements across minor'] < 4:
             options['Number of elements across minor'] = 4
         if options['Number of elements across minor'] % 2:
-            options['Number of elements across minor'] = 4
+            options['Number of elements across minor'] += 1
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
 
@@ -158,9 +148,10 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+
         centralPath = options['Central path']
         useCentralPath = options['Use central path']
-        full = options['Full']
+        full = not options['Lower half']
         length = options['Length']
         majorRadius = options['Major radius']
         majorGeometric = options['Major radius geometric progression change']
@@ -169,6 +160,8 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
         majorRadiusEndRatio = options['Major radius end ratio']
         minorRadiusEndRatio = options['Minor radius end ratio']
         elementsCountAcrossMajor = options['Number of elements across major']
+        if not full:
+            elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']
@@ -216,29 +209,29 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
             majorRatio, majorProgression = radiusChange(majorRadius, majorRadiusEndRatio, elementsCountAlong, geometric=majorGeometric)
             minorRatio, minorProgression = radiusChange(minorRadius, minorRadiusEndRatio, elementsCountAlong, geometric=minorGeometric)
 
-        raidusChanges = Tapered(majorRatio,majorProgression,minorRatio,minorProgression)
+        radiusChanges = Tapered(majorRatio, majorProgression, minorRatio, minorProgression)
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        base = CylinderEnds(elementsCountAcrossMajor,elementsCountAcrossMinor,
-                 [0.0, 0.0, 0.0],vector.setMagnitude(axis3,length), vector.setMagnitude(axis1,majorRadius), minorRadius)
+        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, [0.0, 0.0, 0.0],
+                            vector.setMagnitude(axis3, length), vector.setMagnitude(axis1, majorRadius), minorRadius)
         cylinder1 = CylinderMesh(fm, coordinates, base, elementsCountAlong,
-                             cylinderShape=cylinderShape, tapered=raidusChanges,
+                                 cylinderShape=cylinderShape, tapered=radiusChanges,
                                  useCrossDerivatives=False)
 
         annotationGroup = []
         return annotationGroup
 
     @classmethod
-    def refineMesh(cls, meshrefinement, options):
+    def refineMesh(cls, meshRefinement, options):
         """
         Refine source mesh into separate region, with change of basis.
-        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param meshRefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        assert isinstance(meshrefinement, MeshRefinement)
+        assert isinstance(meshRefinement, MeshRefinement)
         refineElementsCountAcrossMajor = options['Refine number of elements across major']
         refineElementsCountAlong = options['Refine number of elements along']
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
+        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
 
 def radiusChange(radius,radiusEndRatio,elementsCountAlong,geometric=True):
     '''
@@ -249,7 +242,7 @@ def radiusChange(radius,radiusEndRatio,elementsCountAlong,geometric=True):
     '''
     if geometric:
         ratio = math.pow(radiusEndRatio, 1.0 / elementsCountAlong)
-        progression = ConeBaseProgression.GEOMETIRC_PROGRESSION
+        progression = ConeBaseProgression.GEOMETRIC_PROGRESSION
     else:
         ratio = (radiusEndRatio * radius - radius) / elementsCountAlong
         progression = ConeBaseProgression.ARITHMETIC_PROGRESSION

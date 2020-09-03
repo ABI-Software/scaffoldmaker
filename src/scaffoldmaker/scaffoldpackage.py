@@ -34,15 +34,12 @@ class ScaffoldPackage:
             # remove obsolete options? If so, deepcopy first?
             self._scaffoldSettings.update(scaffoldSettings)
         # note rotation is stored in degrees
-        self._rotation = dct.get('rotation')
-        if not self._rotation:
-            self._rotation = [ 0.0, 0.0, 0.0 ]
-        self._scale = dct.get('scale')
-        if not self._scale:
-            self._scale = [ 1.0, 1.0, 1.0 ]
-        self._translation = dct.get('translation')
-        if not self._translation:
-            self._translation = [ 0.0, 0.0, 0.0 ]
+        rotation =  dct.get('rotation')
+        self._rotation = copy.deepcopy(rotation) if rotation else [ 0.0, 0.0, 0.0 ]
+        scale = dct.get('scale')
+        self._scale = copy.deepcopy(scale) if scale else [ 1.0, 1.0, 1.0 ]
+        translation = dct.get('translation')
+        self._translation = copy.deepcopy(translation) if translation else [ 0.0, 0.0, 0.0 ]
         self._meshEdits = copy.deepcopy(dct.get('meshEdits'))
         self._autoAnnotationGroups = []
         # read user AnnotationGroups dict:
@@ -54,14 +51,6 @@ class ScaffoldPackage:
         # region is set in generate(); can only instantiate user AnnotationGroups then
         self._region = None
 
-    def deepcopy(self, other):
-        '''
-        Deep copy contents from another object.
-        '''
-        self._scaffoldType = other._scaffoldType
-        self._scaffoldSettings = copy.deepcopy(other._scaffoldSettings)
-        self._meshEdits = copy.deepcopy(other._meshEdits)
-
     def __eq__(self, other):
         '''
         Need equality operator to determine if custom options are in use.
@@ -69,7 +58,11 @@ class ScaffoldPackage:
         if isinstance(other, ScaffoldPackage):
             return (self._scaffoldType == other._scaffoldType) \
                 and (self._scaffoldSettings == other._scaffoldSettings) \
-                and (self._meshEdits == other._meshEdits)
+                and (self._rotation == other._rotation) \
+                and (self._scale == other._scale) \
+                and (self._translation == other._translation) \
+                and (self._meshEdits == other._meshEdits) \
+                and (self._userAnnotationGroupsDict == other._userAnnotationGroupsDict)
         return NotImplemented
 
     def toDict(self):
@@ -89,9 +82,17 @@ class ScaffoldPackage:
         if self._meshEdits:
             dct['meshEdits'] = self._meshEdits
         if self._userAnnotationGroups:
-            self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
+            self.updateUserAnnotationGroups()
+        if self._userAnnotationGroupsDict:
             dct['userAnnotationGroups'] = self._userAnnotationGroupsDict
         return dct
+
+    def updateUserAnnotationGroups(self):
+        '''
+        Ensure user annotation groups are present in serialised form (dict).
+        '''
+        if self._userAnnotationGroups:
+            self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
 
     def getMeshEdits(self):
         return self._meshEdits
