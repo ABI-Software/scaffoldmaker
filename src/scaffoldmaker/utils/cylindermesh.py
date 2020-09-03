@@ -7,7 +7,6 @@ from enum import Enum
 from scaffoldmaker.utils import vector, geometry
 import math
 from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
@@ -163,7 +162,6 @@ class CylinderMesh:
         :param arcLengthAlong:
         :param majorRadius: major radius of the cone ellipse base.
         :param elementsCountAround: major radius of the cone ellipse base.
-        :return:
         """
         self._majorRadii = []
         self._minorRadii = []
@@ -281,9 +279,11 @@ class CylinderMesh:
                 [btx[n3][n2][0], rscx[n2], btx[n3][n2][-1]],
                 [vector.setMagnitude(btd3[n3][n2][0], -1.0), rscd3[n2], btd3[n3][n2][-1]],
                 self._elementsCountAcrossMinor, lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
-            btd1[n3][n2] = \
-                interpolateSampleCubicHermite([[-btd1[n3][n2][0][c] for c in range(3)], rscd1[n2], btd1[n3][n2][-1]],
-                                              [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
+            btd1[n3][n2] = interpolateSampleCubicHermite([[-btd1[n3][n2][0][c] for c in range(3)], rscd1[n2],
+                                                          btd1[n3][n2][-1]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
+            if n2 == self._elementsCountUp:
+                for n1 in range(1,self._elementsCountAcrossMinor):
+                    btd1[n3][n2][n1] = vector.setMagnitude(self._base._majorAxis, -1.0)
             btd3[n3][n2][0] = [-btd3[n3][n2][0][c] for c in range(3)]
             btd1[n3][n2][0] = [-btd1[n3][n2][0][c] for c in range(3)]
 
@@ -303,7 +303,7 @@ class CylinderMesh:
             for n2 in range(3, self._elementsCountUp + 1):
                 tx.append(btx[n3][n2][n1])
                 td1.append(btd1[n3][n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True)
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
             td3 = \
                 interpolateSampleCubicHermite([btd1[n3][0][n1], btd3[n3][2][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[
                     0]
@@ -338,7 +338,7 @@ class CylinderMesh:
             for n2 in range(1, self._elementsCountUp + 1):
                 tx.append(btx[n3][n2][n1])
                 td1.append(btd1[n3][n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1)
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
             for n in range(self._elementsCountUp):
                 btd1[n3][n + 1][n1] = td1[n]
 
@@ -469,13 +469,6 @@ class CylinderMesh:
         #################
         # Create nodes
         #################
-
-        # nodeTemplate = nodes.createNodetemplate()
-        # nodeTemplate.defineField(coordinates)
-        # nodeTemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        # nodeTemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodeTemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # nodeTemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         self._startNodeIdentifier = nodeIdentifier
