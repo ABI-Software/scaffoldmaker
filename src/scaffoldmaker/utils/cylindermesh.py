@@ -76,16 +76,18 @@ class Tapered:
         self.minorProgressionMode = minorProgressionMode
 
 
-# class CylinderCentralPath:
-#     '''
-#     Stores ellipses parameters a long the central path.
-#     '''
-#     def __init__(self):
-#         self.majorRadii
-#         self.majorAxis
-#         self.minorRadii
-#         self.minorAxis
-#         self.centres
+class CylinderCentralPath:
+    '''
+    Stores ellipses parameters a long the central path.
+    '''
+    def __init__(self):
+        self.majorRadii
+        self.majorAxis
+        self.minorRadii
+        self.minorAxis
+        self.centres
+
+    def create
 
 
 class CylinderMesh:
@@ -538,6 +540,7 @@ def computeNextRadius(radius, axis, ratio, progression):
 def computeNextCentre(centre, arcLength, axis):
     """
     compute next centre coordinate
+    :param axis:
     :param arcLength: the length to go forward.
     :param centre: the start centre.
     :return: next centre coordinates.(n3 + 1) *
