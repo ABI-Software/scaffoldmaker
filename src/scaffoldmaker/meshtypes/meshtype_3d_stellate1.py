@@ -1,5 +1,5 @@
 """
-Generates a 3-D stellate mesh with cross arms radiating from a central node, and variable numbers of elements along each arm.
+Generates a 3-D planar stellate mesh with cross arms radiating from a central node, and variable numbers of elements along each arm.
 """
 
 from __future__ import division
@@ -13,11 +13,12 @@ from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicub
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftLocalNodes
 from scaffoldmaker.utils.matrix import rotateAboutZAxis
-from scaffoldmaker.utils.vector import magnitude
+from scaffoldmaker.utils.vector import magnitude, setMagnitude
+from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 
 class MeshType_3d_stellate1(Scaffold_base):
     """
-    classdocs
+    Generates a 3-D planar stellate mesh with cross arms radiating from a central node, and variable numbers of elements along each arm.
     """
     @staticmethod
     def getName():
@@ -26,13 +27,10 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of arms' : 3,
-            'Number of elements in long arm' : 4,
-            'Number of elements in short arms' : 2,
+            'Number of elements in all arms (e.g. 4,2,2)' : [4,2,2],
             'Element length along arm' : 1.0,
             'Element width across arm' : 0.5,
             'Element thickness' : 0.5,
-            'Extent of indentation around centre' : 0.5,
             'Refine' : False,
             'Refine number of elements along arm' : 1,
             'Refine number of elements across arm' : 1,
@@ -42,13 +40,10 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of arms',
-            'Number of elements in long arm',
-            'Number of elements in short arms',
+            'Number of elements in all arms (e.g. 4,2,2)',
             'Element length along arm',
             'Element width across arm',
             'Element thickness',
-            'Extent of indentation around centre',
             'Refine',
             'Refine number of elements along arm',
             'Refine number of elements across arm',
@@ -58,8 +53,6 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def checkOptions(options):
         for key in [
-            'Number of elements in long arm',
-            'Number of elements in short arms',
             'Refine number of elements along arm',
             'Refine number of elements across arm',
             'Refine number of elements through thickness']:
@@ -69,16 +62,19 @@ class MeshType_3d_stellate1(Scaffold_base):
         for key in [
             'Element length along arm',
             'Element width across arm',
-            'Element thickness',
-            'Extent of indentation around centre']:
+            'Element thickness']:
             if options[key] < 0:
                 options[key] = 0.1
 
-        if options['Number of elements in short arms'] < 2:
-            options['Number of elements in short arms'] = 2
-
-        # if options['Number of arms'] < 3 or options['Number of arms'] > 4:
-        #     options['Number of arms'] = 3
+        key = 'Number of elements in all arms (e.g. 4,2,2)'
+        if len(options[key]) < 3:
+            x = [2]*(3 - len(options[key]))
+            options[key].append(x)
+        for i, numberOfElements in enumerate(options[key]):
+            if numberOfElements < 2:
+                options[key][i] = 2
+            if i > 2:
+                options[key].pop(i)
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -88,13 +84,11 @@ class MeshType_3d_stellate1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        numArm = options['Number of arms']
+        numArm = 3
         elementLengths = [options['Element length along arm'],
                  options['Element width across arm'],
                  options['Element thickness']]
-        elementsLongArm = options['Number of elements in long arm']
-        elementsShortArm = options['Number of elements in short arms']
-        elementsCount1 = [elementsLongArm, elementsShortArm] + [elementsShortArm]*(numArm-2)
+        elementsCount1 = options['Number of elements in all arms (e.g. 4,2,2)']
         elementsCount2 = 2
         elementsCount3 = 1
         useCrossDerivatives = False
@@ -117,7 +111,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         # Create nodes
         numNodesPerArm = [0]
         armRotationAngles = (2 * math.pi) / (numArm * 2)
-        dipMultiplier = 1/(options['Extent of indentation around centre']+1) #elementLengths[1] * 1.2 * 1.5
+        dipMultiplier = 1 #elementLengths[1] * 1.2 * 1.5
 
         nodeIdentifier = 1
         minArmAngle = 2 * math.pi / numArm
@@ -179,15 +173,17 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                        nwPrev[1], no2 + em - 1 + nplUq,
                                                        nCentre[1], bni + (4 * em) - 2]
                                 else:
-                                    df = elementsCount1[na]-1
-                                    nplUq += df - 1
-                                    npl += df - 1
-                                    cn = cumNumNodesPerArm[na-1] + (int(numNodesPerArm[na]/2) - 2)*(numArm-1)
-                                    nwPrev = [cumNumNodesPerArm[na-1] + (elementsCount1[na]*2),
-                                              cumNumNodesPerArm[na-1] + (elementsCount1[na]*2) + nplUq]
-                                    nodeIdentifiers = [nwPrev[0], nwPrev[0] + npl, nCentre[0], nwPrev[0] + npl + df,
-                                                       nwPrev[1], nwPrev[1] + npl - 1, nCentre[1],
-                                                       nwPrev[1] + npl-1+df]
+                                    # nplPrev = int(numNodesPerArm[na]/2) - elementsCount1[na-1] - 2
+                                    nplPrev = int(numNodesPerArm[na]/2) - 2
+                                    no2 = elementsCount1[na]-1
+                                    no3 = int(numNodesPerArm[na+1]/2) - 3
+                                    nwPrev = [cumNumNodesPerArm[na-1] + 2*(elementsCount1[na-1]),
+                                              cumNumNodesPerArm[na-1] + 2*(elementsCount1[na-1]) + nplPrev]
+                                    start = cumNumNodesPerArm[na] - 3 # -4 + 1
+                                    nodeIdentifiers = [nwPrev[0], start,
+                                                       nCentre[0], start + no2,
+                                                       nwPrev[1],  start + no3,
+                                                       nCentre[1], start + no2 +no3]
                             elif e1 == elementsCount1[na] - 1: # armEnd, south
                                 if na == 0:
                                     nodeIdentifiers = [bni, bni + no2 - 1, bni + no2, bni + no3,
@@ -410,12 +406,12 @@ def createArm(thAr, elementLengths, armAngle, armAngleConst, elementsCount, dipM
     """
 
     elementsCount1, elementsCount2, elementsCount3 = elementsCount
-    [elen, ewid, zheight] = elementLengths
+    [elementLength, elementWidth, elementHeight] = elementLengths
 
     xnodes_ds1 = []
     xnodes_ds2 = []
-    dx_ds1 = [elen, 0.0, 0.0]
-    dx_ds2 = [0.0, ewid, 0.0]
+    dx_ds1 = [elementLength, 0.0, 0.0]
+    dx_ds2 = [0.0, elementWidth, 0.0]
     wheelDvMult = [0.5, 0.75]
 
     nodes_per_layer = (elementsCount1 + 1) * (elementsCount2 + 1) - 2 # discount 2 armEnd corners
@@ -431,113 +427,74 @@ def createArm(thAr, elementLengths, armAngle, armAngleConst, elementsCount, dipM
     else:
         rmVertexNodes = nCentre + [0, nodes_per_layer,
                           2* (elementsCount1+1) - 1, 2* (elementsCount1+1) - 1 + nodes_per_layer ]
-    dcent = [elen * math.cos(armAngleConst / 2), elen * math.sin(armAngleConst / 2), 0.0]
-    dvertex = [round(elen * dipMultiplier * math.cos(thAr), 12),
-                round(elen * dipMultiplier * math.sin(thAr), 12)]
+    dcent = [elementLength * math.cos(armAngleConst / 2), elementLength * math.sin(armAngleConst / 2), 0.0]
+    dvertex = [elementLength * dipMultiplier * math.cos(thAr),
+                elementLength * dipMultiplier * math.sin(thAr)]
+
+    dipLength = 0.5*(elementLength + elementWidth)*dipMultiplier
+    dvertex = [dipLength * math.cos(thAr),
+               dipLength * math.sin(thAr)]
+    dipMag = 2*dipLength - elementLength
 
     nid = 0
-    for n3 in range(elementsCount3 + 1):
-        x3 = n3 * zheight
-        for n2 in range(elementsCount2 + 1):
-            for n1 in range(elementsCount1 + 1):
+    for e3 in range(elementsCount3 + 1):
+        x3 = e3 * elementHeight
+        for e2 in range(elementsCount2 + 1):
+            for e1 in range(elementsCount1 + 1):
                 # ignore if armEnd corner nodes
-                if n1 == elementsCount1 and (n2 == 0 or n2 == elementsCount2):
+                if e1 == elementsCount1 and (e2 == 0 or e2 == elementsCount2):
                     pass
                 else:
-                    if n1 == 0 and n2 == 0:
+                    if e1 == 0 and e2 == 0:
                         x1 = dvertex[0]
                         x2 = -dvertex[1]
-                    elif n1 == 0 and n2 == elementsCount2:
+                    elif e1 == 0 and e2 == elementsCount2:
                         x1 = dvertex[0]
                         x2 = dvertex[1]
                     else:
-                        x1 = (elen*n1)
-                        x2 = ((n2 - 1) * ewid )
+                        x1 = (elementLength*e1)
+                        x2 = ((e2 - 1) * elementWidth )
                     x.append([x1, x2, x3])
 
                     # DERIVATIVES
                     ds1 = dx_ds1.copy()
                     ds2 = dx_ds2.copy()
-                    if n2 == 1 and n1 == 0:
+                    if e2 == 1 and e1 == 0:
                         ds2 = dcent
                         ds1 = [dcent[0], -dcent[1], dcent[2]]
-                    elif n1 == 0 and (n2 == 0 or n2 == elementsCount2):
-                        [p, q] = [x1/dipMultiplier, x2/dipMultiplier] # unit vector
-                        ds2mag = round(2*magnitude([p,q]),6) - magnitude(dcent)
-                        ds2 = [ds2mag*p, ds2mag*q, 0]
+                    elif e1 == 0 and (e2 == 0 or e2 == elementsCount2):
+                        ds2 = [dcent[0], -dcent[1], dcent[2]] if (e2 == 0) else dcent
+                        ds2 = setMagnitude(ds2, dipMag)
                         ds1 = rotateAboutZAxis(ds2, -math.pi / 2)
-                        for i in range(2):
-                            ds1[i] *= wheelDvMult[0]
-                        ds1 = [d * elen for d in ds1]
-                    elif n1 == elementsCount1 and n2 == elementsCount2-1:
-                        ds2 = [0, 1 * (elen + ewid), 0]
+                    elif e1 == elementsCount1 and e2 == elementsCount2-1:
+                        ds2 = [0, 1 * (elementLength + elementWidth), 0]
                     xnodes_ds1.append(ds1)
                     xnodes_ds2.append(ds2)
                     nid += 1
+
+    # d1 derivatives at dips around central node
+    nidDip = [0, elementsCount1 * 2 + 1,
+              nodes_per_layer, elementsCount1 * 2 + 1 + nodes_per_layer]
+    for nid in nidDip:
+        nx = [x[nid], x[nid+1]]
+        nd1 = [xnodes_ds1[nid], xnodes_ds1[nid+1]]
+        ds1Smooth = smoothCubicHermiteDerivativesLine(nx, nd1,
+                                           fixStartDirection=True, fixEndDerivative=True)
+        xnodes_ds1[nid] = ds1Smooth[0]
+
 
     # rotate entire arm about origin by armAngle except for centre nodes
     tol = 1e-12
     for j, n in enumerate(x):
         xynew = rotateAboutZAxis(n, armAngle)
-        [xnew, ynew] = [round(r,12) for r in xynew][:2]
+        [xnew, ynew] = [r for r in xynew][:2]
         if (abs(xnew) < tol):
             xnew = 0
         if (abs(ynew) < tol):
             ynew = 0
         x[j] = [xnew, ynew, x[j][2]]
 
-        # if (j+1) not in nCentre:
         xnodes_ds1[j] = rotateAboutZAxis(xnodes_ds1[j], armAngle)
         xnodes_ds2[j] = rotateAboutZAxis(xnodes_ds2[j], armAngle)
 
     return (x, xnodes_ds1, xnodes_ds2, rmVertexNodes)
-
-
-def createBody(elementLengths, numArm, thAr, elementsCount, dipMultiplier):
-    """
-    Create amalgamation of arms about central junction.
-    :param elementLengths: [Element length along arm, half Element width across arm, Element thickness]
-    :param numArm: number of arms in body
-    :param thAr: angle arising from base node (rad)
-    :param elementsCount: element counts in x,y,z directions
-    :param dipMultiplier: factor that wheel nodes protrude by, relative to unit length
-    :return: x: positions of nodes in body
-    :return: xds1: ds1 derivatives of nodes associated with x
-    :return: xds2: ds2 derivatives of nodes associated with x
-    """
-    armLength = elementsCount[0]
-    minArmAngle = 2*math.pi/numArm
-
-    x = []
-    xds1 = []
-    xds2 = []
-
-    nextNode = 1
-    x_out = []
-    for i in range(numArm):
-        elementsCount_i = [elementsCount[0][i], elementsCount[1], elementsCount[2]]
-        x_out, nextNode, ds1, ds2 = createArm(thAr, elementLengths, armLength[i], minArmAngle*i, minArmAngle, elementsCount_i, nextNode, dipMultiplier, numArm)
-
-        x.extend([ix+[minArmAngle*i] for ix in x_out])
-        xds1.extend(ds1)
-        xds2.extend(ds2)
-
-    return x, xds1, xds2
-
-
-def findduplicateIndices(x):
-    """
-    Find repeated rows in x and return their indices.
-        :param x: list
-        :return: duplicateIndices: [index of first instance of row, index of where duplicate occurred]
-    """
-    xnew = []
-    x_orig = x.copy()
-    duplicateIndices = []
-    for ir, row in enumerate(x_orig):
-        iOG = x_orig.index(row)
-        if row in x and ir != iOG:
-            duplicateIndices.append([iOG+1, ir+1])
-        else:
-            xnew.extend(row)
-    return duplicateIndices
