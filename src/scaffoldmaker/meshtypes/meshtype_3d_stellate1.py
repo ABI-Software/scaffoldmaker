@@ -84,7 +84,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        numArm = 3
+        armCount = 3
         elementLengths = [options['Element length along arm'],
                  options['Element width across arm'],
                  options['Element thickness']]
@@ -110,18 +110,18 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         # Create nodes
         numNodesPerArm = [0]
-        armRotationAngles = (2 * math.pi) / (numArm * 2)
+        halfArmArcAngleRadians = math.pi / armCount
         dipMultiplier = 1 #elementLengths[1] * 1.2 * 1.5
 
         nodeIdentifier = 1
-        minArmAngle = 2 * math.pi / numArm
+        minArmAngle = 2 * math.pi / armCount
         xx = []
         xds1 = []
         xds2 = []
         x_in_nodes = []
-        for na in range(numArm):
+        for na in range(armCount):
             elementsCount_i = [elementsCount1[na], elementsCount2, elementsCount3]
-            x, ds1, ds2, nWheelEdge = createArm(armRotationAngles, elementLengths, minArmAngle * na, minArmAngle, elementsCount_i, dipMultiplier, numArm, na)
+            x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, minArmAngle * na, minArmAngle, elementsCount_i, dipMultiplier, armCount, na)
             for ix in range(len(x)):
                 if na == 0 or ix not in nWheelEdge:
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -149,7 +149,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         cumNumNodesPerArm = [sum(numNodesPerArm[:i + 1]) for i in range(len(numNodesPerArm))]
         nCentre = [elementsCount1[0]+1, int(numNodesPerArm[1]/2) + elementsCount1[0]+1]
-        for na in range(numArm):
+        for na in range(armCount):
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
                     for e1 in range(elementsCount1[na]):
@@ -160,15 +160,15 @@ class MeshType_3d_stellate1(Scaffold_base):
                         offset = (cumNumNodesPerArm[na])
                         bni = e3 * no3 + e2 * no2 + e1 + 1 + offset
                         if e2 == 0:
-                            if e1 == 0 and na > 0: # and na < numArm -1: # wheelSouth
+                            if e1 == 0 and na > 0: # and na < armCount -1: # wheelSouth
                                 nWh = cumNumNodesPerArm[na - 1] + (2 * elementsCount1[na - 1]) + 2
                                 nplUq = int(numNodesPerArm[na+1]/2) - elementsCount1[na] # unused nodes at centre and shared edge
                                 npl = int(numNodesPerArm[na+1]/2)  #  nodes at centre and shared edge
-                                if na < numArm-1:
+                                if na < armCount-1:
                                     cn = cumNumNodesPerArm[na] + elementsCount1[na]-2
                                     no2 = cumNumNodesPerArm[na]
                                     em = elementsCount1[na]
-                                    nwPrev = [nWh, nWh + int(numNodesPerArm[na]/2)] # previous arm's edge, depends on numArm.
+                                    nwPrev = [nWh, nWh + int(numNodesPerArm[na]/2)] # previous arm's edge, depends on armCount.
                                     nodeIdentifiers = [nwPrev[0], no2 + 1, nCentre[0], no2 + em,
                                                        nwPrev[1], no2 + em - 1 + nplUq,
                                                        nCentre[1], bni + (4 * em) - 2]
@@ -189,7 +189,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                                     nodeIdentifiers = [bni, bni + no2 - 1, bni + no2, bni + no3,
                                                        bni + no2 + no3 - 1, bni + no2 + no3]
                                 else:
-                                    no3 = numArm*elementsCount1[na] - 1
+                                    no3 = armCount*elementsCount1[na] - 1
                                     no2 = elementsCount1[na]
                                     if na > 1:
                                         bni -= 4
@@ -197,9 +197,9 @@ class MeshType_3d_stellate1(Scaffold_base):
                                     nodeIdentifiers = [bni-1, bni + no2-2, bni + no2 - 1,
                                                        bni + no3 - 1, bni + no2 -2 + no3, bni + no2 + no3 - 1]
                             elif na > 0 and e1 > 0: #  [na=1+, e1=1+, e2=0] for len=3+
-                                bni -= 1 + ((numArm+1)*(na-1))
+                                bni -= 1 + ((armCount+1)*(na-1))
                                 no2 = elementsCount1[na]
-                                no3 = numArm*no2 - (na-1) - 1
+                                no3 = armCount*no2 - (na-1) - 1
                                 nodeIdentifiers = [bni, bni + 1, bni + no2 - 1, bni + no2,
                                                    bni + no3, bni + no3 + 1,
                                                    bni + no2 + no3 - 1, bni + no2 + no3]
@@ -207,25 +207,25 @@ class MeshType_3d_stellate1(Scaffold_base):
                                 nodeIdentifiers = [bni, bni + 1, bni + no2 - 1, bni + no2, bni + no3, bni + no3 + 1,
                                                    bni + no2 + no3 - 1, bni + no2 + no3]
                         else:
-                            if e1 == 0 and na > 0:  # and na < numArm -1: # wheelNorth
-                                if na < numArm - 1:
-                                    bni -= numArm
+                            if e1 == 0 and na > 0:  # and na < armCount -1: # wheelNorth
+                                if na < armCount - 1:
+                                    bni -= armCount
                                     npl = int(numNodesPerArm[na+1] / 2) - 2
                                     no2 = elementsCount1[na]
                                     nodeIdentifiers = [nCentre[0], bni + 1, bni + no2 + 1, bni + no2 + 2,
                                                        nCentre[1], bni + npl + 1, bni + npl + no2 + 1, bni + npl + no2 + 2]
                                 else: # last arm
-                                    bni = cumNumNodesPerArm[na] - 2 - (numArm - elementsCount1[na])
+                                    bni = cumNumNodesPerArm[na] - 2 - (armCount - elementsCount1[na])
                                     nodeIdentifiers = [nCentre[0], bni + 1, 1, bni + no2,
                                                        nCentre[1], bni + no3 - 2,
-                                                       int(numNodesPerArm[1]/2)+1, bni + no2 + no3 - numArm]
+                                                       int(numNodesPerArm[1]/2)+1, bni + no2 + no3 - armCount]
                             elif e1 == elementsCount1[na] - 1: # armEnd north
                                 if na > 0:
                                     no2 = elementsCount1[na]
                                     nplUq = int(numNodesPerArm[na + 1] / 2) - 2
                                     if na > 1:
                                         adj = na - 1
-                                        bni -= numArm*na + (numArm-elementsCount1[na]) + 1
+                                        bni -= armCount*na + (armCount-elementsCount1[na]) + 1
                                         if elementsCount1[na] < 3:
                                            bni += 1
                                         if elementsCount1[na]>3:
@@ -235,7 +235,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                                         nodeIdentifiers = [bni, bni +1, bni+no2,
                                                            bni+no3, bni +no3+1, bni+no2 +no3]
                                     else:
-                                        bni -= numArm
+                                        bni -= armCount
                                         nodeIdentifiers = [bni, bni +1, bni+no2 + 1,
                                                            bni+nplUq, bni +nplUq+1, bni+no2 +nplUq+ 1]
                                 else:
@@ -244,9 +244,9 @@ class MeshType_3d_stellate1(Scaffold_base):
 
                             elif na > 0 and e1 > 0: #  [na=1+, e1=1+, e2=1] for len=3+
                                 adj = na - 1
-                                bni -= numArm *na + adj
+                                bni -= armCount *na + adj
                                 no2 -= adj
-                                k = numArm*elementsCount1[na] - na
+                                k = armCount*elementsCount1[na] - na
                                 nodeIdentifiers = [bni, bni+1, bni + no2, bni + no2 + 1,
                                                    bni + k, bni + k + 1,
                                                    bni + no2 + k, bni + no2 + k + 1]
@@ -259,7 +259,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                             eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             scalefactors = [-1.0]
-                            if numArm == 3:
+                            if armCount == 3:
                                 if e2 == 0:
                                     scaleEftNodeValueLabels(eft1, [1, 5], [Node.VALUE_LABEL_D_DS1,
                                                              Node.VALUE_LABEL_D_DS2], [1])
@@ -293,7 +293,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                                     elif e2 == 1:
                                         remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
-                            elif numArm == 4:
+                            elif armCount == 4:
                                 if e2 == 0:
                                     scaleEftNodeValueLabels(eft1, [1, 5], [Node.VALUE_LABEL_D_DS1,
                                                              Node.VALUE_LABEL_D_DS2], [1])
@@ -385,24 +385,25 @@ class MeshType_3d_stellate1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount1, refineElementsCount2, refineElementsCount3)
 
 
-def createArm(thAr, elementLengths, armAngle, armAngleConst, elementsCount, dipMultiplier, numArm, na):
+def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, elementsCount, dipMultiplier, armCount, armIndex):
     """
     Create single arm unit.
     Base length of element is 1.
     Direction: anticlockwise.
     Minimum arm length is 2 elements.
-    :param thAr: angle arising from base node (rad)
+    :param halfArmArcAngleRadians: angle arising from base node (rad)
     :param elementLengths: [Element length along arm, half Element width across arm, Element thickness]
     :param armAngle: angle from x axis of the arm about origin (rad)
     :param armAngleConst: minimum angle from x axis of the first arm about origin (rad)
-    :param elementsCount: element counts in x,y,z directions
+    :param elementsCount: list of numbers of elements along arm length, across width and through thickness directions
     :param dipMultiplier: factor that wheel nodes protrude by, relative to unit length
-    :param numArm: number of arms in body
-    :param na: nth arm currently being created
+    :param armCount: number of arms in body
+    :param armIndex: 0-based
     :return: x: positions of nodes in arm
     :return: nodeIdentifier: number of last node in arm +1
     :return: xnodes_ds1: ds1 derivatives of nodes associated with x
     :return: xnodes_ds2: ds2 derivatives of nodes associated with y
+    :return: rmVertexNodes: indices of nodes at arm vertices around central node (including central node)
     """
 
     elementsCount1, elementsCount2, elementsCount3 = elementsCount
@@ -420,20 +421,20 @@ def createArm(thAr, elementLengths, armAngle, armAngleConst, elementsCount, dipM
     # nCentre and rmVertexNodes are in pythonic indexing
     nCentre = elementsCount1
     nCentre = [nCentre, nCentre + nodes_per_layer]
-    if na == 0:
+    if armIndex == 0:
         rmVertexNodes = []
-    elif na != numArm - 1:
+    elif armIndex != armCount - 1:
         rmVertexNodes = nCentre + [0, nodes_per_layer]
     else:
         rmVertexNodes = nCentre + [0, nodes_per_layer,
                           2* (elementsCount1+1) - 1, 2* (elementsCount1+1) - 1 + nodes_per_layer ]
     dcent = [elementLength * math.cos(armAngleConst / 2), elementLength * math.sin(armAngleConst / 2), 0.0]
-    dvertex = [elementLength * dipMultiplier * math.cos(thAr),
-                elementLength * dipMultiplier * math.sin(thAr)]
+    dvertex = [elementLength * dipMultiplier * math.cos(halfArmArcAngleRadians),
+                elementLength * dipMultiplier * math.sin(halfArmArcAngleRadians)]
 
     dipLength = 0.5*(elementLength + elementWidth)*dipMultiplier
-    dvertex = [dipLength * math.cos(thAr),
-               dipLength * math.sin(thAr)]
+    dvertex = [dipLength * math.cos(halfArmArcAngleRadians),
+               dipLength * math.sin(halfArmArcAngleRadians)]
     dipMag = 2*dipLength - elementLength
 
     nid = 0
@@ -442,7 +443,7 @@ def createArm(thAr, elementLengths, armAngle, armAngleConst, elementsCount, dipM
         for e2 in range(elementsCount2 + 1):
             for e1 in range(elementsCount1 + 1):
                 # ignore if armEnd corner nodes
-                if e1 == elementsCount1 and (e2 == 0 or e2 == elementsCount2):
+                if (e1 == elementsCount1) and ((e2 == 0) or (e2 == elementsCount2)):
                     pass
                 else:
                     if e1 == 0 and e2 == 0:
@@ -462,7 +463,7 @@ def createArm(thAr, elementLengths, armAngle, armAngleConst, elementsCount, dipM
                     if e2 == 1 and e1 == 0:
                         ds2 = dcent
                         ds1 = [dcent[0], -dcent[1], dcent[2]]
-                    elif e1 == 0 and (e2 == 0 or e2 == elementsCount2):
+                    elif (e1 == 0) and ((e2 == 0) or (e2 == elementsCount2)):
                         ds2 = [dcent[0], -dcent[1], dcent[2]] if (e2 == 0) else dcent
                         ds2 = setMagnitude(ds2, dipMag)
                         ds1 = rotateAboutZAxis(ds2, -math.pi / 2)
