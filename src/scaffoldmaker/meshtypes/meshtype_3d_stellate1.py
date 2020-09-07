@@ -27,7 +27,7 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Number of elements in all arms (e.g. 4,2,2)' : [4,2,2],
+            'Numbers of elements along arms' : [4,2,2],
             'Element length along arm' : 1.0,
             'Element width across arm' : 0.5,
             'Element thickness' : 0.5,
@@ -40,7 +40,7 @@ class MeshType_3d_stellate1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of elements in all arms (e.g. 4,2,2)',
+            'Numbers of elements along arms',
             'Element length along arm',
             'Element width across arm',
             'Element thickness',
@@ -66,15 +66,13 @@ class MeshType_3d_stellate1(Scaffold_base):
             if options[key] < 0:
                 options[key] = 0.1
 
-        key = 'Number of elements in all arms (e.g. 4,2,2)'
-        if len(options[key]) < 3:
-            x = [2]*(3 - len(options[key]))
-            options[key].append(x)
-        for i, numberOfElements in enumerate(options[key]):
-            if numberOfElements < 2:
-                options[key][i] = 2
-            if i > 2:
-                options[key].pop(i)
+        armCountsKey = 'Numbers of elements along arms'
+        armCount = 3
+        countsLen = len(options[armCountsKey])
+        if countsLen < armCount:
+            options[armCountsKey] += [2 for i in range(armCount - countsLen)]
+        elif countsLen > armCount:
+            options[armCountsKey] = options[armCountsKey][:armCount]
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -88,13 +86,12 @@ class MeshType_3d_stellate1(Scaffold_base):
         elementLengths = [options['Element length along arm'],
                  options['Element width across arm'],
                  options['Element thickness']]
-        elementsCount1 = options['Number of elements in all arms (e.g. 4,2,2)']
+        elementsCount1 = options['Numbers of elements along arms']
         elementsCount2 = 2
         elementsCount3 = 1
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -368,7 +365,6 @@ class MeshType_3d_stellate1(Scaffold_base):
                         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                         result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
                         elementIdentifier += 1
-        fm.endChange()
         return []
 
     @classmethod
