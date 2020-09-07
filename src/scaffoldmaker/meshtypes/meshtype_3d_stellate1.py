@@ -76,8 +76,6 @@ class MeshType_3d_stellate1(Scaffold_base):
         for i, numberOfElements in enumerate(options[armCountsKey]):
             if numberOfElements < 2:
                 options[armCountsKey][i] = 2
-            if i > 2:
-                options[armCountsKey].pop(i)
 
     @classmethod
     def generateBaseMesh(cls, region, options):
