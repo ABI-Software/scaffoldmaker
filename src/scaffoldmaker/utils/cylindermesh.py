@@ -11,6 +11,7 @@ from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaxi
 from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils import centralpath
 
 
 class CylinderShape(Enum):
@@ -26,6 +27,35 @@ class CylinderType(Enum):
 class ConeBaseProgression(Enum):
     GEOMETRIC_PROGRESSION = 1  # geometric sequence decrease for major radius of bases
     ARITHMETIC_PROGRESSION = 2  # arithmetic sequence decrease for major radius of bases
+
+
+def computeNextRadius(radius, axis, ratio, progression):
+    """
+    calculate next radius based on the progression method. r_n+1=r_n*ratio for geometric. r_n+1=r_ratio for arithmetic.
+    :param radius: radius (major or minor) along the central path.
+    :param axis: major or minor axis along the central path.
+    :param ratio: common ratio (common difference) for changing the next radius.
+    :param progression: arithmetic or geometric.
+    :return: next radius and axis.
+    """
+    if progression == ConeBaseProgression.GEOMETRIC_PROGRESSION:
+        radius = radius * ratio
+    elif progression == ConeBaseProgression.ARITHMETIC_PROGRESSION:
+        radius += ratio
+    axis = vector.setMagnitude(axis, radius)
+    return radius, axis
+
+
+def computeNextCentre(centre, arcLength, axis):
+    """
+    compute next centre coordinate
+    :param axis:
+    :param arcLength: the length to go forward.
+    :param centre: the start centre.
+    :return: next centre coordinates.
+    """
+    centre = [centre[c]+arcLength * vector.normalise(axis)[c] for c in range(3)]
+    return centre
 
 
 class CylinderEnds:
@@ -77,17 +107,34 @@ class Tapered:
 
 
 class CylinderCentralPath:
-    '''
+    """
     Stores ellipses parameters a long the central path.
-    '''
-    def __init__(self):
-        self.majorRadii
-        self.majorAxis
-        self.minorRadii
-        self.minorAxis
-        self.centres
+    """
 
-    def create
+    def __init__(self, region, centralPath, elementsCount): #TODO I need to pass region
+        """
+        :param region:
+        :param centralPath:
+        :param elementsCount:
+        """
+
+        cx, cd1, cd2, cd12 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
+        sd1 = centralpath.smoothD1Derivatives(cx, cd1)
+        # cylinderLength = centralpath.calculateTotalLength(cx, sd1, printArcLength=False)
+        sx, sd1, sd2, sd12 = centralpath.sampleCentralPath(cx, cd1, cd2, cd12, elementsCount)
+
+        majorAxis = sd2
+        majorRadii = [vector.magnitude(a) for a in majorAxis]
+
+        self.centres = sx
+        self.majorAxis = majorAxis
+        self.majorRadii = majorRadii
+        self.alongAxis = sd1
+
+#TODO how to find minor axis? I think I need to get d3 from the central path as well. What to do for now? let's keep it the same along the path for now.
+
+        self.minorRadii = [1.0 for _ in range(elementsCount+1)]
+        self.minorAxis = [vector.setMagnitude(vector.crossproduct3(sd1[c], sd2[c]),1.0) for c in range(elementsCount+1)]
 
 
 class CylinderMesh:
@@ -97,7 +144,7 @@ class CylinderMesh:
 
     def __init__(self, fieldModule, coordinates, base, elementsCountAlong, end=None,
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
-                 tapered=None, useCrossDerivatives=False):
+                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -129,6 +176,7 @@ class CylinderMesh:
         self._majorRadius = vector.magnitude(base._majorAxis)
         self._basesCentres = [None for _ in range(elementsCountAlong + 1)]
         self._basesCentres[0] = self._base._centre
+        self._cylinderCentralPath = cylinderCentralPath
         # generate the mesh
         self.createCylinderMesh3d(fieldModule, coordinates)
 
@@ -459,7 +507,8 @@ class CylinderMesh:
                                   shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
         # generate bases mesh along cylinder axis
-        self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis)
+        self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
+                               cylinderCentralPath=self._cylinderCentralPath)
 
         n3Count = 0 if self._cylinderType == CylinderType.CYLINDER_STRAIGHT else self._elementsCountAlong
         for n3 in range(n3Count + 1):
@@ -481,7 +530,7 @@ class CylinderMesh:
         if self._cylinderType == CylinderType.CYLINDER_TAPERED:
             self.smoothd2Derivatives()
 
-        # The other bases.
+        # The other ellipses.
         if self._cylinderType == CylinderType.CYLINDER_STRAIGHT:
             for n2 in range(self._elementsCountUp + 1):
                 for n3 in range(self._elementsCountAlong + 1):
@@ -494,23 +543,8 @@ class CylinderMesh:
                             self._shield.pd2[n3][n2][n1] = self._shield.pd2[0][n2][n1]
                             self._shield.pd3[n3][n2][n1] = self._shield.pd3[0][n2][n1]
 
-        #################
-        # Create nodes
-        #################
-
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier, plane)
-        self._endNodeIdentifier = nodeIdentifier
-
-        #################
-        # Create elements
-        #################
-
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
-        self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
-        self._endElementIdentifier = elementIdentifier
+        self.generateNodes(nodes, fieldModule, coordinates, plane)
+        self.generateElements(mesh, fieldModule, coordinates)
 
         if self._end is None:
             self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
@@ -519,31 +553,27 @@ class CylinderMesh:
                                      self._minorRadii[-1])
         self.setEndsNodes()
 
+    def generateNodes(self, nodes, fieldModule, coordinates, plane):
+        """
+        Create cylinder nodes from coordinates.
+        :param nodes: nodes from coordinates.
+        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        :param plane: mirror plane ax+by+cz=d in form of [a,b,c,d]
+        """
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        self._startNodeIdentifier = nodeIdentifier
+        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier, plane)
+        self._endNodeIdentifier = nodeIdentifier
 
-def computeNextRadius(radius, axis, ratio, progression):
-    """
-    calculate next radius based on the progression method. r_n+1=r_n*ratio for geometric. r_n+1=r_ratio for arithmetic.
-    :param radius: radius (major or minor) along the central path.
-    :param axis: major or minor axis along the central path.
-    :param ratio: common ratio (common difference) for changing the next radius.
-    :param progression: arithmetic or geometric.
-    :return: next radius and axis.
-    """
-    if progression == ConeBaseProgression.GEOMETRIC_PROGRESSION:
-        radius = radius * ratio
-    elif progression == ConeBaseProgression.ARITHMETIC_PROGRESSION:
-        radius += ratio
-    axis = vector.setMagnitude(axis, radius)
-    return radius, axis
-
-
-def computeNextCentre(centre, arcLength, axis):
-    """
-    compute next centre coordinate
-    :param axis:
-    :param arcLength: the length to go forward.
-    :param centre: the start centre.
-    :return: next centre coordinates.(n3 + 1) *
-    """
-    centre = [centre[c]+arcLength * vector.normalise(axis)[c] for c in range(3)]
-    return centre
+    def generateElements(self, mesh, fieldModule, coordinates):
+        """
+        Create cylinder elements from nodes.
+        :param mesh:
+        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        """
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        self._startElementIdentifier = elementIdentifier
+        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        self._endElementIdentifier = elementIdentifier
