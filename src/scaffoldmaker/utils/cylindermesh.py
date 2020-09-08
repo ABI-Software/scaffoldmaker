@@ -10,7 +10,7 @@ from opencmiss.zinc.field import Field
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
-    smoothCubicHermiteDerivativesLine
+    smoothCubicHermiteDerivativesLine, interpolateSampleLinear
 from scaffoldmaker.utils import centralpath
 
 
@@ -129,16 +129,20 @@ class CylinderCentralPath:
         """
 
         cx, cd1, cd2, cd12 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
-        sd1 = centralpath.smoothD1Derivatives(cx, cd1)
+        # sd1 = centralpath.smoothD1Derivatives(cx, cd1)
         # cylinderLength = centralpath.calculateTotalLength(cx, sd1, printArcLength=False)
-        sx, sd1, sd2, sd12 = centralpath.sampleCentralPath(cx, cd1, cd2, cd12, elementsCount)
+        sx, sd1, se, sxi, ssf = centralpath.sampleCentralPath(cx, cd1, elementsCount)
 
-        majorAxis = sd2
-        majorRadii = [vector.magnitude(a) for a in majorAxis]
+        sd2 = interpolateSampleLinear(cd2, se, sxi)
 
+        majorAxisc = cd2
+        majorRadiic = [vector.magnitude(a) for a in majorAxisc]
+
+        majorRadiis = interpolateSampleLinear(majorRadiic, se, sxi)
         self.centres = sx
-        self.majorAxis = majorAxis
-        self.majorRadii = majorRadii
+        self.majorRadii = majorRadiis
+        self.majorAxis = [(vector.setMagnitude(sd2[c], majorRadiis[c])) for c in range(len(majorRadiis))]
+
         self.alongAxis = sd1
 
 #TODO how to find minor axis? I think I need to get d3 from the central path as well. What to do for now? let's keep it the same along the path for now.

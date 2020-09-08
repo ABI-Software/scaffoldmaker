@@ -46,27 +46,27 @@ def calculateTotalLength(cx, sd1, printArcLength=False):
     :return:
     """
     totalLength = 0.0
+    lengths = [0.0]
     elementsCountIn = len(cx) - 1
     for e in range(elementsCountIn):
         arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
         if printArcLength:
             print(e+1, arcLength)
         totalLength += arcLength
+        lengths.append(totalLength)
 
     return totalLength
 
 
-def sampleCentralPath(cx, cd1, cd2, cd12, elementsCount):
+def sampleCentralPath(cx, cd1, elementsCount):
     """
     Sample elements along the path
     :param cx: coordinates along the path.
     :param cd1: d1 derivatives.
-    :param cd2: d2 derivatives.
-    :param cd12: rate of change of d2 along d1.
     :param elementsCount: number of elements to be created.
-    :return: coordinates and derivatives sampled along the path.
+    :return: sx, sd1, se, sxi, ssf. coordinates and derivatives sampled along the path. also returns xi locations
+    and list of elements sampled.
     """
     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCount)
-    sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
-    return sx, sd1, sd2, sd12
+    return sx, sd1, se, sxi, ssf
