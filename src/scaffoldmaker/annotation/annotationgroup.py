@@ -79,6 +79,7 @@ class AnnotationGroup(object):
         fieldmodule = region.getFieldmodule()
         with ChangeManager(fieldmodule):
             annotationGroup = cls(region, (name, ontId))
+            annotationGroup._group.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
             if dimension > 0:
                 meshGroup = annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(dimension))
                 mesh_group_add_identifier_ranges(meshGroup, identifierRanges)
