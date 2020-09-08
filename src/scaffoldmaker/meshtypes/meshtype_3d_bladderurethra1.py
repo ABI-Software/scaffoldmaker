@@ -49,7 +49,22 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[0.3, 3.2, 75.2], [0.5, 1.5, 12.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[0.6, 5.6, 90.2], [0.5, 1.8, 13.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[1.0, 8.7, 105.0], [0.7, 3.7, 12.9], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[1.7, 13.9, 119.2], [0.9, 5.5, 13.3], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]])
+                    [[1.7, 13.9, 119.2], [0.9, 5.5, 13.3], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 0,
+                    'identifierRanges': '1-4',
+                    'name': get_bladder_term('urinary bladder')[0],
+                    'ontId': get_bladder_term('urinary bladder')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 0,
+                    'identifierRanges': '5-9',
+                    'name': get_bladder_term('urethra')[0],
+                    'ontId': get_bladder_term('urethra')[1]
+                }]
             }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -67,7 +82,22 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[-0.5, -2.1, 49.6], [-1.0, -1.9, 7.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[-0.9, -3.8, 59.3], [-1.4, -0.6, 8.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[-1.3, -3.6, 71.5], [-0.1, 2.0, 8.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 80.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]])
+                    [[0.0, 0.0, 80.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-4',
+                    'name': get_bladder_term('urinary bladder')[0],
+                    'ontId': get_bladder_term('urinary bladder')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-9',
+                    'name': get_bladder_term('urethra')[0],
+                    'ontId': get_bladder_term('urethra')[1]
+                }]
             })
         }
     ostiumDefaultScaffoldPackages = {
@@ -287,7 +317,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         :return: annotationGroups
         '''
         cls.updateSubScaffoldOptions(options)
-        elementsCountAlong = options['Number of elements along']
+        # elementsCountAlong = options['Number of elements along']
         elementsCountAround = options['Number of elements around']
         elementsCountThroughWall = options['Number of elements through wall']
         majorDiameter = options['Major diameter']
@@ -326,53 +356,119 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
-        # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+        cx_bladder, cd1_bladder, cd2_bladder, cd12_bladder = extractPathParametersFromRegion(tmpRegion, groupName='urinary bladder')
+        for i in range(len(cx_bladder)):
+            print(i, '[', cx_bladder[i], ',', cd1_bladder[i], ',', cd2_bladder[i], ',', cd12_bladder[i], '],')
         del tmpRegion
 
-        # Find arcLength
-        length = 0.0
-        elementsCountIn = len(cx) - 1
-        sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True,
+        # Central path
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        cx_urethra, cd1_urethra, cd2_urethra, cd12_urethra = extractPathParametersFromRegion(tmpRegion, groupName='urethra')
+        for i in range(len(cx_urethra)):
+            print(i, '[', cx_urethra[i], ',', cd1_urethra[i], ',', cd2_urethra[i], ',', cd12_urethra[i], '],')
+        del tmpRegion
+
+        elementsCountAlongBladder = 8
+        elementsCountAlongUrethra = 8
+        elementsCountAlong = elementsCountAlongBladder + elementsCountAlongUrethra
+        # Find arcLength bladder
+        bladderLength = 0.0
+        elementsCountInBladder = len(cx_bladder) - 1
+        sd1 = interp.smoothCubicHermiteDerivativesLine(cx_bladder, cd1_bladder, fixAllDirections=True,
                                                        magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-        for e in range(elementsCountIn):
-            arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
-            length += arcLength
-        segmentLength = length / elementsCountAlong
+        for e in range(elementsCountInBladder):
+            arcLength = interp.getCubicHermiteArcLength(cx_bladder[e], sd1[e], cx_bladder[e + 1], sd1[e + 1])
+            bladderLength += arcLength
+        bladderSegmentLength = bladderLength / elementsCountAlongBladder
 
-        if includeUrethra:
-            urethraLength = urethraproportion * length
-            elementsCountAlongUrethra = int(urethraLength / segmentLength)
-            elementsCountAlongBladder = elementsCountAlong - elementsCountAlongUrethra
-        else:
-            elementsCountAlongBladder = elementsCountAlong
+        # Find arcLength urethra
+        urethraLength = 0.0
+        elementsCountInUrethra = len(cx_urethra) - 1
+        sd1 = interp.smoothCubicHermiteDerivativesLine(cx_urethra, cd1_urethra, fixAllDirections=True,
+                                                       magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
+        for e in range(elementsCountInUrethra):
+            arcLength = interp.getCubicHermiteArcLength(cx_urethra[e], sd1[e], cx_urethra[e + 1], sd1[e + 1])
+            urethraLength += arcLength
+        urethraSegmentLength = urethraLength / elementsCountAlongUrethra
 
-        # Sample central path
-        # sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-        # sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-        if includeUrethra:
-            sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-            sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-        else:
-            m = int((1 - urethraproportion) * len(cx))
-            cx = cx[:m+1]
-            cd1 = cd1[:m+1]
-            cd2 = cd2[:m+1]
-            cd12 = cd12[:m+1]
-            sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongBladder)
-            sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        # # Sample central path bladder part
+        # sx_bladder, sd1_bladder, se_bladder, sxi_bladder, ssf_bladder = interp.sampleCubicHermiteCurves(cx_bladder, cd1_bladder, elementsCountAlongBladder)
+        # sd2_bladder, sd12_bladder = interp.interpolateSampleCubicHermite(cd2_bladder, cd12_bladder, se_bladder, sxi_bladder, ssf_bladder)
+        #
+        # # Sample central path urethra part
+        # sx_urethra, sd1_urethra, se_urethra, sxi_urethra, ssf_urethra = interp.sampleCubicHermiteCurves(cx_urethra, cd1_urethra, elementsCountAlongUrethra)
+        # sd2_urethra, sd12_urethra = interp.interpolateSampleCubicHermite(cd2_urethra, cd12_urethra, se_urethra, sxi_urethra, ssf_urethra)
+        #
+        # sx = sx_bladder + sx_urethra
+        # sd1 = sd1_bladder + sd1_urethra
+        # sd2 = sd2_bladder + sd2_urethra
+        # sd12 = sd12_bladder + sd12_urethra
+
+        cx = cx_bladder + cx_urethra
+        cd1 = cd1_bladder + cd1_urethra
+        cd2 = cd2_bladder + cd2_urethra
+        cd12 = cd12_bladder + cd12_urethra
+        print('cx', cx)
+
+        # Sample central path urethra part
+        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+
+        segmentLength = bladderSegmentLength
+        length = bladderLength + urethraLength
+
+        # # Central path
+        # tmpRegion = region.createRegion()
+        # centralPath.generate(tmpRegion)
+        # cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+        # # for i in range(len(cx)):
+        # #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+        # del tmpRegion
+        #
+        # # Find arcLength
+        # length = 0.0
+        # elementsCountIn = len(cx) - 1
+        # sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True,
+        #                                                magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
+        # for e in range(elementsCountIn):
+        #     arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+        #     length += arcLength
+        # segmentLength = length / elementsCountAlong
+        #
+        # if includeUrethra:
+        #     urethraLength = urethraproportion * length
+        #     elementsCountAlongUrethra = int(urethraLength / segmentLength)
+        #     elementsCountAlongBladder = elementsCountAlong - elementsCountAlongUrethra
+        # else:
+        #     elementsCountAlongBladder = elementsCountAlong
+        #
+        # # Sample central path
+        # # sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+        # # sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        # if includeUrethra:
+        #     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+        #     sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        # else:
+        #     m = int((1 - urethraproportion) * len(cx))
+        #     cx = cx[:m+1]
+        #     cd1 = cd1[:m+1]
+        #     cd2 = cd2[:m+1]
+        #     cd12 = cd12[:m+1]
+        #     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongBladder)
+        #     sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
         # Create bladder
         # Create line down the bladder with major radius
         R1_max = 0.5 * majorDiameter
         R2_max = 0.5 * neckDiameter1
         # Create the body part
-        if includeUrethra:
-            a = (1 - urethraproportion) * length / 2
-        else:
-            a = length / 2
+        # if includeUrethra:
+        #     a = (1 - urethraproportion) * length / 2
+        # else:
+        #     a = length / 2
         b = R1_max
+        a = bladderLength / 2
         xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngleRadians, [0.0, 0.0, a], [0.0, b, 0.0],
                                             elementsCountAlongBladder, startRadians=math.pi)
         d1Loop = [0, 0, 0] * len(xLoop)
@@ -401,10 +497,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         R1_min = 0.5 * minorDiameter
         R2_min = 0.5 * neckDiameter2
         # Create the body part
-        if includeUrethra:
-            a = (1 - urethraproportion) * length / 2
-        else:
-            a = length / 2
+        # if includeUrethra:
+        #     a = (1 - urethraproportion) * length / 2
+        # else:
+        #     a = length / 2
+        a = bladderLength / 2
         b = R1_min
         xLoop, d2Loop = createEllipsePoints([0.0, 0.0, a], math.pi - neckAngleRadians, [0.0, 0.0, a], [0.0, b, 0.0],
                                             elementsCountAlongBladder, startRadians=math.pi)
@@ -573,7 +670,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
         # Obtain elements count along body and neck of the bladder for defining annotation groups
         if includeUrethra:
-            bladderLength = length - urethraLength
+            # bladderLength = length - urethraLength
             bodyLength = ostiumPositionDown * bladderLength
         else:
             bodyLength = ostiumPositionDown * length
