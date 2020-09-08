@@ -107,8 +107,9 @@ class MeshType_1d_path1(Scaffold_base):
         return []
 
 
-def extractPathParametersFromRegion(region):
+def extractPathParametersFromRegion(region, groupName = None):
     '''
+    :param groupName: Optional name of group to get node parameters from, otherwise all nodes are used.
     Returns parameters of all nodes in region in identifier order.
     Assumes nodes in region have field coordinates (1 to 3 components).
     Currently limited to nodes with exactly value, d_ds1, d_ds2, d2_ds12,
@@ -125,6 +126,12 @@ def extractPathParametersFromRegion(region):
     cd2 = []
     cd12 = []
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+    if groupName:
+        group = fm.findFieldByName(groupName).castGroup()
+        nodes = group.getFieldNodeGroup(nodes).getNodesetGroup()
+        assert nodes.isValid()  # in case invalid or not found
+
     nodeIter = nodes.createNodeiterator()
     node = nodeIter.next()
     while node.isValid():
