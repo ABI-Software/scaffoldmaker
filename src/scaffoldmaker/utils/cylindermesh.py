@@ -58,6 +58,16 @@ def computeNextCentre(centre, arcLength, axis):
     return centre
 
 
+def normalToEllipse(v1, v2):
+    """
+    Find unit normal vector of an ellipse using two vectors in the ellipse. The direction is v1xv2
+    :param v1: vector 1.
+    :param v2: vector 2.
+    :return:
+    """
+    nte = vector.normalise(vector.crossproduct3(v1, v2))
+    return nte
+
 class CylinderEnds:
     """
     Stores base ellipse parameters.
@@ -111,7 +121,7 @@ class CylinderCentralPath:
     Stores ellipses parameters a long the central path.
     """
 
-    def __init__(self, region, centralPath, elementsCount): #TODO I need to pass region
+    def __init__(self, region, centralPath, elementsCount):
         """
         :param region:
         :param centralPath:
@@ -218,6 +228,8 @@ class CylinderMesh:
             radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
         return nx, nd1
 
+
+
     def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis, cylinderCentralPath=None):
         """
         generate bases of the truncated cone along the cone axis.
@@ -232,6 +244,7 @@ class CylinderMesh:
         centre = self._base._centre
         nx, nd1 = self.createCylinderBaseMesh2D(
             self._base._centre, self._base._majorAxis, minorAxis, elementsCountAround, majorRadius)
+        nte = normalToEllipse(self._base._majorAxis, minorAxis)
         majorRadius1 = majorRadius
         self._majorRadii.append(majorRadius1)
         minorRadius1 = vector.magnitude(minorAxis)
@@ -244,7 +257,7 @@ class CylinderMesh:
                 tbx.append(nx[n])
                 tbd1.append(nd1[n])
                 tbd2.append([arcLengthAlong * vector.normalise(self._base._alongAxis)[c] for c in range(3)])
-                tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], tbd2[n])))
+                tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
             tnx.append(tbx)
             tnd1.append(tbd1)
             tnd2.append(tbd2)
@@ -272,6 +285,7 @@ class CylinderMesh:
                 self._minorRadii.append(minorRadius1)
                 nx, nd1 = self.createCylinderBaseMesh2D(
                     centre, majorAxis1, minorAxis1, elementsCountAround, majorRadius1)
+                nte = normalToEllipse(majorAxis1, minorAxis1)
 
         self.setRimNodes(tnx,tnd1,tnd2,tnd3,minorAxis)
 
@@ -358,8 +372,8 @@ class CylinderMesh:
             btd1[n3][n2] = interpolateSampleCubicHermite([[-btd1[n3][n2][0][c] for c in range(3)], rscd1[n2],
                                                           btd1[n3][n2][-1]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
             if n2 == self._elementsCountUp:
-                for n1 in range(1,self._elementsCountAcrossMinor):
-                    btd1[n3][n2][n1] = vector.setMagnitude(self._base._majorAxis, -1.0)
+                for n1 in range(1, self._elementsCountAcrossMinor):
+                    btd1[n3][n2][n1] = vector.setMagnitude(btd1[n3][self._elementsCountUp][-1], 1.0)
             btd3[n3][n2][0] = [-btd3[n3][n2][0][c] for c in range(3)]
             btd1[n3][n2][0] = [-btd1[n3][n2][0][c] for c in range(3)]
 
