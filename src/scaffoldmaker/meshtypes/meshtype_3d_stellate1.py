@@ -1,13 +1,16 @@
 """
 Generates a 3-D planar stellate mesh with cross arms radiating from a central node, and variable numbers of elements along each arm.
+Ability to change between generic mesh or species-specific set, which involves changing parameter set.
 """
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation.stellate_terms import get_stellate_term
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -25,20 +28,38 @@ class MeshType_3d_stellate1(Scaffold_base):
         return '3D Stellate 1'
 
     @staticmethod
-    def getDefaultOptions(parameterSetName='Default'):
-        return {
-            'Numbers of elements along arms' : [4,2,2],
-            'Element length along arm' : 1.0,
-            'Element width across arm' : 0.5,
-            'Element thickness' : 0.5,
-            'Refine' : False,
-            'Refine number of elements along arm' : 1,
-            'Refine number of elements across arm' : 1,
-            'Refine number of elements through thickness' : 1
-        }
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Mouse 1',
+            'Mouse Mean 1']
+
+    @classmethod
+    def getDefaultOptions(cls, parameterSetName='Default'):
+        # isMouse = 'Mouse' in parameterSetName #options['Base parameter set']
+        options = {}
+        options['Base parameter set'] = parameterSetName
+
+        isMouse = 'Mouse' in parameterSetName
+
+        if isMouse:
+            options['Numbers of elements along arms'] = [4,2,2]
+        else:
+            options['Numbers of elements along arms'] = [4,3,3]
+        options['Element length along arm'] = 1.0
+        options['Element width across arm'] = 0.5
+        options['Element thickness'] = 0.5
+        options['Refine'] = False
+        options['Refine number of elements along arm'] = 1
+        options['Refine number of elements across arm'] = 1
+        options['Refine number of elements through thickness'] = 1
+        # cls.updateSubScaffoldOptions(options)
+        return options
+
 
     @staticmethod
     def getOrderedOptionNames():
+
         return [
             'Numbers of elements along arms',
             'Element length along arm',
@@ -48,10 +69,11 @@ class MeshType_3d_stellate1(Scaffold_base):
             'Refine number of elements along arm',
             'Refine number of elements across arm',
             'Refine number of elements through thickness'
+
         ]
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def checkOptions(cls, options):
         for key in [
             'Refine number of elements along arm',
             'Refine number of elements across arm',
@@ -77,6 +99,8 @@ class MeshType_3d_stellate1(Scaffold_base):
             if numberOfElements < 2:
                 options[armCountsKey][i] = 2
 
+        # cls.updateSubScaffoldOptions(options)
+
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
@@ -85,6 +109,9 @@ class MeshType_3d_stellate1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+
+        isMouse = 'Mouse' in options['Base parameter set']
+
         armCount = 3
         elementLengths = [options['Element length along arm'],
                  options['Element width across arm'],
@@ -95,9 +122,9 @@ class MeshType_3d_stellate1(Scaffold_base):
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         coordinates = findOrCreateFieldCoordinates(fm)
 
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -108,11 +135,31 @@ class MeshType_3d_stellate1(Scaffold_base):
         mesh = fm.findMeshByDimension(3)
         cache = fm.createFieldcache()
 
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+
+        # addMarker = {"name": "stellate-test", "xi": [0.0, 1.0, 0.0]}
+        # markers with element number and xi position
+        allMarkers = { "Inferior cardiac nerve" : {"elementID": 10, "xi": [0.50, 0.0, 0.5]},
+                        "Ventral ansa subclavia" : {"elementID": 12, "xi": [0.50, 1.0, 0.5]},
+                        "Dorsal ansa subclavia" : {"elementID": 14, "xi": [0.50, 0.0, 0.5]},
+                        "C8 segment of cervical spinal cord" : {"elementID": 16, "xi": [0.50, 1.0, 0.5]},
+                        "first thoracic spinal cord segment" : {"elementID": 1, "xi": [1.0, 0.0, 0.5]},
+                        "second thoracic spinal cord segment" : {"elementID": 2, "xi": [1.0, 0.0, 0.5]},
+                        "third thoracic spinal cord segment" : {"elementID": 3, "xi": [1.0, 0.0, 0.5]},
+                        "thoracic sympathetic trunk" : {"elementID": 4, "xi": [1.0, 1.0, 0.5]}
+                       }
+
         # Create nodes
         numNodesPerArm = [0]
         halfArmArcAngleRadians = math.pi / armCount
         dipMultiplier = 1 #elementLengths[1] * 1.2 * 1.5
-
         nodeIdentifier = 1
         minArmAngle = 2 * math.pi / armCount
         xx = []
@@ -129,12 +176,14 @@ class MeshType_3d_stellate1(Scaffold_base):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[ix])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1[ix])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2[ix])
+
                     nodeIdentifier += 1
                     x_in_nodes.append(x[ix])
             numNodesPerArm.append(len(x))
             xx.append(x)
             xds1.append(ds1)
             xds2.append(ds2)
+
 
         # Create elements
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
@@ -367,7 +416,25 @@ class MeshType_3d_stellate1(Scaffold_base):
                         element = mesh.createElement(elementIdentifier, elementtemplate1)
                         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                         result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+
+                        ############################
+                        # annotation fiducial points
+                        ############################
+                        if isMouse:
+                            for key in allMarkers:
+                                if elementIdentifier == allMarkers[key]["elementID"]:
+                                    elementID = allMarkers[key]["elementID"]
+                                    xi = allMarkers[key]["xi"]
+                                    addMarker = {"name": key, "xi": allMarkers[key]["xi"]}
+
+                                    markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                                    nodeIdentifier += 1
+                                    cache.setNode(markerPoint)
+                                    markerName.assignString(cache, addMarker["name"])
+                                    markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+
                         elementIdentifier += 1
+
         return []
 
     @classmethod
@@ -382,6 +449,58 @@ class MeshType_3d_stellate1(Scaffold_base):
         refineElementsCount2 = options['Refine number of elements across arm']
         refineElementsCount3 = options['Refine number of elements through thickness']
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount1, refineElementsCount2, refineElementsCount3)
+
+
+    # @classmethod
+    # def defineFaceAnnotations(cls, region, options, annotationGroups):
+    #     """
+    #     Add point annotation groups from the 1D mesh.
+    #     :param region: Zinc region containing model.
+    #     :param options: Dict containing options. See getDefaultOptions().
+    #     :param annotationGroups: List of annotation groups for top-level elements.
+    #     New point annotation groups are appended to this list.
+    #     """
+    #     # create endocardium and epicardium groups
+    #     fm = region.getFieldmodule()
+    #     icnGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("Inferior cardiac nerve"))
+    #     daGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("Dorsal ansa subclavia"))
+    #     vaGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("Ventral ansa subclavia"))
+    #     # c8Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("C8 segment of cervical spinal cord"))
+    #     t1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("first thoracic spinal cord segment"))
+    #     t2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("second thoracic spinal cord segment"))
+    #     t3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("third thoracic spinal cord segment"))
+    #     tstGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("thoracic sympathetic trunk"))
+    #     stellateGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("cervicothoracic ganglion"))
+    #
+    #     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    #
+    #     ############################
+    #     # annotation fiducial points
+    #     ############################
+    #     markerID = 10
+    #     mesh = fm.findMeshByDimension(3)
+    #     cache = fm.createFieldcache()
+    #     elementtemplate = mesh.createElementtemplate()
+    #     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    #     element = mesh.createElement(markerID, elementtemplate)
+    #     markerGroup = findOrCreateFieldGroup(fm, "marker")
+    #     markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+    #     markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+    #
+    #     markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+    #     markerTemplateInternal = nodes.createNodetemplate()
+    #     markerTemplateInternal.defineField(markerName)
+    #     markerTemplateInternal.defineField(markerLocation)
+    #
+    #     addMarker = {"name": "stellate-test", "xi": [0.0, 1.0, 0.0]}
+    #     nodeIdentifier = markerID
+    #     if addMarker:
+    #         markerPoint = markerPoints.createNode(markerID, markerTemplateInternal)
+    #         cache.setNode(markerPoint)
+    #         markerName.assignString(cache, addMarker["name"])
+    #         element = mesh.createElement(markerID, elementtemplate)
+    #         markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+    #         markerID += 1
 
 
 def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, elementsCount, dipMultiplier, armCount, armIndex):
@@ -407,6 +526,8 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
 
     elementsCount1, elementsCount2, elementsCount3 = elementsCount
     [elementLength, elementWidth, elementHeight] = elementLengths
+
+    shorterArmEnd = True
 
     xnodes_ds1 = []
     xnodes_ds2 = []
@@ -452,8 +573,11 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
                         x1 = dvertex[0]
                         x2 = dvertex[1]
                     else:
-                        x1 = (elementLength*e1)
-                        x2 = ((e2 - 1) * elementWidth )
+                        if e1 == elementsCount1 and shorterArmEnd: # and e2 == 1:# armEnd
+                            x1 = 0.5*(elementLength+elementWidth) + elementLength*(e1-1)
+                        else:
+                            x1 = elementLength*e1
+                        x2 = (e2 - 1) * elementWidth
                     x.append([x1, x2, x3])
 
                     # DERIVATIVES
@@ -466,8 +590,11 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
                         ds2 = [dcent[0], -dcent[1], dcent[2]] if (e2 == 0) else dcent
                         ds2 = setMagnitude(ds2, dipMag)
                         ds1 = rotateAboutZAxis(ds2, -math.pi / 2)
-                    elif e1 == elementsCount1 and e2 == elementsCount2-1:
+                    elif e1 == elementsCount1 and e2 == elementsCount2-1: # armEnd
+                        ds1 = [elementWidth,0,0]
                         ds2 = [0, 1 * (elementLength + elementWidth), 0]
+                        if shorterArmEnd:
+                            ds2 = [0, 0.5 * (elementLength + elementWidth), 0]
                     xnodes_ds1.append(ds1)
                     xnodes_ds2.append(ds2)
                     nid += 1
@@ -498,3 +625,4 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
         xnodes_ds2[j] = rotateAboutZAxis(xnodes_ds2[j], armAngle)
 
     return (x, xnodes_ds1, xnodes_ds2, rmVertexNodes)
+
