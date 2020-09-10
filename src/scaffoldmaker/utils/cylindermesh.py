@@ -13,6 +13,7 @@ from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDer
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine, interpolateSampleLinear
 from scaffoldmaker.utils import centralpath
+from scaffoldmaker.utils.mirror import Mirror
 
 
 class CylinderShape(Enum):
@@ -167,56 +168,6 @@ class CylinderMesh:
         # generate the mesh
         self.createCylinderMesh3d(fieldModule, coordinates)
 
-    def calculateD2Derivatives(self, n3, n3Count):
-        """
-        calculate d2 derivatives.
-        :param n3: Index of along cylinder axis coordinates to use
-        :param n3Count: number of bases to create coordinates for.
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-        # get base d2 and next base x, d2
-        for n2 in range(self._elementsCountUp + 1):
-            for n1 in range(self._elementsCountAcrossMinor + 1):
-                if btd1[n3][n2][n1]:
-                    n3n = n3 if (n3 < n3Count) else n3 - 1
-                    btd2[n3][n2][n1] = [(btx[n3n + 1][n2][n1][c] - btx[n3n][n2][n1][c]) for c in range(3)]
-
-    def smoothd2Derivatives(self):
-        """
-        smooth d2 derivatives using initial values calculated by calculateD2Derivatives
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-        for n2 in range(self._elementsCountUp + 1):
-            for n1 in range(self._elementsCountAcrossMinor + 1):
-                td2 = []
-                tx = []
-                if btx[0][n2][n1]:
-                    for n3 in range(self._elementsCountAlong + 1):
-                        tx.append(btx[n3][n2][n1])
-                        td2.append(btd2[n3][n2][n1])
-                    td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True)
-                    for n3 in range(self._elementsCountAlong + 1):
-                        btd2[n3][n2][n1] = td2[n3]
-
-    def setEndsNodes(self):
-        """
-        sets ellipse coordinates, derivatives and node ids.
-        """
-        self._base.px = self._shield.px[0]
-        self._base.pd1 = self._shield.pd1[0]
-        self._base.pd2 = self._shield.pd2[0]
-        self._base.pd3 = self._shield.pd3[0]
-        self._end.px = self._shield.px[-1]
-        self._end.pd1 = self._shield.pd1[-1]
-        self._end.pd2 = self._shield.pd2[-1]
-        self._end.pd3 = self._shield.pd3[-1]
-
     def createCylinderMesh3d(self, fieldModule, coordinates):
         """
         Create an extruded shape (ellipse/circle) mesh. Currently limited to ellipse or circle base with the alongAxis
@@ -233,7 +184,6 @@ class CylinderMesh:
         assert (self._cylinderShape in [self._cylinderShape.CYLINDER_SHAPE_FULL,
                                         self._cylinderShape.CYLINDER_SHAPE_LOWER_HALF]), \
             'createCylinderMesh3d: Invalid cylinder mode.'
-        plane = [-d for d in self._base._majorAxis] + [-vector.dotproduct(self._base._majorAxis, self._base._centre)]
 
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
@@ -280,7 +230,7 @@ class CylinderMesh:
                             self._shield.pd2[n3][n2][n1] = self._shield.pd2[0][n2][n1]
                             self._shield.pd3[n3][n2][n1] = self._shield.pd3[0][n2][n1]
 
-        self.generateNodes(nodes, fieldModule, coordinates, plane)
+        self.generateNodes(nodes, fieldModule, coordinates)
         self.generateElements(mesh, fieldModule, coordinates)
 
         if self._end is None:
@@ -290,30 +240,55 @@ class CylinderMesh:
                                      self._minorRadii[-1])
         self.setEndsNodes()
 
-    def generateNodes(self, nodes, fieldModule, coordinates, plane):
+    def calculateD2Derivatives(self, n3, n3Count):
         """
-        Create cylinder nodes from coordinates.
-        :param nodes: nodes from coordinates.
-        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
-        :param coordinates: Coordinate field to define.
-        :param plane: mirror plane ax+by+cz=d in form of [a,b,c,d]
+        calculate d2 derivatives.
+        :param n3: Index of along cylinder axis coordinates to use
+        :param n3Count: number of bases to create coordinates for.
         """
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier, plane)
-        self._endNodeIdentifier = nodeIdentifier
+        btx = self._shield.px
+        btd1 = self._shield.pd1
+        btd2 = self._shield.pd2
+        btd3 = self._shield.pd3
+        # get ellipse d2 and next ellipse x, d2
+        for n2 in range(self._elementsCountAcrossMajor + 1):
+            for n1 in range(self._elementsCountAcrossMinor + 1):
+                if btd1[n3][n2][n1]:
+                    n3n = n3 if (n3 < n3Count) else n3 - 1
+                    btd2[n3][n2][n1] = [(btx[n3n + 1][n2][n1][c] - btx[n3n][n2][n1][c]) for c in range(3)]
 
-    def generateElements(self, mesh, fieldModule, coordinates):
+    def smoothd2Derivatives(self):
         """
-        Create cylinder elements from nodes.
-        :param mesh:
-        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
-        :param coordinates: Coordinate field to define.
+        smooth d2 derivatives using initial values calculated by calculateD2Derivatives
         """
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
-        self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
-        self._endElementIdentifier = elementIdentifier
+        btx = self._shield.px
+        btd1 = self._shield.pd1
+        btd2 = self._shield.pd2
+        btd3 = self._shield.pd3
+        for n2 in range(self._elementsCountAcrossMajor + 1):
+            for n1 in range(self._elementsCountAcrossMinor + 1):
+                td2 = []
+                tx = []
+                if btx[0][n2][n1]:
+                    for n3 in range(self._elementsCountAlong + 1):
+                        tx.append(btx[n3][n2][n1])
+                        td2.append(btd2[n3][n2][n1])
+                    td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True)
+                    for n3 in range(self._elementsCountAlong + 1):
+                        btd2[n3][n2][n1] = td2[n3]
+
+    def setEndsNodes(self):
+        """
+        sets ellipse coordinates, derivatives and node ids.
+        """
+        self._base.px = self._shield.px[0]
+        self._base.pd1 = self._shield.pd1[0]
+        self._base.pd2 = self._shield.pd2[0]
+        self._base.pd3 = self._shield.pd3[0]
+        self._end.px = self._shield.px[-1]
+        self._end.pd1 = self._shield.pd1[-1]
+        self._end.pd2 = self._shield.pd2[-1]
+        self._end.pd3 = self._shield.pd3[-1]
 
     def calculateEllipseParams(self, arcLengthAlong=None, cylinderCentralPath=None):
         """
@@ -357,6 +332,31 @@ class CylinderMesh:
         self._shield.pd1[n3] = self._ellipses[n3].pd1
         self._shield.pd2[n3] = self._ellipses[n3].pd2
         self._shield.pd3[n3] = self._ellipses[n3].pd3
+
+    def generateNodes(self, nodes, fieldModule, coordinates):
+        """
+        Create cylinder nodes from coordinates.
+        :param nodes: nodes from coordinates.
+        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        :param plane: mirror plane ax+by+cz=d in form of [a,b,c,d]
+        """
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        self._startNodeIdentifier = nodeIdentifier
+        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier)
+        self._endNodeIdentifier = nodeIdentifier
+
+    def generateElements(self, mesh, fieldModule, coordinates):
+        """
+        Create cylinder elements from nodes.
+        :param mesh:
+        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        """
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        self._startElementIdentifier = elementIdentifier
+        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        self._endElementIdentifier = elementIdentifier
 
 
 def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
@@ -436,6 +436,7 @@ class Ellipse2D:
         self.pd2 = shield.pd2[0]
         self.pd3 = shield.pd3[0]
         self.__shield = shield
+        self.ellipseShape = ellipseShape
         # generate the ellipse
         self.generate2DEllipseMesh2()
 
@@ -452,6 +453,8 @@ class Ellipse2D:
         n2b = 1
         self.smoothTriplePointsCurves(n2b, n1b, m1a)
         self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
+        if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
+            self.generateNodesForUpperHalf()
 
     def generateBase1DMesh(self):
             """
@@ -622,6 +625,24 @@ class Ellipse2D:
             td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
             for n in range(self.elementsCountUp):
                 btd1[n + 1][n1] = td1[n]
+
+    def generateNodesForUpperHalf(self):
+        """
+        Generates coordinates and derivatives for the other half by mirroring them. It keeps the d1 direction.
+        It uses mirrorPlane: plane ax+by+cz=d in form of [a,b,c,d]
+        :return:
+        """
+        mirrorPlane = [-d for d in self.majorAxis] + [-vector.dotproduct(self.majorAxis, self.centre)]
+        mirror = Mirror(mirrorPlane)
+        for n2 in range(self.elementsCountUp):
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if self.px[n2][n1]:
+                    self.px[2 * self.elementsCountUp - n2][n1] = mirror.mirrorImageOfPoint(
+                        self.px[n2][n1])
+                    self.pd1[2 * self.elementsCountUp - n2][n1] = mirror.reverseMirrorVector(
+                        self.pd1[n2][n1])
+                    self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
+                        self.pd3[n2][n1])
 
 
 def computeNextRadius(radius, axis, ratio, progression):
