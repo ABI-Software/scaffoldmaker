@@ -117,7 +117,8 @@ class CylinderCentralPath:
 #TODO how to find minor axis? I think I need to get d3 from the central path as well. What to do for now? let's keep it the same along the path for now.
 
         self.minorRadii = [1.0 for _ in range(elementsCount+1)]
-        self.minorAxis = [vector.setMagnitude(vector.crossproduct3(sd1[c], sd2[c]),1.0) for c in range(elementsCount+1)]
+        self.minorAxis = [vector.setMagnitude(vector.crossproduct3(sd1[c], sd2[c]), 1.0)
+                          for c in range(elementsCount+1)]
 
 
 class CylinderMesh:
@@ -195,8 +196,7 @@ class CylinderMesh:
         ellipseShape = EllipseShape.Ellipse_SHAPE_FULL \
             if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL else EllipseShape.Ellipse_SHAPE_LOWER_HALF
         self._shield = ShieldMesh(self._elementsCountAcrossMinor, self._elementsCountAcrossMajor, elementsCountRim,
-                                  None,
-                                  self._elementsCountAlong, shieldMode,
+                                  None, self._elementsCountAlong, shieldMode,
                                   shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
         # generate ellipses mesh along cylinder axis
@@ -292,9 +292,9 @@ class CylinderMesh:
 
     def calculateEllipseParams(self, arcLengthAlong=None, cylinderCentralPath=None):
         """
-        generate bases of the truncated cone along the cone axis. It generates 1D ellipses.
-        :param cylinderCentralPath: Stores radii and centres of the ellipses along the cylinder length
+        Calculate the ellipses major and minor radii, major and minor axis and ellipses centres.
         :param arcLengthAlong: arc length along the cylinder axis. Only if cylinderCentralPath is false.
+        :param cylinderCentralPath: Stores radii and centres of the ellipses along the cylinder length
         """
         if not cylinderCentralPath:
             self._centres = [self._base._centre for _ in range(self._elementsCountAlong+1)]
@@ -315,11 +315,11 @@ class CylinderMesh:
             minorRadius = self._base._minorRadius
             for n3 in range(1, self._elementsCountAlong+1):
                 majorRadius, majorAxis = computeNextRadius(majorRadius, self._base._majorAxis,
-                                                             self._tapered.majorRatio,
-                                                             self._tapered.majorProgressionMode)
+                                                           self._tapered.majorRatio,
+                                                           self._tapered.majorProgressionMode)
                 minorRadius, minorAxis = computeNextRadius(minorRadius, self._base._minorAxis,
-                                                             self._tapered.minorRatio,
-                                                             self._tapered.minorProgressionMode)
+                                                           self._tapered.minorRatio,
+                                                           self._tapered.minorProgressionMode)
                 centre = computeNextCentre(centre, arcLengthAlong, self._base._alongAxis)
                 self._centres[n3] = centre
                 self._majorAxis[n3] = majorAxis
@@ -328,6 +328,10 @@ class CylinderMesh:
                 self._minorRadii[n3] = minorRadius
 
     def copyEllipsesNodesToShieldNodes(self, n3):
+        """
+        Copy coordinates and derivatives of ellipses to shield.
+        :param n3: the index number of ellipse along the central path.
+        """
         self._shield.px[n3] = self._ellipses[n3].px
         self._shield.pd1[n3] = self._ellipses[n3].pd1
         self._shield.pd2[n3] = self._ellipses[n3].pd2
@@ -339,7 +343,6 @@ class CylinderMesh:
         :param nodes: nodes from coordinates.
         :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
-        :param plane: mirror plane ax+by+cz=d in form of [a,b,c,d]
         """
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         self._startNodeIdentifier = nodeIdentifier
@@ -359,55 +362,6 @@ class CylinderMesh:
         self._endElementIdentifier = elementIdentifier
 
 
-def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
-        """
-        Generate a set of points and derivatives for an ellipse
-        starting at pole majorAxis from centre.
-        :param elementsCountAround: Number of elements around.
-        :param centre: Centre of full ellipse.
-        :param majorAxis: Vector in direction of starting major radius, magnitude is ellipse major radius.
-        :param minorAxis: Vector normal to major axis, magnitude is ellipse minor axis length.
-        :param height: Height of arc of ellipsoid from starting point along majorAxis.
-        :return: Lists nx, nd1. Ordered fastest around, starting at major radius.
-        """
-        nx = []
-        nd1 = []
-        magMajorAxis = vector.magnitude(majorAxis)
-        magMinorAxis = vector.magnitude(minorAxis)
-        unitMajorAxis = vector.normalise(majorAxis)
-        unitMinorAxis = vector.normalise(minorAxis)
-        useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
-        totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
-                                                     initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
-        radians = 0.0
-        arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
-        elementsCountUp = elementsCountAround // 2
-        elementArcLength = arcLengthUp / elementsCountUp
-        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
-        for n1 in range(2 * elementsCountUp + 1):
-            cosRadians = math.cos(radians)
-            sinRadians = math.sin(radians)
-            nx.append(
-                [(centre[c] + cosRadians * majorAxis[c] + sinRadians * minorAxis[c]) for c in range(3)])
-
-            ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
-            nd1.append(
-                [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
-            radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
-        return nx, nd1
-
-
-def normalToEllipse(v1, v2):
-    """
-    Find unit normal vector of an ellipse using two vectors in the ellipse. The direction is v1xv2
-    :param v1: vector 1.
-    :param v2: vector 2.
-    :return:
-    """
-    nte = vector.normalise(vector.crossproduct3(v1, v2))
-    return nte
-
-
 class Ellipse2D:
     """
     Generate a 2D ellipse.
@@ -415,6 +369,14 @@ class Ellipse2D:
 
     def __init__(self, centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
                  ellipseShape=EllipseShape.Ellipse_SHAPE_FULL):
+        """
+        :param centre: Ellipse centre.
+        :param majorAxis: A vector for ellipse major axis.
+        :param minorAxis: Ellipse minor axis.
+        :param elementsCountAcrossMajor:
+        :param elementsCountAcrossMinor:
+        :param ellipseShape: The shape of the ellipse which can be full or lower half.
+        """
         self.centre = centre
         self.majorAxis = majorAxis
         self.minorAxis = minorAxis
@@ -441,6 +403,9 @@ class Ellipse2D:
         self.generate2DEllipseMesh2()
 
     def generate2DEllipseMesh2(self):
+        """
+        Generates a 2d ellipse using shield structure in shieldmesh.
+        """
         self.generateBase1DMesh()
         rscx, rscd1, rscd2, rscd3 = self.createMirrorCurve()
         self.createRegularRowCurves(rscx, rscd1, rscd3)
@@ -457,38 +422,25 @@ class Ellipse2D:
             self.generateNodesForUpperHalf()
 
     def generateBase1DMesh(self):
-            """
-            generate bases of the truncated cone along the cone axis. It generates 1D ellipses.
-            :param cylinderCentralPath: Stores radii and centres of the ellipses along the cylinder length
-            :param minorAxis: Minor axis of the base
-            :param arcLengthAlong: arc length along the cylinder axis.
-            :param majorRadius: major radius of the cone ellipse base.
-            :param elementsCountAround: major radius of the cone ellipse base.
-            """
-            nx, nd1 = createCylinderBaseMesh2D(
-                self.centre, self.majorAxis, self.minorAxis, self.elementsCountAround, self.majorRadius)
-            nte = normalToEllipse(self.majorAxis, self.minorAxis)
+        """
+        Generate nodes around the perimeter of the ellipse.
+        """
+        nx, nd1 = createCylinderBaseMesh2D(
+            self.centre, self.majorAxis, self.minorAxis, self.elementsCountAround, self.majorRadius)
+        nte = normalToEllipse(self.majorAxis, self.minorAxis)
 
+        tbx, tbd1, tbd2, tbd3 = [], [], [], []
+        for n in range(self.elementsCountAround + 1):
+            tbx.append(nx[n])
+            tbd1.append(nd1[n])
+            tbd2.append(nte)
+            tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
 
-            # majorRadius1 = majorRadius
-            # self._majorRadii.append(majorRadius1)
-            # minorRadius1 = vector.magnitude(minorAxis)
-            # self._minorRadii.append(minorRadius1)
-
-            # self._basesCentres = [self._base._centre for _ in range(self._elementsCountAlong + 1)]
-            tbx, tbd1, tbd2, tbd3 = [], [], [], []
-            for n in range(self.elementsCountAround + 1):
-                tbx.append(nx[n])
-                tbd1.append(nd1[n])
-                tbd2.append(nte)
-                tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
-
-            self.setRimNodes(tbx, tbd1, tbd2, tbd3)
+        self.setRimNodes(tbx, tbd1, tbd2, tbd3)
 
     def setRimNodes(self, nx, nd1, nd2, nd3):
         """
-        sets nodes of the ellipse boundary in order needed for creating a shield mesh.
-        :return: coordinates and derivatives of the ellipse boundary nodes.
+        Set nodes around the ellipse perimeter in order needed for creating a shield mesh.
         """
         btx = self.px
         btd1 = self.pd1
@@ -512,7 +464,6 @@ class Ellipse2D:
     def createMirrorCurve(self):
         """
         generate coordinates and derivatives for the mirror curve
-        :param n3: Index of along cylinder axis coordinates to use
         :return: Coordinates and derivatives for the mirror curve
         """
         btx = self.px
@@ -628,9 +579,9 @@ class Ellipse2D:
 
     def generateNodesForUpperHalf(self):
         """
-        Generates coordinates and derivatives for the other half by mirroring them. It keeps the d1 direction.
+        Generates coordinates and derivatives for the upper half by mirroring the lower half nodes and derivatives.
+         It keeps the d1 direction.
         It uses mirrorPlane: plane ax+by+cz=d in form of [a,b,c,d]
-        :return:
         """
         mirrorPlane = [-d for d in self.majorAxis] + [-vector.dotproduct(self.majorAxis, self.centre)]
         mirror = Mirror(mirrorPlane)
@@ -643,6 +594,55 @@ class Ellipse2D:
                         self.pd1[n2][n1])
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
+
+
+def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
+    """
+    Generate a set of points and derivatives for an ellipse
+    starting at pole majorAxis from centre.
+    :param elementsCountAround: Number of elements around.
+    :param centre: Centre of full ellipse.
+    :param majorAxis: Vector in direction of starting major radius, magnitude is ellipse major radius.
+    :param minorAxis: Vector normal to major axis, magnitude is ellipse minor axis length.
+    :param height: Height of arc of ellipsoid from starting point along majorAxis.
+    :return: Lists nx, nd1. Ordered fastest around, starting at major radius.
+    """
+    nx = []
+    nd1 = []
+    magMajorAxis = vector.magnitude(majorAxis)
+    magMinorAxis = vector.magnitude(minorAxis)
+    unitMajorAxis = vector.normalise(majorAxis)
+    unitMinorAxis = vector.normalise(minorAxis)
+    useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
+    totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
+                                                 initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
+    radians = 0.0
+    arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
+    elementsCountUp = elementsCountAround // 2
+    elementArcLength = arcLengthUp / elementsCountUp
+    radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
+    for n1 in range(2 * elementsCountUp + 1):
+        cosRadians = math.cos(radians)
+        sinRadians = math.sin(radians)
+        nx.append(
+            [(centre[c] + cosRadians * majorAxis[c] + sinRadians * minorAxis[c]) for c in range(3)])
+
+        ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
+        nd1.append(
+            [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
+        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
+    return nx, nd1
+
+
+def normalToEllipse(v1, v2):
+    """
+    Find unit normal vector of an ellipse using two vectors in the ellipse. The direction is v1xv2
+    :param v1: vector 1.
+    :param v2: vector 2.
+    :return:
+    """
+    nte = vector.normalise(vector.crossproduct3(v1, v2))
+    return nte
 
 
 def computeNextRadius(radius, axis, ratio, progression):
