@@ -334,7 +334,7 @@ class ShieldMesh:
         #        s += str(n1) if self.px[1][n2][n1] else " "
         #    print(n2, s, n2 - self.elementsCountUp - 1)
 
-        if self._mode == ShieldShape.SHIELD_SHAPE_FULL:
+        if self._mode == ShieldShape.SHIELD_SHAPE_FULL and mirrorPlane:
             self.generateNodesForOtherHalf(mirrorPlane)
 
         for n2 in range(self.elementsCountUpFull + 1):
