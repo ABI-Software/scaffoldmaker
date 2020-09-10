@@ -192,7 +192,6 @@ with variable numbers of elements in major, minor and length directions.
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
 
-
         if not useCentralPath:
             majorRatio, majorProgression = radiusChange(majorRadius, majorRadiusEndRatio, elementsCountAlong, geometric=majorGeometric)
             minorRatio, minorProgression = radiusChange(minorRadius, minorRadiusEndRatio, elementsCountAlong, geometric=minorGeometric)
@@ -204,7 +203,7 @@ with variable numbers of elements in major, minor and length directions.
 
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, [0.0, 0.0, 0.0],
                             vector.setMagnitude(axis3, length), vector.setMagnitude(axis1, majorRadius), minorRadius)
-        cylinder1 = CylinderMesh(fm, coordinates, base, elementsCountAlong,
+        cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape, tapered=radiusChanges,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 

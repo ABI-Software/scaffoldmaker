@@ -1,5 +1,6 @@
 """
-Utility functions for generating a generalised 3-D solid cylinder (extruded ellipse/circle). It can be used to generate
+Utility functions for generating a generalised 3-D solid cylinder (extruded ellipse/circle). The radii and ellipses
+ orientation can be controlled using a central path subscaffold. It can be used to generate
 a solid truncated cone. It also can be used for transition from a 2D base to another base (e.g., ellipse to a circle).
 """
 
@@ -19,6 +20,11 @@ class CylinderShape(Enum):
     CYLINDER_SHAPE_LOWER_HALF = 2  # lower half cylinder
 
 
+class EllipseShape(Enum):
+    Ellipse_SHAPE_FULL = 1  # full ellipse is created
+    Ellipse_SHAPE_LOWER_HALF = 2  # lower half ellipse
+
+
 class CylinderType(Enum):
     CYLINDER_STRAIGHT = 1  # regular cylinder
     CYLINDER_TAPERED = 2  # cylinder radius changes along the cylinder axis
@@ -29,52 +35,13 @@ class ConeBaseProgression(Enum):
     ARITHMETIC_PROGRESSION = 2  # arithmetic sequence decrease for major radius of bases
 
 
-def computeNextRadius(radius, axis, ratio, progression):
-    """
-    calculate next radius based on the progression method. r_n+1=r_n*ratio for geometric. r_n+1=r_ratio for arithmetic.
-    :param radius: radius (major or minor) along the central path.
-    :param axis: major or minor axis along the central path.
-    :param ratio: common ratio (common difference) for changing the next radius.
-    :param progression: arithmetic or geometric.
-    :return: next radius and axis.
-    """
-    if progression == ConeBaseProgression.GEOMETRIC_PROGRESSION:
-        radius = radius * ratio
-    elif progression == ConeBaseProgression.ARITHMETIC_PROGRESSION:
-        radius += ratio
-    axis = vector.setMagnitude(axis, radius)
-    return radius, axis
-
-
-def computeNextCentre(centre, arcLength, axis):
-    """
-    compute next centre coordinate
-    :param axis:
-    :param arcLength: the length to go forward.
-    :param centre: the start centre.
-    :return: next centre coordinates.
-    """
-    centre = [centre[c]+arcLength * vector.normalise(axis)[c] for c in range(3)]
-    return centre
-
-
-def normalToEllipse(v1, v2):
-    """
-    Find unit normal vector of an ellipse using two vectors in the ellipse. The direction is v1xv2
-    :param v1: vector 1.
-    :param v2: vector 2.
-    :return:
-    """
-    nte = vector.normalise(vector.crossproduct3(v1, v2))
-    return nte
-
 class CylinderEnds:
     """
     Stores base ellipse parameters.
     """
 
     def __init__(self, elementsCountAcrossMajor, elementsCountAcrossMinor,
-                 centre, alongAxis, majorAxis, minorRadius):
+                 centre=None, alongAxis=None, majorAxis=None, minorRadius=None):
         """
         :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for
          half and 4 + elementsCountRim for full cylinder.
@@ -88,7 +55,8 @@ class CylinderEnds:
         self._alongAxis = alongAxis
         self._majorAxis = majorAxis
         self._minorRadius = minorRadius
-        self._minorAxis = vector.setMagnitude(vector.crossproduct3(alongAxis, majorAxis), minorRadius)
+        if alongAxis:
+            self._minorAxis = vector.setMagnitude(vector.crossproduct3(alongAxis, majorAxis), minorRadius)
         self._elementsCountAcrossMinor = elementsCountAcrossMinor
         self._elementsCountAcrossMajor = elementsCountAcrossMajor
         self._majorRadius = vector.magnitude(majorAxis)
@@ -123,9 +91,9 @@ class CylinderCentralPath:
 
     def __init__(self, region, centralPath, elementsCount):
         """
-        :param region:
-        :param centralPath:
-        :param elementsCount:
+        :param region: Zinc region to define model in.
+        :param centralPath: Central path subscaffold comes from meshtype_1d_path1 and used to calculate ellipse radii.
+        :param elementsCount: Number of elements needs to be sampled along the central path.
         """
 
         cx, cd1, cd2, cd12 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
@@ -156,7 +124,7 @@ class CylinderMesh:
     Cylinder mesh generator. Extrudes an ellipse/circle.
     """
 
-    def __init__(self, fieldModule, coordinates, base, elementsCountAlong, end=None,
+    def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
                  tapered=None, cylinderCentralPath=None, useCrossDerivatives=False):
         """
@@ -186,255 +154,18 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
-        self._length = vector.magnitude(base._alongAxis)
-        self._majorRadius = vector.magnitude(base._majorAxis)
-        self._basesCentres = [None for _ in range(elementsCountAlong + 1)]
-        self._basesCentres[0] = self._base._centre
         self._cylinderCentralPath = cylinderCentralPath
+        if cylinderCentralPath:
+            self.calculateEllipseParams(cylinderCentralPath=self._cylinderCentralPath)
+            self._base = CylinderEnds(base._elementsCountAcrossMajor, base._elementsCountAcrossMinor, self._centres[0],
+                                      None, self._majorAxis[0], self._minorRadii[0])
+        else:
+            self._length = vector.magnitude(base._alongAxis)
+            arcLengthAlong = self._length / elementsCountAlong
+            self.calculateEllipseParams(arcLengthAlong, cylinderCentralPath=self._cylinderCentralPath)
+
         # generate the mesh
         self.createCylinderMesh3d(fieldModule, coordinates)
-
-    @staticmethod
-    def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
-        """
-        Generate a set of points and derivatives for an ellipse
-        starting at pole majorAxis from centre.
-        :param elementsCountAround: Number of elements around.
-        :param centre: Centre of full ellipse.
-        :param majorAxis: Vector in direction of starting major radius, magnitude is ellipse major radius.
-        :param minorAxis: Vector normal to major axis, magnitude is ellipse minor axis length.
-        :param height: Height of arc of ellipsoid from starting point along majorAxis.
-        :return: Lists nx, nd1. Ordered fastest around, starting at major radius.
-        """
-        nx = []
-        nd1 = []
-        magMajorAxis = vector.magnitude(majorAxis)
-        magMinorAxis = vector.magnitude(minorAxis)
-        unitMajorAxis = vector.normalise(majorAxis)
-        unitMinorAxis = vector.normalise(minorAxis)
-        useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
-        totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
-                                                     initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
-        radians = 0.0
-        arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
-        elementsCountUp = elementsCountAround // 2
-        elementArcLength = arcLengthUp / elementsCountUp
-        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
-        for n1 in range(2 * elementsCountUp + 1):
-            cosRadians = math.cos(radians)
-            sinRadians = math.sin(radians)
-            nx.append(
-                [(centre[c] + cosRadians * majorAxis[c] + sinRadians * minorAxis[c]) for c in range(3)])
-
-            ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
-            nd1.append(
-                [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
-            radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
-        return nx, nd1
-
-
-
-    def generateBasesMesh(self, majorRadius, elementsCountAround, arcLengthAlong, minorAxis, cylinderCentralPath=None):
-        """
-        generate bases of the truncated cone along the cone axis.
-        :param cylinderCentralPath: Stores radii and centres of the ellipses along the cylinder length
-        :param minorAxis: Minor axis of the base
-        :param arcLengthAlong: arc length along the cylinder axis.
-        :param majorRadius: major radius of the cone ellipse base.
-        :param elementsCountAround: major radius of the cone ellipse base.
-        """
-        self._majorRadii = []
-        self._minorRadii = []
-        centre = self._base._centre
-        nx, nd1 = self.createCylinderBaseMesh2D(
-            self._base._centre, self._base._majorAxis, minorAxis, elementsCountAround, majorRadius)
-        nte = normalToEllipse(self._base._majorAxis, minorAxis)
-        majorRadius1 = majorRadius
-        self._majorRadii.append(majorRadius1)
-        minorRadius1 = vector.magnitude(minorAxis)
-        self._minorRadii.append(minorRadius1)
-        tnx, tnd1, tnd2, tnd3 = [], [], [], []
-        self._basesCentres = [self._base._centre for _ in range(self._elementsCountAlong + 1)]
-        for n3 in range(self._elementsCountAlong + 1):
-            tbx, tbd1, tbd2, tbd3 = [], [], [], []
-            for n in range(elementsCountAround + 1):
-                tbx.append(nx[n])
-                tbd1.append(nd1[n])
-                tbd2.append([arcLengthAlong * vector.normalise(self._base._alongAxis)[c] for c in range(3)])
-                tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
-            tnx.append(tbx)
-            tnd1.append(tbd1)
-            tnd2.append(tbd2)
-            tnd3.append(tbd3)
-            if (self._cylinderType == CylinderType.CYLINDER_TAPERED) and (n3 < self._elementsCountAlong):
-                nx = nd1 = []
-
-                if cylinderCentralPath:
-                    majorRadius1 = cylinderCentralPath.majorRadii[n3+1]
-                    majorAxis1   = cylinderCentralPath.majorAxis[n3+1]
-                    minorRadius1 = cylinderCentralPath.minorRadii[n3+1]
-                    minorAxis1   = cylinderCentralPath.minorAxis[n3+1]
-                    centre       = cylinderCentralPath.centres[n3+1]
-                else:
-                    majorRadius1, majorAxis1 = computeNextRadius(majorRadius1, self._base._majorAxis,
-                                                                 self._tapered.majorRatio,
-                                                                 self._tapered.majorProgressionMode)
-                    minorRadius1, minorAxis1 = computeNextRadius(minorRadius1, self._base._minorAxis,
-                                                                 self._tapered.minorRatio,
-                                                                 self._tapered.minorProgressionMode)
-                    centre = computeNextCentre(centre, arcLengthAlong, self._base._alongAxis)
-                self._basesCentres[n3+1] = centre
-
-                self._majorRadii.append(majorRadius1)
-                self._minorRadii.append(minorRadius1)
-                nx, nd1 = self.createCylinderBaseMesh2D(
-                    centre, majorAxis1, minorAxis1, elementsCountAround, majorRadius1)
-                nte = normalToEllipse(majorAxis1, minorAxis1)
-
-        self.setRimNodes(tnx,tnd1,tnd2,tnd3,minorAxis)
-
-    def setRimNodes(self, nx, nd1, nd2, nd3, minorAxis):
-        """
-        sets nodes of the ellipse boundary in order needed for creating a shield mesh.
-        :return: coordinates and derivatives of the ellipse boundary nodes.
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-
-        for n3 in range(self._elementsCountAlong + 1):
-            for n in range(self._elementsCountAround + 1):
-                n1, n2 = self._shield.convertRimIndex(n)
-                tx, td1, td2, td3 = nx[n3], nd1[n3], nd2[n3], nd3[n3]
-                btx[n3][n2][n1] = tx[n]
-                if n2 > self._shield.elementsCountRim:  # regular rows
-                    btd1[n3][n2][n1] = td1[n]
-                    btd3[n3][n2][n1] = td3[n]
-                if n2 >= 2:
-                    btd3[n3][n2][n1] = vector.setMagnitude(minorAxis, vector.dotproduct(td3[n], minorAxis))
-                else:  # around rim
-                    btd1[n3][n2][n1] = td1[n]
-                    btd3[n3][n2][n1] = td3[n]
-                btd2[n3][n2][n1] = td2[n]
-
-    def createMirrorCurve(self, n3):
-        """
-        generate coordinates and derivatives for the mirror curve
-        :param n3: Index of along cylinder axis coordinates to use
-        :return: Coordinates and derivatives for the mirror curve
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-
-        rcx = []
-        tmdx = btx[n3][0][self._elementsCountAcrossMinor // 2]
-        tmdd3 = btd3[n3][0][self._elementsCountAcrossMinor // 2]
-        tmux = [
-            0.5 * (btx[n3][self._elementsCountUp][0][c] + btx[n3][self._elementsCountUp][self._elementsCountAcrossMinor]
-            [c]) for c in range(3)]
-        rcx.append(tmdx)
-        rcx.append(tmux)
-        rcd3 = [vector.setMagnitude(tmdd3, -1), vector.setMagnitude(tmdd3, -1)]
-        rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self._shield.elementsCountUp, lengthFractionStart=1,
-                                               arcLengthDerivatives=True)[0:2]
-
-        # get d2, d3
-        rscd2 = []
-        rscd3 = []
-        for n in range(len(rscx)):
-            d3 = vector.normalise(
-                [btx[n3][self._elementsCountUp][self._elementsCountAcrossMinor][c] - btx[n3][self._elementsCountUp][0]
-                [c] for c in range(3)])
-            d2 = vector.normalise(vector.crossproduct3(d3, rscd1[n]))
-            rscd2.append(d2)
-            rscd3.append(d3)
-
-        return rscx, rscd1, rscd2, rscd3
-
-    def createRegularRowCurves(self, n3, rscx, rscd1, rscd3):
-        """
-        generate curves along regular rows using the mirror curve obtained from createMirrorCurve.
-        :param rscx: Coordinates of the nodes on the middle curve.
-        :param rscd1: d1 derivatives of the nodes on the middle curve.
-        :param rscd3: d3 derivatives of the nodes on the middle curve.
-        :param n3: Index of along cylinder axis coordinates to use
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-
-        elementsCountRim = 0
-        for n2 in range(elementsCountRim + 2, self._elementsCountUp + 1):
-            btx[n3][n2], btd3[n3][n2], pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[n3][n2][0], rscx[n2], btx[n3][n2][-1]],
-                [vector.setMagnitude(btd3[n3][n2][0], -1.0), rscd3[n2], btd3[n3][n2][-1]],
-                self._elementsCountAcrossMinor, lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
-            btd1[n3][n2] = interpolateSampleCubicHermite([[-btd1[n3][n2][0][c] for c in range(3)], rscd1[n2],
-                                                          btd1[n3][n2][-1]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
-            if n2 == self._elementsCountUp:
-                for n1 in range(1, self._elementsCountAcrossMinor):
-                    btd1[n3][n2][n1] = vector.setMagnitude(btd1[n3][self._elementsCountUp][-1], 1.0)
-            btd3[n3][n2][0] = [-btd3[n3][n2][0][c] for c in range(3)]
-            btd1[n3][n2][0] = [-btd1[n3][n2][0][c] for c in range(3)]
-
-    def createRegularColumnCurves(self, n3):
-        """
-        up regular columns of shield: get d1, initial d3 below regular rows
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-
-        for n1 in range(2, self._elementsCountAcrossMinor - 1):
-            tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[n3][0][n1], btx[n3][2][n1]], [[-btd3[n3][0][n1][c] for c in range(3)], btd1[n3][2][n1]], 2,
-                lengthFractionStart=1, arcLengthDerivatives=True)
-            for n2 in range(3, self._elementsCountUp + 1):
-                tx.append(btx[n3][n2][n1])
-                td1.append(btd1[n3][n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
-            td3 = \
-                interpolateSampleCubicHermite([btd1[n3][0][n1], btd3[n3][2][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[
-                    0]
-            for n2 in range(self._elementsCountUp + 1):
-                if n2 < 2:
-                    btx[n3][n2][n1] = tx[n2]
-                    if n2 == 0:
-                        btd3[n3][n2][n1] = [-td1[0][c] for c in range(3)]
-                    else:
-                        btd3[n3][n2][n1] = td3[n2]
-                if n2 == 0:
-                    btd1[n3][n2][n1] = td3[n2]
-                else:
-                    btd1[n3][n2][n1] = td1[n2]
-
-    def smoothTriplePointsCurves(self, n3, n2b, n1b, m1a):
-        """
-        Smooth row and column curves passing triple points (i.e., row 1 and columns 1 and -2).
-        """
-        btx = self._shield.px
-        btd1 = self._shield.pd1
-        btd2 = self._shield.pd2
-        btd3 = self._shield.pd3
-
-        # smooth shield row 1
-        btd3[n3][n2b][n1b:m1a] = smoothCubicHermiteDerivativesLine(btx[n3][n2b][n1b:m1a], btd3[n3][n2b][n1b:m1a])
-
-        # smooth Shield columns 1, -2
-        for n1 in [1, -2]:
-            tx = []
-            td1 = []
-            for n2 in range(1, self._elementsCountUp + 1):
-                tx.append(btx[n3][n2][n1])
-                td1.append(btd1[n3][n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
-            for n in range(self._elementsCountUp):
-                btd1[n3][n + 1][n1] = td1[n]
 
     def calculateD2Derivatives(self, n3, n3Count):
         """
@@ -507,40 +238,27 @@ class CylinderMesh:
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
 
-        # create the base ellipse
-        minorAxis = vector.setMagnitude(vector.crossproduct3(self._base._alongAxis, self._base._majorAxis),
-                                        self._base._minorRadius)
-        majorRadius = vector.magnitude(self._base._majorAxis)
-        elementsCountAround = self._elementsCountAround
-
-        # the bottom curve node coordinates and derivatives
-        arcLengthAlong = vector.magnitude(self._base._alongAxis) / self._elementsCountAlong
         elementsCountRim = 0
 
         shieldMode = ShieldShape.SHIELD_SHAPE_FULL if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL \
             else ShieldShape.SHIELD_SHAPE_LOWER_HALF
+        ellipseShape = EllipseShape.Ellipse_SHAPE_FULL \
+            if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL else EllipseShape.Ellipse_SHAPE_LOWER_HALF
         self._shield = ShieldMesh(self._elementsCountAcrossMinor, self._elementsCountAcrossMajor, elementsCountRim,
                                   None,
                                   self._elementsCountAlong, shieldMode,
                                   shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
-        # generate bases mesh along cylinder axis
-        self.generateBasesMesh(majorRadius, elementsCountAround, arcLengthAlong, minorAxis,
-                               cylinderCentralPath=self._cylinderCentralPath)
+        # generate ellipses mesh along cylinder axis
 
         n3Count = 0 if self._cylinderType == CylinderType.CYLINDER_STRAIGHT else self._elementsCountAlong
+        self._ellipses = []
         for n3 in range(n3Count + 1):
-            rscx, rscd1, rscd2, rscd3 = self.createMirrorCurve(n3)
-            self.createRegularRowCurves(n3, rscx, rscd1, rscd3)
-            self.createRegularColumnCurves(n3)
-            self._shield.getTriplePoints(n3)
-            n1b = 1
-            m1a = self._shield.elementsCountAcross
-            m1b = m1a - 1
-            m1c = m1a - 2
-            n2b = 1
-            self.smoothTriplePointsCurves(n3, n2b, n1b, m1a)
-            self._shield.smoothDerivativesToTriplePoints(n3, fixAllDirections=True)
+            ellipse = Ellipse2D(self._centres[n3], self._majorAxis[n3], self._minorAxis[n3],
+                                self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
+                                ellipseShape=ellipseShape)
+            self._ellipses.append(ellipse)
+            self.copyEllipsesNodesToShieldNodes(n3)
 
         for n3 in range(n3Count + 1):
             self.calculateD2Derivatives(n3, n3Count)
@@ -550,6 +268,7 @@ class CylinderMesh:
 
         # The other ellipses.
         if self._cylinderType == CylinderType.CYLINDER_STRAIGHT:
+            arcLengthAlong = vector.magnitude(self._base._alongAxis) / self._elementsCountAlong
             for n2 in range(self._elementsCountUp + 1):
                 for n3 in range(self._elementsCountAlong + 1):
                     for n1 in range(self._elementsCountAcrossMinor + 1):
@@ -566,7 +285,7 @@ class CylinderMesh:
 
         if self._end is None:
             self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
-                                     self._basesCentres[-1], self._shield.pd2[-1][0][1],
+                                     self._centres[-1], self._shield.pd2[-1][0][1],
                                      vector.setMagnitude(self._base._majorAxis, self._majorRadii[-1]),
                                      self._minorRadii[-1])
         self.setEndsNodes()
@@ -595,3 +314,340 @@ class CylinderMesh:
         self._startElementIdentifier = elementIdentifier
         elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
         self._endElementIdentifier = elementIdentifier
+
+    def calculateEllipseParams(self, arcLengthAlong=None, cylinderCentralPath=None):
+        """
+        generate bases of the truncated cone along the cone axis. It generates 1D ellipses.
+        :param cylinderCentralPath: Stores radii and centres of the ellipses along the cylinder length
+        :param arcLengthAlong: arc length along the cylinder axis. Only if cylinderCentralPath is false.
+        """
+        if not cylinderCentralPath:
+            self._centres = [self._base._centre for _ in range(self._elementsCountAlong+1)]
+            self._majorAxis = [self._base._majorAxis for _ in range(self._elementsCountAlong+1)]
+            self._minorAxis = [self._base._minorAxis for _ in range(self._elementsCountAlong+1)]
+            self._majorRadii = [self._base._majorRadius for _ in range(self._elementsCountAlong+1)]
+            self._minorRadii = [self._base._minorRadius for _ in range(self._elementsCountAlong+1)]
+        if cylinderCentralPath:
+            self._centres =  cylinderCentralPath.centres
+            self._majorAxis = cylinderCentralPath.majorAxis
+            self._minorAxis = cylinderCentralPath.minorAxis
+            self._majorRadii = cylinderCentralPath.majorRadii
+            self._minorRadii = cylinderCentralPath.minorRadii
+
+        if self._cylinderType == CylinderType.CYLINDER_TAPERED and not cylinderCentralPath:
+            centre = self._base._centre
+            majorRadius = self._base._majorRadius
+            minorRadius = self._base._minorRadius
+            for n3 in range(1, self._elementsCountAlong+1):
+                majorRadius, majorAxis = computeNextRadius(majorRadius, self._base._majorAxis,
+                                                             self._tapered.majorRatio,
+                                                             self._tapered.majorProgressionMode)
+                minorRadius, minorAxis = computeNextRadius(minorRadius, self._base._minorAxis,
+                                                             self._tapered.minorRatio,
+                                                             self._tapered.minorProgressionMode)
+                centre = computeNextCentre(centre, arcLengthAlong, self._base._alongAxis)
+                self._centres[n3] = centre
+                self._majorAxis[n3] = majorAxis
+                self._minorAxis[n3] = minorAxis
+                self._majorRadii[n3] = majorRadius
+                self._minorRadii[n3] = minorRadius
+
+    def copyEllipsesNodesToShieldNodes(self, n3):
+        self._shield.px[n3] = self._ellipses[n3].px
+        self._shield.pd1[n3] = self._ellipses[n3].pd1
+        self._shield.pd2[n3] = self._ellipses[n3].pd2
+        self._shield.pd3[n3] = self._ellipses[n3].pd3
+
+
+def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
+        """
+        Generate a set of points and derivatives for an ellipse
+        starting at pole majorAxis from centre.
+        :param elementsCountAround: Number of elements around.
+        :param centre: Centre of full ellipse.
+        :param majorAxis: Vector in direction of starting major radius, magnitude is ellipse major radius.
+        :param minorAxis: Vector normal to major axis, magnitude is ellipse minor axis length.
+        :param height: Height of arc of ellipsoid from starting point along majorAxis.
+        :return: Lists nx, nd1. Ordered fastest around, starting at major radius.
+        """
+        nx = []
+        nd1 = []
+        magMajorAxis = vector.magnitude(majorAxis)
+        magMinorAxis = vector.magnitude(minorAxis)
+        unitMajorAxis = vector.normalise(majorAxis)
+        unitMinorAxis = vector.normalise(minorAxis)
+        useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
+        totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
+                                                     initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
+        radians = 0.0
+        arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
+        elementsCountUp = elementsCountAround // 2
+        elementArcLength = arcLengthUp / elementsCountUp
+        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
+        for n1 in range(2 * elementsCountUp + 1):
+            cosRadians = math.cos(radians)
+            sinRadians = math.sin(radians)
+            nx.append(
+                [(centre[c] + cosRadians * majorAxis[c] + sinRadians * minorAxis[c]) for c in range(3)])
+
+            ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
+            nd1.append(
+                [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
+            radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
+        return nx, nd1
+
+
+def normalToEllipse(v1, v2):
+    """
+    Find unit normal vector of an ellipse using two vectors in the ellipse. The direction is v1xv2
+    :param v1: vector 1.
+    :param v2: vector 2.
+    :return:
+    """
+    nte = vector.normalise(vector.crossproduct3(v1, v2))
+    return nte
+
+
+class Ellipse2D:
+    """
+    Generate a 2D ellipse.
+    """
+
+    def __init__(self, centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                 ellipseShape=EllipseShape.Ellipse_SHAPE_FULL):
+        self.centre = centre
+        self.majorAxis = majorAxis
+        self.minorAxis = minorAxis
+        self.majorRadius = vector.magnitude(majorAxis)
+        self.minorRadius = vector.magnitude(minorAxis)
+        elementsCountRim = 0
+        shieldMode = ShieldShape.SHIELD_SHAPE_FULL if ellipseShape is EllipseShape.Ellipse_SHAPE_FULL\
+            else ShieldShape.SHIELD_SHAPE_LOWER_HALF
+        shield = ShieldMesh(elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountRim,
+                            None, 1, shieldMode,
+                            shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
+        self.elementsCountAcrossMajor = elementsCountAcrossMajor
+        self.elementsCountAround = shield.elementsCountAroundFull
+        self.elementsCountUp = shield.elementsCountUp
+        self.elementsCountAcrossMinor = elementsCountAcrossMinor
+        self.nodeId = shield.nodeId
+        self.px = shield.px[0]
+        self.pd1 = shield.pd1[0]
+        self.pd2 = shield.pd2[0]
+        self.pd3 = shield.pd3[0]
+        self.__shield = shield
+        # generate the ellipse
+        self.generate2DEllipseMesh2()
+
+    def generate2DEllipseMesh2(self):
+        self.generateBase1DMesh()
+        rscx, rscd1, rscd2, rscd3 = self.createMirrorCurve()
+        self.createRegularRowCurves(rscx, rscd1, rscd3)
+        self.createRegularColumnCurves()
+        self.__shield.getTriplePoints(0)
+        n1b = 1
+        m1a = self.elementsCountAcrossMinor
+        m1b = m1a - 1
+        m1c = m1a - 2
+        n2b = 1
+        self.smoothTriplePointsCurves(n2b, n1b, m1a)
+        self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
+
+    def generateBase1DMesh(self):
+            """
+            generate bases of the truncated cone along the cone axis. It generates 1D ellipses.
+            :param cylinderCentralPath: Stores radii and centres of the ellipses along the cylinder length
+            :param minorAxis: Minor axis of the base
+            :param arcLengthAlong: arc length along the cylinder axis.
+            :param majorRadius: major radius of the cone ellipse base.
+            :param elementsCountAround: major radius of the cone ellipse base.
+            """
+            nx, nd1 = createCylinderBaseMesh2D(
+                self.centre, self.majorAxis, self.minorAxis, self.elementsCountAround, self.majorRadius)
+            nte = normalToEllipse(self.majorAxis, self.minorAxis)
+
+
+            # majorRadius1 = majorRadius
+            # self._majorRadii.append(majorRadius1)
+            # minorRadius1 = vector.magnitude(minorAxis)
+            # self._minorRadii.append(minorRadius1)
+
+            # self._basesCentres = [self._base._centre for _ in range(self._elementsCountAlong + 1)]
+            tbx, tbd1, tbd2, tbd3 = [], [], [], []
+            for n in range(self.elementsCountAround + 1):
+                tbx.append(nx[n])
+                tbd1.append(nd1[n])
+                tbd2.append(nte)
+                tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
+
+            self.setRimNodes(tbx, tbd1, tbd2, tbd3)
+
+    def setRimNodes(self, nx, nd1, nd2, nd3):
+        """
+        sets nodes of the ellipse boundary in order needed for creating a shield mesh.
+        :return: coordinates and derivatives of the ellipse boundary nodes.
+        """
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+
+        elementsCountRim = 0
+        for n in range(self.elementsCountAround + 1):
+            n1, n2 = self.__shield.convertRimIndex(n)
+            btx[n2][n1] = nx[n]
+            if n2 > elementsCountRim:  # regular rows
+                btd1[n2][n1] = nd1[n]
+                btd3[n2][n1] = nd3[n]
+            if n2 >= 2:
+                btd3[n2][n1] = vector.setMagnitude(self.minorAxis, vector.dotproduct(nd3[n], self.minorAxis))
+            else:  # around rim
+                btd1[n2][n1] = nd1[n]
+                btd3[n2][n1] = nd3[n]
+            btd2[n2][n1] = nd2[n]
+
+    def createMirrorCurve(self):
+        """
+        generate coordinates and derivatives for the mirror curve
+        :param n3: Index of along cylinder axis coordinates to use
+        :return: Coordinates and derivatives for the mirror curve
+        """
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+
+        rcx = []
+        tmdx = btx[0][self.elementsCountAcrossMinor // 2]
+        tmdd3 = btd3[0][self.elementsCountAcrossMinor // 2]
+        tmux = [
+            0.5 * (btx[self.elementsCountUp][0][c] + btx[self.elementsCountUp][self.elementsCountAcrossMinor]
+            [c]) for c in range(3)]
+        rcx.append(tmdx)
+        rcx.append(tmux)
+        rcd3 = [vector.setMagnitude(tmdd3, -1), vector.setMagnitude(tmdd3, -1)]
+        rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self.elementsCountUp, lengthFractionStart=1,
+                                               arcLengthDerivatives=True)[0:2]
+
+        # get d2, d3
+        rscd2 = []
+        rscd3 = []
+        for n in range(len(rscx)):
+            d3 = vector.normalise(
+                [btx[self.elementsCountUp][self.elementsCountAcrossMinor][c] - btx[self.elementsCountUp][0]
+                [c] for c in range(3)])
+            d2 = vector.normalise(vector.crossproduct3(d3, rscd1[n]))
+            rscd2.append(d2)
+            rscd3.append(d3)
+
+        return rscx, rscd1, rscd2, rscd3
+
+    def createRegularRowCurves(self, rscx, rscd1, rscd3):
+        """
+        generate curves along regular rows using the mirror curve obtained from createMirrorCurve.
+        :param rscx: Coordinates of the nodes on the middle curve.
+        :param rscd1: d1 derivatives of the nodes on the middle curve.
+        :param rscd3: d3 derivatives of the nodes on the middle curve.
+        """
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+
+        elementsCountRim = 0
+        for n2 in range(elementsCountRim + 2, self.elementsCountUp + 1):
+            btx[n2], btd3[n2], pe, pxi, psf = sampleCubicHermiteCurves(
+                [btx[n2][0], rscx[n2], btx[n2][-1]],
+                [vector.setMagnitude(btd3[n2][0], -1.0), rscd3[n2], btd3[n2][-1]],
+                self.elementsCountAcrossMinor, lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
+            btd1[n2] = interpolateSampleCubicHermite([[-btd1[n2][0][c] for c in range(3)], rscd1[n2],
+                                                      btd1[n2][-1]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
+            if n2 == self.elementsCountUp:
+                for n1 in range(1, self.elementsCountAcrossMinor):
+                    btd1[n2][n1] = vector.setMagnitude(btd1[self.elementsCountUp][-1], 1.0)
+            btd3[n2][0] = [-btd3[n2][0][c] for c in range(3)]
+            btd1[n2][0] = [-btd1[n2][0][c] for c in range(3)]
+
+    def createRegularColumnCurves(self):
+        """
+        up regular columns of shield: get d1, initial d3 below regular rows
+        """
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+
+        for n1 in range(2, self.elementsCountAcrossMinor - 1):
+            tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
+                [btx[0][n1], btx[2][n1]], [[-btd3[0][n1][c] for c in range(3)], btd1[2][n1]], 2,
+                lengthFractionStart=1, arcLengthDerivatives=True)
+            for n2 in range(3, self.elementsCountUp + 1):
+                tx.append(btx[n2][n1])
+                td1.append(btd1[n2][n1])
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
+            td3 = \
+                interpolateSampleCubicHermite([btd1[0][n1], btd3[2][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[
+                    0]
+            for n2 in range(self.elementsCountUp + 1):
+                if n2 < 2:
+                    btx[n2][n1] = tx[n2]
+                    if n2 == 0:
+                        btd3[n2][n1] = [-td1[0][c] for c in range(3)]
+                    else:
+                        btd3[n2][n1] = td3[n2]
+                if n2 == 0:
+                    btd1[n2][n1] = td3[n2]
+                else:
+                    btd1[n2][n1] = td1[n2]
+
+    def smoothTriplePointsCurves(self, n2b, n1b, m1a):
+        """
+        Smooth row and column curves passing triple points (i.e., row 1 and columns 1 and -2).
+        """
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+
+        # smooth shield row 1
+        btd3[n2b][n1b:m1a] = smoothCubicHermiteDerivativesLine(btx[n2b][n1b:m1a], btd3[n2b][n1b:m1a])
+
+        # smooth Shield columns 1, -2
+        for n1 in [1, -2]:
+            tx = []
+            td1 = []
+            for n2 in range(1, self.elementsCountUp + 1):
+                tx.append(btx[n2][n1])
+                td1.append(btd1[n2][n1])
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
+            for n in range(self.elementsCountUp):
+                btd1[n + 1][n1] = td1[n]
+
+
+def computeNextRadius(radius, axis, ratio, progression):
+    """
+    calculate next radius based on the progression method. r_n+1=r_n*ratio for geometric. r_n+1=r_ratio for arithmetic.
+    :param radius: radius (major or minor) along the central path.
+    :param axis: major or minor axis along the central path.
+    :param ratio: common ratio (common difference) for changing the next radius.
+    :param progression: arithmetic or geometric.
+    :return: next radius and axis.
+    """
+    if progression == ConeBaseProgression.GEOMETRIC_PROGRESSION:
+        radius = radius * ratio
+    elif progression == ConeBaseProgression.ARITHMETIC_PROGRESSION:
+        radius += ratio
+    axis = vector.setMagnitude(axis, radius)
+    return radius, axis
+
+
+def computeNextCentre(centre, arcLength, axis):
+    """
+    compute next centre coordinate
+    :param axis:
+    :param arcLength: the length to go forward.
+    :param centre: the start centre.
+    :return: next centre coordinates.
+    """
+    centre = [centre[c]+arcLength * vector.normalise(axis)[c] for c in range(3)]
+    return centre
