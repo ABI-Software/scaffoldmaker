@@ -24,6 +24,7 @@ class CylinderShape(Enum):
 class EllipseShape(Enum):
     Ellipse_SHAPE_FULL = 1  # full ellipse is created
     Ellipse_SHAPE_LOWER_HALF = 2  # lower half ellipse
+    Ellipse_SHAPE_UPPER_HALF = 3  # upper half ellipse
 
 
 class CylinderType(Enum):
@@ -392,7 +393,7 @@ class Ellipse2D:
         self.elementsCountAround = shield.elementsCountAroundFull
         self.elementsCountUp = shield.elementsCountUp
         self.elementsCountAcrossMinor = elementsCountAcrossMinor
-        self.nodeId = shield.nodeId
+        self.nodeId = shield.nodeId[0]
         self.px = shield.px[0]
         self.pd1 = shield.pd1[0]
         self.pd2 = shield.pd2[0]
@@ -420,6 +421,8 @@ class Ellipse2D:
         self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
         if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
             self.generateNodesForUpperHalf()
+        elif self.ellipseShape == EllipseShape.Ellipse_SHAPE_UPPER_HALF:
+            self.moveLowerHalfNodesToUpperHalf()
 
     def generateBase1DMesh(self):
         """
@@ -594,6 +597,21 @@ class Ellipse2D:
                         self.pd1[n2][n1])
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
+
+    def moveLowerHalfNodesToUpperHalf(self):
+        """
+        Move Generated coordinates and derivatives for the lower half ot upper half by mirroring the lower half nodes and derivatives.
+         It keeps the d1 direction.
+        It uses mirrorPlane: plane ax+by+cz=d in form of [a,b,c,d]
+        """
+        mirrorPlane = [-d for d in self.majorAxis] + [-vector.dotproduct(self.majorAxis, self.centre)]
+        mirror = Mirror(mirrorPlane)
+        for n2 in range(self.elementsCountUp):
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if self.px[n2][n1]:
+                    self.px[n2][n1] = mirror.mirrorImageOfPoint(self.px[n2][n1])
+                    self.pd1[n2][n1] = mirror.reverseMirrorVector(self.pd1[n2][n1])
+                    self.pd3[n2][n1] = mirror.mirrorVector(self.pd3[n2][n1])
 
 
 def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
