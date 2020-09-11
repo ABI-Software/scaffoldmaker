@@ -5,10 +5,12 @@ Generates a 1-D path mesh.
 from __future__ import division
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode, smoothCubicHermiteDerivativesLine
 
 class MeshType_1d_path1(Scaffold_base):
     '''
@@ -54,16 +56,15 @@ class MeshType_1d_path1(Scaffold_base):
         length = options['Length']
         elementsCount = options['Number of elements']
 
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        coordinates = findOrCreateFieldCoordinates(fm, components_count=coordinateDimensions)
-        cache = fm.createFieldcache()
+        fieldmodule = region.getFieldmodule()
+        coordinates = findOrCreateFieldCoordinates(fieldmodule, components_count=coordinateDimensions)
+        cache = fieldmodule.createFieldcache()
 
         #################
         # Create nodes
         #################
 
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -90,8 +91,8 @@ class MeshType_1d_path1(Scaffold_base):
         # Create elements
         #################
 
-        mesh = fm.findMeshByDimension(1)
-        cubicHermiteBasis = fm.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        mesh = fieldmodule.findMeshByDimension(1)
+        cubicHermiteBasis = fieldmodule.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
         eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
@@ -103,28 +104,50 @@ class MeshType_1d_path1(Scaffold_base):
             element.setNodesByIdentifier(eft, [ e + 1, e + 2 ])
             elementIdentifier = elementIdentifier + 1
 
-        fm.endChange()
         return []
 
+    @classmethod
+    def smoothPath(cls, region, options, mode : DerivativeScalingMode):
+        x, d1 = extractPathParametersFromRegion(region)[0:2]
+        d1 = smoothCubicHermiteDerivativesLine(x, d1, magnitudeScalingMode=mode)
+        setPathParameters(region, [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [ x, d1 ])
 
-def extractPathParametersFromRegion(region):
+    @classmethod
+    def getInteractiveFunctions(cls):
+        """
+        Supply client with functions for smoothing path parameters.
+        """
+        return [
+            ("Smooth d1 arithmetic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.ARITHMETIC_MEAN)),
+            ("Smooth d1 harmonic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.HARMONIC_MEAN)) ]
+
+
+def extractPathParametersFromRegion(region, groupName=None):
     '''
     Returns parameters of all nodes in region in identifier order.
     Assumes nodes in region have field coordinates (1 to 3 components).
     Currently limited to nodes with exactly value, d_ds1, d_ds2, d2_ds12,
     same as path 1 scaffold.
+    :param groupName: Optional name of Zinc group to get parameters from.
     :return: cx, cd1, cd2, cd12 (all padded with zeroes to 3 components)
     '''
-    fm = region.getFieldmodule()
-    coordinates = fm.findFieldByName('coordinates').castFiniteElement()
+    fieldmodule = region.getFieldmodule()
+    coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
     componentsCount = coordinates.getNumberOfComponents()
     assert componentsCount in [ 1, 2, 3 ], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
-    cache = fm.createFieldcache()
+    cache = fieldmodule.createFieldcache()
     cx = []
     cd1 = []
     cd2 = []
     cd12 = []
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    if groupName:
+        group = fieldmodule.findFieldByName(groupName).castGroup()
+        nodeGroup = group.getFieldNodeGroup(nodes)
+        if nodeGroup.isValid():
+            nodes = nodeGroup.getNodesetGroup()
+        else:
+            print('extractPathParametersFromRegion: missing group "' + groupName + '"')
     nodeIter = nodes.createNodeiterator()
     node = nodeIter.next()
     while node.isValid():
@@ -144,3 +167,30 @@ def extractPathParametersFromRegion(region):
         cd12.append(d12)
         node = nodeIter.next()
     return cx, cd1, cd2, cd12
+
+
+def setPathParameters(region, nodeValueLabels, nodeValues):
+    '''
+    Set node parameters for coordinates field in path from listed values.
+    :param nodeValueLabels: List of nodeValueLabels to set e.g. [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
+    :param nodeValues: List of values for each type e.g. [ xlist, d1list ]
+    '''
+    fieldmodule = region.getFieldmodule()
+    coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    componentsCount = coordinates.getNumberOfComponents()
+    # following requires at least one value label and node, assumes consistent values and components counts
+    nodeValueLabelsCount = len(nodeValueLabels)
+    nodesCount = len(nodeValues[0])
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    assert nodesCount == nodes.getSize()
+    with ChangeManager(fieldmodule):
+        cache = fieldmodule.createFieldcache()
+        nodeIter = nodes.createNodeiterator()
+        node = nodeIter.next()
+        n = 0
+        while node.isValid():
+            cache.setNode(node)
+            for v in range(nodeValueLabelsCount):
+                coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[v][n])
+            node = nodeIter.next()
+            n += 1
