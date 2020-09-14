@@ -44,11 +44,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[0.0, 0.0, 15.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[0.0, 0.0, 30.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[0.0, 0.0, 45.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.07, 1.2, 60.4], [0.4, 1.4, 13.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.3, 3.2, 75.2], [0.5, 1.5, 12.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.6, 5.6, 90.2], [0.5, 1.8, 13.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[1.0, 8.7, 105.0], [0.7, 3.7, 12.9], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[1.7, 13.9, 119.2], [0.9, 5.5, 13.3], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+                    [[0.13, 0.1, 60.45], [0.4, 1.1, 13.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.42, 1.42, 75.2], [0.3, 1.4, 13.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.85, 3.05, 89.94], [-0.2, 1.8, 15.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.26, 5.98, 107.94], [-0.6, 4.5, 16.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-0.66, 12.47, 127.07], [0.35, 6.67, 14.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -174,17 +175,17 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Cat 1']
         options = {
             'Central path LUT': copy.deepcopy(centralPathOption_LUT),
-            'Number of elements along bladder': 4,
+            'Number of elements along bladder': 12,
             'Number of elements around': 12,
             'Number of elements through wall': 1,
             'Major diameter': 30.0,
             'Minor diameter': 25.0,
             'Neck diameter 1': 5.0,
-            'Neck diameter 2': 3.0,
+            'Neck diameter 2': 4.0,
             'Wall thickness': 0.5,
             'Neck angle degrees': 45,
             'Include urethra': True,
-            'Number of elements along urethra': 4,
+            'Number of elements along urethra': 8,
             'Urethra diameter 1': 1.5,
             'Urethra diameter 2': 1.0,
             'Urethra wall thickness': 0.5,
@@ -476,8 +477,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         nd1 = matrix.rotateAboutZAxis(nd2_max[0], 0.5 * math.pi)
         innerNodes_d1 += [nd1] * elementsCountAround
         for n1 in range(0, len(nx_max)):
-            xAround, d1Around = createEllipsePoints([0.0, 0.0, nx_max[n1][2]], 2 * math.pi, [nx_min[n1][1], 0.0, 0.0],
-                                                    [0.0, nx_max[n1][1], 0.0], elementsCountAround, startRadians=0.0)
+            xAround, d1Around = createEllipsePoints([0.0, 0.0, nx_max[n1][2]], 2 * math.pi, [nx_max[n1][1], 0.0, 0.0],
+                                                    [0.0, nx_min[n1][1], 0.0], elementsCountAround, startRadians=-math.pi/2)
             innerNodes_x += xAround
             if n1 >= 1:
                 innerNodes_d1 += d1Around
@@ -515,6 +516,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             for n1 in range(elementsCountAround):
                 rd2 = smoothed_d2[n1 * (elementsCountAlongBladder + 1) + n2]
                 innerNodes_d2.append(rd2)
+
+        # Store derivatives for transition elements to replace in d2List
+        d2transitionList = []
+        for n in range(0, elementsCountAround):
+            transit_d2 = innerNodes_d2[elementsCountAround * elementsCountAlongBladder + n]
+            d2transitionList.append(transit_d2)
 
         # Create urethra
         if includeUrethra:
@@ -590,6 +597,13 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                                                                                         elementsCountAlong,
                                                                                         elementsCountThroughWall,
                                                                                         transitElementList)
+        # Call the derivatives from the transition list to be replaced in the d2List
+        idx = elementsCountAlongBladder * elementsCountAround
+        for n2 in range(elementsCountThroughWall + 1):
+            for n1 in range(0, elementsCountAround):
+                new_d2 = d2transitionList[n1]
+                d2List[(elementsCountThroughWall + 1) * idx + n2 * elementsCountAround + n1] = new_d2
+
         # Deal with multiple nodes at end point for closed proximal end
         xApexInner = xList[0]
         # Arclength between apex point and corresponding point on next face
