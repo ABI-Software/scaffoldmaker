@@ -1,6 +1,5 @@
 """
 Generates a 3-D planar stellate mesh with cross arms radiating from a central node, and variable numbers of elements along each arm.
-Ability to change between generic mesh or species-specific set, which involves changing parameter set.
 """
 
 from __future__ import division
@@ -32,6 +31,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         return [
             'Default',
             'Mouse 1',
+            'Long Mouse',
             'Mouse Mean 1']
 
     @classmethod
@@ -41,14 +41,18 @@ class MeshType_3d_stellate1(Scaffold_base):
         options['Base parameter set'] = parameterSetName
 
         isMouse = 'Mouse' in parameterSetName
+        isLongMouse = 'Long Mouse' in parameterSetName
 
         if isMouse:
             options['Numbers of elements along arms'] = [4,2,2]
+            if isLongMouse:
+                options['Numbers of elements along arms'] = [5,2,2]
         else:
-            options['Numbers of elements along arms'] = [4,3,3]
-        options['Element length along arm'] = 1.0
-        options['Element width across arm'] = 0.5
-        options['Element thickness'] = 0.5
+            options['Numbers of elements along arms'] = [4,2,2]
+        options['Element length around central wheel'] = 0.8
+        options['Element length along arm'] = 0.8
+        options['Element width across arm'] = 0.3
+        options['Element thickness'] = 0.1
         options['Refine'] = False
         options['Refine number of elements along arm'] = 1
         options['Refine number of elements across arm'] = 1
@@ -62,6 +66,7 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         return [
             'Numbers of elements along arms',
+            'Element length around central wheel',
             'Element length along arm',
             'Element width across arm',
             'Element thickness',
@@ -82,6 +87,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                 options[key] = 1
 
         for key in [
+            'Element length around central wheel',
             'Element length along arm',
             'Element width across arm',
             'Element thickness']:
@@ -109,10 +115,12 @@ class MeshType_3d_stellate1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-
-        isMouse = 'Mouse' in options['Base parameter set']
+        isDefault = 'Default' in options['Base parameter set']
+        isMouse = 'Mouse' in options['Base parameter set'] and 'Long' not in options['Base parameter set']
+        isLongMouse = 'Long Mouse' in options['Base parameter set']
 
         armCount = 3
+        elementLengthCentral = options['Element length around central wheel']
         elementLengths = [options['Element length along arm'],
                  options['Element width across arm'],
                  options['Element thickness']]
@@ -144,31 +152,65 @@ class MeshType_3d_stellate1(Scaffold_base):
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
 
-        # addMarker = {"name": "stellate-test", "xi": [0.0, 1.0, 0.0]}
         # markers with element number and xi position
-        allMarkers = { "Inferior cardiac nerve" : {"elementID": 10, "xi": [0.50, 0.0, 0.5]},
-                        "Ventral ansa subclavia" : {"elementID": 12, "xi": [0.50, 1.0, 0.5]},
-                        "Dorsal ansa subclavia" : {"elementID": 14, "xi": [0.50, 0.0, 0.5]},
-                        "C8 segment of cervical spinal cord" : {"elementID": 16, "xi": [0.50, 1.0, 0.5]},
-                        "first thoracic spinal cord segment" : {"elementID": 1, "xi": [1.0, 0.0, 0.5]},
-                        "second thoracic spinal cord segment" : {"elementID": 2, "xi": [1.0, 0.0, 0.5]},
-                        "third thoracic spinal cord segment" : {"elementID": 3, "xi": [1.0, 0.0, 0.5]},
-                        "thoracic sympathetic trunk" : {"elementID": 4, "xi": [1.0, 1.0, 0.5]}
-                       }
+        # for numElem = [4,2,2]
+        allMarkers = {}
+        if isMouse:
+            allMarkers = { "Inferior cardiac nerve" : {"elementID": 10, "xi": [0.50, 0.0, 0.5]},
+                            "Ventral ansa subclavia" : {"elementID": 12, "xi": [0.50, 1.0, 0.5]},
+                            "Dorsal ansa subclavia" : {"elementID": 14, "xi": [0.50, 0.0, 0.5]},
+                            "Cervical spinal nerve 8" : {"elementID": 16, "xi": [0.50, 1.0, 0.5]},
+                            "Thoracic spinal nerve 1" : {"elementID": 1, "xi": [1.0, 0.0, 0.5]},
+                            "Thoracic spinal nerve 2" : {"elementID": 2, "xi": [1.0, 0.0, 0.5]},
+                            "Thoracic spinal nerve 3" : {"elementID": 3, "xi": [1.0, 0.0, 0.5]},
+                            "Thoracic sympathetic nerve trunk" : {"elementID": 4, "xi": [1.0, 1.0, 0.5]}
+                           }
+        if isLongMouse:
+            allMarkers = { "Inferior cardiac nerve" : {"elementID": 12, "xi": [0.50, 0.0, 0.5]},
+                            "Ventral ansa subclavia" : {"elementID": 14, "xi": [0.50, 1.0, 0.5]},
+                            "Dorsal ansa subclavia" : {"elementID": 16, "xi": [0.50, 0.0, 0.5]},
+                            "Cervical spinal nerve 8" : {"elementID": 18, "xi": [0.50, 1.0, 0.5]},
+                            "Thoracic spinal nerve 1" : {"elementID": 1, "xi": [1.0, 0.0, 0.5]},
+                            "Thoracic spinal nerve 2" : {"elementID": 3, "xi": [0.5, 0.0, 0.5]},
+                            "Thoracic spinal nerve 3" : {"elementID": 4, "xi": [0.5, 0.0, 0.5]},
+                            "Thoracic sympathetic nerve trunk" : {"elementID": 5, "xi": [1.0, 1.0, 0.5]}
+                           }
+
+        # left, top, bottom face annotations for user
+        left2Group = AnnotationGroup(region, get_stellate_term("interArm-2-3"))
+        left3Group = AnnotationGroup(region, get_stellate_term("interArm-2-3"))
+        top1Group = AnnotationGroup(region, get_stellate_term("interArm-1-2"))
+        top2Group = AnnotationGroup(region, get_stellate_term("interArm-1-2"))
+        bottom1Group = AnnotationGroup(region, get_stellate_term("interArm-1-3"))
+        bottom3Group = AnnotationGroup(region, get_stellate_term("interArm-1-3"))
+        stellateGroup = AnnotationGroup(region, get_stellate_term("cervicothoracic ganglion"))
+        # annotationGroups = [ left2Group, left3Group, top1Group, top2Group, bottom1Group, bottom3Group, stellateGroup ]
+        annotationGroups = [ left2Group, top1Group, bottom1Group, stellateGroup ]
+
+        left2MeshGroup = left2Group.getMeshGroup(mesh)
+        left3MeshGroup = left3Group.getMeshGroup(mesh)
+        top1MeshGroup = top1Group.getMeshGroup(mesh)
+        top2MeshGroup = top2Group.getMeshGroup(mesh)
+        bottom1MeshGroup = bottom1Group.getMeshGroup(mesh)
+        bottom3MeshGroup = bottom3Group.getMeshGroup(mesh)
+        stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
 
         # Create nodes
         numNodesPerArm = [0]
-        halfArmArcAngleRadians = math.pi / armCount
-        dipMultiplier = 1 #elementLengths[1] * 1.2 * 1.5
+        dipMultiplier = 1
         nodeIdentifier = 1
         minArmAngle = 2 * math.pi / armCount
+        halfArmArcAngleRadians = minArmAngle/2
         xx = []
         xds1 = []
         xds2 = []
         x_in_nodes = []
         for na in range(armCount):
             elementsCount_i = [elementsCount1[na], elementsCount2, elementsCount3]
-            x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, minArmAngle * na, minArmAngle, elementsCount_i, dipMultiplier, armCount, na)
+            # armAngleIn = minArmAngle * na
+            # if armCount == 3 and na == armCount-1:
+            #     halfArmArcAngleRadians = math.pi/2 #math.pi + math.pi/(2*armCount)
+            x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount_i, dipMultiplier, armCount, na)
             for ix in range(len(x)):
                 if na == 0 or ix not in nWheelEdge:
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -417,10 +459,26 @@ class MeshType_3d_stellate1(Scaffold_base):
                         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                         result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
 
+                        # add to meshGroup
+                        stellateMeshGroup.addElement(element)
+                        if isMouse:
+                            if (na == 0 and e2 == 0):
+                                bottom1MeshGroup.addElement(element)
+                            elif (na == 2 and e2 == 1):
+                                bottom3MeshGroup.addElement(element)
+                            elif (na == 0 and e2 == 1):
+                                top1MeshGroup.addElement(element)
+                            elif (na == 1 and e2 == 0):
+                                top2MeshGroup.addElement(element)
+                            elif (na == 1 and e2 == 1):
+                                left2MeshGroup.addElement(element)
+                            elif (na == 2 and e2 == 0):
+                                left3MeshGroup.addElement(element)
+
                         ############################
                         # annotation fiducial points
                         ############################
-                        if isMouse:
+                        if allMarkers:
                             for key in allMarkers:
                                 if elementIdentifier == allMarkers[key]["elementID"]:
                                     elementID = allMarkers[key]["elementID"]
@@ -435,7 +493,7 @@ class MeshType_3d_stellate1(Scaffold_base):
 
                         elementIdentifier += 1
 
-        return []
+        return annotationGroups #[]
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -451,59 +509,50 @@ class MeshType_3d_stellate1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount1, refineElementsCount2, refineElementsCount3)
 
 
-    # @classmethod
-    # def defineFaceAnnotations(cls, region, options, annotationGroups):
-    #     """
-    #     Add point annotation groups from the 1D mesh.
-    #     :param region: Zinc region containing model.
-    #     :param options: Dict containing options. See getDefaultOptions().
-    #     :param annotationGroups: List of annotation groups for top-level elements.
-    #     New point annotation groups are appended to this list.
-    #     """
-    #     # create endocardium and epicardium groups
-    #     fm = region.getFieldmodule()
-    #     icnGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("Inferior cardiac nerve"))
-    #     daGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("Dorsal ansa subclavia"))
-    #     vaGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("Ventral ansa subclavia"))
-    #     # c8Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("C8 segment of cervical spinal cord"))
-    #     t1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("first thoracic spinal cord segment"))
-    #     t2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("second thoracic spinal cord segment"))
-    #     t3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("third thoracic spinal cord segment"))
-    #     tstGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("thoracic sympathetic trunk"))
-    #     stellateGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("cervicothoracic ganglion"))
-    #
-    #     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    #
-    #     ############################
-    #     # annotation fiducial points
-    #     ############################
-    #     markerID = 10
-    #     mesh = fm.findMeshByDimension(3)
-    #     cache = fm.createFieldcache()
-    #     elementtemplate = mesh.createElementtemplate()
-    #     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    #     element = mesh.createElement(markerID, elementtemplate)
-    #     markerGroup = findOrCreateFieldGroup(fm, "marker")
-    #     markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-    #     markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-    #
-    #     markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-    #     markerTemplateInternal = nodes.createNodetemplate()
-    #     markerTemplateInternal.defineField(markerName)
-    #     markerTemplateInternal.defineField(markerLocation)
-    #
-    #     addMarker = {"name": "stellate-test", "xi": [0.0, 1.0, 0.0]}
-    #     nodeIdentifier = markerID
-    #     if addMarker:
-    #         markerPoint = markerPoints.createNode(markerID, markerTemplateInternal)
-    #         cache.setNode(markerPoint)
-    #         markerName.assignString(cache, addMarker["name"])
-    #         element = mesh.createElement(markerID, elementtemplate)
-    #         markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
-    #         markerID += 1
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add point annotation groups from the 1D mesh.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New point annotation groups are appended to this list.
+        """
+        # create  groups
+        fm = region.getFieldmodule()
+        left2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-2-3"))
+        left3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-2-3"))
+        top1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-2"))
+        top2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-2"))
+        bottom1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-3"))
+        bottom3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-3"))
+        stellateGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("cervicothoracic ganglion"))
+
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi2_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0))
+        is_exterior_face_xi2_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
+
+        is_left2 = left2Group.getFieldElementGroup(mesh2d)
+        is_left3 = left3Group.getFieldElementGroup(mesh2d)
+        is_left_face = fm.createFieldOr(fm.createFieldAnd(is_left2, is_exterior_face_xi2_1), fm.createFieldAnd(is_left3, is_exterior_face_xi2_0))
+        leftStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("interArm-2-3 face"))
+        leftStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_left_face)
+
+        is_top1 = top1Group.getFieldElementGroup(mesh2d)
+        is_top2 = top2Group.getFieldElementGroup(mesh2d)
+        is_top_face = fm.createFieldOr(fm.createFieldAnd(is_top1, is_exterior_face_xi2_1), fm.createFieldAnd(is_top2, is_exterior_face_xi2_0))
+        topStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("interArm-1-2 face"))
+        topStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_top_face)
+
+        is_bottom1 = bottom1Group.getFieldElementGroup(mesh2d)
+        is_bottom3 = bottom3Group.getFieldElementGroup(mesh2d)
+        is_bottom_face = fm.createFieldOr(fm.createFieldAnd(is_bottom1, is_exterior_face_xi2_0), fm.createFieldAnd(is_bottom3, is_exterior_face_xi2_1))
+        bottomStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("interArm-1-3 face"))
+        bottomStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_bottom_face)
 
 
-def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, elementsCount, dipMultiplier, armCount, armIndex):
+def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount, dipMultiplier, armCount, armIndex):
     """
     Create single arm unit.
     Base length of element is 1.
@@ -511,8 +560,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
     Minimum arm length is 2 elements.
     :param halfArmArcAngleRadians: angle arising from base node (rad)
     :param elementLengths: [Element length along arm, half Element width across arm, Element thickness]
-    :param armAngle: angle from x axis of the arm about origin (rad)
-    :param armAngleConst: minimum angle from x axis of the first arm about origin (rad)
+    :param elementLengthCentral: Element length around central wheel
     :param elementsCount: list of numbers of elements along arm length, across width and through thickness directions
     :param dipMultiplier: factor that wheel nodes protrude by, relative to unit length
     :param armCount: number of arms in body
@@ -528,12 +576,13 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
     [elementLength, elementWidth, elementHeight] = elementLengths
 
     shorterArmEnd = True
+    armAngle = 2*halfArmArcAngleRadians*armIndex
+    armAngleConst = 2*halfArmArcAngleRadians
 
     xnodes_ds1 = []
     xnodes_ds2 = []
     dx_ds1 = [elementLength, 0.0, 0.0]
     dx_ds2 = [0.0, elementWidth, 0.0]
-    wheelDvMult = [0.5, 0.75]
 
     nodes_per_layer = (elementsCount1 + 1) * (elementsCount2 + 1) - 2 # discount 2 armEnd corners
     x = []
@@ -548,14 +597,14 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
     else:
         rmVertexNodes = nCentre + [0, nodes_per_layer,
                           2* (elementsCount1+1) - 1, 2* (elementsCount1+1) - 1 + nodes_per_layer ]
-    dcent = [elementLength * math.cos(armAngleConst / 2), elementLength * math.sin(armAngleConst / 2), 0.0]
-    dvertex = [elementLength * dipMultiplier * math.cos(halfArmArcAngleRadians),
-                elementLength * dipMultiplier * math.sin(halfArmArcAngleRadians)]
+    dcent = [elementLengthCentral * math.cos(armAngleConst / 2), elementLengthCentral * math.sin(armAngleConst / 2), 0.0]
+    dvertex = [elementLengthCentral * dipMultiplier * math.cos(halfArmArcAngleRadians),
+                elementLengthCentral * dipMultiplier * math.sin(halfArmArcAngleRadians)]
 
-    dipLength = 0.5*(elementLength + elementWidth)*dipMultiplier
+    dipLength = 0.5*(elementLengthCentral + elementWidth)*dipMultiplier
     dvertex = [dipLength * math.cos(halfArmArcAngleRadians),
                dipLength * math.sin(halfArmArcAngleRadians)]
-    dipMag = 2*dipLength - elementLength
+    dipMag = 2*dipLength - elementLengthCentral
 
     nid = 0
     for e3 in range(elementsCount3 + 1):
