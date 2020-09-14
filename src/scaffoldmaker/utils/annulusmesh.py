@@ -4,11 +4,8 @@ Utility functions for generating annulus mesh between start and end loops of poi
 from __future__ import division
 import collections
 import copy
-import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
