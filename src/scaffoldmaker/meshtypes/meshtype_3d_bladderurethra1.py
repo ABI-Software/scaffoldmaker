@@ -373,17 +373,13 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Bladder part
         bladderLength = 0.0
         elementsCountInBladder = len(cx_bladder) - 1
-        # sd1 = interp.smoothCubicHermiteDerivativesLine(cx_bladder, cd1_bladder, fixAllDirections=True,
-        #                                                magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
         for e in range(elementsCountInBladder):
             arcLength = interp.getCubicHermiteArcLength(cx_bladder[e], cd1_bladder[e], cx_bladder[e + 1], cd1_bladder[e + 1])
             bladderLength += arcLength
         bladderSegmentLength = bladderLength / elementsCountAlongBladder
-        # Urethra aprt
+        # Urethra part
         urethraLength = 0.0
         elementsCountInUrethra = len(cx_urethra) - 1
-        # sd1 = interp.smoothCubicHermiteDerivativesLine(cx_urethra, cd1_urethra, fixAllDirections=True,
-        #                                                magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
         for e in range(elementsCountInUrethra):
             arcLength = interp.getCubicHermiteArcLength(cx_urethra[e], cd1_urethra[e], cx_urethra[e + 1], cd1_urethra[e + 1])
             urethraLength += arcLength
@@ -529,7 +525,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             radiansPerElementAround = 2.0 * math.pi / elementsCountAround
             transitLength = (bladderSegmentLength + urethraSegmentLength) / 2
             newSegmentLength = (urethraLength - transitLength) / (elementsCountAlongUrethra - 1)
-            for n2 in range(1, elementsCountAlongUrethra + 1):
+            for n2 in range(0, elementsCountAlongUrethra + 1):
                 for n1 in range(elementsCountAround):
                     radiansAround = n1 * radiansPerElementAround
                     cosRadiansAround = math.cos(radiansAround)
