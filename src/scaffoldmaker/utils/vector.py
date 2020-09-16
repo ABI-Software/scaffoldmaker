@@ -42,3 +42,15 @@ def addVectors(v1,v2,s1=1.0,s2=1.0):
     :return: Vector s1*v1+s2*v2
     '''
     return [(s1 * v1[c] + s2 * v2[c]) for c in range(len(v1))]
+
+
+def isVectorsParallel(v1, v2):
+    """
+    :return: True if the vectors are parallel.
+    """
+    assert (len(v2) == len(v1)), 'Vectors lengths are not the same.'
+    s = magnitude(v2)/magnitude(v1)
+    for c in range(len(v2)):
+        if v2[c] != s * v1[c]:
+            return False
+    return True
