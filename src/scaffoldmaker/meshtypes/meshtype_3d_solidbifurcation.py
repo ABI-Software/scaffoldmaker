@@ -535,7 +535,7 @@ def generateElements(shield, mesh, fieldmodule, coordinates):
                         # map top 2 triple point elements
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [-0.3]
+                        scalefactors = [-1.0]
                         if e1 < e1a:
                             e2r = e1
                             nids[0] = shield.nodeId[0][e2r][e1b]
