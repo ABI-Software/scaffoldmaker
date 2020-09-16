@@ -24,6 +24,8 @@ class MeshType_1d_path1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Coordinate dimensions' : 3,
+            'D2 derivative': False,
+            'D3 derivative': False,
             'Length' : 1.0,
             'Number of elements' : 1
         }
@@ -32,18 +34,25 @@ class MeshType_1d_path1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             'Coordinate dimensions',
+            'D2 derivative',
+            'D3 derivative',
             'Length',
             'Number of elements'
         ]
 
     @staticmethod
     def checkOptions(options):
+        dependentChanges = False
         if (options['Coordinate dimensions'] < 1) :
             options['Coordinate dimensions'] = 1
         elif (options['Coordinate dimensions'] > 3) :
             options['Coordinate dimensions'] = 3
         if (options['Number of elements'] < 1) :
             options['Number of elements'] = 1
+        if options['D3 derivative']:
+            options['D2 derivative'] = True
+            dependentChanges = True
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -53,6 +62,8 @@ class MeshType_1d_path1(Scaffold_base):
         :return: [] empty list of AnnotationGroup
         """
         coordinateDimensions = options['Coordinate dimensions']
+        d2derivative = options['D2 derivative']
+        d3derivative = options['D3 derivative']
         length = options['Length']
         elementsCount = options['Number of elements']
 
@@ -69,22 +80,34 @@ class MeshType_1d_path1(Scaffold_base):
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        if d2derivative:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        if d3derivative:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
 
         nodeIdentifier = 1
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ length/elementsCount, 0.0, 0.0 ]
-        dx_ds2 = [ 0.0, 1.0, 0.0 ]
-        d2x_ds1ds2 = [ 0.0, 0.0, 0.0 ]
+        if d2derivative:
+            dx_ds2 = [ 0.0, 1.0, 0.0 ]
+            d2x_ds1ds2 = [ 0.0, 0.0, 0.0 ]
+        if d3derivative:
+            dx_ds3 = [ 0.0, 0.0, 1.0 ]
+            d2x_ds1ds3 = [ 0.0, 0.0, 0.0 ]
         for n in range(elementsCount + 1):
             x[0] = length*n/elementsCount
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d2x_ds1ds2)
+            if d2derivative:
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d2x_ds1ds2)
+            if d3derivative:
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d2x_ds1ds3)
             nodeIdentifier = nodeIdentifier + 1
 
         #################
