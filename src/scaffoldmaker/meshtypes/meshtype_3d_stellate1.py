@@ -30,9 +30,7 @@ class MeshType_3d_stellate1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Mouse 1',
-            'Long Mouse',
-            'Mouse Mean 1']
+            'Mouse 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -176,23 +174,16 @@ class MeshType_3d_stellate1(Scaffold_base):
                             "Thoracic sympathetic nerve trunk" : {"elementID": 5, "xi": [1.0, 1.0, 0.5]}
                            }
 
-        # left, top, bottom face annotations for user
-        left2Group = AnnotationGroup(region, get_stellate_term("interArm-2-3"))
-        left3Group = AnnotationGroup(region, get_stellate_term("interArm-2-3"))
-        top1Group = AnnotationGroup(region, get_stellate_term("interArm-1-2"))
-        top2Group = AnnotationGroup(region, get_stellate_term("interArm-1-2"))
-        bottom1Group = AnnotationGroup(region, get_stellate_term("interArm-1-3"))
-        bottom3Group = AnnotationGroup(region, get_stellate_term("interArm-1-3"))
+        # arm group annotations for user
+        arm1Group = AnnotationGroup(region, get_stellate_term("stellate arm 1"))
+        arm2Group = AnnotationGroup(region, get_stellate_term("stellate arm 2"))
+        arm3Group = AnnotationGroup(region, get_stellate_term("stellate arm 3"))
         stellateGroup = AnnotationGroup(region, get_stellate_term("cervicothoracic ganglion"))
-        # annotationGroups = [ left2Group, left3Group, top1Group, top2Group, bottom1Group, bottom3Group, stellateGroup ]
-        annotationGroups = [ left2Group, top1Group, bottom1Group, stellateGroup ]
+        annotationGroups = [ arm1Group, arm2Group, arm3Group, stellateGroup ]
 
-        left2MeshGroup = left2Group.getMeshGroup(mesh)
-        left3MeshGroup = left3Group.getMeshGroup(mesh)
-        top1MeshGroup = top1Group.getMeshGroup(mesh)
-        top2MeshGroup = top2Group.getMeshGroup(mesh)
-        bottom1MeshGroup = bottom1Group.getMeshGroup(mesh)
-        bottom3MeshGroup = bottom3Group.getMeshGroup(mesh)
+        arm1MeshGroup = arm1Group.getMeshGroup(mesh)
+        arm2MeshGroup = arm2Group.getMeshGroup(mesh)
+        arm3MeshGroup = arm3Group.getMeshGroup(mesh)
         stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
 
         # Create nodes
@@ -462,18 +453,12 @@ class MeshType_3d_stellate1(Scaffold_base):
                         # add to meshGroup
                         stellateMeshGroup.addElement(element)
                         if isMouse:
-                            if (na == 0 and e2 == 0):
-                                bottom1MeshGroup.addElement(element)
-                            elif (na == 2 and e2 == 1):
-                                bottom3MeshGroup.addElement(element)
-                            elif (na == 0 and e2 == 1):
-                                top1MeshGroup.addElement(element)
-                            elif (na == 1 and e2 == 0):
-                                top2MeshGroup.addElement(element)
-                            elif (na == 1 and e2 == 1):
-                                left2MeshGroup.addElement(element)
-                            elif (na == 2 and e2 == 0):
-                                left3MeshGroup.addElement(element)
+                            if na == 0:
+                                arm1MeshGroup.addElement(element)
+                            elif na == 1:
+                                arm2MeshGroup.addElement(element)
+                            elif na == 2:
+                                arm3MeshGroup.addElement(element)
 
                         ############################
                         # annotation fiducial points
@@ -520,35 +505,35 @@ class MeshType_3d_stellate1(Scaffold_base):
         """
         # create  groups
         fm = region.getFieldmodule()
-        left2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-2-3"))
-        left3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-2-3"))
-        top1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-2"))
-        top2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-2"))
-        bottom1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-3"))
-        bottom3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("interArm-1-3"))
         stellateGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("cervicothoracic ganglion"))
+        arm1Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("stellate arm 1"))
+        arm2Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("stellate arm 2"))
+        arm3Group = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("stellate arm 3"))
 
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi2_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0))
         is_exterior_face_xi2_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
 
-        is_left2 = left2Group.getFieldElementGroup(mesh2d)
-        is_left3 = left3Group.getFieldElementGroup(mesh2d)
-        is_left_face = fm.createFieldOr(fm.createFieldAnd(is_left2, is_exterior_face_xi2_1), fm.createFieldAnd(is_left3, is_exterior_face_xi2_0))
-        leftStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("interArm-2-3 face"))
+        is_arm1 = arm1Group.getFieldElementGroup(mesh2d)
+        is_arm2 = arm2Group.getFieldElementGroup(mesh2d)
+        is_arm3 = arm3Group.getFieldElementGroup(mesh2d)
+        is_left_face = fm.createFieldOr(
+            fm.createFieldAnd(is_arm2, is_exterior_face_xi2_1),
+            fm.createFieldAnd(is_arm3, is_exterior_face_xi2_0))
+        leftStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("stellate face 2-3"))
         leftStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_left_face)
 
-        is_top1 = top1Group.getFieldElementGroup(mesh2d)
-        is_top2 = top2Group.getFieldElementGroup(mesh2d)
-        is_top_face = fm.createFieldOr(fm.createFieldAnd(is_top1, is_exterior_face_xi2_1), fm.createFieldAnd(is_top2, is_exterior_face_xi2_0))
-        topStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("interArm-1-2 face"))
+        is_top_face = fm.createFieldOr(
+            fm.createFieldAnd(is_arm1, is_exterior_face_xi2_1),
+            fm.createFieldAnd(is_arm2, is_exterior_face_xi2_0))
+        topStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("stellate face 1-2"))
         topStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_top_face)
 
-        is_bottom1 = bottom1Group.getFieldElementGroup(mesh2d)
-        is_bottom3 = bottom3Group.getFieldElementGroup(mesh2d)
-        is_bottom_face = fm.createFieldOr(fm.createFieldAnd(is_bottom1, is_exterior_face_xi2_0), fm.createFieldAnd(is_bottom3, is_exterior_face_xi2_1))
-        bottomStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("interArm-1-3 face"))
+        is_bottom_face = fm.createFieldOr(
+            fm.createFieldAnd(is_arm1, is_exterior_face_xi2_0),
+            fm.createFieldAnd(is_arm3, is_exterior_face_xi2_1))
+        bottomStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stellate_term("stellate face 3-1"))
         bottomStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_bottom_face)
 
 
@@ -622,7 +607,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elem
                         x1 = dvertex[0]
                         x2 = dvertex[1]
                     else:
-                        if e1 == elementsCount1 and shorterArmEnd: # and e2 == 1:# armEnd
+                        if e1 == elementsCount1 and shorterArmEnd:
                             x1 = 0.5*(elementLength+elementWidth) + elementLength*(e1-1)
                         else:
                             x1 = elementLength*e1
