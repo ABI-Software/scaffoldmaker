@@ -44,6 +44,41 @@ def addVectors(v1,v2,s1=1.0,s2=1.0):
     return [(s1 * v1[c] + s2 * v2[c]) for c in range(len(v1))]
 
 
+def scalarProjectionOfV1OnV2(v1, v2):
+    """
+    :return: Scalar projection of v1 onto v2.
+    """
+    return dotproduct(v1, normalise(v2))
+
+
+def vectorProjectionOfV1OnV2(v1, v2):
+    """
+    Calculate vector projection of v1 on v2
+    :return: A projection vector.
+    """
+    s1 = scalarProjectionOfV1OnV2(v1, v2)
+    return scalarProduct(s1, normalise(v2))
+
+
+def vectorRejectionOfV1OnV2(v1, v2):
+    """
+    Calculate vector rejection of v1 on v2
+    :return: A rejection vector.
+    """
+    v1p = vectorProjectionOfV1OnV2(v1, v2)
+    return addVectors(v1, v1p, 1.0, -1.0)
+
+
+def scalarProduct(s, v):
+    """
+    Calculate s * v
+    :param s: Scalar.
+    :param v: Vector.
+    :return:
+    """
+    return [s * v[c] for c in range(len(v))]
+
+
 def isVectorsParallel(v1, v2):
     """
     :return: True if the vectors are parallel.
