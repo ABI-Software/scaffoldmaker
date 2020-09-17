@@ -149,3 +149,12 @@ class Scaffold_base:
                 if annotation not in oldAnnotationGroups:
                     annotationGroup.addSubelements()
         return annotationGroups
+
+    @classmethod
+    def getInteractiveFunctions(cls):
+        """
+        Override to return list of named interactive functions that client
+        can invoke to modify mesh parameters with a push button control.
+        :return: list(tuples), (name : str, callable(region, options)).
+        """
+        return []
