@@ -11,6 +11,9 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils import vector
+from opencmiss.zinc.result import RESULT_OK
+
 
 class MeshType_1d_path1(Scaffold_base):
     '''
@@ -24,6 +27,8 @@ class MeshType_1d_path1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Coordinate dimensions' : 3,
+            'D2 derivative': False,
+            'D3 and D2 derivatives': False,
             'Length' : 1.0,
             'Number of elements' : 1
         }
@@ -32,18 +37,25 @@ class MeshType_1d_path1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             'Coordinate dimensions',
+            'D2 derivative',
+            'D3 and D2 derivatives',
             'Length',
             'Number of elements'
         ]
 
     @staticmethod
     def checkOptions(options):
+        dependentChanges = False
         if (options['Coordinate dimensions'] < 1) :
             options['Coordinate dimensions'] = 1
         elif (options['Coordinate dimensions'] > 3) :
             options['Coordinate dimensions'] = 3
         if (options['Number of elements'] < 1) :
             options['Number of elements'] = 1
+        if options['D3 and D2 derivatives']:
+            options['D2 derivative'] = True
+            dependentChanges = True
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -53,6 +65,8 @@ class MeshType_1d_path1(Scaffold_base):
         :return: [] empty list of AnnotationGroup
         """
         coordinateDimensions = options['Coordinate dimensions']
+        d2derivative = options['D2 derivative']
+        d3d2derivatives = options['D3 and D2 derivatives']
         length = options['Length']
         elementsCount = options['Number of elements']
 
@@ -69,22 +83,34 @@ class MeshType_1d_path1(Scaffold_base):
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        if d2derivative:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        if d3d2derivatives:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
 
         nodeIdentifier = 1
         x = [ 0.0, 0.0, 0.0 ]
         dx_ds1 = [ length/elementsCount, 0.0, 0.0 ]
-        dx_ds2 = [ 0.0, 1.0, 0.0 ]
-        d2x_ds1ds2 = [ 0.0, 0.0, 0.0 ]
+        if d2derivative:
+            dx_ds2 = [ 0.0, 1.0, 0.0 ]
+            d2x_ds1ds2 = [ 0.0, 0.0, 0.0 ]
+        if d3d2derivatives:
+            dx_ds3 = [ 0.0, 0.0, 1.0 ]
+            d2x_ds1ds3 = [ 0.0, 0.0, 0.0 ]
         for n in range(elementsCount + 1):
             x[0] = length*n/elementsCount
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d2x_ds1ds2)
+            if d2derivative:
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d2x_ds1ds2)
+            if d3d2derivatives:
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d2x_ds1ds3)
             nodeIdentifier = nodeIdentifier + 1
 
         #################
@@ -113,13 +139,36 @@ class MeshType_1d_path1(Scaffold_base):
         setPathParameters(region, [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [ x, d1 ])
 
     @classmethod
+    def makeD2NoramlToD1(cls, region, options):
+        if not options['D2 derivative']:
+            return
+        x, d1, d2 = extractPathParametersFromRegion(region)[0:3]
+        for c in range(len(d1)):
+            td2 = vector.vectorRejectionOfV1OnV2(d2[c], d1[c])
+            d2[c] = vector.setMagnitude(td2, vector.magnitude(d2[c]))
+        setPathParameters(region, [Node.VALUE_LABEL_D_DS2], [d2])
+
+    @classmethod
+    def makeD3ND2NorlamToD1(cls, region, options):
+        if not options['D3 and D2 derivatives']:
+            return
+        cls.makeD2NoramlToD1(region, options)
+        x, d1, d2, d12, d3, d13 = extractPathParametersFromRegion(region)
+        for c in range(len(d1)):
+            d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
+        setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
+
+    @classmethod
     def getInteractiveFunctions(cls):
         """
         Supply client with functions for smoothing path parameters.
         """
         return [
             ("Smooth d1 arithmetic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.ARITHMETIC_MEAN)),
-            ("Smooth d1 harmonic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.HARMONIC_MEAN)) ]
+            ("Smooth d1 harmonic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.HARMONIC_MEAN)),
+            ("Make D2 normal to D1", lambda region, options: cls.makeD2NoramlToD1(region, options)),
+            ("Make D3 and D2 normal to D1", lambda region, options: cls.makeD3ND2NorlamToD1(region, options))
+        ]
 
 
 def extractPathParametersFromRegion(region, groupName=None):
@@ -140,6 +189,8 @@ def extractPathParametersFromRegion(region, groupName=None):
     cd1 = []
     cd2 = []
     cd12 = []
+    cd3 = []
+    cd13 = []
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     if groupName:
         group = fieldmodule.findFieldByName(groupName).castGroup()
@@ -156,17 +207,24 @@ def extractPathParametersFromRegion(region, groupName=None):
         result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, componentsCount)
         result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, componentsCount)
         result, d12 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, componentsCount)
+        result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, componentsCount)
+        result, d13 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, componentsCount)
         for c in range(componentsCount, 3):
             x.append(0.0)
             d1.append(0.0)
             d2.append(0.0)
             d12.append(0.0)
+            d3.append(0.0)
+            d13.append(0.0)
         cx.append(x)
         cd1.append(d1)
         cd2.append(d2)
         cd12.append(d12)
+        cd3.append(d3)
+        cd13.append(d13)
         node = nodeIter.next()
-    return cx, cd1, cd2, cd12
+
+    return cx, cd1, cd2, cd12, cd3, cd13
 
 
 def setPathParameters(region, nodeValueLabels, nodeValues):
