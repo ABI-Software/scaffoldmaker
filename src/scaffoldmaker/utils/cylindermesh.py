@@ -97,7 +97,7 @@ class CylinderCentralPath:
         :param elementsCount: Number of elements needs to be sampled along the central path.
         """
 
-        cx, cd1, cd2, cd12 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
+        cx, cd1, cd2, cd12, cd3, cd13 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
         # sd1 = centralpath.smoothD1Derivatives(cx, cd1)
         # cylinderLength = centralpath.calculateTotalLength(cx, sd1, printArcLength=False)
         sx, sd1, se, sxi, ssf = centralpath.sampleCentralPath(cx, cd1, elementsCount)
@@ -106,19 +106,23 @@ class CylinderCentralPath:
 
         majorAxisc = cd2
         majorRadiic = [vector.magnitude(a) for a in majorAxisc]
-
         majorRadiis = interpolateSampleLinear(majorRadiic, se, sxi)
+
+        sd3 = interpolateSampleLinear(cd3, se, sxi)
+
+        minorAxisc = cd3
+        minorRadiic = [vector.magnitude(a) for a in minorAxisc]
+        minorRadiis = interpolateSampleLinear(minorRadiic, se, sxi)
+
         self.centres = sx
+
         self.majorRadii = majorRadiis
         self.majorAxis = [(vector.setMagnitude(sd2[c], majorRadiis[c])) for c in range(len(majorRadiis))]
 
+        self.minorRadii = minorRadiis
+        self.minorAxis = [(vector.setMagnitude(sd3[c], minorRadiis[c])) for c in range(len(minorRadiis))]
+
         self.alongAxis = sd1
-
-#TODO how to find minor axis? I think I need to get d3 from the central path as well. What to do for now? let's keep it the same along the path for now.
-
-        self.minorRadii = [1.0 for _ in range(elementsCount+1)]
-        self.minorAxis = [vector.setMagnitude(vector.crossproduct3(sd1[c], sd2[c]), 1.0)
-                          for c in range(elementsCount+1)]
 
 
 class CylinderMesh:

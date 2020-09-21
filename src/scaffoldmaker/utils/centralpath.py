@@ -16,13 +16,13 @@ def getCentralPathNodes(region, centralPath, printNodes=False):
     """
     tmpRegion = region.createRegion()
     centralPath.generate(tmpRegion)
-    cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+    cx, cd1, cd2, cd12, cd3, cd13 = extractPathParametersFromRegion(tmpRegion)[0:6]
     if printNodes:
         for i in range(len(cx)):
-            print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+            print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], cd3[i], ',', cd13[i], '],')
     del tmpRegion
 
-    return cx, cd1, cd2, cd12
+    return cx, cd1, cd2, cd12, cd3, cd13
 
 
 def smoothD1Derivatives(cx, cd1):
