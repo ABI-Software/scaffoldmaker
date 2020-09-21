@@ -28,7 +28,7 @@ class MeshType_1d_path1(Scaffold_base):
         return {
             'Coordinate dimensions' : 3,
             'D2 derivative': False,
-            'D3 and D2 derivatives': False,
+            'D3 derivative': False,
             'Length' : 1.0,
             'Number of elements' : 1
         }
@@ -38,7 +38,7 @@ class MeshType_1d_path1(Scaffold_base):
         return [
             'Coordinate dimensions',
             'D2 derivative',
-            'D3 and D2 derivatives',
+            'D3 derivative',
             'Length',
             'Number of elements'
         ]
@@ -52,9 +52,7 @@ class MeshType_1d_path1(Scaffold_base):
             options['Coordinate dimensions'] = 3
         if (options['Number of elements'] < 1) :
             options['Number of elements'] = 1
-        if options['D3 and D2 derivatives']:
-            options['D2 derivative'] = True
-            dependentChanges = True
+
         return dependentChanges
 
     @classmethod
@@ -66,7 +64,7 @@ class MeshType_1d_path1(Scaffold_base):
         """
         coordinateDimensions = options['Coordinate dimensions']
         d2derivative = options['D2 derivative']
-        d3d2derivatives = options['D3 and D2 derivatives']
+        d3derivative = options['D3 derivative']
         length = options['Length']
         elementsCount = options['Number of elements']
 
@@ -86,7 +84,7 @@ class MeshType_1d_path1(Scaffold_base):
         if d2derivative:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-        if d3d2derivatives:
+        if d3derivative:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
             nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
 
@@ -96,7 +94,7 @@ class MeshType_1d_path1(Scaffold_base):
         if d2derivative:
             dx_ds2 = [ 0.0, 1.0, 0.0 ]
             d2x_ds1ds2 = [ 0.0, 0.0, 0.0 ]
-        if d3d2derivatives:
+        if d3derivative:
             dx_ds3 = [ 0.0, 0.0, 1.0 ]
             d2x_ds1ds3 = [ 0.0, 0.0, 0.0 ]
         for n in range(elementsCount + 1):
@@ -108,7 +106,7 @@ class MeshType_1d_path1(Scaffold_base):
             if d2derivative:
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d2x_ds1ds2)
-            if d3d2derivatives:
+            if d3derivative:
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d2x_ds1ds3)
             nodeIdentifier = nodeIdentifier + 1
@@ -139,7 +137,7 @@ class MeshType_1d_path1(Scaffold_base):
         setPathParameters(region, [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [ x, d1 ])
 
     @classmethod
-    def makeD2NoramlToD1(cls, region, options):
+    def makeD2Normal(cls, region, options):
         if not options['D2 derivative']:
             return
         x, d1, d2 = extractPathParametersFromRegion(region)[0:3]
@@ -149,14 +147,21 @@ class MeshType_1d_path1(Scaffold_base):
         setPathParameters(region, [Node.VALUE_LABEL_D_DS2], [d2])
 
     @classmethod
-    def makeD3ND2NorlamToD1(cls, region, options):
-        if not options['D3 and D2 derivatives']:
+    def makeD3Normal(cls, region, options):
+        if not options['D3 derivative']:
             return
-        cls.makeD2NoramlToD1(region, options)
-        x, d1, d2, d12, d3, d13 = extractPathParametersFromRegion(region)
-        for c in range(len(d1)):
-            d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
-        setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
+        if options['D2 derivative']:
+            x, d1, d2, d12, d3, d13 = extractPathParametersFromRegion(region)
+            for c in range(len(d1)):
+                d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
+            setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
+        else:
+            x, d1, d2, d12, d3, d13 = extractPathParametersFromRegion(region)
+            for c in range(len(d1)):
+                td3 = vector.vectorRejectionOfV1OnV2(d3[c], d1[c])
+                d3[c] = vector.setMagnitude(td3, vector.magnitude(d3[c]))
+            setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
+
 
     @classmethod
     def getInteractiveFunctions(cls):
@@ -166,8 +171,8 @@ class MeshType_1d_path1(Scaffold_base):
         return [
             ("Smooth d1 arithmetic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.ARITHMETIC_MEAN)),
             ("Smooth d1 harmonic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.HARMONIC_MEAN)),
-            ("Make D2 normal to D1", lambda region, options: cls.makeD2NoramlToD1(region, options)),
-            ("Make D3 and D2 normal to D1", lambda region, options: cls.makeD3ND2NorlamToD1(region, options))
+            ("Make D2 normal", lambda region, options: cls.makeD2Normal(region, options)),
+            ("Make D3 normal", lambda region, options: cls.makeD3Normal(region, options))
         ]
 
 
