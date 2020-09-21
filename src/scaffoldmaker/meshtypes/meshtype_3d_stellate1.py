@@ -161,7 +161,15 @@ class MeshType_3d_stellate1(Scaffold_base):
                             "Thoracic spinal nerve 1" : {"elementID": 1, "xi": [1.0, 0.0, 0.5]},
                             "Thoracic spinal nerve 2" : {"elementID": 2, "xi": [1.0, 0.0, 0.5]},
                             "Thoracic spinal nerve 3" : {"elementID": 3, "xi": [1.0, 0.0, 0.5]},
-                            "Thoracic sympathetic nerve trunk" : {"elementID": 4, "xi": [1.0, 1.0, 0.5]}
+                            "Thoracic sympathetic nerve trunk" : {"elementID": 4, "xi": [1.0, 1.0, 0.5]},
+                            "Soma_Inferior cardiac nerve": {"elementID": 10, "xi": [0.0, 0.50, 0.5]},
+                            "Soma_Ventral ansa subclavia" : {"elementID": 12, "xi": [0.0, 0.50, 0.5]},
+                            "Soma_Dorsal ansa subclavia" : {"elementID": 14, "xi": [0.00, 0.50, 0.5]},
+                            "Soma_Cervical spinal nerve 8" : {"elementID": 16, "xi": [0.0, 0.50, 0.5]},
+                            "Soma_Thoracic spinal nerve 1" : {"elementID": 1, "xi": [1.0, 0.50, 0.5]},
+                            "Soma_Thoracic spinal nerve 2" : {"elementID": 2, "xi": [1.0, 0.50, 0.5]},
+                            "Soma_Thoracic spinal nerve 3" : {"elementID": 3, "xi": [1.0, 0.50, 0.5]},
+                            "Soma_Thoracic sympathetic nerve trunk" : {"elementID": 4, "xi": [0.50, 1.0, 0.5]}
                            }
         if isLongMouse:
             allMarkers = { "Inferior cardiac nerve" : {"elementID": 12, "xi": [0.50, 0.0, 0.5]},
@@ -171,7 +179,15 @@ class MeshType_3d_stellate1(Scaffold_base):
                             "Thoracic spinal nerve 1" : {"elementID": 1, "xi": [1.0, 0.0, 0.5]},
                             "Thoracic spinal nerve 2" : {"elementID": 3, "xi": [0.5, 0.0, 0.5]},
                             "Thoracic spinal nerve 3" : {"elementID": 4, "xi": [0.5, 0.0, 0.5]},
-                            "Thoracic sympathetic nerve trunk" : {"elementID": 5, "xi": [1.0, 1.0, 0.5]}
+                            "Thoracic sympathetic nerve trunk" : {"elementID": 5, "xi": [1.0, 1.0, 0.5]},
+                           "Soma_Inferior cardiac nerve": {"elementID": 12, "xi": [0.0, 0.50, 0.5]},
+                           "Soma_Ventral ansa subclavia": {"elementID": 14, "xi": [0.0, 0.50, 0.5]},
+                           "Soma_Dorsal ansa subclavia": {"elementID": 16, "xi": [0.00, 0.50, 0.5]},
+                           "Soma_Cervical spinal nerve 8": {"elementID": 18, "xi": [0.0, 0.50, 0.5]},
+                           "Soma_Thoracic spinal nerve 1": {"elementID": 1, "xi": [1.0, 0.50, 0.5]},
+                           "Soma_Thoracic spinal nerve 2": {"elementID": 3, "xi": [0.50, 0.50, 0.5]},
+                           "Soma_Thoracic spinal nerve 3": {"elementID": 4, "xi": [0.50, 0.50, 0.5]},
+                           "Soma_Thoracic sympathetic nerve trunk": {"elementID": 5, "xi": [0.50, 1.0, 0.5]}
                            }
 
         # arm group annotations for user
