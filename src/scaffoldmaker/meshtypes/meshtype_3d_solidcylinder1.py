@@ -55,18 +55,10 @@ with variable numbers of elements in major, minor and length directions.
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Use central path': False,
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements along': 3,
             'Lower half': False,
-            'Length': 1.0,
-            'Major radius': 1.0,
-            'Major radius geometric progression change': True,
-            'Major radius end ratio': 0.92,
-            'Minor radius': 1.0,
-            'Minor radius geometric progression change': True,
-            'Minor radius end ratio': 0.92,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across major': 1,
@@ -78,18 +70,10 @@ with variable numbers of elements in major, minor and length directions.
     def getOrderedOptionNames():
         return [
             'Central path',
-            'Use central path',
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
             'Lower half',
-            'Length',
-            'Major radius',
-            'Major radius geometric progression change',
-            'Major radius end ratio',
-            'Minor radius',
-            'Minor radius geometric progression change',
-            'Minor radius end ratio',
             'Refine',
             'Refine number of elements across major',
             'Refine number of elements along'
@@ -156,40 +140,13 @@ with variable numbers of elements in major, minor and length directions.
         """
 
         centralPath = options['Central path']
-        useCentralPath = options['Use central path']
         full = not options['Lower half']
-        length = options['Length']
-        majorRadius = options['Major radius']
-        majorGeometric = options['Major radius geometric progression change']
-        minorGeometric = options['Minor radius geometric progression change']
-        minorRadius = options['Minor radius']
-        majorRadiusEndRatio = options['Major radius end ratio']
-        minorRadiusEndRatio = options['Minor radius end ratio']
         elementsCountAcrossMajor = options['Number of elements across major']
         if not full:
             elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']
-
-        if useCentralPath:
-            cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
-        else:
-            cylinderCentralPath = None
-
-            # segmentLength = length / segmentCount
-            # elementAlongLength = length / elementsCountAlong
-            # # print('Length = ', length)
-
-            # Sample central path
-            # sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment * segmentCount)
-            # sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-
-            # # Generate variation of radius & tc width along length
-            # lengthList = [0.0, duodenumLength, duodenumLength + jejunumLength, length]
-            # innerRadiusList = [duodenumInnerRadius, duodenumJejunumInnerRadius, jejunumIleumInnerRadius, ileumInnerRadius]
-            # innerRadiusSegmentList, dInnerRadiusSegmentList = sampleParameterAlongLine(lengthList, innerRadiusList,
-            #                                                                                   segmentCount)
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -198,17 +155,15 @@ with variable numbers of elements in major, minor and length directions.
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
 
-        if not useCentralPath:
-            majorRatio, majorProgression = radiusChange(majorRadius, majorRadiusEndRatio, elementsCountAlong, geometric=majorGeometric)
-            minorRatio, minorProgression = radiusChange(minorRadius, minorRadiusEndRatio, elementsCountAlong, geometric=minorGeometric)
-            radiusChanges = Tapered(majorRatio, majorProgression, minorRatio, minorProgression)
-        else:
-            radiusChanges = []
+        cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
+
+        radiusChanges = []
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, [0.0, 0.0, 0.0],
-                            vector.setMagnitude(axis3, length), vector.setMagnitude(axis1, majorRadius), minorRadius)
+                            cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+                            cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape, tapered=radiusChanges,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
