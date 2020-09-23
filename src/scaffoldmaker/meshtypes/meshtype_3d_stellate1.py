@@ -182,13 +182,10 @@ class MeshType_3d_stellate1(Scaffold_base):
                            }
 
         # arm group annotations for user
-        armNames, faceNames = getUnlabelledStellateArmNames(armCount)
-        armGroups = [AnnotationGroup(region, armNames[0]),
-                     AnnotationGroup(region, armNames[1]),
-                     AnnotationGroup(region, armNames[2])]
+        armTerms, _ = getAutomaticArmFaceTerms(armCount)
+        armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
         stellateGroup = AnnotationGroup(region, get_stellate_term("cervicothoracic ganglion"))
-        annotationGroups = armGroups.copy()
-        annotationGroups.append(stellateGroup)
+        annotationGroups = [stellateGroup] + armGroups
 
         armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
         stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
@@ -457,9 +454,7 @@ class MeshType_3d_stellate1(Scaffold_base):
 
                         elementIdentifier += 1
 
-        ############################
         # annotation fiducial points
-        ############################
         if isMouse:
             for key in allMarkers:
 
@@ -503,42 +498,25 @@ class MeshType_3d_stellate1(Scaffold_base):
         fm = region.getFieldmodule()
         armCount = len(options['Numbers of elements along arms'])
         stellateGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("cervicothoracic ganglion"))
-        armNames, faceNames = getUnlabelledStellateArmNames(armCount)
-        arm1Group = getAnnotationGroupForTerm(annotationGroups, armNames[0])
-        arm2Group = getAnnotationGroupForTerm(annotationGroups, armNames[1])
-        arm3Group = getAnnotationGroupForTerm(annotationGroups, armNames[2])
-
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi2_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0))
         is_exterior_face_xi2_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
+        armTerms, faceTerms = getAutomaticArmFaceTerms(armCount)
 
-        is_arm1 = arm1Group.getFieldElementGroup(mesh2d)
-        is_arm2 = arm2Group.getFieldElementGroup(mesh2d)
-        is_arm3 = arm3Group.getFieldElementGroup(mesh2d)
-        is_left_face = fm.createFieldOr(
-            fm.createFieldAnd(is_arm2, is_exterior_face_xi2_1),
-            fm.createFieldAnd(is_arm3, is_exterior_face_xi2_0))
-        leftStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, faceNames[1])
-        leftStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_left_face)
+        armGroups = [getAnnotationGroupForTerm(annotationGroups, armTerm) for armTerm in armTerms]
+        isArm =[armGroup.getFieldElementGroup(mesh2d) for armGroup in armGroups]
+        for arm in range(armCount):
+            is_face = fm.createFieldOr(
+            fm.createFieldAnd(isArm[arm - 1], is_exterior_face_xi2_1),
+            fm.createFieldAnd(isArm[arm], is_exterior_face_xi2_0))
+            faceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, faceTerms[arm - 1])
+            faceGroup.getMeshGroup(mesh2d).addElementsConditional(is_face)
 
-        is_top_face = fm.createFieldOr(
-            fm.createFieldAnd(is_arm1, is_exterior_face_xi2_1),
-            fm.createFieldAnd(is_arm2, is_exterior_face_xi2_0))
-        topStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, faceNames[0])
-        topStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_top_face)
-
-        is_bottom_face = fm.createFieldOr(
-            fm.createFieldAnd(is_arm1, is_exterior_face_xi2_0),
-            fm.createFieldAnd(is_arm3, is_exterior_face_xi2_1))
-        bottomStellateGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, faceNames[-1])
-        bottomStellateGroup.getMeshGroup(mesh2d).addElementsConditional(is_bottom_face)
-
-def getUnlabelledStellateArmNames(armCount):
-    armNames = [("stellate arm %d"%(d), None) for d in range(1,armCount+1)]
-    faceNames = [("stellate face %d-%d"%(d, d+1), None) for d in range(1,armCount+1)]
-    faceNames[-1] = ("stellate face %d-1"%(armCount), None)
-    return armNames, faceNames
+def getAutomaticArmFaceTerms(armCount):
+    armTerms = [("stellate arm %d"%(i), None) for i in range(1,armCount+1)]
+    faceTerms = [("stellate face %d-%d" % (i, (i % armCount) + 1), None) for i in range(1, armCount + 1)]
+    return armTerms, faceTerms
 
 def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount, dipMultiplier, armCount, armIndex):
     """
