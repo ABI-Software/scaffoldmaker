@@ -30,8 +30,7 @@ class MeshType_3d_stellate1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Mouse 1',
-            'Mouse 2']
+            'Mouse 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -39,12 +38,9 @@ class MeshType_3d_stellate1(Scaffold_base):
         options['Base parameter set'] = parameterSetName
 
         isMouse = 'Mouse' in parameterSetName
-        isLongMouse = parameterSetName == 'Mouse 2'
 
         if isMouse:
             options['Numbers of elements along arms'] = [4,2,2]
-            if isLongMouse:
-                options['Numbers of elements along arms'] = [5,2,2]
         else:
             options['Numbers of elements along arms'] = [4,2,2]
         options['Element width central'] = 0.8
@@ -110,8 +106,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         :return: None
         """
         isDefault = 'Default' in options['Base parameter set']
-        isMouse = 'Mouse' in options['Base parameter set'] and 'Long' not in options['Base parameter set']
-        isLongMouse = options['Base parameter set'] == 'Mouse 2'
+        isMouse = 'Mouse' in options['Base parameter set']
 
         armCount = 3
         elementLengthCentral = options['Element width central']
