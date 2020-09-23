@@ -24,6 +24,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         centralPathDefaultScaffoldPackages = {
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {
+                    'D2 derivatives': True,
                     'Coordinate dimensions': 3,
                     'Length': 1.0,
                     'Number of elements': 3
@@ -62,7 +63,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx = extractPathParametersFromRegion(tmpRegion)[0]
+        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(4, len(cx))
         assertAlmostEqualList(self, cx[0], [  -2.3, 18.5, -4.4 ], 1.0E-6)
         assertAlmostEqualList(self, cx[2], [ -18.3, 12.6, -1.5 ], 1.0E-6)

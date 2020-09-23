@@ -132,7 +132,7 @@ class MeshType_1d_path1(Scaffold_base):
 
     @classmethod
     def smoothPath(cls, region, options, mode : DerivativeScalingMode):
-        x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])
+        x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])[0:2]
         d1 = smoothCubicHermiteDerivativesLine(x, d1, magnitudeScalingMode=mode)
         setPathParameters(region, [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [ x, d1 ])
 
@@ -140,7 +140,7 @@ class MeshType_1d_path1(Scaffold_base):
     def makeD2Normal(cls, region, options):
         if not options['D2 derivatives']:
             return
-        d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])
+        d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])[0:2]
         for c in range(len(d1)):
             td2 = vector.vectorRejection(d2[c], d1[c])
             d2[c] = vector.setMagnitude(td2, vector.magnitude(d2[c]))
@@ -152,12 +152,12 @@ class MeshType_1d_path1(Scaffold_base):
             return
         if options['D2 derivatives']:
             d1, d2, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                  Node.VALUE_LABEL_D_DS3])
+                                                                  Node.VALUE_LABEL_D_DS3])[0:3]
             for c in range(len(d1)):
                 d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
             setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
         else:
-            d1, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3])
+            d1, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3])[0:2]
             for c in range(len(d1)):
                 td3 = vector.vectorRejection(d3[c], d1[c])
                 d3[c] = vector.setMagnitude(td3, vector.magnitude(d3[c]))
@@ -196,9 +196,10 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
     cx = []
     cd1 = []
     cd2 = []
-    cd12 = []
     cd3 = []
+    cd12 = []
     cd13 = []
+    cd23 = []
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     if groupName:
         group = fieldmodule.findFieldByName(groupName).castGroup()
@@ -211,25 +212,28 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
     node = nodeIter.next()
     while node.isValid():
         cache.setNode(node)
-        result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, componentsCount)
-        result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, componentsCount)
-        result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, componentsCount)
-        result, d12 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, componentsCount)
-        result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, componentsCount)
-        result, d13 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, componentsCount)
-        for c in range(componentsCount, 3):
-            x.append(0.0)
-            d1.append(0.0)
-            d2.append(0.0)
-            d12.append(0.0)
-            d3.append(0.0)
-            d13.append(0.0)
-        cx.append(x)
-        cd1.append(d1)
-        cd2.append(d2)
-        cd12.append(d12)
-        cd3.append(d3)
-        cd13.append(d13)
+        for label in valueLabels:
+            if label == Node.VALUE_LABEL_VALUE:
+                result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, componentsCount)
+                cx.append(x)
+            elif label == Node.VALUE_LABEL_D_DS1:
+                result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, componentsCount)
+                cd1.append(d1)
+            elif label == Node.VALUE_LABEL_D_DS2:
+                result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, componentsCount)
+                cd2.append(d2)
+            elif label == Node.VALUE_LABEL_D_DS3:
+                result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, componentsCount)
+                cd3.append(d3)
+            elif label == Node.VALUE_LABEL_D2_DS1DS2:
+                result, d12 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, componentsCount)
+                cd12.append(d12)
+            elif label == Node.VALUE_LABEL_D2_DS1DS3:
+                result, d13 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, componentsCount)
+                cd13.append(d13)
+            elif label == Node.VALUE_LABEL_D2_DS2DS3:
+                result, d23 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, componentsCount)
+                cd23.append(d23)
         node = nodeIter.next()
 
     result = ()
@@ -246,6 +250,8 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
             result += (cd12,)
         if label == Node.VALUE_LABEL_D2_DS1DS3:
             result += (cd13,)
+        if label == Node.VALUE_LABEL_D2_DS2DS3:
+            result += (cd23,)
 
     return result
 
