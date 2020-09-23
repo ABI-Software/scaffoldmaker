@@ -30,7 +30,7 @@ class MeshType_3d_stellate1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Mouse 1']
+            'Mouse cervicothoracic ganglion 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -184,11 +184,13 @@ class MeshType_3d_stellate1(Scaffold_base):
         # arm group annotations for user
         armTerms, _ = getAutomaticArmFaceTerms(armCount)
         armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
-        stellateGroup = AnnotationGroup(region, get_stellate_term("cervicothoracic ganglion"))
-        annotationGroups = [stellateGroup] + armGroups
+        wholeScaffoldGroup = AnnotationGroup(region, ("stellate", None))
+        if isMouse:
+            wholeScaffoldGroup = AnnotationGroup(region, get_stellate_term("cervicothoracic ganglion"))
+        annotationGroups = [wholeScaffoldGroup] + armGroups
 
         armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
-        stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
+        stellateMeshGroup = wholeScaffoldGroup.getMeshGroup(mesh)
 
         # Create nodes
         numNodesPerArm = [0]
@@ -497,7 +499,6 @@ class MeshType_3d_stellate1(Scaffold_base):
         # create  groups
         fm = region.getFieldmodule()
         armCount = len(options['Numbers of elements along arms'])
-        stellateGroup = getAnnotationGroupForTerm(annotationGroups, get_stellate_term("cervicothoracic ganglion"))
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi2_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0))
