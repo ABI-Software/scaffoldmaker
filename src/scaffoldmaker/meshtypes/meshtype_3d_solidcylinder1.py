@@ -29,8 +29,8 @@ with variable numbers of elements in major, minor and length directions.
         'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
-                'D2 derivative': True,
-                'D3 and D2 derivatives': True,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
                 'Length': 3.0,
                 'Number of elements': 3
             },

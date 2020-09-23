@@ -97,7 +97,7 @@ class CylinderCentralPath:
         :param elementsCount: Number of elements needs to be sampled along the central path.
         """
 
-        cx, cd1, cd2, cd12, cd3, cd13 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
+        cx, cd1, cd2, cd3, cd12, cd13 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
         # sd1 = centralpath.smoothD1Derivatives(cx, cd1)
         # cylinderLength = centralpath.calculateTotalLength(cx, sd1, printArcLength=False)
         sx, sd1, se, sxi, ssf = centralpath.sampleCentralPath(cx, cd1, elementsCount)
