@@ -132,7 +132,7 @@ class MeshType_1d_path1(Scaffold_base):
 
     @classmethod
     def smoothPath(cls, region, options, mode : DerivativeScalingMode):
-        x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])[0:2]
+        x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])
         d1 = smoothCubicHermiteDerivativesLine(x, d1, magnitudeScalingMode=mode)
         setPathParameters(region, [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [ x, d1 ])
 
@@ -140,7 +140,7 @@ class MeshType_1d_path1(Scaffold_base):
     def makeD2Normal(cls, region, options):
         if not options['D2 derivatives']:
             return
-        d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])[0:2]
+        d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])
         for c in range(len(d1)):
             td2 = vector.vectorRejection(d2[c], d1[c])
             d2[c] = vector.setMagnitude(td2, vector.magnitude(d2[c]))
@@ -152,12 +152,12 @@ class MeshType_1d_path1(Scaffold_base):
             return
         if options['D2 derivatives']:
             d1, d2, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                  Node.VALUE_LABEL_D_DS3])[0:3]
+                                                                  Node.VALUE_LABEL_D_DS3])
             for c in range(len(d1)):
                 d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
             setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
         else:
-            d1, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3])[0:2]
+            d1, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3])
             for c in range(len(d1)):
                 td3 = vector.vectorRejection(d3[c], d1[c])
                 d3[c] = vector.setMagnitude(td3, vector.magnitude(d3[c]))
