@@ -186,8 +186,6 @@ class MeshType_3d_stellate1(Scaffold_base):
         armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
         stellateTerm = get_stellate_term("cervicothoracic ganglion") if isMouse else ("stellate", None)
         stellateGroup = AnnotationGroup(region, stellateTerm)
-        if isMouse:
-            stellateGroup = AnnotationGroup(region, get_stellate_term("cervicothoracic ganglion"))
         annotationGroups = [stellateGroup] + armGroups
 
         armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
