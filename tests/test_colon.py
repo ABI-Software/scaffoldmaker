@@ -26,6 +26,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {
                     'Coordinate dimensions': 3,
+                    'D2 derivatives':True,
                     'Length': 1.0,
                     'Number of elements': 1
                 },
@@ -83,7 +84,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx = extractPathParametersFromRegion(tmpRegion)[0]
+        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(2, len(cx))
         assertAlmostEqualList(self, cx[0], [ 163.7, -25.2, 12.2 ], 1.0E-6)
         assertAlmostEqualList(self, cx[1], [ 117.2, 32.8, -2.6 ], 1.0E-6)

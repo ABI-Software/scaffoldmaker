@@ -84,7 +84,7 @@ def parallelVectors(v1, v2):
     :return: True if the vectors are parallel.
     """
     assert (len(v2) == len(v1)), 'Vectors lengths are not the same.'
-    TOL = 1.0e-6
-    if magnitude(crossproduct3(v1, v2)) < TOL * (magnitude(v1)+magnitude(v2))/2.0:
+    TOL = 1.0e-6/2.0
+    if magnitude(crossproduct3(v1, v2)) < TOL * (magnitude(v1)+magnitude(v2)):
         return True
     return False
