@@ -35,6 +35,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         'Cat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
+                'D2 derivatives': True,
                 'Length': 1.0,
                 'Number of elements': 8
                 },
@@ -69,6 +70,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
+                'D2 derivatives': True,
                 'Length': 1.0,
                 'Number of elements': 8
             },
@@ -357,14 +359,16 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Bladder part
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx_bladder, cd1_bladder, cd2_bladder, cd12_bladder = extractPathParametersFromRegion(tmpRegion, groupName='urinary bladder')
+        cx_bladder, cd1_bladder, cd2_bladder, cd12_bladder = extractPathParametersFromRegion(tmpRegion,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], groupName='urinary bladder')
         # for i in range(len(cx_bladder)):
         #     print(i, '[', cx_bladder[i], ',', cd1_bladder[i], ',', cd2_bladder[i], ',', cd12_bladder[i], '],')
         del tmpRegion
         # Urethra part
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx_urethra, cd1_urethra, cd2_urethra, cd12_urethra = extractPathParametersFromRegion(tmpRegion, groupName='urethra')
+        cx_urethra, cd1_urethra, cd2_urethra, cd12_urethra = extractPathParametersFromRegion(tmpRegion,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], groupName='urethra')
         # for i in range(len(cx_urethra)):
         #     print(i, '[', cx_urethra[i], ',', cd1_urethra[i], ',', cd2_urethra[i], ',', cd12_urethra[i], '],')
         del tmpRegion
