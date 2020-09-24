@@ -29,6 +29,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
     centralPathDefaultScaffoldPackages = {
         'Mouse 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
+                'D2 derivatives': True,
                 'Coordinate dimensions' : 3,
                 'Length' : 1.0,
                 'Number of elements' : 45
@@ -231,7 +232,9 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion,
+                                                             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
         # for i in range(len(cx)):
         #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i],',', cd12[i], '],')
         del tmpRegion
