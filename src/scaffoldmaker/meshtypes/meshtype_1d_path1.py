@@ -193,13 +193,8 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
     assert componentsCount in [ 1, 2, 3 ], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
     cache = fieldmodule.createFieldcache()
 
-    cx = []
-    cd1 = []
-    cd2 = []
-    cd3 = []
-    cd12 = []
-    cd13 = []
-    cd23 = []
+    valueLabelsCount = len(valueLabels)
+    returnValues = [[] for i in range(valueLabelsCount)]
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     if groupName:
         group = fieldmodule.findFieldByName(groupName).castGroup()
@@ -212,48 +207,14 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
     node = nodeIter.next()
     while node.isValid():
         cache.setNode(node)
-        for label in valueLabels:
-            if label == Node.VALUE_LABEL_VALUE:
-                result, x  = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, componentsCount)
-                cx.append(x)
-            elif label == Node.VALUE_LABEL_D_DS1:
-                result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, componentsCount)
-                cd1.append(d1)
-            elif label == Node.VALUE_LABEL_D_DS2:
-                result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, componentsCount)
-                cd2.append(d2)
-            elif label == Node.VALUE_LABEL_D_DS3:
-                result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, componentsCount)
-                cd3.append(d3)
-            elif label == Node.VALUE_LABEL_D2_DS1DS2:
-                result, d12 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, componentsCount)
-                cd12.append(d12)
-            elif label == Node.VALUE_LABEL_D2_DS1DS3:
-                result, d13 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, componentsCount)
-                cd13.append(d13)
-            elif label == Node.VALUE_LABEL_D2_DS2DS3:
-                result, d23 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, componentsCount)
-                cd23.append(d23)
+        for i in range(valueLabelsCount):
+            result, values = coordinates.getNodeParameters(cache, -1, valueLabels[i], 1, componentsCount)
+            for c in range(componentsCount, 3):
+                values.append(0.0)
+            returnValues[i].append(values)
         node = nodeIter.next()
 
-    result = ()
-    for label in valueLabels:
-        if label == Node.VALUE_LABEL_VALUE:
-            result += (cx,)
-        if label == Node.VALUE_LABEL_D_DS1:
-            result += (cd1,)
-        if label == Node.VALUE_LABEL_D_DS2:
-            result += (cd2,)
-        if label == Node.VALUE_LABEL_D_DS3:
-            result += (cd3,)
-        if label == Node.VALUE_LABEL_D2_DS1DS2:
-            result += (cd12,)
-        if label == Node.VALUE_LABEL_D2_DS1DS3:
-            result += (cd13,)
-        if label == Node.VALUE_LABEL_D2_DS2DS3:
-            result += (cd23,)
-
-    return result
+    return returnValues
 
 
 def setPathParameters(region, nodeValueLabels, nodeValues):
