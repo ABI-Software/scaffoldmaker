@@ -327,3 +327,33 @@ def nodeset_group_to_identifier_ranges(nodeset_group):
     :return: Ordered list of node identifier ranges e.g. [[1,30],[55,55],[66,70]]
     '''
     return domain_iterator_to_identifier_ranges(nodeset_group.createNodeiterator())
+
+def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
+    '''
+    Deletes elements and related nodes using element identifiers.
+    :param element_identifiers: Element identifiers for elements to be deleted.
+    '''
+    fm = mesh.getFieldmodule()
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    with ChangeManager(fm):
+        # put the elements in a group and use subelement handling to get nodes in use by it
+        destroyGroup = fm.createFieldGroup()
+        destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
+        destroyMesh = destroyElementGroup.getMeshGroup()
+        for elementIdentifier in element_identifiers:
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            destroyMesh.addElement(element)
+        if destroyMesh.getSize() > 0:
+            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
+            destroyNodes = destroyNodeGroup.getNodesetGroup()
+            # must destroy elements first as Zinc won't destroy nodes that are in use
+            mesh.destroyElementsConditional(destroyElementGroup)
+            nodes.destroyNodesConditional(destroyNodeGroup)
+            # clean up group so no external code hears is notified of its existence
+            del destroyNodes
+            del destroyNodeGroup
+        del destroyMesh
+        del destroyElementGroup
+        del destroyGroup
+    return
