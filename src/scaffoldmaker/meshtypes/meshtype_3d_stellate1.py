@@ -4,10 +4,12 @@ Generates a 3-D planar stellate mesh with cross arms radiating from a central no
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.stellate_terms import get_stellate_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -25,22 +27,39 @@ class MeshType_3d_stellate1(Scaffold_base):
         return '3D Stellate 1'
 
     @staticmethod
-    def getDefaultOptions(parameterSetName='Default'):
-        return {
-            'Numbers of elements along arms' : [4,2,2],
-            'Element length along arm' : 1.0,
-            'Element width across arm' : 0.5,
-            'Element thickness' : 0.5,
-            'Refine' : False,
-            'Refine number of elements along arm' : 1,
-            'Refine number of elements across arm' : 1,
-            'Refine number of elements through thickness' : 1
-        }
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Mouse cervicothoracic ganglion 1']
+
+    @classmethod
+    def getDefaultOptions(cls, parameterSetName='Default'):
+        options = {}
+        options['Base parameter set'] = parameterSetName
+
+        isMouse = 'Mouse' in parameterSetName
+
+        if isMouse:
+            options['Numbers of elements along arms'] = [4,2,2]
+        else:
+            options['Numbers of elements along arms'] = [4,2,2]
+        options['Element width central'] = 0.8
+        options['Element length along arm'] = 0.8
+        options['Element width across arm'] = 0.3
+        options['Element thickness'] = 0.1
+        options['Refine'] = False
+        options['Refine number of elements along arm'] = 1
+        options['Refine number of elements across arm'] = 1
+        options['Refine number of elements through thickness'] = 1
+        return options
+
 
     @staticmethod
     def getOrderedOptionNames():
+
         return [
             'Numbers of elements along arms',
+            'Element width central',
             'Element length along arm',
             'Element width across arm',
             'Element thickness',
@@ -50,8 +69,8 @@ class MeshType_3d_stellate1(Scaffold_base):
             'Refine number of elements through thickness'
         ]
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def checkOptions(cls, options):
         for key in [
             'Refine number of elements along arm',
             'Refine number of elements across arm',
@@ -60,6 +79,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                 options[key] = 1
 
         for key in [
+            'Element width central',
             'Element length along arm',
             'Element width across arm',
             'Element thickness']:
@@ -85,7 +105,11 @@ class MeshType_3d_stellate1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+        isDefault = 'Default' in options['Base parameter set']
+        isMouse = 'Mouse' in options['Base parameter set']
+
         armCount = 3
+        elementLengthCentral = options['Element width central']
         elementLengths = [options['Element length along arm'],
                  options['Element width across arm'],
                  options['Element thickness']]
@@ -95,9 +119,9 @@ class MeshType_3d_stellate1(Scaffold_base):
         useCrossDerivatives = False
 
         fm = region.getFieldmodule()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         coordinates = findOrCreateFieldCoordinates(fm)
 
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
@@ -108,20 +132,78 @@ class MeshType_3d_stellate1(Scaffold_base):
         mesh = fm.findMeshByDimension(3)
         cache = fm.createFieldcache()
 
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+
+        # markers with element number and xi position
+        allMarkers = {}
+        if isMouse:
+            xProportion = {}
+            xProportion['ICN'] = 0.9
+            xProportion['VA'] = 0.9
+            xProportion['DA'] = 0.9
+            xProportion['C8'] = 0.9
+            xProportion['T1'] = 0.25
+            xProportion['T2'] = 0.5
+            xProportion['T3'] = 0.75
+            xProportion['TST'] = 1
+            armNumber = {}
+            armNumber['ICN'] = 2
+            armNumber['VA'] = 2
+            armNumber['DA'] = 3
+            armNumber['C8'] = 3
+            armNumber['T1'] = 1
+            armNumber['T2'] = 1
+            armNumber['T3'] = 1
+            armNumber['TST'] = 1
+            nerveAbbrev = list(xProportion.keys())
+            elementIndex = {}
+            xi1 = {}
+            for nerve in nerveAbbrev:
+                elementIndex[nerve] = int(xProportion[nerve] * elementsCount1[armNumber[nerve]-1])
+                xi1[nerve] = 1 if xProportion[nerve] == 1 else xProportion[nerve] * elementsCount1[armNumber[nerve]-1] - elementIndex[nerve]
+                elementIndex[nerve] += 1 if xProportion[nerve] < 1 else 0
+                j = 10
+
+            allMarkers = { "Inferior cardiac nerve" : {"elementID": elementIndex['ICN']+2*elementsCount1[0], "xi": [xi1['ICN'], 0.0, 0.5]},
+                            "Ventral ansa subclavia" : {"elementID": elementIndex['VA']+2*elementsCount1[0]+elementsCount1[1], "xi": [xi1['VA'], 1.0, 0.5]},
+                            "Dorsal ansa subclavia" : {"elementID": elementIndex['DA']+2*(elementsCount1[0]+elementsCount1[1]), "xi": [xi1['DA'], 0.0, 0.5]},
+                            "Cervical spinal nerve 8" : {"elementID": elementIndex['C8']+2*(elementsCount1[0]+elementsCount1[1])+elementsCount1[2], "xi": [xi1['C8'], 1.0, 0.5]},
+                            "Thoracic spinal nerve 1" : {"elementID": elementIndex['T1'], "xi": [xi1['T1'], 0.0, 0.5]},
+                            "Thoracic spinal nerve 2" : {"elementID": elementIndex['T2'], "xi": [xi1['T2'], 0.0, 0.5]},
+                            "Thoracic spinal nerve 3" : {"elementID": elementIndex['T3'], "xi": [xi1['T3'], 0.0, 0.5]},
+                            "Thoracic sympathetic nerve trunk" : {"elementID": elementIndex['TST'], "xi": [xi1['TST'], 1.0, 0.5]},
+                           }
+
+        # arm group annotations for user
+        armTerms, _ = getAutomaticArmFaceTerms(armCount)
+        armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
+        stellateTerm = get_stellate_term("cervicothoracic ganglion") if isMouse else ("stellate", None)
+        stellateGroup = AnnotationGroup(region, stellateTerm)
+        annotationGroups = [stellateGroup] + armGroups
+
+        armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
+        stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
+
         # Create nodes
         numNodesPerArm = [0]
-        halfArmArcAngleRadians = math.pi / armCount
-        dipMultiplier = 1 #elementLengths[1] * 1.2 * 1.5
-
+        dipMultiplier = 1
         nodeIdentifier = 1
         minArmAngle = 2 * math.pi / armCount
+        halfArmArcAngleRadians = minArmAngle/2
         xx = []
         xds1 = []
         xds2 = []
         x_in_nodes = []
         for na in range(armCount):
             elementsCount_i = [elementsCount1[na], elementsCount2, elementsCount3]
-            x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, minArmAngle * na, minArmAngle, elementsCount_i, dipMultiplier, armCount, na)
+            x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount_i, dipMultiplier, armCount, na)
             for ix in range(len(x)):
                 if na == 0 or ix not in nWheelEdge:
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -129,6 +211,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[ix])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1[ix])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2[ix])
+
                     nodeIdentifier += 1
                     x_in_nodes.append(x[ix])
             numNodesPerArm.append(len(x))
@@ -173,13 +256,12 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                        nwPrev[1], no2 + em - 1 + nplUq,
                                                        nCentre[1], bni + (4 * em) - 2]
                                 else:
-                                    # nplPrev = int(numNodesPerArm[na]/2) - elementsCount1[na-1] - 2
                                     nplPrev = int(numNodesPerArm[na]/2) - 2
                                     no2 = elementsCount1[na]-1
                                     no3 = int(numNodesPerArm[na+1]/2) - 3
                                     nwPrev = [cumNumNodesPerArm[na-1] + 2*(elementsCount1[na-1]),
                                               cumNumNodesPerArm[na-1] + 2*(elementsCount1[na-1]) + nplPrev]
-                                    start = cumNumNodesPerArm[na] - 3 # -4 + 1
+                                    start = cumNumNodesPerArm[na] - 3
                                     nodeIdentifiers = [nwPrev[0], start,
                                                        nCentre[0], start + no2,
                                                        nwPrev[1],  start + no3,
@@ -346,7 +428,6 @@ class MeshType_3d_stellate1(Scaffold_base):
                             # rounded ends of arms. Collapse xi2 at xi1 = 1
                             eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
                             remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS2, [])
-                            # remapEftNodeValueLabel(eft1, [2, 5], Node.VALUE_LABEL_D_DS2, [])
                             if e2 == 0:
                                 remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
                                                        [(Node.VALUE_LABEL_D_DS2, [])])
@@ -367,8 +448,29 @@ class MeshType_3d_stellate1(Scaffold_base):
                         element = mesh.createElement(elementIdentifier, elementtemplate1)
                         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                         result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+
+                        # add to meshGroup
+                        stellateMeshGroup.addElement(element)
+                        armMeshGroups[na].addElement(element)
+
                         elementIdentifier += 1
-        return []
+
+        # annotation fiducial points
+        if isMouse:
+            for key in allMarkers:
+
+                xi = allMarkers[key]["xi"]
+                addMarker = {"name": key, "xi": allMarkers[key]["xi"]}
+
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                elementID = allMarkers[key]["elementID"]
+                element = mesh.findElementByIdentifier(elementID)
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+
+        return annotationGroups
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -384,7 +486,39 @@ class MeshType_3d_stellate1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount1, refineElementsCount2, refineElementsCount3)
 
 
-def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, elementsCount, dipMultiplier, armCount, armIndex):
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add point annotation groups from the 1D mesh.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New point annotation groups are appended to this list.
+        """
+        # create  groups
+        fm = region.getFieldmodule()
+        armCount = len(options['Numbers of elements along arms'])
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi2_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0))
+        is_exterior_face_xi2_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
+        armTerms, faceTerms = getAutomaticArmFaceTerms(armCount)
+
+        armGroups = [getAnnotationGroupForTerm(annotationGroups, armTerm) for armTerm in armTerms]
+        isArm =[armGroup.getFieldElementGroup(mesh2d) for armGroup in armGroups]
+        for arm in range(armCount):
+            is_face = fm.createFieldOr(
+            fm.createFieldAnd(isArm[arm - 1], is_exterior_face_xi2_1),
+            fm.createFieldAnd(isArm[arm], is_exterior_face_xi2_0))
+            faceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, faceTerms[arm - 1])
+            faceGroup.getMeshGroup(mesh2d).addElementsConditional(is_face)
+
+def getAutomaticArmFaceTerms(armCount):
+    armTerms = [("stellate arm %d"%(i), None) for i in range(1,armCount+1)]
+    faceTerms = [("stellate face %d-%d" % (i, (i % armCount) + 1), None) for i in range(1, armCount + 1)]
+    return armTerms, faceTerms
+
+def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount, dipMultiplier, armCount, armIndex):
     """
     Create single arm unit.
     Base length of element is 1.
@@ -392,8 +526,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
     Minimum arm length is 2 elements.
     :param halfArmArcAngleRadians: angle arising from base node (rad)
     :param elementLengths: [Element length along arm, half Element width across arm, Element thickness]
-    :param armAngle: angle from x axis of the arm about origin (rad)
-    :param armAngleConst: minimum angle from x axis of the first arm about origin (rad)
+    :param elementLengthCentral: Radial element length about central node.
     :param elementsCount: list of numbers of elements along arm length, across width and through thickness directions
     :param dipMultiplier: factor that wheel nodes protrude by, relative to unit length
     :param armCount: number of arms in body
@@ -408,11 +541,14 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
     elementsCount1, elementsCount2, elementsCount3 = elementsCount
     [elementLength, elementWidth, elementHeight] = elementLengths
 
+    shorterArmEnd = True
+    armAngle = 2*halfArmArcAngleRadians*armIndex
+    armAngleConst = 2*halfArmArcAngleRadians
+
     xnodes_ds1 = []
     xnodes_ds2 = []
     dx_ds1 = [elementLength, 0.0, 0.0]
     dx_ds2 = [0.0, elementWidth, 0.0]
-    wheelDvMult = [0.5, 0.75]
 
     nodes_per_layer = (elementsCount1 + 1) * (elementsCount2 + 1) - 2 # discount 2 armEnd corners
     x = []
@@ -427,14 +563,14 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
     else:
         rmVertexNodes = nCentre + [0, nodes_per_layer,
                           2* (elementsCount1+1) - 1, 2* (elementsCount1+1) - 1 + nodes_per_layer ]
-    dcent = [elementLength * math.cos(armAngleConst / 2), elementLength * math.sin(armAngleConst / 2), 0.0]
-    dvertex = [elementLength * dipMultiplier * math.cos(halfArmArcAngleRadians),
-                elementLength * dipMultiplier * math.sin(halfArmArcAngleRadians)]
+    dcent = [elementLengthCentral * math.cos(armAngleConst / 2), elementLengthCentral * math.sin(armAngleConst / 2), 0.0]
+    dvertex = [elementLengthCentral * dipMultiplier * math.cos(halfArmArcAngleRadians),
+                elementLengthCentral * dipMultiplier * math.sin(halfArmArcAngleRadians)]
 
-    dipLength = 0.5*(elementLength + elementWidth)*dipMultiplier
+    dipLength = 0.5*(elementLengthCentral + elementWidth)*dipMultiplier
     dvertex = [dipLength * math.cos(halfArmArcAngleRadians),
                dipLength * math.sin(halfArmArcAngleRadians)]
-    dipMag = 2*dipLength - elementLength
+    dipMag = 2*dipLength - elementLengthCentral
 
     nid = 0
     for e3 in range(elementsCount3 + 1):
@@ -452,8 +588,11 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
                         x1 = dvertex[0]
                         x2 = dvertex[1]
                     else:
-                        x1 = (elementLength*e1)
-                        x2 = ((e2 - 1) * elementWidth )
+                        if e1 == elementsCount1 and shorterArmEnd:
+                            x1 = 0.5*(elementLength+elementWidth) + elementLength*(e1-1)
+                        else:
+                            x1 = elementLength*e1
+                        x2 = (e2 - 1) * elementWidth
                     x.append([x1, x2, x3])
 
                     # DERIVATIVES
@@ -466,8 +605,11 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
                         ds2 = [dcent[0], -dcent[1], dcent[2]] if (e2 == 0) else dcent
                         ds2 = setMagnitude(ds2, dipMag)
                         ds1 = rotateAboutZAxis(ds2, -math.pi / 2)
-                    elif e1 == elementsCount1 and e2 == elementsCount2-1:
+                    elif e1 == elementsCount1 and e2 == elementsCount2-1: # armEnd
+                        ds1 = [elementWidth,0,0]
                         ds2 = [0, 1 * (elementLength + elementWidth), 0]
+                        if shorterArmEnd:
+                            ds2 = [0, 0.5 * (elementLength + elementWidth), 0]
                     xnodes_ds1.append(ds1)
                     xnodes_ds2.append(ds2)
                     nid += 1
@@ -498,3 +640,4 @@ def createArm(halfArmArcAngleRadians, elementLengths, armAngle, armAngleConst, e
         xnodes_ds2[j] = rotateAboutZAxis(xnodes_ds2[j], armAngle)
 
     return (x, xnodes_ds1, xnodes_ds2, rmVertexNodes)
+

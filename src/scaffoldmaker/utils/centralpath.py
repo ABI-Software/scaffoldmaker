@@ -4,6 +4,7 @@ Utility functions for generating a central path used to generate cylinders and t
 
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 from scaffoldmaker.utils import interpolation as interp
+from opencmiss.zinc.node import Node
 
 
 def getCentralPathNodes(region, centralPath, printNodes=False):
@@ -16,13 +17,17 @@ def getCentralPathNodes(region, centralPath, printNodes=False):
     """
     tmpRegion = region.createRegion()
     centralPath.generate(tmpRegion)
-    cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+    cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
+                                                                    [Node.VALUE_LABEL_VALUE,
+                                                                     Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                                                                     Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS2,
+                                                                     Node.VALUE_LABEL_D2_DS1DS3])
     if printNodes:
         for i in range(len(cx)):
-            print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+            print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], cd3[i], ',', cd13[i], '],')
     del tmpRegion
 
-    return cx, cd1, cd2, cd12
+    return cx, cd1, cd2, cd3, cd12, cd13
 
 
 def smoothD1Derivatives(cx, cd1):

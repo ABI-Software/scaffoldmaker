@@ -20,9 +20,8 @@ from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field, FieldGroup
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
 
@@ -41,6 +40,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
+                'D2 derivatives': True,
                 'Length': 120.0,
                 'Number of elements': 3
             },
@@ -307,7 +307,9 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion)
+        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion,
+                                                             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
         # for i in range(len(cx)):
         #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
         del tmpRegion
@@ -698,7 +700,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             startProportions = startProportions, endProportions = endProportions)
 
         # Delete elements under annulus mesh
-        deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier)
+        mesh_destroy_elements_and_nodes_by_identifiers(mesh, deleteElementIdentifier)
 
         return annotationGroups
 
@@ -1040,42 +1042,3 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
 
     return ei1Left, ei1Right, ei2Bottom, ei2Top
 
-def deleteElementsAndNodesUnderAnnulusMesh(fm, nodes, mesh, deleteElementIdentifier, deleteNodeIdentifier):
-    """
-    Deletes elements and nodes on tracked surface under annulus mesh using element and node identifiers.
-    :param deleteElementIdentifier: Element identifiers for elements to be deleted.
-    :param deleteNodeIdentifier: Node identifiers for nodes to be deleted.
-    """
-
-    with ChangeManager(fm):
-        # put the elements in a group and use subelement handling to get nodes in use by it
-        destroyGroup = fm.createFieldGroup()
-        destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
-        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
-        destroyMesh = destroyElementGroup.getMeshGroup()
-        for i in range(len(deleteElementIdentifier)):
-            elementIdentifier = deleteElementIdentifier[i]
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            destroyMesh.addElement(element)
-        if destroyMesh.getSize() > 0:
-            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
-            destroyNodes = destroyNodeGroup.getNodesetGroup()
-            fieldcache = fm.createFieldcache()
-            for i in range(len(deleteNodeIdentifier)):
-                nodeIdentifier = deleteNodeIdentifier[i]
-                node = nodes.findNodeByIdentifier(nodeIdentifier)
-                fieldcache.setNode(node)
-                destroyNodes.addNode(node)
-            del fieldcache
-
-            # must destroy elements first as Zinc won't destroy nodes that are in use
-            mesh.destroyElementsConditional(destroyElementGroup)
-            nodes.destroyNodesConditional(destroyNodeGroup)
-            # clean up group so no external code hears is notified of its existence
-            del destroyNodes
-            del destroyNodeGroup
-        del destroyMesh
-        del destroyElementGroup
-        del destroyGroup
-
-    return
