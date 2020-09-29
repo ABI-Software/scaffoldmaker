@@ -98,8 +98,6 @@ class CylinderCentralPath:
         """
 
         cx, cd1, cd2, cd3, cd12, cd13 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
-        # sd1 = centralpath.smoothD1Derivatives(cx, cd1)
-        # cylinderLength = centralpath.calculateTotalLength(cx, sd1, printArcLength=False)
         sx, sd1, se, sxi, ssf = centralpath.sampleCentralPath(cx, cd1, elementsCount)
 
         sd2 = interpolateSampleLinear(cd2, se, sxi)
@@ -141,6 +139,12 @@ class CylinderMesh:
         :param elementsCountAlong: Number of elements along the cylinder axis.
         :param cylinderShape: A value from enum CylinderMode specifying.
         """
+
+        self._centres = None
+        self._majorAxis = None
+        self._minorAxis = None
+        self._majorRadii = None
+        self._minorRadii = None
         self._base = base
         self._end = end
         self._shield = None
@@ -156,7 +160,7 @@ class CylinderMesh:
         self._endElementIdentifier = 1
         self._cylinderShape = cylinderShape
         self._cylinderType = CylinderType.CYLINDER_STRAIGHT
-        if tapered is not None:
+        if (tapered is not None) or cylinderCentralPath:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
@@ -204,7 +208,6 @@ class CylinderMesh:
                                   shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
         # generate ellipses mesh along cylinder axis
-
         n3Count = 0 if self._cylinderType == CylinderType.CYLINDER_STRAIGHT else self._elementsCountAlong
         self._ellipses = []
         for n3 in range(n3Count + 1):
@@ -220,7 +223,7 @@ class CylinderMesh:
         if self._cylinderType == CylinderType.CYLINDER_TAPERED:
             self.smoothd2Derivatives()
 
-        # The other ellipses.
+        # The other ellipses for a straight cylinder.
         if self._cylinderType == CylinderType.CYLINDER_STRAIGHT:
             arcLengthAlong = vector.magnitude(self._base._alongAxis) / self._elementsCountAlong
             for n2 in range(self._elementsCountUp + 1):
@@ -307,7 +310,7 @@ class CylinderMesh:
             self._majorRadii = [self._base._majorRadius for _ in range(self._elementsCountAlong+1)]
             self._minorRadii = [self._base._minorRadius for _ in range(self._elementsCountAlong+1)]
         if cylinderCentralPath:
-            self._centres =  cylinderCentralPath.centres
+            self._centres = cylinderCentralPath.centres
             self._majorAxis = cylinderCentralPath.majorAxis
             self._minorAxis = cylinderCentralPath.minorAxis
             self._majorRadii = cylinderCentralPath.majorRadii
@@ -404,9 +407,9 @@ class Ellipse2D:
         self.__shield = shield
         self.ellipseShape = ellipseShape
         # generate the ellipse
-        self.generate2DEllipseMesh2()
+        self.generate2DEllipseMesh()
 
-    def generate2DEllipseMesh2(self):
+    def generate2DEllipseMesh(self):
         """
         Generates a 2d ellipse using shield structure in shieldmesh.
         """
@@ -429,7 +432,7 @@ class Ellipse2D:
         """
         Generate nodes around the perimeter of the ellipse.
         """
-        nx, nd1 = createCylinderBaseMesh2D(
+        nx, nd1 = createEllipsePerimeter(
             self.centre, self.majorAxis, self.minorAxis, self.elementsCountAround, self.majorRadius)
         nte = normalToEllipse(self.majorAxis, self.minorAxis)
 
@@ -600,7 +603,7 @@ class Ellipse2D:
                         self.pd3[n2][n1])
 
 
-def createCylinderBaseMesh2D(centre, majorAxis, minorAxis, elementsCountAround, height):
+def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, height):
     """
     Generate a set of points and derivatives for an ellipse
     starting at pole majorAxis from centre.

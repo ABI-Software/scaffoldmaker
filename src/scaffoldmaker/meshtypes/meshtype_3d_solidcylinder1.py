@@ -9,16 +9,12 @@ import copy
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, ConeBaseProgression, Tapered, \
-    CylinderEnds, CylinderCentralPath
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from opencmiss.zinc.node import Node
-from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite,\
-    smoothCubicHermiteDerivativesLine, getCubicHermiteArcLength,DerivativeScalingMode, sampleParameterAlongLine
-from scaffoldmaker.utils import centralpath
+
 
 class MeshType_3d_solidcylinder1(Scaffold_base):
     """
@@ -49,15 +45,14 @@ with variable numbers of elements in major, minor and length directions.
     def getName():
         return '3D Solid Cylinder 1'
 
-
     @classmethod
-    def getDefaultOptions(cls,parameterSetName='Default'):
+    def getDefaultOptions(cls, parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
-            'Number of elements along': 3,
+            'Number of elements along': 1,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -111,7 +106,7 @@ with variable numbers of elements in major, minor and length directions.
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
-    def checkOptions(cls,options):
+    def checkOptions(cls, options):
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
@@ -151,13 +146,7 @@ with variable numbers of elements in major, minor and length directions.
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
-        axis1 = [1.0, 0.0, 0.0]
-        axis2 = [0.0, 1.0, 0.0]
-        axis3 = [0.0, 0.0, 1.0]
-
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
-
-        radiusChanges = []
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
@@ -165,7 +154,7 @@ with variable numbers of elements in major, minor and length directions.
                             cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
-                                 cylinderShape=cylinderShape, tapered=radiusChanges,
+                                 cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
         annotationGroup = []
@@ -182,19 +171,3 @@ with variable numbers of elements in major, minor and length directions.
         refineElementsCountAcrossMajor = options['Refine number of elements across major']
         refineElementsCountAlong = options['Refine number of elements along']
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
-
-def radiusChange(radius,radiusEndRatio,elementsCountAlong,geometric=True):
-    '''
-    returns common ratio ro common difference for radius change.
-    :param radius: cylinder base radius
-    :param geometric: if True the radius change as r_n+1=r_n*ratio otherwise r_n+1 = r_n + ratio
-    :return: common ratio (difference) and type of progression (either geometric or arithmetic).
-    '''
-    if geometric:
-        ratio = math.pow(radiusEndRatio, 1.0 / elementsCountAlong)
-        progression = ConeBaseProgression.GEOMETRIC_PROGRESSION
-    else:
-        ratio = (radiusEndRatio * radius - radius) / elementsCountAlong
-        progression = ConeBaseProgression.ARITHMETIC_PROGRESSION
-
-    return ratio, progression
