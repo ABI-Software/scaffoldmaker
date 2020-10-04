@@ -194,6 +194,8 @@ with variable numbers of elements in major, minor and length directions.
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        mesh = fm.findMeshByDimension(3)
 
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
@@ -214,60 +216,26 @@ with variable numbers of elements in major, minor and length directions.
         #                          cylinderShape=cylinderShape, tapered=radiusChanges,
         #                          cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
-        centre = [0.0, 0.0 , 0.0]
-        majorAxis = [1.0, 0.0, 0.0]
-        minorAxis = [0.0, 1.0, 0.0]
-        elementsCountAcrossMajor = 2
-        elementsCountAcrossMinor = 4
-        ellipse1p1 = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
-                 ellipseShape=EllipseShape.Ellipse_SHAPE_LOWER_HALF)
-
-
-        # create part 2 of first ellipse
-        centre = [0.0, 0.0, 0.0]
-        majorAxis = [0.0, 0.0, -1.0]
-        minorAxis = [0.0, 1.0, 0.0]
-        elementsCountAcrossMajor = 2
-        elementsCountAcrossMinor = 4
-        ellipse1p2 = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
-                 ellipseShape=EllipseShape.Ellipse_SHAPE_UPPER_HALF)
-
-        # Create another the daughter1 ellipse.
-        dc = 2.0
-        theta = 45
-        displacement = rotateVector(vector.setMagnitude(axis1, dc), [0.0, -1.0, 0.0], theta)
-        centre = vector.addVectors(centre, displacement)
-        majorAxis = rotateVector([1.0, 0.0, 0.0], axis2, 90-theta)
-        minorAxis = minorAxis
-        elementsCountAcrossMajor = 4
-        elementsCountAcrossMinor = 4
-        ellipse2 = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
-                 ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
-
-        # make a shield using three ellipses. Fill in px and pd1, pd3.
-        elementsCountAlong = 1
-        shield = copyEllipsesNodesToShieldNodes(elementsCountAlong, ellipse1p1, ellipse1p2, ellipse2)
-
-        # now pd2 derivatives.
-        for n3 in range(shield.elementsCountAlong+1):
-            calculateD2Derivatives(shield, n3, 1)
-        smoothd2Derivatives(shield)
+        shieldD1, skipNodes = createDaughterCylinder(nodes, axis1, axis2, axis3, 45, 90, 45, -45)
 
 
 
-
-       #####################
+        #####################
         # nodeIdentifier = 1
         # startNodeIdentifier = nodeIdentifier
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        mesh = fm.findMeshByDimension(3)
-        generateNodes(shield, nodes, fm, coordinates)
-        generateElements(shield, mesh, fm, coordinates)
-        # nodeIdentifier = generateNodes(ellipse1p1, fm, coordinates, startNodeIdentifier)
+        generateNodes(shieldD1, nodes, fm, coordinates, skipNodes)
+        generateElements(shieldD1, mesh, fm, coordinates)
+
+        shieldD2, skipNodes = createDaughterCylinder(nodes, axis1, axis2, axis3, 135, 90, 135, -135)
+        modifyNodeId(shieldD1,shieldD2,range(1), range(shieldD2.elementsCountUp,shieldD2.elementsCountUpFull+1),
+                     range(shieldD2.elementsCountAcross+1))
+        #####################
+        # nodeIdentifier = 1
         # startNodeIdentifier = nodeIdentifier
-        # nodeIdentifier = generateNodes(ellipse1p2, fm, coordinates, startNodeIdentifier)
-        # startNodeIdentifier = nodeIdentifier
-        # nodeIdentifier = generateNodes(ellipse2, fm, coordinates, startNodeIdentifier)
+        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # mesh = fm.findMeshByDimension(3)
+        generateNodes(shieldD2, nodes, fm, coordinates, skipNodes)
+        generateElements(shieldD2, mesh, fm, coordinates)
 
         annotationGroup = []
         return annotationGroup
@@ -285,39 +253,39 @@ with variable numbers of elements in major, minor and length directions.
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
 
 
-def generateNodes(ellipse, fieldmodule, coordinates, startNodeIdentifier):
-    """
-    Create shield nodes from coordinates.
-    :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
-    :param coordinates: Coordinate field to define.
-    :param startNodeIdentifier: First node identifier to use.
-    :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
-    :return: next nodeIdentifier.
-     """
-    nodeIdentifier = startNodeIdentifier
-    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    nodetemplate = nodes.createNodetemplate()
-    nodetemplate.defineField(coordinates)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-    cache = fieldmodule.createFieldcache()
-
-
-    for n2 in range(ellipse.elementsCountAcrossMajor + 1):
-        for n1 in range(ellipse.elementsCountAcrossMinor + 1):
-            if ellipse.px[n2][n1]:
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                ellipse.nodeId[n2][n1] = nodeIdentifier
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ellipse.px[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ellipse.pd1[n2][n1])
-                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ellipse.pd2[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, ellipse.pd3[n2][n1])
-                nodeIdentifier += 1
-
-    return nodeIdentifier
+# def generateNodes(ellipse, fieldmodule, coordinates, startNodeIdentifier):
+#     """
+#     Create shield nodes from coordinates.
+#     :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+#     :param coordinates: Coordinate field to define.
+#     :param startNodeIdentifier: First node identifier to use.
+#     :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
+#     :return: next nodeIdentifier.
+#      """
+#     nodeIdentifier = startNodeIdentifier
+#     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+#     nodetemplate = nodes.createNodetemplate()
+#     nodetemplate.defineField(coordinates)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+#     cache = fieldmodule.createFieldcache()
+#
+#
+#     for n2 in range(ellipse.elementsCountAcrossMajor + 1):
+#         for n1 in range(ellipse.elementsCountAcrossMinor + 1):
+#             if ellipse.px[n2][n1]:
+#                 node = nodes.createNode(nodeIdentifier, nodetemplate)
+#                 ellipse.nodeId[n2][n1] = nodeIdentifier
+#                 cache.setNode(node)
+#                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ellipse.px[n2][n1])
+#                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ellipse.pd1[n2][n1])
+#                 # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ellipse.pd2[n2][n1])
+#                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, ellipse.pd3[n2][n1])
+#                 nodeIdentifier += 1
+#
+#     return nodeIdentifier
 
 
 def radiusChange(radius,radiusEndRatio,elementsCountAlong,geometric=True):
@@ -337,10 +305,54 @@ def radiusChange(radius,radiusEndRatio,elementsCountAlong,geometric=True):
     return ratio, progression
 
 
+def createDaughterCylinder(nodes, axis1, axis2, axis3, theta1, theta2, theta3, theta32):
+    # theta = 45
+    centre = [0.0, 0.0, 0.0]
+    majorAxis = rotateVector(axis1, axis2, theta1)
+    minorAxis = [0.0, 1.0, 0.0]
+    elementsCountAcrossMajor = 2
+    elementsCountAcrossMinor = 4
+    ellipse1p1 = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                           ellipseShape=EllipseShape.Ellipse_SHAPE_LOWER_HALF)
+
+    # create part 2 of first ellipse
+    centre = [0.0, 0.0, 0.0]
+    majorAxis = rotateVector(axis1, axis2, theta2)
+    minorAxis = [0.0, 1.0, 0.0]
+    elementsCountAcrossMajor = 2
+    elementsCountAcrossMinor = 4
+    ellipse1p2 = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                           ellipseShape=EllipseShape.Ellipse_SHAPE_UPPER_HALF)
+
+    # Create another the daughter1 ellipse.
+    dc = 2.0
+    # theta = 45
+    displacement = vector.setMagnitude(rotateVector(axis1, axis2, theta32), dc)
+    centre = vector.addVectors(centre, displacement)
+    majorAxis = rotateVector(axis1, axis2, theta3)
+    minorAxis = minorAxis
+    elementsCountAcrossMajor = 4
+    elementsCountAcrossMinor = 4
+    ellipse2 = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                         ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
+
+    # make a shield using three ellipses. Fill in px and pd1, pd3.
+    elementsCountAlong = 1
+    shield = copyEllipsesNodesToShieldNodes(elementsCountAlong, ellipse1p1, ellipse1p2, ellipse2)
+
+    # now pd2 derivatives.
+    for n3 in range(shield.elementsCountAlong + 1):
+        calculateD2Derivatives(shield, n3, 1)
+    smoothd2Derivatives(shield)
+
+    skipNodes = createNodeId(shield, nodes)
+
+    return shield, skipNodes
+
+
 def rotateVector(v, axis, theta):
-    axis = vector.normalise(axis)
-    v = vector.addVectors(v, vector.crossproduct3(axis, v),
-                          math.cos(math.radians(theta)), math.sin(math.radians(theta)))
+    a3 = vector.normalise(vector.crossproduct3(axis, v))
+    v = vector.addVectors(v, a3, math.cos(math.radians(theta)), math.sin(math.radians(theta)))
     return v
 
 
@@ -359,11 +371,11 @@ def copyEllipsesNodesToShieldNodes(elementsCountAlong, ellipse1p1, ellipse1p2, e
     shield.pd1[1] = ellipse2.pd1
     shield.pd3[1] = ellipse2.pd3
 
-    for n2 in range(shield.elementsCountUp+1):
+    for n2 in range(shield.elementsCountUp):
         shield.px[0][n2] = ellipse1p1.px[n2]
         shield.pd1[0][n2] = ellipse1p1.pd1[n2]
         shield.pd3[0][n2] = ellipse1p1.pd3[n2]
-    for n2 in range(shield.elementsCountUp+1, shield.elementsCountUpFull+1):
+    for n2 in range(shield.elementsCountUp, shield.elementsCountUpFull+1):
         shield.px[0][n2] = ellipse1p2.px[shield.elementsCountUpFull-n2]
         shield.pd1[0][n2] = ellipse1p2.pd1[shield.elementsCountUpFull-n2]
         shield.pd3[0][n2] = ellipse1p2.pd3[shield.elementsCountUpFull-n2]
@@ -409,15 +421,64 @@ def smoothd2Derivatives(shield):
                     btd2[n3][n2][n1] = td2[n3]
 
 
-def generateNodes(shield, nodes, fieldModule, coordinates):
+def createNodeId(shield, nodes):
+    nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+    for n2 in range(shield.elementsCountUpFull + 1):
+        for n3 in range(shield.elementsCountAlong + 1):
+            for n1 in range(shield.elementsCountAcross + 1):
+                if shield.px[n3][n2][n1]:
+                    shield.nodeId[n3][n2][n1] = nodeIdentifier
+                    nodeIdentifier += 1
+
+    skipNodes = modifyNodeId(shield, shield, [], [], [])
+    return skipNodes
+
+
+def modifyNodeId(shield1, shield2, n3range, n2range, n1range):
+    skipNodes = [ [] for _ in range(shield2.elementsCountAlong+1) ]
+    for n3 in range(shield2.elementsCountAlong + 1):
+        for n2 in range(shield2.elementsCountUpFull + 1):
+            for p in [skipNodes[n3]]:
+                p.append([None] * (shield2.elementsCountAcross + 1))
+    for n2 in n2range:
+        for n3 in n3range:
+            for n1 in n1range:
+                if shield2.px[n3][n2][n1]:
+                    shield2.nodeId[n3][n2][n1] = shield1.nodeId[n3][n2][n1]
+                    skipNodes[n3][n2][n1] = 1
+    return skipNodes
+
+def generateNodes(shield, nodes, fieldmodule, coordinates, skipNodes):
     """
     Create cylinder nodes from coordinates.
     :param nodes: nodes from coordinates.
-    :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+    :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
     :param coordinates: Coordinate field to define.
     """
+
     nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-    nodeIdentifier = shield.generateNodes(fieldModule, coordinates, nodeIdentifier)
+    # nodeIdentifier = shield.generateNodes(fieldModule, coordinates, nodeIdentifier)
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+    cache = fieldmodule.createFieldcache()
+
+    for n2 in range(shield.elementsCountUpFull + 1):
+        for n3 in range(shield.elementsCountAlong + 1):
+            for n1 in range(shield.elementsCountAcross + 1):
+                if shield.px[n3][n2][n1]:
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    if not skipNodes[n3][n2][n1]:
+                        # shield.nodeId[n3][n2][n1] = nodeIdentifier
+                        cache.setNode(node)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, shield.px[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, shield.pd1[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, shield.pd2[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, shield.pd3[n3][n2][n1])
+                        nodeIdentifier += 1
 
     return nodeIdentifier
 
@@ -560,12 +621,12 @@ def generateElements(shield, mesh, fieldmodule, coordinates):
                                     tripleN = [6, 8]
                                     remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
                                                            [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
-                                remapEftNodeValueLabel(eft1, [2, 3, 4], Node.VALUE_LABEL_D_DS1,
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1,
                                                        [(Node.VALUE_LABEL_D_DS1, [1])])
                                 remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
                                                        [(Node.VALUE_LABEL_D_DS3, [1])])
-                                remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1,
-                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                # remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1,
+                                #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                             elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                                 nids[0] = shield.nodeId[0][e2a][e1b]
                                 nids[4] = shield.nodeId[1][e2a][e1b]
