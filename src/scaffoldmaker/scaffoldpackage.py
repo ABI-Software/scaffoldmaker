@@ -40,7 +40,14 @@ class ScaffoldPackage:
         self._scale = copy.deepcopy(scale) if scale else [ 1.0, 1.0, 1.0 ]
         translation = dct.get('translation')
         self._translation = copy.deepcopy(translation) if translation else [ 0.0, 0.0, 0.0 ]
-        self._meshEdits = copy.deepcopy(dct.get('meshEdits'))
+        meshEdits = dct.get('meshEdits')
+        if meshEdits:
+            # ensure stored as bytes to match what Zinc creates
+            if isinstance(meshEdits, str):
+                meshEdits = bytes(meshEdits, 'utf-8')
+            else:
+                meshEdits = copy.deepcopy(meshEdits)
+        self._meshEdits = meshEdits
         self._autoAnnotationGroups = []
         # read user AnnotationGroups dict:
         userAnnotationGroupsDict = dct.get('userAnnotationGroups')
@@ -64,6 +71,12 @@ class ScaffoldPackage:
                 and (self._meshEdits == other._meshEdits) \
                 and (self._userAnnotationGroupsDict == other._userAnnotationGroupsDict)
         return NotImplemented
+
+    def __deepcopy__(self, memo):
+        '''
+        Deep copies object in deserialised, pre-generated form.
+        '''
+        return ScaffoldPackage(self._scaffoldType, self.toDict())
 
     def toDict(self):
         '''
