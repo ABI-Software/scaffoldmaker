@@ -4,13 +4,13 @@ Generates a 1-D path mesh.
 
 from __future__ import division
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode, smoothCubicHermiteDerivativesLine, smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils import vector
 from opencmiss.zinc.result import RESULT_OK
 
@@ -131,23 +131,25 @@ class MeshType_1d_path1(Scaffold_base):
         return []
 
     @classmethod
-    def smoothPath(cls, region, options, mode : DerivativeScalingMode):
+    def smoothPath(cls, region, options, editGroupName, mode : DerivativeScalingMode):
         x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])
         d1 = smoothCubicHermiteDerivativesLine(x, d1, magnitudeScalingMode=mode)
-        setPathParameters(region, [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ], [ x, d1 ])
+        setPathParameters(region, [ Node.VALUE_LABEL_D_DS1 ], [ d1 ], editGroupName)
+        return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def makeD2Normal(cls, region, options):
+    def makeD2Normal(cls, region, options, editGroupName):
         if not options['D2 derivatives']:
             return
         d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])
         for c in range(len(d1)):
             td2 = vector.vectorRejection(d2[c], d1[c])
             d2[c] = vector.setMagnitude(td2, vector.magnitude(d2[c]))
-        setPathParameters(region, [Node.VALUE_LABEL_D_DS2], [d2])
+        setPathParameters(region, [Node.VALUE_LABEL_D_DS2], [d2], editGroupName)
+        return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def makeD3Normal(cls, region, options):
+    def makeD3Normal(cls, region, options, editGroupName):
         if not options['D3 derivatives']:
             return
         if options['D2 derivatives']:
@@ -155,14 +157,31 @@ class MeshType_1d_path1(Scaffold_base):
                                                                   Node.VALUE_LABEL_D_DS3])
             for c in range(len(d1)):
                 d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
-            setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
         else:
             d1, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3])
             for c in range(len(d1)):
                 td3 = vector.vectorRejection(d3[c], d1[c])
                 d3[c] = vector.setMagnitude(td3, vector.magnitude(d3[c]))
-            setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3])
+        setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3], editGroupName)
+        return False, True  # settings not changed, nodes changed
 
+    @classmethod
+    def smoothCrossDX(cls, region, options, editGroupName, valueLabel):
+        if valueLabel == Node.VALUE_LABEL_D_DS2:
+            if not options['D2 derivatives']:
+                return
+            crossDerivativeLabel = Node.VALUE_LABEL_D2_DS1DS2
+        elif valueLabel == Node.VALUE_LABEL_D_DS3:
+            if not options['D3 derivatives']:
+                return
+            crossDerivativeLabel = Node.VALUE_LABEL_D2_DS1DS3
+        else:
+            assert False, 'Invalid value label'
+        valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, valueLabel, crossDerivativeLabel]
+        x, d1, d2, d12 = extractPathParametersFromRegion(region, valueLabels)
+        d12 = smoothCubicHermiteCrossDerivativesLine(x, d1, d2, d12)
+        setPathParameters(region, [ crossDerivativeLabel ], [ d12 ], editGroupName)
+        return False, True  # settings not changed, nodes changed
 
     @classmethod
     def getInteractiveFunctions(cls):
@@ -170,10 +189,12 @@ class MeshType_1d_path1(Scaffold_base):
         Supply client with functions for smoothing path parameters.
         """
         return [
-            ("Smooth D1 arithmetic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.ARITHMETIC_MEAN)),
-            ("Smooth D1 harmonic", lambda region, options: cls.smoothPath(region, options, DerivativeScalingMode.HARMONIC_MEAN)),
-            ("Make D2 normal", lambda region, options: cls.makeD2Normal(region, options)),
-            ("Make D3 normal", lambda region, options: cls.makeD3Normal(region, options))
+            ("Smooth D1 arithmetic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
+            ("Smooth D1 harmonic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN)),
+            ("Make D2 normal", lambda region, options, editGroupName: cls.makeD2Normal(region, options, editGroupName)),
+            ("Make D3 normal", lambda region, options, editGroupName: cls.makeD3Normal(region, options, editGroupName)),
+            ("Smooth D2", lambda region, options, editGroupName: cls.smoothCrossDX(region, options, editGroupName, Node.VALUE_LABEL_D_DS2)),
+            ("Smooth D3", lambda region, options, editGroupName: cls.smoothCrossDX(region, options, editGroupName, Node.VALUE_LABEL_D_DS3))
         ]
 
 
@@ -217,11 +238,12 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
     return returnValues
 
 
-def setPathParameters(region, nodeValueLabels, nodeValues):
+def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
     '''
     Set node parameters for coordinates field in path from listed values.
     :param nodeValueLabels: List of nodeValueLabels to set e.g. [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
     :param nodeValues: List of values for each type e.g. [ xlist, d1list ]
+    :param editGroupName: Optional name of existing or new Zinc group to record modified nodes in.
     '''
     fieldmodule = region.getFieldmodule()
     coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
@@ -232,6 +254,12 @@ def setPathParameters(region, nodeValueLabels, nodeValues):
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     assert nodesCount == nodes.getSize()
     with ChangeManager(fieldmodule):
+        if editGroupName:
+            editGroup = findOrCreateFieldGroup(fieldmodule, editGroupName, managed=False)
+            editNodeGroup = editGroup.getFieldNodeGroup(nodes)
+            if not editNodeGroup.isValid():
+                editNodeGroup = editGroup.createFieldNodeGroup(nodes)
+            editNodesetGroup = editNodeGroup.getNodesetGroup()
         cache = fieldmodule.createFieldcache()
         nodeIter = nodes.createNodeiterator()
         node = nodeIter.next()
@@ -240,5 +268,7 @@ def setPathParameters(region, nodeValueLabels, nodeValues):
             cache.setNode(node)
             for v in range(nodeValueLabelsCount):
                 coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[v][n])
+            if editGroupName:
+                editNodesetGroup.addNode(node)
             node = nodeIter.next()
             n += 1

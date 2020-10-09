@@ -155,6 +155,13 @@ class Scaffold_base:
         """
         Override to return list of named interactive functions that client
         can invoke to modify mesh parameters with a push button control.
-        :return: list(tuples), (name : str, callable(region, options)).
+        Functions must take 3 arguments: Zinc region, scaffold options and
+        editGroupName (can be None) for optional name of Zinc group to
+        create or modify so changed nodes etc. are put in it.
+        Functions return 2 boolean values: optionsChanged, nodesChanged.
+        These tell the client whether to redisplay the options or process
+        the effects of node edits (which will be recorded in edit group if
+        its name is supplied).
+        :return: list(tuples), (name : str, callable(region, options, editGroupName)).
         """
         return []
