@@ -209,20 +209,46 @@ with variable numbers of elements in major, minor and length directions.
 
         ellipseDL = createDaughterEllipseLeft()
         elementsCountAlong = 1
-        shield = copyEllipsesNodesToShieldNodes(elementsCountAlong, ellipseBRU, ellipseBRL, ellipseDL)
+        shieldDL = copyEllipsesNodesToShieldNodes(elementsCountAlong, ellipseBRU, ellipseBRL, ellipseDL)
 
         # now pd2 derivatives.
-        for n3 in range(shield.elementsCountAlong + 1):
-            calculateD2Derivatives(shield, n3, 1)
-        smoothd2Derivatives(shield)
-        skipNodes = createNodeId(shield, nodes)
-        generateNodes(shield, nodes, fm, coordinates, skipNodes)
-        generateElements(shield, mesh, fm, coordinates)
+        for n3 in range(shieldDL.elementsCountAlong + 1):
+            calculateD2Derivatives(shieldDL, n3, 1)
+        smoothd2Derivatives(shieldDL)
+        skipNodes = createNodeId(shieldDL, nodes)
+        generateNodes(shieldDL, nodes, fm, coordinates, skipNodes)
+        generateElements(shieldDL, mesh, fm, coordinates)
 
-        shieldBL = createBaseCylinderLeft(elementsCountAlong, ellipseBL, ellipseBRL)
-        skipNodes = createNodeId(shieldBL, nodes)
-        generateNodes(shieldBL, nodes, fm, coordinates, skipNodes)
-        generateElements(shieldBL, mesh, fm, coordinates)
+        ellipseBR = createBaseEllipseRight()
+        ellipseBRR = createBranchEllipseRight()
+        ellipseBRUR = createBranchEllipseUpRight()
+        ellipseDR = createDaughterEllipseRight()
+        shieldDR = copyEllipsesNodesToShieldNodes(elementsCountAlong, ellipseBRUR, ellipseBRR, ellipseDR)
+        for n3 in range(shieldDR.elementsCountAlong + 1):
+            calculateD2Derivatives(shieldDR, n3, 1)
+        smoothd2Derivatives(shieldDR)
+        skipNodes = createNodeId(shieldDR, nodes)
+        generateNodes(shieldDR, nodes, fm, coordinates, skipNodes)
+        generateElements(shieldDR, mesh, fm, coordinates)
+
+        shieldInB = createCylinderInBetween(ellipseBRU, ellipseBRUR)
+        skipNodes = setNodeIdForInBetween(shieldInB,shieldDL,shieldDR, nodes)
+        # generateNodes(shield, nodes, fm, coordinates, skipNodes)
+        generateElementsInBetween(shieldInB, mesh, fm, coordinates)
+
+        ellipseBASER = createBaseEllipseRight()
+        shieldBR = createCylinderRight(ellipseBASER, ellipseBRR)
+        skipNodes = createNodeIdForCylRight(shieldBR,shieldDR,nodes)
+        # skipNodes = createNodeId(shieldBR, nodes)
+        generateNodes(shieldBR, nodes, fm, coordinates, skipNodes)
+        # generateElementsBaseRight(shieldBR, mesh, fm, coordinates)
+
+        # ellipseBLF = createBaseFullLeft()
+        # t=1
+        # shieldBL = createBaseCylinderLeft(elementsCountAlong, ellipseBL, ellipseBRL)
+        # skipNodes = createNodeId(shieldBL, nodes)
+        # generateNodes(shieldBL, nodes, fm, coordinates, skipNodes)
+        # generateElements(shieldBL, mesh, fm, coordinates)
 
 
 
@@ -278,6 +304,75 @@ with variable numbers of elements in major, minor and length directions.
         refineElementsCountAlong = options['Refine number of elements along']
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
 
+
+def createNodeIdForCylRight(shieldBR, shieldDR, nodes):
+    nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+    skipNodes = [[] for _ in range(shieldBR.elementsCountAlong + 1)]
+    for n3 in range(shieldBR.elementsCountAlong + 1):
+        for n2 in range(shieldBR.elementsCountUpFull + 1):
+            for p in [skipNodes[n3]]:
+                p.append([None] * (shieldBR.elementsCountAcross + 1))
+    for n2 in range(shieldBR.elementsCountUpFull + 1):
+        for n1 in range(shieldBR.elementsCountAcross + 1):
+            shieldBR.nodeId[1][n2][n1] = shieldDR.nodeId[0][4-n2][n1]
+            skipNodes[1][n2][n1] = 1
+            if shieldBR.px[0][n2][n1]:
+                shieldBR.nodeId[0][n2][n1] = nodeIdentifier
+                nodeIdentifier += 1
+
+
+
+    # for n2 in n2range:
+    #     for n3 in n3range:
+    #         for n1 in n1range:
+    #             if shield2.px[n3][n2][n1]:
+    #                 shield2.nodeId[n3][n2][n1] = shield1.nodeId[n3][n2][n1]
+    #                 skipNodes[n3][n2][n1] = 1
+    return skipNodes
+
+
+def createCylinderRight(ellipseBASER, ellipseBRR):
+    elementsCountRim = 0
+    elementsCountAlong = 1
+    shieldMode = ShieldShape.SHIELD_SHAPE_LOWER_HALF
+    shield = ShieldMesh(ellipseBASER.elementsCountAcrossMinor, ellipseBASER.elementsCountAcrossMajor, elementsCountRim,
+                        None, elementsCountAlong, shieldMode,
+                        shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
+
+    shield.px[0] = ellipseBASER.px
+    shield.pd1[0] = ellipseBASER.pd1
+    shield.pd3[0] = ellipseBASER.pd3
+
+    shield.px[1] = ellipseBRR.px
+    shield.pd1[1] = ellipseBRR.pd1
+    shield.pd3[1] = ellipseBRR.pd3
+    for n3 in range(shield.elementsCountAlong + 1):
+        calculateD2Derivatives(shield, n3, 1)
+    smoothd2Derivatives(shield)
+
+    return shield
+
+
+def createCylinderInBetween(ellipseL,ellipseR):
+    elementsCountRim = 0
+    elementsCountAlong = 1
+    shieldMode = ShieldShape.SHIELD_SHAPE_LOWER_HALF
+    shield = ShieldMesh(ellipseL.elementsCountAcrossMinor, ellipseL.elementsCountAcrossMajor, elementsCountRim,
+                        None, elementsCountAlong, shieldMode,
+                        shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
+
+    shield.px[0] = ellipseL.px
+    shield.pd1[0] = ellipseL.pd1
+    shield.pd3[0] = ellipseL.pd3
+
+    shield.px[1] = ellipseR.px
+    shield.pd1[1] = ellipseR.pd1
+    shield.pd3[1] = ellipseR.pd3
+    for n3 in range(shield.elementsCountAlong + 1):
+        calculateD2Derivatives(shield, n3, 1)
+    smoothd2Derivatives(shield)
+
+    return shield
 
 def createBaseCylinderLeft(elementsCountAlong, ellipseB, ellipseBR):
     # now pd2 derivatives.
@@ -337,6 +432,18 @@ def generateEllipseNodes(ellipse, fieldmodule, coordinates, startNodeIdentifier)
     return nodeIdentifier
 
 
+def createBaseFullLeft():
+    centre = [-0.25, 0.0, -3.0]
+    majorAxis = [1.0, 0.0, 0.0]
+    minorAxis = [0.0, 1.0, 0.0]
+    elementsCountAcrossMajor = 4
+    elementsCountAcrossMinor = 4
+    ellipse = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                           ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
+
+    return ellipse
+
+
 def createBaseEllipseLeft():
     centre = [-0.25, 0.0, -3.0]
     majorAxis = [1.0, 0.0, 0.0]
@@ -350,13 +457,13 @@ def createBaseEllipseLeft():
 
 
 def createBaseEllipseRight():
-    centre = [0.25, 0.0, 0.0]
-    majorAxis = [1.0, 0.0, 0.0]
+    centre = [0.25, 0.0, -3.0]
+    majorAxis = [-1.0, 0.0, 0.0]
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 2
     elementsCountAcrossMinor = 4
     ellipse = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
-                           ellipseShape=EllipseShape.Ellipse_SHAPE_LOWER_HALF)
+                           ellipseShape=EllipseShape.Ellipse_SHAPE_UPPER_HALF)
 
     return ellipse
 
@@ -366,6 +473,21 @@ def createBranchEllipseLeft():
     axis1 = [1.0, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
     theta = -45
+    majorAxis = rotateVector(axis1, axis2, theta)
+    minorAxis = [0.0, 1.0, 0.0]
+    elementsCountAcrossMajor = 2
+    elementsCountAcrossMinor = 4
+    ellipse = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                           ellipseShape=EllipseShape.Ellipse_SHAPE_UPPER_HALF)
+
+    return ellipse
+
+
+def createBranchEllipseRight():
+    centre = [0.25, 0.0, 0.0]
+    axis1 = [-1.0, 0.0, 0.0]
+    axis2 = [0.0, 1.0, 0.0]
+    theta = 45
     majorAxis = rotateVector(axis1, axis2, theta)
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 2
@@ -391,8 +513,23 @@ def createBranchEllipseUp():
     return ellipse
 
 
+def createBranchEllipseUpRight():
+    centre = [0.25, 0.0, 0.0]
+    axis1 = [1.0, 0.0, 0.0]
+    axis2 = [0.0, 1.0, 0.0]
+    theta = -90
+    majorAxis = rotateVector(axis1, axis2, theta)
+    minorAxis = [0.0, 1.0, 0.0]
+    elementsCountAcrossMajor = 2
+    elementsCountAcrossMinor = 4
+    ellipse = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                           ellipseShape=EllipseShape.Ellipse_SHAPE_LOWER_HALF)
+
+    return ellipse
+
+
 def createDaughterEllipseLeft():
-    dc = 2.0
+    dc = 1.0
     # theta = 45
     centre = [-0.25, 0.0, 0.0]
     axis1 = [0.5, 0.0, 0.0]
@@ -400,6 +537,23 @@ def createDaughterEllipseLeft():
     displacement = vector.setMagnitude(rotateVector(axis1, axis2, -157.5), dc)
     centre = vector.addVectors(centre, displacement)
     majorAxis = rotateVector(axis1, axis2, -50.0)
+    minorAxis = [0.0, 1.0, 0.0]
+    elementsCountAcrossMajor = 4
+    elementsCountAcrossMinor = 4
+    ellipse = Ellipse2D(centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor,
+                         ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
+    return ellipse
+
+
+def createDaughterEllipseRight():
+    dc = 1.0
+    # theta = 45
+    centre = [0.25, 0.0, 0.0]
+    axis1 = [-0.5, 0.0, 0.0]
+    axis2 = [0.0, 1.0, 0.0]
+    displacement = vector.setMagnitude(rotateVector(axis1, axis2, 150), dc)
+    centre = vector.addVectors(centre, displacement)
+    majorAxis = rotateVector(axis1, axis2, 22.5)
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 4
     elementsCountAcrossMinor = 4
@@ -552,6 +706,18 @@ def createNodeId(shield, nodes):
                     nodeIdentifier += 1
 
     skipNodes = modifyNodeId(shield, shield, [], [], [])
+    return skipNodes
+
+
+def setNodeIdForInBetween(shieldInB,shieldL,shieldR, nodes):
+    for n2 in range(shieldInB.elementsCountUpFull + 1):
+        for n1 in range(shieldInB.elementsCountAcross + 1):
+            if shieldL.px[0][n2][n1]:
+                shieldInB.nodeId[0][n2][n1] = shieldL.nodeId[0][n2][n1]
+            if shieldR.px[0][n2][n1]:
+                shieldInB.nodeId[1][n2][n1] = shieldR.nodeId[0][n2][n1]
+
+    skipNodes = modifyNodeId(shieldL, shieldL, [], [], [])
     return skipNodes
 
 
@@ -798,6 +964,454 @@ def generateElements(shield, mesh, fieldmodule, coordinates):
                                                    [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
                                                    [(Node.VALUE_LABEL_D_DS3, [1])])
+
+                if eft1 is not eft:
+                    elementtemplate1.defineField(coordinates, -1, eft1)
+                    element = mesh.createElement(elementIdentifier, elementtemplate1)
+                else:
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = 7
+                # print('create element shield', elementIdentifier, result2, result3, nids)
+                shield.elementId[e2][e1] = elementIdentifier
+                elementIdentifier += 1
+
+                # for meshGroup in meshGroups:
+                #     meshGroup.addElement(element)
+
+    return elementIdentifier
+
+
+def generateElementsInBetween(shield, mesh, fieldmodule, coordinates):
+    """
+    Create cylinder elements from nodes.
+    :param mesh:
+    :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+    :param coordinates: Coordinate field to define.
+    """
+    elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+
+
+    """
+      Create shield elements from nodes.
+      :param fieldmodule: Zinc fieldmodule to create elements in.
+      :param coordinates: Coordinate field to define.
+      :param startElementIdentifier: First element identifier to use.
+      :param meshGroups: Zinc mesh groups to add elements to.
+      :return: next elementIdentifier.
+       """
+    useCrossDerivatives = False
+    mesh = fieldmodule.findMeshByDimension(3)
+
+    tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+    eft = tricubichermite.createEftNoCrossDerivatives()
+    elementtemplate = mesh.createElementtemplate()
+    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate.defineField(coordinates, -1, eft)
+
+    elementtemplate1 = mesh.createElementtemplate()
+    elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    isEven = (shield.elementsCountAcross % 2) == 0
+    e1a = shield.elementsCountRim
+    e1b = e1a + 1
+    e1z = shield.elementsCountAcross - 1 - shield.elementsCountRim
+    e1y = e1z - 1
+    e2a = shield.elementsCountRim
+    e2b = shield.elementsCountRim + 1
+    e2c = shield.elementsCountRim + 2
+    e2d = 2 * shield.elementsCountUp - 1
+
+    for e3 in range(shield.elementsCountAlong):
+        for e2 in range(shield.elementsCountUpFull):
+            for e1 in range(shield.elementsCountAcross):
+                eft1 = eft
+                scalefactors = None
+                if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                    nids = [shield.nodeId[e3][e2][e1], shield.nodeId[e3][e2 + 1][e1], shield.nodeId[e3 + 1][e2][e1],
+                            shield.nodeId[e3 + 1][e2 + 1][e1],
+                            shield.nodeId[e3][e2][e1 + 1], shield.nodeId[e3][e2 + 1][e1 + 1], shield.nodeId[e3 + 1][e2][e1 + 1],
+                            shield.nodeId[e3 + 1][e2 + 1][e1 + 1]]
+                elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                    nids = [shield.nodeId[0][e2][e1], shield.nodeId[0][e2][e1 + 1], shield.nodeId[0][e2 + 1][e1],
+                            shield.nodeId[0][e2 + 1][e1 + 1],
+                            shield.nodeId[1][e2][e1], shield.nodeId[1][e2][e1 + 1], shield.nodeId[1][e2 + 1][e1],
+                            shield.nodeId[1][e2 + 1][e1 + 1]]
+                if (e2 < e2b) or (e2 == e2d):
+                    if (e1 < e1b) or (e1 > e1y):
+                        continue  # no element due to triple point closure
+                    if (e2 == e2a) or (e2 == e2d):
+                        # bottom and top row elements
+                        if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                            if e2 == e2a:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS3, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                if (e1 == e1b) or (e1 == e1y):
+                                    # map bottom triple point element
+                                    if e1 == e1b:
+                                        remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS3, [1])])
+                            elif e2 == e2d:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS3, [])])
+                                if (e1 == e1b) or (e1 == e1y):
+                                    # map top triple point element
+                                    if e1 == e1b:
+                                        remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS3, [1])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                        elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                            if (e1 == e1b) or (e1 == e1y):
+                                # map bottom triple point element
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                if e1 == e1b:
+                                    remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                else:
+                                    remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+
+                elif (e2 == e2b) or (e2 == e2d - e2b):
+                    if (e1 <= e1a) or (e1 >= e1z):
+                        # map top 2 triple point elements
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+                        if e1 < e1a:
+                            e2r = e1
+                            nids[0] = shield.nodeId[0][e2r][e1b]
+                            nids[1] = shield.nodeId[0][e2r + 1][e1b]
+                            nids[4] = shield.nodeId[1][e2r][e1b]
+                            nids[5] = shield.nodeId[1][e2r + 1][e1b]
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
+                        elif e1 == e1a:
+                            if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                if e2 == e2b:
+                                    nids[0] = shield.nodeId[e3][e2a][e1b]
+                                    nids[2] = shield.nodeId[e3 + 1][e2a][e1b]
+                                    tripleN = [5, 7]
+                                    remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                elif e2 == e2d - e2b:
+                                    nids[1] = shield.nodeId[e3][e2d + 1][e1b]
+                                    nids[3] = shield.nodeId[e3 + 1][e2d + 1][e1b]
+                                    tripleN = [6, 8]
+                                    remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS3, [1])])
+                                # remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1,
+                                #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                            elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                nids[0] = shield.nodeId[0][e2a][e1b]
+                                nids[4] = shield.nodeId[1][e2a][e1b]
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                        elif e1 == e1z:
+                            if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                if e2 == e2b:
+                                    nids[4] = shield.nodeId[e3][e2a][e1z]
+                                    nids[6] = shield.nodeId[e3 + 1][e2a][e1z]
+                                    remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                elif e2 == e2d - e2b:
+                                    nids[5] = shield.nodeId[e3][e2d + 1][e1z]
+                                    nids[7] = shield.nodeId[e3 + 1][e2d + 1][e1z]
+                                    remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                            elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                nids[1] = shield.nodeId[0][e2a][e1z]
+                                nids[5] = shield.nodeId[1][e2a][e1z]
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                        elif e1 > e1z:
+                            e2r = shield.elementsCountAcross - e1
+                            nids[0] = shield.nodeId[0][e2r][e1z]
+                            nids[1] = shield.nodeId[0][e2r - 1][e1z]
+                            nids[4] = shield.nodeId[1][e2r][e1z]
+                            nids[5] = shield.nodeId[1][e2r - 1][e1z]
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                else:
+                    if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                        if (e1 <= e1a):
+                            # map left column elements
+                            eft1 = tricubichermite.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            scalefactors = [-1.0]
+                            remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS3, [1])])
+
+                # if e3 == 0:
+                #
+                #     eft1 = tricubichermite.createEftNoCrossDerivatives()
+                #     setEftScaleFactorIds(eft1, [1], [])
+                #     scalefactors = [-1.0]
+                #     remapEftNodeValueLabel(eft1, [1,2,5,6], Node.VALUE_LABEL_D_DS2,
+                #                            [(Node.VALUE_LABEL_D_DS2, [1])])
+                    # remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2,
+                    #                        [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+
+                if eft1 is not eft:
+                    elementtemplate1.defineField(coordinates, -1, eft1)
+                    element = mesh.createElement(elementIdentifier, elementtemplate1)
+                else:
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = 7
+                # print('create element shield', elementIdentifier, result2, result3, nids)
+                shield.elementId[e2][e1] = elementIdentifier
+                elementIdentifier += 1
+
+                # for meshGroup in meshGroups:
+                #     meshGroup.addElement(element)
+
+    return elementIdentifier
+
+
+def generateElementsBaseRight(shield, mesh, fieldmodule, coordinates):
+    """
+    Create cylinder elements from nodes.
+    :param mesh:
+    :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+    :param coordinates: Coordinate field to define.
+    """
+    elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+
+
+    """
+      Create shield elements from nodes.
+      :param fieldmodule: Zinc fieldmodule to create elements in.
+      :param coordinates: Coordinate field to define.
+      :param startElementIdentifier: First element identifier to use.
+      :param meshGroups: Zinc mesh groups to add elements to.
+      :return: next elementIdentifier.
+       """
+    useCrossDerivatives = False
+    mesh = fieldmodule.findMeshByDimension(3)
+
+    tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+    eft = tricubichermite.createEftNoCrossDerivatives()
+    elementtemplate = mesh.createElementtemplate()
+    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate.defineField(coordinates, -1, eft)
+
+    elementtemplate1 = mesh.createElementtemplate()
+    elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    isEven = (shield.elementsCountAcross % 2) == 0
+    e1a = shield.elementsCountRim
+    e1b = e1a + 1
+    e1z = shield.elementsCountAcross - 1 - shield.elementsCountRim
+    e1y = e1z - 1
+    e2a = shield.elementsCountRim
+    e2b = shield.elementsCountRim + 1
+    e2c = shield.elementsCountRim + 2
+    e2d = 2 * shield.elementsCountUp - 1
+
+    for e3 in range(shield.elementsCountAlong):
+        for e2 in range(shield.elementsCountUpFull):
+            for e1 in range(shield.elementsCountAcross):
+                eft1 = eft
+                scalefactors = None
+                if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                    nids = [shield.nodeId[e3][e2][e1], shield.nodeId[e3][e2 + 1][e1], shield.nodeId[e3 + 1][e2][e1],
+                            shield.nodeId[e3 + 1][e2 + 1][e1],
+                            shield.nodeId[e3][e2][e1 + 1], shield.nodeId[e3][e2 + 1][e1 + 1], shield.nodeId[e3 + 1][e2][e1 + 1],
+                            shield.nodeId[e3 + 1][e2 + 1][e1 + 1]]
+                elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                    nids = [shield.nodeId[0][e2][e1], shield.nodeId[0][e2][e1 + 1], shield.nodeId[0][e2 + 1][e1],
+                            shield.nodeId[0][e2 + 1][e1 + 1],
+                            shield.nodeId[1][e2][e1], shield.nodeId[1][e2][e1 + 1], shield.nodeId[1][e2 + 1][e1],
+                            shield.nodeId[1][e2 + 1][e1 + 1]]
+                if (e2 < e2b) or (e2 == e2d):
+                    if (e1 < e1b) or (e1 > e1y):
+                        continue  # no element due to triple point closure
+                    if (e2 == e2a) or (e2 == e2d):
+                        # bottom and top row elements
+                        if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                            if e2 == e2a:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS3, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                if (e1 == e1b) or (e1 == e1y):
+                                    # map bottom triple point element
+                                    if e1 == e1b:
+                                        remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS3, [1])])
+                            elif e2 == e2d:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS3, [])])
+                                if (e1 == e1b) or (e1 == e1y):
+                                    # map top triple point element
+                                    if e1 == e1b:
+                                        remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []),
+                                                                (Node.VALUE_LABEL_D_DS3, [1])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                        elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                            if (e1 == e1b) or (e1 == e1y):
+                                # map bottom triple point element
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                if e1 == e1b:
+                                    remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                else:
+                                    remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+
+                elif (e2 == e2b) or (e2 == e2d - e2b):
+                    if (e1 <= e1a) or (e1 >= e1z):
+                        # map top 2 triple point elements
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+                        if e1 < e1a:
+                            e2r = e1
+                            nids[0] = shield.nodeId[0][e2r][e1b]
+                            nids[1] = shield.nodeId[0][e2r + 1][e1b]
+                            nids[4] = shield.nodeId[1][e2r][e1b]
+                            nids[5] = shield.nodeId[1][e2r + 1][e1b]
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
+                        elif e1 == e1a:
+                            if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                if e2 == e2b:
+                                    nids[0] = shield.nodeId[e3][e2a][e1b]
+                                    nids[2] = shield.nodeId[e3 + 1][e2a][e1b]
+                                    tripleN = [5, 7]
+                                    remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                elif e2 == e2d - e2b:
+                                    nids[1] = shield.nodeId[e3][e2d + 1][e1b]
+                                    nids[3] = shield.nodeId[e3 + 1][e2d + 1][e1b]
+                                    tripleN = [6, 8]
+                                    remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS3, [1])])
+                                # remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1,
+                                #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                            elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                nids[0] = shield.nodeId[0][e2a][e1b]
+                                nids[4] = shield.nodeId[1][e2a][e1b]
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                        elif e1 == e1z:
+                            if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                if e2 == e2b:
+                                    nids[4] = shield.nodeId[e3][e2a][e1z]
+                                    nids[6] = shield.nodeId[e3 + 1][e2a][e1z]
+                                    remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                elif e2 == e2d - e2b:
+                                    nids[5] = shield.nodeId[e3][e2d + 1][e1z]
+                                    nids[7] = shield.nodeId[e3 + 1][e2d + 1][e1z]
+                                    remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                            elif shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                nids[1] = shield.nodeId[0][e2a][e1z]
+                                nids[5] = shield.nodeId[1][e2a][e1z]
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                        elif e1 > e1z:
+                            e2r = shield.elementsCountAcross - e1
+                            nids[0] = shield.nodeId[0][e2r][e1z]
+                            nids[1] = shield.nodeId[0][e2r - 1][e1z]
+                            nids[4] = shield.nodeId[1][e2r][e1z]
+                            nids[5] = shield.nodeId[1][e2r - 1][e1z]
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                else:
+                    if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                        if (e1 <= e1a):
+                            # map left column elements
+                            eft1 = tricubichermite.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            scalefactors = [-1.0]
+                            remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS3, [1])])
+
+                # if e3 == 0:
+                #
+                #     eft1 = tricubichermite.createEftNoCrossDerivatives()
+                #     setEftScaleFactorIds(eft1, [1], [])
+                #     scalefactors = [-1.0]
+                #     remapEftNodeValueLabel(eft1, [1,2,5,6], Node.VALUE_LABEL_D_DS2,
+                #                            [(Node.VALUE_LABEL_D_DS2, [1])])
+                    # remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2,
+                    #                        [(Node.VALUE_LABEL_D2_DS1DS2, [])])
 
                 if eft1 is not eft:
                     elementtemplate1.defineField(coordinates, -1, eft1)
