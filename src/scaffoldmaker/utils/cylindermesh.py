@@ -12,8 +12,9 @@ from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaxi
 from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine, interpolateSampleLinear
-from scaffoldmaker.utils import centralpath
+from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.mirror import Mirror
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 
 
 class CylinderShape(Enum):
@@ -96,9 +97,19 @@ class CylinderCentralPath:
         :param centralPath: Central path subscaffold comes from meshtype_1d_path1 and used to calculate ellipse radii.
         :param elementsCount: Number of elements needs to be sampled along the central path.
         """
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
+                                                                        [Node.VALUE_LABEL_VALUE,
+                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                                                                         Node.VALUE_LABEL_D_DS3,
+                                                                         Node.VALUE_LABEL_D2_DS1DS2,
+                                                                         Node.VALUE_LABEL_D2_DS1DS3])
+        del tmpRegion
+        # for i in range(len(cx)):
+        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')
 
-        cx, cd1, cd2, cd3, cd12, cd13 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
-        sx, sd1, se, sxi, ssf = centralpath.sampleCentralPath(cx, cd1, elementsCount)
+        sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCount)
 
         sd2 = interpolateSampleLinear(cd2, se, sxi)
 
