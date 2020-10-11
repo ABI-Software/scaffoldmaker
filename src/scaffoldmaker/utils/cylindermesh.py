@@ -110,27 +110,14 @@ class CylinderCentralPath:
         #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')
 
         sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCount)
-
-        sd2 = interpolateSampleLinear(cd2, se, sxi)
-
-        majorAxisc = cd2
-        majorRadiic = [vector.magnitude(a) for a in majorAxisc]
-        majorRadiis = interpolateSampleLinear(majorRadiic, se, sxi)
-
-        sd3 = interpolateSampleLinear(cd3, se, sxi)
-
-        minorAxisc = cd3
-        minorRadiic = [vector.magnitude(a) for a in minorAxisc]
-        minorRadiis = interpolateSampleLinear(minorRadiic, se, sxi)
+        sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        sd3, sd13 = interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
 
         self.centres = sx
-
-        self.majorRadii = majorRadiis
-        self.majorAxis = [(vector.setMagnitude(sd2[c], majorRadiis[c])) for c in range(len(majorRadiis))]
-
-        self.minorRadii = minorRadiis
-        self.minorAxis = [(vector.setMagnitude(sd3[c], minorRadiis[c])) for c in range(len(minorRadiis))]
-
+        self.majorRadii = [vector.magnitude(a) for a in sd2]
+        self.majorAxis = sd2
+        self.minorRadii = [vector.magnitude(a) for a in sd3]
+        self.minorAxis = sd3
         self.alongAxis = sd1
 
 
