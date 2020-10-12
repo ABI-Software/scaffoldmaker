@@ -674,9 +674,11 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     md1 = copy.copy(nd1)
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
-    tol = 1.0E-6
     # special case where equal derivatives at each end are sought
-    equalDerivatives = (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative)
+    if (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative):
+        delta = [ (nx[1][c] - nx[0][c]) for c in componentRange ]
+        return [ delta, copy.deepcopy(delta) ]
+    tol = 1.0E-6
     if instrument:
         print('iter 0', md1)
     for iter in range(100):
@@ -714,10 +716,6 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
                 md1[-1] = vector.setMagnitude(nd1[-1], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
             else:
                 md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], lastmd1[-2], nx[-1], 1.0)
-        if equalDerivatives:
-            mag = getCubicHermiteArcLength(nx[0], md1[0], nx[1], md1[1])
-            md1[0] = vector.setMagnitude(md1[0], mag)
-            md1[1] = vector.setMagnitude(md1[1], mag)
         if instrument:
             print('iter', iter + 1, md1)
         dtol = tol*sum(arcLengths)/len(arcLengths)
