@@ -160,6 +160,21 @@ def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
     d2m = [ d*xi for d in d2m ]
     return getCubicHermiteArcLength(v1, d1m, v2m, d2m)
 
+def getCubicHermiteCurvesLength(cx, sd1):
+    """
+    Calculate total length of a curve
+    :param cx: coordinates along the path.
+    :param sd1: d1 derivatives.
+    :return:
+    """
+    totalLength = 0.0
+    elementsCountIn = len(cx) - 1
+    for e in range(elementsCountIn):
+        arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+        totalLength += arcLength
+
+    return totalLength
+
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
     :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
