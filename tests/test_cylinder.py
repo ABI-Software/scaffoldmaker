@@ -6,7 +6,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
-from tests.testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList
 
 
 class CylinderScaffoldTestCase(unittest.TestCase):

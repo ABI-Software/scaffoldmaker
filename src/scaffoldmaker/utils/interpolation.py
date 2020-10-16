@@ -168,12 +168,10 @@ def getCubicHermiteCurvesLength(cx, sd1):
     :return:
     """
     totalLength = 0.0
-    lengths = [0.0]
     elementsCountIn = len(cx) - 1
     for e in range(elementsCountIn):
         arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
         totalLength += arcLength
-        lengths.append(totalLength)
 
     return totalLength
 
