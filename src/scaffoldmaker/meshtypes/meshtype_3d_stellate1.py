@@ -3,11 +3,14 @@ Generates a 3-D planar stellate mesh with cross arms radiating from a central no
 """
 
 from __future__ import division
+import os
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from opencmiss.zinc.context import Context
+from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.stellate_terms import get_stellate_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -17,11 +20,64 @@ from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeVa
 from scaffoldmaker.utils.matrix import rotateAboutZAxis
 from scaffoldmaker.utils.vector import magnitude, setMagnitude
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
+# from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+
 
 class MeshType_3d_stellate1(Scaffold_base):
     """
     Generates a 3-D planar stellate mesh with cross arms radiating from a central node, and variable numbers of elements along each arm.
     """
+
+    mouseMeanMesh = {
+        'meshEdits': #exnodeStringFromNodeValues(
+                #[ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2  ],
+            [[[-242, -142.9, -96.77], [-249, -54.64, -3.137], [77.02, -112.8, 2.094]],
+             [[56.72, -109.7, -95.44], [426.9, -47.3, 0.4029], [13.12, 118.7, -1.919]],
+             [[463.5, -143.6, -98.9], [410.9, -33.87, -5.144], [13.43, 112, -3.136]],
+             [[923.8, -181.1, -110.7], [526, -53.8, -10.86], [11.61, 108.6, -5.169]],
+             [[-379.9, 60.5, -101.7], [194.5, -284.8, 7.069], [264.6, 224.9, 2.306]],
+             [[70.7, 8.808, -97.41], [425.4, -45.37, 0.214], [15.02, 119.3, -2.076]],
+             [[476.7, -31.45, -102.2], [409.7, -37.01, -6.137], [13.2, 112.1, -3.111]],
+             [[935.3, -72.22, -115], [526.2, -53.76, -10.76], [9.611, 109.5, -3.776]],
+             [[1327, -116.7, -135], [224, -25.64, -10.8], [18.59, 199.8, -8.407]],
+             [[-203.5, 220.3, -100.9], [159, -73.66, 3.295], [96.56, 88.12, -0.277]],
+             [[87.07, 127.1, -99.29], [421.9, -42.15, -0.837], [16.73, 118.9, -2.162]],
+             [[489.5, 80.41, -105], [405.7, -40.24, -6.158], [12.96, 111.6, -2.566]],
+             [[943.6, 38.12, -118.9], [516.6, -52.51, -8.843], [7.786, 110.8, -4.435]],
+             [[-242.4, -141.4, -23.45], [-248.8, -54.59, -3.241], [77.04, -112.7, 2.425]],
+             [[56.34, -108.3, -22.1], [426.7, -47.59, 1.009], [13.15, 118.9, -2.095]],
+             [[463.2, -142.3, -25.31], [410.8, -33.73, -5.277], [13.43, 112.2, -3.372]],
+             [[923.6, -179.7, -35.87], [526, -53.9, -11.26], [11.57, 108.6, -4.45]],
+             [[-380.3, 61.98, -28.76], [194.4, -284.9, 7.396], [264.7, 224.9, 2.089]],
+             [[70.32, 10.27, -24.13], [425.3, -45.26, 0.8815], [15, 119.4, -1.745]],
+             [[476.4, -30.02, -28.41], [409.8, -37.1, -4.907], [13.19, 112.2, -3.329]],
+             [[935.1, -70.86, -40.15], [526.3, -53.94, -9.548], [9.58, 109.5, -3.552]],
+             [[1327, -115.3, -58.62], [224, -26.02, -10.31], [18.66, 199.8, -6.379]],
+             [[-203.8, 221.8, -28.04], [159.1, -73.78, 3.567], [96.63, 88.24, -0.6312]],
+             [[86.66, 128.5, -25.68], [421.7, -42.31, -0.5815], [16.68, 118.9, -1.337]],
+             [[489.2, 81.9, -31.44], [405.6, -40.42, -4.792], [12.96, 111.6, -3.211]],
+             [[943.3, 39.51, -43.96], [516.6, -52.48, -8.07], [7.717, 110.8, -3.905]],
+             [[-408.8, 350.8, -117], [-123.6, 189.7, -39.89], [-129.5, -43.37, -3.048]],
+             [[-540.3, 307.4, -120.2], [-108.3, 188.8, -41.46], [-131.6, -41.38, -2.229]],
+             [[-596, 406.9, -161.3], [-25.94, 44.84, -26.59], [-239.5, -77.71, -3.878]],
+             [[-694.8, 103.5, -108.8], [30.37, 104.1, 0.9179], [-172.7, 23.53, -4.444]],
+             [[-676.1, 269.5, -121.6], [-88.31, 186.1, -40.49], [-132.9, -39.08, -1.443]],
+             [[-409.2, 352.4, -43.89], [-123.7, 189.9, -39.85], [-129.5, -43.28, -3.529]],
+             [[-540.7, 308.9, -47.28], [-108.3, 189, -41.12], [-131.6, -41.41, -2.472]],
+             [[-596.5, 408.5, -88.38], [-25.87, 44.65, -26.49], [-239.3, -77.46, -4.69]],
+             [[-695.1, 105, -35.83], [30.06, 104.1, 1.195], [-172.7, 23.52, -4.408]],
+             [[-676.4, 271.1, -48.62], [-88.47, 186.3, -40.28], [-132.8, -39.08, -1.369]],
+             [[-795.9, -39.7, -121.2], [-269.6, -114.8, -32.52], [147.6, -86.96, 6.78]],
+             [[-649, -124.3, -115.2], [-263.3, -124.6, -30.02], [146.9, -88.49, 6.997]],
+             [[-822.5, -187.8, -141.6], [-91.52, -28.67, -15.87], [269.5, -165.5, 14.64]],
+             [[-503.2, -214.7, -108.1], [-263.1, -129.7, -28.88], [145.5, -92.58, 7.724]],
+             [[-796.2, -38.2, -48.06], [-269.7, -115, -31.62], [147.5, -86.96, 6.869]],
+             [[-649.4, -122.8, -42.02], [-263.2, -124.7, -29.45], [146.9, -88.44, 6.967]],
+             [[-822.9, -186.4, -67.74], [-91.59, -28.64, -15.31], [269.5, -165.4, 15.28]],
+             [[-503.5, -213.2, -34.94], [-262.9, -129.5, -28.54], [145.5, -92.62, 7.544]]], #)
+        'numberOfNodesPerArm':
+            [0,26,14,14]
+                    }
     @staticmethod
     def getName():
         return '3D Stellate 1'
@@ -30,16 +86,21 @@ class MeshType_3d_stellate1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Mouse cervicothoracic ganglion 1']
+            'Mouse cervicothoracic ganglion 1',
+            'Mean mouse cervicothoracic ganglion']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = {}
         options['Base parameter set'] = parameterSetName
 
-        isMouse = 'Mouse' in parameterSetName
+        isMouse = 'Mouse' in parameterSetName and 'Mean' not in parameterSetName
+        isMeanMouse = 'Mean mouse' in parameterSetName
 
-        if isMouse:
+        if isMeanMouse:
+            options['meanMouseMeshNodes'] = cls.mouseMeanMesh['meshEdits']
+            options['numNodesPerArm'] = cls.mouseMeanMesh['numberOfNodesPerArm']
+        if isMouse or isMeanMouse:
             options['Numbers of elements along arms'] = [4,2,2]
         else:
             options['Numbers of elements along arms'] = [4,2,2]
@@ -105,45 +166,43 @@ class MeshType_3d_stellate1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-        isDefault = 'Default' in options['Base parameter set']
-        isMouse = 'Mouse' in options['Base parameter set']
-
-        armCount = 3
-        elementLengthCentral = options['Element width central']
-        elementLengths = [options['Element length along arm'],
-                 options['Element width across arm'],
-                 options['Element thickness']]
-        elementsCount1 = options['Numbers of elements along arms']
-        elementsCount2 = 2
-        elementsCount3 = 1
-        useCrossDerivatives = False
+        parameterSetName = options['Base parameter set']
+        isDefault = 'Default' in parameterSetName
+        isMouse = 'Mouse' in parameterSetName and 'Mean' not in parameterSetName
+        isMeanMouse = 'Mean mouse' in parameterSetName
 
         fm = region.getFieldmodule()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         coordinates = findOrCreateFieldCoordinates(fm)
-
+        mesh = fm.findMeshByDimension(3)
+        cache = fm.createFieldcache()
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if useCrossDerivatives:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-        mesh = fm.findMeshByDimension(3)
-        cache = fm.createFieldcache()
 
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
+        armCount = 3
+        elementLengthCentral = options['Element width central']
+        elementLengths = [options['Element length along arm'],
+                          options['Element width across arm'],
+                          options['Element thickness']]
+        elementsCount1 = options['Numbers of elements along arms']
+        elementsCount2 = 2
+        elementsCount3 = 1
+        useCrossDerivatives = False
+        # arm group annotations for user
+        armTerms, _ = getAutomaticArmFaceTerms(armCount)
+        armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
+        stellateTerm = get_stellate_term("cervicothoracic ganglion") if isMouse or isMeanMouse else ("stellate", None)
+        stellateGroup = AnnotationGroup(region, stellateTerm)
+        annotationGroups = [stellateGroup] + armGroups
+        armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
+        stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
 
         # markers with element number and xi position
         allMarkers = {}
-        if isMouse:
+        if isMouse or isMeanMouse:
             xProportion = {}
             xProportion['ICN'] = 0.9
             xProportion['VA'] = 0.9
@@ -166,70 +225,81 @@ class MeshType_3d_stellate1(Scaffold_base):
             elementIndex = {}
             xi1 = {}
             for nerve in nerveAbbrev:
-                elementIndex[nerve] = int(xProportion[nerve] * elementsCount1[armNumber[nerve]-1])
-                xi1[nerve] = 1 if xProportion[nerve] == 1 else xProportion[nerve] * elementsCount1[armNumber[nerve]-1] - elementIndex[nerve]
+                elementIndex[nerve] = int(xProportion[nerve] * elementsCount1[armNumber[nerve] - 1])
+                xi1[nerve] = 1 if xProportion[nerve] == 1 else xProportion[nerve] * elementsCount1[
+                    armNumber[nerve] - 1] - elementIndex[nerve]
                 elementIndex[nerve] += 1 if xProportion[nerve] < 1 else 0
                 j = 10
 
-            allMarkers = { "Inferior cardiac nerve" : {"elementID": elementIndex['ICN']+2*elementsCount1[0], "xi": [xi1['ICN'], 0.0, 0.5]},
-                            "Ventral ansa subclavia" : {"elementID": elementIndex['VA']+2*elementsCount1[0]+elementsCount1[1], "xi": [xi1['VA'], 1.0, 0.5]},
-                            "Dorsal ansa subclavia" : {"elementID": elementIndex['DA']+2*(elementsCount1[0]+elementsCount1[1]), "xi": [xi1['DA'], 0.0, 0.5]},
-                            "Cervical spinal nerve 8" : {"elementID": elementIndex['C8']+2*(elementsCount1[0]+elementsCount1[1])+elementsCount1[2], "xi": [xi1['C8'], 1.0, 0.5]},
-                            "Thoracic spinal nerve 1" : {"elementID": elementIndex['T1'], "xi": [xi1['T1'], 0.0, 0.5]},
-                            "Thoracic spinal nerve 2" : {"elementID": elementIndex['T2'], "xi": [xi1['T2'], 0.0, 0.5]},
-                            "Thoracic spinal nerve 3" : {"elementID": elementIndex['T3'], "xi": [xi1['T3'], 0.0, 0.5]},
-                            "Thoracic sympathetic nerve trunk" : {"elementID": elementIndex['TST'], "xi": [xi1['TST'], 1.0, 0.5]},
-                           }
+            allMarkers = {"Inferior cardiac nerve": {"elementID": elementIndex['ICN'] + 2 * elementsCount1[0],
+                                                     "xi": [xi1['ICN'], 0.0, 0.5]},
+                          "Ventral ansa subclavia": {
+                              "elementID": elementIndex['VA'] + 2 * elementsCount1[0] + elementsCount1[1],
+                              "xi": [xi1['VA'], 1.0, 0.5]},
+                          "Dorsal ansa subclavia": {
+                              "elementID": elementIndex['DA'] + 2 * (elementsCount1[0] + elementsCount1[1]),
+                              "xi": [xi1['DA'], 0.0, 0.5]},
+                          "Cervical spinal nerve 8": {
+                              "elementID": elementIndex['C8'] + 2 * (elementsCount1[0] + elementsCount1[1]) +
+                                           elementsCount1[2], "xi": [xi1['C8'], 1.0, 0.5]},
+                          "Thoracic spinal nerve 1": {"elementID": elementIndex['T1'], "xi": [xi1['T1'], 0.0, 0.5]},
+                          "Thoracic spinal nerve 2": {"elementID": elementIndex['T2'], "xi": [xi1['T2'], 0.0, 0.5]},
+                          "Thoracic spinal nerve 3": {"elementID": elementIndex['T3'], "xi": [xi1['T3'], 0.0, 0.5]},
+                          "Thoracic sympathetic nerve trunk": {"elementID": elementIndex['TST'],
+                                                               "xi": [xi1['TST'], 1.0, 0.5]},
+                          }
+            markerGroup = findOrCreateFieldGroup(fm, "marker")
+            markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+            markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-        # arm group annotations for user
-        armTerms, _ = getAutomaticArmFaceTerms(armCount)
-        armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
-        stellateTerm = get_stellate_term("cervicothoracic ganglion") if isMouse else ("stellate", None)
-        stellateGroup = AnnotationGroup(region, stellateTerm)
-        annotationGroups = [stellateGroup] + armGroups
-
-        armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
-        stellateMeshGroup = stellateGroup.getMeshGroup(mesh)
+            markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+            markerTemplateInternal = nodes.createNodetemplate()
+            markerTemplateInternal.defineField(markerName)
+            markerTemplateInternal.defineField(markerLocation)
 
         # Create nodes
-        numNodesPerArm = [0]
-        dipMultiplier = 1
         nodeIdentifier = 1
+        numNodesPerArm = [0]
         minArmAngle = 2 * math.pi / armCount
-        halfArmArcAngleRadians = minArmAngle/2
-        xx = []
-        xds1 = []
-        xds2 = []
-        x_in_nodes = []
-        for na in range(armCount):
-            elementsCount_i = [elementsCount1[na], elementsCount2, elementsCount3]
-            x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount_i, dipMultiplier, armCount, na)
-            for ix in range(len(x)):
-                if na == 0 or ix not in nWheelEdge:
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[ix])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1[ix])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2[ix])
-
-                    nodeIdentifier += 1
-                    x_in_nodes.append(x[ix])
-            numNodesPerArm.append(len(x))
-            xx.append(x)
-            xds1.append(ds1)
-            xds2.append(ds2)
+        halfArmArcAngleRadians = minArmAngle / 2
+        if not isMeanMouse:
+            dipMultiplier = 1
+            for na in range(armCount):
+                elementsCount_i = [elementsCount1[na], elementsCount2, elementsCount3]
+                x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount_i, dipMultiplier, armCount, na)
+                for ix in range(len(x)):
+                    if na == 0 or ix not in nWheelEdge:
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        cache.setNode(node)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[ix])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1[ix])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2[ix])
+                        nodeIdentifier += 1
+                numNodesPerArm.append(len(x))
+        else:
+            numNodesPerArm = options['numNodesPerArm']
+            x_dx_all = options['meanMouseMeshNodes']
+            xyz_all = [x[0] for x in x_dx_all]
+            dxyz = [[x[1], x[2]] for x in x_dx_all]
+            nodeIdentifier = 1
+            for i, nx in enumerate(xyz_all):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nx)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dxyz[i][0])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dxyz[i][1])
+                nodeIdentifier += 1
 
         # Create elements
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
         eft = bicubichermitelinear.createEftNoCrossDerivatives() #createEftBasic()
-
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementtemplate.defineField(coordinates, -1, eft)
-
-        elementIdentifier = 1
         elementtemplateX = mesh.createElementtemplate()
         elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementIdentifier = 1
+
         cumNumNodesPerArm = [sum(numNodesPerArm[:i + 1]) for i in range(len(numNodesPerArm))]
         nCentre = [elementsCount1[0]+1, int(numNodesPerArm[1]/2) + elementsCount1[0]+1]
         for na in range(armCount):
@@ -456,9 +526,8 @@ class MeshType_3d_stellate1(Scaffold_base):
                         elementIdentifier += 1
 
         # annotation fiducial points
-        if isMouse:
+        if isMouse or isMeanMouse:
             for key in allMarkers:
-
                 xi = allMarkers[key]["xi"]
                 addMarker = {"name": key, "xi": allMarkers[key]["xi"]}
 
@@ -470,6 +539,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                 element = mesh.findElementByIdentifier(elementID)
                 markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
 
+        fm.endChange()
         return annotationGroups
 
     @classmethod
@@ -641,3 +711,53 @@ def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elem
 
     return (x, xnodes_ds1, xnodes_ds2, rmVertexNodes)
 
+
+def read_ex_file(file, region, derv_present, mesh_dimension):
+    # context = Context("Example")
+    # region = context.getDefaultRegion()
+    region.readFile(file)
+    if not region.readFile(file):
+        print('File not readable for zinc')
+    fm = region.getFieldmodule()
+    cache = fm.createFieldcache()
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    coords_name = "coordinates"
+    coordinates = findOrCreateFieldCoordinates(fm, coords_name)
+    # mesh = fm.findMeshByDimension(mesh_dimension)
+
+    all_node_num, xyz_all, dxyz = coordinates_opencmiss_to_list(cache, nodes, coordinates, derv_present)
+
+    return all_node_num, xyz_all, dxyz
+
+
+def coordinates_opencmiss_to_list(cache, nodes, coordinates, derv):
+    xyzlist = []
+    dxyzlist = []
+    valid_nodes = []
+    ccount = coordinates.getNumberOfComponents()
+
+    # for n in nodelist:
+    nodeIter = nodes.createNodeiterator()
+    node = nodeIter.next()
+    while node.isValid():
+        nodeID = node.getIdentifier()
+        cache.setNode(node)
+        result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ccount )
+        if result == 1:
+            xyzlist.append(v1)
+            valid_nodes.append(nodeID)
+        if derv:
+            result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ccount )
+            result2, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ccount )
+            result3, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, ccount )
+            if result == 1:
+                dxyzlist.append([[d1[i], d2[i]] for i in range(len(d1))])
+        node = nodeIter.next()
+
+    if not dxyzlist:
+        dxyzlist = [[[0,0]]*3]*len(xyzlist)
+
+    if derv:
+        return valid_nodes, xyzlist, dxyzlist
+    else:
+        return valid_nodes, xyzlist, []
