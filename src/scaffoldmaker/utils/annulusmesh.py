@@ -33,7 +33,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
     forceStartLinearXi3 = False, forceMidLinearXi3 = False, forceEndLinearXi3 = False,
     maxStartThickness = None, maxEndThickness = None, useCrossDerivatives = False,
-    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportions = None, endProportions = None):
+    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportions = None, endProportions = None,
+    rescaleEndDerivatives = False):
     """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
@@ -72,6 +73,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     around as for startPoints. Values only given for tracksurface for outer layer (xi3 == 1).
     :param endProportions: Proportion around and along of endPoints on track surface. These vary with nodes
     around as for endPoints. Values only given for tracksurface for outer layer (xi3 == 1).
+    :param rescaleEndDerivatives: If true, rescale end derivatives to arclength between endPoints
+    and radially adjacent nodes.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
     """
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
@@ -134,6 +137,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
         pd2[n3] = [ startPointsd2[n3], endPointsd2[n3] ]
         pd3[n3] = [ startPointsd3[n3] if (startPointsd3 is not None) else None, \
                     endPointsd3[n3] if (endPointsd3 is not None) else None ]
+
     if elementsCountRadial > 1:
         # add in-between points
         startPointsd = [ startPointsd1, startPointsd2, startPointsd3 ]
@@ -226,10 +230,11 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
 
             # scaling end derivatives to arc length gives even curvature along the curve
             if tracksurface:
-                mx, md2, md1 = \
+                mx, md2, md1, md3, mProportions = \
                     tracksurface.createHermiteCurvePoints(startProportions[n1][0], startProportions[n1][1],
                                                           endProportions[n1][0], endProportions[n1][1],
-                                                          elementsCountRadial, derivativeStart=ad2, derivativeEnd=bd2)[0:3]
+                                                          elementsCountRadial, derivativeStart=ad2, derivativeEnd=bd2)
+                mx, md2, md1 = tracksurface.resampleHermiteCurvePointsSmooth(mx, md2, md1, md3, mProportions)[0:3]
             else:
                 arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
                 scaledDerivatives = [ vector.setMagnitude(d2, arcLength) for d2 in [ ad2, bd2 ]]
@@ -306,6 +311,24 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                     magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
                 for n2 in range(elementsCountRadial + 1):
                     pd2[n3][n2][n1] = sd2[n2]
+
+    # Calculate arcLength to determine scale factor for remapped d2
+    if rescaleEndDerivatives:
+        scaleFactorMap = []
+        for n3 in range(2):
+            scaleFactorList = []
+            for n1 in range(nodesCountAround):
+                v1 = px[n3][-2][n1]
+                d1 = pd2[n3][-2][n1]
+                v2 = px[n3][-1][n1]
+                d2 = [v2[c] - v1[c] for c in range(3)]
+                arcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives=True)
+                unscaledEndDerivativeD2 = endDerivativesMap[n3][n1][1]
+                unscaledArcLength = vector.magnitude([abs(unscaledEndDerivativeD2[0]) * endPointsd1[n3][n1][c] +
+                                                      abs(unscaledEndDerivativeD2[1]) * endPointsd2[n3][n1][c] for c in range(3)])
+                scaleFactorNode = arcLength / unscaledArcLength
+                scaleFactorList.append(scaleFactorNode)
+            scaleFactorMap.append(scaleFactorList)
 
     ##############
     # Create nodes
@@ -415,8 +438,25 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 if mapEndLinearDerivativeXi3:
                     eftFactory.setEftLinearDerivative2(eft1, [ 3, 7, 4, 8 ], Node.VALUE_LABEL_D_DS3, [ Node.VALUE_LABEL_D2_DS1DS3 ])
                 if mapEndDerivatives:
+                    if rescaleEndDerivatives:
+                        nodeScaleFactorOffset0 = e1 * 1000
+                        nodeScaleFactorOffset1 = en * 1000
+                        setEftScaleFactorIds(eft1, [1],
+                                             [nodeScaleFactorOffset0 + 1,
+                                              nodeScaleFactorOffset0 + 1,
+                                              nodeScaleFactorOffset1 + 1,
+                                              nodeScaleFactorOffset1 + 1])
+                        # nsCheck = [-1,
+                        #            nodeScaleFactorOffset0 + 1,
+                        #            nodeScaleFactorOffset0 + 1,
+                        #            nodeScaleFactorOffset1 + 1,
+                        #            nodeScaleFactorOffset1 + 1]
+                        # sfCheck = [ -1.0,
+                        #             scaleFactorMap[0][e1], scaleFactorMap[1][e1],
+                        #             scaleFactorMap[0][en], scaleFactorMap[1][en]]
                     for i in range(2):
                         lns = [ 3, 7 ] if (i == 0) else [ 4, 8 ]
+                        sos = 1 if (i == 0) else 3
                         for n3 in range(2):
                             derivativesMap = endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]
                             # handle different d1 on each side of node
@@ -425,19 +465,57 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                             d3Map = derivativesMap[2]
                             # use temporary to safely swap DS1 and DS2:
                             ln = [ lns[n3] ]
+                            so = sos + n3
+                            # if n3 == 0:
+                            # print('i =', i, ', n3 =', n3, elementIdentifier, ln, so)
                             if d1Map is not None:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
                             if d3Map is not None:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
                             if d2Map is not None:
-                                remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
+                                if rescaleEndDerivatives:
+                                    # print('i =', i, ', n3 =', n3, elementIdentifier, ln, so, nsCheck[so], d2Map) # sfCheck[so], scaleFactorMap[n3][e1 if i == 0 else en])
+                                    if d2Map == (-1, -1, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1, so + 1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1, so + 1])])
+                                    elif d2Map == (1, 1, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [so + 1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [so + 1])])
+                                    elif d2Map == (-1, 1, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1, so + 1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [so + 1])])
+                                    elif d2Map == (1, -1, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [so + 1]),
+                                                                (Node.VALUE_LABEL_D_DS2, [1, so + 1])])
+                                    elif d2Map == (-1, 0, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [1, so + 1])])
+                                    elif d2Map == (1, 0, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS1, [so + 1])])
+                                    elif d2Map == (0, -1, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [1, so + 1])])
+                                    elif d2Map == (0, 1, 0):
+                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
+                                                               [(Node.VALUE_LABEL_D_DS2, [so + 1])])
+                                else:
+                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
+                                                           derivativeSignsToExpressionTerms((Node.VALUE_LABEL_D_DS1,
+                                                                                             Node.VALUE_LABEL_D_DS2,
+                                                                                             Node.VALUE_LABEL_D_DS3),
+                                                                                            d2Map))
                             if d1Map is not None:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
                             if d3Map is not None:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
+
                 elementtemplateX.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateX
             else:
@@ -446,11 +524,17 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
 
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids)
+
             if mapDerivatives:
-                result3 = element.setScaleFactors(eft1, [ -1.0 ])
-            #else:
-            #    result3 = '-'
-            #print('create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
+                if rescaleEndDerivatives:
+                    result3 = element.setScaleFactors(eft1, [ -1.0,
+                                                            scaleFactorMap[0][e1], scaleFactorMap[1][e1],
+                                                            scaleFactorMap[0][en], scaleFactorMap[1][en]])
+                    # print('rescale - create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
+                else:
+                    result3 = element.setScaleFactors(eft1, [ -1.0 ])
+                    # print('else create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
+
             elementIdentifier += 1
 
             if rowMeshGroups:

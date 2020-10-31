@@ -25,7 +25,6 @@ from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
-
 class MeshType_3d_bladderurethra1(Scaffold_base):
     '''
     Generates 3D bladder and urethra meshes with variable numbers
@@ -238,6 +237,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Ureter',
             'Ostium position around',
             'Ostium position down',
+            'Number of elements radially on annulus',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -707,11 +707,13 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
             trackSurfaceOstium1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
                                                nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
+
             ostium1Position = trackSurfaceOstium1.createPositionProportion(ostiumPositionAround, ostiumPositionDown)
             ostium1Position.xi1 = 1.0
             ostium1Position.xi2 = 1.0
             ostiumElementPositionAround = ostium1Position.e1
             ostiumElementPositionDown = ostium1Position.e2
+
             # Create trackSurface at the outer layer of the bladder for ostium 2
             nodesOnTrackSurface2_x = []
             nodesOnTrackSurface2_d1 = []
@@ -724,6 +726,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
                 nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
                 nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
+
             trackSurfaceOstium2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
                                                nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
             ostium2Position = TrackSurfacePosition(elementsCountAround - ostiumElementPositionAround,
@@ -914,11 +917,32 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
             endDerivativesMap[0][n1] = ((-1, 0, 0), (0, -1, 0), None)
             endDerivativesMap[1][n1] = ((-1, 0, 0), (0, -1, 0), None)
 
+    startProportions1 = []
+    for n in range(len(o1_Positions)):
+        startProportions1.append(trackSurfaceOstium1.getProportion(o1_Positions[n]))
+
+    endProportions1 = []
+    elementsAroundTrackSurface1 = trackSurfaceOstium1.elementsCount1
+    elementsAlongTrackSurface1 = trackSurfaceOstium1.elementsCount2
+    for n in range(3):
+        endProportions1.append([(ostiumElementPositionAround - 1 + 1)/elementsAroundTrackSurface1,
+                                (ostiumElementPositionDown - 1 + n + 1)/elementsAlongTrackSurface1])
+    for n in range(2):
+        endProportions1.append([(ostiumElementPositionAround + n + 1) / elementsAroundTrackSurface1,
+                                (ostiumElementPositionDown + 1 + 1) / elementsAlongTrackSurface1])
+    for n in range(2):
+        endProportions1.append([(ostiumElementPositionAround + 1 + 1) / elementsAroundTrackSurface1,
+                                (ostiumElementPositionDown - n + 1) / elementsAlongTrackSurface1])
+    endProportions1.append([(ostiumElementPositionAround + 1 )/ elementsAroundTrackSurface1,
+                            (ostiumElementPositionDown - 1 + 1) / elementsAlongTrackSurface1])
+
     nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
         nodes, mesh, nodeIdentifier, elementIdentifier,
         o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
         endPoints1_x, endPoints1_d1, endPoints1_d2, None, endNode1_Id, endDerivativesMap,
-        elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups)
+        elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups,
+        tracksurface=trackSurfaceOstium1, startProportions=startProportions1, endProportions=endProportions1,
+        rescaleEndDerivatives=True)
 
     nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
         nodes, mesh, nodeIdentifier, elementIdentifier,
