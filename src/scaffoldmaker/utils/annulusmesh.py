@@ -230,11 +230,20 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
 
             # scaling end derivatives to arc length gives even curvature along the curve
             if tracksurface:
+                arcLength = interp.computeCubicHermiteArcLength(startPointsx[1][n1], ad2, endPointsx[1][n1], bd2,
+                                                                rescaleDerivatives=True)
+                ad2Scaled = vector.setMagnitude(ad2, arcLength / elementsCountRadial * 2 * 0.4)
+                bd2Scaled = vector.setMagnitude(bd2, arcLength / elementsCountRadial * 2 * 0.6)
+
                 mx, md2, md1, md3, mProportions = \
                     tracksurface.createHermiteCurvePoints(startProportions[n1][0], startProportions[n1][1],
                                                           endProportions[n1][0], endProportions[n1][1],
-                                                          elementsCountRadial, derivativeStart=ad2, derivativeEnd=bd2)
-                mx, md2, md1 = tracksurface.resampleHermiteCurvePointsSmooth(mx, md2, md1, md3, mProportions)[0:3]
+                                                          elementsCountRadial, derivativeStart=ad2Scaled,
+                                                          derivativeEnd=bd2Scaled)
+
+                mx, md2, md1 = tracksurface.resampleHermiteCurvePointsSmooth(mx, md2, md1, md3, mProportions,
+                                                                             derivativeMagnitudeStart= vector.magnitude(ad2Scaled),
+                                                                             derivativeMagnitudeEnd= vector.magnitude(bd2Scaled))[0:3]
             else:
                 arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
                 scaledDerivatives = [ vector.setMagnitude(d2, arcLength) for d2 in [ ad2, bd2 ]]
@@ -321,7 +330,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 v1 = px[n3][-2][n1]
                 d1 = pd2[n3][-2][n1]
                 v2 = px[n3][-1][n1]
-                d2 = [v2[c] - v1[c] for c in range(3)]
+                d2 = [pd1[n3][-1][n1][c] + pd2[n3][-1][n1][c] for c in range(3)]
                 arcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives=True)
                 unscaledEndDerivativeD2 = endDerivativesMap[n3][n1][1]
                 unscaledArcLength = vector.magnitude([abs(unscaledEndDerivativeD2[0]) * endPointsd1[n3][n1][c] +
@@ -531,6 +540,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                                                             scaleFactorMap[0][e1], scaleFactorMap[1][e1],
                                                             scaleFactorMap[0][en], scaleFactorMap[1][en]])
                     # print('rescale - create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
+
                 else:
                     result3 = element.setScaleFactors(eft1, [ -1.0 ])
                     # print('else create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
@@ -540,6 +550,17 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             if rowMeshGroups:
                 for meshGroup in rowMeshGroups[e2]:
                     meshGroup.addElement(element)
+
+    # if rescaleEndDerivatives:
+    #     nodeIdentifier = 90000
+    #     for n1 in range(len(endPointsx[1])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, endPointsx[1][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, checkDerivativeStartList[n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, checkDerivativeEndList[n1])
+    #         print(nodeIdentifier)
+    #         nodeIdentifier += 1
 
     fm.endChange()
 
