@@ -26,7 +26,7 @@ from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubiche
 from opencmiss.zinc.element import Element
 
 
-class MeshType_3d_solidbifurcation(Scaffold_base):
+class MeshType_3d_solidbifurcation2(Scaffold_base):
     """
 Generates a solid cylinder using a ShieldMesh of all cube elements,
 with variable numbers of elements in major, minor and length directions.
@@ -47,7 +47,7 @@ with variable numbers of elements in major, minor and length directions.
 
     @staticmethod
     def getName():
-        return '3D Solid Bifurcation 1'
+        return '3D Solid Bifurcation 2'
 
 
     @classmethod
