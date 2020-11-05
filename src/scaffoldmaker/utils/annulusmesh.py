@@ -14,18 +14,19 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
 
-def derivativeSignsToExpressionTerms(valueLabels, signs):
+def derivativeSignsToExpressionTerms(valueLabels, signs, scaleFactorIdx = None):
     '''
-    Return remap expression terms for summing derivative[i]*sign[i]
+    Return remap expression terms for summing derivative[i]*sign[i]*scaleFactor
     :param valueLabels: List of node value labels to possibly include.
     :param signs: List of 1 (no scaling), -1 (scale by scale factor 1) or 0 (no term).
+    :param scaleFactorIdx: List of 1, -1 (scale by scale factor indexed by scaleFactorIdx) or 0 (no term).
     '''
     expressionTerms = []
     for i in range(len(valueLabels)):
         if signs[i] is 1:
-            expressionTerms.append( ( valueLabels[i], [] ) )
+            expressionTerms.append((valueLabels[i], ([ scaleFactorIdx ] if scaleFactorIdx else [])))
         elif signs[i] is -1:
-            expressionTerms.append( ( valueLabels[i], [1] ) )
+            expressionTerms.append((valueLabels[i], ([1, scaleFactorIdx] if scaleFactorIdx else [1])))
     return expressionTerms
 
 def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
@@ -482,42 +483,12 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                             if d3Map is not None:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
                             if d2Map is not None:
-                                if rescaleEndDerivatives:
-                                    # print('i =', i, ', n3 =', n3, elementIdentifier, ln, so, nsCheck[so], d2Map) # sfCheck[so], scaleFactorMap[n3][e1 if i == 0 else en])
-                                    if d2Map == (-1, -1, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1, so + 1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [1, so + 1])])
-                                    elif d2Map == (1, 1, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, [so + 1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [so + 1])])
-                                    elif d2Map == (-1, 1, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1, so + 1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [so + 1])])
-                                    elif d2Map == (1, -1, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, [so + 1]),
-                                                                (Node.VALUE_LABEL_D_DS2, [1, so + 1])])
-                                    elif d2Map == (-1, 0, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, [1, so + 1])])
-                                    elif d2Map == (1, 0, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS1, [so + 1])])
-                                    elif d2Map == (0, -1, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS2, [1, so + 1])])
-                                    elif d2Map == (0, 1, 0):
-                                        remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2,
-                                                               [(Node.VALUE_LABEL_D_DS2, [so + 1])])
-                                else:
-                                    remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
-                                                           derivativeSignsToExpressionTerms((Node.VALUE_LABEL_D_DS1,
-                                                                                             Node.VALUE_LABEL_D_DS2,
-                                                                                             Node.VALUE_LABEL_D_DS3),
-                                                                                            d2Map))
+                                # print('i =', i, ', n3 =', n3, elementIdentifier, ln, so, nsCheck[so], d2Map) # sfCheck[so], scaleFactorMap[n3][e1 if i == 0 else en])
+                                remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
+                                                       derivativeSignsToExpressionTerms((Node.VALUE_LABEL_D_DS1,
+                                                                                         Node.VALUE_LABEL_D_DS2,
+                                                                                         Node.VALUE_LABEL_D_DS3),
+                                                                                        d2Map, so + 1 if rescaleEndDerivatives else None))
                             if d1Map is not None:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
