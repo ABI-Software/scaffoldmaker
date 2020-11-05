@@ -160,6 +160,21 @@ def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
     d2m = [ d*xi for d in d2m ]
     return getCubicHermiteArcLength(v1, d1m, v2m, d2m)
 
+def getCubicHermiteCurvesLength(cx, sd1):
+    """
+    Calculate total length of a curve
+    :param cx: coordinates along the path.
+    :param sd1: d1 derivatives.
+    :return:
+    """
+    totalLength = 0.0
+    elementsCountIn = len(cx) - 1
+    for e in range(elementsCountIn):
+        arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+        totalLength += arcLength
+
+    return totalLength
+
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
     :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
@@ -657,9 +672,11 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     md1 = copy.copy(nd1)
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
-    tol = 1.0E-6
     # special case where equal derivatives at each end are sought
-    equalDerivatives = (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative)
+    if (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative):
+        delta = [ (nx[1][c] - nx[0][c]) for c in componentRange ]
+        return [ delta, copy.deepcopy(delta) ]
+    tol = 1.0E-6
     if instrument:
         print('iter 0', md1)
     for iter in range(100):
@@ -697,10 +714,6 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
                 md1[-1] = vector.setMagnitude(nd1[-1], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
             else:
                 md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], lastmd1[-2], nx[-1], 1.0)
-        if equalDerivatives:
-            mag = getCubicHermiteArcLength(nx[0], md1[0], nx[1], md1[1])
-            md1[0] = vector.setMagnitude(md1[0], mag)
-            md1[1] = vector.setMagnitude(md1[1], mag)
         if instrument:
             print('iter', iter + 1, md1)
         dtol = tol*sum(arcLengths)/len(arcLengths)
@@ -719,11 +732,81 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     cmax = 0.0
     for n in range(nodesCount):
         for c in componentRange:
-            if math.fabs(md1[n][c] - lastmd1[n][c]) > cmax:
-                cmax = math.fabs(md1[n][c] - lastmd1[n][c])
+            cmax = max(cmax, math.fabs(md1[n][c] - lastmd1[n][c]))
     closeness = cmax / dtol
     print('smoothCubicHermiteDerivativesLine max iters reached:', iter + 1, ', cmax = ', round(closeness,2), 'x tolerance')
     return md1
+
+def smoothCubicHermiteCrossDerivativesLine(nx, nd1, nd2, nd12,
+        fixStartDerivative = False, fixEndDerivative = False, instrument=False):
+    """
+    Smooth derivatives of cross directions of hermite curves.
+    Assumes initial nd12 derivatives are zero or reasonable.
+    Where directions are smoothed the weighted/harmonic mean is used.
+    :param nx: List of coordinates of nodes along curves.
+    :param nd1: List of derivatives of nodes along curves.
+    :param nd2: List of lateral direction vectors of nodes along curves.
+    :param nd12: List of derivatives of lateral directions along curves.
+    :param fixStartDerivative, fixEndDerivative: Set to True to fix derivative direction and magnitude at respective end.
+    :return: Modified nd12
+    """
+    nodesCount = len(nx)
+    elementsCount = nodesCount - 1
+    assert elementsCount > 0, 'smoothCubicHermiteCrossDerivativesLine.  Too few nodes/elements'
+    assert len(nd1) == nodesCount, 'smoothCubicHermiteCrossDerivativesLine.  Mismatched number of derivatives'
+    md12 = copy.copy(nd12)
+    componentsCount = len(nx[0])
+    componentRange = range(componentsCount)
+    # special case where equal derivatives at each end are sought
+    if (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative):
+        delta = [ (nd2[1][c] - nd2[0][c]) for c in componentRange ]
+        return [ delta, copy.deepcopy(delta) ]
+    tol = 1.0E-6
+    arcLengths = [ getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1]) for e in range(elementsCount) ]
+    dtol = tol*sum(vector.magnitude(d) for d in nd2)
+    if instrument:
+        print('iter 0', md12)
+    for iter in range(100):
+        lastmd12 = copy.copy(md12)
+        # start
+        if not fixStartDerivative:
+            md12[0] = interpolateLagrangeHermiteDerivative(nd2[0], nd2[1], lastmd12[1], 0.0)
+        # middle
+        for n in range(1, nodesCount - 1):
+            nm = n - 1
+            # get mean of directions from point n to points (n - 1) and (n + 1)
+            np = n + 1
+            dirm = [ (nd2[n ][c] - nd2[nm][c]) for c in componentRange ]
+            dirp = [ (nd2[np][c] - nd2[n ][c]) for c in componentRange ]
+            # mean weighted by fraction towards that end, equivalent to harmonic mean
+            arcLengthmp = arcLengths[nm] + arcLengths[n]
+            wm = arcLengths[n ]/arcLengthmp
+            wp = arcLengths[nm]/arcLengthmp
+            md12[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
+        # end
+        if not fixEndDerivative:
+            md12[-1] = interpolateHermiteLagrangeDerivative(nd2[-2], lastmd12[-2], nd2[-1], 1.0)
+        if instrument:
+            print('iter', iter + 1, md12)
+        for n in range(nodesCount):
+            for c in componentRange:
+                if math.fabs(md12[n][c] - lastmd12[n][c]) > dtol:
+                    break
+            else:
+                continue
+            break
+        else:
+            if instrument:
+                print('smoothCubicHermiteCrossDerivativesLine converged after iter:', iter + 1)
+            return md12
+
+    cmax = 0.0
+    for n in range(nodesCount):
+        for c in componentRange:
+            cmax = max(cmax, math.fabs(md12[n][c] - lastmd12[n][c]))
+    closeness = cmax / dtol
+    print('smoothCubicHermiteCrossDerivativesLine max iters reached:', iter + 1, ', cmax = ', round(closeness,2), 'x tolerance')
+    return md12
 
 def smoothCubicHermiteDerivativesLoop(nx, nd1,
         fixAllDirections = False,
@@ -790,8 +873,7 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
     cmax = 0.0
     for n in range(nodesCount):
         for c in componentRange:
-            if math.fabs(md1[n][c] - lastmd1[n][c]) > cmax:
-                cmax = math.fabs(md1[n][c] - lastmd1[n][c])
+            cmax = max(cmax, math.fabs(md1[n][c] - lastmd1[n][c]))
     closeness = cmax / dtol
     print('smoothCubicHermiteDerivativesLoop max iters reached:', iter + 1, ', cmax = ', round(closeness,2) , 'x tolerance')
     return md1

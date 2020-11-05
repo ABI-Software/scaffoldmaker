@@ -12,8 +12,9 @@ from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaxi
 from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine, interpolateSampleLinear
-from scaffoldmaker.utils import centralpath
+from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.mirror import Mirror
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 
 
 class CylinderShape(Enum):
@@ -97,30 +98,27 @@ class CylinderCentralPath:
         :param centralPath: Central path subscaffold comes from meshtype_1d_path1 and used to calculate ellipse radii.
         :param elementsCount: Number of elements needs to be sampled along the central path.
         """
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
+                                                                        [Node.VALUE_LABEL_VALUE,
+                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                                                                         Node.VALUE_LABEL_D_DS3,
+                                                                         Node.VALUE_LABEL_D2_DS1DS2,
+                                                                         Node.VALUE_LABEL_D2_DS1DS3])
+        del tmpRegion
+        # for i in range(len(cx)):
+        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')
 
-        cx, cd1, cd2, cd3, cd12, cd13 = centralpath.getCentralPathNodes(region, centralPath, printNodes=False)
-        sx, sd1, se, sxi, ssf = centralpath.sampleCentralPath(cx, cd1, elementsCount)
-
-        sd2 = interpolateSampleLinear(cd2, se, sxi)
-
-        majorAxisc = cd2
-        majorRadiic = [vector.magnitude(a) for a in majorAxisc]
-        majorRadiis = interpolateSampleLinear(majorRadiic, se, sxi)
-
-        sd3 = interpolateSampleLinear(cd3, se, sxi)
-
-        minorAxisc = cd3
-        minorRadiic = [vector.magnitude(a) for a in minorAxisc]
-        minorRadiis = interpolateSampleLinear(minorRadiic, se, sxi)
+        sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCount)
+        sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        sd3, sd13 = interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
 
         self.centres = sx
-
-        self.majorRadii = majorRadiis
-        self.majorAxis = [(vector.setMagnitude(sd2[c], majorRadiis[c])) for c in range(len(majorRadiis))]
-
-        self.minorRadii = minorRadiis
-        self.minorAxis = [(vector.setMagnitude(sd3[c], minorRadiis[c])) for c in range(len(minorRadiis))]
-
+        self.majorRadii = [vector.magnitude(a) for a in sd2]
+        self.majorAxis = sd2
+        self.minorRadii = [vector.magnitude(a) for a in sd3]
+        self.minorAxis = sd3
         self.alongAxis = sd1
 
 
