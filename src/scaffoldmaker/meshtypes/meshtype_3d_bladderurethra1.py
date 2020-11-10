@@ -911,6 +911,8 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
     endPoints1_d2 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
     endNode1_Id = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
     endDerivativesMap = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
+    # startDerivativesMap = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium] # KM
+    # endDerivativesMapTest = [[((1, 0, 0), (0, -1, 0), None)] * elementsCountAroundOstium, [((1, 0, 0), (0, -1, 0), None)] * elementsCountAroundOstium] # KM
     endPoints2_x = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
     endPoints2_d1 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
     endPoints2_d2 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
@@ -950,6 +952,32 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
             endPoints2_d1[n3][n1] = d1Bladder[nc2]
             endPoints2_d2[n3][n1] = d2Bladder[nc2]
 
+    # for n1 in range(elementsCountAroundOstium):
+    #     if n1 == 0:
+    #         startDerivativesMap[0][n1] = ((-1, 0, 0), (1, 1, 0), None, (0, 1, 0))
+    #         startDerivativesMap[1][n1] = ((-1, 0, 0), (1, 1, 0), None, (0, 1, 0))
+    #     elif n1 == 1:
+    #         startDerivativesMap[0][n1] = ((0, 1, 0), (1, 0, 0), None)
+    #         startDerivativesMap[1][n1] = ((0, 1, 0), (1, 0, 0), None)
+    #     elif n1 == 2:
+    #         startDerivativesMap[0][n1] = ((0, 1, 0), (1, -1, 0), None, (1, 0, 0))
+    #         startDerivativesMap[1][n1] = ((0, 1, 0), (1, -1, 0), None, (1, 0, 0))
+    #     elif n1 == 3:
+    #         startDerivativesMap[0][n1] = ((1, 0, 0), (0, -1, 0), None)
+    #         startDerivativesMap[1][n1] = ((1, 0, 0), (0, -1, 0), None)
+    #     elif n1 == 4:
+    #         startDerivativesMap[0][n1] = ((1, 0, 0), (-1, -1, 0), None, (0, -1, 0))
+    #         startDerivativesMap[1][n1] = ((1, 0, 0), (-1, -1, 0), None, (0, -1, 0))
+    #     elif n1 == 5:
+    #         startDerivativesMap[0][n1] = ((0, -1, 0), (-1, 0, 0), None)
+    #         startDerivativesMap[1][n1] = ((0, -1, 0), (-1, 0, 0), None)
+    #     elif n1 == 6:
+    #         startDerivativesMap[0][n1] = ((0, -1, 0), (-1, 1, 0), None, (-1, 0, 0))
+    #         startDerivativesMap[1][n1] = ((0, -1, 0), (-1, 1, 0), None, (-1, 0, 0))
+    #     else:
+    #         startDerivativesMap[0][n1] = ((-1, 0, 0), (0, 1, 0), None)
+    #         startDerivativesMap[1][n1] = ((-1, 0, 0), (0, 1, 0), None)
+
     for n1 in range(elementsCountAroundOstium):
         if n1 == 0:
             endDerivativesMap[0][n1] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
@@ -975,6 +1003,7 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
         else:
             endDerivativesMap[0][n1] = ((-1, 0, 0), (0, -1, 0), None)
             endDerivativesMap[1][n1] = ((-1, 0, 0), (0, -1, 0), None)
+
 
     startProportions1 = []
     for n in range(len(o1_Positions)):
@@ -1023,6 +1052,16 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
         elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups,
         tracksurface=trackSurfaceOstium1, startProportions=startProportions1, endProportions=endProportions1,
         rescaleEndDerivatives=True)
+
+    # print('Making test annulus')
+    # nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
+    #     nodes, mesh, nodeIdentifier, elementIdentifier,
+    #     endPoints1_x, endPoints1_d1, endPoints1_d2, None, endNode1_Id, startDerivativesMap,
+    #     o1_x, o1_d1, o1_d2, None, o1_NodeId, endDerivativesMapTest,
+    #     elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups,
+    #     tracksurface=trackSurfaceOstium1, startProportions=endProportions1, endProportions=startProportions1,
+    #     rescaleStartDerivatives=True, rescaleEndDerivatives = True,
+    #     debugTest=True)
 
     # print('endNodeId = ', endNode2_Id)
     nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
