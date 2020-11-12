@@ -25,6 +25,7 @@ from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 
+
 class MeshType_3d_bladderurethra1(Scaffold_base):
     '''
     Generates 3D bladder and urethra meshes with variable numbers
