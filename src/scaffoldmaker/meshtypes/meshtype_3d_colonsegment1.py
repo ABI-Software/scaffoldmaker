@@ -43,6 +43,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
+            'Cow 1',
             'Human 1',
             'Mouse 1',
             'Pig 1']
@@ -78,7 +79,19 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Refine number of elements along segment' : 1,
             'Refine number of elements through wall' : 1
         }
-        if 'Mouse' in parameterSetName:
+        if 'Cow' in parameterSetName:
+            options['Start inner radius'] = 10.5
+            options['End inner radius'] = 10.5
+            options['Corner inner radius factor'] = 0.0
+            options['Haustrum inner radius factor'] = 0.0
+            options['Segment length end derivative factor'] = 0.0
+            options['Segment length mid derivative factor'] = 0.0
+            options['Number of tenia coli'] = 1
+            options['Start tenia coli width'] = 3.0
+            options['End tenia coli width'] = 3.0
+            options['Tenia coli thickness'] = 0.0
+            options['Wall thickness'] = 3.02
+        elif 'Mouse' in parameterSetName:
             options['Start inner radius'] = 0.94
             options['End inner radius'] = 0.94
             options['Corner inner radius factor'] = 0.0
