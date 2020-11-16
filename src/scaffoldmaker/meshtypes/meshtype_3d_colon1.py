@@ -27,7 +27,7 @@ class MeshType_3d_colon1(Scaffold_base):
     '''
 
     centralPathDefaultScaffoldPackages = {
-        'Cow 1' : ScaffoldPackage(MeshType_1d_path1, {
+        'Cattle 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
                 'Coordinate dimensions' : 3,
                 'D2 derivatives': True,
@@ -235,7 +235,7 @@ class MeshType_3d_colon1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Cow 1',
+            'Cattle 1',
             'Human 1',
             'Human 2',
             'Mouse 1',
@@ -247,8 +247,8 @@ class MeshType_3d_colon1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
-        elif 'Cow 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Cow 1']
+        elif 'Cattle 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Cattle 1']
         elif 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
         elif 'Mouse 2' in parameterSetName:
@@ -259,8 +259,8 @@ class MeshType_3d_colon1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 2']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
-        if 'Cow' in parameterSetName:
-            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Cow 1')
+        if 'Cattle' in parameterSetName:
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Cattle 1')
         elif 'Mouse' in parameterSetName:
             segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Mouse 1')
         elif 'Pig' in parameterSetName:
@@ -288,7 +288,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Refine number of elements along' : 1,
             'Refine number of elements through wall' : 1
             }
-        if 'Cow 1' in parameterSetName:
+        if 'Cattle 1' in parameterSetName:
             options['Number of segments'] = 40
             options['Proximal length'] = 880.0
             options['Transverse length'] = 3500.0

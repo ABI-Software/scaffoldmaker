@@ -43,7 +43,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Cow 1',
+            'Cattle 1',
             'Human 1',
             'Mouse 1',
             'Pig 1']
@@ -79,7 +79,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Refine number of elements along segment' : 1,
             'Refine number of elements through wall' : 1
         }
-        if 'Cow' in parameterSetName:
+        if 'Cattle' in parameterSetName:
             options['Start inner radius'] = 10.5
             options['End inner radius'] = 10.5
             options['Corner inner radius factor'] = 0.0
