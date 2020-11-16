@@ -16,7 +16,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         Test creation of human colon segment scaffold.
         """
         parameterSetNames = MeshType_3d_colonsegment1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Cow 1", "Human 1", "Mouse 1", "Pig 1" ])
+        self.assertEqual(parameterSetNames, [ "Default", "Cattle 1", "Human 1", "Mouse 1", "Pig 1" ])
         options = MeshType_3d_colonsegment1.getDefaultOptions("Human 1")
         self.assertEqual(27, len(options))
         self.assertEqual(0.0, options.get("Start phase"))

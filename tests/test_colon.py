@@ -21,7 +21,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         Test creation of colon scaffold.
         """
         parameterSetNames = MeshType_3d_colon1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Cow 1", "Human 1", "Human 2", "Mouse 1", "Mouse 2", "Pig 1", "Pig 2"])
+        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Mouse 1", "Mouse 2", "Pig 1", "Pig 2"])
         centralPathDefaultScaffoldPackages = {
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {
