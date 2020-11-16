@@ -819,6 +819,104 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1Zero:  Failed to validate eft'
         return eft
 
+    def createEftWedgeCollapseXi1AtXi2Zero(self):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi1 collapsed on xi2 = 0.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        # remap parameters on xi2 = 0 before collapsing nodes
+        remapEftNodeValueLabel(eft, [1, 5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 1, 2, 3, 4, 4, 5, 6]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi1AtXi2Zero:  Failed to validate eft'
+        return eft
+
+    def createEftWedgeCollapseXi1AtXi2One(self):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi1 collapsed on xi2 = 1.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        # remap parameters on xi2 = 1 before collapsing nodes
+        remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+        remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi1AtXi2One:  Failed to validate eft'
+        return eft
+
+    def createEftWedgeCollapseXi3AtXi2Zero(self):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi3 collapsed on xi2 = 0.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        # remap parameters on xi2 = 0 before collapsing nodes
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 2, 3, 4, 1, 2, 5, 6]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi3AtXi2Zero:  Failed to validate eft'
+        return eft
+
+    # def createEftWedgeCollapseXi3AtXi2One(self):
+    #     '''
+    #     Create a tricubic hermite element field for a wedge element, where xi3 collapsed on xi2 = 1.
+    #     :return: Element field template
+    #     '''
+    #     eft = self.createEftBasic()
+    #
+    #     # remap parameters on xi2 = 1 before collapsing nodes
+    #     remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+    #
+    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3, [])
+    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+    #
+    #     ln_map = [1, 2, 3, 4, 5, 6, 3, 4]
+    #     remapEftLocalNodes(eft, 6, ln_map)
+    #     assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi3AtXi2One:  Failed to validate eft'
+    #     return eft
+
+    def createEftWedgeCollapseXi3AtXi1Zero(self):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi3 collapsed on xi1 = 0.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        # remap parameters on xi2 = 0 before collapsing nodes
+        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3, [])
+        remapEftNodeValueLabel(eft, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 2, 3, 4, 1, 5, 3, 6]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi3AtXi1Zero:  Failed to validate eft'
+        return eft
+
     def createEftSplitXi1LeftStraight(self):
         '''
         Create an element field template suitable for the inner elements of the
