@@ -73,15 +73,6 @@ class MeshType_3d_lungs1(Scaffold_base):
             'Refine number of elements along']
         return optionNames
 
-
-    # @classmethod
-    # def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-    #     if optionName == 'Central path LUT':
-    #         return list(cls.centralPathDefaultScaffoldPackages_LUT.keys())
-    #     assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
-    #         'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
-    #     return scaffoldType.getParameterSetNames()
-
     @classmethod
     def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
         '''
@@ -138,6 +129,9 @@ class MeshType_3d_lungs1(Scaffold_base):
 
         cache = fm.createFieldcache()
 
+        elementsCount1 = 2
+        elementsCount2 = 4
+        elementsCount3 = 4
 
         # Create nodes
         nodesList = [[[-1.0, -1.0, 0.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
@@ -186,69 +180,90 @@ class MeshType_3d_lungs1(Scaffold_base):
                      [[0.0, 0.5, 2.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
                      [[-1.0, 1.0, 2.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
                      [[-0.5, 1.0, 2.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     [[0.0, 1.0, 2.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]]]
-                     #
-                     # [[0.0, -1.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, -1.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, -1.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, -0.5, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, -0.5, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, -0.5, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, 0.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, 0.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, 0.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, 0.5, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, 0.5, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, 0.5, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, 1.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, 1.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, 1.0, 2.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     #
-                     # [[0.0, -1.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, -1.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, -1.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, -0.5, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, -0.5, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, -0.5, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, 0.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, 0.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, 0.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, 0.5, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, 0.5, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, 0.5, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[0.0, 1.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-0.5, 1.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
-                     # [[-1.0, 1.0, 3.0], [-0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]]]
+                     [[0.0, 1.0, 2.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
 
-                    # [[0.0, 0.0, 4.7], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.5, 0.0]]]
+                     [[-1.0, -1.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, -1.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, -1.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, -0.5, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, -0.5, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, -0.5, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, 0.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, 0.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, 0.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, 0.5, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, 0.5, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, 0.5, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, 1.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, 1.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, 1.0, 3.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
 
+                     [[-1.0, -1.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, -1.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, -1.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, -0.5, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, -0.5, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, -0.5, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, 0.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, 0.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, 0.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, 0.5, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, 0.5, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, 0.5, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-1.0, 1.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[-0.5, 1.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]],
+                     [[0.0, 1.0, 4.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 1.0]]]
         print('len(nodesList)', len(nodesList))
 
-        cx = []
-        cd1 = []
-        cd2 = []
-        cd3 = []
         nodeIdentifier = 1
-        for n1 in range(len(nodesList)):
-            x = nodesList[n1][0]
-            dx_ds1 = nodesList[n1][1]
-            dx_ds2 = nodesList[n1][2]
-            dx_ds3 = nodesList[n1][3]
-            cx.append(x)
-            cd1.append(dx_ds1)
-            cd2.append(dx_ds2)
-            cd3.append(dx_ds3)
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cx[n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd1[n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd2[n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3[n1])
-            nodeIdentifier += 1
+        lNodeIds = []
+        nix = 0
+        for n3 in range(elementsCount3 + 1):
+            lNodeIds.append([])
+            for n2 in range(elementsCount2 + 1):
+                lNodeIds[n3].append([])
+                for n1 in range(elementsCount1 + 1):
+                    lNodeIds[n3][n2].append(None)
+                    # if n3 < elementsCount3:
+                    #     if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
+                    #         continue
+                    # else:
+                    #     if (n2 == 0) or (n2 == elementsCount2) or (n1 == 0):
+                    #         continue
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nodesList[nix][0])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, nodesList[nix][1])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, nodesList[nix][2])
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, nodesList[nix][3])
+                    lNodeIds[n3][n2][n1] = nodeIdentifier
+                    nix += 1
+                    nodeIdentifier += 1
 
-        print('len(cx)', len(cx))
-        print('len(cd1)', len(cd1))
-        print('len(cd2)', len(cd2))
+        # cx = []
+        # cd1 = []
+        # cd2 = []
+        # cd3 = []
+        # for n1 in range(len(nodesList)):
+        #     x = nodesList[n1][0]
+        #     dx_ds1 = nodesList[n1][1]
+        #     dx_ds2 = nodesList[n1][2]
+        #     dx_ds3 = nodesList[n1][3]
+        #     cx.append(x)
+        #     cd1.append(dx_ds1)
+        #     cd2.append(dx_ds2)
+        #     cd3.append(dx_ds3)
+        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #     cache.setNode(node)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cx[n1])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd1[n1])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd2[n1])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3[n1])
+        #     nodeIdentifier += 1
+        #
+        # print('len(cx)', len(cx))
+        # print('len(cd1)', len(cd1))
+        # print('len(cd2)', len(cd2))
 
 
         # Create elements
@@ -256,46 +271,132 @@ class MeshType_3d_lungs1(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
         eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        eft = eftfactory.createEftBasic()
+        eftRegular = eftfactory.createEftBasic()
 
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        elementtemplate.defineField(coordinates, -1, eft)
+        elementtemplateRegular = mesh.createElementtemplate()
+        elementtemplateRegular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplateRegular.defineField(coordinates, -1, eftRegular)
 
-        # elementtemplate2 = mesh.createElementtemplate()
-        # elementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        # eft2 = eftfactory.createEftWedgeXi1Zero()
-        # elementtemplate2.defineField(coordinates, -1, eft2)
+        elementtemplateCustom = mesh.createElementtemplate()
+        elementtemplateCustom.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        eft1 = eftfactory.createEftWedgeCollapseXi1AtXi2Zero()
+        eft2 = eftfactory.createEftWedgeCollapseXi1AtXi2One()
+        eft3 = eftfactory.createEftWedgeCollapseXi3AtXi2Zero()
+        # eft4 = eftfactory.createEftWedgeCollapseXi3AtXi2One()
+        eft5 = eftfactory.createEftWedgeCollapseXi3AtXi1Zero()
+
 
         elementIdentifier = 1
-        elementsCountAlongMajorDiameter = 4
-        elementsCountAlongMinorDiameter = 2
-        elementsCountAlong = 2
-        #
-        nel = (elementsCountAlongMinorDiameter + 1) * (elementsCountAlongMajorDiameter + 1)
-        for e3 in range(elementsCountAlong):
-            for e2 in range(elementsCountAlongMajorDiameter):
-                # First row of elements #4
-                for e1 in range(elementsCountAlongMinorDiameter):
-                    if (e2 == 0 or e2 == elementsCountAlongMajorDiameter - 1) and e1 == 0:
-                        # nodeIdentifiers = [10, 11, 14, 25, 26, 29]
-                        # element = mesh.createElement(elementIdentifier, elementtemplate2)
-                        # element.setNodesByIdentifier(eft2, nodeIdentifiers)
-                        pass
-                    else:
-                        element = mesh.createElement(elementIdentifier, elementtemplate)
-                        bni1 = e3 * nel + e2 * (elementsCountAlongMinorDiameter + 1) + e1 + 1
-                        bni2 = e3 * nel + e2 * (elementsCountAlongMinorDiameter + 1) + (e1 + 1) % (elementsCountAlongMinorDiameter + 1) + 1
-                        bni3 = bni1 + elementsCountAlongMinorDiameter + 1
-                        bni4 = bni3 + 1
-                        bni5 = bni1 + nel
-                        bni6 = bni5 + 1
-                        bni7 = bni5 + elementsCountAlongMinorDiameter + 1
-                        bni8 = bni7 + 1
-                        nodeIdentifiers = [bni1, bni2, bni3, bni4,
-                                           bni5, bni6, bni7, bni8]
-                        result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+        for e3 in range(elementsCount3):
+            for e2 in range(elementsCount2):
+                for e1 in range(elementsCount1):
+                    eft = eftRegular
+                    nodeIdentifiers = [
+                        lNodeIds[e3    ][e2][e1], lNodeIds[e3    ][e2][e1 + 1], lNodeIds[e3    ][e2 + 1][e1], lNodeIds[e3    ][e2 + 1][e1 + 1],
+                        lNodeIds[e3 + 1][e2][e1], lNodeIds[e3 + 1][e2][e1 + 1], lNodeIds[e3 + 1][e2 + 1][e1], lNodeIds[e3 + 1][e2 + 1][e1 + 1] ]
+                    scalefactors = None
+                    if (e3 < elementsCount3 - 1):
+                        if (e2 == 0) and (e1 == 0):
+                            # Back wedge elements
+                            nodeIdentifiers.pop(4)
+                            nodeIdentifiers.pop(0)
+                            eft = eft1
+                            scalefactors = [ -1.0 ]
+                        elif (e2 == (elementsCount2 - 1)) and (e1 == 0):
+                            # Front wedge elements
+                            nodeIdentifiers.pop(6)
+                            nodeIdentifiers.pop(2)
+                            eft = eft2
+
+                        if eft is eftRegular:
+                            element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                        else:
+                            elementtemplateCustom.defineField(coordinates, -1, eft)
+                            element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                        element.setNodesByIdentifier(eft, nodeIdentifiers)
+                        if scalefactors:
+                            element.setScaleFactors(eft, scalefactors)
                         elementIdentifier += 1
+                    else:
+                        if ((e2 == 0) or (e2 == elementsCount2 - 1)) and (e1 == 0):
+                            # Top tetrahedron elements
+                            continue
+                        elif (e2 == 0) and (e1 == 1):
+                            # Top back wedge elements
+                            nodeIdentifiers.pop(4)
+                            nodeIdentifiers.pop(5)
+                            eft = eft3
+                            print('nodeIdentifiers', nodeIdentifiers)
+                        # elif (e2 == 1) and (e1 == 0):
+                        #     # Top middle back wedge element
+                        #     nodeIdentifiers.pop(4)
+                        #     nodeIdentifiers.pop(6)
+                        #     eft = eft5
+
+                        if eft is eftRegular:
+                            element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                        else:
+                            elementtemplateCustom.defineField(coordinates, -1, eft)
+                            element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                        element.setNodesByIdentifier(eft, nodeIdentifiers)
+                        if scalefactors:
+                            element.setScaleFactors(eft, scalefactors)
+                        elementIdentifier += 1
+
+
+
+        # # Top back wedge element
+        # nodeIdentifiers = [47, 48, 50, 51, 65, 66]
+        # eft = eft3
+        # if eft is eftRegular:
+        #     element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+        # else:
+        #     elementtemplateCustom.defineField(coordinates, -1, eft)
+        #     element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+        # element.setNodesByIdentifier(eft, nodeIdentifiers)
+        # if scalefactors:
+        #     element.setScaleFactors(eft, scalefactors)
+        # elementIdentifier += 1
+        #
+        # # Top front wedge element
+        # # nodeIdentifiers = [56, 57, 59, 60, 71, 72]
+        # # eft = eft4
+        # # scalefactors = [-1.0]
+        # # elementtemplateCustom.defineField(coordinates, -1, eft)
+        # # element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+        # # element.setNodesByIdentifier(eft, nodeIdentifiers)
+        # # # if scalefactors:
+        # # element.setScaleFactors(eft, scalefactors)
+        # # elementIdentifier += 1
+        #
+        # # Top middle back wedge element
+        # nodeIdentifiers = [49, 50, 52, 53, 65, 68]
+        # eft = eft5
+        # if eft is eftRegular:
+        #     element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+        # else:
+        #     elementtemplateCustom.defineField(coordinates, -1, eft)
+        #     element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+        # element.setNodesByIdentifier(eft, nodeIdentifiers)
+        # if scalefactors:
+        #     element.setScaleFactors(eft, scalefactors)
+        # elementIdentifier += 1
+        #
+        # # Top middle front wedge element
+        # nodeIdentifiers = [52, 53, 55, 56, 68, 71]
+        # eft = eft5
+        # if eft is eftRegular:
+        #     element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+        # else:
+        #     elementtemplateCustom.defineField(coordinates, -1, eft)
+        #     element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+        # element.setNodesByIdentifier(eft, nodeIdentifiers)
+        # if scalefactors:
+        #     element.setScaleFactors(eft, scalefactors)
+        # elementIdentifier += 1
+
+
 
         annotationGroups = []
         fm.endChange()
@@ -314,22 +415,5 @@ class MeshType_3d_lungs1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong)
         return
 
-    # def createEftWedgeXi1Zero(self):
-    #     '''
-    #     Create a basic tricubic hermite element template for elements
-    #     along boundary of tenia coli where nodes on xi1 = 0 are collapsed.
-    #     :return: Element field template
-    #     '''
-    #     eft = self.createEftBasic()
-    #
-    #     # remap parameters on xi1 = 1 before collapsing nodes
-    #     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [])
-    #     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D2_DS1DS2, [])
-    #     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D2_DS1DS2, [])
-    #     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
-    #
-    #     ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
-    #     remapEftLocalNodes(eft, 6, ln_map)
-    #     assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1Zero:  Failed to validate eft'
-    #     return eft
+
 
