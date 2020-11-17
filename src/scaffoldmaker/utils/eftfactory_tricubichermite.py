@@ -859,62 +859,120 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi1AtXi2One:  Failed to validate eft'
         return eft
 
-    def createEftWedgeCollapseXi3AtXi2Zero(self):
+    def createEftWedgeCollapseXi2RightAtXi3One(self):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi3 collapsed on xi2 = 0.
+        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 1 creating the right wedge elements.
         :return: Element field template
         '''
         eft = self.createEftBasic()
 
         # remap parameters on xi2 = 0 before collapsing nodes
-        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS3, [])
-        remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D2_DS1DS2, [])
-        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D2_DS1DS3, [])
-        remapEftNodeValueLabel(eft, [1, 2, 5, 6], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS2, [])
+        remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
 
-        ln_map = [1, 2, 3, 4, 1, 2, 5, 6]
+        ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
         remapEftLocalNodes(eft, 6, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi3AtXi2Zero:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi2RightAtXi3One:  Failed to validate eft'
         return eft
 
-    # def createEftWedgeCollapseXi3AtXi2One(self):
-    #     '''
-    #     Create a tricubic hermite element field for a wedge element, where xi3 collapsed on xi2 = 1.
-    #     :return: Element field template
-    #     '''
-    #     eft = self.createEftBasic()
-    #
-    #     # remap parameters on xi2 = 1 before collapsing nodes
-    #     remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-    #
-    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3, [])
-    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
-    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
-    #     remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
-    #
-    #     ln_map = [1, 2, 3, 4, 5, 6, 3, 4]
-    #     remapEftLocalNodes(eft, 6, ln_map)
-    #     assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi3AtXi2One:  Failed to validate eft'
-    #     return eft
-
-    def createEftWedgeCollapseXi3AtXi1Zero(self):
+    def createEftWedgeCollapseXi2LeftAtXi3One(self):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi3 collapsed on xi1 = 0.
+        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 1 creating the right wedge elements.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        # remap parameters on xi2 = 0 before collapsing nodes
+        remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS2, [])
+        # remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi2LeftAtXi3One:  Failed to validate eft'
+        return eft
+
+    def createEftWedgeCollapseXi1AtXi3One(self):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 1.
         :return: Element field template
         '''
         eft = self.createEftBasic()
 
         # remap parameters on xi2 = 0 before collapsing nodes
-        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3, [])
-        remapEftNodeValueLabel(eft, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
-        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D2_DS1DS2, [])
-        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D2_DS1DS3, [])
-        remapEftNodeValueLabel(eft, [1, 3, 5, 7], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [5, 7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
 
-        ln_map = [1, 2, 3, 4, 1, 5, 3, 6]
+        ln_map = [1, 2, 3, 4, 5, 5, 6, 6]
         remapEftLocalNodes(eft, 6, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi3AtXi1Zero:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi1AtXi3One:  Failed to validate eft'
+        return eft
+
+    def createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1RightAtXi2Zero(self):
+        '''
+        Create a tricubic hermite element field for a tetrahedron element, where xi1 and xi2 are collapsed on xi3 = 1
+        , and then, xi1 for right nodes on xi3 = 0 is collapsed on xi2 = 0.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        # remap parameters on xi3 = 1 before collapsing nodes
+        remapEftNodeValueLabel(eft, [1, 2, 5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS2, [])
+
+        remapEftNodeValueLabel(eft, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+        remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+        remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+
+        # zero other cross derivative parameters
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 1, 2, 3, 4, 4, 4, 4]
+        remapEftLocalNodes(eft, 4, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1RightAtXi2Zero:  Failed to validate eft'
+        return eft
+
+    def createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1LeftAtXi2Zero(self):
+        '''
+        Create a tricubic hermite element field for a tetrahedron element, where xi1 and xi2 are collapsed on xi3 = 1
+        , and then, xi1 for left nodes on xi3 = 0 is collapsed on xi2 = 0.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        # remap parameters on xi3 = 1 before collapsing nodes
+        remapEftNodeValueLabel(eft, [3, 4, 5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS2, [])
+
+        remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+        remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+        remapEftNodeValueLabel(eft, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+
+        # zero other cross derivative parameters
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, [5, 6, 7, 8], Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
+        remapEftLocalNodes(eft, 4, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1LeftAtXi2Zero:  Failed to validate eft'
         return eft
 
     def createEftSplitXi1LeftStraight(self):
