@@ -218,6 +218,7 @@ class MeshType_3d_lungs1(Scaffold_base):
         nodeIdentifier = 1
         lNodeIds = []
         nix = 0
+        # d1 = [ 1.0, 0.0, 0.0 ]
         for n3 in range(elementsCount3 + 1):
             lNodeIds.append([])
             for n2 in range(elementsCount2 + 1):
@@ -232,6 +233,7 @@ class MeshType_3d_lungs1(Scaffold_base):
                     #         continue
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     cache.setNode(node)
+                    # x = [ n1*1.0, n2*1.0, n3*1.0 ]
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nodesList[nix][0])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, nodesList[nix][1])
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, nodesList[nix][2])
@@ -261,10 +263,6 @@ class MeshType_3d_lungs1(Scaffold_base):
         #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3[n1])
         #     nodeIdentifier += 1
         #
-        # print('len(cx)', len(cx))
-        # print('len(cd1)', len(cd1))
-        # print('len(cd2)', len(cd2))
-
 
         # Create elements
         from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -282,10 +280,11 @@ class MeshType_3d_lungs1(Scaffold_base):
 
         eft1 = eftfactory.createEftWedgeCollapseXi1AtXi2Zero()
         eft2 = eftfactory.createEftWedgeCollapseXi1AtXi2One()
-        eft3 = eftfactory.createEftWedgeCollapseXi3AtXi2Zero()
-        # eft4 = eftfactory.createEftWedgeCollapseXi3AtXi2One()
-        eft5 = eftfactory.createEftWedgeCollapseXi3AtXi1Zero()
-
+        eft3 = eftfactory.createEftWedgeCollapseXi2RightAtXi3One()
+        eft4 = eftfactory.createEftWedgeCollapseXi2LeftAtXi3One()
+        eft5 = eftfactory.createEftWedgeCollapseXi1AtXi3One()
+        eft6 = eftfactory.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1RightAtXi2Zero()
+        eft7 = eftfactory.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1LeftAtXi2Zero()
 
         elementIdentifier = 1
         for e3 in range(elementsCount3):
@@ -308,95 +307,54 @@ class MeshType_3d_lungs1(Scaffold_base):
                             nodeIdentifiers.pop(6)
                             nodeIdentifiers.pop(2)
                             eft = eft2
-
-                        if eft is eftRegular:
-                            element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-                        else:
-                            elementtemplateCustom.defineField(coordinates, -1, eft)
-                            element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-                        element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        if scalefactors:
-                            element.setScaleFactors(eft, scalefactors)
-                        elementIdentifier += 1
                     else:
-                        if ((e2 == 0) or (e2 == elementsCount2 - 1)) and (e1 == 0):
-                            # Top tetrahedron elements
-                            continue
-                        elif (e2 == 0) and (e1 == 1):
+                        if (e2 == 0) and (e1 == 1):
                             # Top back wedge elements
-                            nodeIdentifiers.pop(4)
                             nodeIdentifiers.pop(5)
+                            nodeIdentifiers.pop(4)
                             eft = eft3
-                            print('nodeIdentifiers', nodeIdentifiers)
-                        # elif (e2 == 1) and (e1 == 0):
-                        #     # Top middle back wedge element
-                        #     nodeIdentifiers.pop(4)
-                        #     nodeIdentifiers.pop(6)
-                        #     eft = eft5
+                        elif (e2 == elementsCount2 - 1) and (e1 == 1):
+                            # Top front wedge elements
+                            nodeIdentifiers.pop(7)
+                            nodeIdentifiers.pop(6)
+                            eft = eft4
+                            scalefactors = [ -1.0 ]
+                        elif (e2 == 1) and (e1 == 0):
+                            # Top middle back wedge element
+                            nodeIdentifiers.pop(6)
+                            nodeIdentifiers.pop(4)
+                            eft = eft5
+                        elif (e2 == 2) and (e1 == 0):
+                            # Top middle front wedge element
+                            nodeIdentifiers.pop(6)
+                            nodeIdentifiers.pop(4)
+                            eft = eft5
+                        if (e2 == 0) and (e1 == 0):
+                            # Top back tetrahedron elements
+                            nodeIdentifiers.pop(6)
+                            nodeIdentifiers.pop(5)
+                            nodeIdentifiers.pop(4)
+                            nodeIdentifiers.pop(0)
+                            eft = eft6
+                            scalefactors = [ -1.0 ]
+                        if (e2 == elementsCount2 - 1) and (e1 == 0):
+                            # Top front tetrahedron elements
+                            nodeIdentifiers.pop(7)
+                            nodeIdentifiers.pop(6)
+                            nodeIdentifiers.pop(4)
+                            nodeIdentifiers.pop(2)
+                            eft = eft7
+                            scalefactors = [-1.0]
 
-                        if eft is eftRegular:
-                            element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-                        else:
-                            elementtemplateCustom.defineField(coordinates, -1, eft)
-                            element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-                        element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        if scalefactors:
-                            element.setScaleFactors(eft, scalefactors)
-                        elementIdentifier += 1
-
-
-
-        # # Top back wedge element
-        # nodeIdentifiers = [47, 48, 50, 51, 65, 66]
-        # eft = eft3
-        # if eft is eftRegular:
-        #     element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-        # else:
-        #     elementtemplateCustom.defineField(coordinates, -1, eft)
-        #     element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-        # element.setNodesByIdentifier(eft, nodeIdentifiers)
-        # if scalefactors:
-        #     element.setScaleFactors(eft, scalefactors)
-        # elementIdentifier += 1
-        #
-        # # Top front wedge element
-        # # nodeIdentifiers = [56, 57, 59, 60, 71, 72]
-        # # eft = eft4
-        # # scalefactors = [-1.0]
-        # # elementtemplateCustom.defineField(coordinates, -1, eft)
-        # # element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-        # # element.setNodesByIdentifier(eft, nodeIdentifiers)
-        # # # if scalefactors:
-        # # element.setScaleFactors(eft, scalefactors)
-        # # elementIdentifier += 1
-        #
-        # # Top middle back wedge element
-        # nodeIdentifiers = [49, 50, 52, 53, 65, 68]
-        # eft = eft5
-        # if eft is eftRegular:
-        #     element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-        # else:
-        #     elementtemplateCustom.defineField(coordinates, -1, eft)
-        #     element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-        # element.setNodesByIdentifier(eft, nodeIdentifiers)
-        # if scalefactors:
-        #     element.setScaleFactors(eft, scalefactors)
-        # elementIdentifier += 1
-        #
-        # # Top middle front wedge element
-        # nodeIdentifiers = [52, 53, 55, 56, 68, 71]
-        # eft = eft5
-        # if eft is eftRegular:
-        #     element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-        # else:
-        #     elementtemplateCustom.defineField(coordinates, -1, eft)
-        #     element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-        # element.setNodesByIdentifier(eft, nodeIdentifiers)
-        # if scalefactors:
-        #     element.setScaleFactors(eft, scalefactors)
-        # elementIdentifier += 1
-
-
+                    if eft is eftRegular:
+                        element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                    else:
+                        elementtemplateCustom.defineField(coordinates, -1, eft)
+                        element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                    element.setNodesByIdentifier(eft, nodeIdentifiers)
+                    if scalefactors:
+                        element.setScaleFactors(eft, scalefactors)
+                    elementIdentifier += 1
 
         annotationGroups = []
         fm.endChange()
