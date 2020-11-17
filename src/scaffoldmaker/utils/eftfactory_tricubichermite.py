@@ -936,7 +936,7 @@ class eftfactory_tricubichermite:
     def createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2Zero(self):
         '''
         Create a tricubic hermite element field for a tetrahedron element, where xi1 and xi2 are collapsed on xi3 = 1
-        , and then, xi1 for nodes on both xi2 = 0 and  xi3 = 0 collapsed.
+        , and then, xi1 for nodes on both xi2 = 0 and  xi3 = 0 is collapsed.
         :return: Element field template
         '''
         eft = self.createEftBasic()
@@ -960,7 +960,7 @@ class eftfactory_tricubichermite:
 
         ln_map = [1, 1, 2, 3, 4, 4, 4, 4]
         remapEftLocalNodes(eft, 4, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1RightAtXi2Zero:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2Zero:  Failed to validate eft'
         return eft
 
     def createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2One(self):
@@ -990,7 +990,7 @@ class eftfactory_tricubichermite:
 
         ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
         remapEftLocalNodes(eft, 4, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1LeftAtXi2Zero:  Failed to validate eft'
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2One:  Failed to validate eft'
         return eft
 
     def createEftSplitXi1LeftStraight(self):
