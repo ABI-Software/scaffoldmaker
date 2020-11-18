@@ -19,7 +19,7 @@ def derivativeSignsToExpressionTerms(valueLabels, signs, scaleFactorIdx = None):
     Return remap expression terms for summing derivative[i]*sign[i]*scaleFactor
     :param valueLabels: List of node value labels to possibly include.
     :param signs: List of 1 (no scaling), -1 (scale by scale factor 1) or 0 (no term).
-    :param scaleFactorIdx: List of 1, -1 (scale by scale factor indexed by scaleFactorIdx) or 0 (no term).
+    :param scaleFactorIdx: Optional index of local scale factor to scale all non-zero terms. Default None means no extra scaling.
     '''
     expressionTerms = []
     for i in range(len(valueLabels)):
@@ -117,10 +117,11 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     around as for startPoints. Values only given for tracksurface for outer layer (xi3 == 1).
     :param endProportions: Proportion around and along of endPoints on track surface. These vary with nodes
     around as for endPoints. Values only given for tracksurface for outer layer (xi3 == 1).
-    :param rescaleStartDerivatives: If true, rescale start derivatives to arclength between startPoints
-    and radially adjacent nodes.
-    :param rescaleEndDerivatives: If true, rescale end derivatives to arclength between endPoints
-    and radially adjacent nodes.
+    :param rescaleStartDerivatives, rescaleEndDerivatives: Optional flags to compute and multiply additional scale factors
+    on start, end or both radial derivatives to fit arc length, needed if derivatives are of the wrong scale for the radial
+    distances and the chosen elementsCountRadial. If either is True, derivatives and sampled radial nodes are spaced for a
+    gradual change of derivative from that at the other end. If both are True, scaling is set to give even sampling and arc
+    length derivatives.
     :param sampleBlend: Real value varying from 0.0 to 1.0 controlling weighting of start and end
     derivatives when interpolating extra points in-between, where 0.0 = sample with equal end derivatives,
     and 1.0 = proportional to current magnitudes, interpolated in between.
