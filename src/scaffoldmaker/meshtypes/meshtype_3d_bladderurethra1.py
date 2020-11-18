@@ -742,14 +742,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                                                    (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
                                                    ureter1Position.xi2)
             annulusMeshGroups = [neckMeshGroup, urinaryBladderMeshGroup]
-            generateOstiumsAndAnnulusMeshOnBladder(region, nodes, mesh, ureterDefaultOptions,
-                                                  elementsCountAround, elementsCountThroughWall, elementsCountAroundUreter,
-                                                   trackSurfaceUreter1,
-                                                  ureter1Position, trackSurfaceUreter2, ureter2Position,
-                                                  ureterElementPositionDown, ureterElementPositionAround,
-                                                  xFinal, d1Final, d2Final, nextNodeIdentifier,
-                                                  nextElementIdentifier, elementsCountUreterRadial,
-                                                  annulusMeshGroups)
+            generateUreters(region, nodes, mesh, ureterDefaultOptions, elementsCountAround, elementsCountThroughWall,
+                            elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
+                            ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
+                            d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
+                            annulusMeshGroups)
 
         fm.endChange()
         return annotationGroups
@@ -821,13 +818,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             lumenOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of urethra"))
             lumenOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen)
 
-def generateOstiumsAndAnnulusMeshOnBladder(region, nodes, mesh, ureterDefaultOptions,elementsCountAround,
-                                           elementsCountThroughWall, elementsCountAroundUreter, trackSurfaceUreter1,
-                                           ureter1Position, trackSurfaceUreter2, ureter2Position,
-                                           ureterElementPositionDown, ureterElementPositionAround,
-                                           xBladder, d1Bladder, d2Bladder,
-                                           nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
-                                           annulusMeshGroups = []):
+def generateUreters(region, nodes, mesh, ureterDefaultOptions,elementsCountAround, elementsCountThroughWall,
+                    elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
+                    ureter2Position, ureterElementPositionDown, ureterElementPositionAround,
+                    xBladder, d1Bladder, d2Bladder, nextNodeIdentifier, nextElementIdentifier,
+                    elementsCountUreterRadial, annulusMeshGroups = []):
 
     # Create ureters on the surface
     # Ureter 1
