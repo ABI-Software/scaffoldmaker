@@ -193,9 +193,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Urethra wall thickness': 0.5,
             'Include ureter': False,
             'Ureter': copy.deepcopy(ostiumOption),
-            'Ostium position around': 0.67,  # should be on the dorsal part (> 0.5)
-            'Ostium position down': 0.83,
-            'Number of radial elements on annulus': 2,
+            'Ureter position around': 0.67,  # should be on the dorsal part (> 0.5)
+            'Ureter position down': 0.83,
+            'Number of elements ureter radial': 2,
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -209,8 +209,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Wall thickness'] = 0.2
             options['Neck diameter 1'] = 3.5
             options['Neck diameter 2'] = 2.0
-            options['Ostium position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ostium position down'] = 0.83
+            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.83
             options['Urethra diameter 1'] = 0.75
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
@@ -236,9 +236,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Urethra wall thickness',
             'Include ureter',
             'Ureter',
-            'Ostium position around',
-            'Ostium position down',
-            'Number of radial elements on annulus',
+            'Ureter position around',
+            'Ureter position down',
+            'Number of elements ureter radial',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -293,6 +293,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Number of elements around',
             'Number of elements through wall',
             'Number of elements along urethra',
+            'Number of elements ureter radial',
             'Refine number of elements along',
             'Refine number of elements around',
             'Refine number of elements through wall']:
@@ -301,14 +302,14 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         if options['Number of elements through wall'] > 1:
             if options['Include ureter']:
                 options['Number of elements through wall'] = 1
-        if options['Ostium position around'] < 0.1:
-            options['Ostium position around'] = 0.1
-        elif options['Ostium position around'] > 0.9:
-            options['Ostium position around'] = 0.9
-        if options['Ostium position down'] < 0.15:
-            options['Ostium position down'] = 0.15
-        elif options['Ostium position down'] > 0.95:
-            options['Ostium position down'] = 0.95
+        if options['Ureter position around'] < 0.1:
+            options['Ureter position around'] = 0.1
+        elif options['Ureter position around'] > 0.9:
+            options['Ureter position around'] = 0.9
+        if options['Ureter position down'] < 0.15:
+            options['Ureter position down'] = 0.15
+        elif options['Ureter position down'] > 0.95:
+            options['Ureter position down'] = 0.95
 
     @classmethod
     def updateSubScaffoldOptions(cls, options):
@@ -352,9 +353,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         ostiumOptions = options['Ureter']
         ostiumDefaultOptions = ostiumOptions.getScaffoldSettings()
         elementsCountAroundOstium = ostiumDefaultOptions['Number of elements around ostium']
-        elementsCountAnnulusRadial = options['Number of radial elements on annulus']
-        ostiumPositionAround = options['Ostium position around']
-        ostiumPositionDown = options['Ostium position down']
+        elementsCountUreterRadial = options['Number of elements ureter radial']
+        ureterPositionAround = options['Ureter position around']
+        ureterPositionDown = options['Ureter position down']
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -647,9 +648,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Obtain elements count along body and neck of the bladder for defining annotation groups
         if includeUrethra:
             # bladderLength = length - urethraLength
-            bodyLength = ostiumPositionDown * bladderLength
+            bodyLength = ureterPositionDown * bladderLength
         else:
-            bodyLength = ostiumPositionDown * length
+            bodyLength = ureterPositionDown * length
         elementsCountAlongBody = int(bodyLength / bladderSegmentLength)
         elementsCountAlongNeck = elementsCountAlongBladder - elementsCountAlongBody
 
@@ -717,7 +718,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             trackSurfaceOstium1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
                                                nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
 
-            ostium1Position = trackSurfaceOstium1.createPositionProportion(ostiumPositionAround, ostiumPositionDown)
+            ostium1Position = trackSurfaceOstium1.createPositionProportion(ureterPositionAround, ureterPositionDown)
             ostiumElementPositionAround = ostium1Position.e1
             ostiumElementPositionDown = ostium1Position.e2
 
@@ -747,7 +748,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                                                   ostium1Position, trackSurfaceOstium2, ostium2Position,
                                                   ostiumElementPositionDown, ostiumElementPositionAround,
                                                   xFinal, d1Final, d2Final, nextNodeIdentifier,
-                                                  nextElementIdentifier, elementsCountAnnulusRadial,
+                                                  nextElementIdentifier, elementsCountUreterRadial,
                                                   annulusMeshGroups)
 
         fm.endChange()
@@ -825,7 +826,7 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, nodes, mesh, ostiumDefaultOpt
                                            ostium1Position, trackSurfaceOstium2, ostium2Position,
                                            ostiumElementPositionDown, ostiumElementPositionAround,
                                            xBladder, d1Bladder, d2Bladder,
-                                           nextNodeIdentifier, nextElementIdentifier, elementsCountAnnulusRadial,
+                                           nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
                                            annulusMeshGroups = []):
 
     # Create ureters on the surface
@@ -974,7 +975,7 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, nodes, mesh, ostiumDefaultOpt
         nodes, mesh, nodeIdentifier, elementIdentifier,
         o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
         endPoints1_x, endPoints1_d1, endPoints1_d2, None, endNode1_Id, endDerivativesMap,
-        elementsCountRadial=elementsCountAnnulusRadial, meshGroups=annulusMeshGroups,
+        elementsCountRadial=elementsCountUreterRadial, meshGroups=annulusMeshGroups,
         tracksurface=trackSurfaceOstium1, startProportions=startProportions1, endProportions=endProportions1,
         rescaleEndDerivatives=True)
 
@@ -982,7 +983,7 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, nodes, mesh, ostiumDefaultOpt
         nodes, mesh, nodeIdentifier, elementIdentifier,
         o2_x, o2_d1, o2_d2, None, o2_NodeId, None,
         endPoints2_x, endPoints2_d1, endPoints2_d2, None, endNode2_Id, endDerivativesMap,
-        elementsCountRadial=elementsCountAnnulusRadial, meshGroups=annulusMeshGroups,
+        elementsCountRadial=elementsCountUreterRadial, meshGroups=annulusMeshGroups,
         tracksurface=trackSurfaceOstium2, startProportions=startProportions2, endProportions=endProportions2,
         rescaleEndDerivatives=True)
 
