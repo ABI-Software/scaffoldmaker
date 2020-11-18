@@ -256,12 +256,10 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
         # set scalefactors if rescaling, make same on inside for now
         if rescaleStartDerivatives:
             scaleFactor = vector.magnitude(md2[0])/vector.magnitude(ad2)
-            for tn3 in range(2):
-                scaleFactorMapStart[tn3].append(scaleFactor)
+            scaleFactorMapStart[n3].append(scaleFactor)
         if rescaleEndDerivatives:
             scaleFactor = vector.magnitude(md2[-1])/vector.magnitude(bd2)
-            for tn3 in range(2):
-                scaleFactorMapEnd[tn3].append(scaleFactor)
+            scaleFactorMapEnd[n3].append(scaleFactor)
 
         for n2 in range(1, elementsCountRadial):
             px [n3][n2][n1] = mx [n2]
@@ -314,13 +312,20 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                                    startDerivativesMap[n3][n1] if startDerivativesMap else None)[1]
             md2[-1] = getMappedD1D2([ endPointsd1[n3][n1], endPointsd2[n3][n1] ] + ([ endPointsd3[n3][n1] ] if endPointsd3 else []),
                                     endDerivativesMap[n3][n1] if endDerivativesMap else None)[1]
+
+            sd2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixAllDirections = True,
+                                                           fixStartDerivative = not rescaleStartDerivatives,
+                                                           fixStartDirection = rescaleStartDerivatives,
+                                                           fixEndDerivative = not rescaleEndDerivatives,
+                                                           fixEndDirection = rescaleEndDerivatives,
+                                                           magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
             if rescaleStartDerivatives:
-                md2[0] = [ d*scaleFactorMapStart[n3][n1] for d in md2[0]]
+                scaleFactor = vector.magnitude(sd2[0]) / vector.magnitude(md2[0])
+                scaleFactorMapStart[n3].append(scaleFactor)
             if rescaleEndDerivatives:
-                md2[-1] = [ d*scaleFactorMapEnd[n3][n1] for d in md2[-1]]
-            sd2 = interp.smoothCubicHermiteDerivativesLine(mx, md2,
-                fixAllDirections = True, fixStartDerivative = True, fixEndDerivative = True,
-                magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+                scaleFactor = vector.magnitude(sd2[-1]) / vector.magnitude(md2[-1])
+                scaleFactorMapEnd[n3].append(scaleFactor)
+
             for n2 in range(1, elementsCountRadial):
                 pd2[n3][n2][n1] = sd2[n2]
 
