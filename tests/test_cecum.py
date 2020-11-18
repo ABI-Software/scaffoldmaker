@@ -79,10 +79,10 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 65960.02821062482, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 65959.34314511667, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 127893.74708048582, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 127894.8597203706, delta=1.0E-6)
 
 if __name__ == "__main__":
     unittest.main()

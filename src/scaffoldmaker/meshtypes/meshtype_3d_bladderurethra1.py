@@ -103,7 +103,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             })
         }
     ostiumDefaultScaffoldPackages = {
-        'Ostium Cat 1': ScaffoldPackage(MeshType_3d_ostium1, {
+        'Ureter Cat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements around ostium': 8,  # implemented for 8
@@ -127,7 +127,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
-        'Ostium Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
+        'Ureter Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
@@ -172,9 +172,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         else:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Cat 1']
         if 'Rat 1' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Rat 1']
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Rat 1']
         else:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Ostium Cat 1']
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Cat 1']
         options = {
             'Central path LUT': copy.deepcopy(centralPathOption_LUT),
             'Number of elements along bladder': 12,
@@ -192,10 +192,10 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Urethra diameter 2': 1.0,
             'Urethra wall thickness': 0.5,
             'Include ureter': False,
-            'Ureter': copy.deepcopy(ostiumOption),
-            'Ostium position around': 0.65,  # should be on the dorsal part (> 0.5)
-            'Ostium position down': 0.75,
-            'Number of elements radially on annulus': 1,
+            'Ureter': copy.deepcopy(ureterOption),
+            'Ureter position around': 0.67,  # should be on the dorsal part (> 0.5)
+            'Ureter position down': 0.83,
+            'Number of elements ureter radial': 2,
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -209,8 +209,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Wall thickness'] = 0.2
             options['Neck diameter 1'] = 3.5
             options['Neck diameter 2'] = 2.0
-            options['Ostium position around'] = 0.65  # should be on the dorsal part (> 0.5)
-            options['Ostium position down'] = 0.75
+            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.83
             options['Urethra diameter 1'] = 0.75
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
@@ -236,8 +236,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Urethra wall thickness',
             'Include ureter',
             'Ureter',
-            'Ostium position around',
-            'Ostium position down',
+            'Ureter position around',
+            'Ureter position down',
+            'Number of elements ureter radial',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -292,6 +293,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Number of elements around',
             'Number of elements through wall',
             'Number of elements along urethra',
+            'Number of elements ureter radial',
             'Refine number of elements along',
             'Refine number of elements around',
             'Refine number of elements through wall']:
@@ -300,6 +302,14 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         if options['Number of elements through wall'] > 1:
             if options['Include ureter']:
                 options['Number of elements through wall'] = 1
+        if options['Ureter position around'] < 0.1:
+            options['Ureter position around'] = 0.1
+        elif options['Ureter position around'] > 0.9:
+            options['Ureter position around'] = 0.9
+        if options['Ureter position down'] < 0.15:
+            options['Ureter position down'] = 0.15
+        elif options['Ureter position down'] > 0.95:
+            options['Ureter position down'] = 0.95
 
     @classmethod
     def updateSubScaffoldOptions(cls, options):
@@ -307,9 +317,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         Update ostium sub-scaffold options which depend on parent options.
         '''
         bladderWallThickness = options['Wall thickness']
-        ostiumOptions = options['Ureter']
-        ostiumDefaultOptions = ostiumOptions.getScaffoldSettings()
-        ostiumDefaultOptions['Ostium wall thickness'] = bladderWallThickness
+        ureterOptions = options['Ureter']
+        ureterDefaultOptions = ureterOptions.getScaffoldSettings()
+        ureterDefaultOptions['Ostium wall thickness'] = bladderWallThickness
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -340,12 +350,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         urethraWallThickness = options['Urethra wall thickness']
 
         includeUreter = options['Include ureter']
-        ostiumOptions = options['Ureter']
-        ostiumDefaultOptions = ostiumOptions.getScaffoldSettings()
-        elementsCountAroundOstium = ostiumDefaultOptions['Number of elements around ostium']
-        elementsCountAnnulusRadially = options['Number of elements radially on annulus']
-        ostiumPositionAround = options['Ostium position around']
-        ostiumPositionDown = options['Ostium position down']
+        ureterOptions = options['Ureter']
+        ureterDefaultOptions = ureterOptions.getScaffoldSettings()
+        elementsCountAroundUreter = ureterDefaultOptions['Number of elements around ostium']
+        elementsCountUreterRadial = options['Number of elements ureter radial']
+        ureterPositionAround = options['Ureter position around']
+        ureterPositionDown = options['Ureter position down']
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -638,9 +648,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Obtain elements count along body and neck of the bladder for defining annotation groups
         if includeUrethra:
             # bladderLength = length - urethraLength
-            bodyLength = ostiumPositionDown * bladderLength
+            bodyLength = ureterPositionDown * bladderLength
         else:
-            bodyLength = ostiumPositionDown * length
+            bodyLength = ureterPositionDown * length
         elementsCountAlongBody = int(bodyLength / bladderSegmentLength)
         elementsCountAlongNeck = elementsCountAlongBladder - elementsCountAlongBody
 
@@ -696,7 +706,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         if includeUreter:
             elementsCount1 = elementsCountAround // 2
             elementsCount2 = elementsCountAlongBladder
-            # Create trackSurface at the outer layer of the bladder for ostium 1
+            # Create trackSurface at the outer layer of the bladder for ureter 1
             nodesOnTrackSurface_x = []
             nodesOnTrackSurface_d1 = []
             nodesOnTrackSurface_d2 = []
@@ -705,14 +715,14 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
                     nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
                     nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-            trackSurfaceOstium1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
+            trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
                                                nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
-            ostium1Position = trackSurfaceOstium1.createPositionProportion(ostiumPositionAround, ostiumPositionDown)
-            ostium1Position.xi1 = 1.0
-            ostium1Position.xi2 = 1.0
-            ostiumElementPositionAround = ostium1Position.e1
-            ostiumElementPositionDown = ostium1Position.e2
-            # Create trackSurface at the outer layer of the bladder for ostium 2
+
+            ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
+            ureterElementPositionAround = ureter1Position.e1
+            ureterElementPositionDown = ureter1Position.e2
+
+            # Create trackSurface at the outer layer of the bladder for ureter 2
             nodesOnTrackSurface2_x = []
             nodesOnTrackSurface2_d1 = []
             nodesOnTrackSurface2_d2 = []
@@ -724,18 +734,19 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
                 nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
                 nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
-            trackSurfaceOstium2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
+
+            trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
                                                nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
-            ostium2Position = TrackSurfacePosition(elementsCountAround - ostiumElementPositionAround,
-                                                   ostiumElementPositionDown - 1, 0.0, 1.0)
+            ureter2Position = TrackSurfacePosition(elementsCountAround//2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
+                                                   ureterElementPositionDown,
+                                                   (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
+                                                   ureter1Position.xi2)
             annulusMeshGroups = [neckMeshGroup, urinaryBladderMeshGroup]
-            generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaultOptions,
-                                                  elementsCountAround, elementsCountAroundOstium, trackSurfaceOstium1,
-                                                  ostium1Position, trackSurfaceOstium2, ostium2Position,
-                                                  ostiumElementPositionDown, ostiumElementPositionAround,
-                                                  xFinal, d1Final, d2Final, nextNodeIdentifier,
-                                                  nextElementIdentifier, elementsCountAnnulusRadially,
-                                                  annulusMeshGroups)
+            generateUreters(region, nodes, mesh, ureterDefaultOptions, elementsCountAround, elementsCountThroughWall,
+                            elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
+                            ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
+                            d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
+                            annulusMeshGroups)
 
         fm.endChange()
         return annotationGroups
@@ -807,88 +818,89 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             lumenOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of urethra"))
             lumenOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen)
 
-def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaultOptions,elementsCountAround,
-                                           elementsCountAroundOstium, trackSurfaceOstium1, ostium1Position,
-                                           trackSurfaceOstium2, ostium2Position, ostiumElementPositionDown,
-                                           ostiumElementPositionAround, xBladder, d1Bladder, d2Bladder,
-                                           nextNodeIdentifier, nextElementIdentifier, elementsCountAnnulusRadially,
-                                           annulusMeshGroups = []):
+def generateUreters(region, nodes, mesh, ureterDefaultOptions,elementsCountAround, elementsCountThroughWall,
+                    elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
+                    ureter2Position, ureterElementPositionDown, ureterElementPositionAround,
+                    xBladder, d1Bladder, d2Bladder, nextNodeIdentifier, nextElementIdentifier,
+                    elementsCountUreterRadial, annulusMeshGroups = []):
 
     # Create ureters on the surface
     # Ureter 1
-    centerUreter1_x, centerUreter1_d1, centerUreter1_d2 = trackSurfaceOstium1.evaluateCoordinates(ostium1Position,
+    centerUreter1_x, centerUreter1_d1, centerUreter1_d2 = trackSurfaceUreter1.evaluateCoordinates(ureter1Position,
                                                                                           derivatives=True)
     td1, td2, td3 = calculate_surface_axes(centerUreter1_d1, centerUreter1_d2, [1.0, 0.0, 0.0])
-    m1 = 2 * elementsCountAround * (ostiumElementPositionDown - 1) + ostiumElementPositionAround + 2
-    ureter1StartCornerx = xBladder[m1]
+    endPointStartId1 = elementsCountThroughWall + 1 \
+         + (elementsCountThroughWall + 1) * elementsCountAround * (ureterElementPositionDown - (1 if ureter1Position.xi2 > 0.5 else 2)) \
+         + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
+    ureter1StartCornerx = xBladder[endPointStartId1 - 1]
     v1 = [(ureter1StartCornerx[c] - centerUreter1_x[c]) for c in range(3)]
-    ostium1Direction = vector.crossproduct3(td3, v1)
+    ureter1Direction = vector.crossproduct3(td3, v1)
     nodeIdentifier, elementIdentifier, (o1_x, o1_d1, o1_d2, _, o1_NodeId, o1_Positions) = \
-        generateOstiumMesh(region, ostiumDefaultOptions, trackSurfaceOstium1, ostium1Position, ostium1Direction,
+        generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter1, ureter1Position, ureter1Direction,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
                            ostiumMeshGroups=None)
+
     # Ureter 2
-    centerUreter2_x, centerUreter2_d1, centerUreter2_d2 = trackSurfaceOstium2.evaluateCoordinates(ostium2Position,
+    centerUreter2_x, centerUreter2_d1, centerUreter2_d2 = trackSurfaceUreter2.evaluateCoordinates(ureter2Position,
                                                                                                   derivatives=True)
     ad1, ad2, ad3 = calculate_surface_axes(centerUreter2_d1, centerUreter2_d2, [1.0, 0.0, 0.0])
-    m2 = 2 * elementsCountAround * (ostiumElementPositionDown - 1) + elementsCountAround - ostiumElementPositionAround
-    ureter2StartCornerx = xBladder[m2]
+    endPointStartId2 = elementsCountThroughWall + 1 \
+                       + (elementsCountThroughWall + 1) * elementsCountAround * \
+                       (ureterElementPositionDown - (1 if ureter1Position.xi2 > 0.5 else 2)) \
+                       + elementsCountAround - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0.5 else 0)
+    ureter2StartCornerx = xBladder[endPointStartId2 - 1]
     v2 = [(ureter2StartCornerx[c] - centerUreter2_x[c]) for c in range(3)]
-    ostium2Direction = vector.crossproduct3(ad3, v2)
+    ureter2Direction = vector.crossproduct3(ad3, v2)
     nodeIdentifier, elementIdentifier, (o2_x, o2_d1, o2_d2, _, o2_NodeId, o2_Positions) = \
-        generateOstiumMesh(region, ostiumDefaultOptions, trackSurfaceOstium2, ostium2Position, ostium2Direction,
+        generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter2, ureter2Position, ureter2Direction,
                            startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier)
 
-    # Create annulus mesh around ostiums
-    endPoints1_x = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endPoints1_d1 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endPoints1_d2 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endNode1_Id = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endDerivativesMap = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endPoints2_x = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endPoints2_d1 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endPoints2_d2 = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
-    endNode2_Id = [[None] * elementsCountAroundOstium, [None] * elementsCountAroundOstium]
+    # Create annulus mesh around ureters
+    endPoints1_x = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endPoints1_d1 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endPoints1_d2 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endNode1_Id = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endDerivativesMap = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endPoints2_x = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endPoints2_d1 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endPoints2_d2 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endNode2_Id = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+
+    count = 0
+    for n2 in range(3):
+        endNode1_Id[0][count] = endPointStartId1 + n2 * (elementsCountThroughWall + 1) * elementsCountAround
+        endNode2_Id[0][count] = endPointStartId2 + n2 * (elementsCountThroughWall + 1) * elementsCountAround
+        count += 1
+    for n1 in range(2):
+        endNode1_Id[0][count] = endNode1_Id[0][count - 1] + 1
+        endNode2_Id[0][count] = endNode2_Id[0][count - 1] + 1 - \
+                                (0 if (endNode2_Id[0][count - 1] - 2) % elementsCountAround > 0
+                                 else elementsCountAround)
+        count += 1
+    for n2 in range(2):
+        endNode1_Id[0][count] = endNode1_Id[0][count - 1] - (elementsCountThroughWall + 1) * elementsCountAround
+        endNode2_Id[0][count] = endNode2_Id[0][count - 1] - (elementsCountThroughWall + 1) * elementsCountAround
+        count += 1
+    endNode1_Id[0][count] = endNode1_Id[0][count - 1] - 1
+    endNode2_Id[0][count] = endNode2_Id[0][count - 1] - 1 + \
+                            (0 if (endNode2_Id[0][count - 1] - 3) % elementsCountAround > 0 else elementsCountAround)
+
+    for n in range(len(endNode1_Id[0])):
+        endNode1_Id[1][n] = endNode1_Id[0][n] + elementsCountAround
+        endNode2_Id[1][n] = endNode2_Id[0][n] + elementsCountAround
 
     for n3 in range(2):
-        n1 = 0
-        endNode1_Id[n3][n1] = (2 * ostiumElementPositionDown - 2 + n3) * elementsCountAround + \
-                              ostiumElementPositionAround + 1 + 2
-        endNode1_Id[n3][n1 + 1] = endNode1_Id[n3][n1] + 2 * elementsCountAround
-        endNode1_Id[n3][n1 + 2] = endNode1_Id[n3][n1 + 1] + 2 * elementsCountAround
-        endNode1_Id[n3][n1 + 3] = endNode1_Id[n3][n1 + 2] + 1
-        endNode1_Id[n3][n1 + 4] = endNode1_Id[n3][n1 + 3] + 1
-        endNode1_Id[n3][n1 + 5] = endNode1_Id[n3][n1 + 1] + 2
-        endNode1_Id[n3][n1 + 6] = endNode1_Id[n3][n1] + 2
-        endNode1_Id[n3][n1 + 7] = endNode1_Id[n3][n1] + 1
-
-        endNode2_Id[n3][n1] = (2 * ostiumElementPositionDown - 2 + n3) * elementsCountAround + elementsCountAround - \
-                              ostiumElementPositionAround - 1 + 2
-        endNode2_Id[n3][n1 + 1] = endNode2_Id[n3][n1] + 2 * elementsCountAround
-        endNode2_Id[n3][n1 + 2] = endNode2_Id[n3][n1 + 1] + 2 * elementsCountAround
-        endNode2_Id[n3][n1 + 3] = endNode2_Id[n3][n1 + 2] + 1
-        endNode2_Id[n3][n1 + 7] = endNode2_Id[n3][n1] + 1
-        if ostiumElementPositionAround == 0:
-            endNode2_Id[n3][n1 + 4] = endNode2_Id[n3][n1 + 3] - elementsCountAround + 1
-            endNode2_Id[n3][n1 + 5] = endNode2_Id[n3][n1 + 4] - 2 * elementsCountAround
-            endNode2_Id[n3][n1 + 6] = endNode2_Id[n3][n1 + 5] - 2 * elementsCountAround
-        else:
-            endNode2_Id[n3][n1 + 4] = endNode2_Id[n3][n1 + 3] + 1
-            endNode2_Id[n3][n1 + 5] = endNode2_Id[n3][n1 + 1] + 2
-            endNode2_Id[n3][n1 + 6] = endNode2_Id[n3][n1] + 2
-
-    for n3 in range(2):
-        for n1 in range(elementsCountAroundOstium):
+        for n1 in range(elementsCountAroundUreter):
             nc1 = endNode1_Id[n3][n1] - 1
             endPoints1_x[n3][n1] = xBladder[nc1]
             endPoints1_d1[n3][n1] = d1Bladder[nc1]
-            endPoints1_d2[n3][n1] = [d2Bladder[nc1][c] for c in range(3)]
+            endPoints1_d2[n3][n1] = d2Bladder[nc1]
             nc2 = endNode2_Id[n3][n1] - 1
             endPoints2_x[n3][n1] = xBladder[nc2]
             endPoints2_d1[n3][n1] = d1Bladder[nc2]
             endPoints2_d2[n3][n1] = d2Bladder[nc2]
 
-    for n1 in range(elementsCountAroundOstium):
+    for n1 in range(elementsCountAroundUreter):
         if n1 == 0:
             endDerivativesMap[0][n1] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
             endDerivativesMap[1][n1] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
@@ -914,30 +926,76 @@ def generateOstiumsAndAnnulusMeshOnBladder(region, fm, nodes, mesh, ostiumDefaul
             endDerivativesMap[0][n1] = ((-1, 0, 0), (0, -1, 0), None)
             endDerivativesMap[1][n1] = ((-1, 0, 0), (0, -1, 0), None)
 
+    startProportions1 = []
+    for n in range(len(o1_Positions)):
+        startProportions1.append(trackSurfaceUreter1.getProportion(o1_Positions[n]))
+
+    startProportions2 = []
+    for n in range(len(o2_Positions)):
+        startProportions2.append(trackSurfaceUreter2.getProportion(o2_Positions[n]))
+
+    endProportions1 = []
+    elementsAroundTrackSurface1 = trackSurfaceUreter1.elementsCount1
+    elementsAlongTrackSurface1 = trackSurfaceUreter1.elementsCount2
+
+    endProportions2 = []
+    elementsAroundTrackSurface2 = trackSurfaceUreter2.elementsCount1
+    elementsAlongTrackSurface2 = trackSurfaceUreter2.elementsCount2
+
+    firstIdxAround1 = ureterElementPositionAround + (0 if ureter1Position.xi1 > 0.5 else -1)
+    firstIdxAlong = ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)
+    firstIdxAround2 = elementsCountAround//2 - ureterElementPositionAround - (2 if ureter1Position.xi1 > 0.5 else 1)
+
+    for n in range(3):
+        endProportions1.append([(firstIdxAround1)/elementsAroundTrackSurface1,
+                                (firstIdxAlong + n)/elementsAlongTrackSurface1])
+        endProportions2.append([(firstIdxAround2) / elementsAroundTrackSurface2,
+                                (firstIdxAlong + n) / elementsAlongTrackSurface2])
+    for n in range(2):
+        endProportions1.append([(firstIdxAround1 + n + 1) / elementsAroundTrackSurface1,
+                                (firstIdxAlong + 2) / elementsAlongTrackSurface1])
+        endProportions2.append([(firstIdxAround2 + n + 1) / elementsAroundTrackSurface2,
+                                (firstIdxAlong + 2) / elementsAlongTrackSurface2])
+    for n in range(2):
+        endProportions1.append([(firstIdxAround1 + 2) / elementsAroundTrackSurface1,
+                                (firstIdxAlong - n + 1) / elementsAlongTrackSurface1])
+        endProportions2.append([(firstIdxAround2 + 2) / elementsAroundTrackSurface2,
+                                (firstIdxAlong - n + 1) / elementsAlongTrackSurface2])
+    endProportions1.append([(firstIdxAround1 + 1 )/ elementsAroundTrackSurface1,
+                            firstIdxAlong / elementsAlongTrackSurface1])
+    endProportions2.append([(firstIdxAround2 + 1) / elementsAroundTrackSurface2,
+                            firstIdxAlong / elementsAlongTrackSurface2])
+
     nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
         nodes, mesh, nodeIdentifier, elementIdentifier,
         o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
         endPoints1_x, endPoints1_d1, endPoints1_d2, None, endNode1_Id, endDerivativesMap,
-        elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups)
+        elementsCountRadial=elementsCountUreterRadial, meshGroups=annulusMeshGroups,
+        tracksurface=trackSurfaceUreter1, startProportions=startProportions1, endProportions=endProportions1,
+        rescaleEndDerivatives=True)
 
     nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
         nodes, mesh, nodeIdentifier, elementIdentifier,
         o2_x, o2_d1, o2_d2, None, o2_NodeId, None,
         endPoints2_x, endPoints2_d1, endPoints2_d2, None, endNode2_Id, endDerivativesMap,
-        elementsCountRadial=elementsCountAnnulusRadially, meshGroups=annulusMeshGroups)
+        elementsCountRadial=elementsCountUreterRadial, meshGroups=annulusMeshGroups,
+        tracksurface=trackSurfaceUreter2, startProportions=startProportions2, endProportions=endProportions2,
+        rescaleEndDerivatives=True)
 
-    # Store elements to be deleted later from bladder mesh
+    # Delete elements under annulus mesh
     element_identifiers = []
-    for n3 in range(2):
-        elementIdxUnderOstium1 = ostiumElementPositionDown * elementsCountAround + ostiumElementPositionAround + \
-                                 n3 * elementsCountAround + 1
-        element_identifiers.append(elementIdxUnderOstium1)
-        element_identifiers.append(elementIdxUnderOstium1 + 1)
-        elementIdxUnderOstium2 = ostiumElementPositionDown * elementsCountAround + elementsCountAround - \
-                                 ostiumElementPositionAround + n3 * elementsCountAround
-        element_identifiers.append(elementIdxUnderOstium2)
-        element_identifiers.append(elementIdxUnderOstium2 - 1)
+    elementToDeleteStartIdx1 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
+                             + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
+    elementToDeleteStartIdx2 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
+                             + elementsCountAround - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0.5 else 0)
+    elementToDeleteStartIdxList = [elementToDeleteStartIdx1, elementToDeleteStartIdx2]
+    for i in range(2):
+        elementToDeleteStart = elementToDeleteStartIdxList[i]
+        elementsToDelete = [elementToDeleteStart, elementToDeleteStart + 1,
+                            elementToDeleteStart + elementsCountAround,
+                            elementToDeleteStart + 1 + elementsCountAround]
+        element_identifiers += elementsToDelete
 
-        # Delete elements under annulus mesh
-        mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers)
+    mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers)
+
     return

@@ -14,26 +14,71 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
 
-def derivativeSignsToExpressionTerms(valueLabels, signs):
+def derivativeSignsToExpressionTerms(valueLabels, signs, scaleFactorIdx = None):
     '''
-    Return remap expression terms for summing derivative[i]*sign[i]
+    Return remap expression terms for summing derivative[i]*sign[i]*scaleFactor
     :param valueLabels: List of node value labels to possibly include.
     :param signs: List of 1 (no scaling), -1 (scale by scale factor 1) or 0 (no term).
+    :param scaleFactorIdx: Optional index of local scale factor to scale all non-zero terms. Default None means no extra scaling.
     '''
     expressionTerms = []
     for i in range(len(valueLabels)):
         if signs[i] is 1:
-            expressionTerms.append( ( valueLabels[i], [] ) )
+            expressionTerms.append((valueLabels[i], ([ scaleFactorIdx ] if scaleFactorIdx else [])))
         elif signs[i] is -1:
-            expressionTerms.append( ( valueLabels[i], [1] ) )
+            expressionTerms.append((valueLabels[i], ([1, scaleFactorIdx] if scaleFactorIdx else [1])))
     return expressionTerms
+
+def getMappedD1D2(gds, derivativesMaps):
+    '''
+    Get vector combinations of d1In, d2In, d3In indicated by derivativesMap.
+    :param gds: List of global d1, d2 and optionally d3.
+    :param derivativesMaps: List over d1, d2, d3, and optionally d1b (for
+    different d1 exiting global node) of list of 3 weights of gds,
+    each limited to  -1.0, 0.0, or -1.0.
+    :return: Effective d1, d2. Where d1 is around, d2 is radial.
+    '''
+    dslimit = len(gds)
+    if not (derivativesMaps and derivativesMaps[0]):
+        d1 = gds[0]
+    else:
+        derivativesMap = derivativesMaps[0]
+        d1 = [ 0.0, 0.0, 0.0 ]
+        for ds in range(dslimit):
+            if derivativesMap[ds] != 0.0:
+                for c in range(3):
+                    d1[c] += derivativesMap[ds]*gds[ds][c]
+        if len(derivativesMaps) > 3:
+            # average with d1 map for other side
+            derivativesMap = derivativesMaps[3]
+            d1 = [ 0.5*d for d in d1 ]
+            if not derivativesMap:
+                for c in range(3):
+                    d1[c] += 0.5*gds[0][c]
+            else:
+                for ds in range(dslimit):
+                    if derivativesMap[ds] != 0.0:
+                        for c in range(3):
+                            d1[c] += 0.5*derivativesMap[ds]*gds[ds][c]
+    if not (derivativesMaps and derivativesMaps[1]):
+        d2 = gds[1]
+    else:
+        derivativesMap = derivativesMaps[1]
+        d2 = [ 0.0, 0.0, 0.0 ]
+        for ds in range(dslimit):
+            if derivativesMap[ds] != 0.0:
+                for c in range(3):
+                    d2[c] += derivativesMap[ds]*gds[ds][c]
+    return d1, d2
+
 
 def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
     endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
     forceStartLinearXi3 = False, forceMidLinearXi3 = False, forceEndLinearXi3 = False,
     maxStartThickness = None, maxEndThickness = None, useCrossDerivatives = False,
-    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportions = None, endProportions = None):
+    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportions = None, endProportions = None,
+    rescaleStartDerivatives = False, rescaleEndDerivatives = False, sampleBlend = 0.0):
     """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
@@ -72,6 +117,14 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     around as for startPoints. Values only given for tracksurface for outer layer (xi3 == 1).
     :param endProportions: Proportion around and along of endPoints on track surface. These vary with nodes
     around as for endPoints. Values only given for tracksurface for outer layer (xi3 == 1).
+    :param rescaleStartDerivatives, rescaleEndDerivatives: Optional flags to compute and multiply additional scale factors
+    on start, end or both radial derivatives to fit arc length, needed if derivatives are of the wrong scale for the radial
+    distances and the chosen elementsCountRadial. If either is True, derivatives and sampled radial nodes are spaced for a
+    gradual change of derivative from that at the other end. If both are True, scaling is set to give even sampling and arc
+    length derivatives.
+    :param sampleBlend: Real value varying from 0.0 to 1.0 controlling weighting of start and end
+    derivatives when interpolating extra points in-between, where 0.0 = sample with equal end derivatives,
+    and 1.0 = proportional to current magnitudes, interpolated in between.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
     """
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
@@ -134,178 +187,147 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
         pd2[n3] = [ startPointsd2[n3], endPointsd2[n3] ]
         pd3[n3] = [ startPointsd3[n3] if (startPointsd3 is not None) else None, \
                     endPointsd3[n3] if (endPointsd3 is not None) else None ]
-    if elementsCountRadial > 1:
-        # add in-between points
-        startPointsd = [ startPointsd1, startPointsd2, startPointsd3 ]
-        startPointsdslimit = 2 if (startPointsd3 is None) else 3
-        endPointsd = [ endPointsd1, endPointsd2, endPointsd3 ]
-        endPointsdslimit = 2 if (endPointsd3 is None) else 3
-        for n3 in range(2):
-            for n2 in range(1, elementsCountRadial):
-                px [n3].insert(n2, [ None ]*nodesCountAround)
-                pd1[n3].insert(n2, [ None ]*nodesCountAround)
-                pd2[n3].insert(n2, [ None ]*nodesCountAround)
-                pd3[n3].insert(n2, None if midLinearXi3 else [ None ]*nodesCountAround)
-        # compute on outside / n3 = 1, then map to inside using thickness
-        thicknesses = []
-        thicknesses.append([ vector.magnitude([ (startPointsx[1][n1][c] - startPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
-        if maxStartThickness:
-            for n1 in range(nodesCountAround):
-                thicknesses[0][n1] = min(thicknesses[0][n1], maxStartThickness)
+
+    if rescaleStartDerivatives:
+        scaleFactorMapStart = [ [] for n2 in range(2) ]
+    if rescaleEndDerivatives:
+        scaleFactorMapEnd = [ [] for n2 in range(2) ]
+
+    # following code adds in-between points, but also handles rescaling for 1 radial element
+    for n3 in range(2):
         for n2 in range(1, elementsCountRadial):
-            thicknesses.append([ None ]*nodesCountAround)
-        thicknesses.append([ vector.magnitude([ (endPointsx[1][n1][c] - endPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
-        if maxEndThickness:
-            for n1 in range(nodesCountAround):
-                thicknesses[-1][n1] = min(thicknesses[-1][n1], maxEndThickness)
-        n3 == 1
+            px [n3].insert(n2, [ None ]*nodesCountAround)
+            pd1[n3].insert(n2, [ None ]*nodesCountAround)
+            pd2[n3].insert(n2, [ None ]*nodesCountAround)
+            pd3[n3].insert(n2, None if midLinearXi3 else [ None ]*nodesCountAround)
+    # compute on outside / n3 = 1, then map to inside using thickness
+    thicknesses = []
+    thicknesses.append([ vector.magnitude([ (startPointsx[1][n1][c] - startPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+    if maxStartThickness:
         for n1 in range(nodesCountAround):
-            ax  = startPointsx [n3][n1]
-            if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][0] is None):
-                ad1 = startPointsd1[n3][n1]
-            else:
-                derivativesMap = startDerivativesMap[n3][n1][0]
-                ad1 = [ 0.0, 0.0, 0.0 ]
-                for ds in range(startPointsdslimit):
-                    if derivativesMap[ds] != 0.0:
-                        for c in range(3):
-                            ad1[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
-                if len(startDerivativesMap[n3][n1]) > 3:
-                    # average with d1 map for other side
-                    derivativesMap = startDerivativesMap[n3][n1][3]
-                    ad1 = [ 0.5*d for d in ad1 ]
-                    if not derivativesMap:
-                        for c in range(3):
-                            ad1[c] += 0.5*startPointsd[0][n3][n1][c]
-                    else:
-                        for ds in range(startPointsdslimit):
-                            if derivativesMap[ds] != 0.0:
-                                for c in range(3):
-                                    ad1[c] += 0.5*derivativesMap[ds]*startPointsd[ds][n3][n1][c]
-            if (startDerivativesMap is None) or (startDerivativesMap[n3][n1][1] is None):
-                ad2 = startPointsd2[n3][n1]
-            else:
-                derivativesMap = startDerivativesMap[n3][n1][1]
-                ad2 = [ 0.0, 0.0, 0.0 ]
-                for ds in range(startPointsdslimit):
-                    if derivativesMap[ds] != 0.0:
-                        for c in range(3):
-                            ad2[c] += derivativesMap[ds]*startPointsd[ds][n3][n1][c]
+            thicknesses[0][n1] = min(thicknesses[0][n1], maxStartThickness)
+    for n2 in range(1, elementsCountRadial):
+        thicknesses.append([ None ]*nodesCountAround)
+    thicknesses.append([ vector.magnitude([ (endPointsx[1][n1][c] - endPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+    if maxEndThickness:
+        for n1 in range(nodesCountAround):
+            thicknesses[-1][n1] = min(thicknesses[-1][n1], maxEndThickness)
+    n3 == 1
+    for n1 in range(nodesCountAround):
+        ax  = startPointsx[n3][n1]
+        ad1, ad2 = getMappedD1D2([ startPointsd1[n3][n1], startPointsd2[n3][n1] ] + ([ startPointsd3[n3][n1] ] if startPointsd3 else []),
+                                 startDerivativesMap[n3][n1] if startDerivativesMap else None)
+        bx  = endPointsx[n3][n1]
+        bd1, bd2 = getMappedD1D2([ endPointsd1[n3][n1], endPointsd2[n3][n1] ] + ([ endPointsd3[n3][n1] ] if endPointsd3 else []),
+                                 endDerivativesMap[n3][n1] if endDerivativesMap else None)
 
-            bx  = endPointsx [n3][n1]
-            if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][0] is None):
-                bd1 = endPointsd1[n3][n1]
-            else:
-                derivativesMap = endDerivativesMap[n3][n1][0]
-                bd1 = [ 0.0, 0.0, 0.0 ]
-                for ds in range(endPointsdslimit):
-                    if derivativesMap[ds] != 0.0:
-                        for c in range(3):
-                            bd1[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
-                if len(endDerivativesMap[n3][n1]) > 3:
-                    # average with d1 map for other side
-                    derivativesMap = endDerivativesMap[n3][n1][3]
-                    bd1 = [ 0.5*d for d in bd1 ]
-                    if not derivativesMap:
-                        for c in range(3):
-                            bd1[c] += 0.5*endPointsd[0][n3][n1][c]
-                    else:
-                        for ds in range(endPointsdslimit):
-                            if derivativesMap[ds] != 0.0:
-                                for c in range(3):
-                                    bd1[c] += 0.5*derivativesMap[ds]*endPointsd[ds][n3][n1][c]
-            if (endDerivativesMap is None) or (endDerivativesMap[n3][n1][1] is None):
-                bd2 = endPointsd2[n3][n1]
-            else:
-                derivativesMap = endDerivativesMap[n3][n1][1]
-                bd2 = [ 0.0, 0.0, 0.0 ]
-                for ds in range(endPointsdslimit):
-                    if derivativesMap[ds] != 0.0:
-                        for c in range(3):
-                            bd2[c] += derivativesMap[ds]*endPointsd[ds][n3][n1][c]
+        # sample between start and end points and derivatives
+        # scaling end derivatives to arc length gives even curvature along the curve
+        aMag = vector.magnitude(ad2)
+        bMag = vector.magnitude(bd2)
+        ad2Scaled = vector.setMagnitude(ad2, 0.5*((1.0 + sampleBlend)*aMag + (1.0 - sampleBlend)*bMag))
+        bd2Scaled = vector.setMagnitude(bd2, 0.5*((1.0 + sampleBlend)*bMag + (1.0 - sampleBlend)*aMag))
+        scaling = interp.computeCubicHermiteDerivativeScaling(ax, ad2Scaled, bx, bd2Scaled)
+        ad2Scaled = [ d*scaling for d in ad2Scaled ]
+        bd2Scaled = [ d*scaling for d in bd2Scaled ]
+        derivativeMagnitudeStart = None if rescaleStartDerivatives else vector.magnitude(ad2)
+        derivativeMagnitudeEnd = None if rescaleEndDerivatives else vector.magnitude(bd2)
+        if tracksurface:
+            mx, md2, md1, md3, mProportions = \
+                tracksurface.createHermiteCurvePoints(startProportions[n1][0], startProportions[n1][1],
+                                                        endProportions[n1][0], endProportions[n1][1],
+                                                        elementsCountRadial,
+                                                        derivativeStart=[ d/elementsCountRadial for d in ad2Scaled ],
+                                                        derivativeEnd=[ d/elementsCountRadial for d in bd2Scaled ])
+            mx, md2, md1 = tracksurface.resampleHermiteCurvePointsSmooth(mx, md2, md1, md3, mProportions, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:3]
+            # interpolate thicknesses using xi calculated from radial arclength distances to points
+            arcLengthInsideToRadialPoint = [ 0.0 ] + [ interp.getCubicHermiteArcLength(mx[n2], md2[n2], mx[n2 + 1], md2[n2 + 1]) for n2 in range(elementsCountRadial) ]
+            arclengthInsideToOutside = sum(arcLengthInsideToRadialPoint)
+            thi = []
+            for n2 in range(elementsCountRadial + 1):
+                xi = arcLengthInsideToRadialPoint[n2 - 1]/arclengthInsideToOutside
+                thi.append(thicknesses[0][n1]*xi + thicknesses[-1][n1]*(1.0 - xi))
+        else:
+            mx, md2, me, mxi = interp.sampleCubicHermiteCurvesSmooth([ ax, bx ], [ ad2Scaled, bd2Scaled ], elementsCountRadial,
+                derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:4]
+            md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
+            thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
 
-            # scaling end derivatives to arc length gives even curvature along the curve
-            if tracksurface:
-                mx, md2, md1 = \
-                    tracksurface.createHermiteCurvePoints(startProportions[n1][0], startProportions[n1][1],
-                                                          endProportions[n1][0], endProportions[n1][1],
-                                                          elementsCountRadial, derivativeStart=ad2, derivativeEnd=bd2)[0:3]
-            else:
-                arcLength = interp.computeCubicHermiteArcLength(ax, ad2, bx, bd2, rescaleDerivatives = False)
-                scaledDerivatives = [ vector.setMagnitude(d2, arcLength) for d2 in [ ad2, bd2 ]]
-                mx, md2, me, mxi = interp.sampleCubicHermiteCurvesSmooth([ ax, bx ], scaledDerivatives, elementsCountRadial,
-                    derivativeMagnitudeStart = vector.magnitude(ad2),
-                    derivativeMagnitudeEnd = vector.magnitude(bd2))[0:4]
-                md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
-                thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
+        # set scalefactors if rescaling, make same on inside for now
+        if rescaleStartDerivatives:
+            scaleFactor = vector.magnitude(md2[0])/vector.magnitude(ad2)
+            scaleFactorMapStart[n3].append(scaleFactor)
+        if rescaleEndDerivatives:
+            scaleFactor = vector.magnitude(md2[-1])/vector.magnitude(bd2)
+            scaleFactorMapEnd[n3].append(scaleFactor)
 
-                #md2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixStartDerivative = True, fixEndDerivative = True)
+        for n2 in range(1, elementsCountRadial):
+            px [n3][n2][n1] = mx [n2]
+            pd1[n3][n2][n1] = md1[n2]
+            pd2[n3][n2][n1] = md2[n2]
+            thicknesses[n2][n1] = thi[n2]
+
+    # now get inner positions from normal and thickness, derivatives from curvature
+    for n2 in range(1, elementsCountRadial):
+        # first smooth derivative 1 around outer loop
+        pd1[1][n2] = interp.smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2], magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+
+        for n1 in range(nodesCountAround):
+            normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
+            thickness = thicknesses[n2][n1]
+            d3 = [ d*thickness for d in normal ]
+            px [0][n2][n1] = [ (px [1][n2][n1][c] - d3[c]) for c in range(3) ]
+            # calculate inner d1 from curvature around
+            n1m = n1 - 1
+            n1p = (n1 + 1)%nodesCountAround
+            curvature = 0.5*(
+                interp.getCubicHermiteCurvature(px[1][n2][n1m], pd1[1][n2][n1m], px[1][n2][n1 ], pd1[1][n2][n1 ], normal, 1.0) +
+                interp.getCubicHermiteCurvature(px[1][n2][n1 ], pd1[1][n2][n1 ], px[1][n2][n1p], pd1[1][n2][n1p], normal, 0.0))
+            factor = 1.0 + curvature*thickness
+            pd1[0][n2][n1] = [ factor*d for d in pd1[1][n2][n1] ]
+            # calculate inner d2 from curvature radially
+            n2m = n2 - 1
+            n2p = n2 + 1
+            curvature = 0.5*(
+                interp.getCubicHermiteCurvature(px[1][n2m][n1], pd2[1][n2m][n1], px[1][n2 ][n1], pd2[1][n2 ][n1], normal, 1.0) +
+                interp.getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
+            factor = 1.0 + curvature*thickness
+            pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
+            d2Scaled = [factor*d for d in pd2[1][n2][n1]]
+            if vector.dotproduct(vector.normalise(pd2[1][n2][n1]), vector.normalise(d2Scaled)) == -1:
+                pd2[0][n2][n1] = [-factor * d for d in pd2[1][n2][n1]]
+            if not midLinearXi3:
+                pd3[0][n2][n1] = pd3[1][n2][n1] = d3
+
+        # smooth derivative 1 around inner loop
+        pd1[0][n2] = interp.smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2], magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+
+    for n3 in range(0, 1):  # was (0, nodesCountWall)
+        # smooth derivative 2 radially/along annulus
+        for n1 in range(nodesCountAround):
+            mx  = [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ]
+            md2 = [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ]
+            # replace mapped start/end d2
+            md2[0] = getMappedD1D2([ startPointsd1[n3][n1], startPointsd2[n3][n1] ] + ([ startPointsd3[n3][n1] ] if startPointsd3 else []),
+                                   startDerivativesMap[n3][n1] if startDerivativesMap else None)[1]
+            md2[-1] = getMappedD1D2([ endPointsd1[n3][n1], endPointsd2[n3][n1] ] + ([ endPointsd3[n3][n1] ] if endPointsd3 else []),
+                                    endDerivativesMap[n3][n1] if endDerivativesMap else None)[1]
+
+            sd2 = interp.smoothCubicHermiteDerivativesLine(mx, md2, fixAllDirections = True,
+                                                           fixStartDerivative = not rescaleStartDerivatives,
+                                                           fixStartDirection = rescaleStartDerivatives,
+                                                           fixEndDerivative = not rescaleEndDerivatives,
+                                                           fixEndDirection = rescaleEndDerivatives,
+                                                           magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+            if rescaleStartDerivatives:
+                scaleFactor = vector.magnitude(sd2[0]) / vector.magnitude(md2[0])
+                scaleFactorMapStart[n3].append(scaleFactor)
+            if rescaleEndDerivatives:
+                scaleFactor = vector.magnitude(sd2[-1]) / vector.magnitude(md2[-1])
+                scaleFactorMapEnd[n3].append(scaleFactor)
 
             for n2 in range(1, elementsCountRadial):
-                px [n3][n2][n1] = mx [n2]
-                pd1[n3][n2][n1] = md1[n2]
-                pd2[n3][n2][n1] = md2[n2]
-                if not tracksurface:
-                    thicknesses[n2][n1] = thi[n2]
-
-        # Interpolate thicknesses using xi calculated using arclength distances between points
-        if tracksurface:
-            for n1 in range(nodesCountAround):
-                arclengthInsideToOutside = 0.0
-                arcLengthInsideToRadialPoint = []
-                for n2 in range(elementsCountRadial):
-                    arclengthInsideToOutside += interp.computeCubicHermiteArcLength(px[n3][n2][n1], pd2[n3][n2][n1], px[n3][n2+1][n1], pd2[n3][n2+1][n1], False)
-                    if n2 < elementsCountRadial:
-                        arcLengthInsideToRadialPoint.append(arclengthInsideToOutside)
-                for n2 in range(elementsCountRadial - 1):
-                    xi = arcLengthInsideToRadialPoint[n2]/arclengthInsideToOutside
-                    thicknesses[n2+1][n1] = thicknesses[0][n1]*xi + thicknesses[-1][n1]*(1-xi)
-
-        # now get inner positions from normal and thickness, derivatives from curvature
-        for n2 in range(1, elementsCountRadial):
-            # first smooth derivative 1 around outer loop
-            pd1[1][n2] = interp.smoothCubicHermiteDerivativesLoop(px[1][n2], pd1[1][n2], magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
-
-            for n1 in range(nodesCountAround):
-                normal = vector.normalise(vector.crossproduct3(pd1[1][n2][n1], pd2[1][n2][n1]))
-                thickness = thicknesses[n2][n1]
-                d3 = [ d*thickness for d in normal ]
-                px [0][n2][n1] = [ (px [1][n2][n1][c] - d3[c]) for c in range(3) ]
-                # calculate inner d1 from curvature around
-                n1m = n1 - 1
-                n1p = (n1 + 1)%nodesCountAround
-                curvature = 0.5*(
-                    interp.getCubicHermiteCurvature(px[1][n2][n1m], pd1[1][n2][n1m], px[1][n2][n1 ], pd1[1][n2][n1 ], normal, 1.0) +
-                    interp.getCubicHermiteCurvature(px[1][n2][n1 ], pd1[1][n2][n1 ], px[1][n2][n1p], pd1[1][n2][n1p], normal, 0.0))
-                factor = 1.0 + curvature*thickness
-                pd1[0][n2][n1] = [ factor*d for d in pd1[1][n2][n1] ]
-                # calculate inner d2 from curvature radially
-                n2m = n2 - 1
-                n2p = n2 + 1
-                curvature = 0.5*(
-                    interp.getCubicHermiteCurvature(px[1][n2m][n1], pd2[1][n2m][n1], px[1][n2 ][n1], pd2[1][n2 ][n1], normal, 1.0) +
-                    interp.getCubicHermiteCurvature(px[1][n2 ][n1], pd2[1][n2 ][n1], px[1][n2p][n1], pd2[1][n2p][n1], normal, 0.0))
-                factor = 1.0 + curvature*thickness
-                pd2[0][n2][n1] = [ factor*d for d in pd2[1][n2][n1] ]
-                d2Scaled = [factor*d for d in pd2[1][n2][n1]]
-                if vector.dotproduct(vector.normalise(pd2[1][n2][n1]), vector.normalise(d2Scaled)) == -1:
-                    pd2[0][n2][n1] = [-factor * d for d in pd2[1][n2][n1]]
-                if not midLinearXi3:
-                    pd3[0][n2][n1] = pd3[1][n2][n1] = d3
-
-            # smooth derivative 1 around inner loop
-            pd1[0][n2] = interp.smoothCubicHermiteDerivativesLoop(px[0][n2], pd1[0][n2], magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
-
-        for n3 in range(0, 1):  # was (0, nodesCountWall)
-            # smooth derivative 2 radially/along annulus
-            for n1 in range(nodesCountAround):
-                sd2 = interp.smoothCubicHermiteDerivativesLine(
-                    [ px [n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
-                    [ pd2[n3][n2][n1] for n2 in range(elementsCountRadial + 1) ],
-                    fixAllDirections = True, fixStartDerivative = True, fixEndDerivative = True,
-                    magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
-                for n2 in range(elementsCountRadial + 1):
-                    pd2[n3][n2][n1] = sd2[n2]
+                pd2[n3][n2][n1] = sd2[n2]
 
     ##############
     # Create nodes
@@ -373,43 +395,90 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
         eftFactory = tricubichermite if nonlinearXi3 else bicubichermitelinear
         eftStandard = eftFactory.createEftBasic()
         elementtemplateStandard.defineField(coordinates, -1, eftStandard)
-        mapStartDerivatives = (e2 == 0) and (startDerivativesMap is not None)
+        mapStartDerivatives = (e2 == 0) and (startDerivativesMap or rescaleStartDerivatives)
         mapStartLinearDerivativeXi3 = nonlinearXi3 and rowLinearXi3[e2]
-        mapEndDerivatives = (e2 == (elementsCountRadial - 1)) and (endDerivativesMap is not None)
+        mapEndDerivatives = (e2 == (elementsCountRadial - 1)) and (endDerivativesMap or rescaleEndDerivatives)
         mapEndLinearDerivativeXi3 = nonlinearXi3 and rowLinearXi3[e2 + 1]
         mapDerivatives = mapStartDerivatives or mapStartLinearDerivativeXi3 or mapEndDerivatives or mapEndLinearDerivativeXi3
         for e1 in range(elementsCountAround):
             en = (e1 + 1)%elementsCountAround
             nids = [ nodeId[0][e2][e1], nodeId[0][e2][en], nodeId[0][e2 + 1][e1], nodeId[0][e2 + 1][en],
                      nodeId[1][e2][e1], nodeId[1][e2][en], nodeId[1][e2 + 1][e1], nodeId[1][e2 + 1][en] ]
+            scaleFactors = []
 
             if mapDerivatives:
                 eft1 = eftFactory.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1], [])
+                # work out if scaling by global -1
+                scaleMinus1 = mapStartLinearDerivativeXi3 or mapEndLinearDerivativeXi3
+                if (not scaleMinus1) and startDerivativesMap:
+                    for n3 in range(2):
+                        for i in range(2):
+                            derivativesMap = startDerivativesMap[n3][e1] if (i == 0) else startDerivativesMap[n3][en]
+                            for map in derivativesMap:
+                                if map and (-1 in map):
+                                    scaleMinus1 = True
+                                    break
+                if (not scaleMinus1) and endDerivativesMap:
+                    for n3 in range(2):
+                        for i in range(2):
+                            derivativesMap = endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]
+                            for map in derivativesMap:
+                                if map and (-1 in map):
+                                    scaleMinus1 = True
+                                    break
+                # make node scale factors vary fastest by local node varying across lower xi
+                nodeScaleFactorIds = []
+                for n3 in range(2):
+                    if mapStartDerivatives and rescaleStartDerivatives:
+                        for i in range(2):
+                            derivativesMap = (startDerivativesMap[n3][e1][1] if (i == 0) else startDerivativesMap[n3][en][1]) if startDerivativesMap else None
+                            nodeScaleFactorIds.append(getQuadrantID(derivativesMap if derivativesMap else (0, 1, 0)))
+                    if mapEndDerivatives and rescaleEndDerivatives:
+                        for i in range(2):
+                            derivativesMap = (endDerivativesMap[n3][e1][1] if (i == 0) else endDerivativesMap[n3][en][1]) if endDerivativesMap else None
+                            nodeScaleFactorIds.append(getQuadrantID(derivativesMap if derivativesMap else (0, 1, 0)))
+                setEftScaleFactorIds(eft1, [1] if scaleMinus1 else [], nodeScaleFactorIds)
+                firstNodeScaleFactorIndex = 2 if scaleMinus1 else 1
+                firstStartNodeScaleFactorIndex = firstNodeScaleFactorIndex if (mapStartDerivatives and rescaleStartDerivatives) else None
+                firstEndNodeScaleFactorIndex = (firstNodeScaleFactorIndex + (2 if firstStartNodeScaleFactorIndex else 0)) if (mapEndDerivatives and rescaleEndDerivatives) else None
+                layerNodeScaleFactorIndexOffset = 4 if (firstStartNodeScaleFactorIndex and firstEndNodeScaleFactorIndex) else 2
+                if scaleMinus1:
+                    scaleFactors.append(-1.0)
+                for n3 in range(2):
+                    if firstStartNodeScaleFactorIndex:
+                        scaleFactors.append(scaleFactorMapStart[n3][e1])
+                        scaleFactors.append(scaleFactorMapStart[n3][en])
+                    if firstEndNodeScaleFactorIndex:
+                        scaleFactors.append(scaleFactorMapEnd[n3][e1])
+                        scaleFactors.append(scaleFactorMapEnd[n3][en])
+
                 if mapStartLinearDerivativeXi3:
                     eftFactory.setEftLinearDerivative2(eft1, [ 1, 5, 2, 6 ], Node.VALUE_LABEL_D_DS3, [ Node.VALUE_LABEL_D2_DS1DS3 ])
                 if mapStartDerivatives:
                     for i in range(2):
                         lns = [ 1, 5 ] if (i == 0) else [ 2, 6 ]
                         for n3 in range(2):
-                            derivativesMap = startDerivativesMap[n3][e1] if (i == 0) else startDerivativesMap[n3][en]
+                            derivativesMap = (startDerivativesMap[n3][e1] if (i == 0) else startDerivativesMap[n3][en]) if startDerivativesMap else (None, None, None)
                             # handle different d1 on each side of node
                             d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 4)) else derivativesMap[3]
-                            d2Map = derivativesMap[1]
+                            d2Map = derivativesMap[1] if derivativesMap[1] else (0, 1, 0)
                             d3Map = derivativesMap[2]
                             # use temporary to safely swap DS1 and DS2:
                             ln = [ lns[n3] ]
-                            if d1Map is not None:
+                            if d1Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
-                            if d3Map is not None:
+                            if d3Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
-                            if d2Map is not None:
+                            if d2Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
-                            if d1Map is not None:
+                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1,
+                                                                        Node.VALUE_LABEL_D_DS2,
+                                                                        Node.VALUE_LABEL_D_DS3 ), d2Map,
+                                                                     (firstStartNodeScaleFactorIndex + i + n3*layerNodeScaleFactorIndexOffset) if rescaleStartDerivatives else None) )
+                            if d1Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
-                            if d3Map is not None:
+                            if d3Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
                 if mapEndLinearDerivativeXi3:
@@ -418,26 +487,31 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                     for i in range(2):
                         lns = [ 3, 7 ] if (i == 0) else [ 4, 8 ]
                         for n3 in range(2):
-                            derivativesMap = endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]
+                            derivativesMap = (endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]) if endDerivativesMap else (None, None, None)
                             # handle different d1 on each side of node
                             d1Map = derivativesMap[0] if ((i == 1) or (len(derivativesMap) < 4)) else derivativesMap[3]
-                            d2Map = derivativesMap[1]
+                            d2Map = derivativesMap[1] if derivativesMap[1] else (0, 1, 0)
                             d3Map = derivativesMap[2]
+
                             # use temporary to safely swap DS1 and DS2:
                             ln = [ lns[n3] ]
-                            if d1Map is not None:
+                            if d1Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D2_DS1DS2, [] ) ])
-                            if d3Map is not None:
+                            if d3Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D2_DS2DS3, [] ) ])
-                            if d2Map is not None:
+                            if d2Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D_DS2, \
-                                    derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d2Map))
-                            if d1Map is not None:
+                                                       derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1,
+                                                                                           Node.VALUE_LABEL_D_DS2,
+                                                                                           Node.VALUE_LABEL_D_DS3), d2Map,
+                                                                                        (firstEndNodeScaleFactorIndex + i + n3*layerNodeScaleFactorIndexOffset) if rescaleEndDerivatives else None) )
+                            if d1Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS1DS2, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d1Map))
-                            if d3Map is not None:
+                            if d3Map:
                                 remapEftNodeValueLabel(eft1, ln, Node.VALUE_LABEL_D2_DS2DS3, \
                                     derivativeSignsToExpressionTerms( ( Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ), d3Map))
+
                 elementtemplateX.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateX
             else:
@@ -446,11 +520,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
 
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids)
-            if mapDerivatives:
-                result3 = element.setScaleFactors(eft1, [ -1.0 ])
-            #else:
-            #    result3 = '-'
-            #print('create element annulus', element.isValid(), elementIdentifier, result2, result3, nids)
+            if scaleFactors:
+                result3 = element.setScaleFactors(eft1, scaleFactors);
+            #print('create element annulus', element.isValid(), elementIdentifier, eft1.validate(), result2, result3 if scaleFactors else None, nids)
             elementIdentifier += 1
 
             if rowMeshGroups:
@@ -460,3 +532,17 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     fm.endChange()
 
     return nodeIdentifier, elementIdentifier
+
+def getQuadrantID(d):
+    """
+    Returns a scale factor ID based on direction of the derivative. Index starts
+    at 1 in direction (1, 0, 0) and progresses in anti-clockwise direction.
+    :param d: directional derivative
+    :return: scale factor ID
+    """
+    maps = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (-1, 1, 0), (-1, 0, 0), (-1, -1, 0), (0, -1, 0), (1, -1, 0),  # d3 = 0
+            (1, 0, 1), (1, 1, 1), (0, 1, 1), (-1, 1, 1), (-1, 0, 1), (-1, -1, 1), (0, -1, 1), (1, -1, 1), (0, 0, 1),  # d3 = 1
+            (1, 0, -1), (1, 1, -1), (0, 1, -1), (-1, 1, -1), (-1, 0, -1), (-1, -1, -1), (0, -1, -1), (1, -1, -1), (0, 0, -1)]  # d3 = -1
+    for i in range(len(maps)):
+        if d == maps[i]:
+            return i + 1
