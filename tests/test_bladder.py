@@ -87,7 +87,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
 
         annotationGroups = MeshType_3d_bladder1.generateBaseMesh(region, options)
-        self.assertEqual(2, len(annotationGroups))
+        self.assertEqual(3, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         if annotationGroups is not None:
