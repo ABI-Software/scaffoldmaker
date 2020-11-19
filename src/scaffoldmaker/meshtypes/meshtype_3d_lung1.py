@@ -126,13 +126,13 @@ class MeshType_3d_lung1(Scaffold_base):
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
         rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
 
-        eft1 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi2Plane([1, 5], Xi2=0)
-        eft2 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi2Plane([3, 7], Xi2=1)
-        eft3 = eftfactory.createEftWedgeCollapseXi2QuadrantAtXi3Plane([5, 6], Xi3=1)
-        eft4 = eftfactory.createEftWedgeCollapseXi2QuadrantAtXi3Plane([7, 8], Xi3=1)
-        eft5 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi3Plane([5, 7], Xi3=1)
-        eft6 = eftfactory.createEftTetrahedronCollapseXi1Xi2QuadrantAtXi3One(8, 2)
-        eft7 = eftfactory.createEftTetrahedronCollapseXi1Xi2QuadrantAtXi3One(6, 3)
+        eft1 = eftfactory.createEftWedgeCollapseXi1Quadrant([1, 5])
+        eft2 = eftfactory.createEftWedgeCollapseXi1Quadrant([3, 7])
+        eft3 = eftfactory.createEftWedgeCollapseXi2Quadrant([5, 6])
+        eft4 = eftfactory.createEftWedgeCollapseXi2Quadrant([7, 8])
+        eft5 = eftfactory.createEftWedgeCollapseXi1Quadrant([5, 7])
+        eft6 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(8, 2)
+        eft7 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(6, 3)
 
         elementIdentifier = 1
         for e3 in range(elementsCount3):
