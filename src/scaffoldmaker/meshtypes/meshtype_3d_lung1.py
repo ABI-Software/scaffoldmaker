@@ -131,8 +131,8 @@ class MeshType_3d_lung1(Scaffold_base):
         eft3 = eftfactory.createEftWedgeCollapseXi2QuadrantAtXi3Plane([5, 6], Xi3=1)
         eft4 = eftfactory.createEftWedgeCollapseXi2QuadrantAtXi3Plane([7, 8], Xi3=1)
         eft5 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi3Plane([5, 7], Xi3=1)
-        eft6 = eftfactory.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2Zero()
-        eft7 = eftfactory.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2One()
+        eft6 = eftfactory.createEftTetrahedronCollapseXi1Xi2QuadrantAtXi3One(8, 2)
+        eft7 = eftfactory.createEftTetrahedronCollapseXi1Xi2QuadrantAtXi3One(6, 3)
 
         elementIdentifier = 1
         for e3 in range(elementsCount3):
