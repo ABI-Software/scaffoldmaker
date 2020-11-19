@@ -296,12 +296,11 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         cumNodesCountsPerArm = [sum(nodesCountsPerArm[:i + 1]) for i in range(len(nodesCountsPerArm))]
         nCentre = [elementsCountsAlongArms[0]+1, int(nodesCountsPerArm[1]/2) + elementsCountsAlongArms[0]+1]
-        scalefactors = None
         for na in range(armCount):
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
                     for e1 in range(elementsCountsAlongArms[na]):
-
+                        scalefactors = None
                         ### NODES ###
                         no2 = (elementsCountsAlongArms[na] + 1)
                         no3 = (elementsCount2 + 1) * no2 - 2
