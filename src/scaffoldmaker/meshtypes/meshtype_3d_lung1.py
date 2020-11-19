@@ -41,17 +41,6 @@ class MeshType_3d_lung1(Scaffold_base):
         return optionNames
 
     @classmethod
-    def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
-        '''
-        :param parameterSetName:  Name of valid parameter set for option Scaffold, or None for default.
-        :return: ScaffoldPackage.
-        '''
-        if parameterSetName:
-            assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
-                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
-
-    @classmethod
     def generateBaseMesh(cls, region, options):
         '''
         Generate the base tricubic Hermite mesh. See also generateMesh().
