@@ -296,6 +296,7 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         cumNodesCountsPerArm = [sum(nodesCountsPerArm[:i + 1]) for i in range(len(nodesCountsPerArm))]
         nCentre = [elementsCountsAlongArms[0]+1, int(nodesCountsPerArm[1]/2) + elementsCountsAlongArms[0]+1]
+        scalefactors = None
         for na in range(armCount):
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
@@ -487,7 +488,6 @@ class MeshType_3d_stellate1(Scaffold_base):
                         elif e1 < (elementsCountsAlongArms[na] - 1):
                             eft1 = eft
                             elementtemplate1 = elementtemplate
-                            scalefactors = None
                         else:
                             # rounded ends of arms. Collapse xi2 at xi1 = 1
                             eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
