@@ -3,7 +3,6 @@ Generates a 3-D planar stellate mesh with cross arms radiating from a central no
 """
 
 from __future__ import division
-import os
 import math
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
@@ -20,7 +19,6 @@ from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeVa
 from scaffoldmaker.utils.matrix import rotateAboutZAxis
 from scaffoldmaker.utils.vector import magnitude, setMagnitude
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
-# from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
 
 class MeshType_3d_stellate1(Scaffold_base):
@@ -29,8 +27,7 @@ class MeshType_3d_stellate1(Scaffold_base):
     """
 
     mouseMeanMesh = {
-        'meshEdits': #exnodeStringFromNodeValues(
-                #[ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2  ],
+        'meshEdits':
             [[[-242, -142.9, -96.77], [-249, -54.64, -3.137], [77.02, -112.8, 2.094]],
              [[56.72, -109.7, -95.44], [426.9, -47.3, 0.4029], [13.12, 118.7, -1.919]],
              [[463.5, -143.6, -98.9], [410.9, -33.87, -5.144], [13.43, 112, -3.136]],
@@ -74,9 +71,7 @@ class MeshType_3d_stellate1(Scaffold_base):
              [[-796.2, -38.2, -48.06], [-269.7, -115, -31.62], [147.5, -86.96, 6.869]],
              [[-649.4, -122.8, -42.02], [-263.2, -124.7, -29.45], [146.9, -88.44, 6.967]],
              [[-822.9, -186.4, -67.74], [-91.59, -28.64, -15.31], [269.5, -165.4, 15.28]],
-             [[-503.5, -213.2, -34.94], [-262.9, -129.5, -28.54], [145.5, -92.62, 7.544]]], #)
-        'numberOfNodesPerArm':
-            [0,26,14,14]
+             [[-503.5, -213.2, -34.94], [-262.9, -129.5, -28.54], [145.5, -92.62, 7.544]]]
                     }
     @staticmethod
     def getName():
@@ -87,20 +82,16 @@ class MeshType_3d_stellate1(Scaffold_base):
         return [
             'Default',
             'Mouse cervicothoracic ganglion 1',
-            'Mean mouse cervicothoracic ganglion']
+            'Mouse cervicothoracic ganglion mean 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = {}
         options['Base parameter set'] = parameterSetName
 
-        isMouse = 'Mouse' in parameterSetName and 'Mean' not in parameterSetName
-        isMeanMouse = 'Mean mouse' in parameterSetName
+        isMouse = 'Mouse' in parameterSetName
 
-        if isMeanMouse:
-            options['meanMouseMeshNodes'] = cls.mouseMeanMesh['meshEdits']
-            options['numNodesPerArm'] = cls.mouseMeanMesh['numberOfNodesPerArm']
-        if isMouse or isMeanMouse:
+        if isMouse:
             options['Numbers of elements along arms'] = [4,2,2]
         else:
             options['Numbers of elements along arms'] = [4,2,2]
@@ -158,6 +149,12 @@ class MeshType_3d_stellate1(Scaffold_base):
             if numberOfElements < 2:
                 options[armCountsKey][i] = 2
 
+        parameterSetName = options['Base parameter set']
+        isMouse = 'Mouse' in parameterSetName
+        isMean = 'mean' in parameterSetName
+        if isMouse and isMean:
+            options['Numbers of elements along arms'] = [4,2,2]
+
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
@@ -168,8 +165,8 @@ class MeshType_3d_stellate1(Scaffold_base):
         """
         parameterSetName = options['Base parameter set']
         isDefault = 'Default' in parameterSetName
-        isMouse = 'Mouse' in parameterSetName and 'Mean' not in parameterSetName
-        isMeanMouse = 'Mean mouse' in parameterSetName
+        isMouse = 'Mouse' in parameterSetName
+        isMean = 'mean' in parameterSetName
 
         fm = region.getFieldmodule()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -187,14 +184,14 @@ class MeshType_3d_stellate1(Scaffold_base):
         elementLengths = [options['Element length along arm'],
                           options['Element width across arm'],
                           options['Element thickness']]
-        elementsCount1 = options['Numbers of elements along arms']
+        elementsCountsAlongArms = options['Numbers of elements along arms']
         elementsCount2 = 2
         elementsCount3 = 1
         useCrossDerivatives = False
         # arm group annotations for user
         armTerms, _ = getAutomaticArmFaceTerms(armCount)
         armGroups = [AnnotationGroup(region, armTerm) for armTerm in armTerms]
-        stellateTerm = get_stellate_term("cervicothoracic ganglion") if isMouse or isMeanMouse else ("stellate", None)
+        stellateTerm = get_stellate_term("cervicothoracic ganglion") if isMouse else ("stellate", None)
         stellateGroup = AnnotationGroup(region, stellateTerm)
         annotationGroups = [stellateGroup] + armGroups
         armMeshGroups = [a.getMeshGroup(mesh) for a in armGroups]
@@ -202,7 +199,7 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         # markers with element number and xi position
         allMarkers = {}
-        if isMouse or isMeanMouse:
+        if isMouse:
             xProportion = {}
             xProportion['ICN'] = 0.9
             xProportion['VA'] = 0.9
@@ -225,23 +222,22 @@ class MeshType_3d_stellate1(Scaffold_base):
             elementIndex = {}
             xi1 = {}
             for nerve in nerveAbbrev:
-                elementIndex[nerve] = int(xProportion[nerve] * elementsCount1[armNumber[nerve] - 1])
-                xi1[nerve] = 1 if xProportion[nerve] == 1 else xProportion[nerve] * elementsCount1[
+                elementIndex[nerve] = int(xProportion[nerve] * elementsCountsAlongArms[armNumber[nerve] - 1])
+                xi1[nerve] = 1 if xProportion[nerve] == 1 else xProportion[nerve] * elementsCountsAlongArms[
                     armNumber[nerve] - 1] - elementIndex[nerve]
                 elementIndex[nerve] += 1 if xProportion[nerve] < 1 else 0
-                j = 10
 
-            allMarkers = {"Inferior cardiac nerve": {"elementID": elementIndex['ICN'] + 2 * elementsCount1[0],
+            allMarkers = {"Inferior cardiac nerve": {"elementID": elementIndex['ICN'] + 2 * elementsCountsAlongArms[0],
                                                      "xi": [xi1['ICN'], 0.0, 0.5]},
                           "Ventral ansa subclavia": {
-                              "elementID": elementIndex['VA'] + 2 * elementsCount1[0] + elementsCount1[1],
+                              "elementID": elementIndex['VA'] + 2 * elementsCountsAlongArms[0] + elementsCountsAlongArms[1],
                               "xi": [xi1['VA'], 1.0, 0.5]},
                           "Dorsal ansa subclavia": {
-                              "elementID": elementIndex['DA'] + 2 * (elementsCount1[0] + elementsCount1[1]),
+                              "elementID": elementIndex['DA'] + 2 * (elementsCountsAlongArms[0] + elementsCountsAlongArms[1]),
                               "xi": [xi1['DA'], 0.0, 0.5]},
                           "Cervical spinal nerve 8": {
-                              "elementID": elementIndex['C8'] + 2 * (elementsCount1[0] + elementsCount1[1]) +
-                                           elementsCount1[2], "xi": [xi1['C8'], 1.0, 0.5]},
+                              "elementID": elementIndex['C8'] + 2 * (elementsCountsAlongArms[0] + elementsCountsAlongArms[1]) +
+                                           elementsCountsAlongArms[2], "xi": [xi1['C8'], 1.0, 0.5]},
                           "Thoracic spinal nerve 1": {"elementID": elementIndex['T1'], "xi": [xi1['T1'], 0.0, 0.5]},
                           "Thoracic spinal nerve 2": {"elementID": elementIndex['T2'], "xi": [xi1['T2'], 0.0, 0.5]},
                           "Thoracic spinal nerve 3": {"elementID": elementIndex['T3'], "xi": [xi1['T3'], 0.0, 0.5]},
@@ -259,13 +255,12 @@ class MeshType_3d_stellate1(Scaffold_base):
 
         # Create nodes
         nodeIdentifier = 1
-        numNodesPerArm = [0]
         minArmAngle = 2 * math.pi / armCount
         halfArmArcAngleRadians = minArmAngle / 2
-        if not isMeanMouse:
+        if not isMean:
             dipMultiplier = 1
             for na in range(armCount):
-                elementsCount_i = [elementsCount1[na], elementsCount2, elementsCount3]
+                elementsCount_i = [elementsCountsAlongArms[na], elementsCount2, elementsCount3]
                 x, ds1, ds2, nWheelEdge = createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elementsCount_i, dipMultiplier, armCount, na)
                 for ix in range(len(x)):
                     if na == 0 or ix not in nWheelEdge:
@@ -275,10 +270,8 @@ class MeshType_3d_stellate1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, ds1[ix])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ds2[ix])
                         nodeIdentifier += 1
-                numNodesPerArm.append(len(x))
         else:
-            numNodesPerArm = options['numNodesPerArm']
-            x_dx_all = options['meanMouseMeshNodes']
+            x_dx_all = cls.mouseMeanMesh['meshEdits']
             xyz_all = [x[0] for x in x_dx_all]
             dxyz = [[x[1], x[2]] for x in x_dx_all]
             nodeIdentifier = 1
@@ -289,6 +282,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dxyz[i][0])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dxyz[i][1])
                 nodeIdentifier += 1
+        nodesCountsPerArm = [0] + [((elementsCount2+1)*e+1)*2 for e in elementsCountsAlongArms]
 
         # Create elements
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
@@ -300,49 +294,49 @@ class MeshType_3d_stellate1(Scaffold_base):
         elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         elementIdentifier = 1
 
-        cumNumNodesPerArm = [sum(numNodesPerArm[:i + 1]) for i in range(len(numNodesPerArm))]
-        nCentre = [elementsCount1[0]+1, int(numNodesPerArm[1]/2) + elementsCount1[0]+1]
+        cumNodesCountsPerArm = [sum(nodesCountsPerArm[:i + 1]) for i in range(len(nodesCountsPerArm))]
+        nCentre = [elementsCountsAlongArms[0]+1, int(nodesCountsPerArm[1]/2) + elementsCountsAlongArms[0]+1]
         for na in range(armCount):
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
-                    for e1 in range(elementsCount1[na]):
+                    for e1 in range(elementsCountsAlongArms[na]):
 
                         ### NODES ###
-                        no2 = (elementsCount1[na] + 1)
+                        no2 = (elementsCountsAlongArms[na] + 1)
                         no3 = (elementsCount2 + 1) * no2 - 2
-                        offset = (cumNumNodesPerArm[na])
+                        offset = (cumNodesCountsPerArm[na])
                         bni = e3 * no3 + e2 * no2 + e1 + 1 + offset
                         if e2 == 0:
                             if e1 == 0 and na > 0: # and na < armCount -1: # wheelSouth
-                                nWh = cumNumNodesPerArm[na - 1] + (2 * elementsCount1[na - 1]) + 2
-                                nplUq = int(numNodesPerArm[na+1]/2) - elementsCount1[na] # unused nodes at centre and shared edge
-                                npl = int(numNodesPerArm[na+1]/2)  #  nodes at centre and shared edge
+                                nWh = cumNodesCountsPerArm[na - 1] + (2 * elementsCountsAlongArms[na - 1]) + 2
+                                nplUq = int(nodesCountsPerArm[na+1]/2) - elementsCountsAlongArms[na] # unused nodes at centre and shared edge
+                                npl = int(nodesCountsPerArm[na+1]/2)  #  nodes at centre and shared edge
                                 if na < armCount-1:
-                                    cn = cumNumNodesPerArm[na] + elementsCount1[na]-2
-                                    no2 = cumNumNodesPerArm[na]
-                                    em = elementsCount1[na]
-                                    nwPrev = [nWh, nWh + int(numNodesPerArm[na]/2)] # previous arm's edge, depends on armCount.
+                                    cn = cumNodesCountsPerArm[na] + elementsCountsAlongArms[na]-2
+                                    no2 = cumNodesCountsPerArm[na]
+                                    em = elementsCountsAlongArms[na]
+                                    nwPrev = [nWh, nWh + int(nodesCountsPerArm[na]/2)] # previous arm's edge, depends on armCount.
                                     nodeIdentifiers = [nwPrev[0], no2 + 1, nCentre[0], no2 + em,
                                                        nwPrev[1], no2 + em - 1 + nplUq,
                                                        nCentre[1], bni + (4 * em) - 2]
                                 else:
-                                    nplPrev = int(numNodesPerArm[na]/2) - 2
-                                    no2 = elementsCount1[na]-1
-                                    no3 = int(numNodesPerArm[na+1]/2) - 3
-                                    nwPrev = [cumNumNodesPerArm[na-1] + 2*(elementsCount1[na-1]),
-                                              cumNumNodesPerArm[na-1] + 2*(elementsCount1[na-1]) + nplPrev]
-                                    start = cumNumNodesPerArm[na] - 3
+                                    nplPrev = int(nodesCountsPerArm[na]/2) - 2
+                                    no2 = elementsCountsAlongArms[na]-1
+                                    no3 = int(nodesCountsPerArm[na+1]/2) - 3
+                                    nwPrev = [cumNodesCountsPerArm[na-1] + 2*(elementsCountsAlongArms[na-1]),
+                                              cumNodesCountsPerArm[na-1] + 2*(elementsCountsAlongArms[na-1]) + nplPrev]
+                                    start = cumNodesCountsPerArm[na] - 3
                                     nodeIdentifiers = [nwPrev[0], start,
                                                        nCentre[0], start + no2,
                                                        nwPrev[1],  start + no3,
                                                        nCentre[1], start + no2 +no3]
-                            elif e1 == elementsCount1[na] - 1: # armEnd, south
+                            elif e1 == elementsCountsAlongArms[na] - 1: # armEnd, south
                                 if na == 0:
                                     nodeIdentifiers = [bni, bni + no2 - 1, bni + no2, bni + no3,
                                                        bni + no2 + no3 - 1, bni + no2 + no3]
                                 else:
-                                    no3 = armCount*elementsCount1[na] - 1
-                                    no2 = elementsCount1[na]
+                                    no3 = armCount*elementsCountsAlongArms[na] - 1
+                                    no2 = elementsCountsAlongArms[na]
                                     if na > 1:
                                         bni -= 4
                                         no3 -= 1
@@ -350,7 +344,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                        bni + no3 - 1, bni + no2 -2 + no3, bni + no2 + no3 - 1]
                             elif na > 0 and e1 > 0: #  [na=1+, e1=1+, e2=0] for len=3+
                                 bni -= 1 + ((armCount+1)*(na-1))
-                                no2 = elementsCount1[na]
+                                no2 = elementsCountsAlongArms[na]
                                 no3 = armCount*no2 - (na-1) - 1
                                 nodeIdentifiers = [bni, bni + 1, bni + no2 - 1, bni + no2,
                                                    bni + no3, bni + no3 + 1,
@@ -362,26 +356,26 @@ class MeshType_3d_stellate1(Scaffold_base):
                             if e1 == 0 and na > 0:  # and na < armCount -1: # wheelNorth
                                 if na < armCount - 1:
                                     bni -= armCount
-                                    npl = int(numNodesPerArm[na+1] / 2) - 2
-                                    no2 = elementsCount1[na]
+                                    npl = int(nodesCountsPerArm[na+1] / 2) - 2
+                                    no2 = elementsCountsAlongArms[na]
                                     nodeIdentifiers = [nCentre[0], bni + 1, bni + no2 + 1, bni + no2 + 2,
                                                        nCentre[1], bni + npl + 1, bni + npl + no2 + 1, bni + npl + no2 + 2]
                                 else: # last arm
-                                    bni = cumNumNodesPerArm[na] - 2 - (armCount - elementsCount1[na])
+                                    bni = cumNodesCountsPerArm[na] - 2 - (armCount - elementsCountsAlongArms[na])
                                     nodeIdentifiers = [nCentre[0], bni + 1, 1, bni + no2,
                                                        nCentre[1], bni + no3 - 2,
-                                                       int(numNodesPerArm[1]/2)+1, bni + no2 + no3 - armCount]
-                            elif e1 == elementsCount1[na] - 1: # armEnd north
+                                                       int(nodesCountsPerArm[1]/2)+1, bni + no2 + no3 - armCount]
+                            elif e1 == elementsCountsAlongArms[na] - 1: # armEnd north
                                 if na > 0:
-                                    no2 = elementsCount1[na]
-                                    nplUq = int(numNodesPerArm[na + 1] / 2) - 2
+                                    no2 = elementsCountsAlongArms[na]
+                                    nplUq = int(nodesCountsPerArm[na + 1] / 2) - 2
                                     if na > 1:
                                         adj = na - 1
-                                        bni -= armCount*na + (armCount-elementsCount1[na]) + 1
-                                        if elementsCount1[na] < 3:
+                                        bni -= armCount*na + (armCount-elementsCountsAlongArms[na]) + 1
+                                        if elementsCountsAlongArms[na] < 3:
                                            bni += 1
-                                        if elementsCount1[na]>3:
-                                            bni -= elementsCount1[na] - 3
+                                        if elementsCountsAlongArms[na]>3:
+                                            bni -= elementsCountsAlongArms[na] - 3
                                         no2 += 1 - adj
                                         no3 = nplUq - adj
                                         nodeIdentifiers = [bni, bni +1, bni+no2,
@@ -398,7 +392,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                                 adj = na - 1
                                 bni -= armCount *na + adj
                                 no2 -= adj
-                                k = armCount*elementsCount1[na] - na
+                                k = armCount*elementsCountsAlongArms[na] - na
                                 nodeIdentifiers = [bni, bni+1, bni + no2, bni + no2 + 1,
                                                    bni + k, bni + k + 1,
                                                    bni + no2 + k, bni + no2 + k + 1]
@@ -490,7 +484,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                                         remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
 
-                        elif e1 < (elementsCount1[na] - 1):
+                        elif e1 < (elementsCountsAlongArms[na] - 1):
                             eft1 = eft
                             elementtemplate1 = elementtemplate
                             scalefactors = None
@@ -526,7 +520,7 @@ class MeshType_3d_stellate1(Scaffold_base):
                         elementIdentifier += 1
 
         # annotation fiducial points
-        if isMouse or isMeanMouse:
+        if isMouse:
             for key in allMarkers:
                 xi = allMarkers[key]["xi"]
                 addMarker = {"name": key, "xi": allMarkers[key]["xi"]}
@@ -539,7 +533,6 @@ class MeshType_3d_stellate1(Scaffold_base):
                 element = mesh.findElementByIdentifier(elementID)
                 markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
 
-        fm.endChange()
         return annotationGroups
 
     @classmethod
