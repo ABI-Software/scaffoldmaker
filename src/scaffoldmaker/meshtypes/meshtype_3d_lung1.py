@@ -126,11 +126,11 @@ class MeshType_3d_lung1(Scaffold_base):
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
         rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
 
-        eft1 = eftfactory.createEftWedgeCollapseXi1AtXi2Zero()
-        eft2 = eftfactory.createEftWedgeCollapseXi1AtXi2One()
-        eft3 = eftfactory.createEftWedgeCollapseXi2RightAtXi3One()
-        eft4 = eftfactory.createEftWedgeCollapseXi2LeftAtXi3One()
-        eft5 = eftfactory.createEftWedgeCollapseXi1AtXi3One()
+        eft1 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi2Plane([1, 5], Xi2=0)
+        eft2 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi2Plane([3, 7], Xi2=1)
+        eft3 = eftfactory.createEftWedgeCollapseXi2QuadrantAtXi3Plane([5, 6], Xi3=1)
+        eft4 = eftfactory.createEftWedgeCollapseXi2QuadrantAtXi3Plane([7, 8], Xi3=1)
+        eft5 = eftfactory.createEftWedgeCollapseXi1QuadrantAtXi3Plane([5, 7], Xi3=1)
         eft6 = eftfactory.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2Zero()
         eft7 = eftfactory.createEftTetrahedronCollapseXi1Xi2AtXi3OneXi1AtXi2One()
 
