@@ -237,11 +237,19 @@ with variable numbers of elements in major, minor and length directions.
 
         ellipseBASER = createBaseEllipseRight()
         shieldBR = createCylinderRight(ellipseBASER, ellipseBRR)
-        skipNodes = createNodeIdForCylRight(shieldBR,shieldDR,nodes)
+        skipNodes = createNodeIdForCylRight(shieldBR, shieldDR,nodes)
         # skipNodes = createNodeId(shieldBR, nodes)
         generateNodes(shieldBR, nodes, fm, coordinates, skipNodes)
-        # generateElementsBaseRight(shieldBR, mesh, fm, coordinates)
+        generateElementsBaseRight(shieldBR, mesh, fm, coordinates)
 
+        ellipseBASEL = createBaseEllipseLeft()
+        shieldBL = createCylinderLeft(ellipseBASEL, ellipseBRL)
+        skipNodes = createNodeIdForCylRight(shieldBL, shieldDL, nodes)
+        # skipNodes = createNodeId(shieldBR, nodes)
+        generateNodes(shieldBL, nodes, fm, coordinates, skipNodes)
+        generateElementsBaseRight(shieldBL, mesh, fm, coordinates)
+
+        generateRegularElementsInBetween(coordinates, mesh, shieldBL, shieldBR)
         # ellipseBLF = createBaseFullLeft()
         # t=1
         # shieldBL = createBaseCylinderLeft(elementsCountAlong, ellipseBL, ellipseBRL)
@@ -311,9 +319,9 @@ def createNodeIdForCylRight(shieldBR, shieldDR, nodes):
         for n2 in range(shieldBR.elementsCountUpFull + 1):
             for p in [skipNodes[n3]]:
                 p.append([None] * (shieldBR.elementsCountAcross + 1))
-    for n2 in range(shieldBR.elementsCountUpFull + 1):
+    for n2 in range(shieldBR.elementsCountUp, shieldBR.elementsCountUpFull + 1):
         for n1 in range(shieldBR.elementsCountAcross + 1):
-            shieldBR.nodeId[1][n2][n1] = shieldDR.nodeId[0][4-n2][n1]
+            shieldBR.nodeId[1][n2][n1] = shieldDR.nodeId[0][n2][n1]
             skipNodes[1][n2][n1] = 1
             if shieldBR.px[0][n2][n1]:
                 shieldBR.nodeId[0][n2][n1] = nodeIdentifier
@@ -333,18 +341,48 @@ def createNodeIdForCylRight(shieldBR, shieldDR, nodes):
 def createCylinderRight(ellipseBASER, ellipseBRR):
     elementsCountRim = 0
     elementsCountAlong = 1
-    shieldMode = ShieldShape.SHIELD_SHAPE_LOWER_HALF
-    shield = ShieldMesh(ellipseBASER.elementsCountAcrossMinor, ellipseBASER.elementsCountAcrossMajor, elementsCountRim,
+    shieldMode = ShieldShape.SHIELD_SHAPE_FULL
+    shield = ShieldMesh(ellipseBASER.elementsCountAcrossMinor, 2*ellipseBASER.elementsCountAcrossMajor, elementsCountRim,
                         None, elementsCountAlong, shieldMode,
                         shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
-    shield.px[0] = ellipseBASER.px
-    shield.pd1[0] = ellipseBASER.pd1
-    shield.pd3[0] = ellipseBASER.pd3
+    nv = shield.elementsCountUpFull
+    for n2 in range(shield.elementsCountUp,shield.elementsCountUpFull+1):
+        for n1 in range(shield.elementsCountAcross+1):
+            shield.px[0][n2][n1] = ellipseBASER.px[nv-n2][n1]
+            shield.pd1[0][n2][n1] = ellipseBASER.pd1[nv-n2][n1]
+            shield.pd3[0][n2][n1] = ellipseBASER.pd3[nv-n2][n1]
 
-    shield.px[1] = ellipseBRR.px
-    shield.pd1[1] = ellipseBRR.pd1
-    shield.pd3[1] = ellipseBRR.pd3
+            shield.px[1][n2][n1] = ellipseBRR.px[nv-n2][n1]
+            shield.pd1[1][n2][n1] = ellipseBRR.pd1[nv-n2][n1]
+            shield.pd3[1][n2][n1]= ellipseBRR.pd3[nv-n2][n1]
+
+    for n3 in range(shield.elementsCountAlong + 1):
+        calculateD2Derivatives(shield, n3, 1)
+    smoothd2Derivatives(shield)
+
+    return shield
+
+
+def createCylinderLeft(ellipseBASEL, ellipseBRL):
+    elementsCountRim = 0
+    elementsCountAlong = 1
+    shieldMode = ShieldShape.SHIELD_SHAPE_FULL
+    shield = ShieldMesh(ellipseBASEL.elementsCountAcrossMinor, 2*ellipseBASEL.elementsCountAcrossMajor, elementsCountRim,
+                        None, elementsCountAlong, shieldMode,
+                        shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
+
+    nv = shield.elementsCountUpFull
+    for n2 in range(shield.elementsCountUp,shield.elementsCountUpFull+1):
+        for n1 in range(shield.elementsCountAcross+1):
+            shield.px[0][n2][n1] = ellipseBASEL.px[nv-n2][n1]
+            shield.pd1[0][n2][n1] = ellipseBASEL.pd1[nv-n2][n1]
+            shield.pd3[0][n2][n1] = ellipseBASEL.pd3[nv-n2][n1]
+
+            shield.px[1][n2][n1] = ellipseBRL.px[nv-n2][n1]
+            shield.pd1[1][n2][n1] = ellipseBRL.pd1[nv-n2][n1]
+            shield.pd3[1][n2][n1]= ellipseBRL.pd3[nv-n2][n1]
+
     for n3 in range(shield.elementsCountAlong + 1):
         calculateD2Derivatives(shield, n3, 1)
     smoothd2Derivatives(shield)
@@ -432,7 +470,7 @@ def generateEllipseNodes(ellipse, fieldmodule, coordinates, startNodeIdentifier)
 
 
 def createBaseFullLeft():
-    centre = [-0.25, 0.0, -3.0]
+    centre = [-1.0, 0.0, -3.0]
     majorAxis = [1.0, 0.0, 0.0]
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 4
@@ -444,7 +482,7 @@ def createBaseFullLeft():
 
 
 def createBaseEllipseLeft():
-    centre = [-0.25, 0.0, -3.0]
+    centre = [-1.0, 0.0, -3.0]
     majorAxis = [1.0, 0.0, 0.0]
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 2
@@ -456,7 +494,7 @@ def createBaseEllipseLeft():
 
 
 def createBaseEllipseRight():
-    centre = [0.25, 0.0, -3.0]
+    centre = [1.0, 0.0, -3.0]
     majorAxis = [-1.0, 0.0, 0.0]
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 2
@@ -468,7 +506,7 @@ def createBaseEllipseRight():
 
 
 def createBranchEllipseLeft():
-    centre = [-0.25, 0.0, 0.0]
+    centre = [-1.0, 0.0, 0.0]
     axis1 = [1.0, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
     theta = -45
@@ -483,7 +521,7 @@ def createBranchEllipseLeft():
 
 
 def createBranchEllipseRight():
-    centre = [0.25, 0.0, 0.0]
+    centre = [1.0, 0.0, 0.0]
     axis1 = [-1.0, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
     theta = 45
@@ -498,7 +536,7 @@ def createBranchEllipseRight():
 
 
 def createBranchEllipseUp():
-    centre = [-0.25, 0.0, 0.0]
+    centre = [-1.0, 0.0, 0.0]
     axis1 = [1.0, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
     theta = -90
@@ -513,7 +551,7 @@ def createBranchEllipseUp():
 
 
 def createBranchEllipseUpRight():
-    centre = [0.25, 0.0, 0.0]
+    centre = [1.0, 0.0, 0.0]
     axis1 = [1.0, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
     theta = -90
@@ -530,12 +568,12 @@ def createBranchEllipseUpRight():
 def createDaughterEllipseLeft():
     dc = 1.0
     # theta = 45
-    centre = [-0.25, 0.0, 0.0]
+    centre = [-2.5, 0.0, 0.0]
     axis1 = [0.5, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
-    displacement = vector.setMagnitude(rotateVector(axis1, axis2, -157.5), dc)
-    centre = vector.addVectors(centre, displacement)
-    majorAxis = rotateVector(axis1, axis2, -50.0)
+    # displacement = vector.setMagnitude(rotateVector(axis1, axis2, -157.5), dc)
+    # centre = vector.addVectors(centre, displacement)
+    majorAxis = rotateVector(axis1, axis2, -90.0)
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 4
     elementsCountAcrossMinor = 4
@@ -547,12 +585,12 @@ def createDaughterEllipseLeft():
 def createDaughterEllipseRight():
     dc = 1.0
     # theta = 45
-    centre = [0.25, 0.0, 0.0]
+    centre = [2.5, 0.0, 0.0]
     axis1 = [-0.5, 0.0, 0.0]
     axis2 = [0.0, 1.0, 0.0]
-    displacement = vector.setMagnitude(rotateVector(axis1, axis2, 150), dc)
-    centre = vector.addVectors(centre, displacement)
-    majorAxis = rotateVector(axis1, axis2, 22.5)
+    # displacement = vector.setMagnitude(rotateVector(axis1, axis2, 150), dc)
+    # centre = vector.addVectors(centre, displacement)
+    majorAxis = rotateVector(axis1, axis2, 90)
     minorAxis = [0.0, 1.0, 0.0]
     elementsCountAcrossMajor = 4
     elementsCountAcrossMinor = 4
@@ -757,8 +795,8 @@ def generateNodes(shield, nodes, fieldmodule, coordinates, skipNodes):
         for n3 in range(shield.elementsCountAlong + 1):
             for n1 in range(shield.elementsCountAcross + 1):
                 if shield.px[n3][n2][n1]:
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
                     if not skipNodes[n3][n2][n1]:
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
                         # shield.nodeId[n3][n2][n1] = nodeIdentifier
                         cache.setNode(node)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, shield.px[n3][n2][n1])
@@ -1249,7 +1287,7 @@ def generateElementsBaseRight(shield, mesh, fieldmodule, coordinates):
     e2d = 2 * shield.elementsCountUp - 1
 
     for e3 in range(shield.elementsCountAlong):
-        for e2 in range(shield.elementsCountUpFull):
+        for e2 in range(shield.elementsCountUp,shield.elementsCountUpFull):
             for e1 in range(shield.elementsCountAcross):
                 eft1 = eft
                 scalefactors = None
@@ -1430,3 +1468,101 @@ def generateElementsBaseRight(shield, mesh, fieldmodule, coordinates):
                 #     meshGroup.addElement(element)
 
     return elementIdentifier
+
+
+def generateRegularElementsInBetween(coordinates, mesh, shieldBL, shieldBR):
+    # create elements
+    elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+    useCrossDerivatives = False
+
+    nodeIDsBottomeLeft = shieldBL.nodeId[0][shieldBL.elementsCountUp]
+    nodeIDsBottomRight = shieldBR.nodeId[0][shieldBR.elementsCountUp]
+    nodeIDsTopLeft = shieldBL.nodeId[1][shieldBL.elementsCountUp]
+    nodeIDsTopRight = shieldBR.nodeId[1][shieldBR.elementsCountUp]
+
+    tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+    eft = tricubichermite.createEftNoCrossDerivatives()
+    elementtemplate = mesh.createElementtemplate()
+    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplate.defineField(coordinates, -1, eft)
+    elementtemplate1 = mesh.createElementtemplate()
+    elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    for e1 in range(1):
+        nids = [nodeIDsBottomeLeft[e1], nodeIDsBottomRight[e1], nodeIDsTopLeft[e1], nodeIDsTopRight[e1],
+                nodeIDsBottomeLeft[e1+1], nodeIDsBottomRight[e1+1], nodeIDsTopLeft[e1+1], nodeIDsTopRight[e1+1]]
+
+        if e1 == 0:
+            eft1 = tricubichermite.createEftNoCrossDerivatives()
+            setEftScaleFactorIds(eft1, [1], [])
+            scalefactors = [-1.0]
+            remapEftNodeValueLabel(eft1, [2, 5], Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+
+            remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3,
+                                   [(Node.VALUE_LABEL_D_DS3, [1])])
+        if eft1 is not eft:
+            elementtemplate1.defineField(coordinates, -1, eft1)
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+        else:
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+        result2 = element.setNodesByIdentifier(eft1, nids)
+        if scalefactors:
+            result3 = element.setScaleFactors(eft1, scalefactors)
+        else:
+            result3 = 7
+        elementIdentifier = elementIdentifier + 1
+
+
+    return elementIdentifier
+
+    # elementtemplate1 = mesh.createElementtemplate()
+    # elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    #
+    #
+    # if shield._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+    #     if (e1 <= e1a):
+    #         # map left column elements
+    #         eft1 = tricubichermite.createEftNoCrossDerivatives()
+    #         setEftScaleFactorIds(eft1, [1], [])
+    #         scalefactors = [-1.0]
+    #         remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1,
+    #                                [(Node.VALUE_LABEL_D_DS1, [1])])
+    #
+    #
+    # if eft1 is not eft:
+    #     elementtemplate1.defineField(coordinates, -1, eft1)
+    #     element = mesh.createElement(elementIdentifier, elementtemplate1)
+    # else:
+    #     element = mesh.createElement(elementIdentifier, elementtemplate)
+    # result2 = element.setNodesByIdentifier(eft1, nids)
+    # if scalefactors:
+    #     result3 = element.setScaleFactors(eft1, scalefactors)
+    # else:
+    #     result3 = 7
+
+
+    # eft1 = tricubichermite.createEftNoCrossDerivatives()
+    # setEftScaleFactorIds(eft1, [1], [])
+    # scalefactors = [-1.0]
+    # remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+    #                        [(Node.VALUE_LABEL_D_DS3, [1])])
+    #
+    #
+    #
+    #
+    # no2 = (elementsCount1 + 1)
+    # no3 = (elementsCount2 + 1) * no2
+    # for e3 in range(elementsCount3):
+    #     for e2 in range(elementsCount2):
+    #         for e1 in range(elementsCount1):
+    #             element = mesh.createElement(elementIdentifier, elementtemplate)
+    #             bni = e3 * no3 + e2 * no2 + e1 + 1
+    #             nodeIdentifiers = [bni, bni + 1, bni + no2, bni + no2 + 1, bni + no3, bni + no3 + 1, bni + no2 + no3,
+    #                                bni + no2 + no3 + 1]
+    #             result = element.setNodesByIdentifier(eft, nodeIdentifiers)
+    #             elementIdentifier = elementIdentifier + 1
