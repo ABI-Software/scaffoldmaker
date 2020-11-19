@@ -212,7 +212,7 @@ class MeshType_3d_lung1(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, 'APEX')
+        markerName.assignString(cache, 'apex of left lung')
         markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
 
         return annotationGroups
