@@ -49,7 +49,6 @@ class MeshType_3d_lung1(Scaffold_base):
         :return: annotationGroups
         '''
         fm = region.getFieldmodule()
-        fm.beginChange()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -216,6 +215,5 @@ class MeshType_3d_lung1(Scaffold_base):
         markerName.assignString(cache, 'APEX')
         markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
 
-        fm.endChange()
         return annotationGroups
 
