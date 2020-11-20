@@ -819,6 +819,201 @@ class eftfactory_tricubichermite:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1Zero:  Failed to validate eft'
         return eft
 
+    def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi1 collapsed on xi3 = 0 or xi3 = 1.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        valid = True
+        if collapseNodes in [[1, 3], [2, 4]]:
+            nodes = [1, 2, 3, 4]
+            # remap parameters on xi3 = 0 before collapsing nodes
+            if collapseNodes == [1, 3]:
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            elif collapseNodes == [2, 4]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+            else:
+                valid = False
+            ln_map = [1, 1, 2, 2, 3, 4, 5, 6]
+        elif collapseNodes in [[5, 7], [6, 8]]:
+            nodes = [5, 6, 7, 8]
+            # remap parameters on xi3 = 1 before collapsing nodes
+            if collapseNodes == [5, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+            elif collapseNodes == [6, 8]:
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 4, 5, 5, 6, 6]
+        elif collapseNodes in [[1, 5], [2, 6]]:
+            nodes = [1, 2, 5, 6]
+            # remap parameters on xi2 = 0 before collapsing nodes
+            if collapseNodes == [1, 5]:
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            elif collapseNodes == [2, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            else:
+                valid = False
+            ln_map = [1, 1, 2, 3, 4, 4, 5, 6]
+        elif collapseNodes in [[3, 7], [4, 8]]:
+            nodes = [3, 4, 7, 8]
+            # remap parameters on xi2 = 1 before collapsing nodes
+            if collapseNodes == [3, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            elif collapseNodes == [4, 8]:
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
+        else:
+            valid = False
+
+        if not valid:
+            assert False, "createEftWedgeCollapseXi1Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+
+        # zero cross derivative parameters
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi1Quadrant:  Failed to validate eft'
+        return eft
+
+    def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
+        '''
+        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 0 or Xi3 = 1.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        valid = True
+        if collapseNodes in [[1, 2], [3, 4]]:
+            nodes = [1, 2, 3, 4]
+            # remap parameters on xi3 = 0 before collapsing nodes
+            if collapseNodes == [1, 2]:
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            elif collapseNodes == [3, 4]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            else:
+                valid = False
+            ln_map = [1, 2, 1, 2, 3, 4, 5, 6]
+        elif collapseNodes in [[5, 6], [7, 8]]:
+            nodes = [5, 6, 7, 8]
+            # remap parameters on xi3 = 1 before collapsing nodes
+            if collapseNodes == [5, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            elif collapseNodes == [7, 8]:
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
+        else:
+            valid = False
+
+        if not valid:
+            assert False, "createEftWedgeCollapseXi2Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+
+        # zero cross derivative parameters
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi2Quadrant:  Failed to validate eft'
+        return eft
+
+    def createEftTetrahedronCollapseXi1Xi2Quadrant(self, peakNode, sideNode):
+        '''
+        Create a tricubic hermite element field for a tetrahedron element, where xi1 and xi2 are collapsed on xi3
+        , and then two nodes are collapsed on the other end of xi3.
+        :param peakNode: is the top node of the tetrahedron.
+        :param sideNode: is the node at the other end of xi3 which has another node collapsed onto it.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        nodes = [5, 6, 7, 8]
+        # remap parameters on xi3 = 1 before collapsing nodes
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+
+        valid = True
+        if peakNode == 8:
+            remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+            if sideNode == 2:
+                # remap parameters on xi2 = 0 before collapsing nodes
+                remapEftNodeValueLabel(eft, [1, 2], Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+            else:
+                valid = False
+            ln_map = [1, 1, 2, 3, 4, 4, 4, 4]
+        elif peakNode == 7:
+            remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+            if sideNode == 1:
+                # remap parameters on xi2 = 0 before collapsing nodes
+                remapEftNodeValueLabel(eft, [1, 2], Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            else:
+                valid = False
+            ln_map = [1, 1, 2, 3, 4, 4, 4, 4]
+        elif peakNode == 6:
+            remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+            if sideNode == 3:
+                # remap parameters on xi2 = 1 before collapsing nodes
+                remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
+        elif peakNode == 5:
+            remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+            if sideNode == 3:
+                # remap parameters on xi2 = 1 before collapsing nodes
+                remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
+        else:
+            valid = False
+
+        if not valid:
+            assert False, "createEftTetrahedronCollapseXi1Xi2Quadrant.  Not implemented for peak node " + str(peakNode) + " and side node " + str(sideNode)
+
+        # zero cross derivative parameters
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        remapEftLocalNodes(eft, 4, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftTetrahedronCollapseXi1Xi2Quadrant:  Failed to validate eft'
+        return eft
+
     def createEftSplitXi1LeftStraight(self):
         '''
         Create an element field template suitable for the inner elements of the
