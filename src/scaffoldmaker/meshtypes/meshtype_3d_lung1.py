@@ -6,6 +6,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
@@ -32,13 +33,29 @@ class MeshType_3d_lung1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = {}
         options['Base parameter set'] = parameterSetName
-
+        options['Refine'] = False
+        options['Refine number of elements'] = 4
         return options
 
     @staticmethod
     def getOrderedOptionNames():
-        optionNames = []
+        optionNames = [
+            'Refine',
+            'Refine number of elements'
+            ]
         return optionNames
+
+    @classmethod
+    def checkOptions(cls, options):
+        '''
+        :return:  True if dependent options changed, otherwise False.
+        '''
+        dependentChanges = False
+        for key in [
+            'Refine number of elements']:
+            if options[key] < 1:
+                options[key] = 1
+        return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -217,3 +234,13 @@ class MeshType_3d_lung1(Scaffold_base):
 
         return annotationGroups
 
+    @classmethod
+    def refineMesh(cls, meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshrefinement, MeshRefinement)
+        refineElementsCount = options['Refine number of elements']
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
