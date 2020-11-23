@@ -156,7 +156,7 @@ class MeshType_3d_lung1(Scaffold_base):
                            continue
                         if (0 < n3 < (elementsCount3 - 1)) and (n2 > (elementsCount2 - 2)):
                            continue
-                        if (n3 < (elementsCount3 - 1)) and (n2 == elementsCount2):
+                        if (n3 < elementsCount3) and (n2 == elementsCount2):
                            continue
 
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -169,9 +169,7 @@ class MeshType_3d_lung1(Scaffold_base):
                         lNodeIds[n3][n2][n1] = nodeIdentifier
                         nodeIdentifier += 1
 
-            x = 3
-            # Create element
-
+            # Create elements
             elementIdentifier = 1
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
@@ -192,7 +190,7 @@ class MeshType_3d_lung1(Scaffold_base):
                             nodeIdentifiers.pop(1)
                             eft = eftWedgeCollapseXi1_26
                         elif (e2 == (elementsCount2 - 2)) and (e3 == 0):
-                            # cubes curving over middle wedge
+                            # Cubes curving over middle wedge
                             nodeIdentifiers[6] = lNodeIds[elementsCount3 - 1][e2 + 1][e1    ]
                             nodeIdentifiers[7] = lNodeIds[elementsCount3 - 1][e2 + 1][e1 + 1]
                             eft = eftfactory.createEftBasic()
@@ -200,7 +198,7 @@ class MeshType_3d_lung1(Scaffold_base):
                             remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
                         elif e3 == 1 and e2 == (elementsCount2 - 2):
-                            # middle wedge
+                            # Middle wedge
                             nodeIdentifiers.pop(3)
                             nodeIdentifiers.pop(2)
                             eft = eftWedgeCollapseXi2_34
@@ -225,7 +223,7 @@ class MeshType_3d_lung1(Scaffold_base):
                         elif None in nodeIdentifiers:
                             continue
 
-                        #print('element ', elementIdentifier, '|| ', nodeIdentifiers)
+                        print('element ', elementIdentifier, '|| ', nodeIdentifiers)
                         if eft is eftRegular:
                             element = mesh.createElement(elementIdentifier, elementtemplateRegular)
                         else:
@@ -273,7 +271,6 @@ class MeshType_3d_lung1(Scaffold_base):
                         nodeIdentifier += 1
 
             # Create elements
-
             elementIdentifier = 1
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
