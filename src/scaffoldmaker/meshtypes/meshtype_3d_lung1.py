@@ -223,7 +223,7 @@ class MeshType_3d_lung1(Scaffold_base):
                         elif None in nodeIdentifiers:
                             continue
 
-                        print('element ', elementIdentifier, '|| ', nodeIdentifiers)
+                        # print('element ', elementIdentifier, '|| ', nodeIdentifiers)
                         if eft is eftRegular:
                             element = mesh.createElement(elementIdentifier, elementtemplateRegular)
                         else:
