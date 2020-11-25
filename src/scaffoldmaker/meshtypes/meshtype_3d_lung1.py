@@ -197,7 +197,7 @@ class MeshType_3d_lung1(Scaffold_base):
 
                         # Oblique fissure nodes
                         if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                            uNodeIds[n3][n2][n1] = lNodeIds[n3][uElementsCount2][n1]
+                            uNodeIds[n3][n2][n1] = lNodeIds[n3][lElementsCount2][n1]
                             print('uNodeIds', uNodeIds[n3][n2][n1])
                             continue
                         elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
