@@ -5,6 +5,8 @@ Describes methods each scaffold must or may override.
 import copy
 from opencmiss.utils.zinc.general import ChangeManager
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 
 class Scaffold_base:
     '''
@@ -151,6 +153,19 @@ class Scaffold_base:
         return annotationGroups
 
     @classmethod
+    def smoothDerivativeMagnitudes(cls, region, options, editGroupName, scalingMode : DerivativeScalingMode):
+        fieldmodule = region.getFieldmodule()
+        coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+        groupName = 'cmiss_selection'
+        selectionGroup = fieldmodule.findFieldByName(groupName).castGroup()
+        if not selectionGroup.isValid():
+            groupName = False  # smooth whole model
+        smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode)
+        smoothing.smooth()
+        # GRC add modified nodes to editGroup
+        return False, True  # settings not changed, nodes changed
+
+    @classmethod
     def getInteractiveFunctions(cls):
         """
         Override to return list of named interactive functions that client
@@ -164,4 +179,7 @@ class Scaffold_base:
         its name is supplied).
         :return: list(tuples), (name : str, callable(region, options, editGroupName)).
         """
-        return []
+        return [
+            ("Smooth derivative magnitudes arithmetic", lambda region, options, editGroupName: cls.smoothDerivativeMagnitudes(region, options, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
+            ("Smooth derivative magnitudes harmonic", lambda region, options, editGroupName: cls.smoothDerivativeMagnitudes(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN))
+        ]
