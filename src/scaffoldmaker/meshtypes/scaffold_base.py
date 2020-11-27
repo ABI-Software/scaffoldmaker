@@ -160,9 +160,8 @@ class Scaffold_base:
         selectionGroup = fieldmodule.findFieldByName(groupName).castGroup()
         if not selectionGroup.isValid():
             groupName = False  # smooth whole model
-        smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode)
+        smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode, editGroupName)
         smoothing.smooth()
-        # GRC add modified nodes to editGroup
         return False, True  # settings not changed, nodes changed
 
     @classmethod

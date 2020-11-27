@@ -255,7 +255,7 @@ def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
     assert nodesCount == nodes.getSize()
     with ChangeManager(fieldmodule):
         if editGroupName:
-            editGroup = findOrCreateFieldGroup(fieldmodule, editGroupName, managed=False)
+            editGroup = findOrCreateFieldGroup(fieldmodule, editGroupName, managed=True)
             editNodeGroup = editGroup.getFieldNodeGroup(nodes)
             if not editNodeGroup.isValid():
                 editNodeGroup = editGroup.createFieldNodeGroup(nodes)

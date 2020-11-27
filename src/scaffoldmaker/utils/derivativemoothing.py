@@ -4,6 +4,7 @@ Class for globally smoothing field derivatives.
 from __future__ import division
 import math
 from opencmiss.utils.maths.vectorops import add, magnitude
+from opencmiss.utils.zinc.field import findOrCreateFieldGroup
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
@@ -67,7 +68,7 @@ class DerivativeSmoothing:
         [ [ 1, 2 ], [ 3, 4 ] ],
         [ [ 1, 3 ], [ 2, 4 ] ] ]
 
-    def __init__(self, region, field, groupName = None, scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN):
+    def __init__(self, region, field, groupName = None, scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN, editGroupName=None):
         '''
         :param groupName: Optional name of group to limit
         '''
@@ -77,12 +78,22 @@ class DerivativeSmoothing:
         assert self._field.isValid()
         self._groupName = groupName
         self._scalingMode = scalingMode
+        self._editGroupName = editGroupName
         self._fieldmodule = self._region.getFieldmodule()
         for dimension in range(3,0,-1):
             self._mesh = self._fieldmodule.findMeshByDimension(dimension)
             if self._mesh.getSize() > 0:
                 break
         self._nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # edited nodes are added to the edit nodeset group, if group is supplied
+        if editGroupName:
+            editGroup = findOrCreateFieldGroup(self._fieldmodule, editGroupName, managed=True)
+            editNodeGroup = editGroup.getFieldNodeGroup(self._nodes)
+            if not editNodeGroup.isValid():
+                editNodeGroup = editGroup.createFieldNodeGroup(self._nodes)
+            self._editNodesetGroup = editNodeGroup.getNodesetGroup()
+        else:
+            self._editNodesetGroup = None
         if groupName:
             self._group = self._fieldmodule.findFieldByName(groupName).castGroup()
             if not self._group.isValid():
@@ -217,6 +228,8 @@ class DerivativeSmoothing:
                     derivativeEdges.append(derivativeEdge)
                 else:
                     self._derivativeMap[derivativeKey] = [ derivativeEdge ]
+                if self._editNodesetGroup:
+                    self._editNodesetGroup.addNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # so client know which nodes are modified
 
     def smooth(self):
         fieldcache = self._fieldmodule.createFieldcache()
@@ -260,7 +273,7 @@ class DerivativeSmoothing:
                     othermag = magnitude(otherd)
                     mag = (2.0*arcLength - othermag)/totalScaleFactor
                     if (mag <= 0.0):
-                        print('Node', nodeIdentifier, 'label', label, 'version', version, 'has negative mag', mag)
+                        print('Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative mag', mag)
                     x = setMagnitude(x, mag)
                     fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # need to set again as changed node in edge.evaluateArcLength
                     result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
