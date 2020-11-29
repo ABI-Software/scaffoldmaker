@@ -746,7 +746,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                             elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
                             ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
                             d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
-                            annulusMeshGroups)
+                            urinaryBladderMeshGroup, annulusMeshGroups)
 
         fm.endChange()
         return annotationGroups
@@ -796,6 +796,10 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         is_neck_serosa = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
         is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
 
+        is_urinaryBladder = urinaryBladderGroup.getFieldElementGroup(mesh2d)
+        is_urinaryBladder_serosa = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_1)
+        is_urinaryBladder_lumen = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_0)
+
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of body of urinary bladder"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa)
         lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of body of urinary bladder"))
@@ -805,6 +809,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         serosaOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_serosa)
         lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of neck of urinary bladder"))
         lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
+
+        serosaOfurinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
+        serosaOfurinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_serosa)
+        lumenOfurinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("bladder lumen"))
+        lumenOfurinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_lumen)
 
         if options['Include urethra'] == True:
             urethraGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urethra"))
@@ -822,7 +831,7 @@ def generateUreters(region, nodes, mesh, ureterDefaultOptions,elementsCountAroun
                     elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
                     ureter2Position, ureterElementPositionDown, ureterElementPositionAround,
                     xBladder, d1Bladder, d2Bladder, nextNodeIdentifier, nextElementIdentifier,
-                    elementsCountUreterRadial, annulusMeshGroups = []):
+                    elementsCountUreterRadial, urinaryBladderMeshGroup, annulusMeshGroups = []):
 
     # Create ureters on the surface
     # Ureter 1
@@ -838,7 +847,7 @@ def generateUreters(region, nodes, mesh, ureterDefaultOptions,elementsCountAroun
     nodeIdentifier, elementIdentifier, (o1_x, o1_d1, o1_d2, _, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter1, ureter1Position, ureter1Direction,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
-                           ostiumMeshGroups=None)
+                           vesselMeshGroups=[[urinaryBladderMeshGroup]], ostiumMeshGroups=[urinaryBladderMeshGroup])
 
     # Ureter 2
     centerUreter2_x, centerUreter2_d1, centerUreter2_d2 = trackSurfaceUreter2.evaluateCoordinates(ureter2Position,
@@ -853,7 +862,8 @@ def generateUreters(region, nodes, mesh, ureterDefaultOptions,elementsCountAroun
     ureter2Direction = vector.crossproduct3(ad3, v2)
     nodeIdentifier, elementIdentifier, (o2_x, o2_d1, o2_d2, _, o2_NodeId, o2_Positions) = \
         generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter2, ureter2Position, ureter2Direction,
-                           startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier)
+                           startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier,
+                           vesselMeshGroups=[[urinaryBladderMeshGroup]], ostiumMeshGroups=[urinaryBladderMeshGroup])
 
     # Create annulus mesh around ureters
     endPoints1_x = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
