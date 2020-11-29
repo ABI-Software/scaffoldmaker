@@ -13,7 +13,7 @@ bladder_terms = [
     ("lumen of body of urinary bladder", "ILX:0739252"),
     ("serosa of neck of urinary bladder", "ILX:0739277"),
     ("lumen of neck of urinary bladder", "ILX:0739256"),
-    ("urethra", "ILX:0733022", "UBERON:0000057"),
+    ("urethra", "UBERON:0000057", "ILX:0733022"),
     ("lumen of urethra", "ILX:0736762"),
     ("serosa of urethra", "ILX:0739282")
 ]
