@@ -7,6 +7,8 @@ from opencmiss.utils.zinc.general import ChangeManager
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
+from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters, print_node_field_parameters
+from opencmiss.zinc.field import Field
 
 class Scaffold_base:
     '''
@@ -165,6 +167,24 @@ class Scaffold_base:
         return False, True  # settings not changed, nodes changed
 
     @classmethod
+    def printNodeFieldParameters(cls, region, options, editGroupName):
+        '''
+        Interactive function for printing node field parameters for pasting into code.
+        '''
+        fieldmodule = region.getFieldmodule()
+        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        selectionGroup = fieldmodule.findFieldByName('cmiss_selection').castGroup()
+        if selectionGroup.isValid():
+            nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
+            if not nodeset.isValid():
+                print('Print node field parameters: No nodes selected')
+                return False, False
+        coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+        valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
+        print_node_field_parameters(valueLabels, fieldParameters, '{:8.3f}')
+        return False, False  # no change to settings, nor node parameters
+
+    @classmethod
     def getInteractiveFunctions(cls):
         """
         Override to return list of named interactive functions that client
@@ -180,5 +200,6 @@ class Scaffold_base:
         """
         return [
             ("Smooth derivative magnitudes arithmetic", lambda region, options, editGroupName: cls.smoothDerivativeMagnitudes(region, options, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
-            ("Smooth derivative magnitudes harmonic", lambda region, options, editGroupName: cls.smoothDerivativeMagnitudes(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN))
-        ]
+            ("Smooth derivative magnitudes harmonic", lambda region, options, editGroupName: cls.smoothDerivativeMagnitudes(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN)),
+            ("Print node parameters", lambda region, options, editGroupName: cls.printNodeFieldParameters(region, options, editGroupName))
+            ]

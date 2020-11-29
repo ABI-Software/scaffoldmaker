@@ -357,3 +357,73 @@ def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
         del destroyElementGroup
         del destroyGroup
     return
+
+
+def extract_node_field_parameters(nodeset, field, only_value_labels=None):
+    '''
+    Returns parameters of field from nodes in nodeset in identifier order.
+    Assumes all components have the same labels and versions.
+    :param onlyValueLabels: Optional list of node value labels to limit extraction from e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
+    :return: list of valueLabels returned, list of (node identifier, list over value labels of list of versions of parameters.
+    '''
+    fieldmodule = nodeset.getFieldmodule()
+    componentsCount = field.getNumberOfComponents()
+    fieldcache = fieldmodule.createFieldcache()
+    valueLabels = only_value_labels if only_value_labels else \
+        [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3, Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3 ]
+    valueLabelsCount = len(valueLabels)
+    fieldParameters = []
+    valueLabelParameterCounts = [ 0 for valueLabel in valueLabels ]
+    nodeIter = nodeset.createNodeiterator()
+    node = nodeIter.next()
+    while node.isValid():
+        fieldcache.setNode(node)
+        nodeParameters = []
+        fieldDefinedAtNode = False
+        for i in range(valueLabelsCount):
+            valueParameters = []
+            version = 1
+            while True:
+                result, parameters = field.getNodeParameters(fieldcache, -1, valueLabels[i], version, componentsCount)
+                if result != RESULT_OK:
+                    break;
+                fieldDefinedAtNode = True
+                valueParameters.append(parameters)
+                valueLabelParameterCounts[i] += 1
+                version += 1
+            nodeParameters.append(valueParameters)
+        if fieldDefinedAtNode:
+            fieldParameters.append( ( node.getIdentifier(), nodeParameters ) )
+        node = nodeIter.next()
+    for i in range(valueLabelsCount - 1, -1, -1):
+        if valueLabelParameterCounts[i] == 0:
+            valueLabels.pop(i)
+            for nodeParameters in fieldParameters:
+                nodeParameters[1].pop(i)
+    return valueLabels, fieldParameters
+
+
+def parameter_lists_to_string(valuesList, format_string):
+    '''
+    :return: 'None' if values is an empty list, the values in the first item if only one, otherwise the lists of values.
+    '''
+    if not valuesList:
+        return 'None'
+    if len(valuesList) == 1:
+        return '[ ' + ', '.join(format_string.format(value) for value in valuesList[0]) + ' ]'
+    return '[ ' + ', '.join('[ ' + (', '.join(format_string.format(value) for value in values)) for values in valuesList)  + ' ] ]'
+
+
+def print_node_field_parameters(value_labels, node_field_parameters, format_string='{:.8g}'):
+    '''
+    Print value labels and parameters returned by extract_node_field_parameters ready for
+    pasting into python code.
+    '''
+    valueLabelsStrings = [ None, 'Node.VALUE_LABEL_VALUE', 'Node.VALUE_LABEL_D_DS1', 'Node.VALUE_LABEL_D_DS2', 'Node.VALUE_LABEL_D2_DS1DS2', 'Node.VALUE_LABEL_D_DS3', 'Node.VALUE_LABEL_D2_DS1DS3', 'Node.VALUE_LABEL_D2_DS2DS3', 'Node.VALUE_LABEL_D3_DS1DS2DS3']
+    print('[ ' + ', '.join(valueLabelsStrings[v] for v in value_labels) + ' ]')
+    print('[')
+    lastNodeIdentifier  = node_field_parameters[-1][0]
+    for nodeParameters in node_field_parameters:
+        nodeIdentifier = nodeParameters[0]
+        print('( ' + str(nodeIdentifier) + ', [ ' + ', '.join(parameter_lists_to_string(valueParameters, format_string) for valueParameters in nodeParameters[1]) + ' ] )' +  (', ' if (nodeIdentifier != lastNodeIdentifier) else ''))
+    print(']\n')
