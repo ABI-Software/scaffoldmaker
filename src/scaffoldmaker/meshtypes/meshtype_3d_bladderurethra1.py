@@ -810,10 +810,10 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of neck of urinary bladder"))
         lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
 
-        serosaOfurinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
-        serosaOfurinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_serosa)
-        lumenOfurinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("bladder lumen"))
-        lumenOfurinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_lumen)
+        serosaOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
+        serosaOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_serosa)
+        lumenOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("bladder lumen"))
+        lumenOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_lumen)
 
         if options['Include urethra'] == True:
             urethraGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urethra"))
