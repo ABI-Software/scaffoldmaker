@@ -410,14 +410,15 @@ def parameter_lists_to_string(valuesList, format_string):
     if not valuesList:
         return 'None'
     if len(valuesList) == 1:
-        return '[ ' + ', '.join(format_string.format(value) for value in valuesList[0]) + ' ]'
-    return '[ ' + ', '.join('[ ' + (', '.join(format_string.format(value) for value in values)) for values in valuesList)  + ' ] ]'
+        return '[' + ','.join(format_string.format(value) for value in valuesList[0]) + ']'
+    return '[ ' + ', '.join('[' + (','.join(format_string.format(value) for value in values)) for values in valuesList)  + '] ]'
 
 
-def print_node_field_parameters(value_labels, node_field_parameters, format_string='{:.8g}'):
+def print_node_field_parameters(value_labels, node_field_parameters, format_string='{: 11e}'):
     '''
     Print value labels and parameters returned by extract_node_field_parameters ready for
     pasting into python code.
+    :param format_string: Default format uses exponential notation with 7 significant digits = single precision.
     '''
     valueLabelsStrings = [ None, 'Node.VALUE_LABEL_VALUE', 'Node.VALUE_LABEL_D_DS1', 'Node.VALUE_LABEL_D_DS2', 'Node.VALUE_LABEL_D2_DS1DS2', 'Node.VALUE_LABEL_D_DS3', 'Node.VALUE_LABEL_D2_DS1DS3', 'Node.VALUE_LABEL_D2_DS2DS3', 'Node.VALUE_LABEL_D3_DS1DS2DS3']
     print('[ ' + ', '.join(valueLabelsStrings[v] for v in value_labels) + ' ]')

@@ -181,7 +181,7 @@ class Scaffold_base:
                 return False, False
         coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
         valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
-        print_node_field_parameters(valueLabels, fieldParameters, '{:8.3f}')
+        print_node_field_parameters(valueLabels, fieldParameters)  #, format_string='{:8.3f}')
         return False, False  # no change to settings, nor node parameters
 
     @classmethod
