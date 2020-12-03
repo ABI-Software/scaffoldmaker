@@ -13,6 +13,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 
 
 class MeshType_3d_lung1(Scaffold_base):
@@ -98,20 +99,26 @@ class MeshType_3d_lung1(Scaffold_base):
 
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
         leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-        #rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
+        rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
         annotationGroups = [leftLungGroup, lungGroup]
 
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
-        #rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
+        rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
 
         if isHuman:
             lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
             lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
             upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
             upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
+            lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
+            lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
+            upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
+            upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
             annotationGroups.append(lowerLeftLungGroup)
             annotationGroups.append(upperLeftLungGroup)
+            annotationGroups.append(lowerRightLungGroup)
+            annotationGroups.append(upperRightLungGroup)
 
         # Annotation fiducial point
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -141,7 +148,6 @@ class MeshType_3d_lung1(Scaffold_base):
         eftTetCollapseXi1Xi2_53 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(5, 3)
 
         if isHuman:
-
             #valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
             nodeFieldParameters = [
                 (  1, [ [  204.214,  217.387, -341.252 ], [  -62.947,  -35.911,    0.688 ], [   25.814,  -29.305,   29.820 ], [   -4.512,   17.903,   91.032 ] ] ),
@@ -221,26 +227,33 @@ class MeshType_3d_lung1(Scaffold_base):
             uElementsCount2 = 4
             uElementsCount3 = 4
 
+            xMirror = 150  # Offset
+
             # Create nodes
             nodeIdentifier = 1
-            lNodeIds = []
-            uNodeIds = []
+            lNodeIdsL = []
+            uNodeIdsL = []
+            lNodeIdsR = []
+            uNodeIdsR = []
             d1 = [1.0, 0.0, 0.0]
             d2 = [0.0, 1.0, 0.0]
             d3 = [0.0, 0.0, 1.0]
             nodeIndex = 0
-            # Lower lobe nodes
+
+            # Left lower lobe nodes
             for n3 in range(lElementsCount3 + 1):
-                lNodeIds.append([])
+                lNodeIdsL.append([])
+                lNodeIdsR.append([])
                 for n2 in range(lElementsCount2 + 1):
-                    lNodeIds[n3].append([])
+                    lNodeIdsL[n3].append([])
+                    lNodeIdsR[n3].append([])
                     for n1 in range(lElementsCount1 + 1):
-                        lNodeIds[n3][n2].append(None)
+                        lNodeIdsL[n3][n2].append(None)
+                        lNodeIdsR[n3][n2].append(None)
                         if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
                             continue
                         if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
                             continue
-
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         cache.setNode(node)
                         if generateParameters:
@@ -254,16 +267,19 @@ class MeshType_3d_lung1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        lNodeIds[n3][n2][n1] = nodeIdentifier
+                        lNodeIdsL[n3][n2][n1] = nodeIdentifier
                         nodeIdentifier += 1
 
-            # Upper lobe nodes
+            # Left upper lobe nodes
             for n3 in range(uElementsCount3 + 1):
-                uNodeIds.append([])
+                uNodeIdsL.append([])
+                uNodeIdsR.append([])
                 for n2 in range(uElementsCount2 + 1):
-                    uNodeIds[n3].append([])
+                    uNodeIdsL[n3].append([])
+                    uNodeIdsR[n3].append([])
                     for n1 in range(uElementsCount1 + 1):
-                        uNodeIds[n3][n2].append(None)
+                        uNodeIdsL[n3][n2].append(None)
+                        uNodeIdsR[n3][n2].append(None)
                         if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
                             continue
                         if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
@@ -275,12 +291,12 @@ class MeshType_3d_lung1(Scaffold_base):
 
                         # Oblique fissure nodes
                         if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                            uNodeIds[n3][n2][n1] = lNodeIds[n3][lElementsCount2][n1]
-                            #print('uNodeIds', uNodeIds[n3][n2][n1])
+                            uNodeIdsL[n3][n2][n1] = lNodeIdsL[n3][lElementsCount2][n1]
+                            #print('uNodeIdsL', uNodeIdsL[n3][n2][n1])
                             continue
                         elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
-                            uNodeIds[n3][n2][n1] = lNodeIds[lElementsCount3][n2][n1]
-                            #print('uNodeIds', uNodeIds[n3][n2][n1])
+                            uNodeIdsL[n3][n2][n1] = lNodeIdsL[lElementsCount3][n2][n1]
+                            #print('uNodeIdsL', uNodeIdsL[n3][n2][n1])
                             continue
 
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -296,57 +312,299 @@ class MeshType_3d_lung1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        uNodeIds[n3][n2][n1] = nodeIdentifier
+                        uNodeIdsL[n3][n2][n1] = nodeIdentifier
+                        nodeIdentifier += 1
+
+            # Right lower lung
+            for n3 in range(lElementsCount3 + 1):
+                for n2 in range(lElementsCount2 + 1):
+                    for n1 in reversed(range(lElementsCount1 + 1)):
+                        if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
+                            continue
+                        if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
+                            continue
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        cache.setNode(node)
+                        if generateParameters:
+                            x = [-1.0 * (n1 - 1), 1.0 * (n2 - 1), 1.0 * n3]
+                        else:
+                            nodeIndex = lNodeIdsL[n3][n2][n1] - 1
+                            if nodeIndex is None:
+                                continue
+                            nodeParameters = nodeFieldParameters[nodeIndex]
+                            # print('nodeIdentifier: ', nodeIdentifier, '|| ', 'Right nodes: ', nodeIndex)
+                            x, d1, d2, d3 = nodeParameters[1]
+                        # Y-plane mirror transformation
+                        x = [2.0 * xMirror - x[0], x[1], x[2]]
+                        d1 = [d1[0], -d1[1], -d1[2]]
+                        d2 = [-d2[0], d2[1], d2[2]]
+                        d3 = [-d3[0], d3[1], d3[2]]
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                        lNodeIdsR[n3][n2][-n1-1] = nodeIdentifier
+                        nodeIdentifier += 1
+
+            # Right upper lobe nodes
+            for n3 in range(uElementsCount3 + 1):
+                for n2 in range(uElementsCount2 + 1):
+                    for n1 in reversed(range(uElementsCount1 + 1)):
+                        if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
+                            continue
+                        if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
+                            continue
+                        if ((n2 == 0) or (n2 == uElementsCount2)) and (n3 == uElementsCount3):
+                            continue
+                        if ((n1 == 0) or (n1 == uElementsCount1)) and (n3 == uElementsCount3):
+                            continue
+
+                        # Oblique fissure nodes
+                        if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
+                            uNodeIdsR[n3][n2][n1] = lNodeIdsR[n3][lElementsCount2][n1]
+                            #print('uNodeIdsL', uNodeIdsL[n3][n2][n1])
+                            continue
+                        elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
+                            uNodeIdsR[n3][n2][n1] = lNodeIdsR[lElementsCount3][n2][n1]
+                            #print('uNodeIdsL', uNodeIdsL[n3][n2][n1])
+                            continue
+
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        cache.setNode(node)
+                        if generateParameters:
+                            x = [-1.0 * (n1 - 1), 1.0 * (n2 - 1), 1.0 * n3]
+                        else:
+                            nodeIndex = uNodeIdsL[n3][n2][n1] - 1
+                            if nodeIndex is None:
+                                continue
+                            nodeParameters = nodeFieldParameters[nodeIndex]
+                            x, d1, d2, d3 = nodeParameters[1]
+                        # Y-plane mirror transformation
+                        x = [2.0 * xMirror - x[0], x[1], x[2]]
+                        d1 = [d1[0], -d1[1], -d1[2]]
+                        d2 = [-d2[0], d2[1], d2[2]]
+                        d3 = [-d3[0], d3[1], d3[2]]
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                        uNodeIdsR[n3][n2][-n1-1] = nodeIdentifier
                         nodeIdentifier += 1
 
             # Create elements
-            # Lower lobe elements
+            # Left lower lobe elements
             elementIdentifier = 1
+            # for e3 in range(lElementsCount3):
+            #     for e2 in range(lElementsCount2):
+            #         for e1 in range(lElementsCount1):
+            #             eft = eftRegular
+            #             nodeIdentifiers = [
+            #                 lNodeIdsL[e3    ][e2][e1], lNodeIdsL[e3    ][e2][e1 + 1], lNodeIdsL[e3    ][e2 + 1][e1], lNodeIdsL[e3    ][e2 + 1][e1 + 1],
+            #                 lNodeIdsL[e3 + 1][e2][e1], lNodeIdsL[e3 + 1][e2][e1 + 1], lNodeIdsL[e3 + 1][e2 + 1][e1], lNodeIdsL[e3 + 1][e2 + 1][e1 + 1]]
+            #
+            #             if (e2 == 0) and (e1 == 0):
+            #                 # Back wedge elements
+            #                 nodeIdentifiers.pop(4)
+            #                 nodeIdentifiers.pop(0)
+            #                 eft = eftWedgeCollapseXi1_15
+            #             elif (e2 == 0) and (e1 == (lElementsCount1 - 1)):
+            #                 # Back wedge elements
+            #                 nodeIdentifiers.pop(5)
+            #                 nodeIdentifiers.pop(1)
+            #                 eft = eftWedgeCollapseXi1_26
+            #             elif (e3 == 1) and (e2 == (lElementsCount2 - 2)):
+            #                 # Middle wedge
+            #                 nodeIdentifiers.pop(7)
+            #                 nodeIdentifiers.pop(6)
+            #                 eft = eftWedgeCollapseXi2_78
+            #             elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 3)):
+            #                 # Remapped cube element 1
+            #                 eft = eftfactory.createEftBasic()
+            #                 setEftScaleFactorIds(eft, [1], [])
+            #                 remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+            #                 remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            #             elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 2)):
+            #                 # Remapped cube element 2
+            #                 nodeIdentifiers[2] = lNodeIdsL[e3 - 1][e2 + 1][e1    ]
+            #                 nodeIdentifiers[3] = lNodeIdsL[e3 - 1][e2 + 1][e1 + 1]
+            #                 nodeIdentifiers[6] = lNodeIdsL[e3 - 1][e2 + 2][e1    ]
+            #                 nodeIdentifiers[7] = lNodeIdsL[e3 - 1][e2 + 2][e1 + 1]
+            #                 eft = eftfactory.createEftBasic()
+            #                 setEftScaleFactorIds(eft, [1], [])
+            #                 remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+            #                 remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            #                 remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+            #                 remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+            #             elif None in nodeIdentifiers:
+            #                 continue
+            #
+            #             # print('element ', elementIdentifier, '|| ', nodeIdentifiers)
+            #             if eft is eftRegular:
+            #                 element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+            #             else:
+            #                 elementtemplateCustom.defineField(coordinates, -1, eft)
+            #                 element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+            #             element.setNodesByIdentifier(eft, nodeIdentifiers)
+            #             if eft.getNumberOfLocalScaleFactors() == 1:
+            #                 element.setScaleFactors(eft, [-1.0])
+            #             elementIdentifier += 1
+            #             leftLungMeshGroup.addElement(element)
+            #             lungMeshGroup.addElement(element)
+            #             lowerLeftLungMeshGroup.addElement(element)
+            #
+            # # Left upper lobe elements
+            # for e3 in range(uElementsCount3):
+            #     for e2 in range(uElementsCount2):
+            #         for e1 in range(uElementsCount1):
+            #             eft = eftRegular
+            #             nodeIdentifiers = [
+            #                 uNodeIdsL[e3][e2][e1], uNodeIdsL[e3][e2][e1 + 1], uNodeIdsL[e3][e2 + 1][e1],
+            #                 uNodeIdsL[e3][e2 + 1][e1 + 1],
+            #                 uNodeIdsL[e3 + 1][e2][e1], uNodeIdsL[e3 + 1][e2][e1 + 1], uNodeIdsL[e3 + 1][e2 + 1][e1],
+            #                 uNodeIdsL[e3 + 1][e2 + 1][e1 + 1]]
+            #
+            #             if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
+            #                 # Distal-front wedge elements
+            #                 nodeIdentifiers.pop(6)
+            #                 nodeIdentifiers.pop(2)
+            #                 eft = eftWedgeCollapseXi1_37
+            #             elif (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
+            #                 # Distal-back wedge elements
+            #                 nodeIdentifiers.pop(7)
+            #                 nodeIdentifiers.pop(3)
+            #                 eft = eftWedgeCollapseXi1_48
+            #             elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == 0):
+            #                 # Medial-front wedge elements
+            #                 nodeIdentifiers.pop(4)
+            #                 nodeIdentifiers.pop(0)
+            #                 eft = eftWedgeCollapseXi1_15
+            #             elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == (uElementsCount1 - 1)):
+            #                 # Medial-back wedge elements
+            #                 nodeIdentifiers.pop(5)
+            #                 nodeIdentifiers.pop(1)
+            #                 eft = eftWedgeCollapseXi1_26
+            #             elif (e3 == (uElementsCount3 - 1)) and (0 < e2 < (uElementsCount2 - 1)) and (e1 == 0):
+            #                 # Top-front wedge elements
+            #                 nodeIdentifiers.pop(6)
+            #                 nodeIdentifiers.pop(4)
+            #                 eft = eftWedgeCollapseXi1_57
+            #             elif (e3 == (uElementsCount3 - 1)) and (0 < e2 < (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
+            #                 # Top-back wedge elements
+            #                 nodeIdentifiers.pop(7)
+            #                 nodeIdentifiers.pop(5)
+            #                 eft = eftWedgeCollapseXi1_68
+            #             elif (e3 == (uElementsCount3 - 1)) and (e2 == 0) and (e1 == 0):
+            #                 # Top-front-medial tetrahedron wedge elements
+            #                 nodeIdentifiers.pop(6)
+            #                 nodeIdentifiers.pop(5)
+            #                 nodeIdentifiers.pop(4)
+            #                 nodeIdentifiers.pop(0)
+            #                 eft = eftTetCollapseXi1Xi2_82
+            #             elif (e3 == (uElementsCount3 - 1)) and (e2 == 0) and (e1 == (uElementsCount1 - 1)):
+            #                 # Top-back-medial tetrahedron wedge elements
+            #                 nodeIdentifiers.pop(7)
+            #                 nodeIdentifiers.pop(5)
+            #                 nodeIdentifiers.pop(4)
+            #                 nodeIdentifiers.pop(1)
+            #                 eft = eftTetCollapseXi1Xi2_71
+            #             elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
+            #                 # Top-front-distal tetrahedron wedge elements
+            #                 nodeIdentifiers.pop(7)
+            #                 nodeIdentifiers.pop(6)
+            #                 nodeIdentifiers.pop(4)
+            #                 nodeIdentifiers.pop(2)
+            #                 eft = eftTetCollapseXi1Xi2_63
+            #             elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
+            #                 # Top-front-distal tetrahedron wedge elements
+            #                 nodeIdentifiers.pop(7)
+            #                 nodeIdentifiers.pop(6)
+            #                 nodeIdentifiers.pop(5)
+            #                 nodeIdentifiers.pop(3)
+            #                 eft = eftTetCollapseXi1Xi2_53
+            #             elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 3)):
+            #                 # Remapped cube element 1
+            #                 eft = eftfactory.createEftBasic()
+            #                 setEftScaleFactorIds(eft, [1], [])
+            #                 remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+            #                 remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+            #             elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 2)):
+            #                 # Remapped cube element 2
+            #                 eft = eftfactory.createEftBasic()
+            #                 setEftScaleFactorIds(eft, [1], [])
+            #                 remapEftNodeValueLabel(eft, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+            #             elif None in nodeIdentifiers:
+            #                 continue
+            #
+            #             # print('element ', elementIdentifier, '|| ', nodeIdentifiers)
+            #             if eft is eftRegular:
+            #                 element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+            #             else:
+            #                 elementtemplateCustom.defineField(coordinates, -1, eft)
+            #                 element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+            #             element.setNodesByIdentifier(eft, nodeIdentifiers)
+            #             if eft.getNumberOfLocalScaleFactors() == 1:
+            #                 element.setScaleFactors(eft, [-1.0])
+            #             elementIdentifier += 1
+            #             leftLungMeshGroup.addElement(element)
+            #             lungMeshGroup.addElement(element)
+            #             upperLeftLungMeshGroup.addElement(element)
+
+            # Right lower lobe elements
             for e3 in range(lElementsCount3):
                 for e2 in range(lElementsCount2):
-                    for e1 in range(lElementsCount1):
+                    for e1 in (range(lElementsCount1)):
                         eft = eftRegular
                         nodeIdentifiers = [
-                            lNodeIds[e3    ][e2][e1], lNodeIds[e3    ][e2][e1 + 1], lNodeIds[e3    ][e2 + 1][e1], lNodeIds[e3    ][e2 + 1][e1 + 1],
-                            lNodeIds[e3 + 1][e2][e1], lNodeIds[e3 + 1][e2][e1 + 1], lNodeIds[e3 + 1][e2 + 1][e1], lNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                            lNodeIdsR[e3][e2][e1], lNodeIdsR[e3][e2][e1 + 1], lNodeIdsR[e3][e2 + 1][e1],
+                            lNodeIdsR[e3][e2 + 1][e1 + 1],
+                            lNodeIdsR[e3 + 1][e2][e1], lNodeIdsR[e3 + 1][e2][e1 + 1], lNodeIdsR[e3 + 1][e2 + 1][e1],
+                            lNodeIdsR[e3 + 1][e2 + 1][e1 + 1]]
 
                         if (e2 == 0) and (e1 == 0):
                             # Back wedge elements
+                            # print('condition: 1')
                             nodeIdentifiers.pop(4)
                             nodeIdentifiers.pop(0)
                             eft = eftWedgeCollapseXi1_15
+
                         elif (e2 == 0) and (e1 == (lElementsCount1 - 1)):
                             # Back wedge elements
+                            # print('condition: 2')
                             nodeIdentifiers.pop(5)
                             nodeIdentifiers.pop(1)
                             eft = eftWedgeCollapseXi1_26
                         elif (e3 == 1) and (e2 == (lElementsCount2 - 2)):
                             # Middle wedge
+                            # print('condition: 3')
                             nodeIdentifiers.pop(7)
                             nodeIdentifiers.pop(6)
                             eft = eftWedgeCollapseXi2_78
                         elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 3)):
                             # Remapped cube element 1
+                            # print('condition: 4')
                             eft = eftfactory.createEftBasic()
                             setEftScaleFactorIds(eft, [1], [])
                             remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
                             remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
                         elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 2)):
                             # Remapped cube element 2
-                            nodeIdentifiers[2] = lNodeIds[e3 - 1][e2 + 1][e1    ]
-                            nodeIdentifiers[3] = lNodeIds[e3 - 1][e2 + 1][e1 + 1]
-                            nodeIdentifiers[6] = lNodeIds[e3 - 1][e2 + 2][e1    ]
-                            nodeIdentifiers[7] = lNodeIds[e3 - 1][e2 + 2][e1 + 1]
+                            # print('condition: 5')
+                            nodeIdentifiers[2] = lNodeIdsR[e3 - 1][e2 + 1][e1]
+                            nodeIdentifiers[3] = lNodeIdsR[e3 - 1][e2 + 1][e1 + 1]
+                            nodeIdentifiers[6] = lNodeIdsR[e3 - 1][e2 + 2][e1]
+                            nodeIdentifiers[7] = lNodeIdsR[e3 - 1][e2 + 2][e1 + 1]
                             eft = eftfactory.createEftBasic()
                             setEftScaleFactorIds(eft, [1], [])
                             remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
                             remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
-                            remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-                            remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
                         elif None in nodeIdentifiers:
                             continue
 
-                        # print('element ', elementIdentifier, '|| ', nodeIdentifiers)
+                        # print('e1: ', e1, 'e2: ', e2, 'e3: ', e3 , 'element ', elementIdentifier, '|| ', nodeIdentifiers)
                         if eft is eftRegular:
                             element = mesh.createElement(elementIdentifier, elementtemplateRegular)
                         else:
@@ -356,20 +614,20 @@ class MeshType_3d_lung1(Scaffold_base):
                         if eft.getNumberOfLocalScaleFactors() == 1:
                             element.setScaleFactors(eft, [-1.0])
                         elementIdentifier += 1
-                        leftLungMeshGroup.addElement(element)
+                        rightLungMeshGroup.addElement(element)
                         lungMeshGroup.addElement(element)
-                        lowerLeftLungMeshGroup.addElement(element)
+                        lowerRightLungMeshGroup.addElement(element)
 
-            # Upper lobe elements
+           # Right upper lobe elements
             for e3 in range(uElementsCount3):
                 for e2 in range(uElementsCount2):
                     for e1 in range(uElementsCount1):
                         eft = eftRegular
                         nodeIdentifiers = [
-                            uNodeIds[e3][e2][e1], uNodeIds[e3][e2][e1 + 1], uNodeIds[e3][e2 + 1][e1],
-                            uNodeIds[e3][e2 + 1][e1 + 1],
-                            uNodeIds[e3 + 1][e2][e1], uNodeIds[e3 + 1][e2][e1 + 1], uNodeIds[e3 + 1][e2 + 1][e1],
-                            uNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                            uNodeIdsR[e3][e2][e1], uNodeIdsR[e3][e2][e1 + 1], uNodeIdsR[e3][e2 + 1][e1],
+                            uNodeIdsR[e3][e2 + 1][e1 + 1],
+                            uNodeIdsR[e3 + 1][e2][e1], uNodeIdsR[e3 + 1][e2][e1 + 1], uNodeIdsR[e3 + 1][e2 + 1][e1],
+                            uNodeIdsR[e3 + 1][e2 + 1][e1 + 1]]
 
                         if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
                             # Distal-front wedge elements
@@ -464,16 +722,16 @@ class MeshType_3d_lung1(Scaffold_base):
 
             # Create nodes
             nodeIdentifier = 1
-            lNodeIds = []
+            lNodeIdsL = []
             d1 = [0.5, 0.0, 0.0]
             d2 = [0.0, 0.5, 0.0]
             d3 = [0.0, 0.0, 1.0]
             for n3 in range(elementsCount3 + 1):
-                lNodeIds.append([])
+                lNodeIdsL.append([])
                 for n2 in range(elementsCount2 + 1):
-                    lNodeIds[n3].append([])
+                    lNodeIdsL[n3].append([])
                     for n1 in range(elementsCount1 + 1):
-                        lNodeIds[n3][n2].append(None)
+                        lNodeIdsL[n3][n2].append(None)
                         if n3 < elementsCount3:
                             if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
                                 continue
@@ -487,7 +745,7 @@ class MeshType_3d_lung1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        lNodeIds[n3][n2][n1] = nodeIdentifier
+                        lNodeIdsL[n3][n2][n1] = nodeIdentifier
                         nodeIdentifier += 1
 
             # Create elements
@@ -497,8 +755,8 @@ class MeshType_3d_lung1(Scaffold_base):
                     for e1 in range(elementsCount1):
                         eft = eftRegular
                         nodeIdentifiers = [
-                            lNodeIds[e3    ][e2][e1], lNodeIds[e3    ][e2][e1 + 1], lNodeIds[e3    ][e2 + 1][e1], lNodeIds[e3    ][e2 + 1][e1 + 1],
-                            lNodeIds[e3 + 1][e2][e1], lNodeIds[e3 + 1][e2][e1 + 1], lNodeIds[e3 + 1][e2 + 1][e1], lNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                            lNodeIdsL[e3    ][e2][e1], lNodeIdsL[e3    ][e2][e1 + 1], lNodeIdsL[e3    ][e2 + 1][e1], lNodeIdsL[e3    ][e2 + 1][e1 + 1],
+                            lNodeIdsL[e3 + 1][e2][e1], lNodeIdsL[e3 + 1][e2][e1 + 1], lNodeIdsL[e3 + 1][e2 + 1][e1], lNodeIdsL[e3 + 1][e2 + 1][e1 + 1]]
 
                         if (e3 < elementsCount3 - 1):
                             if (e2 == 0) and (e1 == 0):
@@ -575,3 +833,4 @@ class MeshType_3d_lung1(Scaffold_base):
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCount = options['Refine number of elements']
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
+
