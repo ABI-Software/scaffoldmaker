@@ -22,6 +22,7 @@ class EdgeCurve:
     def __init__(self, expressions):
         self._expressions = expressions
         self._arcLength = 0.0
+        self._lastArcLength = 0.0
 
     def evaluateArcLength(self, nodes, field, fieldcache):
         componentsCount = field.getNumberOfComponents()
@@ -47,6 +48,12 @@ class EdgeCurve:
         Caller must have called evaluateArcLength!
         '''
         return self._arcLength
+
+    def getLastArcLength(self):
+        return self._lastArcLength
+
+    def updateLastArcLength(self):
+        self._lastArcLength = self._arcLength
 
     def getParameter(self, parameterIndex):
         '''
@@ -261,51 +268,70 @@ class DerivativeSmoothing:
                 if self._editNodesetGroup:
                     self._editNodesetGroup.addNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # so client knows which nodes are modified
 
-    def smooth(self):
+    def smooth(self, maxIterations=10, arcLengthTolerance=1.0E-6):
+        '''
+        :param maxIterations: Maximum iterations before stopping if not converging.
+        :param arcLengthTolerance: Ratio of difference in arc length from last iteration
+        divided by current arc length under which convergence is achieved. Required to
+        be met by every element edge.
+        '''
         if not self._derivativeMap:
             return  # no nodes being smoothed
-        fieldcache = self._fieldmodule.createFieldcache()
-        for edge in self._edgesMap.values():
-            edge.evaluateArcLength(self._nodes, self._field, fieldcache)
         componentsCount = self._field.getNumberOfComponents()
         with ChangeManager(self._fieldmodule):
-            for derivativeKey, derivativeEdges in self._derivativeMap.items():
-                edgeCount = len(derivativeEdges)
-                if edgeCount > 1:
-                    nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
-                    fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
-                    result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
-                    mag = 0.0
-                    for derivativeEdge in derivativeEdges:
-                        edge, expressionIndex, totalScaleFactor = derivativeEdge
-                        arcLength = edge.getArcLength()
-                        if self._scalingMode == DerivativeScalingMode.ARITHMETIC_MEAN:
-                            mag += arcLength/totalScaleFactor
-                        else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
-                            mag += totalScaleFactor/arcLength
-                    if self._scalingMode == DerivativeScalingMode.ARITHMETIC_MEAN:
-                        mag /= edgeCount
-                    else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
-                        mag = edgeCount/mag
-                    if (mag <= 0.0):
-                        print('Node', nodeIdentifier, 'label', label, 'version', version, 'has negative mag', mag)
-                    x = setMagnitude(x, mag)
-                    result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
-            for derivativeKey, derivativeEdges in self._derivativeMap.items():
-                edgeCount = len(derivativeEdges)
-                if edgeCount == 1:
-                    # boundary smoothing over single edge
-                    nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
-                    fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
-                    result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
-                    edge, expressionIndex, totalScaleFactor = derivativeEdges[0]
-                    # re-evaluate arc length so parameters are up-to-date for other end
+            fieldcache = self._fieldmodule.createFieldcache()
+            for iter in range(maxIterations + 1):
+                converged = True
+                for edge in self._edgesMap.values():
+                    lastArcLength = edge.getLastArcLength()
                     arcLength = edge.evaluateArcLength(self._nodes, self._field, fieldcache)
-                    otherd = edge.getParameter(3 if (expressionIndex == 1) else 1)
-                    othermag = magnitude(otherd)
-                    mag = (2.0*arcLength - othermag)/totalScaleFactor
-                    if (mag <= 0.0):
-                        print('Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative mag', mag)
-                    x = setMagnitude(x, mag)
-                    fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # need to set again as changed node in edge.evaluateArcLength
-                    result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
+                    edge.updateLastArcLength()
+                    if (math.fabs(arcLength - lastArcLength)/arcLength) > arcLengthTolerance:
+                        converged = False
+                if converged:
+                    print('Derivative smoothing: Converged after', iter, 'iterations.')
+                    return
+                elif (iter == maxIterations):
+                    print('Derivative smoothing: Stopping after', maxIterations, 'iterations without converging.')
+                    return
+                for derivativeKey, derivativeEdges in self._derivativeMap.items():
+                    edgeCount = len(derivativeEdges)
+                    if edgeCount > 1:
+                        nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
+                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
+                        result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
+                        mag = 0.0
+                        for derivativeEdge in derivativeEdges:
+                            edge, expressionIndex, totalScaleFactor = derivativeEdge
+                            arcLength = edge.getArcLength()
+                            if self._scalingMode == DerivativeScalingMode.ARITHMETIC_MEAN:
+                                mag += arcLength/totalScaleFactor
+                            else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
+                                mag += totalScaleFactor/arcLength
+                        if self._scalingMode == DerivativeScalingMode.ARITHMETIC_MEAN:
+                            mag /= edgeCount
+                        else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
+                            mag = edgeCount/mag
+                        if (mag <= 0.0):
+                            print('Node', nodeIdentifier, 'label', label, 'version', version, 'has negative mag', mag)
+                        x = setMagnitude(x, mag)
+                        result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
+                for derivativeKey, derivativeEdges in self._derivativeMap.items():
+                    edgeCount = len(derivativeEdges)
+                    if edgeCount == 1:
+                        # boundary smoothing over single edge
+                        nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
+                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
+                        result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
+                        edge, expressionIndex, totalScaleFactor = derivativeEdges[0]
+                        # re-evaluate arc length so parameters are up-to-date for other end
+                        arcLength = edge.evaluateArcLength(self._nodes, self._field, fieldcache)
+                        otherd = edge.getParameter(3 if (expressionIndex == 1) else 1)
+                        othermag = magnitude(otherd)
+                        mag = (2.0*arcLength - othermag)/totalScaleFactor
+                        if (mag <= 0.0):
+                            print('Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative mag', mag)
+                        x = setMagnitude(x, mag)
+                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # need to set again as changed node in edge.evaluateArcLength
+                        result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
+            del fieldcache
