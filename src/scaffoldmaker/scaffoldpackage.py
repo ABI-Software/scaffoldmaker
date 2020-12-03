@@ -186,6 +186,7 @@ class ScaffoldPackage:
         '''
         If rotation, scale or transformation are set, transform node coordinates.
         Only call after generate().
+        :return: True if a non-identity transformation has been applied, False if not.
         '''
         assert self._region
         fieldmodule = self._region.getFieldmodule()
@@ -211,12 +212,14 @@ class ScaffoldPackage:
                 #print("applyTransformation: apply translation", self._translation)
                 newCoordinates = newCoordinates + fieldmodule.createFieldConstant(self._translation)
             # be sure to delete temporary fields and fieldassignment to reduce messages
-            if newCoordinates is not coordinates:
+            doApply = newCoordinates is not coordinates
+            if doApply:
                 fieldassignment = coordinates.createFieldassignment(newCoordinates)
                 fieldassignment.assign()
                 del fieldassignment
             del newCoordinates
             del coordinates
+        return doApply
 
     def generate(self, region, applyTransformation=True):
         '''
