@@ -68,15 +68,18 @@ class DerivativeSmoothing:
         [ [ 1, 2 ], [ 3, 4 ] ],
         [ [ 1, 3 ], [ 2, 4 ] ] ]
 
-    def __init__(self, region, field, groupName = None, scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN, editGroupName=None):
+    def __init__(self, region, field, selectionGroupName = None, scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN, editGroupName=None):
         '''
-        :param groupName: Optional name of group to limit
+        :param selectionGroupName: Optional name of group to limit smoothing to nodes in group.
+        Only element edges including those nodes are included in smoothing.
         '''
         self._region = region
         self._field = field.castFiniteElement()
         componentsCount = self._field.getNumberOfComponents()
         assert self._field.isValid()
-        self._groupName = groupName
+        self._selectionGroupName = selectionGroupName
+        self._selectionGroup = None
+        self._selectionNodes = None
         self._scalingMode = scalingMode
         self._editGroupName = editGroupName
         self._fieldmodule = self._region.getFieldmodule()
@@ -94,13 +97,6 @@ class DerivativeSmoothing:
             self._editNodesetGroup = editNodeGroup.getNodesetGroup()
         else:
             self._editNodesetGroup = None
-        if groupName:
-            self._group = self._fieldmodule.findFieldByName(groupName).castGroup()
-            if not self._group.isValid():
-                print('DerivativeSmoothing: Group', groupName, 'not found')
-                return
-            self._mesh = self._group.getFieldElementGroup(self._mesh).getMeshGroup()
-            self._nodes = self._group.getFieldNodeGroup(self._nodes).getNodesetGroup()
         # edges define curves with 4 expressions for x1, d1, x2, d2, followed by the arcLength
         # each expression is a list of terms.
         # each term contains a list of global node id, value label, version, elementIdentifier, scale factor or None
@@ -108,6 +104,15 @@ class DerivativeSmoothing:
         self._edgesMap = {}
         # map global nodeid, derivative, version to list of EdgeCurve
         self._derivativeMap = {}
+        if selectionGroupName:
+            self._selectionGroup = self._fieldmodule.findFieldByName(selectionGroupName).castGroup()
+            if not self._selectionGroup.isValid():
+                print('DerivativeSmoothing: Selection group not found')
+                return
+            self._selectionNodes = self._selectionGroup.getFieldNodeGroup(self._nodes).getNodesetGroup()
+            if (not self._selectionNodes.isValid()) or (self._selectionNodes.getSize() == 0):
+                print('DerivativeSmoothing: No nodes selected for smoothing')
+                return
         self.addElementEdges()
 
     def addElementEdges(self):
@@ -119,9 +124,25 @@ class DerivativeSmoothing:
         element = elementIter.next()
         while element.isValid():
             eft = element.getElementfieldtemplate(self._field, -1)
+            useElement = True
             if not eft.isValid():
-                print('Ignore element',element.getIdentifier())
-            if eft.isValid():
+                eft1 = element.getElementfieldtemplate(self._field, 1)
+                if eft1.isValid():
+                    print('DerivativeSmoothing: Skip element', element.getIdentifier(), 'with per-component element field, which is not implemented')
+                #else:
+                #    print('DerivativeSmoothing: Skip element', element.getIdentifier(), 'as field is not defined on it')
+                useElement = False
+            elif self._selectionNodes:
+                # check element contains at least one nodes in selection:
+                localNodesCount = eft.getNumberOfLocalNodes()
+                for n in range(1, localNodesCount + 1):
+                    node = element.getNode(eft, n)
+                    if self._selectionNodes.containsNode(node):
+                        break
+                else:
+                    #print('DerivativeSmoothing: Skip element', element.getIdentifier(), 'as it contains no selected nodes')
+                    useElement = False
+            if useElement:
                 elementbasis = eft.getElementbasis()
                 functionTypes = [ elementbasis.getFunctionType(d) for d in range(1, dimension + 1) ]
                 fn = 1
@@ -144,7 +165,7 @@ class DerivativeSmoothing:
                         derivativeOffsets.append(None)
                 shapeType = element.getShapeType()
                 if len(useDirections) != dimension:
-                    print('DerivativeSmoothing: Element', element.getIdentifier(), 'has unsupported basis function types', functionTypes)
+                    print('DerivativeSmoothing: Skip element', element.getIdentifier(), 'with unsupported basis function types', functionTypes)
                 elif shapeType == Element.SHAPE_TYPE_CUBE:
                     for d in range(dimension):
                         if useDirections[d]:
@@ -172,18 +193,24 @@ class DerivativeSmoothing:
         '''
         #print('element', element.getIdentifier(), 'fns', basisLocalNodeFunctions, 'basisLocalNodes', basisLocalNodes, 'derivativeOffset', derivativeOffset)
         locationBasisFunctions = [ basisLocalNodeFunctions[n - 1] for n in basisLocalNodes ]
-        globalNodes = [ element.getNode(eft, eft.getTermLocalNodeIndex(fn, 1)) for fn in locationBasisFunctions ]
-        nodeIdentifiers = [ node.getIdentifier() for node in globalNodes ]
+        edgeNodes = [ element.getNode(eft, eft.getTermLocalNodeIndex(fn, 1)) for fn in locationBasisFunctions ]
+        if self._selectionNodes:
+            for node in edgeNodes:
+                if self._selectionNodes.containsNode(node):
+                    break
+            else:
+                return  # edge does not contain any nodes in selection
+        nodeIdentifiers = [ node.getIdentifier() for node in edgeNodes ]
         if -1 in nodeIdentifiers:
             print('Non-nodal element', element.getIdentifier(), 'basis nodes', basisLocalNodes)
             return
         if nodeIdentifiers[0] == nodeIdentifiers[1]:
             #print('Collapsed edge on element', element.getIdentifier(), 'basis nodes', basisLocalNodes)
             return
-        sortednodeIdentifiers = tuple(sorted(nodeIdentifiers))
-        existingEdgeCurve = self._edgesMap.get(sortednodeIdentifiers)
+        sortedNodeIdentifiers = tuple(sorted(nodeIdentifiers))
+        existingEdgeCurve = self._edgesMap.get(sortedNodeIdentifiers)
         if existingEdgeCurve:
-            #print('Found existing edge for global nodes', sortednodeIdentifiers, 'on element', element.getIdentifier(), 'basis nodes', basisLocalNodes)
+            #print('Found existing edge for global nodes', sortedNodeIdentifiers, 'on element', element.getIdentifier(), 'basis nodes', basisLocalNodes)
             return
         # element basis function numbers for x1, d1, x2, d2 of Hermite curve
         functionNumbers = [ locationBasisFunctions[0], locationBasisFunctions[0] + derivativeOffset,
@@ -214,13 +241,16 @@ class DerivativeSmoothing:
                 expression.append(term)
             expressions.append(expression)
         edge = EdgeCurve(expressions)
-        self._edgesMap[sortednodeIdentifiers] = edge
+        self._edgesMap[sortedNodeIdentifiers] = edge
 
         # map from node derivative version to list of edges it is on
         for expressionIndex in (1, 3):
             expression = expressions[expressionIndex]
             if len(expression) == 1:  # handle single term only
                 nodeIdentifier, nodeValueLabel, nodeVersion, scaleFactor = expression[0]
+                if self._selectionNodes:
+                    if not self._selectionNodes.containsNode(self._nodes.findNodeByIdentifier(nodeIdentifier)):
+                        continue
                 derivativeKey = (nodeIdentifier, nodeValueLabel, nodeVersion)
                 derivativeEdge = (edge, expressionIndex, math.fabs(scaleFactor))
                 derivativeEdges = self._derivativeMap.get(derivativeKey)
@@ -229,9 +259,11 @@ class DerivativeSmoothing:
                 else:
                     self._derivativeMap[derivativeKey] = [ derivativeEdge ]
                 if self._editNodesetGroup:
-                    self._editNodesetGroup.addNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # so client know which nodes are modified
+                    self._editNodesetGroup.addNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # so client knows which nodes are modified
 
     def smooth(self):
+        if not self._derivativeMap:
+            return  # no nodes being smoothed
         fieldcache = self._fieldmodule.createFieldcache()
         for edge in self._edgesMap.values():
             edge.evaluateArcLength(self._nodes, self._field, fieldcache)
