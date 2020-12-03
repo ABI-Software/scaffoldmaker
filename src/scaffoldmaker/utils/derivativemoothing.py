@@ -223,11 +223,13 @@ class DerivativeSmoothing:
         functionNumbers = [ locationBasisFunctions[0], locationBasisFunctions[0] + derivativeOffset,
                             locationBasisFunctions[1], locationBasisFunctions[1] + derivativeOffset ]
         expressions = []
+        scaleFactors = []
         scaleFactorsCount = eft.getNumberOfLocalScaleFactors()
-        # handle zinc returning single value as a scalar, change to list for consistency
-        result, scaleFactors = element.getScaleFactors(eft, scaleFactorsCount)
-        if not isinstance(scaleFactors, list):
-            scaleFactors = [scaleFactors]
+        if scaleFactorsCount > 0:
+            # handle zinc returning single value as a scalar, change to list for consistency
+            result, scaleFactors = element.getScaleFactors(eft, scaleFactorsCount)
+            if not isinstance(scaleFactors, list):
+                scaleFactors = [scaleFactors]
         for fn in functionNumbers:
             termCount = eft.getFunctionNumberOfTerms(fn)
             expression = []
