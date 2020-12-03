@@ -164,6 +164,7 @@ class Scaffold_base:
             groupName = False  # smooth whole model
         smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode, editGroupName)
         smoothing.smooth()
+        del smoothing
         return False, True  # settings not changed, nodes changed
 
     @classmethod

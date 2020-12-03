@@ -267,8 +267,6 @@ class DerivativeSmoothing:
                     derivativeEdges.append(derivativeEdge)
                 else:
                     self._derivativeMap[derivativeKey] = [ derivativeEdge ]
-                if self._editNodesetGroup:
-                    self._editNodesetGroup.addNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # so client knows which nodes are modified
 
     def smooth(self, maxIterations=10, arcLengthTolerance=1.0E-6):
         '''
@@ -336,4 +334,8 @@ class DerivativeSmoothing:
                         x = setMagnitude(x, mag)
                         fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # need to set again as changed node in edge.evaluateArcLength
                         result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
+            # record modified nodes while ChangeManager is in effect
+            if self._editNodesetGroup:
+                for derivativeKey in self._derivativeMap:
+                    self._editNodesetGroup.addNode((self._nodes.findNodeByIdentifier(derivativeKey[0])))
             del fieldcache
