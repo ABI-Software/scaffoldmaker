@@ -141,7 +141,7 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
 def getCubicHermiteArcLength(v1, d1, v2, d2):
     '''
     Note this is approximate.
-    :return: Arc length of cubic curve using 3 point Gaussian quadrature.
+    :return: Arc length of cubic curve using 4 point Gaussian quadrature.
     '''
     arcLength = 0.0
     for i in range(4):
