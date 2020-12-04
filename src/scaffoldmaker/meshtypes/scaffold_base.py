@@ -4,11 +4,11 @@ Describes methods each scaffold must or may override.
 """
 import copy
 from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters, print_node_field_parameters
-from opencmiss.zinc.field import Field
 
 class Scaffold_base:
     '''

@@ -21,8 +21,9 @@ class EdgeCurve:
 
     def __init__(self, expressions):
         self._expressions = expressions
-        self._arcLength = 0.0
+        self._arcLength = None
         self._lastArcLength = 0.0
+        self._parameters = None
 
     def evaluateArcLength(self, nodes, field, fieldcache):
         componentsCount = field.getNumberOfComponents()
@@ -75,7 +76,7 @@ class DerivativeSmoothing:
         [ [ 1, 2 ], [ 3, 4 ] ],
         [ [ 1, 3 ], [ 2, 4 ] ] ]
 
-    def __init__(self, region, field, selectionGroupName = None, scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN, editGroupName=None):
+    def __init__(self, region, field, selectionGroupName=None, scalingMode=DerivativeScalingMode.ARITHMETIC_MEAN, editGroupName=None):
         '''
         :param selectionGroupName: Optional name of group to limit smoothing to nodes in group.
         Only element edges including those nodes are included in smoothing.
@@ -106,7 +107,7 @@ class DerivativeSmoothing:
             self._editNodesetGroup = None
         # edges define curves with 4 expressions for x1, d1, x2, d2, followed by the arcLength
         # each expression is a list of terms.
-        # each term contains a list of global node id, value label, version, elementIdentifier, scale factor or None
+        # each term contains a list of global node id, value label, version, element identifier, scale factor or None
         # edges are mapped from sorted start and end node
         self._edgesMap = {}
         # map global nodeid, derivative, version to list of EdgeCurve
@@ -161,7 +162,7 @@ class DerivativeSmoothing:
                 derivativeOffsets = []
                 derivativeOffset = 1
                 for functionType in functionTypes:
-                    if functionType in (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY):
+                    if functionType in (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE,):  # Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY):
                         useDirections.append(True)
                         if (functionType == Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE) and (len(derivativeOffsets) == 2):
                             derivativeOffset += 1
