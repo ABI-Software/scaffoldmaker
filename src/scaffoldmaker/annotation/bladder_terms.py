@@ -15,7 +15,8 @@ bladder_terms = [
     ("lumen of neck of urinary bladder", "ILX:0739256"),
     ("urethra", "UBERON:0000057", "ILX:0733022"),
     ("lumen of urethra", "ILX:0736762"),
-    ("serosa of urethra", "ILX:0739282")
+    ("serosa of urethra", "ILX:0739282"),
+    ("ureter", "UBERON:0000056", "ILX:0728080")
 ]
 
 def get_bladder_term(name : str):
