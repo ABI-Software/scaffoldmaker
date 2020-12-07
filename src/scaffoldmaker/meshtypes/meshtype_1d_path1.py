@@ -131,14 +131,14 @@ class MeshType_1d_path1(Scaffold_base):
         return []
 
     @classmethod
-    def smoothPath(cls, region, options, editGroupName, mode : DerivativeScalingMode):
+    def smoothPath(cls, region, options, functionOptions, editGroupName, mode : DerivativeScalingMode):
         x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])
         d1 = smoothCubicHermiteDerivativesLine(x, d1, magnitudeScalingMode=mode)
         setPathParameters(region, [ Node.VALUE_LABEL_D_DS1 ], [ d1 ], editGroupName)
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def makeD2Normal(cls, region, options, editGroupName):
+    def makeD2Normal(cls, region, options, functionOptions, editGroupName):
         if not options['D2 derivatives']:
             return
         d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])
@@ -149,7 +149,7 @@ class MeshType_1d_path1(Scaffold_base):
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def makeD3Normal(cls, region, options, editGroupName):
+    def makeD3Normal(cls, region, options, functionOptions, editGroupName):
         if not options['D3 derivatives']:
             return
         if options['D2 derivatives']:
@@ -166,7 +166,7 @@ class MeshType_1d_path1(Scaffold_base):
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def smoothCrossDX(cls, region, options, editGroupName, valueLabel):
+    def smoothCrossDX(cls, region, options, editGroupName, functionOptions, valueLabel):
         if valueLabel == Node.VALUE_LABEL_D_DS2:
             if not options['D2 derivatives']:
                 return
@@ -189,12 +189,12 @@ class MeshType_1d_path1(Scaffold_base):
         Supply client with functions for smoothing path parameters.
         """
         return Scaffold_base.getInteractiveFunctions() + [
-            ("Smooth D1 arithmetic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
-            ("Smooth D1 harmonic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN)),
-            ("Make D2 normal", lambda region, options, editGroupName: cls.makeD2Normal(region, options, editGroupName)),
-            ("Make D3 normal", lambda region, options, editGroupName: cls.makeD3Normal(region, options, editGroupName)),
-            ("Smooth D2", lambda region, options, editGroupName: cls.smoothCrossDX(region, options, editGroupName, Node.VALUE_LABEL_D_DS2)),
-            ("Smooth D3", lambda region, options, editGroupName: cls.smoothCrossDX(region, options, editGroupName, Node.VALUE_LABEL_D_DS3))
+            ("Smooth D1 arithmetic", {}, lambda region, options, functionOptions, editGroupName: cls.smoothPath(region, options, functionOptions, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
+            ("Smooth D1 harmonic", {}, lambda region, options, functionOptions, editGroupName: cls.smoothPath(region, options, functionOptions, editGroupName, DerivativeScalingMode.HARMONIC_MEAN)),
+            ("Make D2 normal", {}, lambda region, options, functionOptions, editGroupName: cls.makeD2Normal(region, options, functionOptions, editGroupName)),
+            ("Make D3 normal", {}, lambda region, options, functionOptions, editGroupName: cls.makeD3Normal(region, options, functionOptions, editGroupName)),
+            ("Smooth D2", {}, lambda region, options, functionOptions, editGroupName: cls.smoothCrossDX(region, options, functionOptions, editGroupName, Node.VALUE_LABEL_D_DS2)),
+            ("Smooth D3", {}, lambda region, options, functionOptions, editGroupName: cls.smoothCrossDX(region, options, functionOptions, editGroupName, Node.VALUE_LABEL_D_DS3))
         ]
 
 
