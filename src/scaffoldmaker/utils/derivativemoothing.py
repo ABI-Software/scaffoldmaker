@@ -65,7 +65,7 @@ class EdgeCurve:
         componentsCount = len(x1)
         return [ (x2[c] - x1[c]) for c in range(componentsCount) ]
 
-    def getExpresson(self, expressionIndex):
+    def getExpression(self, expressionIndex):
         '''
         Caller must have called evaluateArcLength!
         :param parameterIndex: 0 = start x, 1 = start d, 2 = end x, 3 = end d
@@ -285,7 +285,7 @@ class DerivativeSmoothing:
                 else:
                     self._derivativeMap[derivativeKey] = [ derivativeEdge ]
 
-    def smooth(self, updateDirections=False,maxIterations=10, arcLengthTolerance=1.0E-6):
+    def smooth(self, updateDirections=False, maxIterations=10, arcLengthTolerance=1.0E-6):
         '''
         :param maxIterations: Maximum iterations before stopping if not converging.
         :param arcLengthTolerance: Ratio of difference in arc length from last iteration
@@ -357,7 +357,7 @@ class DerivativeSmoothing:
                             thisx = edge.getParameter(expressionIndex - 1)
                             otherx = edge.getParameter(otherExpressionIndex - 1)
                             bothEndsOnBoundary = False
-                            otherExpression = edge.getExpresson(otherExpressionIndex)
+                            otherExpression = edge.getExpression(otherExpressionIndex)
                             if len(otherExpression) == 1:
                                 otherNodeIdentifier, otherValueLabel, otherNodeVersion, otherTotalScaleFactor = otherExpression[0]
                                 otherDerivativeKey = (otherNodeIdentifier, otherValueLabel, otherNodeVersion)
