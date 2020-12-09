@@ -885,7 +885,6 @@ class eftfactory_tricubichermite:
         # zero cross derivative parameters
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
-        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
 
         remapEftLocalNodes(eft, 6, ln_map)
@@ -925,6 +924,11 @@ class eftfactory_tricubichermite:
             else:
                 valid = False
             ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
+        elif collapseNodes in [[4, 8]]:
+            nodes = [2, 4, 6, 8]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
         else:
             valid = False
 
@@ -933,7 +937,6 @@ class eftfactory_tricubichermite:
 
         # zero cross derivative parameters
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
-        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
 

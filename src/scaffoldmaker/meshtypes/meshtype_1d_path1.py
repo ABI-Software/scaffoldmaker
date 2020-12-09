@@ -188,7 +188,7 @@ class MeshType_1d_path1(Scaffold_base):
         """
         Supply client with functions for smoothing path parameters.
         """
-        return [
+        return Scaffold_base.getInteractiveFunctions() + [
             ("Smooth D1 arithmetic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
             ("Smooth D1 harmonic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN)),
             ("Make D2 normal", lambda region, options, editGroupName: cls.makeD2Normal(region, options, editGroupName)),
@@ -255,7 +255,7 @@ def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
     assert nodesCount == nodes.getSize()
     with ChangeManager(fieldmodule):
         if editGroupName:
-            editGroup = findOrCreateFieldGroup(fieldmodule, editGroupName, managed=False)
+            editGroup = findOrCreateFieldGroup(fieldmodule, editGroupName, managed=True)
             editNodeGroup = editGroup.getFieldNodeGroup(nodes)
             if not editNodeGroup.isValid():
                 editNodeGroup = editGroup.createFieldNodeGroup(nodes)
