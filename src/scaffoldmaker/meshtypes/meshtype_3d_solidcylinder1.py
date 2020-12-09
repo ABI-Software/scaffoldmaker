@@ -1,6 +1,6 @@
 """
 Generates a solid cylinder using a ShieldMesh of all cube elements,
- with variable numbers of elements in major, minor and length directions.
+ with variable numbers of elements in major, minor, shell and axial directions.
 """
 
 from __future__ import division
@@ -19,7 +19,7 @@ from opencmiss.zinc.node import Node
 class MeshType_3d_solidcylinder1(Scaffold_base):
     """
 Generates a solid cylinder using a ShieldMesh of all cube elements,
-with variable numbers of elements in major, minor and length directions.
+with variable numbers of elements in major, minor, shell and axial directions.
     """
     centralPathDefaultScaffoldPackages = {
         'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {

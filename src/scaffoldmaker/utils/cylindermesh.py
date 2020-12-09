@@ -421,7 +421,6 @@ class Ellipse2D:
         self.createRegularRowCurves(rscx, rscd1, rscd3)
         self.createRegularColumnCurves()
         self.__shield.getTriplePoints(0)
-        elementsCountAcrossShell = self.elementsCountAcrossShell
         self.smoothTriplePointsCurves()
         self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
         self.smoothDerivativesAroundShell()
@@ -558,8 +557,7 @@ class Ellipse2D:
         n2m = self.elementsCountUp
         for n1 in range(n1c, n1y):
             tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[0][n1], btx[n2c][n1]], [[-btd3[0][n1][c] for c in range(3)],
-                                                            btd1[n2c][n1]], 2+elementsCountRim,
+                [btx[0][n1], btx[n2c][n1]], [[-btd3[0][n1][c] for c in range(3)], btd1[n2c][n1]], 2+elementsCountRim,
                 lengthFractionStart=1, arcLengthDerivatives=True)
             for n2 in range(n2c + 1, n2m + 1):
                 tx.append(btx[n2][n1])

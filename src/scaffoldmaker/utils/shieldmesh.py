@@ -32,7 +32,7 @@ class ShieldMesh:
     '''
 
     def __init__(self, elementsCountAcross, elementsCountUpFull, elementsCountRim, trackSurface : TrackSurface=None,
-                 elementsCountAlong=1, shieldMode = ShieldShape.SHIELD_SHAPE_LOWER_HALF, shieldType = ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR):
+                 elementsCountAlong=1, shieldMode=ShieldShape.SHIELD_SHAPE_LOWER_HALF, shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR):
         '''
         Data structure for defining a shield-shaped mesh which is flat on the top and rounded around the bottom
         and/or the same mirror mirrored on top.
@@ -54,8 +54,8 @@ class ShieldMesh:
         triple points, and across the shorter bottom row.
         Extra elements up add regular rows of nodes/elements on top, and extra non-rim elements across
         add regular columns of nodes/elements up the centre.
-        :param elementsCountAcross: Number of elements across top of shield. Must be at least  4 + elementsCountRim.
-        :param elementsCountUpFull: Number of elements up central axis of shield. Must be at least 2 + elementsCountRim if half and 4 + elementsCountRim if full.
+        :param elementsCountAcross: Number of elements across top of shield. Must be at least  4 + 2*elementsCountRim.
+        :param elementsCountUpFull: Number of elements up central axis of shield. Must be at least 2 + elementsCountRim if half and 4 + 2*elementsCountRim if full.
         :param elementsCountAlong: Number of elements through wall for ventricle case (only 1 element is supported) and along cylinder axis in cylinder case.
         :param elementsCountRim: Number of elements around bottom rim (not top) outside of 'triple points'.
         :param trackSurface: Optional trackSurface to store or restrict points to.
@@ -426,10 +426,10 @@ class ShieldMesh:
                         if (e1 < e1b) or (e1 > e1y):
                             continue  # no element due to triple point closure
                         if (e2 < e2a) or (e2 > e2z):
-                            if (e2 < e2a):
+                            if e2 < e2a:
                                 nids = [self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1],
                                         self.nodeId[e3][e2][e1], self.nodeId[e3][e2][e1+1], self.nodeId[e3+1][e2][e1],  self.nodeId[e3+1][e2][e1+1]]
-                            elif (e2 > e2z):
+                            elif e2 > e2z:
                                 nids = [self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2][e1], self.nodeId[e3+1][e2][e1+1], self.nodeId[e3+1][e2][e1],
                                         self.nodeId[e3][e2+1][e1+1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1]]
                         elif (e2 == e2a) or (e2 == e2z):
@@ -479,10 +479,10 @@ class ShieldMesh:
                             if e1 < e1a:
                                 e2r = e1
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-                                    if (e2 == e2b):
+                                    if e2 == e2b:
                                         nids = [self.nodeId[e3][e2c][e1+1], self.nodeId[e3][e2r+1][e1b], self.nodeId[e3+1][e2c][e1+1], self.nodeId[e3+1][e2r+1][e1b],
                                                 self.nodeId[e3][e2c][e1], self.nodeId[e3][e2r][e1b], self.nodeId[e3+1][e2c][e1], self.nodeId[e3+1][e2r][e1b]]
-                                    if (e2 == e2y):
+                                    if e2 == e2y:
                                         e2r = 2*self.elementsCountUp - e1-1
                                         nids = [self.nodeId[e3][e2r][e1b], self.nodeId[e3][e2y][e1+1], self.nodeId[e3+1][e2r][e1b], self.nodeId[e3+1][e2y][e1+1],
                                                 self.nodeId[e3][e2r+1][e1b], self.nodeId[e3][e2y][e1], self.nodeId[e3+1][e2r+1][e1b], self.nodeId[e3+1][e2y][e1]]
@@ -532,10 +532,10 @@ class ShieldMesh:
                             elif e1 > e1z:
                                 e2r = self.elementsCountAcross - e1
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-                                    if (e2 == e2b):
+                                    if e2 == e2b:
                                         nids = [self.nodeId[e3][e2r][e1z], self.nodeId[e3][e2c][e1], self.nodeId[e3+1][e2r][e1z], self.nodeId[e3+1][e2c][e1],
                                                 self.nodeId[e3][e2r-1][e1z], self.nodeId[e3][e2c][e1+1], self.nodeId[e3+1][e2r-1][e1z], self.nodeId[e3+1][e2c][e1+1]]
-                                    elif (e2 == e2y):
+                                    elif e2 == e2y:
                                         e2r = e2z+e1-e1z
                                         nids[1] = self.nodeId[e3][e2r][e1z]
                                         nids[3] = self.nodeId[e3+1][e2r][e1z]
@@ -550,10 +550,10 @@ class ShieldMesh:
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                     else:
                         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-                            if (e1 < e1a):
+                            if e1 < e1a:
                                 nids = [ self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3][e2][e1 + 1], self.nodeId[e3+1][e2 + 1][e1 + 1], self.nodeId[e3+1][e2][e1 + 1],
                                          self.nodeId[e3][e2 + 1][e1], self.nodeId[e3][e2][e1], self.nodeId[e3+1][e2 + 1][e1], self.nodeId[e3+1][e2][e1]]
-                            elif (e1 == e1a):
+                            elif e1 == e1a:
                                 # map left column elements
                                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                                 setEftScaleFactorIds(eft1, [1], [])
