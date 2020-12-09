@@ -13,7 +13,8 @@ from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.mirror import Mirror
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode, sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode, sampleCubicHermiteCurves, \
+    smoothCubicHermiteDerivativesLine, interpolateSampleCubicHermite
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from enum import Enum
 
@@ -129,8 +130,8 @@ class ShieldMesh:
             tx, td1 = sampleCubicHermiteCurves(
                 [self.px[n3][n2a][n1c], self.px[n3][n2c][n1b]],[[(-self.pd1[n3][n2a][n1c][c] - self.pd3[n3][n2a][n1c][c]) for c in range(3)], self.pd1[n3][n2c][n1b]],2, arcLengthDerivatives=True)[0:2]
             ltx.append(tx[1])
-            tx, td1 = sampleCubicHermiteCurves(
-                [ self.px[n3][n2a][n1b], self.px[n3][n2c][n1c] ], [ [-self.pd3[n3][n2a][n1b][c] for c in range(3)], [ (self.pd1[n3][n2c][n1c][c] + self.pd3[n3][n2c][n1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+            # tx, td1 = sampleCubicHermiteCurves(
+            #     [ self.px[n3][n2a][n1b], self.px[n3][n2c][n1c] ], [ [-self.pd3[n3][n2a][n1b][c] for c in range(3)], [ (self.pd1[n3][n2c][n1c][c] + self.pd3[n3][n2c][n1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
             ltx.append(tx[1])
             tx, td1 = sampleCubicHermiteCurves(
                 [ self.px[n3][n2c][n1a], self.px[n3][n2b][n1c] ], [ [ (self.pd1[n3][n2c][n1a][c] - self.pd3[n3][n2c][n1a][c]) for c in range(3) ], self.pd3[n3][n2b][n1c] ], 2, arcLengthDerivatives = True)[0:2]
@@ -171,8 +172,8 @@ class ShieldMesh:
             tx, td1 = sampleCubicHermiteCurves(
                 [ self.px[n3][n2a][m1c], self.px[n3][n2c][m1b] ], [ [ (self.pd1[n3][n2a][m1c][c] - self.pd3[n3][n2a][m1c][c]) for c in range(3) ], self.pd1[n3][n2c][m1b] ], 2, arcLengthDerivatives = True)[0:2]
             rtx.append(tx[1])
-            tx, td1 = sampleCubicHermiteCurves(
-                [ self.px[n3][n2a][m1b], self.px[n3][n2c][m1c] ], [ [-self.pd3[n3][n2a][m1b][c] for c in range(3)], [ (-self.pd3[n3][n2c][m1c][c] + self.pd1[n3][n2c][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
+            # tx, td1 = sampleCubicHermiteCurves(
+            #     [ self.px[n3][n2a][m1b], self.px[n3][n2c][m1c] ], [ [-self.pd3[n3][n2a][m1b][c] for c in range(3)], [ (-self.pd3[n3][n2c][m1c][c] + self.pd1[n3][n2c][m1c][c]) for c in range(3) ] ], 2, arcLengthDerivatives = True)[0:2]
             rtx.append(tx[1])
             tx, td1 = sampleCubicHermiteCurves(
                 [ self.px[n3][n2c][m1a], self.px[n3][n2b][m1c] ], [ [ (-self.pd1[n3][n2c][m1a][c] - self.pd3[n3][n2c][m1a][c]) for c in range(3) ], [ -d for d in self.pd3[n3][n2b][m1c] ] ], 2, arcLengthDerivatives = True)[0:2]
@@ -216,6 +217,8 @@ class ShieldMesh:
         '''
         n1a = self.elementsCountRim
         n1b = n1a + 1
+        n1z = self.elementsCountAcross - self.elementsCountRim
+        n1y = n1z - 1
         m1a = self.elementsCountAcross - self.elementsCountRim
         m1b = m1a - 1
         n2a = self.elementsCountRim
@@ -223,23 +226,33 @@ class ShieldMesh:
         n2c = n2a + 2
         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
             # left
-            tx = []
-            td3 = []
-            for n2 in range(0, n2c):
-                tx .append(self.px [n3][n2][n1b])
-                td3.append([-d for d in self.pd3[n3][n2][n1b]] if (n2 < n2b) else [ (self.pd1[n3][n2][n1b][c] + self.pd3[n3][n2][n1b][c]) for c in range(3) ])
-            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixAllDirections=fixAllDirections, fixEndDerivative=True, magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
+            tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([self.px[n3][0][n1b], self.px[n3][n2b][n1b]],
+                                                             [[-d for d in self.pd3[n3][0][n1b]],
+                                                              [self.pd1[n3][n2b][n1b][c]+self.pd3[n3][n2b][n1b][c] for c in range(3)]],
+                                                             self.elementsCountRim+1, lengthFractionStart=1,
+                                                             arcLengthDerivatives=True)
+            td1 = interpolateSampleCubicHermite([self.pd1[n3][0][n1b], self.pd3[n3][n2b][n1b]], [[0.0, 0.0, 0.0]] * 2,
+                                                pe, pxi, psf)[0]
             for n2 in range(0, n2b):
+                if n2 > 0:
+                    self.px[n3][n2][n1b] = tx[n2]
+                    self.pd1[n3][n2][n1b] = td1[n2]
                 self.pd3[n3][n2][n1b] = [-d for d in td3[n2]]
+
             # right
-            tx = []
-            td3 = []
-            for n2 in range(0, n2c):
-                tx .append(self.px [n3][n2][m1b])
-                td3.append([-d for d in self.pd3[n3][n2][m1b]] if (n2 < n2b) else [ (-self.pd3[n3][n2][m1b][c] + self.pd1[n3][n2][m1b][c]) for c in range(3) ])
-            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixAllDirections=fixAllDirections, fixEndDerivative=True, magnitudeScalingMode = DerivativeScalingMode.HARMONIC_MEAN)
+            tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([self.px[n3][0][n1y], self.px[n3][n2b][n1y]],
+                                                             [[-d for d in self.pd3[n3][0][n1y]],
+                                                              [self.pd1[n3][n2b][n1y][c]-self.pd3[n3][n2b][n1y][c] for c in range(3)]],
+                                                             self.elementsCountRim+1, lengthFractionStart=1,
+                                                             arcLengthDerivatives=True)
+            td1 = interpolateSampleCubicHermite([self.pd1[n3][0][n1y], self.pd3[n3][n2b][n1y]], [[0.0, 0.0, 0.0]] * 2,
+                                                pe, pxi, psf)[0]
             for n2 in range(0, n2b):
-                self.pd3[n3][n2][m1b] = [-d for d in td3[n2]]
+                if n2 > 0:
+                    self.px[n3][n2][n1y] = tx[n2]
+                    self.pd1[n3][n2][n1y] = td1[n2]
+                self.pd3[n3][n2][n1y] = [-d for d in td3[n2]]
+
         elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
             # left
             tx = []
@@ -275,23 +288,34 @@ class ShieldMesh:
         for ix in range(self.elementsCountAroundFull + 1):
             n1, n2 = self.convertRimIndex(ix, rx)
             tx.append(self.px[n3][n2][n1])
-            if n2 > self.elementsCountRim:  # regular rows
-                if n1 <= self.elementsCountRim:
-                    td1.append([ -d for d in self.pd2[n3d][n2][n1] ])
-                else:
-                    td1.append(self.pd2[n3d][n2][n1])
-            else:
+            if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                 td1.append(self.pd1[n3d][n2][n1])
-        td1 = smoothCubicHermiteDerivativesLine(tx, td1)
+            elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                if n2 > self.elementsCountRim:  # regular rows
+                    if n1 <= self.elementsCountRim:
+                        td1.append([ -d for d in self.pd2[n3d][n2][n1] ])
+                    else:
+                        td1.append(self.pd2[n3d][n2][n1])
+                else:
+                    td1.append(self.pd1[n3d][n2][n1])
+
+        if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
+        elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1)
+
         for ix in range(self.elementsCountAroundFull + 1):
             n1, n2 = self.convertRimIndex(ix, rx)
-            if n2 > self.elementsCountRim:  # regular rows
-                if n1 <= self.elementsCountRim:
-                    self.pd2[n3][n2][n1] = [ -d for d in td1[ix] ]
-                else:
-                    self.pd2[n3][n2][n1] = td1[ix]
-            else:
+            if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                 self.pd1[n3][n2][n1] = td1[ix]
+            elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                if n2 > self.elementsCountRim:  # regular rows
+                    if n1 <= self.elementsCountRim:
+                        self.pd2[n3][n2][n1] = [ -d for d in td1[ix] ]
+                    else:
+                        self.pd2[n3][n2][n1] = td1[ix]
+                else:
+                    self.pd1[n3][n2][n1] = td1[ix]
 
     def generateNodesForOtherHalf(self, mirrorPlane):
         """
@@ -383,7 +407,9 @@ class ShieldMesh:
         e2a = self.elementsCountRim
         e2b = self.elementsCountRim + 1
         e2c = self.elementsCountRim + 2
-        e2d = 2*self.elementsCountUp-1
+        e2z = 2*self.elementsCountUp-1-self.elementsCountRim
+        e2y = e2z - 1
+        e2x = e2z - 2
 
         for e3 in range(self.elementsCountAlong):
             for e2 in range(self.elementsCountUpFull):
@@ -396,10 +422,17 @@ class ShieldMesh:
                     elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                         nids = [self.nodeId[0][e2][e1], self.nodeId[0][e2][e1 + 1], self.nodeId[0][e2 + 1][e1],self.nodeId[0][e2 + 1][e1 + 1],
                                 self.nodeId[1][e2][e1], self.nodeId[1][e2][e1 + 1], self.nodeId[1][e2 + 1][e1], self.nodeId[1][e2 + 1][e1 + 1]]
-                    if (e2 < e2b) or (e2 == e2d):
+                    if (e2 < e2b) or (e2 > e2y):
                         if (e1 < e1b) or (e1 > e1y):
                             continue  # no element due to triple point closure
-                        if (e2 == e2a) or (e2 == e2d):
+                        if (e2 < e2a) or (e2 > e2z):
+                            if (e2 < e2a):
+                                nids = [self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1],
+                                        self.nodeId[e3][e2][e1], self.nodeId[e3][e2][e1+1], self.nodeId[e3+1][e2][e1],  self.nodeId[e3+1][e2][e1+1]]
+                            elif (e2 > e2z):
+                                nids = [self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2][e1], self.nodeId[e3+1][e2][e1+1], self.nodeId[e3+1][e2][e1],
+                                        self.nodeId[e3][e2+1][e1+1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1]]
+                        elif (e2 == e2a) or (e2 == e2z):
                             # bottom and top row elements
                             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                 if e2 == e2a:
@@ -414,7 +447,7 @@ class ShieldMesh:
                                             remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                         else:
                                             remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
-                                elif e2 == e2d:
+                                elif e2 == e2z:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                                     setEftScaleFactorIds(eft1, [1], [])
                                     scalefactors = [-1.0]
@@ -437,7 +470,7 @@ class ShieldMesh:
                                     else:
                                         remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, [1]),(Node.VALUE_LABEL_D_DS2, [])])
 
-                    elif (e2 == e2b) or (e2 == e2d-e2b):
+                    elif (e2 == e2b) or (e2 == e2y):
                         if (e1 <= e1a) or (e1 >= e1z):
                             # map top 2 triple point elements
                             eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -445,12 +478,21 @@ class ShieldMesh:
                             scalefactors = [ -1.0 ]
                             if e1 < e1a:
                                 e2r = e1
-                                nids[0] = self.nodeId[0][e2r    ][e1b]
-                                nids[1] = self.nodeId[0][e2r + 1][e1b]
-                                nids[4] = self.nodeId[1][e2r    ][e1b]
-                                nids[5] = self.nodeId[1][e2r + 1][e1b]
-                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                                if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                    if (e2 == e2b):
+                                        nids = [self.nodeId[e3][e2c][e1+1], self.nodeId[e3][e2r+1][e1b], self.nodeId[e3+1][e2c][e1+1], self.nodeId[e3+1][e2r+1][e1b],
+                                                self.nodeId[e3][e2c][e1], self.nodeId[e3][e2r][e1b], self.nodeId[e3+1][e2c][e1], self.nodeId[e3+1][e2r][e1b]]
+                                    if (e2 == e2y):
+                                        e2r = 2*self.elementsCountUp - e1-1
+                                        nids = [self.nodeId[e3][e2r][e1b], self.nodeId[e3][e2y][e1+1], self.nodeId[e3+1][e2r][e1b], self.nodeId[e3+1][e2y][e1+1],
+                                                self.nodeId[e3][e2r+1][e1b], self.nodeId[e3][e2y][e1], self.nodeId[e3+1][e2r+1][e1b], self.nodeId[e3+1][e2y][e1]]
+                                elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                    nids[0] = self.nodeId[0][e2r    ][e1b]
+                                    nids[1] = self.nodeId[0][e2r + 1][e1b]
+                                    nids[4] = self.nodeId[1][e2r    ][e1b]
+                                    nids[5] = self.nodeId[1][e2r + 1][e1b]
+                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                             elif e1 == e1a:
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                     if e2 == e2b:
@@ -458,9 +500,9 @@ class ShieldMesh:
                                         nids[2] = self.nodeId[e3+1][e2a][e1b]
                                         tripleN = [5, 7]
                                         remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
-                                    elif e2 == e2d-e2b:
-                                        nids[1] = self.nodeId[e3][e2d+1][e1b]
-                                        nids[3] = self.nodeId[e3+1][e2d+1][e1b]
+                                    elif e2 == e2y:
+                                        nids[1] = self.nodeId[e3][e2z+1][e1b]
+                                        nids[3] = self.nodeId[e3+1][e2z+1][e1b]
                                         tripleN = [6, 8]
                                         remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
@@ -477,9 +519,9 @@ class ShieldMesh:
                                         nids[4] = self.nodeId[e3][e2a][e1z]
                                         nids[6] = self.nodeId[e3+1][e2a][e1z]
                                         remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                                    elif e2 == e2d-e2b:
-                                        nids[5] = self.nodeId[e3][e2d+1][e1z]
-                                        nids[7] = self.nodeId[e3+1][e2d+1][e1z]
+                                    elif e2 == e2y:
+                                        nids[5] = self.nodeId[e3][e2z+1][e1z]
+                                        nids[7] = self.nodeId[e3+1][e2z+1][e1z]
                                         remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                 elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                                     nids[1] = self.nodeId[0][e2a][e1z]
@@ -489,15 +531,29 @@ class ShieldMesh:
                                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, [])])
                             elif e1 > e1z:
                                 e2r = self.elementsCountAcross - e1
-                                nids[0] = self.nodeId[0][e2r    ][e1z]
-                                nids[1] = self.nodeId[0][e2r - 1][e1z]
-                                nids[4] = self.nodeId[1][e2r    ][e1z]
-                                nids[5] = self.nodeId[1][e2r - 1][e1z]
-                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
-                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                                if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                    if (e2 == e2b):
+                                        nids = [self.nodeId[e3][e2r][e1z], self.nodeId[e3][e2c][e1], self.nodeId[e3+1][e2r][e1z], self.nodeId[e3+1][e2c][e1],
+                                                self.nodeId[e3][e2r-1][e1z], self.nodeId[e3][e2c][e1+1], self.nodeId[e3+1][e2r-1][e1z], self.nodeId[e3+1][e2c][e1+1]]
+                                    elif (e2 == e2y):
+                                        e2r = e2z+e1-e1z
+                                        nids[1] = self.nodeId[e3][e2r][e1z]
+                                        nids[3] = self.nodeId[e3+1][e2r][e1z]
+                                        nids[5] = self.nodeId[e3][e2r+1][e1z]
+                                        nids[7] = self.nodeId[e3+1][e2r+1][e1z]
+                                elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                    nids[0] = self.nodeId[0][e2r    ][e1z]
+                                    nids[1] = self.nodeId[0][e2r - 1][e1z]
+                                    nids[4] = self.nodeId[1][e2r    ][e1z]
+                                    nids[5] = self.nodeId[1][e2r - 1][e1z]
+                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
+                                    remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                     else:
                         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-                            if (e1 <= e1a):
+                            if (e1 < e1a):
+                                nids = [ self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3][e2][e1 + 1], self.nodeId[e3+1][e2 + 1][e1 + 1], self.nodeId[e3+1][e2][e1 + 1],
+                                         self.nodeId[e3][e2 + 1][e1], self.nodeId[e3][e2][e1], self.nodeId[e3+1][e2 + 1][e1], self.nodeId[e3+1][e2][e1]]
+                            elif (e1 == e1a):
                                 # map left column elements
                                 eft1 = tricubichermite.createEftNoCrossDerivatives()
                                 setEftScaleFactorIds(eft1, [1], [])

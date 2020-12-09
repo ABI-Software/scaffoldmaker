@@ -52,6 +52,7 @@ with variable numbers of elements in major, minor and length directions.
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
+            'Number of elements across shell': 0,
             'Number of elements along': 1,
             'Lower half': False,
             'Use cross derivatives': False,
@@ -67,6 +68,7 @@ with variable numbers of elements in major, minor and length directions.
             'Central path',
             'Number of elements across major',
             'Number of elements across minor',
+            'Number of elements across shell',
             'Number of elements along',
             'Lower half',
             'Refine',
@@ -122,6 +124,9 @@ with variable numbers of elements in major, minor and length directions.
             options['Number of elements across minor'] += 1
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
+        Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
+        if options['Number of elements across shell'] > Rcrit:
+            options['Number of elements across shell'] = Rcrit
 
         return dependentChanges
 
@@ -140,6 +145,7 @@ with variable numbers of elements in major, minor and length directions.
         if not full:
             elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
+        elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAlong = options['Number of elements along']
         useCrossDerivatives = options['Use cross derivatives']
 
@@ -150,7 +156,7 @@ with variable numbers of elements in major, minor and length directions.
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, [0.0, 0.0, 0.0],
+        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell, [0.0, 0.0, 0.0],
                             cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
