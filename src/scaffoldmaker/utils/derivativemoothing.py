@@ -307,10 +307,10 @@ class DerivativeSmoothing:
                         converged = False
                 if converged:
                     print('Derivative smoothing: Converged after', iter, 'iterations.')
-                    return
+                    break
                 elif (iter == maxIterations):
                     print('Derivative smoothing: Stopping after', maxIterations, 'iterations without converging.')
-                    return
+                    break
                 for derivativeKey, derivativeEdges in self._derivativeMap.items():
                     edgeCount = len(derivativeEdges)
                     if edgeCount > 1:
