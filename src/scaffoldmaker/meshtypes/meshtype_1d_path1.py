@@ -131,56 +131,66 @@ class MeshType_1d_path1(Scaffold_base):
         return []
 
     @classmethod
-    def smoothPath(cls, region, options, editGroupName, mode : DerivativeScalingMode):
-        x, d1 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1])
-        d1 = smoothCubicHermiteDerivativesLine(x, d1, magnitudeScalingMode=mode)
-        setPathParameters(region, [ Node.VALUE_LABEL_D_DS1 ], [ d1 ], editGroupName)
-        return False, True  # settings not changed, nodes changed
-
-    @classmethod
-    def makeD2Normal(cls, region, options, editGroupName):
-        if not options['D2 derivatives']:
-            return
-        d1, d2 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2])
-        for c in range(len(d1)):
-            td2 = vector.vectorRejection(d2[c], d1[c])
-            d2[c] = vector.setMagnitude(td2, vector.magnitude(d2[c]))
-        setPathParameters(region, [Node.VALUE_LABEL_D_DS2], [d2], editGroupName)
-        return False, True  # settings not changed, nodes changed
-
-    @classmethod
-    def makeD3Normal(cls, region, options, editGroupName):
-        if not options['D3 derivatives']:
-            return
+    def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):
+        makeD2Normal = options['D2 derivatives'] and functionOptions['Make D2 normal']
+        makeD3Normal = options['D3 derivatives'] and functionOptions['Make D3 normal']
+        if not (makeD2Normal or makeD3Normal):
+            return False, False
+        valueLabels = [ Node.VALUE_LABEL_D_DS1 ]
         if options['D2 derivatives']:
-            d1, d2, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                  Node.VALUE_LABEL_D_DS3])
+            valueLabels.append(Node.VALUE_LABEL_D_DS2)
+        if options['D3 derivatives']:
+            valueLabels.append(Node.VALUE_LABEL_D_DS3)
+        parameters = extractPathParametersFromRegion(region, valueLabels)
+        d1 = parameters[0]
+        modifyParameters = []
+        modifyValueLabels = []
+        if makeD2Normal:
+            d2 = parameters[1]
             for c in range(len(d1)):
-                d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
-        else:
-            d1, d3 = extractPathParametersFromRegion(region, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS3])
-            for c in range(len(d1)):
-                td3 = vector.vectorRejection(d3[c], d1[c])
-                d3[c] = vector.setMagnitude(td3, vector.magnitude(d3[c]))
-        setPathParameters(region, [Node.VALUE_LABEL_D_DS3], [d3], editGroupName)
+                td2 = vector.vectorRejection(d2[c], d1[c])
+                d2[c] = vector.setMagnitude(td2, vector.magnitude(d2[c]))
+            modifyParameters.append(d2)
+            modifyValueLabels.append(Node.VALUE_LABEL_D_DS2)
+        if makeD3Normal:
+            d3 = parameters[-1]
+            if options['D2 derivatives']:
+                for c in range(len(d1)):
+                    d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
+            else:
+                for c in range(len(d1)):
+                    td3 = vector.vectorRejection(d3[c], d1[c])
+                    d3[c] = vector.setMagnitude(td3, vector.magnitude(d3[c]))
+            modifyParameters.append(d3)
+            modifyValueLabels.append(Node.VALUE_LABEL_D_DS3)
+        setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def smoothCrossDX(cls, region, options, editGroupName, valueLabel):
-        if valueLabel == Node.VALUE_LABEL_D_DS2:
-            if not options['D2 derivatives']:
-                return
-            crossDerivativeLabel = Node.VALUE_LABEL_D2_DS1DS2
-        elif valueLabel == Node.VALUE_LABEL_D_DS3:
-            if not options['D3 derivatives']:
-                return
-            crossDerivativeLabel = Node.VALUE_LABEL_D2_DS1DS3
-        else:
-            assert False, 'Invalid value label'
-        valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, valueLabel, crossDerivativeLabel]
-        x, d1, d2, d12 = extractPathParametersFromRegion(region, valueLabels)
-        d12 = smoothCubicHermiteCrossDerivativesLine(x, d1, d2, d12)
-        setPathParameters(region, [ crossDerivativeLabel ], [ d12 ], editGroupName)
+    def smoothSideCrossDerivatives(cls, region, options, functionOptions, editGroupName):
+        smoothD12 = options['D2 derivatives'] and functionOptions['Smooth D12']
+        smoothD13 = options['D3 derivatives'] and functionOptions['Smooth D13']
+        if not (smoothD12 or smoothD13):
+            return False, False
+        valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
+        if smoothD12:
+            valueLabels += [ Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ]
+        if smoothD13:
+            valueLabels += [ Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ]
+        parameters = extractPathParametersFromRegion(region, valueLabels)
+        x = parameters[0]
+        d1 = parameters[1]
+        modifyParameters = []
+        modifyValueLabels = []
+        if smoothD12:
+            d12 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[2], parameters[3])
+            modifyParameters.append(d12)
+            modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
+        if smoothD13:
+            d13 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
+            modifyParameters.append(d13)
+            modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
+        setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)
         return False, True  # settings not changed, nodes changed
 
     @classmethod
@@ -189,12 +199,14 @@ class MeshType_1d_path1(Scaffold_base):
         Supply client with functions for smoothing path parameters.
         """
         return Scaffold_base.getInteractiveFunctions() + [
-            ("Smooth D1 arithmetic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.ARITHMETIC_MEAN)),
-            ("Smooth D1 harmonic", lambda region, options, editGroupName: cls.smoothPath(region, options, editGroupName, DerivativeScalingMode.HARMONIC_MEAN)),
-            ("Make D2 normal", lambda region, options, editGroupName: cls.makeD2Normal(region, options, editGroupName)),
-            ("Make D3 normal", lambda region, options, editGroupName: cls.makeD3Normal(region, options, editGroupName)),
-            ("Smooth D2", lambda region, options, editGroupName: cls.smoothCrossDX(region, options, editGroupName, Node.VALUE_LABEL_D_DS2)),
-            ("Smooth D3", lambda region, options, editGroupName: cls.smoothCrossDX(region, options, editGroupName, Node.VALUE_LABEL_D_DS3))
+            ("Make side derivatives normal...",
+                { 'Make D2 normal': True,
+                  'Make D3 normal': True },
+                lambda region, options, functionOptions, editGroupName: cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
+            ("Smooth side cross derivatives...",
+                { 'Smooth D12' : True,
+                  'Smooth D13' : True },
+                lambda region, options, functionOptions, editGroupName: cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
         ]
 
 

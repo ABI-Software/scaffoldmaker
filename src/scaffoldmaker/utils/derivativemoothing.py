@@ -10,7 +10,7 @@ from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK as ZINC_OK
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteArcLength
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteArcLength, interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.vector import setMagnitude
 
 
@@ -55,6 +55,22 @@ class EdgeCurve:
 
     def updateLastArcLength(self):
         self._lastArcLength = self._arcLength
+
+    def getDelta(self):
+        '''
+        Caller must have called evaluateArcLength!
+        '''
+        x1 = self._parameters[0]
+        x2 = self._parameters[2]
+        componentsCount = len(x1)
+        return [ (x2[c] - x1[c]) for c in range(componentsCount) ]
+
+    def getExpression(self, expressionIndex):
+        '''
+        Caller must have called evaluateArcLength!
+        :param parameterIndex: 0 = start x, 1 = start d, 2 = end x, 3 = end d
+        '''
+        return self._expressions[expressionIndex]
 
     def getParameter(self, parameterIndex):
         '''
@@ -257,19 +273,19 @@ class DerivativeSmoothing:
         for expressionIndex in (1, 3):
             expression = expressions[expressionIndex]
             if len(expression) == 1:  # handle single term only
-                nodeIdentifier, nodeValueLabel, nodeVersion, scaleFactor = expression[0]
+                nodeIdentifier, nodeValueLabel, nodeVersion, totalScaleFactor = expression[0]
                 if self._selectionNodes:
                     if not self._selectionNodes.containsNode(self._nodes.findNodeByIdentifier(nodeIdentifier)):
                         continue
                 derivativeKey = (nodeIdentifier, nodeValueLabel, nodeVersion)
-                derivativeEdge = (edge, expressionIndex, math.fabs(scaleFactor))
+                derivativeEdge = (edge, expressionIndex, totalScaleFactor)
                 derivativeEdges = self._derivativeMap.get(derivativeKey)
                 if derivativeEdges:
                     derivativeEdges.append(derivativeEdge)
                 else:
                     self._derivativeMap[derivativeKey] = [ derivativeEdge ]
 
-    def smooth(self, maxIterations=10, arcLengthTolerance=1.0E-6):
+    def smooth(self, updateDirections=False, maxIterations=10, arcLengthTolerance=1.0E-6):
         '''
         :param maxIterations: Maximum iterations before stopping if not converging.
         :param arcLengthTolerance: Ratio of difference in arc length from last iteration
@@ -291,24 +307,33 @@ class DerivativeSmoothing:
                         converged = False
                 if converged:
                     print('Derivative smoothing: Converged after', iter, 'iterations.')
-                    return
+                    break
                 elif (iter == maxIterations):
                     print('Derivative smoothing: Stopping after', maxIterations, 'iterations without converging.')
-                    return
+                    break
                 for derivativeKey, derivativeEdges in self._derivativeMap.items():
                     edgeCount = len(derivativeEdges)
                     if edgeCount > 1:
                         nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
                         fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
-                        result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
+                        if updateDirections:
+                            x = [ 0.0 for _ in range(componentsCount) ]
+                        else:
+                            result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
                         mag = 0.0
                         for derivativeEdge in derivativeEdges:
                             edge, expressionIndex, totalScaleFactor = derivativeEdge
                             arcLength = edge.getArcLength()
+                            if updateDirections:
+                                delta = edge.getDelta()
+                                if totalScaleFactor < 0.0:
+                                    delta = [ -d for d in delta ]
+                                for c in range(componentsCount):
+                                    x[c] += delta[c] / arcLength
                             if self._scalingMode == DerivativeScalingMode.ARITHMETIC_MEAN:
-                                mag += arcLength/totalScaleFactor
+                                mag += arcLength/math.fabs(totalScaleFactor)
                             else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
-                                mag += totalScaleFactor/arcLength
+                                mag += math.fabs(totalScaleFactor)/arcLength
                         if self._scalingMode == DerivativeScalingMode.ARITHMETIC_MEAN:
                             mag /= edgeCount
                         else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
@@ -322,18 +347,40 @@ class DerivativeSmoothing:
                     if edgeCount == 1:
                         # boundary smoothing over single edge
                         nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
-                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
-                        result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
                         edge, expressionIndex, totalScaleFactor = derivativeEdges[0]
                         # re-evaluate arc length so parameters are up-to-date for other end
                         arcLength = edge.evaluateArcLength(self._nodes, self._field, fieldcache)
-                        otherd = edge.getParameter(3 if (expressionIndex == 1) else 1)
+                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # since changed by evaluateArcLength
+                        otherExpressionIndex = 3 if (expressionIndex == 1) else 1
+                        otherd = edge.getParameter(otherExpressionIndex)
+                        if updateDirections:
+                            thisx = edge.getParameter(expressionIndex - 1)
+                            otherx = edge.getParameter(otherExpressionIndex - 1)
+                            bothEndsOnBoundary = False
+                            otherExpression = edge.getExpression(otherExpressionIndex)
+                            if len(otherExpression) == 1:
+                                otherNodeIdentifier, otherValueLabel, otherNodeVersion, otherTotalScaleFactor = otherExpression[0]
+                                otherDerivativeKey = (otherNodeIdentifier, otherValueLabel, otherNodeVersion)
+                                otherDerivativeEdges = self._derivativeMap.get(otherDerivativeKey)
+                                bothEndsOnBoundary = (otherDerivativeEdges is not None) and (len(otherDerivativeEdges) == 1)
+                            if bothEndsOnBoundary:
+                                if expressionIndex == 1:
+                                    x = [ (otherx[c] - thisx[c]) for c in range(componentsCount) ]
+                                else:
+                                    x = [ (thisx[c] - otherx[c]) for c in range(componentsCount) ]
+                            else:
+                                if expressionIndex == 1:
+                                    x = interpolateLagrangeHermiteDerivative(thisx, otherx, otherd, 0.0)
+                                else:
+                                    x = interpolateHermiteLagrangeDerivative(otherx, otherd, thisx, 1.0)
+                            x = [ d/totalScaleFactor for d in x ]
+                        else:
+                            result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
                         othermag = magnitude(otherd)
-                        mag = (2.0*arcLength - othermag)/totalScaleFactor
+                        mag = (2.0*arcLength - othermag)/math.fabs(totalScaleFactor)
                         if (mag <= 0.0):
-                            print('Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative mag', mag)
+                            print('Derivative smoothing: Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative magnitude', mag)
                         x = setMagnitude(x, mag)
-                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # need to set again as changed node in edge.evaluateArcLength
                         result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
             # record modified nodes while ChangeManager is in effect
             if self._editNodesetGroup:
