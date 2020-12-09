@@ -347,10 +347,10 @@ class DerivativeSmoothing:
                     if edgeCount == 1:
                         # boundary smoothing over single edge
                         nodeIdentifier, nodeValueLabel, nodeVersion = derivativeKey
-                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
                         edge, expressionIndex, totalScaleFactor = derivativeEdges[0]
                         # re-evaluate arc length so parameters are up-to-date for other end
                         arcLength = edge.evaluateArcLength(self._nodes, self._field, fieldcache)
+                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # since changed by evaluateArcLength
                         otherExpressionIndex = 3 if (expressionIndex == 1) else 1
                         otherd = edge.getParameter(otherExpressionIndex)
                         if updateDirections:
@@ -376,12 +376,11 @@ class DerivativeSmoothing:
                             x = [ d/totalScaleFactor for d in x ]
                         else:
                             result, x = self._field.getNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
-                            othermag = magnitude(otherd)
-                            mag = (2.0*arcLength - othermag)/totalScaleFactor
-                            if (mag <= 0.0):
-                                print('Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative mag', mag)
-                            x = setMagnitude(x, mag)
-                        fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))  # need to set again as changed node in edge.evaluateArcLength
+                        othermag = magnitude(otherd)
+                        mag = (2.0*arcLength - othermag)/math.fabs(totalScaleFactor)
+                        if (mag <= 0.0):
+                            print('Derivative smoothing: Node', nodeIdentifier, 'label', nodeValueLabel, 'version', nodeVersion, 'has negative magnitude', mag)
+                        x = setMagnitude(x, mag)
                         result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
             # record modified nodes while ChangeManager is in effect
             if self._editNodesetGroup:
