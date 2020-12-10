@@ -565,13 +565,13 @@ class Ellipse2D:
             td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
             td3 = interpolateSampleCubicHermite([btd1[0][n1], btd3[n2c][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
             for n2 in range(n2m + 1):
+                btd1[n2][n1] = td1[n2]
                 if n2 < n2c:
                     btx[n2][n1] = tx[n2]
                     if n2 <= n2a:
                         btd1[n2][n1] = td3[n2]
                         btd3[n2][n1] = [-td1[n2][c] for c in range(3)]
                     else:
-                        btd1[n2][n1] = td1[n2]
                         btd3[n2][n1] = td3[n2]
 
     def smoothTriplePointsCurves(self):
