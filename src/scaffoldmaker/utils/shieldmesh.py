@@ -426,12 +426,13 @@ class ShieldMesh:
                         if (e1 < e1b) or (e1 > e1y):
                             continue  # no element due to triple point closure
                         if (e2 < e2a) or (e2 > e2z):
-                            if e2 < e2a:
-                                nids = [self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1],
-                                        self.nodeId[e3][e2][e1], self.nodeId[e3][e2][e1+1], self.nodeId[e3+1][e2][e1],  self.nodeId[e3+1][e2][e1+1]]
-                            elif e2 > e2z:
-                                nids = [self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2][e1], self.nodeId[e3+1][e2][e1+1], self.nodeId[e3+1][e2][e1],
-                                        self.nodeId[e3][e2+1][e1+1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1]]
+                            if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                if e2 < e2a:
+                                    nids = [self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1],
+                                            self.nodeId[e3][e2][e1], self.nodeId[e3][e2][e1+1], self.nodeId[e3+1][e2][e1],  self.nodeId[e3+1][e2][e1+1]]
+                                elif e2 > e2z:
+                                    nids = [self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2][e1], self.nodeId[e3+1][e2][e1+1], self.nodeId[e3+1][e2][e1],
+                                            self.nodeId[e3][e2+1][e1+1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1]]
                         elif (e2 == e2a) or (e2 == e2z):
                             # bottom and top row elements
                             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
