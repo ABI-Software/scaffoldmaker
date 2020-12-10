@@ -646,12 +646,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         xTexture = d1Texture = d2Texture = d3Texture = []
 
         # Obtain elements count along body and neck of the bladder for defining annotation groups
-        if includeUrethra:
-            # bladderLength = length - urethraLength
-            bodyLength = ureterPositionDown * bladderLength
-        else:
-            bodyLength = ureterPositionDown * length
-        elementsCountAlongBody = int(bodyLength / bladderSegmentLength)
+        elementsCountAlongBody = round(ureterPositionDown * elementsCountAlongBladder - 1)
         elementsCountAlongNeck = elementsCountAlongBladder - elementsCountAlongBody
 
         # Create annotation groups for bladder and urethra

@@ -4,7 +4,11 @@ Describes methods each scaffold must or may override.
 """
 import copy
 from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode
+from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters, print_node_field_parameters
 
 class Scaffold_base:
     '''
@@ -151,6 +155,40 @@ class Scaffold_base:
         return annotationGroups
 
     @classmethod
+    def printNodeFieldParameters(cls, region, options, functionOptions, editGroupName):
+        '''
+        Interactive function for printing node field parameters for pasting into code.
+        '''
+        fieldmodule = region.getFieldmodule()
+        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        selectionGroup = fieldmodule.findFieldByName('cmiss_selection').castGroup()
+        if selectionGroup.isValid():
+            nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
+            if not nodeset.isValid():
+                print('Print node field parameters: No nodes selected')
+                return False, False
+        coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+        valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
+        numberFormat = '{:' + functionOptions['Number format (e.g. 8.3f)'] + '}'
+        print_node_field_parameters(valueLabels, fieldParameters, numberFormat)
+        return False, False  # no change to settings, nor node parameters
+
+    @classmethod
+    def smoothDerivatives(cls, region, options, functionOptions, editGroupName):
+        fieldmodule = region.getFieldmodule()
+        coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+        groupName = 'cmiss_selection'
+        selectionGroup = fieldmodule.findFieldByName(groupName).castGroup()
+        if not selectionGroup.isValid():
+            groupName = False  # smooth whole model
+        updateDirections = functionOptions['Update directions']
+        scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN if functionOptions['Scaling mode']['Arithmetic mean'] else DerivativeScalingMode.HARMONIC_MEAN
+        smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode, editGroupName)
+        smoothing.smooth(updateDirections)
+        del smoothing
+        return False, True  # settings not changed, nodes changed
+
+    @classmethod
     def getInteractiveFunctions(cls):
         """
         Override to return list of named interactive functions that client
@@ -164,4 +202,12 @@ class Scaffold_base:
         its name is supplied).
         :return: list(tuples), (name : str, callable(region, options, editGroupName)).
         """
-        return []
+        return [
+            ("Print node parameters...",
+                { 'Number format (e.g. 8.3f)': ' 11e' },
+                lambda region, options, functionOptions, editGroupName: cls.printNodeFieldParameters(region, options, functionOptions, editGroupName)),
+            ("Smooth derivatives...",
+                { 'Update directions': False,
+                  'Scaling mode': { 'Arithmetic mean': True, 'Harmonic mean': False } },
+                lambda region, options, functionOptions, editGroupName: cls.smoothDerivatives(region, options, functionOptions, editGroupName))
+            ]
