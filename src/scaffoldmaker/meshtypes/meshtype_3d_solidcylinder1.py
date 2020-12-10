@@ -126,6 +126,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements along'] = 1
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
         if options['Number of elements across shell'] > Rcrit:
+            dependentChanges = True
             options['Number of elements across shell'] = Rcrit
 
         return dependentChanges
