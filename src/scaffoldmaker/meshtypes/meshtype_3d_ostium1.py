@@ -725,9 +725,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     for v in range(vesselsCount):
         if vesselMeshGroups or ostiumMeshGroups:
             rowMeshGroups = []
-            for i in range(elementsCountAlong - 1):
+            for i in range(elementsCountAlong):
                 rowMeshGroups.append(copy.copy(vesselMeshGroups[v]) if vesselMeshGroups else [])
-            rowMeshGroups += [ostiumMeshGroups]
         else:
             rowMeshGroups = None
         if isOutlet:
