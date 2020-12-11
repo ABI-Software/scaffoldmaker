@@ -13,7 +13,6 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 
 
 class MeshType_3d_lung1(Scaffold_base):
@@ -99,28 +98,29 @@ class MeshType_3d_lung1(Scaffold_base):
 
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
         leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-        rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
-        annotationGroups = [leftLungGroup, lungGroup, rightLungGroup]
+        annotationGroups = [leftLungGroup, lungGroup]
 
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
-        rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
 
         if isHuman:
             lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
             lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(lowerLeftLungGroup)
             upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
             upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(upperLeftLungGroup)
+            rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
+            rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(rightLungGroup)
             lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
             lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(lowerRightLungGroup)
             upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
             upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(upperRightLungGroup)
             middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
             middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(lowerLeftLungGroup)
-            annotationGroups.append(upperLeftLungGroup)
-            annotationGroups.append(lowerRightLungGroup)
-            annotationGroups.append(upperRightLungGroup)
             annotationGroups.append(middleRightLungGroup)
 
         # Annotation fiducial point
@@ -299,10 +299,10 @@ class MeshType_3d_lung1(Scaffold_base):
 
             # Create nodes
             nodeIdentifier = 1
-            lowerNodeIdsLeft = []
-            upperNodeIdsLeft = []
-            lowerNodeIdsRight = []
-            upperNodeIdsRight = []
+            lowerLeftNodeIds = []
+            upperLeftNodeIds = []
+            lowerRightNodeIds = []
+            upperRightNodeIds = []
             d1 = [1.0, 0.0, 0.0]
             d2 = [0.0, 1.0, 0.0]
             d3 = [0.0, 0.0, 1.0]
@@ -311,16 +311,16 @@ class MeshType_3d_lung1(Scaffold_base):
             rightLung = 1
 
             for lung in (leftLung, rightLung):
-                nodeIds = lowerNodeIdsLeft if (lung == leftLung) else lowerNodeIdsRight
+                lowerNodeIds = lowerLeftNodeIds if (lung == leftLung) else lowerRightNodeIds
                 xMirror = 0 if (lung == leftLung) else 150 # Offset
 
                 # Lower lobe nodes
                 for n3 in range(lElementsCount3 + 1):
-                    nodeIds.append([])
+                    lowerNodeIds.append([])
                     for n2 in range(lElementsCount2 + 1):
-                        nodeIds[n3].append([])
+                        lowerNodeIds[n3].append([])
                         for n1 in range(lElementsCount1 + 1):
-                            nodeIds[n3][n2].append(None)
+                            lowerNodeIds[n3][n2].append(None)
                             if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
                                 continue
                             if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
@@ -338,19 +338,18 @@ class MeshType_3d_lung1(Scaffold_base):
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                            nodeIds[n3][n2][n1] = nodeIdentifier
+                            lowerNodeIds[n3][n2][n1] = nodeIdentifier
                             nodeIdentifier += 1
 
                 # Upper lobe nodes
-                nodeIds = upperNodeIdsLeft if (lung == leftLung) else upperNodeIdsRight
-                lowerNodeIds = lowerNodeIdsLeft if (lung == leftLung) else lowerNodeIdsRight
+                upperNodeIds = upperLeftNodeIds if (lung == leftLung) else upperRightNodeIds
 
                 for n3 in range(uElementsCount3 + 1):
-                    nodeIds.append([])
+                    upperNodeIds.append([])
                     for n2 in range(uElementsCount2 + 1):
-                        nodeIds[n3].append([])
+                        upperNodeIds[n3].append([])
                         for n1 in range(uElementsCount1 + 1):
-                            nodeIds[n3][n2].append(None)
+                            upperNodeIds[n3][n2].append(None)
                             if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
                                 continue
                             if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
@@ -362,10 +361,10 @@ class MeshType_3d_lung1(Scaffold_base):
 
                             # Oblique fissure nodes
                             if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                                nodeIds[n3][n2][n1] = lowerNodeIds[n3][lElementsCount2][n1]
+                                upperNodeIds[n3][n2][n1] = lowerNodeIds[n3][lElementsCount2][n1]
                                 continue
                             elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
-                                nodeIds[n3][n2][n1] = lowerNodeIds[lElementsCount3][n2][n1]
+                                upperNodeIds[n3][n2][n1] = lowerNodeIds[lElementsCount3][n2][n1]
                                 continue
 
                             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -381,14 +380,13 @@ class MeshType_3d_lung1(Scaffold_base):
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                            nodeIds[n3][n2][n1] = nodeIdentifier
+                            upperNodeIds[n3][n2][n1] = nodeIdentifier
                             nodeIdentifier += 1
 
             # Create elements
             elementIdentifier = 1
             for lung in (leftLung, rightLung):
-                nodeIds = lowerNodeIdsLeft if (lung == leftLung) else lowerNodeIdsRight
-                lowerNodeIds = lowerNodeIdsLeft if (lung == leftLung) else lowerNodeIdsRight
+                lowerNodeIds = lowerLeftNodeIds if (lung == leftLung) else lowerRightNodeIds
 
                 # Lower lobe elements
                 for e3 in range(lElementsCount3):
@@ -396,8 +394,8 @@ class MeshType_3d_lung1(Scaffold_base):
                         for e1 in range(lElementsCount1):
                             eft = eftRegular
                             nodeIdentifiers = [
-                                nodeIds[e3    ][e2][e1], nodeIds[e3    ][e2][e1 + 1], nodeIds[e3    ][e2 + 1][e1], nodeIds[e3    ][e2 + 1][e1 + 1],
-                                nodeIds[e3 + 1][e2][e1], nodeIds[e3 + 1][e2][e1 + 1], nodeIds[e3 + 1][e2 + 1][e1], nodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                                lowerNodeIds[e3    ][e2][e1], lowerNodeIds[e3    ][e2][e1 + 1], lowerNodeIds[e3    ][e2 + 1][e1], lowerNodeIds[e3    ][e2 + 1][e1 + 1],
+                                lowerNodeIds[e3 + 1][e2][e1], lowerNodeIds[e3 + 1][e2][e1 + 1], lowerNodeIds[e3 + 1][e2 + 1][e1], lowerNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                             if (e2 == 0) and (e1 == 0):
                                 # Back wedge elements
@@ -453,16 +451,16 @@ class MeshType_3d_lung1(Scaffold_base):
                                 lowerRightLungMeshGroup.addElement(element)
 
                 # Upper lobe elements
-                nodeIds = upperNodeIdsLeft if (lung == leftLung) else upperNodeIdsRight
+                upperNodeIds = upperLeftNodeIds if (lung == leftLung) else upperRightNodeIds
                 for e3 in range(uElementsCount3):
                     for e2 in range(uElementsCount2):
                         for e1 in range(uElementsCount1):
                             eft = eftRegular
                             nodeIdentifiers = [
-                                nodeIds[e3][e2][e1], nodeIds[e3][e2][e1 + 1], nodeIds[e3][e2 + 1][e1],
-                                nodeIds[e3][e2 + 1][e1 + 1],
-                                nodeIds[e3 + 1][e2][e1], nodeIds[e3 + 1][e2][e1 + 1], nodeIds[e3 + 1][e2 + 1][e1],
-                                nodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                                upperNodeIds[e3][e2][e1], upperNodeIds[e3][e2][e1 + 1], upperNodeIds[e3][e2 + 1][e1],
+                                upperNodeIds[e3][e2 + 1][e1 + 1],
+                                upperNodeIds[e3 + 1][e2][e1], upperNodeIds[e3 + 1][e2][e1 + 1], upperNodeIds[e3 + 1][e2 + 1][e1],
+                                upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                             if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
                                 # Distal-front wedge elements
@@ -563,16 +561,16 @@ class MeshType_3d_lung1(Scaffold_base):
 
             # Create nodes
             nodeIdentifier = 1
-            lowerNodeIdsLeft = []
+            lNodeIdsL = []
             d1 = [0.5, 0.0, 0.0]
             d2 = [0.0, 0.5, 0.0]
             d3 = [0.0, 0.0, 1.0]
             for n3 in range(elementsCount3 + 1):
-                lowerNodeIdsLeft.append([])
+                lNodeIdsL.append([])
                 for n2 in range(elementsCount2 + 1):
-                    lowerNodeIdsLeft[n3].append([])
+                    lNodeIdsL[n3].append([])
                     for n1 in range(elementsCount1 + 1):
-                        lowerNodeIdsLeft[n3][n2].append(None)
+                        lNodeIdsL[n3][n2].append(None)
                         if n3 < elementsCount3:
                             if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
                                 continue
@@ -586,7 +584,7 @@ class MeshType_3d_lung1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        lowerNodeIdsLeft[n3][n2][n1] = nodeIdentifier
+                        lNodeIdsL[n3][n2][n1] = nodeIdentifier
                         nodeIdentifier += 1
 
             # Create elements
@@ -596,8 +594,8 @@ class MeshType_3d_lung1(Scaffold_base):
                     for e1 in range(elementsCount1):
                         eft = eftRegular
                         nodeIdentifiers = [
-                            lowerNodeIdsLeft[e3    ][e2][e1], lowerNodeIdsLeft[e3    ][e2][e1 + 1], lowerNodeIdsLeft[e3    ][e2 + 1][e1], lowerNodeIdsLeft[e3    ][e2 + 1][e1 + 1],
-                            lowerNodeIdsLeft[e3 + 1][e2][e1], lowerNodeIdsLeft[e3 + 1][e2][e1 + 1], lowerNodeIdsLeft[e3 + 1][e2 + 1][e1], lowerNodeIdsLeft[e3 + 1][e2 + 1][e1 + 1]]
+                            lNodeIdsL[e3    ][e2][e1], lNodeIdsL[e3    ][e2][e1 + 1], lNodeIdsL[e3    ][e2 + 1][e1], lNodeIdsL[e3    ][e2 + 1][e1 + 1],
+                            lNodeIdsL[e3 + 1][e2][e1], lNodeIdsL[e3 + 1][e2][e1 + 1], lNodeIdsL[e3 + 1][e2 + 1][e1], lNodeIdsL[e3 + 1][e2 + 1][e1 + 1]]
 
                         if (e3 < elementsCount3 - 1):
                             if (e2 == 0) and (e1 == 0):
