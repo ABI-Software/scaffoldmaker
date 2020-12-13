@@ -457,10 +457,8 @@ class MeshType_3d_lung1(Scaffold_base):
                         for e1 in range(uElementsCount1):
                             eft = eftRegular
                             nodeIdentifiers = [
-                                upperNodeIds[e3][e2][e1], upperNodeIds[e3][e2][e1 + 1], upperNodeIds[e3][e2 + 1][e1],
-                                upperNodeIds[e3][e2 + 1][e1 + 1],
-                                upperNodeIds[e3 + 1][e2][e1], upperNodeIds[e3 + 1][e2][e1 + 1], upperNodeIds[e3 + 1][e2 + 1][e1],
-                                upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                                upperNodeIds[e3    ][e2][e1], upperNodeIds[e3    ][e2][e1 + 1], upperNodeIds[e3    ][e2 + 1][e1], upperNodeIds[e3    ][e2 + 1][e1 + 1],
+                                upperNodeIds[e3 + 1][e2][e1], upperNodeIds[e3 + 1][e2][e1 + 1], upperNodeIds[e3 + 1][e2 + 1][e1], upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                             if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
                                 # Distal-front wedge elements
@@ -561,16 +559,16 @@ class MeshType_3d_lung1(Scaffold_base):
 
             # Create nodes
             nodeIdentifier = 1
-            lNodeIdsL = []
+            lNodeIds = []
             d1 = [0.5, 0.0, 0.0]
             d2 = [0.0, 0.5, 0.0]
             d3 = [0.0, 0.0, 1.0]
             for n3 in range(elementsCount3 + 1):
-                lNodeIdsL.append([])
+                lNodeIds.append([])
                 for n2 in range(elementsCount2 + 1):
-                    lNodeIdsL[n3].append([])
+                    lNodeIds[n3].append([])
                     for n1 in range(elementsCount1 + 1):
-                        lNodeIdsL[n3][n2].append(None)
+                        lNodeIds[n3][n2].append(None)
                         if n3 < elementsCount3:
                             if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
                                 continue
@@ -584,7 +582,7 @@ class MeshType_3d_lung1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        lNodeIdsL[n3][n2][n1] = nodeIdentifier
+                        lNodeIds[n3][n2][n1] = nodeIdentifier
                         nodeIdentifier += 1
 
             # Create elements
@@ -594,8 +592,8 @@ class MeshType_3d_lung1(Scaffold_base):
                     for e1 in range(elementsCount1):
                         eft = eftRegular
                         nodeIdentifiers = [
-                            lNodeIdsL[e3    ][e2][e1], lNodeIdsL[e3    ][e2][e1 + 1], lNodeIdsL[e3    ][e2 + 1][e1], lNodeIdsL[e3    ][e2 + 1][e1 + 1],
-                            lNodeIdsL[e3 + 1][e2][e1], lNodeIdsL[e3 + 1][e2][e1 + 1], lNodeIdsL[e3 + 1][e2 + 1][e1], lNodeIdsL[e3 + 1][e2 + 1][e1 + 1]]
+                            lNodeIds[e3    ][e2][e1], lNodeIds[e3    ][e2][e1 + 1], lNodeIds[e3    ][e2 + 1][e1], lNodeIds[e3    ][e2 + 1][e1 + 1],
+                            lNodeIds[e3 + 1][e2][e1], lNodeIds[e3 + 1][e2][e1 + 1], lNodeIds[e3 + 1][e2 + 1][e1], lNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                         if (e3 < elementsCount3 - 1):
                             if (e2 == 0) and (e1 == 0):
