@@ -599,7 +599,7 @@ class Ellipse2D:
             for n2 in range(n2b, n2m + 1):
                 tx.append(btx[n2][n1])
                 td1.append(btd1[n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True, fixStartDerivative=True)
             for n in range(n2m-n2b+1):
                 btd1[n + n2b][n1] = td1[n]
 
