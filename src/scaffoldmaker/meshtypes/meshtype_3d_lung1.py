@@ -140,7 +140,6 @@ class MeshType_3d_lung1(Scaffold_base):
         eftWedgeCollapseXi1_15 = eftfactory.createEftWedgeCollapseXi1Quadrant([1, 5])
         eftWedgeCollapseXi1_26 = eftfactory.createEftWedgeCollapseXi1Quadrant([2, 6])
         eftWedgeCollapseXi1_37 = eftfactory.createEftWedgeCollapseXi1Quadrant([3, 7])
-        eftWedgeCollapseXi1_48 = eftfactory.createEftWedgeCollapseXi1Quadrant([4, 8])
         eftWedgeCollapseXi1_57 = eftfactory.createEftWedgeCollapseXi1Quadrant([5, 7])
         eftWedgeCollapseXi1_68 = eftfactory.createEftWedgeCollapseXi1Quadrant([6, 8])
         eftWedgeCollapseXi2_56 = eftfactory.createEftWedgeCollapseXi2Quadrant([5, 6])
@@ -148,7 +147,6 @@ class MeshType_3d_lung1(Scaffold_base):
         eftTetCollapseXi1Xi2_71 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(7, 1)
         eftTetCollapseXi1Xi2_82 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(8, 2)
         eftTetCollapseXi1Xi2_63 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(6, 3)
-        eftTetCollapseXi1Xi2_53 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(5, 3)
 
         if isHuman:
             #valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
@@ -461,11 +459,9 @@ class MeshType_3d_lung1(Scaffold_base):
                                 upperNodeIds[e3 + 1][e2][e1], upperNodeIds[e3 + 1][e2][e1 + 1], upperNodeIds[e3 + 1][e2 + 1][e1], upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                             if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
-                                # Distal-front wedge elements / lung edge (inside)
+                                # Distal-front wedge elements
                                 nodeIdentifiers.pop(6)
                                 nodeIdentifiers.pop(2)
-                                # eft = eftWedgeCollapseXi1_37
-                                # ------------------------------
                                 eft = eftfactory.createEftBasic()
                                 setEftScaleFactorIds(eft, [1], [])
                                 nodes = [3, 4, 7, 8]
@@ -473,18 +469,12 @@ class MeshType_3d_lung1(Scaffold_base):
                                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                                 ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
-                                # zero cross derivative parameters
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
                                 remapEftLocalNodes(eft, 6, ln_map)
 
                             elif (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
-                                # Distal-back wedge elements / lung edge (outside)
+                                # Distal-back wedge elements
                                 nodeIdentifiers.pop(7)
                                 nodeIdentifiers.pop(3)
-                                # eft = eftWedgeCollapseXi1_48
-                                # ------------------------------
                                 eft = eftfactory.createEftBasic()
                                 setEftScaleFactorIds(eft, [1], [])
                                 nodes = [3, 4, 7, 8]
@@ -492,10 +482,6 @@ class MeshType_3d_lung1(Scaffold_base):
                                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
                                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                                 ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
-                                # zero cross derivative parameters
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
                                 remapEftLocalNodes(eft, 6, ln_map)
 
                             elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == 0):
@@ -533,17 +519,14 @@ class MeshType_3d_lung1(Scaffold_base):
                                 nodeIdentifiers.pop(1)
                                 eft = eftTetCollapseXi1Xi2_71
                             elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
-                                # Top-front-distal tetrahedron wedge elements / lung edge (inside)
+                                # Top-front-distal tetrahedron wedge elements
                                 nodeIdentifiers.pop(7)
                                 nodeIdentifiers.pop(6)
                                 nodeIdentifiers.pop(4)
                                 nodeIdentifiers.pop(2)
-                                #eft = eftTetCollapseXi1Xi2_63
-                                # ------------------------------
                                 eft = eftfactory.createEftBasic()
                                 setEftScaleFactorIds(eft, [1], [])
                                 nodes = [5, 6, 7, 8]
-
                                 # remap parameters on xi3 = 1 before collapsing nodes
                                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
@@ -551,27 +534,18 @@ class MeshType_3d_lung1(Scaffold_base):
                                 remapEftNodeValueLabel(eft, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
                                 remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
                                 remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-
                                 ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
-
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
                                 remapEftLocalNodes(eft, 4, ln_map)
 
                             elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
-                                # Top-front-distal tetrahedron wedge elements / lung edge (outside)
+                                # Top-front-distal tetrahedron wedge elements
                                 nodeIdentifiers.pop(7)
                                 nodeIdentifiers.pop(6)
                                 nodeIdentifiers.pop(5)
                                 nodeIdentifiers.pop(3)
-                                # eft = eftTetCollapseXi1Xi2_53
-                                # ------------------------------
                                 eft = eftfactory.createEftBasic()
                                 setEftScaleFactorIds(eft, [1], [])
                                 nodes = [5, 6, 7, 8]
-
                                 # remap parameters on xi3 = 1 before collapsing nodes
                                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
@@ -579,15 +553,8 @@ class MeshType_3d_lung1(Scaffold_base):
                                 remapEftNodeValueLabel(eft, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                                 remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
                                 remapEftNodeValueLabel(eft, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-
                                 ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
-
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
                                 remapEftLocalNodes(eft, 4, ln_map)
-
 
                             elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 3)):
                                 # Remapped cube element 1
