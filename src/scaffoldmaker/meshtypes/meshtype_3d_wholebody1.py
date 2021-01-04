@@ -28,15 +28,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 3.0,
-                'Number of elements': 3
+                'Number of elements': 1
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 2.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.5, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 3.5], [0.0, 0.0, 1.0], [0.5, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]]
                 ])
         })
     }
@@ -50,10 +48,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements across major': 4,
-            'Number of elements across minor': 4,
-            'Number of elements across shell': 0,
-            'Number of elements along': 1,
+            'Number of elements across major': 6,
+            'Number of elements across minor': 6,
+            'Number of elements across shell': 1,
+            'Number of elements along': 10,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
