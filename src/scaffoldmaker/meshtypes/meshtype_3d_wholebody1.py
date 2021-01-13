@@ -21,20 +21,22 @@ class MeshType_3d_wholebody1(Scaffold_base):
 Generates a solid cylinder using a ShieldMesh of all cube elements,
 with variable numbers of elements in major, minor, shell and axial directions.
     """
-    centralPathDefaultScaffoldPackages = {
-        'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings': {
+    cylinder1Settings = {
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
                 'D3 derivatives': True,
-                'Length': 3.0,
+                'Length': 3.5,
                 'Number of elements': 1
-            },
+            }
+
+    centralPathDefaultScaffoldPackages = {
+        'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': cylinder1Settings,
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.5, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 3.5], [0.0, 0.0, 1.0], [0.5, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]]
+                    [[0.0, 0.0, 0.0], [cylinder1Settings['Length'], 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 0.0, 0.0]],
+                    [[cylinder1Settings['Length'], 0.0, 0.0], [cylinder1Settings['Length'], 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 0.0, 0.0]]
                 ])
         })
     }
@@ -51,7 +53,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
             'Number of elements across shell': 1,
-            'Number of elements along': 10,
+            'Number of elements along': 11,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
