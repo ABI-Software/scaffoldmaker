@@ -14,6 +14,9 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from opencmiss.zinc.node import Node
+from opencmiss.zinc.element import Element
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm, mergeAnnotationGroups
+from scaffoldmaker.annotation.body_terms import get_body_term
 
 
 class MeshType_3d_wholebody1(Scaffold_base):
@@ -137,7 +140,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: List of AnnotationGroup
         """
 
         centralPath = options['Central path']
@@ -152,6 +155,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
+        mesh = fm.findMeshByDimension(3)
+
+        bodyGroup = AnnotationGroup(region, get_body_term("body"))
+        annotationGroups = [bodyGroup]
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
@@ -164,8 +171,11 @@ with variable numbers of elements in major, minor, shell and axial directions.
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
-        annotationGroup = []
-        return annotationGroup
+        is_body = fm.createFieldConstant(1)
+        bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
+        bodyMeshGroup.addElementsConditional(is_body)
+
+        return annotationGroups
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):
@@ -178,3 +188,28 @@ with variable numbers of elements in major, minor, shell and axial directions.
         refineElementsCountAcrossMajor = options['Refine number of elements across major']
         refineElementsCountAlong = options['Refine number of elements along']
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+
+        # create 2d surface mesh groups
+        fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
+
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("body"))
+        skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
+
+        is_exterior = fm.createFieldIsExterior()
+        is_on_face_xi3_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)
+        is_skin = fm.createFieldAnd(is_exterior, is_on_face_xi3_1)
+
+        skinMeshGroup = skinGroup.getMeshGroup(mesh2d)
+        skinMeshGroup.addElementsConditional(is_skin)
