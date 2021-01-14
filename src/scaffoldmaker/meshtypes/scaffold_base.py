@@ -149,8 +149,8 @@ class Scaffold_base:
             for annotationGroup in annotationGroups:
                 annotationGroup.addSubelements()
             cls.defineFaceAnnotations(region, options, annotationGroups)
-            for annotation in annotationGroups:
-                if annotation not in oldAnnotationGroups:
+            for annotationGroup in annotationGroups:
+                if annotationGroup not in oldAnnotationGroups:
                     annotationGroup.addSubelements()
         return annotationGroups
 
