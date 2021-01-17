@@ -158,7 +158,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
         mesh = fm.findMeshByDimension(3)
 
         bodyGroup = AnnotationGroup(region, get_body_term("body"))
-        annotationGroups = [bodyGroup]
+        coreGroup = AnnotationGroup(region, get_body_term("core"))
+        non_coreGroup = AnnotationGroup(region, get_body_term("non core"))
+        abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
+        thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
+        neckGroup = AnnotationGroup(region, get_body_term("neck"))
+        headGroup = AnnotationGroup(region, get_body_term("head"))
+        annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup]
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
@@ -171,9 +177,67 @@ with variable numbers of elements in major, minor, shell and axial directions.
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
+        # Groups of different parts of the body
         is_body = fm.createFieldConstant(1)
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         bodyMeshGroup.addElementsConditional(is_body)
+
+        coreMeshGroup = coreGroup.getMeshGroup(mesh)
+
+        # core group
+        e1oa = elementsCountAcrossMinor - 2*elementsCountAcrossShell - 2
+        e2oa = elementsCountAcrossMajor - 2*elementsCountAcrossShell
+        e1ob = e1oa*elementsCountAcrossShell
+        e1oc = e1ob + e1oa + elementsCountAcrossShell
+        e2oCore = (e1oa+2)*(e2oa)-4
+        e2oShell = cylinder1._elementsCountAround*elementsCountAcrossShell
+        e2o = e2oCore + e2oShell
+        e1oy = e2o - e1oa*(elementsCountAcrossShell+1)
+        for e3 in range(elementsCountAlong):
+            for e2 in range(e2oa):
+                for e1 in range(1, e1oa+3):
+                    if e2 == 0:
+                        if e1 <= e1oa:
+                            elementIdentifier = e3 * e2o + e1ob + e1
+                        else:
+                            continue
+                    elif e2 == e2oa - 1:
+                        if e1 <= e1oa:
+                            elementIdentifier = e3 * e2o + e1oy + e1
+                        else:
+                            continue
+                    else:
+                        elementIdentifier = e3 * e2o + elementsCountAcrossMinor * (e2 - 1) + e1 + e1oc
+
+                    element = mesh.findElementByIdentifier(elementIdentifier)
+                    coreMeshGroup.addElement(element)
+
+        is_non_core = fm.createFieldNot(coreGroup.getGroup())
+        non_coreMeshGroup = non_coreGroup.getMeshGroup(mesh)
+        non_coreMeshGroup.addElementsConditional(is_non_core)
+
+        abdomenMeshGroup = abdomenGroup.getMeshGroup(mesh)
+        thoraxMeshGroup = thoraxGroup.getMeshGroup(mesh)
+        neckMeshGroup = neckGroup.getMeshGroup(mesh)
+        headMeshGroup = headGroup.getMeshGroup(mesh)
+        meshGroups = [abdomenMeshGroup, thoraxMeshGroup, neckMeshGroup, headMeshGroup]
+
+        abdomenRange = [1, int(5*elementsCountAlong/11)*e2o]
+        thoraxRange = [abdomenRange[1]+1, int(8*elementsCountAlong/11)*e2o]
+        neckRange = [thoraxRange[1]+1, int(9*elementsCountAlong/11)*e2o]
+        headRange = [neckRange[1]+1, elementsCountAlong*e2o]
+        groupsRanges = [abdomenRange, thoraxRange, neckRange, headRange]
+
+        totalElements = e2o*elementsCountAlong
+        for elementIdentifier in range(1, totalElements+1):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            if coreMeshGroup.containsElement(element):
+                ri = 0
+                for groupRange in groupsRanges:
+                    if (elementIdentifier >= groupRange[0]) and (elementIdentifier <= groupRange[1]):
+                        meshGroups[ri].addElement(element)
+                        break
+                    ri += 1
 
         return annotationGroups
 
@@ -205,7 +269,15 @@ with variable numbers of elements in major, minor, shell and axial directions.
         mesh2d = fm.findMeshByDimension(2)
 
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("body"))
+        coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
+        non_coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("non core"))
+        abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
+        thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
+
         skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
+        coreBoundaryGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("core boundary"))
+        diaphragmGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("diaphragm"))
+        spinalCordGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("spinal cord"))
 
         is_exterior = fm.createFieldIsExterior()
         is_on_face_xi3_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)
@@ -213,3 +285,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         skinMeshGroup = skinGroup.getMeshGroup(mesh2d)
         skinMeshGroup.addElementsConditional(is_skin)
+
+        is_core_boundary = fm.createFieldAnd(coreGroup.getGroup(), non_coreGroup.getGroup())
+        coreBoundaryMeshGroup = coreBoundaryGroup.getMeshGroup(mesh2d)
+        coreBoundaryMeshGroup.addElementsConditional(is_core_boundary)
+
+        is_diaphragm = fm.createFieldAnd(abdomenGroup.getGroup(), thoraxGroup.getGroup())
+        diaphragmMeshGroup = diaphragmGroup.getMeshGroup(mesh2d)
+        diaphragmMeshGroup.addElementsConditional(is_diaphragm)
+
+        mesh1d = fm.findMeshByDimension(1)
+        spinalCordMeshGroup = spinalCordGroup.getMeshGroup(mesh1d)
+        # element = mesh1d.findElementByIdentifier(10)
+        # spinalCordMeshGroup.addElement(element)

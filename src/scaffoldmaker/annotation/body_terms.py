@@ -12,6 +12,9 @@ body_terms = [
     ( "diaphragm", "UBERON:0001103", "ILX:0103194" ),
     ( "spinal cord", "UBERON:0002240", "ILX:0110909" ),
     ( "body", "UBERON:0000468", "ILX:0101370" ),
+    ( "core", "" ),
+    ( "non core", "" ),
+    ( "core boundary", "" ),
     ]
 
 def get_body_term(name : str):
