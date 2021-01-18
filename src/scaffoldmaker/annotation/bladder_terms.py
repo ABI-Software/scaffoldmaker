@@ -14,9 +14,31 @@ bladder_terms = [
     ("serosa of neck of urinary bladder", "ILX:0739277"),
     ("lumen of neck of urinary bladder", "ILX:0739256"),
     ("urethra", "UBERON:0000057", "ILX:0733022"),
-    ("lumen of urethra", "ILX:0736762"),
+    ("lumen of urethra", "UBERON:0010390", "ILX:0736762"),
     ("serosa of urethra", "ILX:0739282"),
-    ("ureter", "UBERON:0000056", "ILX:0728080")
+    ("ureter", "UBERON:0000056", "ILX:0728080"),
+    ("Dorsal part of serosa of urinary bladder", "ILX:0739248"),
+    ("Ventral part of serosa of urinary bladder", "ILX:0739249"),
+    ("dorsal part of bladder lumen", None),
+    ("ventral part of bladder lumen", None),
+    ("dorsal part of serosa of body of urinary bladder", "ILX:0739278"),
+    ("ventral part of serosa of body of urinary bladder", "ILX:0739279"),
+    ("Dorsal part of lumen of body of urinary bladder", "ILX:0739250"),
+    ("Ventral part of lumen of body of urinary bladder", "ILX:0739251"),
+    ("dorsal part of serosa of neck of urinary bladder", "ILX:0739280"),
+    ("ventral part of serosa of neck of urinary bladder", "ILX:0739281"),
+    ("Dorsal part of lumen of neck of urinary bladder", "ILX:0739255"),
+    ("Ventral part of lumen of neck of urinary bladder", "ILX:0739257"),
+    ("dorsal part of serosa of urethra", "ILX:0739283"),
+    ("ventral part of serosa of urethra", "ILX:0739306"),
+    ("Dorsal part of lumen of urethra", "ILX:0739260"),
+    ("Ventral part of lumen of urethra", "ILX:0739261"),
+    ("dorsal part of the bladder", None),
+    ("ventral part of the bladder", None),
+    ("dorsal part of the urethra", None),
+    ("ventral part of the urethra", None),
+    ("dorsal part of the scaffold", None),
+    ("ventral part of the scaffold", None)
 ]
 
 def get_bladder_term(name : str):
