@@ -460,8 +460,8 @@ class Ellipse2D:
             if n2 > elementsCountRim:  # regular rows
                 btd1[n2][n1] = nd1[n]
                 btd3[n2][n1] = nd3[n]
-            if n2 >= 2 + elementsCountRim:
-                btd3[n2][n1] = vector.setMagnitude(self.minorAxis, vector.dotproduct(nd3[n], self.minorAxis))
+            # if n2 >= 2 + elementsCountRim:
+            #     btd3[n2][n1] = vector.setMagnitude(self.minorAxis, vector.dotproduct(nd3[n], self.minorAxis))
             else:  # around rim
                 btd1[n2][n1] = nd1[n]
                 btd3[n2][n1] = nd3[n]
