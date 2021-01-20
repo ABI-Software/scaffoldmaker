@@ -17,11 +17,10 @@ from opencmiss.zinc.node import Node
 
 class MeshType_3d_spinalcord1(Scaffold_base):
     """
-Generates a solid cylinder using a ShieldMesh of all cube elements,
-with variable numbers of elements in major, minor, shell and axial directions.
+Generates a spinal cord mesh using a solid cylinder
     """
     centralPathDefaultScaffoldPackages = {
-        'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Spinal cord 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
@@ -60,7 +59,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
+        centralPathOption = cls.centralPathDefaultScaffoldPackages['Spinal cord 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 4,
