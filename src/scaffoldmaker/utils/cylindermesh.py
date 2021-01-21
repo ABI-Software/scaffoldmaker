@@ -55,6 +55,7 @@ class CylinderEnds:
         :param majorAxis: The major axis of the base. Should be perpendicular to alongAxis
         :param minorRadius: The minor radius of the ellipse.
         """
+        assert (shellThickness < 0.95*min(minorRadius, vector.magnitude(majorAxis))), 'CylinderEnds: Invalid shell thickness'
         self._centre = centre
         self._alongAxis = alongAxis
         self._majorAxis = majorAxis
@@ -430,10 +431,6 @@ class Ellipse2D:
         self.createRegularColumnCurves()
         self.__shield.getTriplePoints(0)
         self.smoothTriplePointsCurves()
-        if self.elementsCountAcrossShell > 1:
-            self.sampleShellNodes()
-        self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
-        self.smoothDerivativesAroundShell()
         if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
             self.generateNodesForUpperHalf()
 
@@ -479,7 +476,20 @@ class Ellipse2D:
                 btd1[n2c][n1c] = btd1[n2][n1]
                 btd2[n2c][n1c] = btd2[n2][n1]
                 btd3[n2c][n1c] = btd3[n2][n1]
-        self.__shield.smoothDerivativesAroundRim(0, n3d=None, rx=elementsCountRim)
+            if elementsCountRim > 1:
+                tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([btx[n2c][n1c], btx[n2][n1]],
+                                                                 [btd3[n2c][n1c], btd3[n2][n1]], elementsCountRim,
+                                                                 arcLengthDerivatives=True)
+
+                for rx in range(1, elementsCountRim):
+                    n1rx, n2rx = self.__shield.convertRimIndex(n, rx)
+                    btx[n2rx][n1rx] = tx[-rx + elementsCountRim]
+                    btd1[n2rx][n1rx] = btd1[n2][n1]
+                    btd2[n2rx][n1rx] = btd2[n2][n1]
+                    btd3[n2rx][n1rx] = btd3[n2][n1]
+
+        for rx in range(1, elementsCountRim + 1):
+            self.__shield.smoothDerivativesAroundRim(0, n3d=None, rx=rx)
 
     def createMirrorCurve(self):
         """
@@ -491,8 +501,8 @@ class Ellipse2D:
         btd2 = self.pd2
         btd3 = self.pd3
 
-        rcx = []
         n2a = self.elementsCountAcrossShell
+        rcx = []
         tmdx = btx[n2a][self.elementsCountAcrossMinor // 2]
         tmdd3 = btd3[n2a][self.elementsCountAcrossMinor // 2]
         tmux = [
@@ -501,8 +511,7 @@ class Ellipse2D:
         rcx.append(tmdx)
         rcx.append(tmux)
         rcd3 = [vector.setMagnitude(tmdd3, -1), vector.setMagnitude(tmdd3, -1)]
-        rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self.elementsCountUp - n2a, lengthFractionStart=1,
-                                               arcLengthDerivatives=True)[0:2]
+        rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self.elementsCountUp - n2a, arcLengthDerivatives=True)[0:2]
 
         # get d2, d3
         rscd2 = []
@@ -536,45 +545,40 @@ class Ellipse2D:
         n1a = elementsCountRim
         n1z = self.elementsCountAcrossMinor - self.elementsCountAcrossShell
         for n2 in range(n2c, n2m + 1):
-            if elementsCountRim == 1:
-                tx, td3, pe, pxi, psf = sampleCubicHermiteCurves(
-                    [btx[n2][0], rscx[n2-n2a], btx[n2][-1]],
-                    [vector.setMagnitude(btd3[n2][0], -1.0), rscd3[n2-n2a], btd3[n2][-1]],
-                    self.elementsCountAcrossMinor,
-                    lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
-                td1 = interpolateSampleCubicHermite([[-btd1[n2][0][c] for c in range(3)], rscd1[n2-n2a],
-                                                    btd1[n2][-1]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
-                btd3[n2][0] = [-td3[0][c] for c in range(3)]
-                btd3[n2][-1] = td3[-1]
-            else:
-                tx, td3, pe, pxi, psf = sampleCubicHermiteCurves(
-                    [btx[n2][n1a], rscx[n2-n2a], btx[n2][n1z]],
-                    [vector.setMagnitude(btd3[n2][n1a], -1.0), rscd3[n2-n2a], btd3[n2][n1z]],
-                    self.elementsCountAcrossMinor-2*self.elementsCountAcrossShell,
-                    lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
-                td1 = interpolateSampleCubicHermite([[-btd1[n2][n1a][c] for c in range(3)], rscd1[n2-n2a],
-                                                    btd1[n2][n1z]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
+            txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
+                [btx[n2][n1a], rscx[n2 - n2a], btx[n2][n1z]],
+                [vector.setMagnitude(btd3[n2][n1a], -1.0), rscd3[n2 - n2a], btd3[n2][n1z]],
+                self.elementsCountAcrossMinor-2*self.elementsCountAcrossShell, arcLengthDerivatives=True)
+            td1m = interpolateSampleCubicHermite([[-btd1[n2][n1a][c] for c in range(3)], rscd1[n2 - n2a],
+                                                  btd1[n2][n1z]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
 
+            tx = []
+            td3 = []
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if n1 <= n1a:
+                    tx.append(btx[n2][n1])
+                    td3.append([-btd3[n2][n1][c] for c in range(3)])
+                elif (n1 > n1a) and (n1 < n1z):
+                    tx.append(txm[n1 - n1a])
+                    td3.append(td3m[n1 - n1a])
+                else:
+                    tx.append(btx[n2][n1])
+                    td3.append((btd3[n2][n1]))
 
-            for n1 in range(n1a, n1z + 1):
-                btx[n2][n1] = tx[n1 - n1a]
-                btd1[n2][n1] = td1[n1 - n1a]
-                btd3[n2][n1] = td3[n1 - n1a]
+            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
 
-            if n2 < n2m:
-                for n1 in range(n1a, n1a+1):
-                    btd1[n2][n1] = [-btd1[n2][n1][c] for c in range(3)]
-                    btd3[n2][n1] = [-btd3[n2][n1][c] for c in range(3)]
-            elif n2 == n2m:
-                if elementsCountRim == 0:
-                    btd1[n2][0] = [-btd1[n2][0][c] for c in range(3)]
-                    btd3[n2][0] = [-btd3[n2][0][c] for c in range(3)]
-                for n1 in range(1, self.elementsCountAcrossMinor):
-                    if (n1 > n1a) and (n1 < n1z):
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if n1 <= n1a:
+                    btd3[n2][n1] = [-td3[n1][c] for c in range(3)]
+                elif (n1 > n1a) and (n1 < n1z):
+                    btx[n2][n1] = tx[n1]
+                    if n2 == n2m:
                         btd1[n2][n1] = vector.setMagnitude(btd1[n2m][-1], 1.0)
-                    elif n1 == n1a:
-                        btd1[n2][n1] = [-td1[n1 - n1a][c] for c in range(3)]
-                        btd3[n2][n1] = [-btd3[n2][n1][c] for c in range(3)]
+                    else:
+                        btd1[n2][n1] = td1m[n1 - n1a]
+                    btd3[n2][n1] = td3[n1]
+                else:
+                    btd3[n2][n1] = td3[n1]
 
     def createRegularColumnCurves(self):
         """
@@ -592,36 +596,35 @@ class Ellipse2D:
         n2c = 2 + n2a
         n2m = self.elementsCountUp
         for n1 in range(n1c, n1y):
-            if elementsCountRim == 1:
-                tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
-                    [btx[0][n1], btx[n2c][n1]], [[-btd3[0][n1][c] for c in range(3)], btd1[n2c][n1]], 3,
-                    lengthFractionStart=1, arcLengthDerivatives=True)
-                td3 = interpolateSampleCubicHermite([btd1[0][n1], btd3[n2c][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-                n2i = 0
-            else:
-                tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
-                    [btx[n2a][n1], btx[n2c][n1]], [[-btd3[n2a][n1][c] for c in range(3)], btd1[n2c][n1]], 2,
-                    lengthFractionStart=1, arcLengthDerivatives=True)
-                td3 = interpolateSampleCubicHermite([btd1[n2a][n1], btd3[n2c][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-                n2i = n2a
+            txm, td1m, pe, pxi, psf = sampleCubicHermiteCurves(
+                [btx[n2a][n1], btx[n2c][n1]], [[-btd3[n2a][n1][c] for c in range(3)], btd1[n2c][n1]], 2,
+                arcLengthDerivatives=True)
+            td3m = interpolateSampleCubicHermite([btd1[n2a][n1], btd3[n2c][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
 
-            for n2 in range(n2c + 1, n2m + 1):
-                tx.append(btx[n2][n1])
-                td1.append(btd1[n2][n1])
+            tx = []
+            td1 = []
+            for n2 in range(n2m + 1):
+                if n2 <= n2a:
+                    tx.append(btx[n2][n1])
+                    td1.append([-btd3[n2][n1][c] for c in range(3)])
+                elif (n2 > n2a) and (n2 < n2c):
+                    tx.append(txm[n2 - n2a])
+                    td1.append(td1m[n2 - n2a])
+                else:
+                    tx.append(btx[n2][n1])
+                    td1.append(btd1[n2][n1])
+
             td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
 
-            if elementsCountRim == 1:
-                btd3[0][n1] = [-td1[0][c] for c in range(3)]
-
-            for n2 in range(n2a, n2m + 1):
-                btd1[n2][n1] = td1[n2 - n2i]
-                if n2 < n2c:
-                    btx[n2][n1] = tx[n2 - n2i]
-                    if n2 == n2a:
-                        btd1[n2][n1] = td3[n2 - n2i]
-                        btd3[n2][n1] = [-td1[n2 - n2a][c] for c in range(3)]
-                    else:
-                        btd3[n2][n1] = td3[n2 - n2i]
+            for n2 in range(n2m + 1):
+                if n2 <= n2a:
+                    btd3[n2][n1] = [-td1[n2][c] for c in range(3)]
+                elif (n2 > n2a) and (n2 < n2c):
+                    btx[n2][n1] = tx[n2]
+                    btd1[n2][n1] = td1[n2]
+                    btd3[n2][n1] = td3m[n2 - n2a]
+                else:
+                    btd1[n2][n1] = td1[n2]
 
     def smoothTriplePointsCurves(self):
         """
@@ -652,97 +655,8 @@ class Ellipse2D:
             for n in range(n2m-n2b+1):
                 btd1[n + n2b][n1] = td1[n]
 
-    def sampleShellNodes(self):
-        """Sample nodes for the shell layers."""
-        btx = self.px
-        btd1 = self.pd1
-        btd2 = self.pd2
-        btd3 = self.pd3
-
-        elementsCountRim = self.elementsCountAcrossShell
-        n2a = elementsCountRim
-        n2c = elementsCountRim + 2
-        n2m = self.elementsCountUp
-        n1a = elementsCountRim
-        n1c = n1a + 2
-        n1z = self.elementsCountAcrossMinor - self.elementsCountAcrossShell
-        n1y = n1z - 1
-        n1end = self.elementsCountAcrossMinor
-
-        regularRows = range(n2c, n2m + 1)
-        for n2 in regularRows:
-            txa, td3a, pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[n2][0], btx[n2][n1a]], [[-btd3[n2][0][c] for c in range(3)],
-                                             [-btd3[n2][n1a][c] for c in range(3)]],
-                elementsCountRim, lengthFractionStart=1, arcLengthDerivatives=True)
-            td1a = interpolateSampleCubicHermite([btd1[n2][0], btd1[n2][n1a]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-
-            txz, td3z, pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[n2][n1z], btx[n2][-1]], [btd3[n2][n1z], btd3[n2][-1]],
-                elementsCountRim, lengthFractionStart=1, arcLengthDerivatives=True)
-            td1z = interpolateSampleCubicHermite([btd1[n2][n1z], btd1[n2][n1end]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-
-            tx = []
-            td3 = []
-            for n1 in range(self.elementsCountAcrossMinor + 1):
-                if n1 <= n1a:
-                    tx.append(txa[n1])
-                    td3.append(td3a[n1])
-                elif (n1 > n1a) and (n1 < n1z):
-                    tx.append(btx[n2][n1])
-                    td3.append(btd3[n2][n1])
-                else:
-                    tx.append(txz[n1 - n1z])
-                    td3.append(td3z[n1 - n1z])
-            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
-
-            for n1 in range(0, n1a + 1):
-                btd3[n2][n1] = [-td3[n1][c] for c in range(3)]
-                if (n1 > 0) and (n1 < n1a):
-                    btx[n2][n1] = tx[n1]
-                    btd1[n2][n1] = td1a[n1]
-
-            for n1 in range(n1a + 1, n1z+1):
-                btd3[n2][n1] = td3[n1]
-
-            for n1 in range(n1z+1, n1end+1):
-                btd3[n2][n1] = td3[n1]
-                if n1 < n1end:
-                    btx[n2][n1] = tx[n1]
-                    btd1[n2][n1] = td1z[n1-n1z]
-
-        regularColumns = range(n1c, n1y)
-        for n1 in regularColumns:
-            txa, td3a, pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[0][n1], btx[n2a][n1]], [[-btd3[0][n1][c] for c in range(3)],
-                                             [-btd3[n2a][n1][c] for c in range(3)]],
-                elementsCountRim, lengthFractionStart=1, arcLengthDerivatives=True)
-            td1a = interpolateSampleCubicHermite([btd1[0][n1], btd1[n2a][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-
-            tx = []
-            td1 = []
-            for n2 in range(0, n2m + 1):
-                if n2 <= n2a:
-                    tx.append(txa[n2])
-                    td1.append(td3a[n2])
-                else:
-                    tx.append(btx[n2][n1])
-                    td1.append(btd1[n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
-
-            for n2 in range(0, n2m + 1):
-                if n2 > n2a:
-                    btd1[n2][n1] = td1[n2]
-                else:
-                    btd3[n2][n1] = [-td1[n2][c] for c in range(3)]
-                    if (n2 > 0) and (n2 < n2a):
-                        btx[n2][n1] = tx[n2]
-                        btd1[n2][n1] = td1a[n2]
-
-    def smoothDerivativesAroundShell(self):
-        """ Smooth curves around shell layers"""
-        for rx in range(1, self.elementsCountAcrossShell):
-            self.__shield.smoothDerivativesAroundRim(0, n3d=None, rx=rx)
+        # smooth
+        self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
 
     def generateNodesForUpperHalf(self):
         """
