@@ -54,6 +54,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
             'Number of elements along': 1,
+            'Shell thickness': 0.0,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -70,6 +71,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across minor',
             'Number of elements across shell',
             'Number of elements along',
+            'Shell thickness',
             'Lower half',
             'Refine',
             'Refine number of elements across major',
@@ -129,6 +131,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
 
+        if options['Shell thickness'] < 0:
+            options['Shell thickness'] = -options['Shell thickness']
+        elif options['Shell thickness'] < 0.0001:
+            if options['Number of elements across shell'] >= 1:
+                options['Shell thickness'] = 0.2
+                dependentChanges = True
+
         return dependentChanges
 
     @staticmethod
@@ -148,6 +157,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAlong = options['Number of elements along']
+        shellThickness = options['Shell thickness']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -157,8 +167,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell, [0.0, 0.0, 0.0],
-                            cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
+                            shellThickness,
+                            [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,

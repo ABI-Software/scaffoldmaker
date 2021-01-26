@@ -43,16 +43,19 @@ class CylinderEnds:
     """
 
     def __init__(self, elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell=0,
-                 centre=None, alongAxis=None, majorAxis=None, minorRadius=None):
+                 shellThickness=0.0, centre=None, alongAxis=None, majorAxis=None, minorRadius=None):
         """
         :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for
          half and 4 + elementsCountRim for full cylinder.
         :param elementsCountAcrossMinor: Number of elements across minor axis.
+        :param elementsCountAcrossShell: Number of elements across shell.
+        :param shellThickness: Total thickness of the shell layers.
         :param centre: Centre of the ellipse.
         :param alongAxis: The cylinder axis that the base is extruded along.
         :param majorAxis: The major axis of the base. Should be perpendicular to alongAxis
         :param minorRadius: The minor radius of the ellipse.
         """
+        assert (shellThickness < 0.95*min(minorRadius, vector.magnitude(majorAxis))), 'CylinderEnds: Invalid shell thickness'
         self._centre = centre
         self._alongAxis = alongAxis
         self._majorAxis = majorAxis
@@ -62,6 +65,7 @@ class CylinderEnds:
         self._elementsCountAcrossMinor = elementsCountAcrossMinor
         self._elementsCountAcrossMajor = elementsCountAcrossMajor
         self._elementsCountAcrossShell = elementsCountAcrossShell
+        self._shellThickness = shellThickness
         self._majorRadius = vector.magnitude(majorAxis)
         self.px = None
         self.pd1 = None
@@ -152,6 +156,7 @@ class CylinderMesh:
         self._elementsCountUp = base._elementsCountAcrossMajor // 2 \
             if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else base._elementsCountAcrossMajor
         self._elementsCountAcrossShell = base._elementsCountAcrossShell
+        self._shellThickness = base._shellThickness
         self._elementsCountAlong = elementsCountAlong
         self._elementsCountAround = 2 * (self._elementsCountAcrossMajor+self._elementsCountAcrossMinor -
                                          4*(self._elementsCountAcrossShell + 1))
@@ -169,7 +174,7 @@ class CylinderMesh:
         if cylinderCentralPath:
             self.calculateEllipseParams(cylinderCentralPath=self._cylinderCentralPath)
             self._base = CylinderEnds(base._elementsCountAcrossMajor, base._elementsCountAcrossMinor,
-                                      base._elementsCountAcrossShell, self._centres[0],
+                                      base._elementsCountAcrossShell, base._shellThickness, self._centres[0],
                                       None, self._majorAxis[0], self._minorRadii[0])
         else:
             self._length = vector.magnitude(base._alongAxis)
@@ -215,6 +220,7 @@ class CylinderMesh:
         for n3 in range(n3Count + 1):
             ellipse = Ellipse2D(self._centres[n3], self._majorAxis[n3], self._minorAxis[n3],
                                 self._elementsCountAcrossMajor, self._elementsCountAcrossMinor, self._elementsCountAcrossShell,
+                                self._shellThickness,
                                 ellipseShape=ellipseShape)
             self._ellipses.append(ellipse)
             self.copyEllipsesNodesToShieldNodes(n3)
@@ -244,7 +250,7 @@ class CylinderMesh:
 
         if self._end is None:
             self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
-                                     self._elementsCountAcrossShell,
+                                     self._elementsCountAcrossShell, self._shellThickness,
                                      self._centres[-1], self._shield.pd2[-1][0][1],
                                      vector.setMagnitude(self._base._majorAxis, self._majorRadii[-1]),
                                      self._minorRadii[-1])
@@ -377,7 +383,9 @@ class Ellipse2D:
     Generate a 2D ellipse.
     """
 
-    def __init__(self, centre, majorAxis, minorAxis, elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
+    def __init__(self, centre, majorAxis, minorAxis,
+                 elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
+                 shellThickness,
                  ellipseShape=EllipseShape.Ellipse_SHAPE_FULL):
         """
         :param centre: Ellipse centre.
@@ -403,6 +411,7 @@ class Ellipse2D:
         self.elementsCountUp = shield.elementsCountUp
         self.elementsCountAcrossMinor = elementsCountAcrossMinor
         self.elementsCountAcrossShell = elementsCountAcrossShell
+        self.shellThickness = shellThickness
         self.nodeId = shield.nodeId
         self.px = shield.px[0]
         self.pd1 = shield.pd1[0]
@@ -423,8 +432,6 @@ class Ellipse2D:
         self.createRegularColumnCurves()
         self.__shield.getTriplePoints(0)
         self.smoothTriplePointsCurves()
-        self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
-        self.smoothDerivativesAroundShell()
         if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
             self.generateNodesForUpperHalf()
 
@@ -447,7 +454,7 @@ class Ellipse2D:
 
     def setRimNodes(self, nx, nd1, nd2, nd3):
         """
-        Set nodes around the ellipse perimeter in order needed for creating a shield mesh.
+        Set nodes around the shell outer layer and core boundary in order needed for creating a shield mesh.
         """
         btx = self.px
         btd1 = self.pd1
@@ -458,15 +465,32 @@ class Ellipse2D:
         for n in range(self.elementsCountAround + 1):
             n1, n2 = self.__shield.convertRimIndex(n)
             btx[n2][n1] = nx[n]
-            if n2 > elementsCountRim:  # regular rows
-                btd1[n2][n1] = nd1[n]
-                btd3[n2][n1] = nd3[n]
-            if n2 >= 2 + elementsCountRim:
-                btd3[n2][n1] = vector.setMagnitude(self.minorAxis, vector.dotproduct(nd3[n], self.minorAxis))
-            else:  # around rim
-                btd1[n2][n1] = nd1[n]
-                btd3[n2][n1] = nd3[n]
+            btd1[n2][n1] = nd1[n]
             btd2[n2][n1] = nd2[n]
+            btd3[n2][n1] = nd3[n]
+
+            if elementsCountRim > 0:
+                # core boundary ellipse
+                n1c, n2c = self.__shield.convertRimIndex(n, elementsCountRim)
+                btx[n2c][n1c] = [(btx[n2][n1][c] - vector.setMagnitude(btd3[n2][n1], self.shellThickness)[c])
+                                 for c in range(3)]
+                btd1[n2c][n1c] = btd1[n2][n1]
+                btd2[n2c][n1c] = btd2[n2][n1]
+                btd3[n2c][n1c] = btd3[n2][n1]
+            if elementsCountRim > 1:
+                tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([btx[n2c][n1c], btx[n2][n1]],
+                                                                 [btd3[n2c][n1c], btd3[n2][n1]], elementsCountRim,
+                                                                 arcLengthDerivatives=True)
+
+                for rx in range(1, elementsCountRim):
+                    n1rx, n2rx = self.__shield.convertRimIndex(n, rx)
+                    btx[n2rx][n1rx] = tx[-rx + elementsCountRim]
+                    btd1[n2rx][n1rx] = btd1[n2][n1]
+                    btd2[n2rx][n1rx] = btd2[n2][n1]
+                    btd3[n2rx][n1rx] = btd3[n2][n1]
+
+        for rx in range(1, elementsCountRim + 1):
+            self.__shield.smoothDerivativesAroundRim(0, n3d=None, rx=rx)
 
     def createMirrorCurve(self):
         """
@@ -478,17 +502,17 @@ class Ellipse2D:
         btd2 = self.pd2
         btd3 = self.pd3
 
+        n2a = self.elementsCountAcrossShell
         rcx = []
-        tmdx = btx[0][self.elementsCountAcrossMinor // 2]
-        tmdd3 = btd3[0][self.elementsCountAcrossMinor // 2]
+        tmdx = btx[n2a][self.elementsCountAcrossMinor // 2]
+        tmdd3 = btd3[n2a][self.elementsCountAcrossMinor // 2]
         tmux = [
             0.5 * (btx[self.elementsCountUp][0][c] + btx[self.elementsCountUp][self.elementsCountAcrossMinor]
             [c]) for c in range(3)]
         rcx.append(tmdx)
         rcx.append(tmux)
         rcd3 = [vector.setMagnitude(tmdd3, -1), vector.setMagnitude(tmdd3, -1)]
-        rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self.elementsCountUp, lengthFractionStart=1,
-                                               arcLengthDerivatives=True)[0:2]
+        rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self.elementsCountUp - n2a, arcLengthDerivatives=True)[0:2]
 
         # get d2, d3
         rscd2 = []
@@ -516,30 +540,46 @@ class Ellipse2D:
         btd3 = self.pd3
 
         elementsCountRim = self.elementsCountAcrossShell
-        n2c = elementsCountRim + 2
+        n2a = elementsCountRim
+        n2c = n2a + 2
         n2m = self.elementsCountUp
         n1a = elementsCountRim
+        n1z = self.elementsCountAcrossMinor - self.elementsCountAcrossShell
         for n2 in range(n2c, n2m + 1):
-            btx[n2], btd3[n2], pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[n2][0], rscx[n2], btx[n2][-1]],
-                [vector.setMagnitude(btd3[n2][0], -1.0), rscd3[n2], btd3[n2][-1]],
-                self.elementsCountAcrossMinor, lengthFractionStart=1, lengthFractionEnd=1, arcLengthDerivatives=True)
-            btd1[n2] = interpolateSampleCubicHermite([[-btd1[n2][0][c] for c in range(3)], rscd1[n2],
-                                                      btd1[n2][-1]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
+            txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
+                [btx[n2][n1a], rscx[n2 - n2a], btx[n2][n1z]],
+                [vector.setMagnitude(btd3[n2][n1a], -1.0), rscd3[n2 - n2a], btd3[n2][n1z]],
+                self.elementsCountAcrossMinor-2*self.elementsCountAcrossShell, arcLengthDerivatives=True)
+            td1m = interpolateSampleCubicHermite([[-btd1[n2][n1a][c] for c in range(3)], rscd1[n2 - n2a],
+                                                  btd1[n2][n1z]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
 
-            if n2 < n2m:
-                for n1 in range(n1a+1):
-                    btd1[n2][n1] = [-btd1[n2][n1][c] for c in range(3)]
-                    btd3[n2][n1] = [-btd3[n2][n1][c] for c in range(3)]
-            elif n2 == n2m:
-                btd1[n2][0] = [-btd1[n2][0][c] for c in range(3)]
-                btd3[n2][0] = [-btd3[n2][0][c] for c in range(3)]
-                for n1 in range(1, self.elementsCountAcrossMinor):
-                    if n1 > n1a:
+            tx = []
+            td3 = []
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if n1 <= n1a:
+                    tx.append(btx[n2][n1])
+                    td3.append([-btd3[n2][n1][c] for c in range(3)])
+                elif (n1 > n1a) and (n1 < n1z):
+                    tx.append(txm[n1 - n1a])
+                    td3.append(td3m[n1 - n1a])
+                else:
+                    tx.append(btx[n2][n1])
+                    td3.append((btd3[n2][n1]))
+
+            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
+
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if n1 <= n1a:
+                    btd3[n2][n1] = [-td3[n1][c] for c in range(3)]
+                elif (n1 > n1a) and (n1 < n1z):
+                    btx[n2][n1] = tx[n1]
+                    if n2 == n2m:
                         btd1[n2][n1] = vector.setMagnitude(btd1[n2m][-1], 1.0)
                     else:
-                        btd1[n2][n1] = vector.setMagnitude(btd1[n2m][-1], -1.0)
-                        btd3[n2][n1] = [-btd3[n2][n1][c] for c in range(3)]
+                        btd1[n2][n1] = td1m[n1 - n1a]
+                    btd3[n2][n1] = td3[n1]
+                else:
+                    btd3[n2][n1] = td3[n1]
 
     def createRegularColumnCurves(self):
         """
@@ -557,23 +597,35 @@ class Ellipse2D:
         n2c = 2 + n2a
         n2m = self.elementsCountUp
         for n1 in range(n1c, n1y):
-            tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(
-                [btx[0][n1], btx[n2c][n1]], [[-btd3[0][n1][c] for c in range(3)], btd1[n2c][n1]], 2+elementsCountRim,
-                lengthFractionStart=1, arcLengthDerivatives=True)
-            for n2 in range(n2c + 1, n2m + 1):
-                tx.append(btx[n2][n1])
-                td1.append(btd1[n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
-            td3 = interpolateSampleCubicHermite([btd1[0][n1], btd3[n2c][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
+            txm, td1m, pe, pxi, psf = sampleCubicHermiteCurves(
+                [btx[n2a][n1], btx[n2c][n1]], [[-btd3[n2a][n1][c] for c in range(3)], btd1[n2c][n1]], 2,
+                arcLengthDerivatives=True)
+            td3m = interpolateSampleCubicHermite([btd1[n2a][n1], btd3[n2c][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
+
+            tx = []
+            td1 = []
             for n2 in range(n2m + 1):
-                btd1[n2][n1] = td1[n2]
-                if n2 < n2c:
+                if n2 <= n2a:
+                    tx.append(btx[n2][n1])
+                    td1.append([-btd3[n2][n1][c] for c in range(3)])
+                elif (n2 > n2a) and (n2 < n2c):
+                    tx.append(txm[n2 - n2a])
+                    td1.append(td1m[n2 - n2a])
+                else:
+                    tx.append(btx[n2][n1])
+                    td1.append(btd1[n2][n1])
+
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
+
+            for n2 in range(n2m + 1):
+                if n2 <= n2a:
+                    btd3[n2][n1] = [-td1[n2][c] for c in range(3)]
+                elif (n2 > n2a) and (n2 < n2c):
                     btx[n2][n1] = tx[n2]
-                    if n2 <= n2a:
-                        btd1[n2][n1] = td3[n2]
-                        btd3[n2][n1] = [-td1[n2][c] for c in range(3)]
-                    else:
-                        btd3[n2][n1] = td3[n2]
+                    btd1[n2][n1] = td1[n2]
+                    btd3[n2][n1] = td3m[n2 - n2a]
+                else:
+                    btd1[n2][n1] = td1[n2]
 
     def smoothTriplePointsCurves(self):
         """
@@ -604,10 +656,8 @@ class Ellipse2D:
             for n in range(n2m-n2b+1):
                 btd1[n + n2b][n1] = td1[n]
 
-    def smoothDerivativesAroundShell(self):
-        """ Smooth curves around shell layers"""
-        for rx in range(1, self.elementsCountAcrossShell+1):
-            self.__shield.smoothDerivativesAroundRim(0, n3d=None, rx=rx)
+        # smooth
+        self.__shield.smoothDerivativesToTriplePoints(0, fixAllDirections=True)
 
     def generateNodesForUpperHalf(self):
         """
