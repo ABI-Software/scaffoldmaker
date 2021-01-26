@@ -192,7 +192,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         neckGroup = AnnotationGroup(region, get_body_term("neck"))
         headGroup = AnnotationGroup(region, get_body_term("head"))
-        annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup]
+        topLeftGroup = AnnotationGroup(region, get_body_term("top left"))
+        topRightGroup = AnnotationGroup(region, get_body_term("top right"))
+        annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup,
+                            topLeftGroup, topRightGroup]
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
@@ -268,6 +271,15 @@ with variable numbers of elements in major, minor, shell and axial directions.
                         break
                     ri += 1
 
+        topLeftMeshGroup = topLeftGroup.getMeshGroup(mesh)
+        topRightMeshGroup = topRightGroup.getMeshGroup(mesh)
+        for e3 in range(elementsCountAlong - elementsCountAlongHead):
+            elementIdentifier = e3 * e2o + e2o//2 - elementsCountAcrossShell
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            topLeftMeshGroup.addElement(element)
+            element = mesh.findElementByIdentifier(elementIdentifier + elementsCountAcrossMinor)
+            topRightMeshGroup.addElement(element)
+
         return annotationGroups
 
     @classmethod
@@ -302,6 +314,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
         non_coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("non core"))
         abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
         thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
+        topLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("top left"))
+        topRightGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("top right"))
 
         skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
         coreBoundaryGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("core boundary"))
@@ -325,5 +339,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         mesh1d = fm.findMeshByDimension(1)
         spinalCordMeshGroup = spinalCordGroup.getMeshGroup(mesh1d)
-        # element = mesh1d.findElementByIdentifier(10)
-        # spinalCordMeshGroup.addElement(element)
+        is_top_middle_faces = fm.createFieldAnd(topLeftGroup.getGroup(), topRightGroup.getGroup())
+        is_spinal_cord = fm.createFieldAnd(is_top_middle_faces, is_core_boundary)
+        spinalCordMeshGroup.addElementsConditional(is_spinal_cord)

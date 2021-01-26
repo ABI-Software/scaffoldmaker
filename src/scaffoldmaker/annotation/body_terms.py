@@ -15,6 +15,8 @@ body_terms = [
     ( "core", "" ),
     ( "non core", "" ),
     ( "core boundary", "" ),
+    ( "top left", "" ),
+    ( "top right", "" ),
     ]
 
 def get_body_term(name : str):
