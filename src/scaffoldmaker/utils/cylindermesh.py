@@ -153,7 +153,8 @@ class CylinderMesh:
             if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else base._elementsCountAcrossMajor
         self._elementsCountAcrossShell = base._elementsCountAcrossShell
         self._elementsCountAlong = elementsCountAlong
-        self._elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcrossMinor
+        self._elementsCountAround = 2 * (self._elementsCountAcrossMajor+self._elementsCountAcrossMinor -
+                                         4*(self._elementsCountAcrossShell + 1))
         self._startNodeIdentifier = 1
         self._startElementIdentifier = 1
         self._endNodeIdentifier = 1
