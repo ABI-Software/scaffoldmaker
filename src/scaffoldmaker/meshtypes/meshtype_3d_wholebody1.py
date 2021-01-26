@@ -56,7 +56,11 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
             'Number of elements across shell': 1,
-            'Number of elements along': 11,
+            'Number of elements in abdomen': 5,
+            'Number of elements in head': 2,
+            'Number of elements in neck': 1,
+            'Number of elements in thorax': 3,
+            'Shell thickness': 0.17,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -72,7 +76,11 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
-            'Number of elements along',
+            'Number of elements in abdomen',
+            'Number of elements in head',
+            'Number of elements in neck',
+            'Number of elements in thorax',
+            'Shell thickness',
             'Lower half',
             'Refine',
             'Refine number of elements across major',
@@ -125,12 +133,27 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements across minor'] = 4
         if options['Number of elements across minor'] % 2:
             options['Number of elements across minor'] += 1
-        if options['Number of elements along'] < 1:
-            options['Number of elements along'] = 1
+
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
         if options['Number of elements across shell'] > Rcrit:
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
+
+        if options['Number of elements in abdomen'] < 1:
+            options['Number of elements in abdomen'] = 1
+        if options['Number of elements in head'] < 1:
+            options['Number of elements in head'] = 1
+        if options['Number of elements in neck'] < 1:
+            options['Number of elements in neck'] = 1
+        if options['Number of elements in thorax'] < 1:
+            options['Number of elements in thorax'] = 1
+
+        if options['Shell thickness'] < 0:
+            options['Shell thickness'] = -options['Shell thickness']
+        elif options['Shell thickness'] < 0.0001:
+            if options['Number of elements across shell'] >= 1:
+                options['Shell thickness'] = 0.2
+                dependentChanges = True
 
         return dependentChanges
 
@@ -150,8 +173,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
             elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAcrossShell = options['Number of elements across shell']
-        elementsCountAlong = options['Number of elements along']
+        elementsCountAlongAbdomen = options['Number of elements in abdomen']
+        elementsCountAlongHead = options['Number of elements in head']
+        elementsCountAlongNeck = options['Number of elements in neck']
+        elementsCountAlongThorax = options['Number of elements in thorax']
+        shellThickness = options['Shell thickness']
         useCrossDerivatives = options['Use cross derivatives']
+        elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -170,8 +198,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell, [0.0, 0.0, 0.0],
-                            cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
+                            shellThickness,
+                            [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,
@@ -222,9 +251,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
         headMeshGroup = headGroup.getMeshGroup(mesh)
         meshGroups = [abdomenMeshGroup, thoraxMeshGroup, neckMeshGroup, headMeshGroup]
 
-        abdomenRange = [1, int(5*elementsCountAlong/11)*e2o]
-        thoraxRange = [abdomenRange[1]+1, int(8*elementsCountAlong/11)*e2o]
-        neckRange = [thoraxRange[1]+1, int(9*elementsCountAlong/11)*e2o]
+        abdomenRange = [1, elementsCountAlongAbdomen*e2o]
+        thoraxRange = [abdomenRange[1]+1, abdomenRange[1]+elementsCountAlongThorax*e2o]
+        neckRange = [thoraxRange[1]+1, thoraxRange[1] + elementsCountAlongNeck*e2o]
         headRange = [neckRange[1]+1, elementsCountAlong*e2o]
         groupsRanges = [abdomenRange, thoraxRange, neckRange, headRange]
 
