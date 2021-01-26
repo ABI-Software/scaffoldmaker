@@ -158,7 +158,8 @@ class CylinderMesh:
         self._elementsCountAcrossShell = base._elementsCountAcrossShell
         self._shellThickness = base._shellThickness
         self._elementsCountAlong = elementsCountAlong
-        self._elementsCountAround = 2 * (self._elementsCountUp - 2) + self._elementsCountAcrossMinor
+        self._elementsCountAround = 2 * (self._elementsCountAcrossMajor+self._elementsCountAcrossMinor -
+                                         4*(self._elementsCountAcrossShell + 1))
         self._startNodeIdentifier = 1
         self._startElementIdentifier = 1
         self._endNodeIdentifier = 1
