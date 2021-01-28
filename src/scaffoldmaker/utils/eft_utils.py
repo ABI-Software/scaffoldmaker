@@ -77,6 +77,23 @@ def remapEftNodeValueLabel(eft, localNodeIndexes, fromValueLabel, expressionTerm
                     if expressionTerm[1]:
                         eft.setTermScaling(f, t, expressionTerm[1])
 
+def remapEftNodeValueLabelsVersion(eft, localNodeIndexes, valueLabels, version):
+    '''
+    Remap all uses of the given valueLabels to use the version.
+    :param localNodeIndexes:  List of local node indexes >= 1 to remap at.
+    :param valueLabels:  List of node value labels to be remapped.
+    :param version: Version >= 1
+    '''
+    functionCount = eft.getNumberOfFunctions()
+    for f in range(1, functionCount + 1):
+        termCount = eft.getFunctionNumberOfTerms(f)
+        for t in range(1, termCount + 1):
+            localNodeIndex = eft.getTermLocalNodeIndex(f, t)
+            valueLabel = eft.getTermNodeValueLabel(f, t)
+            if (localNodeIndex in localNodeIndexes) and (valueLabel in valueLabels):
+                result = eft.setTermNodeParameter(f, t, localNodeIndex, valueLabel, version)
+                #print('remap result', result)
+
 def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, expressionTerms):
     '''
     Remap all uses of the given valueLabel to the expressionTerms.

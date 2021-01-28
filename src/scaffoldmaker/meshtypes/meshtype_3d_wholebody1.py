@@ -17,6 +17,10 @@ from opencmiss.zinc.node import Node
 from opencmiss.zinc.element import Element
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm, mergeAnnotationGroups
 from scaffoldmaker.annotation.body_terms import get_body_term
+from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
+from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 
 
 class MeshType_3d_wholebody1(Scaffold_base):
@@ -181,9 +185,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
         useCrossDerivatives = options['Use cross derivatives']
         elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
 
-        fm = region.getFieldmodule()
-        coordinates = findOrCreateFieldCoordinates(fm)
-        mesh = fm.findMeshByDimension(3)
+        fieldmodule = region.getFieldmodule()
+        coordinates = findOrCreateFieldCoordinates(fieldmodule)
+        mesh = fieldmodule.findMeshByDimension(3)
 
         bodyGroup = AnnotationGroup(region, get_body_term("body"))
         coreGroup = AnnotationGroup(region, get_body_term("core"))
@@ -194,6 +198,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         headGroup = AnnotationGroup(region, get_body_term("head"))
         topLeftGroup = AnnotationGroup(region, get_body_term("top left"))
         topRightGroup = AnnotationGroup(region, get_body_term("top right"))
+        non_coreFirstLayerGroup = AnnotationGroup(region, get_body_term("non core first layer"))
         annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup,
                             topLeftGroup, topRightGroup]
 
@@ -205,12 +210,12 @@ with variable numbers of elements in major, minor, shell and axial directions.
                             shellThickness,
                             [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
-        cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
+        cylinder1 = CylinderMesh(fieldmodule, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
         # Groups of different parts of the body
-        is_body = fm.createFieldConstant(1)
+        is_body = fieldmodule.createFieldConstant(1)
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         bodyMeshGroup.addElementsConditional(is_body)
 
@@ -244,7 +249,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     element = mesh.findElementByIdentifier(elementIdentifier)
                     coreMeshGroup.addElement(element)
 
-        is_non_core = fm.createFieldNot(coreGroup.getGroup())
+        is_non_core = fieldmodule.createFieldNot(coreGroup.getGroup())
         non_coreMeshGroup = non_coreGroup.getMeshGroup(mesh)
         non_coreMeshGroup.addElementsConditional(is_non_core)
 
@@ -279,6 +284,92 @@ with variable numbers of elements in major, minor, shell and axial directions.
             topLeftMeshGroup.addElement(element)
             element = mesh.findElementByIdentifier(elementIdentifier + elementsCountAcrossMinor)
             topRightMeshGroup.addElement(element)
+
+        # create discontinuity in d3 on the core boundary
+        e1a = elementsCountAcrossShell
+        e2a = elementsCountAcrossShell
+        e1z = elementsCountAcrossMinor - elementsCountAcrossShell - 1
+        e2z = elementsCountAcrossMajor - elementsCountAcrossShell - 1
+        non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.getMeshGroup(mesh)
+        for e3 in range(elementsCountAlong):
+            for e2 in range(e2a-1, e2z + 2):
+                for e1 in range(elementsCountAcrossMinor):
+                    if e2 == e2a - 1:
+                        if (e1 > e1a) and (e1 < e1z):
+                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            non_coreFirstLayerMeshGroup.addElement(element)
+                    elif e2 == e2z + 1:
+                        if (e1 > e1a) and (e1 < e1z):
+                            elementIdentifier = e3 * e2o + e2o - e1oa - e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            non_coreFirstLayerMeshGroup.addElement(element)
+                    elif (e2 > e2a) and (e2 < e2z):
+                        if e1 == e1a - 1:
+                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+1) + (e2-(e2a+1)) * elementsCountAcrossMinor + elementsCountAcrossShell
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            non_coreFirstLayerMeshGroup.addElement(element)
+                        elif e1 == e1z + 1:
+                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+1) + (e2-(e2a+1)) * elementsCountAcrossMinor + elementsCountAcrossMinor - elementsCountAcrossShell + 1
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            non_coreFirstLayerMeshGroup.addElement(element)
+
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        elementtemplate = mesh.createElementtemplate()
+        undefineNodetemplate = nodes.createNodetemplate()
+        undefineNodetemplate.undefineField(coordinates)
+        nodetemplate = nodes.createNodetemplate()
+        fieldcache = fieldmodule.createFieldcache()
+        with ChangeManager(fieldmodule):
+            elementIter = non_coreFirstLayerMeshGroup.createElementiterator()
+            element = elementIter.next()
+            localNodeIndexes = [1, 2, 3, 4]
+            valueLabel = Node.VALUE_LABEL_D_DS3
+            while element.isValid():
+                print('Element', element.getIdentifier())
+                eft = element.getElementfieldtemplate(coordinates, -1)
+                nodeIds = get_element_node_identifiers(element, eft)
+                for localNodeIndex in localNodeIndexes:
+                    node = element.getNode(eft, localNodeIndex)
+                    print('    Node', node.getIdentifier())
+                    nodetemplate.defineFieldFromNode(coordinates, node)
+                    versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1, valueLabel)
+                    if versionsCount == 1:
+                        fieldcache.setNode(node)
+                        result0, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                        result0, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                        result0, d2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                        result0, d3 = coordinates.getNodeParameters(fieldcache, -1, valueLabel, 1, 3)
+                        result1 = node.merge(undefineNodetemplate)
+                        result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, 2)
+                        result3 = node.merge(nodetemplate)
+                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                        result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
+                        result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
+                        # print('Results:', result0, result1, result2, result3, result4, result5)
+                        # if result3 == 0:
+                        #     loggerMessageCount = logger.getNumberOfMessages()
+                        #     if loggerMessageCount > 0:
+                        #         for i in range(1, loggerMessageCount + 1):
+                        #             print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
+                        #         logger.removeAllMessages()
+                        #         exit()
+                remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], 2)
+                result1 = elementtemplate.defineField(coordinates, -1, eft)
+                result2 = element.merge(elementtemplate)
+                result3 = element.setNodesByIdentifier(eft, nodeIds)
+                # print('Element merge result',result1, result2, result3)
+                # if (result1 != RESULT_OK) or (result2 != RESULT_OK):
+                #     loggerMessageCount = logger.getNumberOfMessages()
+                #     if loggerMessageCount > 0:
+                #         for i in range(1, loggerMessageCount + 1):
+                #             print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
+                #         logger.removeAllMessages()
+                #         exit()
+                element = elementIter.next()
+        # region.writeFile('body_groups_discontinuity11.exf')
 
         return annotationGroups
 

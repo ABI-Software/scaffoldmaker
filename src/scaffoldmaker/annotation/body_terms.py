@@ -17,6 +17,7 @@ body_terms = [
     ( "core boundary", "" ),
     ( "top left", "" ),
     ( "top right", "" ),
+    ( "non core first layer", "" ),
     ]
 
 def get_body_term(name : str):
