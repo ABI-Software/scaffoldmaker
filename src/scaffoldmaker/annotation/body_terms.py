@@ -15,8 +15,6 @@ body_terms = [
     ( "core", "" ),
     ( "non core", "" ),
     ( "core boundary", "" ),
-    ( "top left", "" ),
-    ( "top right", "" ),
     ( "non core first layer", "" ),
     ]
 

@@ -196,11 +196,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         neckGroup = AnnotationGroup(region, get_body_term("neck"))
         headGroup = AnnotationGroup(region, get_body_term("head"))
-        topLeftGroup = AnnotationGroup(region, get_body_term("top left"))
-        topRightGroup = AnnotationGroup(region, get_body_term("top right"))
         non_coreFirstLayerGroup = AnnotationGroup(region, get_body_term("non core first layer"))
-        annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup,
-                            topLeftGroup, topRightGroup]
+        annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup]
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
@@ -275,15 +272,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                         meshGroups[ri].addElement(element)
                         break
                     ri += 1
-
-        topLeftMeshGroup = topLeftGroup.getMeshGroup(mesh)
-        topRightMeshGroup = topRightGroup.getMeshGroup(mesh)
-        for e3 in range(elementsCountAlong - elementsCountAlongHead):
-            elementIdentifier = e3 * e2o + e2o//2 - elementsCountAcrossShell
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            topLeftMeshGroup.addElement(element)
-            element = mesh.findElementByIdentifier(elementIdentifier + elementsCountAcrossMinor)
-            topRightMeshGroup.addElement(element)
 
         # create discontinuity in d3 on the core boundary
         e1a = elementsCountAcrossShell
@@ -405,8 +393,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         non_coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("non core"))
         abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
         thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
-        topLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("top left"))
-        topRightGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("top right"))
+        neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck"))
 
         skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
         coreBoundaryGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("core boundary"))
@@ -428,8 +415,25 @@ with variable numbers of elements in major, minor, shell and axial directions.
         diaphragmMeshGroup = diaphragmGroup.getMeshGroup(mesh2d)
         diaphragmMeshGroup.addElementsConditional(is_diaphragm)
 
+        # spinal cord
+        coordinates = fm.findFieldByName('coordinates').castFiniteElement()
+        zero = fm.createFieldConstant(0)
+        zero_m = fm.createFieldConstant(-0.01)
+        zero_p = fm.createFieldConstant(0.01)
+        y_comp = fm.createFieldComponent(coordinates, 2)
+        y_gt_zero_m = fm.createFieldGreaterThan(y_comp, zero_m)
+        y_lt_zero_p = fm.createFieldLessThan(y_comp, zero_p)
+        y_gt_zero_xi10 = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), y_gt_zero_m)
+        y_lt_zero_xi10 = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), y_lt_zero_p)
+        is_y_zero = fm.createFieldAnd(y_lt_zero_xi10, y_gt_zero_xi10)
+        z_comp = fm.createFieldComponent(coordinates, 3)
+        z_positive = fm.createFieldGreaterThan(z_comp, zero)
+        is_y_zero_z_positive = fm.createFieldAnd(is_y_zero, z_positive)
+        is_abdomen_thorax = fm.createFieldAdd(abdomenGroup.getGroup(), thoraxGroup.getGroup())
+        is_abdomen_thorax_neck = fm.createFieldAdd(is_abdomen_thorax, neckGroup.getGroup())
+        is_abdomen_thorax_neck_boundary = fm.createFieldAnd(is_core_boundary, is_abdomen_thorax_neck)
+        is_spinal_cord = fm.createFieldAnd(is_y_zero_z_positive, is_abdomen_thorax_neck_boundary)
+
         mesh1d = fm.findMeshByDimension(1)
         spinalCordMeshGroup = spinalCordGroup.getMeshGroup(mesh1d)
-        is_top_middle_faces = fm.createFieldAnd(topLeftGroup.getGroup(), topRightGroup.getGroup())
-        is_spinal_cord = fm.createFieldAnd(is_top_middle_faces, is_core_boundary)
         spinalCordMeshGroup.addElementsConditional(is_spinal_cord)
