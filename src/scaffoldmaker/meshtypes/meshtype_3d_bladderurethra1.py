@@ -21,6 +21,7 @@ from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
+from opencmiss.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -368,6 +369,19 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         fm.beginChange()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fm.findMeshByDimension(3)
+
+        # Annotation fiducial point
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+
+        cache = fm.createFieldcache()
 
         # Central path
         # Bladder part
@@ -797,6 +811,16 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                             ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
                             d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
                             ureterMeshGroup, bladderMeshGroup)
+
+        # Apex annotation point
+        nodeIdentifier = nextNodeIdentifier
+        idx = 1
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        # nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'Apex of urinary bladder')
+        markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
 
         fm.endChange()
         return annotationGroups
