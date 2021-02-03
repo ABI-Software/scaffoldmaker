@@ -53,7 +53,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
-            'Number of transition elements': 1,
+            'Number of transition elements': 0,
             'Number of elements along': 1,
             'Shell thickness': 0.0,
             'Lower half': False,
