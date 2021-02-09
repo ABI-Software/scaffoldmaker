@@ -795,11 +795,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
         if includeUrethra:
             is_dorsal_urethra = fm.createFieldAnd(is_dorsal, is_urethra)
-            urethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of the urethra"))
+            urethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Dorsal part of urethra"))
             urethra_dorsal.getMeshGroup(mesh).addElementsConditional(is_dorsal_urethra)
 
             is_ventral_urethra = fm.createFieldAnd(is_ventral, is_urethra)
-            urethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of the urethra"))
+            urethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Ventral part of urethra"))
             urethra_ventral.getMeshGroup(mesh).addElementsConditional(is_ventral_urethra)
 
         dorsalBladderMeshGroup = bladder_dorsal.getMeshGroup(mesh)
