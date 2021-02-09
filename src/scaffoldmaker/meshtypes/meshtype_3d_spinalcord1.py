@@ -65,7 +65,7 @@ Generates a spinal cord mesh using a solid cylinder
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
-            'Number of elements along': 8,
+            'Number of elements along': 12,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
