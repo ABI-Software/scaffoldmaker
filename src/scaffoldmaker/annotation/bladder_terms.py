@@ -19,8 +19,8 @@ bladder_terms = [
     ("ureter", "UBERON:0000056", "ILX:0728080"),
     ("Dorsal part of serosa of urinary bladder", "ILX:0739248"),
     ("Ventral part of serosa of urinary bladder", "ILX:0739249"),
-    ("dorsal part of bladder lumen", None),
-    ("ventral part of bladder lumen", None),
+    ("dorsal part of bladder lumen", "None"),
+    ("ventral part of bladder lumen", "None"),
     ("dorsal part of serosa of body of urinary bladder", "ILX:0739278"),
     ("ventral part of serosa of body of urinary bladder", "ILX:0739279"),
     ("Dorsal part of lumen of body of urinary bladder", "ILX:0739250"),
@@ -33,12 +33,12 @@ bladder_terms = [
     ("ventral part of serosa of urethra", "ILX:0739306"),
     ("Dorsal part of lumen of urethra", "ILX:0739260"),
     ("Ventral part of lumen of urethra", "ILX:0739261"),
-    ("dorsal part of the bladder", None),
-    ("ventral part of the bladder", None),
-    ("dorsal part of the urethra", None),
-    ("ventral part of the urethra", None),
-    ("dorsal part of the scaffold", None),
-    ("ventral part of the scaffold", None)
+    ("dorsal part of the bladder", "None"),
+    ("ventral part of the bladder", "None"),
+    ("Dorsal part of urethra", "ILX:0739258"),
+    ("Ventral part of urethra", "ILX:0739259"),
+    ("dorsal part of the scaffold", "None"),
+    ("ventral part of the scaffold", "None")
 ]
 
 def get_bladder_term(name : str):
