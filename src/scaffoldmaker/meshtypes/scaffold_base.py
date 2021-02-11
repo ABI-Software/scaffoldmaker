@@ -4,7 +4,11 @@ Describes methods each scaffold must or may override.
 """
 import copy
 from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode
+from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters, print_node_field_parameters
 
 class Scaffold_base:
     '''
@@ -93,7 +97,6 @@ class Scaffold_base:
     def generateBaseMesh(cls, region, options):
         """
         Override to generate scaffold mesh in region using Zinc API with options.
-        Some older classes may do this in an override of generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup
@@ -150,3 +153,61 @@ class Scaffold_base:
                 if annotation not in oldAnnotationGroups:
                     annotationGroup.addSubelements()
         return annotationGroups
+
+    @classmethod
+    def printNodeFieldParameters(cls, region, options, functionOptions, editGroupName):
+        '''
+        Interactive function for printing node field parameters for pasting into code.
+        '''
+        fieldmodule = region.getFieldmodule()
+        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        selectionGroup = fieldmodule.findFieldByName('cmiss_selection').castGroup()
+        if selectionGroup.isValid():
+            nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
+            if not nodeset.isValid():
+                print('Print node field parameters: No nodes selected')
+                return False, False
+        coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+        valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
+        numberFormat = '{:' + functionOptions['Number format (e.g. 8.3f)'] + '}'
+        print_node_field_parameters(valueLabels, fieldParameters, numberFormat)
+        return False, False  # no change to settings, nor node parameters
+
+    @classmethod
+    def smoothDerivatives(cls, region, options, functionOptions, editGroupName):
+        fieldmodule = region.getFieldmodule()
+        coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+        groupName = 'cmiss_selection'
+        selectionGroup = fieldmodule.findFieldByName(groupName).castGroup()
+        if not selectionGroup.isValid():
+            groupName = False  # smooth whole model
+        updateDirections = functionOptions['Update directions']
+        scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN if functionOptions['Scaling mode']['Arithmetic mean'] else DerivativeScalingMode.HARMONIC_MEAN
+        smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode, editGroupName)
+        smoothing.smooth(updateDirections)
+        del smoothing
+        return False, True  # settings not changed, nodes changed
+
+    @classmethod
+    def getInteractiveFunctions(cls):
+        """
+        Override to return list of named interactive functions that client
+        can invoke to modify mesh parameters with a push button control.
+        Functions must take 3 arguments: Zinc region, scaffold options and
+        editGroupName (can be None) for optional name of Zinc group to
+        create or modify so changed nodes etc. are put in it.
+        Functions return 2 boolean values: optionsChanged, nodesChanged.
+        These tell the client whether to redisplay the options or process
+        the effects of node edits (which will be recorded in edit group if
+        its name is supplied).
+        :return: list(tuples), (name : str, callable(region, options, editGroupName)).
+        """
+        return [
+            ("Print node parameters...",
+                { 'Number format (e.g. 8.3f)': ' 11e' },
+                lambda region, options, functionOptions, editGroupName: cls.printNodeFieldParameters(region, options, functionOptions, editGroupName)),
+            ("Smooth derivatives...",
+                { 'Update directions': False,
+                  'Scaling mode': { 'Arithmetic mean': True, 'Harmonic mean': False } },
+                lambda region, options, functionOptions, editGroupName: cls.smoothDerivatives(region, options, functionOptions, editGroupName))
+            ]

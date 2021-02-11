@@ -392,6 +392,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Left atrial appendage midpoint left'] = 0.55
             options['Left atrial appendage midpoint over'] = 1.0
             options['Left atrial appendage wedge angle degrees'] = 50.0
+            options['Left pulmonary vein ostium angle degrees'] = 65.0
+            options['Left pulmonary vein ostium position left'] = 0.67
+            options['Left pulmonary vein ostium position over'] = 0.42
             options['Right atrial appendage angle axial degrees'] = 10.0
             options['Right atrial appendage angle left degrees'] = -20.0
             options['Right atrial appendage angle up degrees'] = -10.0
@@ -683,7 +686,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
-        Generate the base tricubic Hermite mesh. See also generateMesh().
+        Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup

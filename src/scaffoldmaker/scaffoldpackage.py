@@ -8,6 +8,7 @@ import math
 from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.utils.maths.vectorops import euler_to_rotation_matrix
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 class ScaffoldPackage:
@@ -33,24 +34,29 @@ class ScaffoldPackage:
             # remove obsolete options? If so, deepcopy first?
             self._scaffoldSettings.update(scaffoldSettings)
         # note rotation is stored in degrees
-        self._rotation = dct.get('rotation')
-        if not self._rotation:
-            self._rotation = [ 0.0, 0.0, 0.0 ]
-        self._scale = dct.get('scale')
-        if not self._scale:
-            self._scale = [ 1.0, 1.0, 1.0 ]
-        self._translation = dct.get('translation')
-        if not self._translation:
-            self._translation = [ 0.0, 0.0, 0.0 ]
-        self._meshEdits = copy.deepcopy(dct.get('meshEdits'))
-
-    def deepcopy(self, other):
-        '''
-        Deep copy contents from another object.
-        '''
-        self._scaffoldType = other._scaffoldType
-        self._scaffoldSettings = copy.deepcopy(other._scaffoldSettings)
-        self._meshEdits = copy.deepcopy(other._meshEdits)
+        rotation =  dct.get('rotation')
+        self._rotation = copy.deepcopy(rotation) if rotation else [ 0.0, 0.0, 0.0 ]
+        scale = dct.get('scale')
+        self._scale = copy.deepcopy(scale) if scale else [ 1.0, 1.0, 1.0 ]
+        translation = dct.get('translation')
+        self._translation = copy.deepcopy(translation) if translation else [ 0.0, 0.0, 0.0 ]
+        meshEdits = dct.get('meshEdits')
+        if meshEdits:
+            # ensure stored as bytes to match what Zinc creates
+            if isinstance(meshEdits, str):
+                meshEdits = bytes(meshEdits, 'utf-8')
+            else:
+                meshEdits = copy.deepcopy(meshEdits)
+        self._meshEdits = meshEdits
+        self._autoAnnotationGroups = []
+        # read user AnnotationGroups dict:
+        userAnnotationGroupsDict = dct.get('userAnnotationGroups')
+        # serialised form of user annotation groups, read from serialisation before generate(), updated before writing
+        self._userAnnotationGroupsDict = copy.deepcopy(userAnnotationGroupsDict) if userAnnotationGroupsDict else []
+        # can only have the actual user annotation groups once generate() is called
+        self._userAnnotationGroups = []
+        # region is set in generate(); can only instantiate user AnnotationGroups then
+        self._region = None
 
     def __eq__(self, other):
         '''
@@ -59,8 +65,18 @@ class ScaffoldPackage:
         if isinstance(other, ScaffoldPackage):
             return (self._scaffoldType == other._scaffoldType) \
                 and (self._scaffoldSettings == other._scaffoldSettings) \
-                and (self._meshEdits == other._meshEdits)
+                and (self._rotation == other._rotation) \
+                and (self._scale == other._scale) \
+                and (self._translation == other._translation) \
+                and (self._meshEdits == other._meshEdits) \
+                and (self._userAnnotationGroupsDict == other._userAnnotationGroupsDict)
         return NotImplemented
+
+    def __deepcopy__(self, memo):
+        '''
+        Deep copies object in deserialised, pre-generated form.
+        '''
+        return ScaffoldPackage(self._scaffoldType, self.toDict())
 
     def toDict(self):
         '''
@@ -78,7 +94,18 @@ class ScaffoldPackage:
             }
         if self._meshEdits:
             dct['meshEdits'] = self._meshEdits
+        if self._userAnnotationGroups:
+            self.updateUserAnnotationGroups()
+        if self._userAnnotationGroupsDict:
+            dct['userAnnotationGroups'] = self._userAnnotationGroupsDict
         return dct
+
+    def updateUserAnnotationGroups(self):
+        '''
+        Ensure user annotation groups are present in serialised form (dict).
+        '''
+        if self._userAnnotationGroups:
+            self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
 
     def getMeshEdits(self):
         return self._meshEdits
@@ -155,11 +182,14 @@ class ScaffoldPackage:
                 [ 0.0, 0.0, 0.0, 1.0 ] ]
         return None
 
-    def applyTransformation(self, region):
+    def applyTransformation(self):
         '''
         If rotation, scale or transformation are set, transform node coordinates.
+        Only call after generate().
+        :return: True if a non-identity transformation has been applied, False if not.
         '''
-        fieldmodule = region.getFieldmodule()
+        assert self._region
+        fieldmodule = self._region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
         if not coordinates.isValid():
             print('Warning: ScaffoldPackage.applyTransformation: Missing coordinates field')
@@ -182,26 +212,87 @@ class ScaffoldPackage:
                 #print("applyTransformation: apply translation", self._translation)
                 newCoordinates = newCoordinates + fieldmodule.createFieldConstant(self._translation)
             # be sure to delete temporary fields and fieldassignment to reduce messages
-            if newCoordinates is not coordinates:
+            doApply = newCoordinates is not coordinates
+            if doApply:
                 fieldassignment = coordinates.createFieldassignment(newCoordinates)
                 fieldassignment.assign()
                 del fieldassignment
             del newCoordinates
             del coordinates
+        return doApply
 
     def generate(self, region, applyTransformation=True):
         '''
+        Generate the finite element scaffold and define annotation groups.
         :param applyTransformation: If True (default) apply scale, rotation and translation to
         node coordinates. Specify False if client will transform, e.g. with graphics transformations.
         '''
-        #print('\nScaffoldPackage.generate: ', self.toDict())
-        annotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
-        if self._meshEdits:
-            # apply mesh edits, a Zinc-readable model file containing node edits
-            # Note: these are untransformed coordinates
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
-            region.read(sir)
-        if applyTransformation:
-            self.applyTransformation(region)
-        return annotationGroups
+        self._region = region
+        with ChangeManager(region.getFieldmodule()):
+            self._autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+            if self._meshEdits:
+                # apply mesh edits, a Zinc-readable model file containing node edits
+                # Note: these are untransformed coordinates
+                sir = region.createStreaminformationRegion()
+                srm = sir.createStreamresourceMemoryBuffer(self._meshEdits)
+                region.read(sir)
+            # define user AnnotationGroups from serialised Dict
+            self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
+            if applyTransformation:
+                self.applyTransformation()
+
+    def getAnnotationGroups(self):
+        '''
+        Empty until after call to generate().
+        :return: Alphabetically sorted list of annotation groups.
+        '''
+        return sorted(self._autoAnnotationGroups + self._userAnnotationGroups, key=AnnotationGroup.getName)
+
+    def findAnnotationGroupByName(self, name):
+        '''
+        Invalid until after call to generate().
+        :return: Annotation group with the given name or None.
+        '''
+        return findAnnotationGroupByName(self._autoAnnotationGroups + self._userAnnotationGroups, name)
+
+    def createUserAnnotationGroup(self, term=None):
+        '''
+        Create a new, empty user annotation group.
+        Only call after generate().
+        :param term: Identifier for anatomical term, currently a tuple of name, id.
+        e.g. ('heart', 'FMA:7088'). Or None to generate a unique name. Name must be
+        unique if supplied; id should be unique but may be None.
+        :return: New AnnotationGroup.
+        '''
+        assert self._region
+        if term:
+            assert not self.findAnnotationGroupByName(term[0])
+            useTerm = term
+        else:
+            number = 1
+            while True:
+                name = "group" + str(number)
+                if not self.findAnnotationGroupByName(name):
+                    break
+                number += 1
+            useTerm = (name, None)
+        annotationGroup = AnnotationGroup(self._region, useTerm)
+        self._userAnnotationGroups.append(annotationGroup)
+        return annotationGroup
+
+    def deleteAnnotationGroup(self, annotationGroup):
+        '''
+        Delete the annotation group. Must be a user annotation group.
+        :return: True on success, otherwise False
+        '''
+        if annotationGroup and self.isUserAnnotationGroup(annotationGroup):
+            self._userAnnotationGroups.remove(annotationGroup)
+            return True
+        return False
+
+    def isUserAnnotationGroup(self, annotationGroup):
+        '''
+        Invalid until after call to generate().
+        :return: True if annotationGroup is user-created and editable.
+        '''
+        return annotationGroup in self._userAnnotationGroups

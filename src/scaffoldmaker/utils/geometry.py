@@ -74,12 +74,17 @@ def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
     angle = inAngleRadians
     lengthMoved = 0.0
     lengthTol = (a + b)*1.0E-4  # broader tolerance due to reliance on inexact getEllipseArcLength()
+    counter=0
     #print('updateEllipseAngleByArcLength', a, b, 'inAngleRadians', inAngleRadians, ', arcLength', arcLength)
     while math.fabs(arcLength - lengthMoved) > lengthTol:
+        angleOld = angle
         t = ( -a*math.sin(angle), b*math.cos(angle) )
         dlength_dangle = math.sqrt(t[0]*t[0] + t[1]*t[1])
         angle += (arcLength - lengthMoved)/dlength_dangle
+        if counter >= 100:
+            angle=(angle+angleOld)/2
         lengthMoved = getEllipseArcLength(a, b, inAngleRadians, angle)
+        counter+=1
         #print('lengthMoved', lengthMoved)
     #print('updateEllipseAngleByArcLength a', a, 'b', b, ', angle', inAngleRadians, ', arcLength', arcLength, ' -> ', angle)
     return angle
@@ -242,3 +247,46 @@ def getSurfaceProjectionAxes(ax, ad1, ad2, ad3, angle1radians, angle2radians, le
     bd1 = vector.crossproduct3(ad2, bd3)
     bd2 = vector.crossproduct3(bd3, bd1)
     return bx, bd1, bd2, bd3
+
+def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadians = 0.0):
+    '''
+    Create ellipse points centred at cx, from axis1 around through axis2.
+    Assumes axis1 and axis2 are orthogonal.
+    :param cx: centre
+    :param radian: Part of ellipse to be created based on radian (will be 2*math.pi for a complete ellipse).
+    :param axis1: Vector from cx to inside at zero angle
+    :param axis2: Vector from cx to inside at 90 degree angle.
+    :param elementsCountAround: Number of elements around.
+    :param startRadians: Angle from axis1 to start creating the ellipse.
+    :return: lists px, pd1
+    '''
+    px = []
+    pd1 = []
+    magAxis1 = vector.magnitude(axis1)
+    magAxis2 = vector.magnitude(axis2)
+    totalEllipsePerimeter = getApproximateEllipsePerimeter(magAxis1, magAxis2)
+    partOfEllipsePerimeter = radian * totalEllipsePerimeter / (2 * math.pi)
+    elementLength = partOfEllipsePerimeter / elementsCountAround
+    if radian != 2 * math.pi:
+        elementsCountAround = elementsCountAround + 1
+
+    unitSideAxis1 = vector.normalise(axis1)
+    unitSideAxis2 = vector.normalise(axis2)
+    for n in range(elementsCountAround):
+        angle = startRadians
+        arcLength = n * elementLength
+        newAngle = updateEllipseAngleByArcLength(magAxis1, magAxis2, angle, arcLength)
+        cosRadiansAround = math.cos(newAngle)
+        sinRadiansAround = math.sin(newAngle)
+        x = [
+            cx[0] + cosRadiansAround * axis1[0] - sinRadiansAround * axis2[0],
+            cx[1] + cosRadiansAround * axis1[1] + sinRadiansAround * axis2[1],
+            cx[2] + cosRadiansAround * axis1[2] + sinRadiansAround * axis2[2]
+        ]
+        px.append(x)
+        rd1 = [magAxis1 * (-sinRadiansAround * unitSideAxis1[c]) + magAxis2 * (cosRadiansAround * unitSideAxis2[c]) for c in range(3)]
+        rd1Norm = vector.normalise(rd1)
+        pd1.append([elementLength * (rd1Norm[c])for c in range(3)])
+
+    return px, pd1
+

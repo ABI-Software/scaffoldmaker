@@ -124,13 +124,13 @@ class MeshType_3d_ostium1(Scaffold_base):
             options['Ostium diameter'] = 0.000001  # avoid division by zero
         return dependentChanges
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
-        Generate the base tricubic/bicubic Hermite mesh. See also generateMesh().
+        Generate the base tricubic/bicubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
         unitScale = options['Unit scale']
         ostiumRadius = 0.5*unitScale*options['Ostium diameter']

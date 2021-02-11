@@ -90,14 +90,13 @@ class MeshType_3d_sphereshell1(Scaffold_base):
         if options['Element length ratio equator/apex'] < 1.0E-6:
             options['Element length ratio equator/apex'] = 1.0E-6
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite or bicubic Hermite linear mesh.
-        See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup
         """
         elementsCountAround = options['Number of elements around']
         elementsCountUp = options['Number of elements up']
@@ -407,24 +406,17 @@ class MeshType_3d_sphereshell1(Scaffold_base):
             fieldassignment.assign()
 
         fm.endChange()
+        return []
 
     @classmethod
-    def generateMesh(cls, region, options):
+    def refineMesh(cls, meshrefinement, options):
         """
-        Generate base or refined mesh.
-        :param region: Zinc region to create mesh in. Must be empty.
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        if not options['Refine']:
-            cls.generateBaseMesh(region, options)
-            return
-
+        assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCountAround = options['Refine number of elements around']
         refineElementsCountUp = options['Refine number of elements up']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
-
-        baseRegion = region.createRegion()
-        cls.generateBaseMesh(baseRegion, options)
-
-        meshrefinement = MeshRefinement(baseRegion, region)
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountUp, refineElementsCountThroughWall)

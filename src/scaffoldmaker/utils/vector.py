@@ -35,3 +35,56 @@ def setMagnitude(v, mag):
     '''
     scale = mag/math.sqrt(sum(c*c for c in v))
     return [ c*scale for c in v ]
+
+def addVectors(v1,v2,s1=1.0,s2=1.0):
+    '''
+    returns s1*v1+s2*v2 where s1 and s2 are scalars.
+    :return: Vector s1*v1+s2*v2
+    '''
+    return [(s1 * v1[c] + s2 * v2[c]) for c in range(len(v1))]
+
+
+def scalarProjection(v1, v2):
+    """
+    :return: Scalar projection of v1 onto v2.
+    """
+    return dotproduct(v1, normalise(v2))
+
+
+def vectorProjection(v1, v2):
+    """
+    Calculate vector projection of v1 on v2
+    :return: A projection vector.
+    """
+    s1 = scalarProjection(v1, v2)
+    return scalarProduct(s1, normalise(v2))
+
+
+def vectorRejection(v1, v2):
+    """
+    Calculate vector rejection of v1 on v2
+    :return: A rejection vector.
+    """
+    v1p = vectorProjection(v1, v2)
+    return addVectors(v1, v1p, 1.0, -1.0)
+
+
+def scalarProduct(s, v):
+    """
+    Calculate s * v
+    :param s: Scalar.
+    :param v: Vector.
+    :return:
+    """
+    return [s * v[c] for c in range(len(v))]
+
+
+def parallelVectors(v1, v2):
+    """
+    :return: True if the vectors are parallel.
+    """
+    assert (len(v2) == len(v1)), 'Vectors lengths are not the same.'
+    TOL = 1.0e-6/2.0
+    if magnitude(crossproduct3(v1, v2)) < TOL * (magnitude(v1)+magnitude(v2)):
+        return True
+    return False
