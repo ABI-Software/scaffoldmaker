@@ -102,6 +102,18 @@ class MeshType_3d_lung1(Scaffold_base):
 
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
+        rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
+        rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(rightLungGroup)
+        lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
+        lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(lowerRightLungGroup)
+        upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
+        upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(upperRightLungGroup)
+        middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
+        middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(middleRightLungGroup)
 
         if isHuman:
             lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
@@ -110,18 +122,11 @@ class MeshType_3d_lung1(Scaffold_base):
             upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
             upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
             annotationGroups.append(upperLeftLungGroup)
-            rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
-            rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(rightLungGroup)
-            lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
-            lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(lowerRightLungGroup)
-            upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
-            upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(upperRightLungGroup)
-            middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
-            middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(middleRightLungGroup)
+        elif isMouse:
+            diaphragmaticLungGroup = AnnotationGroup(region, get_lung_term("right lung accessory lobe"))
+            diaphragmaticLungMeshGroup = diaphragmaticLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(diaphragmaticLungGroup)
+
 
         # Annotation fiducial point
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -138,15 +143,27 @@ class MeshType_3d_lung1(Scaffold_base):
 
         # common element field templates
         eftWedgeCollapseXi1_15 = eftfactory.createEftWedgeCollapseXi1Quadrant([1, 5])
-        eftWedgeCollapseXi1_26 = eftfactory.createEftWedgeCollapseXi1Quadrant([2, 6])
         eftWedgeCollapseXi1_37 = eftfactory.createEftWedgeCollapseXi1Quadrant([3, 7])
         eftWedgeCollapseXi1_57 = eftfactory.createEftWedgeCollapseXi1Quadrant([5, 7])
-        eftWedgeCollapseXi1_68 = eftfactory.createEftWedgeCollapseXi1Quadrant([6, 8])
         eftWedgeCollapseXi2_56 = eftfactory.createEftWedgeCollapseXi2Quadrant([5, 6])
         eftWedgeCollapseXi2_78 = eftfactory.createEftWedgeCollapseXi2Quadrant([7, 8])
-        eftTetCollapseXi1Xi2_71 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(7, 1)
         eftTetCollapseXi1Xi2_82 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(8, 2)
         eftTetCollapseXi1Xi2_63 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(6, 3)
+
+        # common parameters in species
+        generateParameters = False
+        leftLung = 0
+        rightLung = 1
+
+        # The number of the elements in the generic lungs
+        # These counts are only values that work for nodeFieldParameters (KEEP THEM FIXED)
+        lElementsCount1 = 2
+        lElementsCount2 = 4
+        lElementsCount3 = 3
+
+        uElementsCount1 = 2
+        uElementsCount2 = 4
+        uElementsCount3 = 4
 
         if isHuman:
             #valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
@@ -285,393 +302,251 @@ class MeshType_3d_lung1(Scaffold_base):
                 ( 132, [ [ 146.435, 101.417, -88.480], [ -12.117, -28.636,  11.354], [  25.548, -28.865, -55.831], [  50.980,  -2.219,  39.663] ] )
                 ]
 
-            generateParameters = False
-
-            lElementsCount1 = 2
-            lElementsCount2 = 4
-            lElementsCount3 = 3
-
-            uElementsCount1 = 2
-            uElementsCount2 = 4
-            uElementsCount3 = 4
-
             # Create nodes
+            nodeIndex = 0
             nodeIdentifier = 1
             lowerLeftNodeIds = []
             upperLeftNodeIds = []
             lowerRightNodeIds = []
             upperRightNodeIds = []
-            d1 = [1.0, 0.0, 0.0]
-            d2 = [0.0, 1.0, 0.0]
-            d3 = [0.0, 0.0, 1.0]
-            nodeIndex = 0
-            leftLung = 0
-            rightLung = 1
 
-            for lung in (leftLung, rightLung):
-                lowerNodeIds = lowerLeftNodeIds if (lung == leftLung) else lowerRightNodeIds
-                xMirror = 0 if (lung == leftLung) else 150 # Offset
+            # Left lung nodes
+            nodeIndex, nodeIdentifier = getLungNodes(leftLung, cache, coordinates, generateParameters,
+                nodes, nodetemplate, nodeFieldParameters,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
 
-                # Lower lobe nodes
-                for n3 in range(lElementsCount3 + 1):
-                    lowerNodeIds.append([])
-                    for n2 in range(lElementsCount2 + 1):
-                        lowerNodeIds[n3].append([])
-                        for n1 in range(lElementsCount1 + 1):
-                            lowerNodeIds[n3][n2].append(None)
-                            if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
-                                continue
-                            if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
-                                continue
-                            node = nodes.createNode(nodeIdentifier, nodetemplate)
-                            cache.setNode(node)
-                            if generateParameters:
-                                x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
-                            else:
-                                nodeParameters = nodeFieldParameters[nodeIndex]
-                                nodeIndex += 1
-                                assert nodeIdentifier == nodeParameters[0]
-                                x, d1, d2, d3 = nodeParameters[1]
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                            lowerNodeIds[n3][n2][n1] = nodeIdentifier
-                            nodeIdentifier += 1
-
-                # Upper lobe nodes
-                upperNodeIds = upperLeftNodeIds if (lung == leftLung) else upperRightNodeIds
-
-                for n3 in range(uElementsCount3 + 1):
-                    upperNodeIds.append([])
-                    for n2 in range(uElementsCount2 + 1):
-                        upperNodeIds[n3].append([])
-                        for n1 in range(uElementsCount1 + 1):
-                            upperNodeIds[n3][n2].append(None)
-                            if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
-                                continue
-                            if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                                continue
-                            if ((n2 == 0) or (n2 == uElementsCount2)) and (n3 == uElementsCount3):
-                                continue
-                            if ((n1 == 0) or (n1 == uElementsCount1)) and (n3 == uElementsCount3):
-                                continue
-
-                            # Oblique fissure nodes
-                            if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                                upperNodeIds[n3][n2][n1] = lowerNodeIds[n3][lElementsCount2][n1]
-                                continue
-                            elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
-                                upperNodeIds[n3][n2][n1] = lowerNodeIds[lElementsCount3][n2][n1]
-                                continue
-
-                            node = nodes.createNode(nodeIdentifier, nodetemplate)
-                            cache.setNode(node)
-                            if generateParameters:
-                                x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1) + 2.5, 1.0 * n3 + 2.0]
-                            else:
-                                nodeParameters = nodeFieldParameters[nodeIndex]
-                                nodeIndex += 1
-                                assert nodeIdentifier == nodeParameters[0]
-                                x, d1, d2, d3 = nodeParameters[1]
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                            upperNodeIds[n3][n2][n1] = nodeIdentifier
-                            nodeIdentifier += 1
+            # Right lung nodes
+            getLungNodes(rightLung, cache, coordinates, generateParameters,
+                nodes, nodetemplate, nodeFieldParameters,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
 
             # Create elements
             elementIdentifier = 1
-            for lung in (leftLung, rightLung):
-                lowerNodeIds = lowerLeftNodeIds if (lung == leftLung) else lowerRightNodeIds
 
-                # Lower lobe elements
-                for e3 in range(lElementsCount3):
-                    for e2 in range(lElementsCount2):
-                        for e1 in range(lElementsCount1):
-                            eft = eftRegular
-                            nodeIdentifiers = [
-                                lowerNodeIds[e3    ][e2][e1], lowerNodeIds[e3    ][e2][e1 + 1], lowerNodeIds[e3    ][e2 + 1][e1], lowerNodeIds[e3    ][e2 + 1][e1 + 1],
-                                lowerNodeIds[e3 + 1][e2][e1], lowerNodeIds[e3 + 1][e2][e1 + 1], lowerNodeIds[e3 + 1][e2 + 1][e1], lowerNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+            # Left lung elements
+            elementIdentifier = getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                elementtemplateCustom, mesh, lungMeshGroup,
+                leftLungMeshGroup, lowerLeftLungMeshGroup, None, upperLeftLungMeshGroup,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
 
-                            if (e2 == 0) and (e1 == 0):
-                                # Back wedge elements
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(0)
-                                eft = eftWedgeCollapseXi1_15
-                            elif (e2 == 0) and (e1 == (lElementsCount1 - 1)):
-                                # Back wedge elements
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(1)
-                                eft = eftWedgeCollapseXi1_26
-                            elif (e3 == 1) and (e2 == (lElementsCount2 - 2)):
-                                # Middle wedge
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(6)
-                                eft = eftWedgeCollapseXi2_78
-                            elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 3)):
-                                # Remapped cube element 1
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-                                remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
-                            elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 2)):
-                                # Remapped cube element 2
-                                nodeIdentifiers[2] = lowerNodeIds[e3 - 1][e2 + 1][e1    ]
-                                nodeIdentifiers[3] = lowerNodeIds[e3 - 1][e2 + 1][e1 + 1]
-                                nodeIdentifiers[6] = lowerNodeIds[e3 - 1][e2 + 2][e1    ]
-                                nodeIdentifiers[7] = lowerNodeIds[e3 - 1][e2 + 2][e1 + 1]
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-                                remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
-                                remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-                                remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
-                            elif None in nodeIdentifiers:
-                                continue
-
-                            if eft is eftRegular:
-                                element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-                            else:
-                                elementtemplateCustom.defineField(coordinates, -1, eft)
-                                element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-                            element.setNodesByIdentifier(eft, nodeIdentifiers)
-                            if eft.getNumberOfLocalScaleFactors() == 1:
-                                element.setScaleFactors(eft, [-1.0])
-                            elementIdentifier += 1
-                            lungMeshGroup.addElement(element)
-                            if lung == leftLung:
-                                lowerLeftLungMeshGroup.addElement(element)
-                                leftLungMeshGroup.addElement(element)
-                            else:
-                                rightLungMeshGroup.addElement(element)
-                                lowerRightLungMeshGroup.addElement(element)
-
-                # Upper lobe elements
-                upperNodeIds = upperLeftNodeIds if (lung == leftLung) else upperRightNodeIds
-                for e3 in range(uElementsCount3):
-                    for e2 in range(uElementsCount2):
-                        for e1 in range(uElementsCount1):
-                            eft = eftRegular
-                            nodeIdentifiers = [
-                                upperNodeIds[e3    ][e2][e1], upperNodeIds[e3    ][e2][e1 + 1], upperNodeIds[e3    ][e2 + 1][e1], upperNodeIds[e3    ][e2 + 1][e1 + 1],
-                                upperNodeIds[e3 + 1][e2][e1], upperNodeIds[e3 + 1][e2][e1 + 1], upperNodeIds[e3 + 1][e2 + 1][e1], upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
-
-                            if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
-                                # Distal-front wedge elements
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(2)
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                nodes = [3, 4, 7, 8]
-                                collapseNodes = [3, 7]
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
-                                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                                ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
-                                remapEftLocalNodes(eft, 6, ln_map)
-
-                            elif (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
-                                # Distal-back wedge elements
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(3)
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                nodes = [3, 4, 7, 8]
-                                collapseNodes = [4, 8]
-                                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
-                                ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
-                                remapEftLocalNodes(eft, 6, ln_map)
-
-                            elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == 0):
-                                # Medial-front wedge elements
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(0)
-                                eft = eftWedgeCollapseXi1_15
-                            elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == (uElementsCount1 - 1)):
-                                # Medial-back wedge elements
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(1)
-                                eft = eftWedgeCollapseXi1_26
-                            elif (e3 == (uElementsCount3 - 1)) and (0 < e2 < (uElementsCount2 - 1)) and (e1 == 0):
-                                # Top-front wedge elements
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(4)
-                                eft = eftWedgeCollapseXi1_57
-                            elif (e3 == (uElementsCount3 - 1)) and (0 < e2 < (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
-                                # Top-back wedge elements
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(5)
-                                eft = eftWedgeCollapseXi1_68
-                            elif (e3 == (uElementsCount3 - 1)) and (e2 == 0) and (e1 == 0):
-                                # Top-front-medial tetrahedron wedge elements
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(0)
-                                eft = eftTetCollapseXi1Xi2_82
-                            elif (e3 == (uElementsCount3 - 1)) and (e2 == 0) and (e1 == (uElementsCount1 - 1)):
-                                # Top-back-medial tetrahedron wedge elements
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(1)
-                                eft = eftTetCollapseXi1Xi2_71
-                            elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
-                                # Top-front-distal tetrahedron wedge elements
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(2)
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                nodes = [5, 6, 7, 8]
-                                # remap parameters on xi3 = 1 before collapsing nodes
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-                                remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
-                                remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
-                                remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                                ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
-                                remapEftLocalNodes(eft, 4, ln_map)
-
-                            elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == (uElementsCount1 - 1)):
-                                # Top-front-distal tetrahedron wedge elements
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(3)
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                nodes = [5, 6, 7, 8]
-                                # remap parameters on xi3 = 1 before collapsing nodes
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
-                                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-                                remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
-                                remapEftNodeValueLabel(eft, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                                ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
-                                remapEftLocalNodes(eft, 4, ln_map)
-
-                            elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 3)):
-                                # Remapped cube element 1
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-                                remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 2)):
-                                # Remapped cube element 2
-                                eft = eftfactory.createEftBasic()
-                                setEftScaleFactorIds(eft, [1], [])
-                                remapEftNodeValueLabel(eft, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            elif None in nodeIdentifiers:
-                                continue
-
-                            if eft is eftRegular:
-                                element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-                            else:
-                                elementtemplateCustom.defineField(coordinates, -1, eft)
-                                element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-                            element.setNodesByIdentifier(eft, nodeIdentifiers)
-                            if eft.getNumberOfLocalScaleFactors() == 1:
-                                element.setScaleFactors(eft, [-1.0])
-                            elementIdentifier += 1
-                            lungMeshGroup.addElement(element)
-                            if lung == leftLung:
-                                leftLungMeshGroup.addElement(element)
-                                upperLeftLungMeshGroup.addElement(element)
-                            else:
-                                rightLungMeshGroup.addElement(element)
-                                if e3 < (uElementsCount3 - 2):
-                                    middleRightLungMeshGroup.addElement(element)
-                                else:
-                                    upperRightLungMeshGroup.addElement(element)
+            # Right lung elements
+            getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                elementtemplateCustom, mesh, lungMeshGroup,
+                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup, upperRightLungMeshGroup,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
 
         elif isMouse:
             # valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
             nodeFieldParameters = [
-                ( 1, [ [ -0.06510, -9.79594,  3.32525], [  0.93722,  0.96743,  2.47497], [ -1.72856, -0.55693,  0.27902], [ -1.97460, -3.88256,  3.53085] ] ),
-                ( 2, [ [ -0.00541, -9.22791,  5.76568], [ -0.74021,  0.15263,  2.17755], [ -1.51717,  0.36826, -0.21360], [ -0.71889, -2.10495,  2.41646] ] ),
-                ( 3, [ [ -1.87483,-11.05622,  1.28598], [ -0.21863,  0.91720,  2.49890], [ -2.39917, -0.36948, -1.06683], [ -2.61253, -2.51865,  4.94809] ] ),
-                ( 4, [ [ -1.93372,-10.00227,  3.65228], [  0.10207,  1.18560,  2.21981], [ -1.96249,  0.15916,  0.36760], [ -1.82422, -2.13455,  2.94947] ] ),
-                ( 5, [ [ -1.68151, -8.70879,  5.70416], [  0.39968,  1.39208,  1.87146], [ -1.82198,  0.66682,  0.09240], [ -0.58759, -0.21221,  2.94457] ] ),
-                ( 6, [ [ -3.99360,-10.67083,  1.23895], [ -0.00974,  0.98009,  3.19786], [ -2.14704,  0.89450,  0.42247], [ -1.85405, -1.87022,  4.95808] ] ),
-                ( 7, [ [ -3.89795, -9.45423,  4.04517], [  0.20114,  1.44312,  2.38197], [ -1.93969,  0.83545,  0.33089], [ -0.94518, -0.58799,  3.06084] ] ),
-                ( 8, [ [ -3.61875, -7.88583,  5.97946], [  0.35072,  1.66260,  1.45935], [ -1.91709,  1.03902,  0.16009], [ -0.23855,  0.30601,  2.67575] ] ),
-                ( 9, [ [ -5.86561, -9.33331,  2.12747], [  0.01662,  0.59905,  2.31040], [ -1.70810,  1.80053,  1.54826], [ -1.04603, -0.54686,  4.42926] ] ),
-                ( 10, [ [ -5.75955, -8.33957,  4.30205], [  0.19514,  1.37528,  1.98808], [ -1.60492,  1.16263,  0.13548], [ -0.13285,  0.32516,  2.99109] ] ),
-                ( 11, [ [ -5.48232, -6.63587,  6.01506], [  0.35197,  1.99049,  1.40847], [ -1.65938,  1.25924, -0.05112], [  0.25309,  0.26378,  2.50204] ] ),
-                ( 12, [ [ -7.10444, -7.17483,  4.33436], [ -0.44741,  2.06805,  1.94872], [ -1.07465,  1.15589, -0.07020], [ -0.35618,  0.07890,  2.64986] ] ),
-                ( 13, [ [ -6.93708, -5.39157,  5.89076], [  0.73437,  1.40695,  1.09300], [ -1.24473,  1.22404, -0.19662], [  0.68595,  1.12974,  2.17928] ] ),
-                ( 14, [ [ -1.55172,-12.41852,  7.12162], [  1.88969,  1.23070,  1.52327], [ -1.81005,  0.92137,  0.01914], [ -0.91712, -1.20231,  3.91613] ] ),
-                ( 15, [ [ -0.54610,-10.44301,  8.76054], [  0.11002,  2.46228,  1.58814], [ -1.25406,  2.16768,  0.00905], [ -0.30398, -0.15393,  3.37660] ] ),
-                ( 16, [ [ -3.84472,-12.68973,  6.03981], [  0.31220,  0.90844,  0.87326], [ -2.16380,  0.54075, -0.59336], [ -1.28386, -0.70655,  4.47742] ] ),
-                ( 17, [ [ -3.22579,-11.20330,  7.18002], [  0.92288,  2.05636,  1.39941], [ -1.50774,  1.49362,  0.09734], [ -0.63137, -0.11709,  3.89816] ] ),
-                ( 18, [ [ -1.95902, -8.56165,  8.76085], [  1.60817,  3.22197,  1.75954], [ -1.55877,  1.57254, -0.00853], [  0.04254,  0.51009,  3.11885] ] ),
-                ( 19, [ [ -5.48617,-11.63414,  5.93599], [  1.00208,  2.17448,  1.35335], [ -1.53695,  1.70630,  0.08816], [ -1.09664, -0.02164,  4.34388] ] ),
-                ( 20, [ [ -4.51347, -9.46458,  7.31507], [  0.94319,  2.16434,  1.40462], [ -1.27505,  1.72935,  0.06740], [ -0.25714,  0.58514,  3.38599] ] ),
-                ( 21, [ [ -3.60002, -7.30604,  8.74482], [  0.88359,  2.15244,  1.45468], [ -1.54078,  1.29572, -0.07879], [  0.27874,  0.85007,  2.82435] ] ),
-                ( 22, [ [ -6.64349, -9.35382,  6.25941], [  0.93225,  1.51110,  0.93725], [ -0.87547,  2.49448,  0.58513], [ -0.49781,  0.51207,  3.78420] ] ),
-                ( 23, [ [ -5.77052, -7.75206,  7.31586], [  0.81146,  1.68880,  1.17340], [ -1.37368,  1.36400, -0.12041], [  0.11169,  0.84799,  3.01929] ] ),
-                ( 24, [ [ -5.03360, -5.98263,  8.60719], [  0.66118,  1.84670,  1.40670], [ -1.27950,  1.58159, -0.26354], [  0.64045,  1.03863,  2.64367] ] ),
-                ( 25, [ [ -7.17256, -6.74200,  7.10165], [  0.25582,  2.72824,  1.02490], [ -1.39392,  0.63939, -0.30016], [  0.22637,  0.78534,  2.83697] ] ),
-                ( 26, [ [ -6.09924, -4.17507,  8.21541], [  1.80545,  2.29701,  1.14832], [ -0.83983,  2.00500, -0.51273], [  0.98915,  1.30231,  2.46819] ] ),
-                ( 27, [ [ -1.93094,-12.43564, 10.55902], [  2.48980,  1.68514,  1.18313], [ -1.15156,  2.23902,  0.69098], [ -0.54345,  0.32541,  3.55936] ] ),
-                ( 28, [ [ -0.56152, -9.47868, 12.04160], [  0.22408,  3.80497,  1.60343], [ -0.78094,  1.89408, -0.16015], [ -0.44578,  0.30576,  3.16546] ] ),
-                ( 29, [ [ -4.52036,-12.65650,  9.95617], [  1.30558,  2.31961,  0.98943], [ -2.41122,  0.92866, -0.48408], [ -0.46669,  0.65040,  3.64612] ] ),
-                ( 30, [ [ -3.13315,-10.25385, 10.92288], [  1.46839,  2.48489,  0.94365], [ -1.24000,  2.09955,  0.02903], [ -0.18490,  0.73991,  3.42247] ] ),
-                ( 31, [ [ -1.58226, -7.68819, 11.83927], [  1.63292,  2.64568,  0.88888], [ -1.25193,  1.66600, -0.24275], [ -0.06247,  0.20128,  3.11434] ] ),
-                ( 32, [ [ -6.19695,-10.92411,  9.69362], [  2.06583,  2.90846,  0.94515], [ -1.25610,  2.20894, -0.19218], [ -0.23740,  1.12349,  3.54366] ] ),
-                ( 33, [ [ -4.37803, -8.28227, 10.63922], [  1.57052,  2.37312,  0.94537], [ -1.20473,  1.80608, -0.31249], [  0.08243,  0.78962,  3.19547] ] ),
-                ( 34, [ [ -3.04476, -6.18307, 11.56019], [  1.09442,  1.82261,  0.89526], [ -1.31144,  1.58163, -0.31638], [  0.41299,  0.44880,  2.91121] ] ),
-                ( 35, [ [ -6.88857, -8.42366,  9.59418], [  1.35762,  1.61893,  0.61571], [ -0.24666,  2.73500,  0.10203], [  0.26350,  1.11037,  3.22349] ] ),
-                ( 36, [ [ -5.53243, -6.64271, 10.30584], [  1.35243,  1.94031,  0.80660], [ -1.15016,  1.33550, -0.37674], [  0.45979,  0.90102,  2.97864] ] ),
-                ( 37, [ [ -4.19832, -4.54309, 11.21099], [  1.31429,  2.25634,  1.00256], [ -0.95618,  1.70784, -0.37890], [  0.81785,  0.65091,  2.72280] ] ),
-                ( 38, [ [ -6.63094, -5.59808,  9.91147], [  0.94728,  2.93781,  0.60812], [ -1.03451,  0.74487, -0.40713], [  0.98453,  1.06649,  2.93435] ] ),
-                ( 39, [ [ -4.95196, -2.79494, 10.80914], [  2.34379,  2.59443,  1.15428], [ -0.54699,  1.77512, -0.42163], [  1.20381,  0.55853,  2.59722] ] ),
-                ( 40, [ [ -2.63336,-11.75381, 14.13924], [  2.07109,  1.01048,  1.01275], [ -0.94505,  2.13211, -0.10995], [ -1.19500,  1.29010,  2.62884] ] ),
-                ( 41, [ [ -1.34679, -9.76263, 14.88246], [  0.43346,  2.56584,  0.40897], [ -0.67824,  1.57386, -0.00913], [ -0.85439,  0.07357,  2.62111] ] ),
-                ( 42, [ [ -4.78393,-11.50152, 13.19654], [  1.12434,  1.88464,  0.74238], [ -1.93124,  1.31679, -0.71499], [  0.33287,  1.24325,  2.91749] ] ),
-                ( 43, [ [ -3.53394, -9.70992, 13.95975], [  1.37215,  1.69271,  0.78173], [ -0.85538,  1.95405, -0.24894], [ -0.46947, -0.15258,  2.45261] ] ),
-                ( 44, [ [ -2.04827, -8.12657, 14.75512], [  1.59422,  1.46941,  0.80650], [ -0.72281,  1.69383, -0.24553], [ -0.31388, -0.89001,  2.71195] ] ),
-                ( 45, [ [ -5.99636, -9.47494, 12.89247], [  1.70153,  1.70689,  0.76557], [ -0.70039,  2.26076, -0.31029], [  0.83634,  1.57429,  3.01028] ] ),
-                ( 46, [ [ -4.34314, -7.84906, 13.64854], [  1.60474,  1.54469,  0.74649], [ -0.66560,  1.88514, -0.36153], [ -0.13861,  0.17375,  2.48261] ] ),
-                ( 47, [ [ -2.78818, -6.38426, 14.38389], [  1.50499,  1.38473,  0.72413], [ -0.70779,  1.74800, -0.46650], [  0.53530, -0.43185,  3.00637] ] ),
-                ( 48, [ [ -6.14433, -7.17716, 12.60211], [  1.21857,  1.17774,  0.66374], [  0.37835,  2.50490, -0.03228], [  1.15580,  1.37115,  2.63362] ] ),
-                ( 49, [ [ -4.86378, -5.95285, 13.24022], [  1.34191,  1.27028,  0.61214], [ -0.41950,  1.59513, -0.39811], [  0.39946,  0.41073,  2.26153] ] ),
-                ( 50, [ [ -3.46060, -4.63749, 13.82273], [  1.46385,  1.35988,  0.55265], [ -0.50746,  1.71135, -0.60949], [  0.85079, -0.09290,  2.33369] ] ),
-                ( 51, [ [ -5.18891, -4.65904, 12.87258], [  1.22599,  2.11794,  0.29701], [ -0.23039,  0.99094, -0.33664], [  1.02691, -0.31517,  2.68807] ] ),
-                ( 52, [ [ -3.80902, -2.97851, 13.17526], [  1.49629,  1.21273,  0.30081], [ -0.18838,  1.59811, -0.68182], [  1.26323, -0.91091,  2.64350] ] ),
-                ( 53, [ [ -3.97013,-10.25768, 15.67056], [  1.39027,  1.09513,  2.04273], [ -1.07864,  2.17783,  0.78384], [ -0.35969, -0.84181,  0.86507] ] ),
-                ( 54, [ [ -2.20978, -9.38789, 17.16098], [  2.01794,  0.61041,  0.88858], [ -0.38615,  1.79197,  1.71376], [ -0.00894, -1.59603,  2.05268] ] ),
-                ( 55, [ [ -4.57962, -7.85650, 15.56861], [  2.11148,  1.24645,  2.39525], [ -0.34685,  2.32344, -0.47473], [ -0.32884, -0.18552,  1.33517] ] ),
-                ( 56, [ [ -1.94683, -7.06974, 17.50631], [  3.03089,  0.31430,  1.42233], [ -0.14412,  2.64353, -0.63523], [  1.13996, -0.93302,  3.21747] ] ),
-                ( 57, [ [ -4.66713, -5.75185, 14.78763], [  1.90006,  1.26128,  1.65660], [ -0.32912,  1.75003, -1.46178], [ -0.00605, -0.00857,  0.81862] ] ),
-                ( 58, [ [ -2.54099, -4.72653, 15.86220], [  2.25081,  0.75532,  0.47130], [ -0.93933,  2.14774, -2.20592], [  0.98340, -0.08475,  1.73639] ] )
+                (   1, [ [  -0.06500,  -9.79600,   3.32500], [   0.93700,   0.96700,   2.47500], [  -1.72900,  -0.55700,   0.27900], [  -1.97500,  -3.88300,   3.53100] ] ),
+                (   2, [ [  -0.00500,  -9.22800,   5.76600], [  -0.74000,   0.15300,   2.17800], [  -1.51700,   0.36800,  -0.21400], [  -0.71900,  -2.10500,   2.41600] ] ),
+                (   3, [ [  -1.87500, -11.05600,   1.28600], [  -0.21900,   0.91700,   2.49900], [  -2.39900,  -0.36900,  -1.06700], [  -2.61300,  -2.51900,   4.94800] ] ),
+                (   4, [ [  -1.93400, -10.00200,   3.65200], [   0.10200,   1.18600,   2.22000], [  -1.96200,   0.15900,   0.36800], [  -1.82400,  -2.13500,   2.94900] ] ),
+                (   5, [ [  -1.68200,  -8.70900,   5.70400], [   0.40000,   1.39200,   1.87100], [  -1.82200,   0.66700,   0.09200], [  -0.58800,  -0.21200,   2.94500] ] ),
+                (   6, [ [  -3.99400, -10.67100,   1.23900], [  -0.01000,   0.98000,   3.19800], [  -2.14700,   0.89400,   0.42200], [  -1.85400,  -1.87000,   4.95800] ] ),
+                (   7, [ [  -3.89800,  -9.45400,   4.04500], [   0.20100,   1.44300,   2.38200], [  -1.94000,   0.83500,   0.33100], [  -0.94500,  -0.58800,   3.06100] ] ),
+                (   8, [ [  -3.61900,  -7.88600,   5.97900], [   0.35100,   1.66300,   1.45900], [  -1.91700,   1.03900,   0.16000], [  -0.23900,   0.30600,   2.67600] ] ),
+                (   9, [ [  -5.86600,  -9.33300,   2.12700], [   0.01700,   0.59900,   2.31000], [  -1.70800,   1.80100,   1.54800], [  -1.04600,  -0.54700,   4.42900] ] ),
+                (  10, [ [  -5.76000,  -8.34000,   4.30200], [   0.19500,   1.37500,   1.98800], [  -1.60500,   1.16300,   0.13500], [  -0.13300,   0.32500,   2.99100] ] ),
+                (  11, [ [  -5.48200,  -6.63600,   6.01500], [   0.35200,   1.99000,   1.40800], [  -1.65900,   1.25900,  -0.05100], [   0.25300,   0.26400,   2.50200] ] ),
+                (  12, [ [  -7.10400,  -7.17500,   4.33400], [  -0.44700,   2.06800,   1.94900], [  -1.07500,   1.15600,  -0.07000], [  -0.35600,   0.07900,   2.65000] ] ),
+                (  13, [ [  -6.93700,  -5.39200,   5.89100], [   0.73400,   1.40700,   1.09300], [  -1.24500,   1.22400,  -0.19700], [   0.68600,   1.13000,   2.17900] ] ),
+                (  14, [ [  -1.55200, -12.41900,   7.12200], [   1.89000,   1.23100,   1.52300], [  -1.81000,   0.92100,   0.01900], [  -0.91700,  -1.20200,   3.91600] ] ),
+                (  15, [ [  -0.54600, -10.44300,   8.76100], [   0.11000,   2.46200,   1.58800], [  -1.25400,   2.16800,   0.00900], [  -0.30400,  -0.15400,   3.37700] ] ),
+                (  16, [ [  -3.84500, -12.69000,   6.04000], [   0.31200,   0.90800,   0.87300], [  -2.16400,   0.54100,  -0.59300], [  -1.28400,  -0.70700,   4.47700] ] ),
+                (  17, [ [  -3.22600, -11.20300,   7.18000], [   0.92300,   2.05600,   1.39900], [  -1.50800,   1.49400,   0.09700], [  -0.63100,  -0.11700,   3.89800] ] ),
+                (  18, [ [  -1.95900,  -8.56200,   8.76100], [   1.60800,   3.22200,   1.76000], [  -1.55900,   1.57300,  -0.00900], [   0.04300,   0.51000,   3.11900] ] ),
+                (  19, [ [  -5.48600, -11.63400,   5.93600], [   1.00200,   2.17400,   1.35300], [  -1.53700,   1.70600,   0.08800], [  -1.09700,  -0.02200,   4.34400] ] ),
+                (  20, [ [  -4.51300,  -9.46500,   7.31500], [   0.94300,   2.16400,   1.40500], [  -1.27500,   1.72900,   0.06700], [  -0.25700,   0.58500,   3.38600] ] ),
+                (  21, [ [  -3.60000,  -7.30600,   8.74500], [   0.88400,   2.15200,   1.45500], [  -1.54100,   1.29600,  -0.07900], [   0.27900,   0.85000,   2.82400] ] ),
+                (  22, [ [  -6.64300,  -9.35400,   6.25900], [   0.93200,   1.51100,   0.93700], [  -0.87500,   2.49400,   0.58500], [  -0.49800,   0.51200,   3.78400] ] ),
+                (  23, [ [  -5.77100,  -7.75200,   7.31600], [   0.81100,   1.68900,   1.17300], [  -1.37400,   1.36400,  -0.12000], [   0.11200,   0.84800,   3.01900] ] ),
+                (  24, [ [  -5.03400,  -5.98300,   8.60700], [   0.66100,   1.84700,   1.40700], [  -1.28000,   1.58200,  -0.26400], [   0.64000,   1.03900,   2.64400] ] ),
+                (  25, [ [  -7.17300,  -6.74200,   7.10200], [   0.25600,   2.72800,   1.02500], [  -1.39400,   0.63900,  -0.30000], [   0.22600,   0.78500,   2.83700] ] ),
+                (  26, [ [  -6.09900,  -4.17500,   8.21500], [   1.80500,   2.29700,   1.14800], [  -0.84000,   2.00500,  -0.51300], [   0.98900,   1.30200,   2.46800] ] ),
+                (  27, [ [  -1.93100, -12.43600,  10.55900], [   2.49000,   1.68500,   1.18300], [  -1.15200,   2.23900,   0.69100], [  -0.54300,   0.32500,   3.55900] ] ),
+                (  28, [ [  -0.56200,  -9.47900,  12.04200], [   0.22400,   3.80500,   1.60300], [  -0.78100,   1.89400,  -0.16000], [  -0.44600,   0.30600,   3.16500] ] ),
+                (  29, [ [  -4.52000, -12.65600,   9.95600], [   1.30600,   2.32000,   0.98900], [  -2.41100,   0.92900,  -0.48400], [  -0.46700,   0.65000,   3.64600] ] ),
+                (  30, [ [  -3.13300, -10.25400,  10.92300], [   1.46800,   2.48500,   0.94400], [  -1.24000,   2.10000,   0.02900], [  -0.18500,   0.74000,   3.42200] ] ),
+                (  31, [ [  -1.58200,  -7.68800,  11.83900], [   1.63300,   2.64600,   0.88900], [  -1.25200,   1.66600,  -0.24300], [  -0.06200,   0.20100,   3.11400] ] ),
+                (  32, [ [  -6.19700, -10.92400,   9.69400], [   2.06600,   2.90800,   0.94500], [  -1.25600,   2.20900,  -0.19200], [  -0.23700,   1.12300,   3.54400] ] ),
+                (  33, [ [  -4.37800,  -8.28200,  10.63900], [   1.57100,   2.37300,   0.94500], [  -1.20500,   1.80600,  -0.31200], [   0.08200,   0.79000,   3.19500] ] ),
+                (  34, [ [  -3.04500,  -6.18300,  11.56000], [   1.09400,   1.82300,   0.89500], [  -1.31100,   1.58200,  -0.31600], [   0.41300,   0.44900,   2.91100] ] ),
+                (  35, [ [  -6.88900,  -8.42400,   9.59400], [   1.35800,   1.61900,   0.61600], [  -0.24700,   2.73500,   0.10200], [   0.26400,   1.11000,   3.22300] ] ),
+                (  36, [ [  -5.53200,  -6.64300,  10.30600], [   1.35200,   1.94000,   0.80700], [  -1.15000,   1.33500,  -0.37700], [   0.46000,   0.90100,   2.97900] ] ),
+                (  37, [ [  -4.19800,  -4.54300,  11.21100], [   1.31400,   2.25600,   1.00300], [  -0.95600,   1.70800,  -0.37900], [   0.81800,   0.65100,   2.72300] ] ),
+                (  38, [ [  -6.63100,  -5.59800,   9.91100], [   0.94700,   2.93800,   0.60800], [  -1.03500,   0.74500,  -0.40700], [   0.98500,   1.06600,   2.93400] ] ),
+                (  39, [ [  -4.95200,  -2.79500,  10.80900], [   2.34400,   2.59400,   1.15400], [  -0.54700,   1.77500,  -0.42200], [   1.20400,   0.55900,   2.59700] ] ),
+                (  40, [ [  -2.63300, -11.75400,  14.13900], [   2.07100,   1.01000,   1.01300], [  -0.94500,   2.13200,  -0.11000], [  -1.19500,   1.29000,   2.62900] ] ),
+                (  41, [ [  -1.34700,  -9.76300,  14.88200], [   0.43300,   2.56600,   0.40900], [  -0.67800,   1.57400,  -0.00900], [  -0.85400,   0.07400,   2.62100] ] ),
+                (  42, [ [  -4.78400, -11.50200,  13.19700], [   1.12400,   1.88500,   0.74200], [  -1.93100,   1.31700,  -0.71500], [   0.33300,   1.24300,   2.91700] ] ),
+                (  43, [ [  -3.53400,  -9.71000,  13.96000], [   1.37200,   1.69300,   0.78200], [  -0.85500,   1.95400,  -0.24900], [  -0.46900,  -0.15300,   2.45300] ] ),
+                (  44, [ [  -2.04800,  -8.12700,  14.75500], [   1.59400,   1.46900,   0.80600], [  -0.72300,   1.69400,  -0.24600], [  -0.31400,  -0.89000,   2.71200] ] ),
+                (  45, [ [  -5.99600,  -9.47500,  12.89200], [   1.70200,   1.70700,   0.76600], [  -0.70000,   2.26100,  -0.31000], [   0.83600,   1.57400,   3.01000] ] ),
+                (  46, [ [  -4.34300,  -7.84900,  13.64900], [   1.60500,   1.54500,   0.74600], [  -0.66600,   1.88500,  -0.36200], [  -0.13900,   0.17400,   2.48300] ] ),
+                (  47, [ [  -2.78800,  -6.38400,  14.38400], [   1.50500,   1.38500,   0.72400], [  -0.70800,   1.74800,  -0.46700], [   0.53500,  -0.43200,   3.00600] ] ),
+                (  48, [ [  -6.14400,  -7.17700,  12.60200], [   1.21900,   1.17800,   0.66400], [   0.37800,   2.50500,  -0.03200], [   1.15600,   1.37100,   2.63400] ] ),
+                (  49, [ [  -4.86400,  -5.95300,  13.24000], [   1.34200,   1.27000,   0.61200], [  -0.41900,   1.59500,  -0.39800], [   0.39900,   0.41100,   2.26200] ] ),
+                (  50, [ [  -3.46100,  -4.63700,  13.82300], [   1.46400,   1.36000,   0.55300], [  -0.50700,   1.71100,  -0.60900], [   0.85100,  -0.09300,   2.33400] ] ),
+                (  51, [ [  -5.18900,  -4.65900,  12.87300], [   1.22600,   2.11800,   0.29700], [  -0.23000,   0.99100,  -0.33700], [   1.02700,  -0.31500,   2.68800] ] ),
+                (  52, [ [  -3.80900,  -2.97900,  13.17500], [   1.49600,   1.21300,   0.30100], [  -0.18800,   1.59800,  -0.68200], [   1.26300,  -0.91100,   2.64300] ] ),
+                (  53, [ [  -3.97000, -10.25800,  15.67100], [   1.39000,   1.09500,   2.04300], [  -1.07900,   2.17800,   0.78400], [  -0.36000,  -0.84200,   0.86500] ] ),
+                (  54, [ [  -2.21000,  -9.38800,  17.16100], [   2.01800,   0.61000,   0.88900], [  -0.38600,   1.79200,   1.71400], [  -0.00900,  -1.59600,   2.05300] ] ),
+                (  55, [ [  -4.58000,  -7.85600,  15.56900], [   2.11100,   1.24600,   2.39500], [  -0.34700,   2.32300,  -0.47500], [  -0.32900,  -0.18600,   1.33500] ] ),
+                (  56, [ [  -1.94700,  -7.07000,  17.50600], [   3.03100,   0.31400,   1.42200], [  -0.14400,   2.64400,  -0.63500], [   1.14000,  -0.93300,   3.21700] ] ),
+                (  57, [ [  -4.66700,  -5.75200,  14.78800], [   1.90000,   1.26100,   1.65700], [  -0.32900,   1.75000,  -1.46200], [  -0.00600,  -0.00900,   0.81900] ] ),
+                (  58, [ [  -2.54100,  -4.72700,  15.86200], [   2.25100,   0.75500,   0.47100], [  -0.93900,   2.14800,  -2.20600], [   0.98300,  -0.08500,   1.73600] ] ),
+                (  59, [ [   3.21000, -14.40000,   2.61000], [   2.45000,  -0.85500,   0.01500], [   0.34400,   2.19000,   1.23000], [   0.00400,  -0.80200,   2.52000] ] ),
+                (  60, [ [   0.88200, -11.40000,   2.59000], [   2.06000,  -0.29900,   1.50000], [  -1.23000,   2.97000,   0.75300], [  -0.22000,  -1.37000,   1.92000] ] ),
+                (  61, [ [   3.47000, -12.00000,   3.89000], [   3.07000,  -1.43000,   0.64300], [   0.57500,   1.72000,   2.00000], [   0.02000,  -1.12000,   1.70000] ] ),
+                (  62, [ [   6.56000, -14.00000,   3.58000], [   2.97000,  -2.53000,  -1.24000], [   3.13000,   1.39000,   1.62000], [  -0.06700,  -0.64000,   2.48000] ] ),
+                (  63, [ [   0.77700, -10.50000,   6.79000], [   3.07000,  -0.42700,  -0.51900], [   1.10000,   0.84100,   2.57000], [  -1.04000,  -1.14000,   1.95000] ] ),
+                (  64, [ [   4.14000, -11.00000,   6.27000], [   4.18000,  -0.53400,  -0.58200], [   0.53400,   1.27000,   2.35000], [  -0.11100,  -0.23400,   1.97000] ] ),
+                (  65, [ [   8.84000, -11.70000,   5.54000], [   5.22000,  -0.85200,  -0.88100], [   2.29000,   3.24000,   2.57000], [  -0.40200,  -0.68200,   1.53000] ] ),
+                (  66, [ [   1.69000,  -9.41000,   9.46000], [   1.74000,   0.27200,  -0.64900], [  -0.32900,   0.88800,   2.23000], [  -0.55100,  -1.14000,   0.63600] ] ),
+                (  67, [ [   4.49000,  -9.40000,   8.57000], [   3.82000,   0.49200,  -0.79600], [   0.08200,   2.48000,   2.40000], [  -0.02500,  -0.13800,   0.93500] ] ),
+                (  68, [ [   9.35000,  -8.58000,   8.03000], [   3.28000,   1.25700,   0.50500], [  -0.55000,   2.58000,   1.57000], [  -0.33400,  -1.54000,   0.45000] ] ),
+                (  69, [ [   1.02000,  -8.07000,  11.90000], [   2.34000,   2.47000,  -1.51000], [  -0.99100,   3.00000,   1.34000], [   0.18900,  -0.82600,   1.25000] ] ),
+                (  70, [ [   4.18000,  -6.03000,  10.70000], [   3.39000,   1.34000,  -1.05000], [  -1.25000,   3.11000,   1.17000], [   0.22400,  -1.86000,   0.43500] ] ),
+                (  71, [ [   7.92000,  -5.44000,   9.89000], [   3.64500,   0.55700,  -0.59800], [  -0.83300,   1.42000,   0.60700], [   0.64600,  -1.31000,   0.80000] ] ),
+                (  72, [ [   3.31000, -15.10000,   5.27000], [   2.59000,  -0.53600,  -0.02700], [   0.15400,   2.25000,   0.50800], [   0.26500,  -0.37600,   3.06000] ] ),
+                (  73, [ [   0.91900, -13.40000,   6.67000], [   2.53100,   0.43500,   0.04200], [  -1.55000,   1.75000,   2.17000], [   0.17000,  -0.55500,   3.21000] ] ),
+                (  74, [ [   3.66000, -13.07900,   6.59200], [   2.92900,  -0.58200,  -0.17400], [   0.44000,   1.98000,   1.54000], [   0.28000,  -0.79900,   2.90000] ] ),
+                (  75, [ [   6.47000, -14.30000,   6.16000], [   2.66000,  -2.23000,  -0.02900], [   1.75000,   1.43000,   0.96800], [   0.24600,   0.20600,   2.69000] ] ),
+                (  76, [ [  -0.19700, -11.60000,   8.90000], [   4.38000,   0.93300,  -0.40500], [   1.03000,   0.73100,   1.20000], [  -0.25400,  -0.21500,   2.42000] ] ),
+                (  77, [ [   4.19400, -11.28500,   8.31500], [   4.41300,  -0.56100,  -0.89600], [   0.43300,   1.59000,   1.78000], [   0.15900,  -0.27800,   2.03000] ] ),
+                (  78, [ [   8.29000, -12.30000,   7.11000], [   2.56500,  -1.43000,  -0.76300], [   1.03000,   1.97000,   0.91300], [  -0.40400,  -0.27900,   1.46000] ] ),
+                (  79, [ [   0.90300, -10.80000,  10.40000], [   2.72000,   1.16000,  -0.46300], [   0.46700,   1.34000,   2.46000], [  -0.94100,  -1.12300,   0.97300] ] ),
+                (  80, [ [   4.53300,  -9.71400,   9.97600], [   4.48800,   0.06600,  -1.13000], [   0.19000,   1.69000,   1.54000], [  -0.01500,  -1.18000,   1.14000] ] ),
+                (  81, [ [   9.03000, -10.10000,   8.41000], [   2.04200,  -1.07500,  -1.05600], [   0.08600,   1.44000,   1.87000], [  -0.52600,  -1.73000,   0.70400] ] ),
+                (  82, [ [   1.40200,  -9.18300,  13.23100], [   2.30100,   1.11800,  -1.69000], [   0.89900,   1.61000,   1.22000], [  -0.21600,  -1.29000,   1.83000] ] ),
+                (  83, [ [   4.54000,  -7.87000,  11.30000], [   3.58100,   1.06000,  -0.76100], [  -0.31900,   2.31000,   1.22900], [   0.48000,  -1.81000,   0.71500] ] ),
+                (  84, [ [   8.33000,  -6.82000,  10.60000], [   4.01100,   1.10400,  -0.40400], [  -0.97400,   2.10000,   1.31000], [   0.30800,  -2.36000,   1.31000] ] ),
+                (  85, [ [   3.67000, -15.20000,   8.43000], [   3.66000,  -0.19900,   0.11900], [   0.44400,   1.71000,   1.59000], [   0.16900,   0.35900,   2.69000] ] ),
+                (  86, [ [   1.24000, -13.70000,  10.10000], [   2.30000,   0.53400,   0.14700], [  -1.13000,   0.95700,   1.01000], [   0.38000,  -0.15800,   3.00000] ] ),
+                (  87, [ [   4.04000, -13.40000,   9.71000], [   2.78000,   0.10800,  -0.90100], [   0.44400,   1.85000,   0.91400], [   0.63100,   0.42500,   3.05000] ] ),
+                (  88, [ [   6.82000, -13.90000,   8.87000], [   2.89000,  -0.77800,  -0.24100], [   2.12000,   1.57000,   0.27200], [   0.38800,   0.64900,   2.08000] ] ),
+                (  89, [ [  -0.21500, -11.89600,  11.60400], [   3.40000,   0.10000,  -1.14600], [   1.05800,   1.23800,  -1.21900], [   0.21900,  -0.02100,   1.92900] ] ),
+                (  90, [ [   4.46000, -11.50000,  10.30000], [   4.10000,   0.28400,  -1.23000], [   0.23100,   1.93000,   0.05800], [   0.34200,   0.08800,   1.66900] ] ),
+                (  91, [ [   8.43000, -11.60000,   9.04000], [   2.10300,  -0.39700,  -0.46200], [   0.83200,   1.39000,  -0.62600], [   0.42400,   1.62000,   2.11000] ] ),
+                (  92, [ [   4.07100, -14.59800,  11.20400], [   2.31200,   0.61700,  -0.27000], [   0.65900,   1.60300,   0.60700], [   0.40800,   0.67700,   3.13000] ] ),
+                (  93, [ [   1.60000, -13.50000,  13.30000], [   3.15200,   0.71300,  -1.53500], [  -0.98900,   1.18900,   1.04700], [   0.67100,   0.45200,   2.11000] ] ),
+                (  94, [ [   4.61000, -12.80000,  11.90000], [   2.43900,   0.41200,  -0.57300], [   0.51900,   2.15000,   0.56800], [  -0.40500,  -0.00900,   1.83700] ] ),
+                (  95, [ [   7.18000, -13.00000,  11.10000], [   1.24900,  -0.68100,  -0.50900], [   1.62000,   2.25000,   0.54700], [  -0.20100,   0.76100,   2.90000] ] ),
+                (  96, [ [   0.19500, -11.60000,  14.40000], [   4.67000,   1.97000,  -2.39000], [   0.52800,   0.71700,   1.76000], [  -0.16000,  -0.52100,   0.39100] ] ),
+                (  97, [ [   4.95300,  -9.85200,  12.34500], [   4.34200,   0.68900,  -0.96600], [   0.31300,   1.53000,   2.23000], [   0.19600,  -2.32000,   0.49900] ] ),
+                (  98, [ [   8.57700,  -9.27300,  11.71000], [   1.67600,   0.01000,  -0.41500], [  -0.58900,   1.41000,   2.69000], [  -0.52300,  -3.64000,   0.34200] ] ),
+                (  99, [ [   0.17500,  -4.79000,  11.40000], [   2.19000,   1.07000,  -0.47700], [  -1.17000,   3.24000,  -0.42000], [   2.95000,  -1.42000,   2.27000] ] ),
+                ( 100, [ [   2.42000,  -3.62000,  11.00000], [   2.29000,   1.28000,  -0.45800], [  -2.62000,   2.34000,   0.24600], [   1.85000,  -0.53100,   1.67000] ] ),
+                ( 101, [ [   4.36000,  -1.84000,  10.70000], [   2.08000,   1.65000,  -0.35600], [  -4.71000,   2.20000,   0.65100], [   1.87000,  -0.62300,   1.67000] ] ),
+                ( 102, [ [  -1.02000,  -1.69000,  11.00000], [   0.77400,   1.81000,  -0.26700], [  -1.41000,   0.43000,   0.19700], [   0.91000,   1.90000,   2.73000] ] ),
+                ( 103, [ [   2.50200,  -6.10300,  13.80300], [   1.32800,   1.43600,  -0.84000], [   0.26600,   3.66000,   0.88300], [   1.03000,  -1.59000,   2.47000] ] ),
+                ( 104, [ [   3.88300,  -4.54900,  12.89500], [   1.71000,   1.65000,  -0.78500], [  -1.79000,   3.19000,   1.46000], [   0.70800,  -1.36000,   1.72300] ] ),
+                ( 105, [ [   6.06000,  -2.90000,  12.40000], [   1.02600,   0.45300,  -0.08800], [  -3.10000,   2.21000,   1.63000], [   0.95000,  -1.10000,   1.62000] ] ),
+                ( 106, [ [   1.07000,  -1.86000,  14.10000], [   0.56000,   2.90000,   0.59200], [  -3.00000,   0.21000,   1.58000], [   0.70100,  -0.98000,   1.70900] ] ),
+                ( 107, [ [   2.37000,  -7.49000,  15.90000], [   1.75700,   1.17000,  -0.77700], [   0.63200,   3.39800,  -0.01300], [  -0.58000,  -1.14000,   2.10000] ] ),
+                ( 108, [ [   4.35000,  -6.18000,  15.00000], [   2.03000,   1.57000,  -1.03000], [  -1.98000,   3.34000,   2.01000], [  -0.07100,  -1.66000,   2.17000] ] ),
+                ( 109, [ [   6.58000,  -4.52000,  13.90000], [   0.63600,   1.38500,  -0.17500], [  -1.88000,   1.91000,   1.25000], [  -0.63500,  -1.92000,   2.68000] ] ),
+                ( 110, [ [   1.86000,  -3.31000,  16.00000], [   0.37500,   2.65100,   1.04300], [  -2.62000,   0.83400,   0.85500], [  -0.15700,  -1.09000,   1.66000] ] ),
+                ( 111, [ [   4.42000, -13.70000,  14.20000], [   2.33000,   0.71600,   0.00700], [  -0.22400,   0.74100,   0.29300], [   0.14000,   1.05000,   1.94000] ] ),
+                ( 112, [ [   2.64000, -12.70000,  15.30000], [   0.94900,  -0.20000,  -0.35200], [  -1.44000,   1.35000,   1.27000], [   1.14000,   0.58600,   1.28000] ] ),
+                ( 113, [ [   4.27000, -12.70000,  14.60000], [   2.09400,   0.41000,  -0.44700], [  -0.31000,   1.48000,   0.66300], [   0.04800,   0.24200,   1.17500] ] ),
+                ( 114, [ [   6.77000, -12.20000,  14.00000], [   1.14000,   0.37800,   0.29900], [   1.21000,   1.53000,   0.27000], [  -1.19000,   0.02700,   1.81000] ] ),
+                ( 115, [ [   1.07000, -10.90000,  16.80000], [   2.55200,   0.17900,  -1.11500], [  -0.66800,   2.40000,   1.38000], [   1.79000,   0.15800,   1.91000] ] ),
+                ( 116, [ [   3.87000, -10.70000,  15.60000], [   3.16200,   0.52100,  -1.11600], [  -0.10800,   2.70300,   1.43300], [  -0.50900,  -0.45800,   2.86000] ] ),
+                ( 117, [ [   7.33000, -10.10000,  14.40000], [   3.17000,   0.05600,   0.01400], [  -0.09600,   3.07000,   1.14000], [  -2.59000,  -0.76300,   3.56000] ] ),
+                ( 118, [ [   1.34000,  -8.28000,  17.80000], [   2.52200,   0.57800,  -0.72600], [   0.32100,   2.86000,   0.62500], [   0.36100,  -0.63500,   1.89000] ] ),
+                ( 119, [ [   3.76000,  -7.78000,  17.10000], [   2.18000,   0.81800,  -0.17600], [  -1.05000,   2.81000,   1.59000], [  -0.92300,  -0.82100,   1.77300] ] ),
+                ( 120, [ [   5.60000,  -6.96000,  17.00000], [   1.52000,   0.93200,   0.13400], [  -2.95000,   2.55000,   2.23000], [  -1.90000,  -2.20000,   2.72000] ] ),
+                ( 121, [ [   1.73000,  -5.15000,  18.50000], [   2.92000,   1.23000,   0.96600], [  -2.87000,   2.35000,   1.05000], [   0.35800,  -2.13000,   1.39000] ] ),
+                ( 122, [ [   4.23000, -12.40000,  16.00000], [   2.26000,  -0.31500,  -0.71700], [  -0.40600,   1.32000,   1.51000], [   0.02500,   0.14000,   1.42500] ] ),
+                ( 123, [ [   3.87000, -10.70000,  17.60000], [   3.79000,   0.42100,  -0.94000], [  -0.81100,   1.93000,   1.48000], [   0.44100,   0.35000,   1.01000] ] ),
+                ( 124, [ [   2.99000,  -8.50000,  18.90000], [   2.71000,   0.49000,  -0.17200], [  -1.57000,   3.81000,   1.44000], [  -0.14300,  -0.36100,   1.17300] ] ),
+                ( 125, [ [   2.49300,  -9.65700,   8.51800], [  -1.35500,   0.80500,   0.25900], [  -2.09500,  -2.28700,  -5.51800], [  -0.14100,  -1.15900,   1.75800] ] ),
+                ( 126, [ [   1.82900,  -8.51000,   9.08400], [   0.62000,   1.16800,   0.77800], [  -0.05400,  -0.02400,  -0.02000], [  -0.67000,  -0.79900,   1.19500] ] ),
+                ( 127, [ [   3.15700,  -8.31000,   9.39800], [   2.53800,  -0.40100,   0.43300], [  -1.64700,   2.16100,   0.67400], [  -1.60100,   0.06100,   1.77100] ] ),
+                ( 128, [ [   4.11100,  -5.52400,  10.77500], [  -1.93100,   3.85000,   2.14600], [  -1.36100,   1.34600,   0.44700], [  -3.02000,  -1.80300,   0.23600] ] ),
+                ( 129, [ [   0.06500, -11.43700,   7.21500], [   0.18400,   2.21200,  -0.19300], [  -0.54200,  -0.39700,  -0.29100], [   0.10900,   0.04700,   2.24600] ] ),
+                ( 130, [ [  -0.16200,  -9.48800,   6.61900], [   1.30200,   2.93700,   3.92300], [  -1.02400,   0.49500,  -1.87400], [  -1.35400,  -0.03500,   3.61400] ] ),
+                ( 131, [ [   1.19500,  -6.75800,   9.68000], [   1.40000,   2.49800,   2.16700], [  -2.14900,   0.85000,  -0.15400], [  -1.51700,  -1.03900,   0.74200] ] ),
+                ( 132, [ [   2.49300,  -4.64600,  11.05500], [   1.15800,   1.67200,   0.56600], [  -1.65900,   0.66700,   0.08800], [  -2.05100,  -1.69200,   0.35800] ] ),
+                ( 133, [ [  -2.02800,  -8.78200,   6.40500], [   0.97200,   1.92400,   3.23400], [  -2.03500,   1.31500,   0.66900], [  -0.36500,   1.12500,   4.45200] ] ),
+                ( 134, [ [  -0.79200,  -6.61800,   9.20000], [   1.48600,   2.37600,   2.30700], [  -1.85100,   0.70100,  -0.13300], [  -0.68500,  -0.48100,   1.57900] ] ),
+                ( 135, [ [   0.87700,  -4.12500,  10.97600], [   1.81900,   2.56400,   1.22300], [  -1.73500,   0.43000,  -0.13400], [  -1.77200,  -1.55600,   0.42900] ] ),
+                ( 136, [ [  -3.58000,  -7.09200,   8.05300], [   1.29300,   1.54400,   1.32600], [  -1.32900,   1.77000,   1.27100], [   0.40200,   0.69000,   2.47200] ] ),
+                ( 137, [ [  -2.27700,  -5.49600,   9.40000], [   1.31400,   1.64800,   1.36800], [  -1.33600,   1.34600,   0.31300], [  -0.46000,  -0.52000,   1.27200] ] ),
+                ( 138, [ [  -0.95000,  -3.76000,  10.74000], [   1.33200,   1.75200,   1.40900], [  -1.63800,   0.73000,  -0.22100], [  -1.09700,  -1.31800,   0.38500] ] ),
+                ( 139, [ [  -4.66400,  -5.35100,   8.96000], [   1.32600,   1.46500,   0.91600], [  -0.79700,   1.90500,   0.71200], [   0.31300,   0.30300,   1.46900] ] ),
+                ( 140, [ [  -3.40400,  -3.97400,   9.81500], [   1.19400,   1.28900,   0.79400], [  -0.86800,   1.93100,   0.39500], [  -0.44800,  -0.51400,   0.82400] ] ),
+                ( 141, [ [  -2.29900,  -2.77300,  10.58400], [   1.05900,   1.11500,   0.67500], [  -0.92400,   1.77400,   0.34600], [  -1.01000,  -0.90200,   0.52200] ] ),
+                ( 142, [ [  -5.16100,  -3.36500,   9.46100], [   1.02300,   1.84500,   0.77500], [  -0.19200,   2.02200,   0.28300], [  -0.02400,   0.01700,   0.98200] ] ),
+                ( 143, [ [  -3.88800,  -1.70800,  10.15300], [   1.51100,   1.44000,   0.59700], [  -0.09800,   2.54100,   0.27400], [  -0.42400,  -0.07600,   0.80100] ] ),
+                ( 144, [ [  -2.21800,  -0.53800,  10.63300], [   2.02900,   0.25900,   0.44900], [  -1.61300,   2.07400,  -0.10700], [  -1.05300,  -0.66900,   1.14800] ] ),
+                ( 145, [ [   1.75100, -10.58100,  10.76100], [  -0.97700,   1.55100,  -0.18500], [  -2.85000,  -1.04200,  -1.37200], [  -1.33400,  -0.62600,   2.63200] ] ),
+                ( 146, [ [   1.22000,  -9.13500,  10.80000], [  -0.03300,   1.25800,   0.27400], [  -2.33700,  -0.38600,  -0.53500], [  -0.52300,  -0.41900,   2.19300] ] ),
+                ( 147, [ [   1.51600,  -8.25800,  11.17000], [   0.26000,   0.83600,   0.41900], [  -1.73100,   0.31600,  -0.13700], [  -1.20200,  -0.48000,   2.11000] ] ),
+                ( 148, [ [   1.73700,  -7.47700,  11.62600], [   0.18100,   0.72300,   0.49100], [  -0.88900,   1.03000,   0.36900], [  -1.66600,  -1.94500,   1.42400] ] ),
+                ( 149, [ [  -0.11300, -11.26300,   9.86400], [  -0.57200,   2.27600,   0.46100], [  -0.87900,  -0.32100,  -0.42300], [  -0.46500,   0.30100,   3.03200] ] ),
+                ( 150, [ [  -0.91900,  -9.25600,  10.19700], [   0.88500,   1.55700,   0.86400], [  -1.03300,   1.70500,   0.19900], [  -0.13400,   0.50100,   3.47100] ] ),
+                ( 151, [ [  -0.07900,  -7.79200,  11.03900], [   0.79700,   1.37000,   0.82000], [  -1.44500,   0.61400,  -0.12300], [  -0.92600,  -0.95700,   1.92600] ] ),
+                ( 152, [ [   0.67300,  -6.51400,  11.83400], [   0.70700,   1.18500,   0.76900], [  -1.22100,   0.87800,   0.03900], [  -1.53900,  -2.00300,   1.19100] ] ),
+                ( 153, [ [  -2.08900,  -7.88200,  10.27500], [   0.72600,   0.57800,   0.57600], [  -1.14200,   1.39600,   0.12000], [   0.24500,   0.67100,   3.27300] ] ),
+                ( 154, [ [  -1.35600,  -7.06100,  10.92600], [   0.73000,   1.05600,   0.71900], [  -1.31100,   0.94800,  -0.09300], [  -0.43900,  -0.40200,   1.86600] ] ),
+                ( 155, [ [  -0.67100,  -5.75900,  11.69300], [   0.63700,   1.53900,   0.80900], [  -1.33200,   0.75700,  -0.19600], [  -1.29400,  -1.68600,   0.99800] ] ),
+                ( 156, [ [  -3.19900,  -6.46900,  10.43600], [   0.46100,   0.43500,   0.34300], [  -1.08300,   1.48100,   0.16100], [   0.35900,   0.55500,   2.29400] ] ),
+                ( 157, [ [  -2.66200,  -5.88700,  10.86100], [   0.61400,   0.72800,   0.50500], [  -1.20000,   1.37800,   0.01100], [  -0.30300,  -0.25500,   1.63200] ] ),
+                ( 158, [ [  -1.98200,  -5.00400,  11.44300], [   0.74300,   1.03700,   0.66000], [  -1.29100,   1.07400,  -0.18500], [  -0.99200,  -1.13500,   0.95800] ] ),
+                ( 159, [ [  -4.25000,  -4.92100,  10.59600], [   0.52600,   0.53800,   0.33800], [  -0.86500,   1.66300,   0.12300], [   0.51300,   0.55600,   1.80000] ] ),
+                ( 160, [ [  -3.71400,  -4.32700,  10.95400], [   0.54700,   0.64900,   0.37600], [  -0.82300,   1.98900,   0.12000], [  -0.14600,  -0.16400,   1.40600] ] ),
+                ( 161, [ [  -3.16000,  -3.62200,  11.34900], [   0.56100,   0.76100,   0.41300], [  -0.74200,   1.91400,   0.07300], [  -0.68900,  -0.74300,   1.01200] ] ),
+                ( 162, [ [  -4.91500,  -3.17200,  10.67900], [   0.58300,   1.47100,   0.33300], [  -0.45900,   1.81800,   0.04300], [   0.51700,   0.36900,   1.41700] ] ),
+                ( 163, [ [  -4.16900,  -1.97000,  11.09800], [   0.89300,   0.89100,   0.49400], [  -0.08600,   2.67300,   0.16500], [  -0.11900,  -0.44500,   1.05400] ] ),
+                ( 164, [ [  -3.22900,  -1.40800,  11.61400], [   0.94000,   0.22100,   0.51200], [   0.56900,   2.37200,   0.43200], [  -0.95100,  -1.06000,   0.79300] ] ),
+                ( 165, [ [  -0.21700, -10.72500,  13.59000], [   1.15600,   1.58500,  -0.23100], [  -0.98100,  -0.11900,  -0.49200], [  -2.54900,   0.33100,   2.96300] ] ),
+                ( 166, [ [   0.88000,  -9.22100,  13.37100], [   1.03800,   1.42300,  -0.20700], [  -1.37100,   0.43200,   0.23800], [  -0.06900,  -1.36500,   2.16900] ] ),
+                ( 167, [ [  -0.93000, -10.81200,  13.23200], [   0.43900,   2.22800,   0.14800], [  -0.44500,  -0.05400,  -0.22300], [  -1.16400,   0.59900,   3.69000] ] ),
+                ( 168, [ [  -0.48300,  -8.53800,  13.38300], [   0.45600,   2.31900,   0.15400], [  -1.30900,   0.92000,  -0.22200], [   0.11300,  -0.51400,   2.64700] ] ),
+                ( 169, [ [  -1.65200,  -7.41300,  12.91600], [   0.63100,   0.43300,   0.19800], [  -1.20000,   1.28300,  -0.38200], [  -0.15200,  -0.30000,   2.10300] ] ),
+                ( 170, [ [  -2.86200,  -5.97800,  12.63700], [   0.71200,   0.49800,   0.26600], [  -1.00400,   1.61400,  -0.19300], [  -0.09600,   0.07200,   1.90500] ] ),
+                ( 171, [ [  -3.63100,  -4.22700,  12.53600], [   1.04500,   0.89800,   0.69600], [  -0.60500,   1.70400,  -0.23300], [   0.30200,   0.35300,   1.71400] ] ),
+                ( 172, [ [  -4.07700,  -2.59900,  12.18800], [   0.79000,   0.79000,   0.97500], [  -0.28400,   1.54000,  -0.45900], [   0.29600,  -0.79400,   1.10100] ] )
             ]
-
-            generateParameters = False
-
+            # The number of the elements in the left mouse lung
             elementsCount1 = 2
             elementsCount2 = 4
             elementsCount3 = 4
 
+            # The number of the elements in the diaphragmatic animal lung
+            diaphragmaticElementsCount1 = 3
+            diaphragmaticElementsCount2 = 5
+            diaphragmaticElementsCount3 = 2
+
             # Create nodes
-            nodeIdentifier = 1
-            lNodeIds = []
             nodeIndex = 0
+            nodeIdentifier = 1
+            leftNodeIds = []
+            lowerRightNodeIds = []
+            upperRightNodeIds = []
+            diaphragmaticNodeIds = []
+
+            # Left lung nodes
             d1 = [0.5, 0.0, 0.0]
             d2 = [0.0, 0.5, 0.0]
             d3 = [0.0, 0.0, 1.0]
             for n3 in range(elementsCount3 + 1):
-                lNodeIds.append([])
+                leftNodeIds.append([])
                 for n2 in range(elementsCount2 + 1):
-                    lNodeIds[n3].append([])
+                    leftNodeIds[n3].append([])
                     for n1 in range(elementsCount1 + 1):
-                        lNodeIds[n3][n2].append(None)
+                        leftNodeIds[n3][n2].append(None)
                         if n3 < elementsCount3:
                             if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
                                 continue
@@ -691,18 +566,33 @@ class MeshType_3d_lung1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        lNodeIds[n3][n2][n1] = nodeIdentifier
+                        leftNodeIds[n3][n2][n1] = nodeIdentifier
                         nodeIdentifier += 1
+
+            # Right lung nodes
+            nodeIndex, nodeIdentifier = getLungNodes(rightLung, cache, coordinates, generateParameters,
+                 nodes, nodetemplate, nodeFieldParameters,
+                 lElementsCount1, lElementsCount2, lElementsCount3,
+                 uElementsCount1, uElementsCount2, uElementsCount3,
+                 lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
+
+            # Diaphragm lung nodes
+            getDiaphragmaticLungNodes(cache, coordinates, generateParameters,
+                 nodes, nodetemplate, nodeFieldParameters,
+                 diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3,
+                 diaphragmaticNodeIds, nodeIndex, nodeIdentifier)
 
             # Create elements
             elementIdentifier = 1
+
+            # Left lung elements
             for e3 in range(elementsCount3):
                 for e2 in range(elementsCount2):
                     for e1 in range(elementsCount1):
                         eft = eftRegular
                         nodeIdentifiers = [
-                            lNodeIds[e3    ][e2][e1], lNodeIds[e3    ][e2][e1 + 1], lNodeIds[e3    ][e2 + 1][e1], lNodeIds[e3    ][e2 + 1][e1 + 1],
-                            lNodeIds[e3 + 1][e2][e1], lNodeIds[e3 + 1][e2][e1 + 1], lNodeIds[e3 + 1][e2 + 1][e1], lNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+                            leftNodeIds[e3    ][e2][e1], leftNodeIds[e3    ][e2][e1 + 1], leftNodeIds[e3    ][e2 + 1][e1], leftNodeIds[e3    ][e2 + 1][e1 + 1],
+                            leftNodeIds[e3 + 1][e2][e1], leftNodeIds[e3 + 1][e2][e1 + 1], leftNodeIds[e3 + 1][e2 + 1][e1], leftNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                         if (e3 < elementsCount3 - 1):
                             if (e2 == 0) and (e1 == 0):
@@ -767,6 +657,21 @@ class MeshType_3d_lung1(Scaffold_base):
             markerName.assignString(cache, 'apex of left lung')
             markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
 
+            # Right lung elements
+            elementIdentifier = getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                elementtemplateCustom, mesh, lungMeshGroup,
+                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup, upperRightLungMeshGroup,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
+
+            # Diaphragm lung elements
+            getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                elementtemplateCustom, mesh, lungMeshGroup,
+                rightLungMeshGroup, diaphragmaticLungMeshGroup,
+                diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3,
+                diaphragmaticNodeIds, elementIdentifier)
+
         return annotationGroups
 
     @classmethod
@@ -780,3 +685,477 @@ class MeshType_3d_lung1(Scaffold_base):
         refineElementsCount = options['Refine number of elements']
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
 
+def getLungNodes(lungSide, cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
+                 lElementsCount1, lElementsCount2, lElementsCount3,
+                 uElementsCount1, uElementsCount2, uElementsCount3,
+                 lowerNodeIds, upperNodeIds, nodeIndex, nodeIdentifier):
+    """
+    :param lowerNodeIds: nodeIdentifier array in the lower lobe filled by this function
+        including indexing by [lElementsCount3 + 1][lElementsCount2 + 1][lElementsCount1 + 1]
+    :param upperNodeIds: nodeIdentifier array in the upper lobe filled by this function
+        including indexing by [uElementsCount3 + 1][uElementsCount2 + 1][uElementsCount1 + 1]
+    :return: nodeIndex, nodeIdentifier
+    """
+    leftLung = 0
+
+    # Initialise parameters
+    d1 = [1.0, 0.0, 0.0]
+    d2 = [0.0, 1.0, 0.0]
+    d3 = [0.0, 0.0, 1.0]
+
+    # Offset
+    xMirror = 0 if lungSide == leftLung else 150
+
+    # Lower lobe nodes
+    for n3 in range(lElementsCount3 + 1):
+        lowerNodeIds.append([])
+        for n2 in range(lElementsCount2 + 1):
+            lowerNodeIds[n3].append([])
+            for n1 in range(lElementsCount1 + 1):
+                lowerNodeIds[n3][n2].append(None)
+                if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
+                    continue
+                if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
+                    continue
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                if generateParameters:
+                    x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
+                else:
+                    nodeParameters = nodeFieldParameters[nodeIndex]
+                    nodeIndex += 1
+                    assert nodeIdentifier == nodeParameters[0]
+                    x, d1, d2, d3 = nodeParameters[1]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                lowerNodeIds[n3][n2][n1] = nodeIdentifier
+                nodeIdentifier += 1
+
+    # Upper lobe nodes
+    for n3 in range(uElementsCount3 + 1):
+        upperNodeIds.append([])
+        for n2 in range(uElementsCount2 + 1):
+            upperNodeIds[n3].append([])
+            for n1 in range(uElementsCount1 + 1):
+                upperNodeIds[n3][n2].append(None)
+                if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
+                    continue
+                if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
+                    continue
+                if ((n2 == 0) or (n2 == uElementsCount2)) and (n3 == uElementsCount3):
+                    continue
+                if ((n1 == 0) or (n1 == uElementsCount1)) and (n3 == uElementsCount3):
+                    continue
+
+                # Oblique fissure nodes
+                if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
+                    upperNodeIds[n3][n2][n1] = lowerNodeIds[n3][lElementsCount2][n1]
+                    continue
+                elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
+                    upperNodeIds[n3][n2][n1] = lowerNodeIds[lElementsCount3][n2][n1]
+                    continue
+
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                if generateParameters:
+                    x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1) + 2.5, 1.0 * n3 + 2.0]
+                else:
+                    nodeParameters = nodeFieldParameters[nodeIndex]
+                    nodeIndex += 1
+                    assert nodeIdentifier == nodeParameters[0]
+                    x, d1, d2, d3 = nodeParameters[1]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                upperNodeIds[n3][n2][n1] = nodeIdentifier
+                nodeIdentifier += 1
+
+    return nodeIndex, nodeIdentifier
+
+def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular, elementtemplateCustom, mesh,
+                    lungMeshGroup, lungSideMeshGroup, lowerLobeMeshGroup, middleLobeMeshGroup, upperLobeMeshGroup,
+                    lElementsCount1, lElementsCount2, lElementsCount3,
+                    uElementsCount1, uElementsCount2, uElementsCount3,
+                    lowerNodeIds, upperNodeIds, elementIdentifier):
+    """
+    :param lowerNodeIds: Indexing by [lElementsCount3 + 1][lElementsCount2 + 1][lElementsCount1 + 1]
+    :param upperNodeIds: Indexing by [uElementsCount3 + 1][uElementsCount2 + 1][uElementsCount1 + 1]
+    :return: elementIdentifier
+    """
+
+    eftWedgeCollapseXi1_15 = eftfactory.createEftWedgeCollapseXi1Quadrant([1, 5])
+    eftWedgeCollapseXi1_26 = eftfactory.createEftWedgeCollapseXi1Quadrant([2, 6])
+    eftWedgeCollapseXi1_57 = eftfactory.createEftWedgeCollapseXi1Quadrant([5, 7])
+    eftWedgeCollapseXi1_68 = eftfactory.createEftWedgeCollapseXi1Quadrant([6, 8])
+    eftWedgeCollapseXi2_78 = eftfactory.createEftWedgeCollapseXi2Quadrant([7, 8])
+    eftTetCollapseXi1Xi2_71 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(7, 1)
+    eftTetCollapseXi1Xi2_82 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(8, 2)
+
+    # Lower lobe elements
+    for e3 in range(lElementsCount3):
+        for e2 in range(lElementsCount2):
+            for e1 in range(lElementsCount1):
+                eft = eftRegular
+                nodeIdentifiers = [
+                    lowerNodeIds[e3][e2][e1], lowerNodeIds[e3][e2][e1 + 1], lowerNodeIds[e3][e2 + 1][e1],
+                    lowerNodeIds[e3][e2 + 1][e1 + 1],
+                    lowerNodeIds[e3 + 1][e2][e1], lowerNodeIds[e3 + 1][e2][e1 + 1],
+                    lowerNodeIds[e3 + 1][e2 + 1][e1], lowerNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+
+                if (e2 == 0) and (e1 == 0):
+                    # Back wedge elements
+                    nodeIdentifiers.pop(4)
+                    nodeIdentifiers.pop(0)
+                    eft = eftWedgeCollapseXi1_15
+                elif (e2 == 0) and (e1 == (lElementsCount1 - 1)):
+                    # Back wedge elements
+                    nodeIdentifiers.pop(5)
+                    nodeIdentifiers.pop(1)
+                    eft = eftWedgeCollapseXi1_26
+                elif (e3 == 1) and (e2 == (lElementsCount2 - 2)):
+                    # Middle wedge
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(6)
+                    eft = eftWedgeCollapseXi2_78
+                elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 3)):
+                    # Remapped cube element 1
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+                    remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 2)):
+                    # Remapped cube element 2
+                    nodeIdentifiers[2] = lowerNodeIds[e3 - 1][e2 + 1][e1]
+                    nodeIdentifiers[3] = lowerNodeIds[e3 - 1][e2 + 1][e1 + 1]
+                    nodeIdentifiers[6] = lowerNodeIds[e3 - 1][e2 + 2][e1]
+                    nodeIdentifiers[7] = lowerNodeIds[e3 - 1][e2 + 2][e1 + 1]
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+                    remapEftNodeValueLabel(eft, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS3, [1])])
+                    remapEftNodeValueLabel(eft, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3,
+                                           [(Node.VALUE_LABEL_D_DS2, [])])
+                elif None in nodeIdentifiers:
+                    continue
+
+                if eft is eftRegular:
+                    element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                else:
+                    elementtemplateCustom.defineField(coordinates, -1, eft)
+                    element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                element.setNodesByIdentifier(eft, nodeIdentifiers)
+                if eft.getNumberOfLocalScaleFactors() == 1:
+                    element.setScaleFactors(eft, [-1.0])
+                elementIdentifier += 1
+
+                # Annotation
+                lungMeshGroup.addElement(element)
+                lungSideMeshGroup.addElement(element)
+                if lowerLobeMeshGroup:
+                    lowerLobeMeshGroup.addElement(element)
+
+    # Upper lobe elements
+    for e3 in range(uElementsCount3):
+        for e2 in range(uElementsCount2):
+            for e1 in range(uElementsCount1):
+                eft = eftRegular
+                nodeIdentifiers = [
+                    upperNodeIds[e3][e2][e1], upperNodeIds[e3][e2][e1 + 1], upperNodeIds[e3][e2 + 1][e1],
+                    upperNodeIds[e3][e2 + 1][e1 + 1],
+                    upperNodeIds[e3 + 1][e2][e1], upperNodeIds[e3 + 1][e2][e1 + 1],
+                    upperNodeIds[e3 + 1][e2 + 1][e1], upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+
+                if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
+                    # Distal-front wedge elements
+                    nodeIdentifiers.pop(6)
+                    nodeIdentifiers.pop(2)
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    nodes = [3, 4, 7, 8]
+                    collapseNodes = [3, 7]
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
+                    remapEftLocalNodes(eft, 6, ln_map)
+
+                elif (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (
+                        e1 == (uElementsCount1 - 1)):
+                    # Distal-back wedge elements
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(3)
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    nodes = [3, 4, 7, 8]
+                    collapseNodes = [4, 8]
+                    remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                    ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
+                    remapEftLocalNodes(eft, 6, ln_map)
+
+                elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == 0):
+                    # Medial-front wedge elements
+                    nodeIdentifiers.pop(4)
+                    nodeIdentifiers.pop(0)
+                    eft = eftWedgeCollapseXi1_15
+                elif (e3 == (uElementsCount3 - 2)) and (e2 == 0) and (e1 == (uElementsCount1 - 1)):
+                    # Medial-back wedge elements
+                    nodeIdentifiers.pop(5)
+                    nodeIdentifiers.pop(1)
+                    eft = eftWedgeCollapseXi1_26
+                elif (e3 == (uElementsCount3 - 1)) and (0 < e2 < (uElementsCount2 - 1)) and (e1 == 0):
+                    # Top-front wedge elements
+                    nodeIdentifiers.pop(6)
+                    nodeIdentifiers.pop(4)
+                    eft = eftWedgeCollapseXi1_57
+                elif (e3 == (uElementsCount3 - 1)) and (0 < e2 < (uElementsCount2 - 1)) and (
+                        e1 == (uElementsCount1 - 1)):
+                    # Top-back wedge elements
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(5)
+                    eft = eftWedgeCollapseXi1_68
+                elif (e3 == (uElementsCount3 - 1)) and (e2 == 0) and (e1 == 0):
+                    # Top-front-medial tetrahedron wedge elements
+                    nodeIdentifiers.pop(6)
+                    nodeIdentifiers.pop(5)
+                    nodeIdentifiers.pop(4)
+                    nodeIdentifiers.pop(0)
+                    eft = eftTetCollapseXi1Xi2_82
+                elif (e3 == (uElementsCount3 - 1)) and (e2 == 0) and (e1 == (uElementsCount1 - 1)):
+                    # Top-back-medial tetrahedron wedge elements
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(5)
+                    nodeIdentifiers.pop(4)
+                    nodeIdentifiers.pop(1)
+                    eft = eftTetCollapseXi1Xi2_71
+                elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
+                    # Top-front-distal tetrahedron wedge elements
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(6)
+                    nodeIdentifiers.pop(4)
+                    nodeIdentifiers.pop(2)
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    nodes = [5, 6, 7, 8]
+                    # remap parameters on xi3 = 1 before collapsing nodes
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                    remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                    remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
+                    remapEftLocalNodes(eft, 4, ln_map)
+
+                elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (
+                        e1 == (uElementsCount1 - 1)):
+                    # Top-front-distal tetrahedron wedge elements
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(6)
+                    nodeIdentifiers.pop(5)
+                    nodeIdentifiers.pop(3)
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    nodes = [5, 6, 7, 8]
+                    # remap parameters on xi3 = 1 before collapsing nodes
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                    remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft, [4], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                    ln_map = [1, 2, 3, 3, 4, 4, 4, 4]
+                    remapEftLocalNodes(eft, 4, ln_map)
+
+                elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 3)):
+                    # Remapped cube element 1
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+                    remapEftNodeValueLabel(eft, [3, 4], Node.VALUE_LABEL_D_DS3,
+                                           [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 2)):
+                    # Remapped cube element 2
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [1, 2], Node.VALUE_LABEL_D_DS3,
+                                           [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                elif None in nodeIdentifiers:
+                    continue
+
+                if eft is eftRegular:
+                    element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                else:
+                    elementtemplateCustom.defineField(coordinates, -1, eft)
+                    element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                element.setNodesByIdentifier(eft, nodeIdentifiers)
+                if eft.getNumberOfLocalScaleFactors() == 1:
+                    element.setScaleFactors(eft, [-1.0])
+                elementIdentifier += 1
+                lungMeshGroup.addElement(element)
+                lungSideMeshGroup.addElement(element)
+                if middleLobeMeshGroup and (e3 < (uElementsCount3 - 2)):
+                    middleLobeMeshGroup.addElement(element)
+                elif upperLobeMeshGroup:
+                    upperLobeMeshGroup.addElement(element)
+
+    return elementIdentifier
+
+def getDiaphragmaticLungNodes(cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
+                 elementsCount1, elementsCount2, elementsCount3,
+                 nodeIds, nodeIndex, nodeIdentifier):
+    """
+    :parameter:
+    :return: nodeIndex, nodeIdentifier
+    """
+
+    # Initialise parameters
+    d1 = [1.0, 0.0, 0.0]
+    d2 = [0.0, 1.0, 0.0]
+    d3 = [0.0, 0.0, 1.0]
+
+    # Offset
+    xMirror = 75
+
+    # Diaphragmatic lobe nodes
+    for n3 in range(elementsCount3 + 1):
+        nodeIds.append([])
+        for n2 in range(elementsCount2 + 1):
+            nodeIds[n3].append([])
+            for n1 in range(elementsCount1 + 1):
+                nodeIds[n3][n2].append(None)
+                if ((n1 == elementsCount1) or (n1 == 1)) and (n3 == elementsCount3):
+                    continue
+                if (n2 > 1) and (n1 == 0):
+                    continue
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                if generateParameters:
+                    if n1 == 0:
+                        # The side boxes node
+                        x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3 + 0.5]
+                    elif n3 == (elementsCount3 - 1):
+                        # Middle row
+                        x = [0.5 * (n1 - 1) + 0.5 + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
+                    else:
+                        x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
+                else:
+                    nodeParameters = nodeFieldParameters[nodeIndex]
+                    nodeIndex += 1
+                    assert nodeIdentifier == nodeParameters[0]
+                    x, d1, d2, d3 = nodeParameters[1]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                nodeIds[n3][n2][n1] = nodeIdentifier
+                nodeIdentifier += 1
+
+    return nodeIndex, nodeIdentifier
+
+def getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular, elementtemplateCustom,
+                    mesh, lungMeshGroup, lungSideMeshGroup, diaphragmaticLobeMeshGroup,
+                    elementsCount1, elementsCount2, elementsCount3,
+                    NodeIds, elementIdentifier):
+    """
+    :parameter:
+    :return: elementIdentifier
+    """
+
+    # Diaphragmatic lobe elements
+    for e3 in range(elementsCount3):
+        for e2 in range(elementsCount2):
+            for e1 in range(elementsCount1):
+                eft = eftRegular
+                nodeIdentifiers = [
+                    NodeIds[e3][e2][e1], NodeIds[e3][e2][e1 + 1], NodeIds[e3][e2 + 1][e1],
+                    NodeIds[e3][e2 + 1][e1 + 1],
+                    NodeIds[e3 + 1][e2][e1], NodeIds[e3 + 1][e2][e1 + 1],
+                    NodeIds[e3 + 1][e2 + 1][e1], NodeIds[e3 + 1][e2 + 1][e1 + 1]]
+
+                if (e1 == 1) and (e3 == (elementsCount3 - 1)):
+                    nodeIdentifiers.pop(6)
+                    nodeIdentifiers.pop(4)
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    nodes = [5, 6, 7, 8]
+                    collapseNodes = [5, 7]
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                    remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                    if e2 == 0:
+                        # Remapping the element
+                        remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2,
+                                               [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [1])])
+                    ln_map = [1, 2, 3, 4, 5, 5, 6, 6]
+                    remapEftLocalNodes(eft, 6, ln_map)
+
+                elif (e1 == 1) and (e2 == 0) and (e3 < (elementsCount3 - 1)):
+                    # Remapping the elements
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [1])])
+
+                elif (e1 == elementsCount1 - 1) and (e3 == (elementsCount3 - 1)):
+                    nodeIdentifiers.pop(7)
+                    nodeIdentifiers.pop(5)
+                    eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft, [1], [])
+                    nodes = [5, 6, 7, 8]
+                    collapseNodes = [6, 8]
+                    remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                    remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                    ln_map = [1, 2, 3, 4, 5, 5, 6, 6]
+                    remapEftLocalNodes(eft, 6, ln_map)
+
+                elif (e1 == 0) and (e2 == 0):
+                    # Remapping the elements
+                    if e3 == 0:
+                        eft = eftfactory.createEftBasic()
+                        setEftScaleFactorIds(eft, [1], [])
+                        remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                               [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS2, [])])
+                    elif (e3 == (elementsCount3 - 1)):
+                        nodeIdentifiers[7] = NodeIds[e3 + 1][e2 + 1][e1 + 2]
+                        nodeIdentifiers[5] = NodeIds[e3 + 1][e2][e1 + 2]
+                        eft = eftfactory.createEftBasic()
+                        setEftScaleFactorIds(eft, [1], [])
+                        collapseNodes = [6, 8]
+                        remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft, [4], Node.VALUE_LABEL_D_DS2,
+                                               [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft, [4], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS2, [])])
+
+                elif None in nodeIdentifiers:
+                    continue
+
+                if eft is eftRegular:
+                    element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                else:
+                    elementtemplateCustom.defineField(coordinates, -1, eft)
+                    element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                element.setNodesByIdentifier(eft, nodeIdentifiers)
+                if eft.getNumberOfLocalScaleFactors() == 1:
+                    element.setScaleFactors(eft, [-1.0])
+                elementIdentifier += 1
+
+                # Annotation
+                lungMeshGroup.addElement(element)
+                diaphragmaticLobeMeshGroup.addElement(element)
+                lungSideMeshGroup.addElement(element)
+
+    return elementIdentifier
