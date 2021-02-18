@@ -3,7 +3,6 @@ Generates a spinal cord scaffold using the solid cylinder elements,
 """
 
 from __future__ import division
-import math
 import copy
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -12,6 +11,8 @@ from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, Cylind
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.cns_terms import get_spinalcord_term
 from opencmiss.zinc.node import Node
 
 
@@ -175,7 +176,15 @@ Generates a spinal cord mesh using a solid cylinder
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
+        mesh = fm.findMeshByDimension(3)
 
+        cervicalGroup = AnnotationGroup(region, get_spinalcord_term("Cervical spinal cord"))
+        thoracicGroup = AnnotationGroup(region, get_spinalcord_term("Thoracic spinal cord"))
+        lumbarGroup = AnnotationGroup(region, get_spinalcord_term("Lumbar spinal cord"))
+        sacralGroup = AnnotationGroup(region, get_spinalcord_term("Sacral spinal cord"))
+        caudalGroup = AnnotationGroup(region, get_spinalcord_term("caudal segment of spinal cord"))
+
+        # Base cylinder mesh
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
@@ -187,8 +196,43 @@ Generates a spinal cord mesh using a solid cylinder
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
+        # Making the groups for different parts of the spinal cord
+        # cervical
+        cervicalMeshGroup = cervicalGroup.getMeshGroup(mesh)
+        cervicalElements = elementsCountAlong // 6*(elementsCountAcrossMajor * elementsCountAcrossMinor - 4)
+        for e in range(1, cervicalElements + 1):
+            element = mesh.findElementByIdentifier(e)
+            cervicalMeshGroup.addElement(element)
 
-        annotationGroup = []
+        # thoracic
+        thoracicMeshGroup = thoracicGroup.getMeshGroup(mesh)
+        thoracicElements = elementsCountAlong // 2*(elementsCountAcrossMajor * elementsCountAcrossMinor - 4)
+        for e in range(cervicalElements + 1, thoracicElements + 1):
+            element = mesh.findElementByIdentifier(e)
+            thoracicMeshGroup.addElement(element)
+
+        # lumbar
+        lumbarMeshGroup = lumbarGroup.getMeshGroup(mesh)
+        lumbarElements = elementsCountAlong // 4*(elementsCountAcrossMajor * elementsCountAcrossMinor - 4)
+        for e in range(thoracicElements + 1, thoracicElements + lumbarElements + 1):
+            element = mesh.findElementByIdentifier(e)
+            lumbarMeshGroup.addElement(element)
+
+        # sacral
+        sacralMeshGroup = sacralGroup.getMeshGroup(mesh)
+        sacralElements = elementsCountAlong // 6*(elementsCountAcrossMajor * elementsCountAcrossMinor - 4)
+        for e in range(thoracicElements + lumbarElements + 1, thoracicElements + lumbarElements + sacralElements + 1):
+            element = mesh.findElementByIdentifier(e)
+            sacralMeshGroup.addElement(element)
+
+        # caudal
+        caudalMeshGroup = caudalGroup.getMeshGroup(mesh)
+        caudalElements = elementsCountAlong*(elementsCountAcrossMajor * elementsCountAcrossMinor - 4)
+        for e in range(caudalElements - (elementsCountAcrossMajor * elementsCountAcrossMinor - 4) + 1, caudalElements + 1):
+            element = mesh.findElementByIdentifier(e)
+            caudalMeshGroup.addElement(element)
+
+        annotationGroup = [cervicalGroup, thoracicGroup, lumbarGroup, sacralGroup, caudalGroup]
         return annotationGroup
 
     @classmethod
