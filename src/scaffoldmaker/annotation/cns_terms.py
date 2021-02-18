@@ -7,9 +7,9 @@ spinalcord_terms = [
                      ("Cervical spinal cord", "UBERON:0002726", "FMA:71166", "ILX:0102009"),
                      ("Thoracic spinal cord", "UBERON:0003038", "FMA:71167", "ILX:0111710"),
                      ("Lumbar spinal cord", "UBERON:0002792", "FMA:71168", "ILX:0106391"),
-                     ("Lumbar spinal cord", "UBERON:0005843", "FMA:256623", "ILX:0110295"),
+                     ("Sacral spinal cord", "UBERON:0005843", "FMA:256623", "ILX:0110295"),
                      ("caudal segment of spinal cord", "UBERON:0005845", "ILX:0725272")
-                 ],
+                 ]
 
 
 def get_spinalcord_term(name: str):
