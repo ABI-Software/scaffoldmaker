@@ -727,7 +727,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             elementsCountVentral1 = elementsCountAround // 4
 
         # Create annotation groups for bladder and urethra
-        bodyGroup = AnnotationGroup(region, get_bladder_term("Dome of the Bladder"))
+        bodyGroup = AnnotationGroup(region, get_bladder_term("dome of the bladder"))
         neckGroup = AnnotationGroup(region, get_bladder_term("neck of urinary bladder"))
         bladderGroup = AnnotationGroup(region, get_bladder_term("urinary bladder"))
         urethraGroup = AnnotationGroup(region, get_bladder_term("urethra"))
@@ -745,18 +745,9 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             for n in range(elementsCount):
                 annotationGroupsAlong.append(annotationGroupAlong[i])
 
-        dorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of the scaffold"))
-        ventralGroup = AnnotationGroup(region, get_bladder_term("ventral part of the scaffold"))
-        elementsCountVentral2 = elementsCountVentral1
-        elementsCountDorsal = elementsCountAround - elementsCountVentral1 - elementsCountVentral2
-        elementsCountAroundGroups = [elementsCountVentral1, elementsCountDorsal, elementsCountVentral2]
-        annotationGroupAround = [[ventralGroup], [dorsalGroup], [ventralGroup]]
-
         annotationGroupsAround = []
-        for i in range(len(elementsCountAroundGroups)):
-            elementsCount = elementsCountAroundGroups[i]
-            for n in range(elementsCount):
-                annotationGroupsAround.append(annotationGroupAround[i])
+        for i in range(elementsCountAround):
+            annotationGroupsAround.append([])
 
         annotationGroupsThroughWall = []
         for i in range(elementsCountThroughWall):
@@ -767,7 +758,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         urinaryBladderMeshGroup = bladderGroup.getMeshGroup(mesh)
         urethraMeshGroup = urethraGroup. getMeshGroup(mesh)
         ureterMeshGroup = ureterGroup. getMeshGroup(mesh)
-        dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
 
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
@@ -777,35 +767,45 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
 
-        annotationGroups.append(ureterGroup)
+        if includeUreter:
+            annotationGroups.append(ureterGroup)
 
-        # Create annotation group for dorsal and ventral parts of the bladder and urethra
-        is_bladder = bladderGroup.getFieldElementGroup(mesh)
-        is_urethra = urethraGroup.getFieldElementGroup(mesh)
-        is_dorsal = dorsalGroup.getFieldElementGroup(mesh)
-        is_ventral = ventralGroup.getFieldElementGroup(mesh)
-
-        is_dorsal_bladder = fm.createFieldAnd(is_dorsal, is_bladder)
-        bladder_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of the bladder"))
-        bladder_dorsal.getMeshGroup(mesh).addElementsConditional(is_dorsal_bladder)
-
-        is_ventral_bladder = fm.createFieldAnd(is_ventral, is_bladder)
-        bladder_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of the bladder"))
-        bladder_ventral.getMeshGroup(mesh).addElementsConditional(is_ventral_bladder)
-
+        # Create annotation groups for dorsal and ventral parts of the bladder and urethra
+        bladderDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of the bladder"))
+        bladderVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of the bladder"))
+        dorsalBladderMeshGroup = bladderDorsalGroup.getMeshGroup(mesh)
+        ventralBladderMeshGroup = bladderVentralGroup.getMeshGroup(mesh)
         if includeUrethra:
-            is_dorsal_urethra = fm.createFieldAnd(is_dorsal, is_urethra)
-            urethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Dorsal part of urethra"))
-            urethra_dorsal.getMeshGroup(mesh).addElementsConditional(is_dorsal_urethra)
+            urethraDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of urethra"))
+            urethraVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of urethra"))
+            dorsalUrethraMeshGroup = urethraDorsalGroup.getMeshGroup(mesh)
+            ventralUrethraMeshGroup = urethraVentralGroup.getMeshGroup(mesh)
 
-            is_ventral_urethra = fm.createFieldAnd(is_ventral, is_urethra)
-            urethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Ventral part of urethra"))
-            urethra_ventral.getMeshGroup(mesh).addElementsConditional(is_ventral_urethra)
+        for e2 in range(elementsCountAlong):
+            for e3 in range(elementsCountThroughWall):
+                for e1 in range(elementsCountAround):
+                    elementIdx = e3 * elementsCountAround + e2 * elementsCountThroughWall * elementsCountAround + e1 + 1
+                    if e1 < elementsCountVentral1 or e1 > elementsCountAround - elementsCountVentral1 - 1:
+                        element = mesh.findElementByIdentifier(elementIdx)
+                        if e2 < elementsCountAlongBladder:
+                            ventralBladderMeshGroup.addElement(element)
+                        else:
+                            ventralUrethraMeshGroup.addElement(element)
+                    else:
+                        element = mesh.findElementByIdentifier(elementIdx)
+                        if e2 < elementsCountAlongBladder:
+                            dorsalBladderMeshGroup.addElement(element)
+                        else:
+                            dorsalUrethraMeshGroup.addElement(element)
 
-        dorsalBladderMeshGroup = bladder_dorsal.getMeshGroup(mesh)
+        annotationGroups.append(bladderDorsalGroup)
+        annotationGroups.append(bladderVentralGroup)
+        if includeUrethra:
+            annotationGroups.append(urethraDorsalGroup)
+            annotationGroups.append(urethraVentralGroup)
 
         if includeUreter:
-            bladderMeshGroup = [neckMeshGroup, urinaryBladderMeshGroup, dorsalMeshGroup, dorsalBladderMeshGroup]
+            bladderMeshGroup = [neckMeshGroup, urinaryBladderMeshGroup, dorsalBladderMeshGroup]
             generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCountAround, elementsCountThroughWall,
                             elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
                             ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
@@ -817,7 +817,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         idx = 1
         element1 = mesh.findElementByIdentifier(idx)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        # nodeIdentifier += 1
         cache.setNode(markerPoint)
         markerName.assignString(cache, 'Apex of urinary bladder')
         markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
@@ -852,11 +851,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         '''
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
-        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("Dome of the Bladder"))
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dome of the bladder"))
         neckGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("neck of urinary bladder"))
         urinaryBladderGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urinary bladder"))
-        ventralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of the scaffold"))
-        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of the scaffold"))
+        bladderVentralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of the bladder"))
+        bladderDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of the bladder"))
 
         mesh2d = fm.findMeshByDimension(2)
 
@@ -876,8 +875,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         is_urinaryBladder_serosa = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_1)
         is_urinaryBladder_lumen = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_0)
 
-        is_dorsal = dorsalGroup.getFieldElementGroup(mesh2d)
-        is_ventral = ventralGroup.getFieldElementGroup(mesh2d)
+        is_dorsal_bladder = bladderDorsalGroup.getFieldElementGroup(mesh2d)
+        is_ventral_bladder = bladderVentralGroup.getFieldElementGroup(mesh2d)
 
         serosaOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
         serosaOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_serosa)
@@ -894,80 +893,85 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of neck of urinary bladder"))
         lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
 
-        is_bladder_serosa_dorsal = fm.createFieldAnd(is_urinaryBladder_serosa, is_dorsal)
-        serosaOfBladder_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Dorsal part of serosa of urinary bladder"))
+        is_bladder_serosa_dorsal = fm.createFieldAnd(is_urinaryBladder_serosa, is_dorsal_bladder)
+        serosaOfBladder_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of urinary bladder"))
         serosaOfBladder_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_bladder_serosa_dorsal)
 
-        is_bladder_serosa_ventral = fm.createFieldAnd(is_urinaryBladder_serosa, is_ventral)
-        serosaOfBladder_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Ventral part of serosa of urinary bladder"))
+        is_bladder_serosa_ventral = fm.createFieldAnd(is_urinaryBladder_serosa, is_ventral_bladder)
+        serosaOfBladder_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of urinary bladder"))
         serosaOfBladder_ventral.getMeshGroup(mesh2d).addElementsConditional(is_bladder_serosa_ventral)
 
-        is_bladder_lumen_dorsal = fm.createFieldAnd(is_urinaryBladder_lumen, is_dorsal)
+        is_bladder_lumen_dorsal = fm.createFieldAnd(is_urinaryBladder_lumen, is_dorsal_bladder)
         lumenOfBladder_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of bladder lumen"))
         lumenOfBladder_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_bladder_lumen_dorsal)
 
-        is_bladder_lumen_ventral = fm.createFieldAnd(is_urinaryBladder_lumen, is_ventral)
+        is_bladder_lumen_ventral = fm.createFieldAnd(is_urinaryBladder_lumen, is_ventral_bladder)
         lumenOfBladder_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of bladder lumen"))
         lumenOfBladder_ventral.getMeshGroup(mesh2d).addElementsConditional(is_bladder_lumen_ventral)
 
-        is_body_serosa_dorsal = fm.createFieldAnd(is_body_serosa, is_dorsal)
+        is_body_serosa_dorsal = fm.createFieldAnd(is_body_serosa, is_dorsal_bladder)
         serosaOfBody_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of body of urinary bladder"))
         serosaOfBody_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa_dorsal)
 
-        is_body_serosa_ventral = fm.createFieldAnd(is_body_serosa, is_ventral)
+        is_body_serosa_ventral = fm.createFieldAnd(is_body_serosa, is_ventral_bladder)
         serosaOfBody_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of body of urinary bladder"))
         serosaOfBody_ventral.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa_ventral)
 
-        is_body_lumen_dorsal = fm.createFieldAnd(is_body_lumen, is_dorsal)
-        lumenOfBody_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Dorsal part of lumen of body of urinary bladder"))
+        is_body_lumen_dorsal = fm.createFieldAnd(is_body_lumen, is_dorsal_bladder)
+        lumenOfBody_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of lumen of body of urinary bladder"))
         lumenOfBody_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen_dorsal)
 
-        is_body_lumen_ventral = fm.createFieldAnd(is_body_lumen, is_ventral)
-        lumenOfBody_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Ventral part of lumen of body of urinary bladder"))
+        is_body_lumen_ventral = fm.createFieldAnd(is_body_lumen, is_ventral_bladder)
+        lumenOfBody_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of lumen of body of urinary bladder"))
         lumenOfBody_ventral.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen_ventral)
 
-        is_neck_serosa_dorsal = fm.createFieldAnd(is_neck_serosa, is_dorsal)
+        is_neck_serosa_dorsal = fm.createFieldAnd(is_neck_serosa, is_dorsal_bladder)
         serosaOfNeck_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of neck of urinary bladder"))
         serosaOfNeck_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_neck_serosa_dorsal)
 
-        is_neck_serosa_ventral = fm.createFieldAnd(is_neck_serosa, is_ventral)
+        is_neck_serosa_ventral = fm.createFieldAnd(is_neck_serosa, is_ventral_bladder)
         serosaOfNeck_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of neck of urinary bladder"))
         serosaOfNeck_ventral.getMeshGroup(mesh2d).addElementsConditional(is_neck_serosa_ventral)
 
-        is_neck_lumen_dorsal = fm.createFieldAnd(is_neck_lumen, is_dorsal)
-        lumenOfNeck_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Dorsal part of lumen of neck of urinary bladder"))
+        is_neck_lumen_dorsal = fm.createFieldAnd(is_neck_lumen, is_dorsal_bladder)
+        lumenOfNeck_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of lumen of neck of urinary bladder"))
         lumenOfNeck_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen_dorsal)
 
-        is_neck_lumen_ventral = fm.createFieldAnd(is_neck_lumen, is_ventral)
-        lumenOfNeck_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Ventral part of lumen of neck of urinary bladder"))
+        is_neck_lumen_ventral = fm.createFieldAnd(is_neck_lumen, is_ventral_bladder)
+        lumenOfNeck_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of lumen of neck of urinary bladder"))
         lumenOfNeck_ventral.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen_ventral)
 
         if options['Include urethra'] == True:
             urethraGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urethra"))
+            urethraVentralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of urethra"))
+            urethraDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of urethra"))
 
             is_urethra = urethraGroup.getFieldElementGroup(mesh2d)
             is_urethra_serosa = fm.createFieldAnd(is_urethra, is_exterior_face_xi3_1)
             is_urethra_lumen = fm.createFieldAnd(is_urethra, is_exterior_face_xi3_0)
+
+            is_dorsal_urethra = urethraDorsalGroup.getFieldElementGroup(mesh2d)
+            is_ventral_urethra = urethraVentralGroup.getFieldElementGroup(mesh2d)
 
             serosaOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urethra"))
             serosaOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_serosa)
             lumenOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of urethra"))
             lumenOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen)
 
-            is_urethra_serosa_dorsal = fm.createFieldAnd(is_urethra_serosa, is_dorsal)
+            is_urethra_serosa_dorsal = fm.createFieldAnd(is_urethra_serosa, is_dorsal_urethra)
             serosaOfUrethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of urethra"))
             serosaOfUrethra_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_urethra_serosa_dorsal)
 
-            is_urethra_serosa_ventral = fm.createFieldAnd(is_urethra_serosa, is_ventral)
+            is_urethra_serosa_ventral = fm.createFieldAnd(is_urethra_serosa, is_ventral_urethra)
             serosaOfUrethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of urethra"))
             serosaOfUrethra_ventral.getMeshGroup(mesh2d).addElementsConditional(is_urethra_serosa_ventral)
 
-            is_urethra_lumen_dorsal = fm.createFieldAnd(is_urethra_lumen, is_dorsal)
-            lumenOfUrethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Dorsal part of lumen of urethra"))
+            is_urethra_lumen_dorsal = fm.createFieldAnd(is_urethra_lumen, is_dorsal_urethra)
+            lumenOfUrethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of lumen of urethra"))
             lumenOfUrethra_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen_dorsal)
 
-            is_urethra_lumen_ventral = fm.createFieldAnd(is_urethra_lumen, is_ventral)
-            lumenOfUrethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("Ventral part of lumen of urethra"))
+            is_urethra_lumen_ventral = fm.createFieldAnd(is_urethra_lumen, is_ventral_urethra)
+            lumenOfUrethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of lumen of urethra"))
             lumenOfUrethra_ventral.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen_ventral)
 
 def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCountAround, elementsCountThroughWall,
