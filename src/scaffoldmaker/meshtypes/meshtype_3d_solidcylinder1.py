@@ -53,7 +53,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
-            'Number of elements across transition': 0,
+            'Number of elements across transition': 1,
             'Number of elements along': 1,
             'Shell thickness': 0.0,
             'Lower half': False,
@@ -71,7 +71,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
-            'Number of transition elements',
+            'Number of elements across transition',
             'Number of elements along',
             'Shell thickness',
             'Lower half',
@@ -128,11 +128,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements across minor'] += 1
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
+        if options['Number of elements across transition'] < 1:
+            options['Number of elements across transition'] = 1
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
-        if options['Number of elements across shell'] + options['Number of elements across transition'] > Rcrit:
+        if options['Number of elements across shell'] + options['Number of elements across transition'] - 1 > Rcrit:
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
-            options['Number of elements across transition'] = 0
+            options['Number of elements across transition'] = 1
 
         if options['Shell thickness'] < 0:
             options['Shell thickness'] = -options['Shell thickness']

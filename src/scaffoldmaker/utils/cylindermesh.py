@@ -43,7 +43,7 @@ class CylinderEnds:
     """
 
     def __init__(self, elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell=0,
-                 elementsCountAcrossTransition=0, shellThickness=0.0,
+                 elementsCountAcrossTransition=1, shellThickness=0.0,
                  centre=None, alongAxis=None, majorAxis=None, minorRadius=None):
         """
         :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for
@@ -160,7 +160,7 @@ class CylinderMesh:
             if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else base._elementsCountAcrossMajor
         self._elementsCountAcrossShell = base._elementsCountAcrossShell
         self._elementsCountAcrossTransition = base._elementsCountAcrossTransition
-        self._elementsCountAcrossRim = self._elementsCountAcrossShell + self._elementsCountAcrossTransition
+        self._elementsCountAcrossRim = self._elementsCountAcrossShell + self._elementsCountAcrossTransition - 1
         self._shellThickness = base._shellThickness
         self._elementsCountAlong = elementsCountAlong
         self._elementsCountAround = 2 * (self._elementsCountAcrossMajor+self._elementsCountAcrossMinor -
@@ -407,7 +407,7 @@ class Ellipse2D:
         self.minorAxis = minorAxis
         self.majorRadius = vector.magnitude(majorAxis)
         self.minorRadius = vector.magnitude(minorAxis)
-        elementsCountRim = elementsCountAcrossShell + elementsCountAcrossTransition
+        elementsCountRim = elementsCountAcrossShell + elementsCountAcrossTransition - 1
         shieldMode = ShieldShape.SHIELD_SHAPE_FULL if ellipseShape is EllipseShape.Ellipse_SHAPE_FULL\
             else ShieldShape.SHIELD_SHAPE_LOWER_HALF
         shield = ShieldMesh(elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountRim,
@@ -621,7 +621,7 @@ class Ellipse2D:
         for n1 in range(n1d, n1x):
             txm, td1m, pe, pxi, psf = sampleCubicHermiteCurves(
                 [btx[n2a][n1], btx[n2d][n1]], [[-btd3[n2a][n1][c] for c in range(3)], btd1[n2d][n1]],
-                2 + self.elementsCountAcrossTransition, arcLengthDerivatives=True)
+                2 + self.elementsCountAcrossTransition - 1, arcLengthDerivatives=True)
             td3m = interpolateSampleCubicHermite([btd1[n2a][n1], btd3[n2d][n1]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
 
             tx = []
@@ -689,7 +689,7 @@ class Ellipse2D:
             txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
                 [btx[n2a][n1], btx[n2c][n1]], [[-btd3[n2a][n1][c] for c in range(3)],
                                                [btd1[n2c][n1][c] + c1 * btd3[n2c][n1][c] for c in range(3)]],
-                1 + self.elementsCountAcrossTransition, arcLengthDerivatives=True)
+                1 + self.elementsCountAcrossTransition - 1, arcLengthDerivatives=True)
             td1m = interpolateSampleCubicHermite([btd1[n2a][n1], [-c1*d for d in btd1[n2c][n1]]], [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
 
             for n2 in range(n2a + 1, n2c):
