@@ -53,7 +53,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
-            'Number of transition elements': 0,
+            'Number of elements across transition': 0,
             'Number of elements along': 1,
             'Shell thickness': 0.0,
             'Lower half': False,
@@ -129,10 +129,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
-        if options['Number of elements across shell'] + options['Number of transition elements'] > Rcrit:
+        if options['Number of elements across shell'] + options['Number of elements across transition'] > Rcrit:
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
-            options['Number of transition elements'] = 0
+            options['Number of elements across transition'] = 0
 
         if options['Shell thickness'] < 0:
             options['Shell thickness'] = -options['Shell thickness']
@@ -159,7 +159,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAcrossShell = options['Number of elements across shell']
-        elementsCountAcrossTransition = options['Number of transition elements']
+        elementsCountAcrossTransition = options['Number of elements across transition']
         elementsCountAlong = options['Number of elements along']
         shellThickness = options['Shell thickness']
         useCrossDerivatives = options['Use cross derivatives']
