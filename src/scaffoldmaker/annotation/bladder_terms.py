@@ -10,7 +10,7 @@ bladder_terms = [
     ("dorsal part of lumen of body of urinary bladder", "ILX:0739250"),
     ("dorsal part of lumen of neck of urinary bladder", "ILX:0739255"),
     ("dorsal part of lumen of urethra", "ILX:0739260"),
-    ("dorsal part of the bladder", "None"),
+    ("dorsal part of bladder", "None"),
     ("dorsal part of urethra", "ILX:0739258"),
     ("dorsal part of serosa of body of urinary bladder", "ILX:0739278"),
     ("dorsal part of serosa of neck of urinary bladder", "ILX:0739280"),
@@ -35,7 +35,7 @@ bladder_terms = [
     ("ventral part of serosa of neck of urinary bladder", "ILX:0739281"),
     ("ventral part of serosa of urethra", "ILX:0739306"),
     ("ventral part of serosa of urinary bladder", "ILX:0739249"),
-    ("ventral part of the bladder", "None"),
+    ("ventral part of bladder", "None"),
     ("ventral part of urethra", "ILX:0739259")
 ]
 
