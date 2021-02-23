@@ -25,7 +25,7 @@ class CylinderScaffoldTestCase(unittest.TestCase):
         self.assertEqual(0, options.get("Number of elements across shell"))
         self.assertEqual(1, options.get("Number of elements across transition"))
         self.assertEqual(1, options.get("Number of elements along"))
-        self.assertEqual(1.0, options.get("Shell proportion"))
+        self.assertEqual(1.0, options.get("Shell element thickness proportion"))
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
