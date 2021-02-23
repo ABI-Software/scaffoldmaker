@@ -226,32 +226,34 @@ class ShieldMesh:
         n2c = n2a + 2
         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
             # left
-            tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([self.px[n3][0][n1b], self.px[n3][n2b][n1b]],
-                                                             [[-d for d in self.pd3[n3][0][n1b]],
-                                                              [self.pd1[n3][n2b][n1b][c]+self.pd3[n3][n2b][n1b][c] for c in range(3)]],
-                                                             self.elementsCountRim+1, lengthFractionStart=1,
-                                                             arcLengthDerivatives=True)
-            td1 = interpolateSampleCubicHermite([self.pd1[n3][0][n1b], self.pd3[n3][n2b][n1b]], [[0.0, 0.0, 0.0]] * 2,
-                                                pe, pxi, psf)[0]
-            for n2 in range(0, n2b):
-                if n2 > 0:
-                    self.px[n3][n2][n1b] = tx[n2]
-                    self.pd1[n3][n2][n1b] = td1[n2]
-                self.pd3[n3][n2][n1b] = [-d for d in td3[n2]]
+            tx = []
+            td3 = []
+            for n2 in range(n2c):
+                tx.append(self.px[n3][n2][n1b])
+                if n2 < n2b:
+                    td3.append([-self.pd3[n3][n2][n1b][c] for c in range(3)])
+                else:
+                    td3.append([(self.pd1[n3][n2b][n1b][c] + self.pd3[n3][n2b][n1b][c]) for c in range(3)] )
+
+            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
+
+            for n2 in range(n2b):
+                self.pd3[n3][n2][n1b] = [-td3[n2][c] for c in range(3)]
 
             # right
-            tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([self.px[n3][0][n1y], self.px[n3][n2b][n1y]],
-                                                             [[-d for d in self.pd3[n3][0][n1y]],
-                                                              [self.pd1[n3][n2b][n1y][c]-self.pd3[n3][n2b][n1y][c] for c in range(3)]],
-                                                             self.elementsCountRim+1, lengthFractionStart=1,
-                                                             arcLengthDerivatives=True)
-            td1 = interpolateSampleCubicHermite([self.pd1[n3][0][n1y], self.pd3[n3][n2b][n1y]], [[0.0, 0.0, 0.0]] * 2,
-                                                pe, pxi, psf)[0]
-            for n2 in range(0, n2b):
-                if n2 > 0:
-                    self.px[n3][n2][n1y] = tx[n2]
-                    self.pd1[n3][n2][n1y] = td1[n2]
-                self.pd3[n3][n2][n1y] = [-d for d in td3[n2]]
+            tx = []
+            td3 = []
+            for n2 in range(n2c):
+                tx.append(self.px[n3][n2][n1y])
+                if n2 < n2b:
+                    td3.append([-self.pd3[n3][n2][n1y][c] for c in range(3)])
+                else:
+                    td3.append([(self.pd1[n3][n2b][n1y][c] - self.pd3[n3][n2b][n1y][c]) for c in range(3)])
+
+            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
+
+            for n2 in range(n2b):
+                self.pd3[n3][n2][n1y] = [-td3[n2][c] for c in range(3)]
 
         elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
             # left
