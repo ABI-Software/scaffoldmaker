@@ -60,11 +60,12 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
             'Number of elements across shell': 1,
+            'Number of elements across transition': 1,
             'Number of elements in abdomen': 5,
             'Number of elements in thorax': 3,
             'Number of elements in neck': 1,
             'Number of elements in head': 2,
-            'Shell thickness': 0.17,
+            'Shell element thickness proportion': 1.0,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -80,11 +81,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
+            'Number of elements across shell',
+            'Number of elements across transition',
             'Number of elements in abdomen',
             'Number of elements in thorax',
             'Number of elements in neck',
             'Number of elements in head',
-            'Shell thickness',
+            'Shell element thickness proportion',
             'Lower half',
             'Refine',
             'Refine number of elements across major',
@@ -137,11 +140,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements across minor'] = 4
         if options['Number of elements across minor'] % 2:
             options['Number of elements across minor'] += 1
+        if options['Number of elements across transition'] < 1:
+            options['Number of elements across transition'] = 1
 
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
-        if options['Number of elements across shell'] > Rcrit:
+        if options['Number of elements across shell'] + options['Number of elements across transition'] - 1 > Rcrit:
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
+            options['Number of elements across transition'] = 1
+        if options['Shell element thickness proportion'] < 0.15:
+            options['Shell element thickness proportion'] = 1.0
 
         if options['Number of elements in abdomen'] < 1:
             options['Number of elements in abdomen'] = 1
@@ -152,12 +160,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
         if options['Number of elements in thorax'] < 1:
             options['Number of elements in thorax'] = 1
 
-        if options['Shell thickness'] < 0:
-            options['Shell thickness'] = -options['Shell thickness']
-        elif options['Shell thickness'] < 0.0001:
-            if options['Number of elements across shell'] >= 1:
-                options['Shell thickness'] = 0.2
-                dependentChanges = True
+
+
 
         return dependentChanges
 
@@ -177,11 +181,12 @@ with variable numbers of elements in major, minor, shell and axial directions.
             elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAcrossShell = options['Number of elements across shell']
+        elementsCountAcrossTransition = options['Number of elements across transition']
         elementsCountAlongAbdomen = options['Number of elements in abdomen']
         elementsCountAlongHead = options['Number of elements in head']
         elementsCountAlongNeck = options['Number of elements in neck']
         elementsCountAlongThorax = options['Number of elements in thorax']
-        shellThickness = options['Shell thickness']
+        shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
         elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
 
@@ -204,7 +209,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
-                            shellThickness,
+                            elementsCountAcrossTransition, shellProportion,
                             [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fieldmodule, coordinates, elementsCountAlong, base,
@@ -219,29 +224,29 @@ with variable numbers of elements in major, minor, shell and axial directions.
         coreMeshGroup = coreGroup.getMeshGroup(mesh)
 
         # core group
-        e1oa = elementsCountAcrossMinor - 2*elementsCountAcrossShell - 2
+        e1oa = elementsCountAcrossMinor - 2*elementsCountAcrossShell - 2*elementsCountAcrossTransition
         e2oa = elementsCountAcrossMajor - 2*elementsCountAcrossShell
         e1ob = e1oa*elementsCountAcrossShell
-        e1oc = e1ob + e1oa + elementsCountAcrossShell
-        e2oCore = (e1oa+2)*(e2oa)-4
+        e1oc = e1ob + e1oa * elementsCountAcrossTransition + elementsCountAcrossShell
+        e2oCore = e2oa * e1oa + 2 * elementsCountAcrossTransition * (e2oa - 2 * elementsCountAcrossTransition)
         e2oShell = cylinder1._elementsCountAround*elementsCountAcrossShell
         e2o = e2oCore + e2oShell
-        e1oy = e2o - e1oa*(elementsCountAcrossShell+1)
+        e1oy = e2o - e1oa*(elementsCountAcrossShell+elementsCountAcrossTransition)
         for e3 in range(elementsCountAlong):
             for e2 in range(e2oa):
-                for e1 in range(1, e1oa+3):
-                    if e2 == 0:
+                for e1 in range(1, e1oa+2*elementsCountAcrossTransition+1):
+                    if e2 < elementsCountAcrossTransition:
                         if e1 <= e1oa:
-                            elementIdentifier = e3 * e2o + e1ob + e1
+                            elementIdentifier = e3 * e2o + e1ob + e1oa * e2 + e1
                         else:
                             continue
-                    elif e2 == e2oa - 1:
+                    elif e2 >= e2oa - elementsCountAcrossTransition:
                         if e1 <= e1oa:
-                            elementIdentifier = e3 * e2o + e1oy + e1
+                            elementIdentifier = e3 * e2o + e1oy + e1oa * (e2 - e2oa + elementsCountAcrossTransition) + e1
                         else:
                             continue
                     else:
-                        elementIdentifier = e3 * e2o + elementsCountAcrossMinor * (e2 - 1) + e1 + e1oc
+                        elementIdentifier = e3 * e2o + elementsCountAcrossMinor * (e2 - elementsCountAcrossTransition) + e1 + e1oc
 
                     element = mesh.findElementByIdentifier(elementIdentifier)
                     coreMeshGroup.addElement(element)
@@ -283,22 +288,22 @@ with variable numbers of elements in major, minor, shell and axial directions.
             for e2 in range(e2a-1, e2z + 2):
                 for e1 in range(elementsCountAcrossMinor):
                     if e2 == e2a - 1:
-                        if (e1 > e1a) and (e1 < e1z):
-                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell
+                        if (e1 >= e1a + elementsCountAcrossTransition) and (e1 <= e1z -elementsCountAcrossTransition):
+                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell - elementsCountAcrossTransition + 1
                             element = mesh.findElementByIdentifier(elementIdentifier)
                             non_coreFirstLayerMeshGroup.addElement(element)
                     elif e2 == e2z + 1:
-                        if (e1 > e1a) and (e1 < e1z):
-                            elementIdentifier = e3 * e2o + e2o - e1oa - e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell
+                        if (e1 >= e1a + elementsCountAcrossTransition) and (e1 <= e1z -elementsCountAcrossTransition):
+                            elementIdentifier = e3 * e2o + e2o - e1oa - e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell - elementsCountAcrossTransition + 1
                             element = mesh.findElementByIdentifier(elementIdentifier)
                             non_coreFirstLayerMeshGroup.addElement(element)
-                    elif (e2 > e2a) and (e2 < e2z):
+                    elif (e2 >= e2a + elementsCountAcrossTransition) and (e2 <= e2z - elementsCountAcrossTransition):
                         if e1 == e1a - 1:
-                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+1) + (e2-(e2a+1)) * elementsCountAcrossMinor + elementsCountAcrossShell
+                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+elementsCountAcrossTransition) + (e2-(e2a+elementsCountAcrossTransition)) * elementsCountAcrossMinor + elementsCountAcrossShell
                             element = mesh.findElementByIdentifier(elementIdentifier)
                             non_coreFirstLayerMeshGroup.addElement(element)
                         elif e1 == e1z + 1:
-                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+1) + (e2-(e2a+1)) * elementsCountAcrossMinor + elementsCountAcrossMinor - elementsCountAcrossShell + 1
+                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+elementsCountAcrossTransition) + (e2-(e2a+elementsCountAcrossTransition)) * elementsCountAcrossMinor + elementsCountAcrossMinor - elementsCountAcrossShell + 1
                             element = mesh.findElementByIdentifier(elementIdentifier)
                             non_coreFirstLayerMeshGroup.addElement(element)
 
