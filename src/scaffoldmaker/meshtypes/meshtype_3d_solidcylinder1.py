@@ -55,7 +55,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
             'Number of elements along': 1,
-            'Shell thickness': 0.0,
+            'Shell proportion': 1.0,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -73,7 +73,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across shell',
             'Number of elements across transition',
             'Number of elements along',
-            'Shell thickness',
+            'Shell proportion',
             'Lower half',
             'Refine',
             'Refine number of elements across major',
@@ -136,12 +136,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements across shell'] = Rcrit
             options['Number of elements across transition'] = 1
 
-        if options['Shell thickness'] < 0:
-            options['Shell thickness'] = -options['Shell thickness']
-        elif options['Shell thickness'] < 0.0001:
-            if options['Number of elements across shell'] >= 1:
-                options['Shell thickness'] = 0.2
-                dependentChanges = True
+        if options['Shell proportion'] < 0.15:
+            options['Shell proportion'] = 1.0
 
         return dependentChanges
 
@@ -163,7 +159,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAcrossTransition = options['Number of elements across transition']
         elementsCountAlong = options['Number of elements along']
-        shellThickness = options['Shell thickness']
+        shellProportion = options['Shell proportion']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -175,7 +171,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
                             elementsCountAcrossTransition,
-                            shellThickness,
+                            shellProportion,
                             [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,

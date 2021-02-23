@@ -43,7 +43,7 @@ class CylinderEnds:
     """
 
     def __init__(self, elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell=0,
-                 elementsCountAcrossTransition=1, shellThickness=0.0,
+                 elementsCountAcrossTransition=1, shellProportion=1.0,
                  centre=None, alongAxis=None, majorAxis=None, minorRadius=None):
         """
         :param elementsCountAcrossMajor: Number of elements across major axis. Must be at least 2 + elementsCountRim for
@@ -51,13 +51,12 @@ class CylinderEnds:
         :param elementsCountAcrossMinor: Number of elements across minor axis.
         :param elementsCountAcrossShell: Number of elements across shell.
         :param elementsCountAcrossTransition: Number of elements between core boundary and inner square.
-        :param shellThickness: Total thickness of the shell layers.
+        :param shellProportion: Ratio of thickness of each layer in shell wrt thickness of each layer in core.
         :param centre: Centre of the ellipse.
         :param alongAxis: The cylinder axis that the base is extruded along.
         :param majorAxis: The major axis of the base. Should be perpendicular to alongAxis
         :param minorRadius: The minor radius of the ellipse.
         """
-        assert (shellThickness < 0.95*min(minorRadius, vector.magnitude(majorAxis))), 'CylinderEnds: Invalid shell thickness'
         self._centre = centre
         self._alongAxis = alongAxis
         self._majorAxis = majorAxis
@@ -68,7 +67,7 @@ class CylinderEnds:
         self._elementsCountAcrossMajor = elementsCountAcrossMajor
         self._elementsCountAcrossShell = elementsCountAcrossShell
         self._elementsCountAcrossTransition = elementsCountAcrossTransition
-        self._shellThickness = shellThickness
+        self._shellProportion = shellProportion
         self._majorRadius = vector.magnitude(majorAxis)
         self.px = None
         self.pd1 = None
@@ -151,6 +150,8 @@ class CylinderMesh:
         self._minorAxis = None
         self._majorRadii = None
         self._minorRadii = None
+        self._coreMajorRadii = []
+        self._coreMinorRadii = []
         self._base = base
         self._end = end
         self._shield = None
@@ -161,7 +162,7 @@ class CylinderMesh:
         self._elementsCountAcrossShell = base._elementsCountAcrossShell
         self._elementsCountAcrossTransition = base._elementsCountAcrossTransition
         self._elementsCountAcrossRim = self._elementsCountAcrossShell + self._elementsCountAcrossTransition - 1
-        self._shellThickness = base._shellThickness
+        self._shellProportion = base._shellProportion
         self._elementsCountAlong = elementsCountAlong
         self._elementsCountAround = 2 * (self._elementsCountAcrossMajor+self._elementsCountAcrossMinor -
                                          4*(self._elementsCountAcrossRim + 1))
@@ -180,7 +181,7 @@ class CylinderMesh:
             self.calculateEllipseParams(cylinderCentralPath=self._cylinderCentralPath)
             self._base = CylinderEnds(base._elementsCountAcrossMajor, base._elementsCountAcrossMinor,
                                       base._elementsCountAcrossShell, base._elementsCountAcrossTransition,
-                                      base._shellThickness, self._centres[0],
+                                      base._shellProportion, self._centres[0],
                                       None, self._majorAxis[0], self._minorRadii[0])
         else:
             self._length = vector.magnitude(base._alongAxis)
@@ -226,7 +227,8 @@ class CylinderMesh:
         for n3 in range(n3Count + 1):
             ellipse = Ellipse2D(self._centres[n3], self._majorAxis[n3], self._minorAxis[n3],
                                 self._elementsCountAcrossMajor, self._elementsCountAcrossMinor, self._elementsCountAcrossShell,
-                                self._elementsCountAcrossTransition, self._shellThickness,
+                                self._elementsCountAcrossTransition,
+                                self._shellProportion, self._coreMajorRadii[n3], self._coreMinorRadii[n3],
                                 ellipseShape=ellipseShape)
             self._ellipses.append(ellipse)
             self.copyEllipsesNodesToShieldNodes(n3)
@@ -257,7 +259,7 @@ class CylinderMesh:
         if self._end is None:
             self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
                                      self._elementsCountAcrossShell, self._elementsCountAcrossTransition,
-                                     self._shellThickness,
+                                     self._shellProportion,
                                      self._centres[-1], self._shield.pd2[-1][0][1],
                                      vector.setMagnitude(self._base._majorAxis, self._majorRadii[-1]),
                                      self._minorRadii[-1])
@@ -332,6 +334,12 @@ class CylinderMesh:
             self._majorRadii = cylinderCentralPath.majorRadii
             self._minorRadii = cylinderCentralPath.minorRadii
 
+            elementsMinor = self._elementsCountAcrossMinor//2 - self._elementsCountAcrossShell*(1-self._shellProportion)
+            elementsMajor = self._elementsCountUp - self._elementsCountAcrossShell*(1-self._shellProportion)
+            for n3 in range(self._elementsCountAlong + 1):
+                self._coreMinorRadii.append((1-self._shellProportion*self._elementsCountAcrossShell/elementsMinor)*self._minorRadii[n3])
+                self._coreMajorRadii.append((1-self._shellProportion*self._elementsCountAcrossShell/elementsMajor)*self._majorRadii[n3])
+
         if self._cylinderType == CylinderType.CYLINDER_TAPERED and not cylinderCentralPath:
             centre = self._base._centre
             majorRadius = self._base._majorRadius
@@ -392,7 +400,7 @@ class Ellipse2D:
 
     def __init__(self, centre, majorAxis, minorAxis,
                  elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
-                 elementsCountAcrossTransition, shellThickness,
+                 elementsCountAcrossTransition, shellProportion, coreMajorRadius, coreMinorRadius,
                  ellipseShape=EllipseShape.Ellipse_SHAPE_FULL):
         """
         :param centre: Ellipse centre.
@@ -407,6 +415,8 @@ class Ellipse2D:
         self.minorAxis = minorAxis
         self.majorRadius = vector.magnitude(majorAxis)
         self.minorRadius = vector.magnitude(minorAxis)
+        self.coreMajorRadius = coreMajorRadius
+        self.coreMinorRadius = coreMinorRadius
         elementsCountRim = elementsCountAcrossShell + elementsCountAcrossTransition - 1
         shieldMode = ShieldShape.SHIELD_SHAPE_FULL if ellipseShape is EllipseShape.Ellipse_SHAPE_FULL\
             else ShieldShape.SHIELD_SHAPE_LOWER_HALF
@@ -420,7 +430,7 @@ class Ellipse2D:
         self.elementsCountAcrossShell = elementsCountAcrossShell
         self.elementsCountAcrossTransition = elementsCountAcrossTransition
         self.elementsCountAcrossRim = elementsCountRim
-        self.shellThickness = shellThickness
+        self.shellProportion = shellProportion
         self.nodeId = shield.nodeId
         self.px = shield.px[0]
         self.pd1 = shield.pd1[0]
@@ -435,7 +445,10 @@ class Ellipse2D:
         """
         Generates a 2d ellipse using shield structure in shieldmesh.
         """
-        self.generateBase1DMesh()
+        self.generateBase1DMesh(0)
+        if self.elementsCountAcrossShell > 0:
+            self.generateBase1DMesh(self.elementsCountAcrossShell)
+        self.setRimNodes()
         rscx, rscd1, rscd2, rscd3 = self.createMirrorCurve()
         self.createRegularRowCurves(rscx, rscd1, rscd3)
         self.createRegularColumnCurves()
@@ -445,12 +458,22 @@ class Ellipse2D:
         if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
             self.generateNodesForUpperHalf()
 
-    def generateBase1DMesh(self):
+    def generateBase1DMesh(self, rx):
         """
         Generate nodes around the perimeter of the ellipse.
         """
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+
+        ratio = rx/self.elementsCountAcrossShell if self.elementsCountAcrossShell > 0 else 0
+        majorAxis = [d*(1 - ratio*(1-self.coreMajorRadius/self.majorRadius)) for d in self.majorAxis]
+        minorAxis = [d*(1 - ratio*(1-self.coreMinorRadius/self.minorRadius)) for d in self.minorAxis]
+        majorRadius = vector.magnitude(majorAxis)
+
         nx, nd1 = createEllipsePerimeter(
-            self.centre, self.majorAxis, self.minorAxis, self.elementsCountAround, self.majorRadius)
+            self.centre, majorAxis, minorAxis, self.elementsCountAround, majorRadius)
         nte = normalToEllipse(self.majorAxis, self.minorAxis)
 
         tbx, tbd1, tbd2, tbd3 = [], [], [], []
@@ -460,9 +483,14 @@ class Ellipse2D:
             tbd2.append(nte)
             tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
 
-        self.setRimNodes(tbx, tbd1, tbd2, tbd3)
+        for n in range(self.elementsCountAround + 1):
+            n1, n2 = self.__shield.convertRimIndex(n, rx)
+            btx[n2][n1] = tbx[n]
+            btd1[n2][n1] = tbd1[n]
+            btd2[n2][n1] = tbd2[n]
+            btd3[n2][n1] = tbd3[n]
 
-    def setRimNodes(self, nx, nd1, nd2, nd3):
+    def setRimNodes(self):
         """
         Set nodes around the shell outer layer and core boundary in order needed for creating a shield mesh.
         """
@@ -470,24 +498,12 @@ class Ellipse2D:
         btd1 = self.pd1
         btd2 = self.pd2
         btd3 = self.pd3
-
+        #
         elementsCountShell = self.elementsCountAcrossShell
         for n in range(self.elementsCountAround + 1):
-            n1, n2 = self.__shield.convertRimIndex(n)
-            btx[n2][n1] = nx[n]
-            btd1[n2][n1] = nd1[n]
-            btd2[n2][n1] = nd2[n]
-            btd3[n2][n1] = nd3[n]
-
-            if self.elementsCountAcrossShell > 0:
-                # core boundary ellipse
-                n1c, n2c = self.__shield.convertRimIndex(n, self.elementsCountAcrossShell)
-                btx[n2c][n1c] = [(btx[n2][n1][c] - vector.setMagnitude(btd3[n2][n1], self.shellThickness)[c])
-                                 for c in range(3)]
-                btd1[n2c][n1c] = btd1[n2][n1]
-                btd2[n2c][n1c] = btd2[n2][n1]
-                btd3[n2c][n1c] = btd3[n2][n1]
             if self.elementsCountAcrossShell > 1:
+                n1, n2 = self.__shield.convertRimIndex(n)
+                n1c, n2c = self.__shield.convertRimIndex(n, self.elementsCountAcrossShell)
                 tx, td3, pe, pxi, psf = sampleCubicHermiteCurves([btx[n2c][n1c], btx[n2][n1]],
                                                                  [btd3[n2c][n1c], btd3[n2][n1]], elementsCountShell,
                                                                  arcLengthDerivatives=True)
@@ -499,7 +515,7 @@ class Ellipse2D:
                     btd2[n2rx][n1rx] = btd2[n2][n1]
                     btd3[n2rx][n1rx] = btd3[n2][n1]
 
-        for rx in range(1, self.elementsCountAcrossShell + 1):
+        for rx in range(1, self.elementsCountAcrossShell):
             self.__shield.smoothDerivativesAroundRim(0, n3d=None, rx=rx)
 
     def createMirrorCurve(self):
