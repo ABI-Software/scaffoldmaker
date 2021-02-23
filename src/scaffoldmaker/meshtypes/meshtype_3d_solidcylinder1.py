@@ -55,7 +55,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
             'Number of elements along': 1,
-            'Shell proportion': 1.0,
+            'Shell element thickness proportion': 1.0,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -73,7 +73,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across shell',
             'Number of elements across transition',
             'Number of elements along',
-            'Shell proportion',
+            'Shell element thickness proportion',
             'Lower half',
             'Refine',
             'Refine number of elements across major',
@@ -136,8 +136,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements across shell'] = Rcrit
             options['Number of elements across transition'] = 1
 
-        if options['Shell proportion'] < 0.15:
-            options['Shell proportion'] = 1.0
+        if options['Shell element thickness proportion'] < 0.15:
+            options['Shell element thickness proportion'] = 1.0
 
         return dependentChanges
 
@@ -159,7 +159,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAcrossTransition = options['Number of elements across transition']
         elementsCountAlong = options['Number of elements along']
-        shellProportion = options['Shell proportion']
+        shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
