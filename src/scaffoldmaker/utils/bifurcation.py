@@ -3,14 +3,53 @@ Utilities for building bifurcating network meshes.
 """
 
 from __future__ import division
-from opencmiss.utils.maths.vectorops import add, cross, mult, normalize, sub
+from opencmiss.utils.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
-    smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
+    interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
 
+
+def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
+    '''
+    :param dmag: Magnitude of derivative on curve.
+    :param side: Vector in side direction of first node around.
+    Need not be unit or exactly normal to curve at xi.
+    :return: x[], d1[] around, d2[] along
+    '''
+    cx = interpolateCubicHermite(x1, xd1, x2, xd2, xi)
+    cxd = interpolateCubicHermiteDerivative(x1, xd1, x2, xd2, xi)
+    mag_cxd = magnitude(cxd)
+    cxd2 = interpolateCubicHermiteSecondDerivative(x1, xd1, x2, xd2, xi)
+    mag_cxd2 = magnitude(cxd2)
+    r = interpolateCubicHermite([ r1 ], [ rd1 ], [ r2 ], [ rd2 ], xi)[0]
+    rd = interpolateCubicHermiteDerivative([ r1 ], [ rd1 ], [ r2 ], [ rd2 ], xi)[0]
+    axis1 = normalize(cxd)
+    axis3 = normalize(cross(axis1, side))
+    axis2 = cross(axis3, axis1)
+    x, d1 = createCirclePoints(cx, mult(axis2, r), mult(axis3, r), elementsCountAround)
+    curvatureVector = mult(cxd2, 1.0/(mag_cxd*mag_cxd))
+    d2 = []
+    radialGrowth = rd/(mag_cxd*r)
+    for e in range(elementsCountAround):
+        radialVector = sub(x[e], cx)
+        dmagFinal = dmag*(1.0 - dot(radialVector, curvatureVector))
+        # add curvature and radius change components:
+        d2.append(add(mult(cxd, dmagFinal/mag_cxd), mult(radialVector, dmagFinal*radialGrowth)))
+    return x, d1, d2
+
+
+def track_curve_side_axis(x1, d1, x2, d2, sideStart, xiStart, xiEnd):
+    '''
+    Get side vector normal to curve at xiEnd for smoothest transition from
+    sideStart at xiStart.
+    :param xi, d1, x2, d2: 
+    :param sideStart: Unit vector normal to curve
+    '''
+    pass
 
 def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
     '''
