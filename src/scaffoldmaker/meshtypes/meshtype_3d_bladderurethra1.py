@@ -771,8 +771,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             annotationGroups.append(ureterGroup)
 
         # Create annotation groups for dorsal and ventral parts of the bladder and urethra
-        bladderDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of the bladder"))
-        bladderVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of the bladder"))
+        bladderDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of bladder"))
+        bladderVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of bladder"))
         dorsalBladderMeshGroup = bladderDorsalGroup.getMeshGroup(mesh)
         ventralBladderMeshGroup = bladderVentralGroup.getMeshGroup(mesh)
         if includeUrethra:
@@ -854,8 +854,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dome of the bladder"))
         neckGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("neck of urinary bladder"))
         urinaryBladderGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urinary bladder"))
-        bladderVentralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of the bladder"))
-        bladderDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of the bladder"))
+        bladderVentralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of bladder"))
+        bladderDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of bladder"))
 
         mesh2d = fm.findMeshByDimension(2)
 
