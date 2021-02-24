@@ -81,14 +81,12 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
-            'Number of elements across shell',
             'Number of elements across transition',
             'Number of elements in abdomen',
             'Number of elements in thorax',
             'Number of elements in neck',
             'Number of elements in head',
             'Shell element thickness proportion',
-            'Lower half',
             'Refine',
             'Refine number of elements across major',
             'Refine number of elements along'
@@ -233,23 +231,14 @@ with variable numbers of elements in major, minor, shell and axial directions.
         e2o = e2oCore + e2oShell
         e1oy = e2o - e1oa*(elementsCountAcrossShell+elementsCountAcrossTransition)
         for e3 in range(elementsCountAlong):
-            for e2 in range(e2oa):
-                for e1 in range(1, e1oa+2*elementsCountAcrossTransition+1):
-                    if e2 < elementsCountAcrossTransition:
-                        if e1 <= e1oa:
-                            elementIdentifier = e3 * e2o + e1ob + e1oa * e2 + e1
-                        else:
-                            continue
-                    elif e2 >= e2oa - elementsCountAcrossTransition:
-                        if e1 <= e1oa:
-                            elementIdentifier = e3 * e2o + e1oy + e1oa * (e2 - e2oa + elementsCountAcrossTransition) + e1
-                        else:
-                            continue
-                    else:
-                        elementIdentifier = e3 * e2o + elementsCountAcrossMinor * (e2 - elementsCountAcrossTransition) + e1 + e1oc
-
-                    element = mesh.findElementByIdentifier(elementIdentifier)
-                    coreMeshGroup.addElement(element)
+            for e2 in range(elementsCountAcrossMajor):
+                for e1 in range(elementsCountAcrossMinor):
+                    if (e2 >= elementsCountAcrossShell) and (e2 < elementsCountAcrossMajor - elementsCountAcrossShell):
+                        if (e1 >= elementsCountAcrossShell) and (e1 < elementsCountAcrossMajor - elementsCountAcrossShell):
+                            elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
+                            if elementIdentifier:
+                                element = mesh.findElementByIdentifier(elementIdentifier)
+                                coreMeshGroup.addElement(element)
 
         is_non_core = fieldmodule.createFieldNot(coreGroup.getGroup())
         non_coreMeshGroup = non_coreGroup.getMeshGroup(mesh)
@@ -284,28 +273,24 @@ with variable numbers of elements in major, minor, shell and axial directions.
         e1z = elementsCountAcrossMinor - elementsCountAcrossShell - 1
         e2z = elementsCountAcrossMajor - elementsCountAcrossShell - 1
         non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.getMeshGroup(mesh)
+        foundElement = False
         for e3 in range(elementsCountAlong):
-            for e2 in range(e2a-1, e2z + 2):
+            for e2 in range(elementsCountAcrossMajor):
                 for e1 in range(elementsCountAcrossMinor):
-                    if e2 == e2a - 1:
-                        if (e1 >= e1a + elementsCountAcrossTransition) and (e1 <= e1z -elementsCountAcrossTransition):
-                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell - elementsCountAcrossTransition + 1
-                            element = mesh.findElementByIdentifier(elementIdentifier)
-                            non_coreFirstLayerMeshGroup.addElement(element)
-                    elif e2 == e2z + 1:
-                        if (e1 >= e1a + elementsCountAcrossTransition) and (e1 <= e1z -elementsCountAcrossTransition):
-                            elementIdentifier = e3 * e2o + e2o - e1oa - e1oa * (elementsCountAcrossShell - 1) + e1 - elementsCountAcrossShell - elementsCountAcrossTransition + 1
-                            element = mesh.findElementByIdentifier(elementIdentifier)
-                            non_coreFirstLayerMeshGroup.addElement(element)
-                    elif (e2 >= e2a + elementsCountAcrossTransition) and (e2 <= e2z - elementsCountAcrossTransition):
-                        if e1 == e1a - 1:
-                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+elementsCountAcrossTransition) + (e2-(e2a+elementsCountAcrossTransition)) * elementsCountAcrossMinor + elementsCountAcrossShell
-                            element = mesh.findElementByIdentifier(elementIdentifier)
-                            non_coreFirstLayerMeshGroup.addElement(element)
-                        elif e1 == e1z + 1:
-                            elementIdentifier = e3 * e2o + e1oa * (elementsCountAcrossShell+elementsCountAcrossTransition) + (e2-(e2a+elementsCountAcrossTransition)) * elementsCountAcrossMinor + elementsCountAcrossMinor - elementsCountAcrossShell + 1
-                            element = mesh.findElementByIdentifier(elementIdentifier)
-                            non_coreFirstLayerMeshGroup.addElement(element)
+                    if e2 == elementsCountAcrossShell - 1:
+                        elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
+                        foundElement = True
+                    if (e2 >= elementsCountAcrossShell + elementsCountAcrossTransition) and (e2 < elementsCountAcrossMajor - elementsCountAcrossShell -elementsCountAcrossTransition):
+                        if (e1 == elementsCountAcrossShell - 1) or (e1 == elementsCountAcrossMajor - elementsCountAcrossShell):
+                            elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
+                            foundElement = True
+                    if e2 == elementsCountAcrossMajor - elementsCountAcrossShell:
+                        elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
+                        foundElement = True
+                    if elementIdentifier and foundElement:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        non_coreFirstLayerMeshGroup.addElement(element)
+                        foundElement = False
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         elementtemplate = mesh.createElementtemplate()

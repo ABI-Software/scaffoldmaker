@@ -89,7 +89,7 @@ class ShieldMesh:
                     p.append([ None ]*(elementsCountAcross + 1))
         if trackSurface:
             self.pProportions = [ [ None ]*(elementsCountAcross + 1) for n2 in range(elementsCountUp + 1) ]
-        self.elementId = [ [ None ]*elementsCountAcross for n2 in range(elementsCountUpFull) ]
+        self.elementId = [ [[ None ]*elementsCountAcross for n2 in range(elementsCountUpFull)] for e3 in range(elementsCountAlong) ]
 
 
     def convertRimIndex(self, ix, rx=0):
@@ -575,7 +575,7 @@ class ShieldMesh:
                     else:
                         result3 = 7
                     #print('create element shield', elementIdentifier, result2, result3, nids)
-                    self.elementId[e2][e1] = elementIdentifier
+                    self.elementId[e3][e2][e1] = elementIdentifier
                     elementIdentifier += 1
 
                     for meshGroup in meshGroups:
