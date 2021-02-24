@@ -1,6 +1,6 @@
 """
-Generates a solid cylinder using a ShieldMesh of all cube elements,
- with variable numbers of elements in major, minor, shell and axial directions.
+Generates body coordinates using a solid cylinder of all cube elements,
+ with variable numbers of elements in major, minor, shell and for each section of abdomen, thorax, neck and head.
 """
 
 from __future__ import division
@@ -25,8 +25,8 @@ from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 
 class MeshType_3d_wholebody1(Scaffold_base):
     """
-Generates a solid cylinder using a ShieldMesh of all cube elements,
-with variable numbers of elements in major, minor, shell and axial directions.
+Generates body coordinates using a solid cylinder of all cube elements,
+ with variable numbers of elements in major, minor, shell and for each section of abdomen, thorax, neck and head.
     """
     cylinder1Settings = {
                 'Coordinate dimensions': 3,
@@ -158,9 +158,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
         if options['Number of elements in thorax'] < 1:
             options['Number of elements in thorax'] = 1
 
-
-
-
         return dependentChanges
 
     @staticmethod
@@ -186,6 +183,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         elementsCountAlongThorax = options['Number of elements in thorax']
         shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
+
         elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
 
         fieldmodule = region.getFieldmodule()
@@ -204,7 +202,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
-        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
 
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
                             elementsCountAcrossTransition, shellProportion,
@@ -222,23 +220,28 @@ with variable numbers of elements in major, minor, shell and axial directions.
         coreMeshGroup = coreGroup.getMeshGroup(mesh)
 
         # core group
-        e1oa = elementsCountAcrossMinor - 2*elementsCountAcrossShell - 2*elementsCountAcrossTransition
-        e2oa = elementsCountAcrossMajor - 2*elementsCountAcrossShell
-        e1ob = e1oa*elementsCountAcrossShell
-        e1oc = e1ob + e1oa * elementsCountAcrossTransition + elementsCountAcrossShell
-        e2oCore = e2oa * e1oa + 2 * elementsCountAcrossTransition * (e2oa - 2 * elementsCountAcrossTransition)
-        e2oShell = cylinder1._elementsCountAround*elementsCountAcrossShell
+        e1a = elementsCountAcrossShell
+        e1z = elementsCountAcrossMinor - elementsCountAcrossShell - 1
+        e2a = elementsCountAcrossShell
+        e2b = e2a + elementsCountAcrossTransition
+        e2z = elementsCountAcrossMajor - elementsCountAcrossShell - 1
+        e2y = e2z - elementsCountAcrossTransition
+        e1oc = elementsCountAcrossMinor - 2*elementsCountAcrossShell - 2*elementsCountAcrossTransition
+        e2oc = elementsCountAcrossMajor - 2*elementsCountAcrossShell - 2*elementsCountAcrossTransition
+        e2oCore = e2oc * e1oc + 2 * elementsCountAcrossTransition * (e2oc + e1oc)
+        elementsCountAround = cylinder1.getElementsCountAround()
+        e2oShell = elementsCountAround * elementsCountAcrossShell
         e2o = e2oCore + e2oShell
-        e1oy = e2o - e1oa*(elementsCountAcrossShell+elementsCountAcrossTransition)
+        elementId = cylinder1.getElementIdentifiers()
         for e3 in range(elementsCountAlong):
             for e2 in range(elementsCountAcrossMajor):
                 for e1 in range(elementsCountAcrossMinor):
-                    if (e2 >= elementsCountAcrossShell) and (e2 < elementsCountAcrossMajor - elementsCountAcrossShell):
-                        if (e1 >= elementsCountAcrossShell) and (e1 < elementsCountAcrossMajor - elementsCountAcrossShell):
-                            elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
-                            if elementIdentifier:
-                                element = mesh.findElementByIdentifier(elementIdentifier)
-                                coreMeshGroup.addElement(element)
+                    coreElement = ((e2 >= e2a) and (e2 <= e2z)) and ((e1 >= e1a) and (e1 <= e1z))
+                    if coreElement:
+                        elementIdentifier = elementId[e3][e2][e1]
+                        if elementIdentifier:
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            coreMeshGroup.addElement(element)
 
         is_non_core = fieldmodule.createFieldNot(coreGroup.getGroup())
         non_coreMeshGroup = non_coreGroup.getMeshGroup(mesh)
@@ -268,29 +271,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     ri += 1
 
         # create discontinuity in d3 on the core boundary
-        e1a = elementsCountAcrossShell
-        e2a = elementsCountAcrossShell
-        e1z = elementsCountAcrossMinor - elementsCountAcrossShell - 1
-        e2z = elementsCountAcrossMajor - elementsCountAcrossShell - 1
         non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.getMeshGroup(mesh)
-        foundElement = False
         for e3 in range(elementsCountAlong):
             for e2 in range(elementsCountAcrossMajor):
                 for e1 in range(elementsCountAcrossMinor):
-                    if e2 == elementsCountAcrossShell - 1:
-                        elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
-                        foundElement = True
-                    if (e2 >= elementsCountAcrossShell + elementsCountAcrossTransition) and (e2 < elementsCountAcrossMajor - elementsCountAcrossShell -elementsCountAcrossTransition):
-                        if (e1 == elementsCountAcrossShell - 1) or (e1 == elementsCountAcrossMajor - elementsCountAcrossShell):
-                            elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
-                            foundElement = True
-                    if e2 == elementsCountAcrossMajor - elementsCountAcrossShell:
-                        elementIdentifier = cylinder1._shield.elementId[e3][e2][e1]
-                        foundElement = True
-                    if elementIdentifier and foundElement:
+                    regularRowElement = (((e2 >= e2b) and (e2 <= e2y)) and ((e1 == e1a - 1) or (e1 == e1z + 1)))
+                    non_coreFirstLayerElement = (e2 == e2a - 1) or regularRowElement or (e2 == e2z + 1)
+                    elementIdentifier = elementId[e3][e2][e1]
+                    if elementIdentifier and non_coreFirstLayerElement:
                         element = mesh.findElementByIdentifier(elementIdentifier)
                         non_coreFirstLayerMeshGroup.addElement(element)
-                        foundElement = False
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         elementtemplate = mesh.createElementtemplate()
@@ -304,12 +294,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
             localNodeIndexes = [1, 2, 3, 4]
             valueLabel = Node.VALUE_LABEL_D_DS3
             while element.isValid():
-                print('Element', element.getIdentifier())
                 eft = element.getElementfieldtemplate(coordinates, -1)
                 nodeIds = get_element_node_identifiers(element, eft)
                 for localNodeIndex in localNodeIndexes:
                     node = element.getNode(eft, localNodeIndex)
-                    print('    Node', node.getIdentifier())
                     nodetemplate.defineFieldFromNode(coordinates, node)
                     versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1, valueLabel)
                     if versionsCount == 1:
@@ -326,28 +314,11 @@ with variable numbers of elements in major, minor, shell and axial directions.
                         result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                         result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
                         result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
-                        # print('Results:', result0, result1, result2, result3, result4, result5)
-                        # if result3 == 0:
-                        #     loggerMessageCount = logger.getNumberOfMessages()
-                        #     if loggerMessageCount > 0:
-                        #         for i in range(1, loggerMessageCount + 1):
-                        #             print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
-                        #         logger.removeAllMessages()
-                        #         exit()
                 remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], 2)
                 result1 = elementtemplate.defineField(coordinates, -1, eft)
                 result2 = element.merge(elementtemplate)
                 result3 = element.setNodesByIdentifier(eft, nodeIds)
-                # print('Element merge result',result1, result2, result3)
-                # if (result1 != RESULT_OK) or (result2 != RESULT_OK):
-                #     loggerMessageCount = logger.getNumberOfMessages()
-                #     if loggerMessageCount > 0:
-                #         for i in range(1, loggerMessageCount + 1):
-                #             print(logger.getMessageTypeAtIndex(i), logger.getMessageTextAtIndex(i))
-                #         logger.removeAllMessages()
-                #         exit()
                 element = elementIter.next()
-        # region.writeFile('body_groups_discontinuity11.exf')
 
         return annotationGroups
 
