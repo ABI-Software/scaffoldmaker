@@ -89,8 +89,10 @@ class ShieldMesh:
                     p.append([ None ]*(elementsCountAcross + 1))
         if trackSurface:
             self.pProportions = [ [ None ]*(elementsCountAcross + 1) for n2 in range(elementsCountUp + 1) ]
-        self.elementId = [ [[ None ]*elementsCountAcross for n2 in range(elementsCountUpFull)] for e3 in range(elementsCountAlong) ]
-
+        if shieldType == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+            self.elementId = [ [[ None ]*elementsCountAcross for n2 in range(elementsCountUpFull)] for e3 in range(elementsCountAlong) ]
+        else:
+            self.elementId = [[None] * elementsCountAcross for n2 in range(elementsCountUpFull)]
 
     def convertRimIndex(self, ix, rx=0):
         '''
@@ -575,7 +577,10 @@ class ShieldMesh:
                     else:
                         result3 = 7
                     #print('create element shield', elementIdentifier, result2, result3, nids)
-                    self.elementId[e3][e2][e1] = elementIdentifier
+                    if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                        self.elementId[e3][e2][e1] = elementIdentifier
+                    else:
+                        self.elementId[e2][e1] = elementIdentifier
                     elementIdentifier += 1
 
                     for meshGroup in meshGroups:
