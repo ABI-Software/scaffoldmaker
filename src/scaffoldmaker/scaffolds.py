@@ -55,7 +55,7 @@ class Scaffolds(object):
             MeshType_2d_sphere1,
             MeshType_2d_tube1,
             MeshType_2d_tubebifurcation1,
-            #MeshType_2d_tubebifurcationtree1,
+            MeshType_2d_tubebifurcationtree1,
             MeshType_3d_bladder1,
             MeshType_3d_bladderurethra1,
             MeshType_3d_box1,

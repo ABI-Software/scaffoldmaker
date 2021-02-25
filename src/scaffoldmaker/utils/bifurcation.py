@@ -39,7 +39,7 @@ def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, 
         dmagFinal = dmag*(1.0 - dot(radialVector, curvatureVector))
         # add curvature and radius change components:
         d2.append(add(mult(cxd, dmagFinal/mag_cxd), mult(radialVector, dmagFinal*radialGrowth)))
-    return x, d1, d2
+    return cx, cxd, cxd2, x, d1, d2
 
 
 def track_curve_side_axis(x1, d1, x2, d2, sideStart, xiStart, xiEnd):
