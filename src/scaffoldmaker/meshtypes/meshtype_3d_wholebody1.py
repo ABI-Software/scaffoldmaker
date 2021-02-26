@@ -6,7 +6,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
 from __future__ import division
 import math
 import copy
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup,\
+    findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
@@ -319,6 +320,33 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 result2 = element.merge(elementtemplate)
                 result3 = element.setNodesByIdentifier(eft, nodeIds)
                 element = elementIter.next()
+
+        # Annotation fiducial point
+        markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
+        markerName = findOrCreateFieldStoredString(fieldmodule, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fieldmodule, mesh, name="marker_location")
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+        # Apex annotation point
+        elementIdentifiers = [1, e2o - 1, e2o * (elementsCountAlongAbdomen + elementsCountAlongThorax - 1) + 1,
+                              thoraxRange[1] - 1,22,40,161,179,107,127,127]
+        markerNames = ['left hip joint', 'right hip joint', 'left shoulder joint', 'right shoulder joint',
+                       'along left femur', 'along right femur', 'along left humerus', 'along right humerus',
+                       'heart apex', 'atrial base', 'aorta']
+        locations = [[0.8, 0.5, 0.5], [0.2, 0.5, 0.5], [0.8, 0.5, 0.5], [0.2, 0.5, 0.5],
+                     [0.2, 0.99, 0.5], [0.8, 0.99, 0.5], [0.5, 0.0, 0.5], [0.5, 0.0, 0.5],
+                     [0.5, 0.5, 0.0], [0.7, 0.5, 0.0], [0.7, 0.5, 0.2]]
+        nodeIdentifier = 1000027
+        for idx, elementIdentifier in enumerate(elementIdentifiers):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            fieldcache.setNode(markerPoint)
+            markerName.assignString(fieldcache, markerNames[idx])
+            markerLocation.assignMeshLocation(fieldcache, element, locations[idx])
+            nodeIdentifier += 1
 
         return annotationGroups
 
