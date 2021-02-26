@@ -477,10 +477,6 @@ class ShieldMesh:
 
                     elif (e2 == e2b) or (e2 == e2y):
                         if (e1 <= e1a) or (e1 >= e1z):
-                            # map top 2 triple point elements
-                            eft1 = tricubichermite.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [ -1.0 ]
                             if e1 < e1a:
                                 e2r = e1
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
@@ -492,6 +488,9 @@ class ShieldMesh:
                                         nids = [self.nodeId[e3][e2r][e1b], self.nodeId[e3][e2y][e1+1], self.nodeId[e3+1][e2r][e1b], self.nodeId[e3+1][e2y][e1+1],
                                                 self.nodeId[e3][e2r+1][e1b], self.nodeId[e3][e2y][e1], self.nodeId[e3+1][e2r+1][e1b], self.nodeId[e3+1][e2y][e1]]
                                 elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     nids[0] = self.nodeId[0][e2r    ][e1b]
                                     nids[1] = self.nodeId[0][e2r + 1][e1b]
                                     nids[4] = self.nodeId[1][e2r    ][e1b]
@@ -499,6 +498,9 @@ class ShieldMesh:
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                             elif e1 == e1a:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                     if e2 == e2b:
                                         nids[0] = self.nodeId[e3][e2a][e1b]
@@ -519,6 +521,9 @@ class ShieldMesh:
                                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,[(Node.VALUE_LABEL_D_DS2, [])])
                                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,[(Node.VALUE_LABEL_D_DS1, []),(Node.VALUE_LABEL_D_DS2, [])])
                             elif e1 == e1z:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                     if e2 == e2b:
                                         nids[4] = self.nodeId[e3][e2a][e1z]
@@ -547,6 +552,9 @@ class ShieldMesh:
                                         nids[5] = self.nodeId[e3][e2r+1][e1z]
                                         nids[7] = self.nodeId[e3+1][e2r+1][e1z]
                                 elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     nids[0] = self.nodeId[0][e2r    ][e1z]
                                     nids[1] = self.nodeId[0][e2r - 1][e1z]
                                     nids[4] = self.nodeId[1][e2r    ][e1z]
