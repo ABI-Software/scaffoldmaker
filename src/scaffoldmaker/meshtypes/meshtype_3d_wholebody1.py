@@ -331,8 +331,15 @@ Generates body coordinates using a solid cylinder of all cube elements,
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
         # Apex annotation point
-        elementIdentifiers = [1, e2o - 1, e2o * (elementsCountAlongAbdomen + elementsCountAlongThorax - 1) + 1,
-                              thoraxRange[1] - 1,22,40,161,179,107,127,127]
+        middleLeft = elementsCountAcrossMinor//2
+        topElem = elementsCountAcrossMajor - 1
+        middleRight = middleLeft - 1
+        neckFirstElem = elementsCountAlongAbdomen+elementsCountAlongThorax
+        thoraxFirstElem = elementsCountAlongAbdomen
+        middleDown = elementsCountAcrossMajor//2 - 1
+        elementIdentifiers = [elementId[1][0][middleLeft], elementId[1][topElem][middleLeft], elementId[neckFirstElem][0][middleRight], elementId[neckFirstElem][topElem][middleRight],
+                elementId[1][0][middleLeft], elementId[1][topElem][middleLeft], elementId[neckFirstElem][0][middleRight], elementId[neckFirstElem][topElem][middleRight],
+                elementId[thoraxFirstElem][middleDown][middleRight], elementId[thoraxFirstElem + 1][middleDown][middleRight], elementId[thoraxFirstElem + 1][middleDown][middleRight]]
         markerNames = ['left hip joint', 'right hip joint', 'left shoulder joint', 'right shoulder joint',
                        'along left femur', 'along right femur', 'along left humerus', 'along right humerus',
                        'heart apex', 'atrial base', 'aorta']
