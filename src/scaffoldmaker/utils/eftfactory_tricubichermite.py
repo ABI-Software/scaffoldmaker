@@ -1657,3 +1657,29 @@ class eftfactory_tricubichermite:
         self._mesh.destroyElement(origElement1)
         self._mesh.destroyElement(origElement2)
         fm.endChange()
+
+    def createEftWedgeCollapseXi2(self, collapseNodes):
+        '''
+        EDIT
+        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi1 = 1.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        if collapseNodes in [[4, 8]]:
+            nodes = [2, 4, 6, 8]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
+
+        elif collapseNodes in [[3, 7]]:
+            nodes = [1, 3, 5, 7]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
+
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        remapEftLocalNodes(eft, 6, ln_map)
+        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi2:  Failed to validate eft'
+        return eft
