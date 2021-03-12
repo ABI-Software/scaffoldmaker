@@ -22,11 +22,17 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1",
             "Unit Human 1", "Unit Mouse 1", "Unit Pig 1", "Unit Rat 1" ]);
         options = scaffold.getDefaultOptions("Human 1")
-        self.assertEqual(117, len(options))
+        self.assertEqual(119, len(options))
         self.assertEqual(0.9, options.get("LV outer height"))
         self.assertEqual(80.0, options.get("Unit scale"))
         self.assertEqual(7, options.get("Number of elements around LV free wall"))
         self.assertEqual(7, options.get("Number of elements around RV free wall"))
+        # simplify atria
+        self.assertEqual(8, options.get("Number of elements over atria"))
+        options["Number of elements over atria"] = 6
+        self.assertEqual(2, options.get("Number of elements radial pulmonary vein annuli"))
+        options["Number of elements radial pulmonary vein annuli"] = 1
+        self.assertFalse(scaffold.checkOptions(options))
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
@@ -63,10 +69,10 @@ class HeartScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 36529.60472245443, delta=1.0E-3)
+        self.assertAlmostEqual(surfaceArea, 36498.33179537934, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 221442.64891709128, delta=1.0E-3)
+        self.assertAlmostEqual(volume, 221262.95992336908, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {
