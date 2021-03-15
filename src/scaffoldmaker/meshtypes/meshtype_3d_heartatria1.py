@@ -2803,7 +2803,15 @@ class MeshType_3d_heartatria1(Scaffold_base):
             if elementsCountAlongVCInlet == 1:
                 rowMeshGroups = [ [ vcMeshGroup, vcInletMeshGroup, raMeshGroup] ]
             else:
-                rowMeshGroups = [ [ vcMeshGroup ] ]*max(0, (elementsCountAlongVCInlet - 2)) + [ [ vcMeshGroup, vcInletMeshGroup ], [ vcInletMeshGroup, raMeshGroup] ]
+                rowMeshGroups = []
+                for i in range(elementsCountAlongVCInlet):
+                    xi = (i + 1)/elementsCountAlongVCInlet
+                    meshGroups = []
+                    if xi < 0.67:
+                        meshGroups +=  [ vcMeshGroup ]
+                    if xi > 0.51:
+                        meshGroups +=  [ vcInletMeshGroup, raMeshGroup ]
+                    rowMeshGroups.append(meshGroups)
             nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
                 nodes, mesh, nodeIdentifier, elementIdentifier,
                 vcvx, vcvd1, vcvd2, None, None, None,
