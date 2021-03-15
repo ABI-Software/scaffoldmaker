@@ -82,10 +82,10 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         happens where two or more options must change together to be valid.
         '''
         dependentChanges = False
-        for key in [
-            'Number of elements around root']:
-            if options[key] < 4:
-                options[key] = 4
+        if options['Number of elements around root'] < 4:
+            options['Number of elements around root'] = 4
+        if options['Maximum element length'] > 0.5:
+            options['Maximum element length'] = 0.5
         return dependentChanges
 
     @classmethod
@@ -175,24 +175,24 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                 d2Stem = []
                 curveLength = [[], [], []]
                 centralPathIndex[j].append([])
-                index = 0
+                childrenIndex = 0
                 if j == 0:
-                    child1[0][0] = rootNode.getChild(0)
+                    child1[j][k] = rootNode.getChild(0)
                     # Update central path - Parent nodes
                     centralPathIndex[j][k] = 1
-                    child1[0][0]._x = fieldParameters[centralPathIndex[j][k]][1][0][0]
-                    child1[0][0]._d1 = fieldParameters[centralPathIndex[j][k]][1][1]
+                    child1[j][k]._x = fieldParameters[centralPathIndex[j][k]][1][0][0]
+                    child1[j][k]._d1 = fieldParameters[centralPathIndex[j][k]][1][1]
                     # Update central path - Children nodes
                     nextCentralPathIndex = [centralPathIndex[j][k] + 1, centralPathIndex[j][k] + (2 ** (Generation - 1))]
-                    child1[0][0].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
-                    child1[0][0].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
-                    child1[0][0].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
-                    child1[0][0].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
+                    child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
+                    child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
+                    child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
+                    child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
                     # Parental branch
                     xParent1, xParentd1, rParent1, xParent2, xParentd2, rParent2 = rootNode.getChildCurve(0)
                     # Get the right(0) [left(1)] children curve from the bifurcation tree
-                    xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[0][0].getChildCurve(0)
-                    xLeft1, xLeftd1, rLeft1, xLeft2, xLeftd2, rLeft2 = child1[0][0].getChildCurve(1)
+                    xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[j][k].getChildCurve(0)
+                    xLeft1, xLeftd1, rLeft1, xLeft2, xLeftd2, rLeft2 = child1[j][k].getChildCurve(1)
                 else:
                     if (k % 2) == 0:
                         child1[j][k] = child1[j-1][k//2].getChild(0)
@@ -225,9 +225,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                 axis1 = normalize(xRightd2)
                 axis2 = normalize(xLeftd2)
                 side = cross(axis1, axis2)
-                side[0] = side[0] * -1
-                side[1] = side[1] * -1
-                side[2] = side[2] * -1
+                side = [element * -1 for element in side]
 
                 # Look at each bifurcation (parent and children branch)
                 for l in range(3):
@@ -286,13 +284,16 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                             d2Stem.append([])
                             xi = (m + 2) / elementsCount # skipping 2D bifurcation ring nodes
                             # index1 = (elementsCountBranch - 2) * (l - 1) + m
-                            cxStem, cd1Stem, cd2Stem, xStem[index], d1Stem[index], d2Stem[index] = \
+                            cxStem, cd1Stem, cd2Stem, xStem[childrenIndex], d1Stem[childrenIndex], d2Stem[childrenIndex] = \
                                 get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, elementLength, side, elementsCountAroundRoot)
-                            index += 1
+                            childrenIndex += 1
 
                 rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
                     make_tube_bifurcation_points(cx[0], x[0], d2[0], cx[2], x[2], d2[2], cx[1], x[1], d2[1])
 
+                ################
+                # Create nodes
+                ################
                 paNodeId = []
                 try:
                     # If there are overlapping nodes at the same cross section, reuse those nodes
@@ -367,12 +368,14 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                 elementsCountAlongRoot = math.ceil(len(rootNodeId[k])/elementsCountAroundRoot - 1)
                 for e2 in range(elementsCountAlongRoot+1):
                     for e1 in range(elementsCountAroundRoot):
-                        if (e2 == (elementsCountAlongRoot)):
+                        # Connect root and bifurcation parents
+                        if e2 == elementsCountAlongRoot:
                             if rootNodeId[k] == paNodeId:
+                                # Reorder paNodeId for smoothness
                                 if ((elementsCountAroundRoot // 8) < (elementsCountAroundRoot / 8)):
                                     for i in range(((elementsCountAroundRoot // 8) * 2) + 1):
-                                            paNodeId.insert(0, paNodeId[-1])
-                                            paNodeId.pop(-1)
+                                        paNodeId.insert(0, paNodeId[-1])
+                                        paNodeId.pop(-1)
                                 else:
                                     for i in range(2 * (elementsCountAroundRoot // 8)):
                                         paNodeId.insert(0, paNodeId[-1])
@@ -403,7 +406,6 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                                                                       useCrossDerivatives)
 
                 # Store the root nodes for the next generation
-                index = []
                 for i in range(3):
                     cx.insert(0, [])
                     cd1.insert(0, [])
@@ -414,15 +416,14 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
 
                 for i in range(2):
                     nextRootNodeId.append([])
-                    index.append([])
                     elementsCountAlongRoot = max(2, math.ceil(curveLength[i+1] / maxElementLength))
-                    index[i] = elementsCountAroundRoot * (elementsCountAlongRoot-1) if j == Generation - 2 else elementsCountAroundRoot * (elementsCountAlongRoot - 3)
+                    index = elementsCountAroundRoot * (elementsCountAlongRoot-1) if j == Generation - 2 else elementsCountAroundRoot * (elementsCountAlongRoot - 3)
                     if i == 0:
                         nextRootNodeId[k*2] = c1NodeId
-                        nextRootNodeId[k*2].extend(stemNodeId[:index[0]])
+                        nextRootNodeId[k*2].extend(stemNodeId[:index])
                     else:
                         nextRootNodeId[(k*2)+1] = c2NodeId
-                        nextRootNodeId[(k*2)+1].extend(stemNodeId[index[0]:])
+                        nextRootNodeId[(k*2)+1].extend(stemNodeId[index:])
 
             # Connect children branch (last branch)
             if j == Generation - 2:
