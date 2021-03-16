@@ -209,7 +209,6 @@ Generates body coordinates using a solid cylinder of all cube elements,
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         neckGroup = AnnotationGroup(region, get_body_term("neck"))
         headGroup = AnnotationGroup(region, get_body_term("head"))
-        non_coreFirstLayerGroup = AnnotationGroup(region, get_body_term("non core first layer"))
         annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup]
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
@@ -283,7 +282,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
                     ri += 1
 
         # create discontinuity in d3 on the core boundary
-        non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.getMeshGroup(mesh)
+        non_coreFirstLayerGroup = findOrCreateFieldGroup(fieldmodule, "non core first layer")
+        non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.createFieldElementGroup(mesh).getMeshGroup()
         for e3 in range(elementsCountAlong):
             for e2 in range(elementsCountAcrossMajor):
                 for e1 in range(elementsCountAcrossMinor):
