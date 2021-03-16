@@ -38,7 +38,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             }
 
     centralPathDefaultScaffoldPackages = {
-        'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Default': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': cylinder1Settings,
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
@@ -55,7 +55,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
+        centralPathOption = cls.centralPathDefaultScaffoldPackages['Default']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 6,
