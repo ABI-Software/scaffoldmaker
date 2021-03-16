@@ -53,6 +53,13 @@ Generates body coordinates using a solid cylinder of all cube elements,
     def getName():
         return '3D Whole Body 1'
 
+    @staticmethod
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Coarse',
+            'Fine']
+
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Default']
@@ -73,6 +80,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'Refine number of elements across major': 1,
             'Refine number of elements along': 1
         }
+        if 'Coarse' in parameterSetName:
+            pass
+        if 'Fine' in parameterSetName:
+            pass
         return options
 
     @staticmethod
