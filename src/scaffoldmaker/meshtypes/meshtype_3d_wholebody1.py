@@ -330,29 +330,35 @@ Generates body coordinates using a solid cylinder of all cube elements,
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
-        # Apex annotation point
+        #
         middleLeft = elementsCountAcrossMinor//2
         topElem = elementsCountAcrossMajor - 1
         middleRight = middleLeft - 1
         neckFirstElem = elementsCountAlongAbdomen+elementsCountAlongThorax
         thoraxFirstElem = elementsCountAlongAbdomen
         middleDown = elementsCountAcrossMajor//2 - 1
-        elementIdentifiers = [elementId[1][0][middleLeft], elementId[1][topElem][middleLeft], elementId[neckFirstElem][0][middleRight], elementId[neckFirstElem][topElem][middleRight],
-                elementId[1][0][middleLeft], elementId[1][topElem][middleLeft], elementId[neckFirstElem][0][middleRight], elementId[neckFirstElem][topElem][middleRight],
-                elementId[thoraxFirstElem][middleDown][middleRight], elementId[thoraxFirstElem + 1][middleDown][middleRight], elementId[thoraxFirstElem + 1][middleDown][middleRight]]
-        markerNames = ['left hip joint', 'right hip joint', 'left shoulder joint', 'right shoulder joint',
-                       'along left femur', 'along right femur', 'along left humerus', 'along right humerus',
-                       'heart apex', 'atrial base', 'aorta']
-        locations = [[0.8, 0.5, 0.5], [0.2, 0.5, 0.5], [0.8, 0.5, 0.5], [0.2, 0.5, 0.5],
-                     [0.2, 0.99, 0.5], [0.8, 0.99, 0.5], [0.5, 0.0, 0.5], [0.5, 0.0, 0.5],
-                     [0.5, 0.5, 0.0], [0.7, 0.5, 0.0], [0.7, 0.5, 0.2]]
-        nodeIdentifier = 1000027
-        for idx, elementIdentifier in enumerate(elementIdentifiers):
-            element = mesh.findElementByIdentifier(elementIdentifier)
+
+        bodyMarkerPoints = [
+            {"name": "left hip joint", "elementId": elementId[1][0][middleLeft], "xi": [0.8, 0.5, 0.5]},
+            {"name": "right hip joint", "elementId": elementId[1][topElem][middleLeft], "xi": [0.2, 0.5, 0.5]},
+            {"name": "left shoulder joint", "elementId": elementId[neckFirstElem][0][middleRight], "xi": [0.8, 0.5, 0.5]},
+            {"name": "right shoulder joint", "elementId": elementId[neckFirstElem][topElem][middleRight], "xi": [0.2, 0.5, 0.5]},
+            {"name": "along left femur", "elementId": elementId[1][0][middleLeft], "xi": [0.2, 0.99, 0.5]},
+            {"name": "along right femur", "elementId": elementId[1][topElem][middleLeft], "xi": [0.8, 0.99, 0.5]},
+            {"name": "along left humerus", "elementId": elementId[neckFirstElem][0][middleRight], "xi": [0.5, 0.0, 0.5]},
+            {"name": "along right humerus", "elementId": elementId[neckFirstElem][topElem][middleRight], "xi": [0.5, 0.0, 0.5]},
+            {"name": "heart apex", "elementId": elementId[thoraxFirstElem][middleDown][middleRight], "xi": [0.5, 0.5, 0.0]},
+            {"name": "atrial base", "elementId": elementId[thoraxFirstElem + 1][middleDown][middleRight], "xi": [0.7, 0.5, 0.0]},
+            {"name": "aorta", "elementId": elementId[thoraxFirstElem + 1][middleDown][middleRight], "xi": [0.7, 0.5, 0.2]}
+        ]
+
+        nodeIdentifier = cylinder1._endNodeIdentifier + 1000
+        for bodyMarkerPoint in bodyMarkerPoints:
+            element = mesh.findElementByIdentifier(bodyMarkerPoint["elementId"])
             markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
             fieldcache.setNode(markerPoint)
-            markerName.assignString(fieldcache, markerNames[idx])
-            markerLocation.assignMeshLocation(fieldcache, element, locations[idx])
+            markerName.assignString(fieldcache, bodyMarkerPoint["name"])
+            markerLocation.assignMeshLocation(fieldcache, element, bodyMarkerPoint["xi"])
             nodeIdentifier += 1
 
         return annotationGroups
