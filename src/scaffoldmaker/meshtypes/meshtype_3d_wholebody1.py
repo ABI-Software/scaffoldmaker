@@ -74,6 +74,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'Number of elements in neck': 1,
             'Number of elements in head': 2,
             'Shell element thickness proportion': 1.0,
+            'Discontinuity on the core boundary': True,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -99,6 +100,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'Number of elements in neck',
             'Number of elements in head',
             'Shell element thickness proportion',
+            'Discontinuity on the core boundary',
             'Refine',
             'Refine number of elements across major',
             'Refine number of elements along'
@@ -194,6 +196,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
         elementsCountAlongNeck = options['Number of elements in neck']
         elementsCountAlongThorax = options['Number of elements in thorax']
         shellProportion = options['Shell element thickness proportion']
+        discontinuity = options['Discontinuity on the core boundary']
         useCrossDerivatives = options['Use cross derivatives']
 
         elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
@@ -281,56 +284,59 @@ Generates body coordinates using a solid cylinder of all cube elements,
                         break
                     ri += 1
 
-        # create discontinuity in d3 on the core boundary
-        non_coreFirstLayerGroup = findOrCreateFieldGroup(fieldmodule, "non core first layer")
-        non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.createFieldElementGroup(mesh).getMeshGroup()
-        for e3 in range(elementsCountAlong):
-            for e2 in range(elementsCountAcrossMajor):
-                for e1 in range(elementsCountAcrossMinor):
-                    regularRowElement = (((e2 >= e2b) and (e2 <= e2y)) and ((e1 == e1a - 1) or (e1 == e1z + 1)))
-                    non_coreFirstLayerElement = (e2 == e2a - 1) or regularRowElement or (e2 == e2z + 1)
-                    elementIdentifier = elementId[e3][e2][e1]
-                    if elementIdentifier and non_coreFirstLayerElement:
-                        element = mesh.findElementByIdentifier(elementIdentifier)
-                        non_coreFirstLayerMeshGroup.addElement(element)
+        if discontinuity:
+            # create discontinuity in d3 on the core boundary
+            non_coreFirstLayerGroup = findOrCreateFieldGroup(fieldmodule, "non core first layer")
+            non_coreFirstLayerMeshGroup = non_coreFirstLayerGroup.createFieldElementGroup(mesh).getMeshGroup()
+            for e3 in range(elementsCountAlong):
+                for e2 in range(elementsCountAcrossMajor):
+                    for e1 in range(elementsCountAcrossMinor):
+                        regularRowElement = (((e2 >= e2b) and (e2 <= e2y)) and ((e1 == e1a - 1) or (e1 == e1z + 1)))
+                        non_coreFirstLayerElement = (e2 == e2a - 1) or regularRowElement or (e2 == e2z + 1)
+                        elementIdentifier = elementId[e3][e2][e1]
+                        if elementIdentifier and non_coreFirstLayerElement:
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            non_coreFirstLayerMeshGroup.addElement(element)
 
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        elementtemplate = mesh.createElementtemplate()
-        undefineNodetemplate = nodes.createNodetemplate()
-        undefineNodetemplate.undefineField(coordinates)
-        nodetemplate = nodes.createNodetemplate()
-        fieldcache = fieldmodule.createFieldcache()
-        with ChangeManager(fieldmodule):
-            elementIter = non_coreFirstLayerMeshGroup.createElementiterator()
-            element = elementIter.next()
-            localNodeIndexes = [1, 2, 3, 4]
-            valueLabel = Node.VALUE_LABEL_D_DS3
-            while element.isValid():
-                eft = element.getElementfieldtemplate(coordinates, -1)
-                nodeIds = get_element_node_identifiers(element, eft)
-                for localNodeIndex in localNodeIndexes:
-                    node = element.getNode(eft, localNodeIndex)
-                    nodetemplate.defineFieldFromNode(coordinates, node)
-                    versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1, valueLabel)
-                    if versionsCount == 1:
-                        fieldcache.setNode(node)
-                        result0, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-                        result0, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-                        result0, d2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
-                        result0, d3 = coordinates.getNodeParameters(fieldcache, -1, valueLabel, 1, 3)
-                        result1 = node.merge(undefineNodetemplate)
-                        result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, 2)
-                        result3 = node.merge(nodetemplate)
-                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                        result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
-                        result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
-                remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], 2)
-                result1 = elementtemplate.defineField(coordinates, -1, eft)
-                result2 = element.merge(elementtemplate)
-                result3 = element.setNodesByIdentifier(eft, nodeIds)
+            nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            elementtemplate = mesh.createElementtemplate()
+            undefineNodetemplate = nodes.createNodetemplate()
+            undefineNodetemplate.undefineField(coordinates)
+            nodetemplate = nodes.createNodetemplate()
+            fieldcache = fieldmodule.createFieldcache()
+            with ChangeManager(fieldmodule):
+                elementIter = non_coreFirstLayerMeshGroup.createElementiterator()
                 element = elementIter.next()
+                localNodeIndexes = [1, 2, 3, 4]
+                valueLabel = Node.VALUE_LABEL_D_DS3
+                while element.isValid():
+                    eft = element.getElementfieldtemplate(coordinates, -1)
+                    nodeIds = get_element_node_identifiers(element, eft)
+                    for localNodeIndex in localNodeIndexes:
+                        node = element.getNode(eft, localNodeIndex)
+                        nodetemplate.defineFieldFromNode(coordinates, node)
+                        versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1, valueLabel)
+                        if versionsCount == 1:
+                            fieldcache.setNode(node)
+                            result0, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                            result0, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                            result0, d2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                            result0, d3 = coordinates.getNodeParameters(fieldcache, -1, valueLabel, 1, 3)
+                            result1 = node.merge(undefineNodetemplate)
+                            result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, 2)
+                            result3 = node.merge(nodetemplate)
+                            result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                            result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                            result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                            result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
+                            result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
+                    remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], 2)
+                    result1 = elementtemplate.defineField(coordinates, -1, eft)
+                    result2 = element.merge(elementtemplate)
+                    result3 = element.setNodesByIdentifier(eft, nodeIds)
+                    element = elementIter.next()
+        else:
+            fieldcache = fieldmodule.createFieldcache()
 
         # Annotation fiducial point
         markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
