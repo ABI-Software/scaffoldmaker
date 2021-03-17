@@ -73,7 +73,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'Number of elements in thorax': 3,
             'Number of elements in neck': 1,
             'Number of elements in head': 2,
-            'Shell element thickness proportion': 1.0,
+            'Shell thickness proportion': 0.33,
             'Discontinuity on the core boundary': True,
             'Lower half': False,
             'Use cross derivatives': False,
@@ -99,7 +99,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'Number of elements in thorax',
             'Number of elements in neck',
             'Number of elements in head',
-            'Shell element thickness proportion',
+            'Shell thickness proportion',
             'Discontinuity on the core boundary',
             'Refine',
             'Refine number of elements across major',
@@ -148,10 +148,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
         if options['Number of elements across major'] % 2:
             options['Number of elements across major'] += 1
 
-        if options['Number of elements across minor'] < 4:
-            options['Number of elements across minor'] = 4
-        if options['Number of elements across minor'] % 2:
-            options['Number of elements across minor'] += 1
+        if options['Number of elements across minor'] != options['Number of elements across major']:
+            options['Number of elements across minor'] = options['Number of elements across major']
+            dependentChanges = True
+
         if options['Number of elements across transition'] < 1:
             options['Number of elements across transition'] = 1
 
@@ -160,8 +160,9 @@ Generates body coordinates using a solid cylinder of all cube elements,
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
             options['Number of elements across transition'] = 1
-        if options['Shell element thickness proportion'] < 0.15:
-            options['Shell element thickness proportion'] = 1.0
+
+        if options['Shell thickness proportion'] < 0.07 or options['Shell thickness proportion'] > 0.7:
+            options['Shell thickness proportion'] = 2*options['Number of elements across shell']/options['Number of elements across major']
 
         if options['Number of elements in abdomen'] < 1:
             options['Number of elements in abdomen'] = 1
@@ -195,7 +196,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
         elementsCountAlongHead = options['Number of elements in head']
         elementsCountAlongNeck = options['Number of elements in neck']
         elementsCountAlongThorax = options['Number of elements in thorax']
-        shellProportion = options['Shell element thickness proportion']
+        shellRadiusProportion = options['Shell thickness proportion']
+        shellProportion = 1/(1/shellRadiusProportion-1)*(elementsCountAcrossMajor/2/elementsCountAcrossShell - 1)
         discontinuity = options['Discontinuity on the core boundary']
         useCrossDerivatives = options['Use cross derivatives']
 
