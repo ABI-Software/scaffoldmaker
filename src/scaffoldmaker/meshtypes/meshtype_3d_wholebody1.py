@@ -22,6 +22,7 @@ from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field
 from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
+from scaffoldmaker.utils.vector import setMagnitude
 
 
 class MeshType_3d_wholebody1(Scaffold_base):
@@ -37,14 +38,17 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 'Number of elements': 1
             }
 
+    axis1 = [0, 0, 1]
+    axis2 = [1, 0, 0]
+    axis3 = [0, 1, 0]
     centralPathDefaultScaffoldPackages = {
         'Default': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': cylinder1Settings,
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[0.0, 0.0, 0.0], [cylinder1Settings['Length'], 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 0.0, 0.0]],
-                    [[cylinder1Settings['Length'], 0.0, 0.0], [cylinder1Settings['Length'], 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 0.0, 0.0]]
+                    [[0.0, 0.0, 0.0], setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]],
+                    [setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]]
                 ])
         })
     }
@@ -441,19 +445,21 @@ Generates body coordinates using a solid cylinder of all cube elements,
         zero = fm.createFieldConstant(0)
         zero_m = fm.createFieldConstant(-0.01)
         zero_p = fm.createFieldConstant(0.01)
-        y_comp = fm.createFieldComponent(coordinates, 2)
-        y_gt_zero_m = fm.createFieldGreaterThan(y_comp, zero_m)
-        y_lt_zero_p = fm.createFieldLessThan(y_comp, zero_p)
-        y_gt_zero_xi10 = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), y_gt_zero_m)
-        y_lt_zero_xi10 = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), y_lt_zero_p)
-        is_y_zero = fm.createFieldAnd(y_lt_zero_xi10, y_gt_zero_xi10)
-        z_comp = fm.createFieldComponent(coordinates, 3)
-        z_positive = fm.createFieldGreaterThan(z_comp, zero)
-        is_y_zero_z_positive = fm.createFieldAnd(is_y_zero, z_positive)
+        comp2 = cls.axis2.index(max(cls.axis2)) + 1
+        ax2_comp = fm.createFieldComponent(coordinates, comp2)
+        ax2_gt_zero_m = fm.createFieldGreaterThan(ax2_comp, zero_m)
+        ax2_lt_zero_p = fm.createFieldLessThan(ax2_comp, zero_p)
+        ax2_gt_zero_xi10 = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), ax2_gt_zero_m)
+        ax2_lt_zero_xi10 = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), ax2_lt_zero_p)
+        is_ax2_zero = fm.createFieldAnd(ax2_lt_zero_xi10, ax2_gt_zero_xi10)
+        comp3 = cls.axis3.index(max(cls.axis3)) + 1
+        ax3_comp = fm.createFieldComponent(coordinates, comp3)
+        ax3_positive = fm.createFieldGreaterThan(ax3_comp, zero)
+        is_ax2_zero_ax3_positive = fm.createFieldAnd(is_ax2_zero, ax3_positive)
         is_abdomen_thorax = fm.createFieldAdd(abdomenGroup.getGroup(), thoraxGroup.getGroup())
         is_abdomen_thorax_neck = fm.createFieldAdd(is_abdomen_thorax, neckGroup.getGroup())
         is_abdomen_thorax_neck_boundary = fm.createFieldAnd(is_core_boundary, is_abdomen_thorax_neck)
-        is_spinal_cord = fm.createFieldAnd(is_y_zero_z_positive, is_abdomen_thorax_neck_boundary)
+        is_spinal_cord = fm.createFieldAnd(is_ax2_zero_ax3_positive, is_abdomen_thorax_neck_boundary)
 
         mesh1d = fm.findMeshByDimension(1)
         spinalCordMeshGroup = spinalCordGroup.getMeshGroup(mesh1d)
