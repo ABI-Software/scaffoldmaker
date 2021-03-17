@@ -8,6 +8,8 @@ body_terms = [
     ( "thorax", "ILX:0742178" ),
     ( "neck", "UBERON:0000974", "ILX:0733967" ),
     ( "head", "UBERON:0000033", "ILX:0104909" ),
+    ( "neck core", "" ),
+    ( "head core", "" ),
     ( "skin epidermis", "UBERON:0001003", "ILX:0728574" ),
     ( "diaphragm", "UBERON:0001103", "ILX:0103194" ),
     ( "spinal cord", "UBERON:0002240", "ILX:0110909" ),

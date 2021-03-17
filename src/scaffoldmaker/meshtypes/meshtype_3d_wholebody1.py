@@ -212,8 +212,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
         non_coreGroup = AnnotationGroup(region, get_body_term("non core"))
         abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
-        neckGroup = AnnotationGroup(region, get_body_term("neck"))
-        headGroup = AnnotationGroup(region, get_body_term("head"))
+        neckGroup = AnnotationGroup(region, get_body_term("neck core"))
+        headGroup = AnnotationGroup(region, get_body_term("head core"))
         annotationGroups = [bodyGroup, coreGroup, non_coreGroup, abdomenGroup, thoraxGroup, neckGroup, headGroup]
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
@@ -414,7 +414,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
         non_coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("non core"))
         abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
         thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
-        neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck"))
+        neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck core"))
 
         skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
         coreBoundaryGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("core boundary"))
