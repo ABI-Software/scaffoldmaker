@@ -77,7 +77,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'Number of elements in thorax': 3,
             'Number of elements in neck': 1,
             'Number of elements in head': 2,
-            'Shell thickness proportion': 0.33,
+            'Shell thickness proportion': 0.2,
             'Discontinuity on the core boundary': True,
             'Lower half': False,
             'Use cross derivatives': False,
@@ -88,7 +88,14 @@ Generates body coordinates using a solid cylinder of all cube elements,
         if 'Coarse' in parameterSetName:
             pass
         if 'Fine' in parameterSetName:
-            pass
+            options['Number of elements across major'] = 10
+            options['Number of elements across minor'] = 10
+            options['Number of elements across shell'] = 1
+            options['Number of elements across transition'] = 1
+            options['Number of elements in abdomen'] = 10
+            options['Number of elements in thorax'] = 6
+            options['Number of elements in neck'] = 2
+            options['Number of elements in head'] = 4
         return options
 
     @staticmethod
