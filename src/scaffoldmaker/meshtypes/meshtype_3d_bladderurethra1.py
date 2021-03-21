@@ -677,52 +677,53 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 outerNodes_d1.append(d1List[(2 * n2 + 1) * elementsCountAround + n1])
                 outerNodes_d2.append(d2List[(2 * n2 + 1) * elementsCountAround + n1])
 
+        elementsCount1 = elementsCountAround // 2
+        elementsCount2 = elementsCountAlongBladder
+        # Create trackSurface at the outer layer of the bladder for ureter 1
+        nodesOnTrackSurface_x = []
+        nodesOnTrackSurface_d1 = []
+        nodesOnTrackSurface_d2 = []
+        for n2 in range(elementsCountAlongBladder + 1):
+            for n1 in range(elementsCountAround // 2 + 1):
+                nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
+        trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
+                                           nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
+
+        ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
+        ureterElementPositionAround = ureter1Position.e1
+        ureterElementPositionDown = ureter1Position.e2
+        elementToDeleteStartIdx1 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
+                                   + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
+
+        elementIndex = elementToDeleteStartIdx1 - elementsCountAround * ureterElementPositionDown
+
+        # Create trackSurface at the outer layer of the bladder for ureter 2
+        nodesOnTrackSurface2_x = []
+        nodesOnTrackSurface2_d1 = []
+        nodesOnTrackSurface2_d2 = []
+        for n2 in range(elementsCountAlongBladder + 1):
+            for n1 in range(elementsCountAround // 2, elementsCountAround):
+                nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
+            nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
+            nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
+            nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
+
+        trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
+                                           nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
+        ureter2Position = TrackSurfacePosition(elementsCountAround // 2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
+                                               ureterElementPositionDown,
+                                               (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
+                                               ureter1Position.xi2)
+
         if includeUreter:
-            elementsCount1 = elementsCountAround // 2
-            elementsCount2 = elementsCountAlongBladder
-            # Create trackSurface at the outer layer of the bladder for ureter 1
-            nodesOnTrackSurface_x = []
-            nodesOnTrackSurface_d1 = []
-            nodesOnTrackSurface_d2 = []
-            for n2 in range(elementsCountAlongBladder + 1):
-                for n1 in range(elementsCountAround // 2 + 1):
-                    nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-            trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
-                                               nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
-
-            ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
-            ureterElementPositionAround = ureter1Position.e1
-            ureterElementPositionDown = ureter1Position.e2
-            elementToDeleteStartIdx1 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
-                                       + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
-
-            elementIndex = elementToDeleteStartIdx1 - elementsCountAround * ureterElementPositionDown
             if ureterElementPositionAround > (elementsCountAround / 4):
                 elementsCountVentral1 = (elementsCountAround // 4)
             else:
                 elementsCountVentral1 = elementIndex - 1
-
-            # Create trackSurface at the outer layer of the bladder for ureter 2
-            nodesOnTrackSurface2_x = []
-            nodesOnTrackSurface2_d1 = []
-            nodesOnTrackSurface2_d2 = []
-            for n2 in range(elementsCountAlongBladder + 1):
-                for n1 in range(elementsCountAround // 2, elementsCountAround):
-                    nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-                nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
-                nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
-                nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
-
-            trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
-                                               nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
-            ureter2Position = TrackSurfacePosition(elementsCountAround // 2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
-                                                   ureterElementPositionDown,
-                                                   (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
-                                                   ureter1Position.xi2)
         else:
             elementsCountVentral1 = elementsCountAround // 4
 
@@ -813,13 +814,67 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                             ureterMeshGroup, bladderMeshGroup)
 
         # Apex annotation point
-        nodeIdentifier = nextNodeIdentifier
+        nodeIdentifier = nextNodeIdentifier + elementsCountAroundUreter * 4 * 2 + elementsCountAroundUreter * 2 * 2 * elementsCountUreterRadial
         idx = 1
         element1 = mesh.findElementByIdentifier(idx)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         cache.setNode(markerPoint)
         markerName.assignString(cache, 'Apex of urinary bladder')
         markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
+
+        # Markers for ureters
+        if includeUreter:
+            # Left ureter
+            nodeIdentifier += 1
+            idx1 = elementsCountAlong * elementsCountAround + elementsCountAroundUreter
+            element1 = mesh.findElementByIdentifier(idx1)
+            markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerUreter1Point)
+            markerName.assignString(cache, 'ureter junction of bladder trigone')
+            markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 1.0])
+            # Right ureter
+            nodeIdentifier += 1
+            idx2 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
+            element2 = mesh.findElementByIdentifier(idx2)
+            markerUreter2Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerUreter2Point)
+            markerName.assignString(cache, 'ureter junction of bladder trigone')
+            markerLocation.assignMeshLocation(cache, element2, [0.0, 1.0, 1.0])
+        else:
+            # Left ureter
+            nodeIdentifier += 1
+            idx1 = ureterElementPositionDown * elementsCountAround + ureterElementPositionAround + 1
+            element1 = mesh.findElementByIdentifier(idx1)
+            markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerUreter1Point)
+            markerName.assignString(cache, 'ureter junction of bladder trigone')
+            markerLocation.assignMeshLocation(cache, element1, [ureter1Position.xi1, ureter1Position.xi2, 1.0])
+            # Right ureter
+            nodeIdentifier += 1
+            idx2 = ureterElementPositionDown * elementsCountAround + elementsCountAround - ureterElementPositionAround
+            element2 = mesh.findElementByIdentifier(idx2)
+            markerUreter2Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerUreter2Point)
+            markerName.assignString(cache, 'ureter junction of bladder trigone')
+            markerLocation.assignMeshLocation(cache, element2, [1-ureter1Position.xi1, ureter1Position.xi2, 1.0])
+
+        # Markers for urethra
+        # Dorsal
+        nodeIdentifier += 1
+        idx1 = (elementsCountAlongBladder - 1) * elementsCountAround + elementsCountAround // 2
+        element1 = mesh.findElementByIdentifier(idx1)
+        markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        cache.setNode(markerUreter1Point)
+        markerName.assignString(cache, 'urethra junction with bladder dorsal')
+        markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
+        # Ventral
+        nodeIdentifier += 1
+        idx1 = (elementsCountAlongBladder - 1) * elementsCountAround + 1
+        element1 = mesh.findElementByIdentifier(idx1)
+        markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        cache.setNode(markerUreter1Point)
+        markerName.assignString(cache, 'urethra junction with bladder ventral')
+        markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 1.0])
 
         fm.endChange()
         return annotationGroups
