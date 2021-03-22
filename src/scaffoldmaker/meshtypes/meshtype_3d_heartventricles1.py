@@ -910,10 +910,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     elif e1 == (elementsCountAroundRVFreeWall - 1):
                         # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [ -1.0 ]
                         if e2 == elementsCountUpLVApex:
                             # collapsed RV corner uses outside d/dxi2 = d1
+                            setEftScaleFactorIds(eft1, [1], [])
+                            scalefactors = [ -1.0 ]
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                             remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])

@@ -410,22 +410,28 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 eft1 = eftFactory.createEftNoCrossDerivatives()
                 # work out if scaling by global -1
                 scaleMinus1 = mapStartLinearDerivativeXi3 or mapEndLinearDerivativeXi3
-                if (not scaleMinus1) and startDerivativesMap:
+                if (not scaleMinus1) and mapStartDerivatives:
                     for n3 in range(2):
-                        for i in range(2):
-                            derivativesMap = startDerivativesMap[n3][e1] if (i == 0) else startDerivativesMap[n3][en]
-                            for map in derivativesMap:
-                                if map and (-1 in map):
-                                    scaleMinus1 = True
-                                    break
-                if (not scaleMinus1) and endDerivativesMap:
+                        # need to handle 3 or 4 maps (e1 uses last 3, en uses first 3)
+                        for map in startDerivativesMap[n3][e1][-3:]:
+                            if map and (-1 in map):
+                                scaleMinus1 = True
+                                break
+                        for map in startDerivativesMap[n3][en][:3]:
+                            if map and (-1 in map):
+                                scaleMinus1 = True
+                                break
+                if (not scaleMinus1) and mapEndDerivatives:
                     for n3 in range(2):
-                        for i in range(2):
-                            derivativesMap = endDerivativesMap[n3][e1] if (i == 0) else endDerivativesMap[n3][en]
-                            for map in derivativesMap:
-                                if map and (-1 in map):
-                                    scaleMinus1 = True
-                                    break
+                        # need to handle 3 or 4 maps (e1 uses last 3, en uses first 3)
+                        for map in endDerivativesMap[n3][e1][-3:]:
+                            if map and (-1 in map):
+                                scaleMinus1 = True
+                                break
+                        for map in endDerivativesMap[n3][en][:3]:
+                            if map and (-1 in map):
+                                scaleMinus1 = True
+                                break
                 # make node scale factors vary fastest by local node varying across lower xi
                 nodeScaleFactorIds = []
                 for n3 in range(2):
