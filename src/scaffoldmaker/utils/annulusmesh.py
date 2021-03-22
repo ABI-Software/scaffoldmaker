@@ -412,7 +412,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 scaleMinus1 = mapStartLinearDerivativeXi3 or mapEndLinearDerivativeXi3
                 if (not scaleMinus1) and mapStartDerivatives:
                     for n3 in range(2):
-                        # need to handle 3 or 4 maps (e1 uses first 3, en uses last 3)
+                        # need to handle 3 or 4 maps (e1 uses last 3, en uses first 3)
                         for map in startDerivativesMap[n3][e1][-3:]:
                             if map and (-1 in map):
                                 scaleMinus1 = True
