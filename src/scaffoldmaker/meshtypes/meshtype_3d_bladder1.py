@@ -265,7 +265,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         elementtemplate.defineField(coordinates, -1, eft)
 
         neckGroup = AnnotationGroup(region, get_bladder_term("neck of urinary bladder"))
-        bodyGroup = AnnotationGroup(region, get_bladder_term("dome of the Bladder"))
+        bodyGroup = AnnotationGroup(region, get_bladder_term("dome of the bladder"))
         urinaryBladderGroup = AnnotationGroup(region, get_bladder_term("urinary bladder"))
         annotationGroups = [neckGroup, bodyGroup, urinaryBladderGroup]
 
@@ -863,7 +863,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         # create 2d surface mesh groups
         fm = region.getFieldmodule()
         neckGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("neck of urinary bladder"))
-        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dome of the Bladder"))
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dome of the bladder"))
         urinaryBladderGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urinary bladder"))
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
