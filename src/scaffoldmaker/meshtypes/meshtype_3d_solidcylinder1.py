@@ -53,7 +53,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
+            'Number of elements across transition': 1,
             'Number of elements along': 1,
+            'Shell element thickness proportion': 1.0,
             'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
@@ -69,7 +71,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
+            'Number of elements across transition',
             'Number of elements along',
+            'Shell element thickness proportion',
             'Lower half',
             'Refine',
             'Refine number of elements across major',
@@ -124,10 +128,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Number of elements across minor'] += 1
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
+        if options['Number of elements across transition'] < 1:
+            options['Number of elements across transition'] = 1
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
-        if options['Number of elements across shell'] > Rcrit:
+        if options['Number of elements across shell'] + options['Number of elements across transition'] - 1 > Rcrit:
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
+            options['Number of elements across transition'] = 1
+
+        if options['Shell element thickness proportion'] < 0.15:
+            options['Shell element thickness proportion'] = 1.0
 
         return dependentChanges
 
@@ -147,7 +157,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
             elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAcrossShell = options['Number of elements across shell']
+        elementsCountAcrossTransition = options['Number of elements across transition']
         elementsCountAlong = options['Number of elements along']
+        shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -157,8 +169,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell, [0.0, 0.0, 0.0],
-                            cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
+                            elementsCountAcrossTransition,
+                            shellProportion,
+                            [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,

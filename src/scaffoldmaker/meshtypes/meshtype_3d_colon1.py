@@ -290,10 +290,10 @@ class MeshType_3d_colon1(Scaffold_base):
             }
         if 'Cattle 1' in parameterSetName:
             options['Number of segments'] = 40
-            options['Proximal length'] = 880.0
+            options['Proximal length'] = 900.0
             options['Transverse length'] = 3500.0
             options['Distal length'] = 1650.0
-            options['Proximal inner radius'] = 30.0
+            options['Proximal inner radius'] = 35.0
             options['Proximal tenia coli width'] = 3.0
             options['Proximal-transverse inner radius'] = 15.0
             options['Proximal-transverse tenia coli width'] = 3.0
