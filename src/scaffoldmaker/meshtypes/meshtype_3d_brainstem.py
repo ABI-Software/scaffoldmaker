@@ -250,7 +250,6 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
         eIndexPM['caudal-ventral'] = int(elemPerLayer/2) - (elementsCountAcrossMinor-1)
         eIndexPM['midRostCaud-ventral'] = eIndexPM['midRostCaud-dorsal'] - (elementsCountAcrossMinor-1)
         eIndexPM['rostral-ventral'] = int((elemPerLayer*(elementsCountAlong-1)) + (int(elemPerLayer/2) - elementsCountAcrossMinor + 1))
-        print(eIndexPM)
         xiPM['caudal-ventral'] = [1.0, 0.0, 0.0]
         xiPM['caudal-dorsal'] = [1.0, 0.0, 1.0]
         xiPM['midRostCaud-ventral'] = [1.0, 1.0, 0.0]
@@ -275,17 +274,10 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
                                 majorProgressionMode=ConeBaseProgression.ARITHMETIC_PROGRESSION,
                                 minorProgressionMode=ConeBaseProgression.ARITHMETIC_PROGRESSION)
 
-        if False:
-            # do not use central path
-            cylinderCentralPath = None
-            elementsCountShell = 1
-            base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountShell, [0.0, 0.0, 0.0],
-                                [0,0,alongLength], cylinderParams.majorAxis[0],
-                                cylinderParams.minorRadii[0])
-        else:
-            base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, 0, [0.0, 0.0, 0.0],
-                                cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
-                                cylinderCentralPath.minorRadii[0])
+        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
+                            centre=[0.0, 0.0, 0.0],
+                            alongAxis=cylinderCentralPath.alongAxis[0], majorAxis=cylinderCentralPath.majorAxis[0],
+                            minorRadius=cylinderCentralPath.minorRadii[0])
 
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,
