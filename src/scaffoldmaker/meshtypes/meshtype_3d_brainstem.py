@@ -18,22 +18,6 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
-class CylinderParams:
-    """
-    Stores ellipses parameters.
-    """
-    def __init__(self, region, alongLength):
-        """
-        :param region: Zinc region to define model in.
-        :param alongLength: Geometric length along.
-        """
-        self.centres = [[0,0,0],[0,0,alongLength]]
-        self.majorRadii = [1.0,1.0]
-        self.majorAxis = [[1.0,0,0]]*2
-        self.minorRadii = [1.0,1.0]
-        self.minorAxis = [[0,1.0,0]]*2
-
-
 class MeshType_3d_brainstem1(Scaffold_base):
     """
 Generates a tapered cylinder for the brainstem based on solid cylinder mesh, with variable numbers of elements in major, minor and length directions. Regions of the brainstem are annotated.
@@ -265,8 +249,6 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
         alongLength = options['Along length']
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
-        cylinderParams = CylinderParams(region, alongLength)
-        cylinderParams.minorRadii = [0.7]*2
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
         taperedParams = Tapered(majorRatio=options['Taper major increment'],
