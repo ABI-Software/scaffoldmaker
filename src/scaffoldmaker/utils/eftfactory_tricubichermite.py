@@ -1667,13 +1667,16 @@ class eftfactory_tricubichermite:
         eft = self.createEftBasic()
 
         if collapseNodes in [[4, 8]]:
+            setEftScaleFactorIds(eft, [1], [])
             nodes = [2, 4, 6, 8]
+            remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
             remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
             ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
 
         elif collapseNodes in [[3, 7]]:
             nodes = [1, 3, 5, 7]
             remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
             ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
 
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
