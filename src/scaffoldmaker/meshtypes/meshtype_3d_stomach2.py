@@ -28,7 +28,7 @@ from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
 
 
-class MeshType_3d_stomach1(Scaffold_base):
+class MeshType_3d_stomach2(Scaffold_base):
     """
     Generates a 3-D stomach mesh with variable numbers of elements around the oesophagus and duodenum,
     along the central line, and through wall. The stomach is created by a function that generates a bean
@@ -201,7 +201,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '3D Stomach 1'
+        return '3D Stomach 2'
 
     @staticmethod
     def getParameterSetNames():
