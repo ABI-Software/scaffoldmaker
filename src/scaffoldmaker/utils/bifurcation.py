@@ -324,3 +324,4 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
             meshGroup.addElement(element)
 
     return elementIdentifier
+

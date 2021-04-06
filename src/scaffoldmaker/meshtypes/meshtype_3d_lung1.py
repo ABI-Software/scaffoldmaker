@@ -922,15 +922,6 @@ class MeshType_3d_lung1(Scaffold_base):
                         leftLungMeshGroup.addElement(element)
                         lungMeshGroup.addElement(element)
 
-            # Apex annotation point
-            idx = elementsCount1 * elementsCount2 * (elementsCount3 - 1) + elementsCount1 * (elementsCount2 // 2)
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'apex of left lung')
-            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
-
             # Right lung elements
             elementIdentifier = getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                                                 elementtemplateCustom, mesh, lungMeshGroup,
@@ -939,7 +930,60 @@ class MeshType_3d_lung1(Scaffold_base):
                                                 lElementsCount1, lElementsCount2, lElementsCount3,
                                                 uElementsCount1, uElementsCount2, uElementsCount3,
                                                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
-        
+
+        # Marker points
+        idx = elementsCount1 * elementsCount2 * (elementsCount3 - 1) + elementsCount1 * (elementsCount2 // 2)
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'apex of left lung')
+        markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
+
+        idx = elementsCount1 * elementsCount2
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'ventral base of left lung')
+        markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 0.0])
+
+        idx = elementsCount1 // 2
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'dorsal base of left lung')
+        markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 0.0])
+
+        lowerRightLungElementsCount = lElementsCount1 * lElementsCount2 * lElementsCount3
+        upperRightLungElementsCount = uElementsCount1 * uElementsCount2 * (uElementsCount3 - 2)
+        leftLungElementsCount = elementsCount1 * elementsCount2 * elementsCount3
+        idx = leftLungElementsCount + lowerRightLungElementsCount + upperRightLungElementsCount + (uElementsCount1 // 2)
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'apex of right lung')
+        markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 1.0])
+
+        lowerRightLungElementsCount = lElementsCount1 * lElementsCount2 * lElementsCount3
+        idx = leftLungElementsCount + lowerRightLungElementsCount - (lElementsCount1 // 2)
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'ventral base of right lung')
+        markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 0.0])
+
+        idx = leftLungElementsCount + (lElementsCount1 // 2)
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'dorsal base of right lung')
+        markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 0.0])
+
         return annotationGroups
 
     @classmethod
