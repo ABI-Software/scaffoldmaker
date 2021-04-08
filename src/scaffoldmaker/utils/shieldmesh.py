@@ -414,7 +414,6 @@ class ShieldMesh:
         e2z = 2*self.elementsCountUp-1-self.elementsCountRim
         e2y = e2z - 1
         e2x = e2z - 2
-
         for e3 in range(self.elementsCountAlong):
             for e2 in range(self.elementsCountUpFull):
                 for e1 in range(self.elementsCountAcross):
@@ -468,11 +467,11 @@ class ShieldMesh:
                                 if (e1 == e1b) or (e1 == e1y):
                                     # map bottom triple point element
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
-                                    setEftScaleFactorIds(eft1, [1], [])
-                                    scalefactors = [-1.0]
                                     if e1 == e1b:
                                         remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, []),(Node.VALUE_LABEL_D_DS2, [])])
                                     else:
+                                        setEftScaleFactorIds(eft1, [1], [])
+                                        scalefactors = [-1.0]
                                         remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, [1]),(Node.VALUE_LABEL_D_DS2, [])])
 
                     elif (e2 == e2b) or (e2 == e2y):
@@ -495,6 +494,8 @@ class ShieldMesh:
                                     nids[1] = self.nodeId[0][e2r + 1][e1b]
                                     nids[4] = self.nodeId[1][e2r    ][e1b]
                                     nids[5] = self.nodeId[1][e2r + 1][e1b]
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [ -1.0 ]
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                             elif e1 == e1a:
@@ -502,6 +503,8 @@ class ShieldMesh:
                                 setEftScaleFactorIds(eft1, [1], [])
                                 scalefactors = [-1.0]
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [ -1.0 ]
                                     if e2 == e2b:
                                         nids[0] = self.nodeId[e3][e2a][e1b]
                                         nids[2] = self.nodeId[e3+1][e2a][e1b]
@@ -515,6 +518,8 @@ class ShieldMesh:
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                                 elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [ -1.0 ]
                                     nids[0] = self.nodeId[0][e2a][e1b]
                                     nids[4] = self.nodeId[1][e2a][e1b]
                                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, [1])])
@@ -528,6 +533,8 @@ class ShieldMesh:
                                         scalefactors = [-1.0]
                                         nids[4] = self.nodeId[e3][e2a][e1z]
                                         nids[6] = self.nodeId[e3+1][e2a][e1z]
+                                        setEftScaleFactorIds(eft1, [1], [])
+                                        scalefactors = [ -1.0 ]
                                         remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                     elif e2 == e2y:
                                         nids[5] = self.nodeId[e3][e2z+1][e1z]
@@ -561,6 +568,8 @@ class ShieldMesh:
                                     nids[1] = self.nodeId[0][e2r - 1][e1z]
                                     nids[4] = self.nodeId[1][e2r    ][e1z]
                                     nids[5] = self.nodeId[1][e2r - 1][e1z]
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [ -1.0 ]
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                                     remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                     else:

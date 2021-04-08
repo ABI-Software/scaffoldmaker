@@ -1014,8 +1014,8 @@ class MeshType_3d_heartatria2(Scaffold_base):
                         meshGroups = [ laMeshGroup if (i == 0) else raMeshGroup ]
                         if (e2 == 0) and (((i == 0) and (e1 == e1FreeWallStart)) or ((i == 1) and (e1 == elementsCountAroundAtria + 1))):
                             eft1 = tricubichermite.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
                             if i == 0:
+                                setEftScaleFactorIds(eft1, [1], [])
                                 remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                             else:
                                 remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
