@@ -157,6 +157,8 @@ class BifurcationTree:
     Class for generating tree of 1-D bifurcating curves and converting to Zinc model.
     '''
 
+    _rootNode = []
+
     def __init__(self, generationCount, rootLength, rootRadius, forkAngleRadians, forkRadiusRatio, branchArcRadians, branchLengthRatio, branchRadiusRatio):
         '''
         '''

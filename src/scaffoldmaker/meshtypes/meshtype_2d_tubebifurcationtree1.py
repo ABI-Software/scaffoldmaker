@@ -1,5 +1,5 @@
 """
-Generates a 2-D tube bifurcation mesh.
+Generates a 2-D tube bifurcation tree mesh.
 """
 
 from __future__ import division
@@ -10,14 +10,20 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.node import Node
+from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.bifurcation import get_curve_circle_points, \
-    make_tube_bifurcation_points, make_tube_bifurcation_elements_2d
+    make_tube_bifurcation_points, make_tube_bifurcation_elements_2d, move_1D_central_path, \
+    readRegionFromFile
 from scaffoldmaker.utils.interpolation import getCubicHermiteArcLength
-from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters
+from opencmiss.zinc.context import Context
 import math
+from PySide import QtCore, QtGui
+import tkinter
+from tkinter import filedialog
+
 
 
 class MeshType_2d_tubebifurcationtree1(Scaffold_base):
@@ -40,6 +46,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         options['Number of elements around root'] = 6
         options['Maximum element length'] = 0.25
         return options
+
 
     @staticmethod
     def getOrderedOptionNames():
@@ -84,8 +91,6 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         dependentChanges = False
         if options['Number of elements around root'] < 4:
             options['Number of elements around root'] = 4
-        if options['Maximum element length'] > 0.5:
-            options['Maximum element length'] = 0.5
         return dependentChanges
 
     @classmethod
@@ -105,18 +110,19 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        # Central path extraction
-        tmpRegion = region.createRegion()
-        bifurcationTreeScaffold.generate(tmpRegion)
-        fieldmodule = tmpRegion.getFieldmodule()
-        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        tmpCoordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        valueLabels, fieldParameters = extract_node_field_parameters(nodeset, tmpCoordinates)
+        # Bifurcation tree extraction
+        Readfile = True
+        if Readfile is True:
+            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\mesh_2.exf"
+            generationCount, bifurcationTree = readRegionFromFile(filename)
+            fieldParameters = None
+        else:
+            fieldParameters = move_1D_central_path(region, bifurcationTreeScaffold)
+            bifurcationTree = bifurcationTreeScaffold.getScaffoldType(). \
+                generateBifurcationTree(bifurcationTreeScaffold.getScaffoldSettings())
+            generationCount = bifurcationTreeScaffold.getScaffoldSettings()['Number of generations']
 
-        # for i in range(len(fieldParameters)):
-        #     print(fieldParameters[i])
-
-        # Tube elements
+        # Tube element template
         mesh = fm.findMeshByDimension(2)
         elementtemplateStd = mesh.createElementtemplate()
         elementtemplateStd.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
@@ -127,10 +133,6 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                 eftStd.setFunctionNumberOfTerms(n * 4 + 4, 0)
         elementtemplateStd.defineField(coordinates, -1, eftStd)
 
-        # Create bifurcation tree
-        bifurcationTree = bifurcationTreeScaffold.getScaffoldType().generateBifurcationTree(bifurcationTreeScaffold.getScaffoldSettings())
-        Generation = bifurcationTreeScaffold.getScaffoldSettings()['Number of generations']
-
         ##############
         # Create nodes
         ##############
@@ -138,17 +140,22 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         cx = [[], [], []]
         cd1 = [[], [], []]
         cd2 = [[], [], []]
-        x = [[], [], []]
-        d1 = [[], [], []]
-        d2 = [[], [], []]
-        nextRootNodeId = []
+        paStartIndex = []
+        c1StartIndex = []
+        c2StartIndex = []
+        paNodeId = []
+        roNodeId = []
+        coNodeId = []
+        c1NodeId = []
+        c2NodeId = []
+        stemNodeId = []
+        lastNodeId = []
 
         # Generate bifurcation tree nodes and elements and return a next nodeIdentifier
         # nodeIdentifier = bifurcationTree.generateZincModel(region)[0]
         nodeIdentifier = 1
-        elementIdentifier = 1
 
-        # Create a node template for the thickness - circle nodes around the bifurcation tree
+        # Create circle nodes around the 1D bifurcation tree
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
@@ -157,37 +164,55 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
         # Get a bifurcation root node
-        rootNode = bifurcationTree.getRootNode()
-        # Update central path - root node
-        rootNode._x = fieldParameters[0][1][0][0]
-        rootNode._d1 = fieldParameters[0][1][1]
+        rootNode = bifurcationTree._rootNode
+        if fieldParameters != None:
+            # Update central path - root node
+            rootNode._x = fieldParameters[0][1][0][0]
+            rootNode._d1 = fieldParameters[0][1][1]
         centralPathIndex = []
 
         # Create a branch at each generation
-        for j in range(0, Generation - 1):
+        for j in range(generationCount - 1):
+            x = []
+            d1 = []
+            d2 = []
+            paStartIndex.append([])
+            c1StartIndex.append([])
+            c2StartIndex.append([])
             child1.append([])
             centralPathIndex.append([])
+            paNodeId.append([])
+            roNodeId.append([])
+            coNodeId.append([])
+            c1NodeId.append([])
+            c2NodeId.append([])
+            stemNodeId.append([])
             # Create a bifurcation at each branch
             for k in range(2 ** j):
+                paStartIndex[j].append([])
+                c1StartIndex[j].append([])
+                c2StartIndex[j].append([])
+                x.append([[], [], []])
+                d1.append([[], [], []])
+                d2.append([[], [], []])
                 child1[j].append(None)
-                xStem = []
-                d1Stem = []
-                d2Stem = []
                 curveLength = [[], [], []]
                 centralPathIndex[j].append([])
-                childrenIndex = 0
+                lastNodeId.append([]) if j == (generationCount - 2) else None
+
                 if j == 0:
                     child1[j][k] = rootNode.getChild(0)
-                    # Update central path - Parent nodes
-                    centralPathIndex[j][k] = 1
-                    child1[j][k]._x = fieldParameters[centralPathIndex[j][k]][1][0][0]
-                    child1[j][k]._d1 = fieldParameters[centralPathIndex[j][k]][1][1]
-                    # Update central path - Children nodes
-                    nextCentralPathIndex = [centralPathIndex[j][k] + 1, centralPathIndex[j][k] + (2 ** (Generation - 1))]
-                    child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
-                    child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
-                    child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
-                    child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
+                    if fieldParameters != None:
+                        # Update central path - Parent nodes
+                        centralPathIndex[j][k] = 1
+                        child1[j][k]._x = fieldParameters[centralPathIndex[j][k]][1][0][0]
+                        child1[j][k]._d1 = fieldParameters[centralPathIndex[j][k]][1][1]
+                        # Update central path - Children nodes
+                        nextCentralPathIndex = [centralPathIndex[j][k] + 1, centralPathIndex[j][k] + (2 ** (generationCount - 1))]
+                        child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
+                        child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
+                        child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
+                        child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
                     # Parental branch
                     xParent1, xParentd1, rParent1, xParent2, xParentd2, rParent2 = rootNode.getChildCurve(0)
                     # Get the right(0) [left(1)] children curve from the bifurcation tree
@@ -196,38 +221,55 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                 else:
                     if (k % 2) == 0:
                         child1[j][k] = child1[j-1][k//2].getChild(0)
-                        # Update central path - Children nodes
-                        centralPathIndex[j][k] = centralPathIndex[j - 1][k // 2] + 1
-                        nextCentralPathIndex = [centralPathIndex[j][k] + 1,
-                                                centralPathIndex[j][k] + (2 ** (Generation - j - 1))]
-                        child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
-                        child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
-                        child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
-                        child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
+                        if fieldParameters != None:
+                            # Update central path - Children nodes
+                            centralPathIndex[j][k] = centralPathIndex[j - 1][k // 2] + 1
+                            nextCentralPathIndex = [centralPathIndex[j][k] + 1,
+                                                    centralPathIndex[j][k] + (2 ** (generationCount - j - 1))]
+                            child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
+                            child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
+                            child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
+                            child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
                     else:
                         child1[j][k] = child1[j - 1][k//2].getChild(1)
-                        # Update central path - Children nodes
-                        centralPathIndex[j][k] = centralPathIndex[j - 1][k // 2] + (2 ** (Generation - j))
-                        nextCentralPathIndex = [centralPathIndex[j][k] + 1,
-                                                centralPathIndex[j][k] + (2 ** (Generation - j - 1))]
-                        child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
-                        child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
-                        child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
-                        child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
+                        if fieldParameters != None:
+                            # Update central path - Children nodes
+                            centralPathIndex[j][k] = centralPathIndex[j - 1][k // 2] + (2 ** (generationCount - j))
+                            nextCentralPathIndex = [centralPathIndex[j][k] + 1,
+                                                    centralPathIndex[j][k] + (2 ** (generationCount - j - 1))]
+                            child1[j][k].getChild(0)._x = fieldParameters[nextCentralPathIndex[0]][1][0][0]
+                            child1[j][k].getChild(0)._d1 = fieldParameters[nextCentralPathIndex[0]][1][1]
+                            child1[j][k].getChild(1)._x = fieldParameters[nextCentralPathIndex[1]][1][0][0]
+                            child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
 
                     # Parental branch
                     xParent1, xParentd1, rParent1, xParent2, xParentd2, rParent2 = child1[j-1][k//2].getChildCurve(k % 2)
                     # Get the right(0) [left(1)] children curve from the bifurcation tree
-                    xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[j][k].getChildCurve(0)
-                    xLeft1, xLeftd1, rLeft1, xLeft2, xLeftd2, rLeft2 = child1[j][k].getChildCurve(1)
+                    try:
+                        xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[j][k].getChildCurve(0)
+                        # print('child1[j][k].getChildCurve(0)', child1[j][k].getChildCurve(0))
+                    except:
+                        xRight1 = xRight2 = child1[j][k]._x
+                        xRightd1 = xRightd2 = child1[j][k]._d1[child1[j][k]._parent_d1_index]
+                        rRight1 = rRight2 = child1[j][k]._r
+                    try:
+                        xLeft1, xLeftd1, rLeft1, xLeft2, xLeftd2, rLeft2 = child1[j][k].getChildCurve(1)
+                        # print('child1[j][k].getChildCurve(1)', child1[j][k].getChildCurve(1))
+                    except:
+                        xLeft1 = xLeft2 = child1[j][k]._x
+                        xLeftd1 = xLeftd2 = child1[j][k]._d1[child1[j][k]._parent_d1_index]
+                        rRight2 = rLeft2 = child1[j][k]._r
 
                 # Set up the curve axis for bifurcation
                 axis1 = normalize(xRightd2)
                 axis2 = normalize(xLeftd2)
-                side = cross(axis1, axis2)
-                side = [element * -1 for element in side]
+                if axis1 == axis2:
+                    side = [1.0, 0.0, 0.0]
+                else:
+                    side = cross(axis1, axis2)
+                    side = [element * -1 for element in side]
 
-                # Look at each bifurcation (parent and children branch)
+                # Check if there are children branches
                 for l in range(3):
                     if l == 0:
                         x1  = xParent1
@@ -238,6 +280,8 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                         r2  = rParent2
                         rd1 = rd2 = (rParent2 - rParent1)
                     else:
+                        if axis1 == axis2:
+                            continue
                         x1  = xRight1   if l == 1 else xLeft1
                         xd1 = xRightd1  if l == 1 else xLeftd1
                         x2  = xRight2   if l == 1 else xLeft2
@@ -250,195 +294,209 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                     curveLength[l] = getCubicHermiteArcLength(x1, xd1, x2, xd2)
                     elementsCount = max(2, math.ceil(curveLength[l] / maxElementLength))
                     elementLength = curveLength[l] / elementsCount
-                    xi = 1 / elementsCount
 
                     # Get ring nodes along the curve
                     if l == 0:
-                        # Parent branch
-                        cx[l], cd1[l], cd2[l], x[l], d1[l], d2[l] = get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, 1-xi, elementLength, side, elementsCountAroundRoot)
-                        # Add ring nodes along the root base (first ring)
-                        if j == 0:
-                            rootNodeId = []
-                            rootNodeId.append([])
-                            for m in range(0, elementsCount-1):
-                                xi = m / elementsCount
-                                cxStem, cd1Stem, cd2Stem, xRoot, d1Root, d2Root = \
-                                    get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, elementLength, side,
-                                                            elementsCountAroundRoot)
-                                for n in range(elementsCountAroundRoot):
-                                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                                    cache.setNode(node)
-                                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xRoot[n])
-                                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Root[n])
-                                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Root[n])
-                                    rootNodeId[0].append(nodeIdentifier)
-                                    nodeIdentifier = nodeIdentifier + 1
+                        skip = False
+                        elementsCountEnd = elementsCount if (j == 0) or (axis1 == axis2) else elementsCount - 2
+                        elementsCountEnd = 1 if elementsCountEnd == 0 else elementsCountEnd
+                        for m in range(elementsCountEnd):
+                            x[k][l].append(None)
+                            d1[k][l].append(None)
+                            d2[k][l].append(None)
+                            xi = m/elementsCount if (j == 0) else (m + 2)/elementsCount
+                            if elementsCountEnd == 1:
+                                xi = (m + 1)/elementsCount
+                                skip = True
+                            # Parent branch
+                            cx[l], cd1[l], cd2[l], x[k][l][m], d1[k][l][m], d2[k][l][m] = get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, elementLength, side, elementsCountAroundRoot)
                     else:
-                        # Children branch
-                        cx[l], cd1[l], cd2[l], x[l], d1[l], d2[l] = get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, elementLength, side, elementsCountAroundRoot)
-                        # Add ring nodes along the children branch
-                        elementsCountBranch = elementsCount + 1 if j == Generation - 2 else elementsCount - 1
-                        for m in range(elementsCountBranch - 2):
-                            xStem.append([])
-                            d1Stem.append([])
-                            d2Stem.append([])
-                            xi = (m + 2) / elementsCount # skipping 2D bifurcation ring nodes
-                            # index1 = (elementsCountBranch - 2) * (l - 1) + m
-                            cxStem, cd1Stem, cd2Stem, xStem[childrenIndex], d1Stem[childrenIndex], d2Stem[childrenIndex] = \
-                                get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, elementLength, side, elementsCountAroundRoot)
-                            childrenIndex += 1
+                        elementsCountEnd = 1 if j != (generationCount - 2) else elementsCount
+                        for m in range(elementsCountEnd):
+                            x[k][l].append(None)
+                            d1[k][l].append(None)
+                            d2[k][l].append(None)
+                            xi = (m + 1)/elementsCount
+                            # Children branch
+                            cx[l], cd1[l], cd2[l], x[k][l][m], d1[k][l][m], d2[k][l][m] = get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, elementLength, side, elementsCountAroundRoot)
 
-                rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-                    make_tube_bifurcation_points(cx[0], x[0], d2[0], cx[2], x[2], d2[2], cx[1], x[1], d2[1])
-
-                ################
-                # Create nodes
-                ################
-                paNodeId = []
-                try:
-                    # If there are overlapping nodes at the same cross section, reuse those nodes
-                    cx[0] == cx[cx.index(cx[0], 1)]
-                    paNodeId = rootNodeId[k]
-                except ValueError:
-                    for n in range(elementsCountAroundRoot):
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        cache.setNode(node)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[0][n])
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1[0][n])
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2[0][n])
-                        paNodeId.append(nodeIdentifier)
-                        nodeIdentifier = nodeIdentifier + 1
+                if axis1 == axis2:
                     pass
+                else:
+                    rox, rod1, rod2, cox, cod1, cod2, paStartIndex[j][k], c1StartIndex[j][k], c2StartIndex[j][k] = \
+                        make_tube_bifurcation_points(cx[0], x[k][0][-1], d2[k][0][-1], cx[2], x[k][2][0], d2[k][2][0], cx[1], x[k][1][0], d2[k][1][0])
 
-                roNodeId = []
-                for n in range(len(rox)):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox [n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
-                    roNodeId.append(nodeIdentifier)
-                    nodeIdentifier = nodeIdentifier + 1
+                stemNodeId[j].append([])
+                paNodeId[j].append([])
+                c1NodeId[j].append([])
+                c2NodeId[j].append([])
 
-                coNodeId = []
-                for n in range(len(cox)):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cox [n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cod1[n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cod2[n])
-                    coNodeId.append(nodeIdentifier)
-                    nodeIdentifier = nodeIdentifier + 1
-
-                c1NodeId = []
-                for n in range(elementsCountAroundRoot):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x [1][n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1[1][n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2[1][n])
-                    c1NodeId.append(nodeIdentifier)
-                    nodeIdentifier = nodeIdentifier + 1
-
-                c2NodeId = []
-                for n in range(elementsCountAroundRoot):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    cache.setNode(node)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x [2][n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1[2][n])
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2[2][n])
-                    c2NodeId.append(nodeIdentifier)
-                    nodeIdentifier = nodeIdentifier + 1
-
-                stemNodeId = []
-                for m in range(len(xStem)):
-                    for n in range(elementsCountAroundRoot):
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        cache.setNode(node)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xStem[m][n])
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Stem[m][n])
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Stem[m][n])
-                        stemNodeId.append(nodeIdentifier)
-                        nodeIdentifier = nodeIdentifier + 1
-
-            ################
-            # Create elements
-            ################
-                # Create an element from the bottom to the top
-                elementsCountAlongRoot = math.ceil(len(rootNodeId[k])/elementsCountAroundRoot - 1)
-                for e2 in range(elementsCountAlongRoot+1):
-                    for e1 in range(elementsCountAroundRoot):
-                        # Connect root and bifurcation parents
-                        if e2 == elementsCountAlongRoot:
-                            if rootNodeId[k] == paNodeId:
-                                # Reorder paNodeId for smoothness
-                                if ((elementsCountAroundRoot // 8) < (elementsCountAroundRoot / 8)):
-                                    for i in range(((elementsCountAroundRoot // 8) * 2) + 1):
-                                        paNodeId.insert(0, paNodeId[-1])
-                                        paNodeId.pop(-1)
-                                else:
-                                    for i in range(2 * (elementsCountAroundRoot // 8)):
-                                        paNodeId.insert(0, paNodeId[-1])
-                                        paNodeId.pop(-1)
-                                break
+                for l in range(3):
+                    # Add children index to stem index
+                    if (l == 0) and (j > 0) and (skip is not True):
+                        stemNodeId[j][k] = c1NodeId[j-1][k // 2].copy() if (k % 2) == 0 else c2NodeId[j-1][k // 2].copy()
+                    for m in range(len(x[k][l])):
+                        # Skip replicated nodes at each child branch
+                        if skip is True:
+                            paNodeId[j][k] = c1NodeId[j-1][k // 2] if (k % 2) == 0 else c2NodeId[j-1][k // 2]
+                            skip = False
+                            continue
+                        for n in range(elementsCountAroundRoot):
+                            node = nodes.createNode(nodeIdentifier, nodetemplate)
+                            cache.setNode(node)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[k][l][m][n])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1[k][l][m][n])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2[k][l][m][n])
+                            if (l == 0):
+                                # Store parent nodes in the last ring at each branch
+                                if (m == len(x[k][l]) - 1):
+                                    paNodeId[j][k].append(nodeIdentifier)
+                                stemNodeId[j][k].append(nodeIdentifier)
                             else:
-                                # Connect root and bifurcation parents
-                                bni1 = e2 * elementsCountAroundRoot + e1  if len(rootNodeId[k]) > elementsCountAroundRoot else e1
-                                bni2 = e2 * elementsCountAroundRoot + (e1 + 1) % elementsCountAroundRoot  if len(rootNodeId[k]) > elementsCountAroundRoot else (e1 + 1) % elementsCountAroundRoot
-                                bni3 = e1 % elementsCountAroundRoot if j == 0 else (e1 + 2) % elementsCountAroundRoot
-                                bni4 = (e1 + 1) % elementsCountAroundRoot if j == 0 else (e1 + 3) % elementsCountAroundRoot
-                                nodeIdentifiers = [rootNodeId[k][bni1], rootNodeId[k][bni2], paNodeId[bni3], paNodeId[bni4]]
+                                if axis1 == axis2:
+                                    continue
+                                # Store nodes in the first ring at each child branch
+                                if (m == 0):
+                                    c1NodeId[j][k].append(nodeIdentifier) if l == 1 else c2NodeId[j][k].append(nodeIdentifier)
+                                # Store stemNodeIndex at each end
+                                if (j == generationCount - 2):
+                                    stemNodeId[j][k].append(nodeIdentifier)
+                                    # Store lastNodeIndex at each end
+                                    if (m == len(x[k][l]) - 1):
+                                        lastNodeId[k].append(nodeIdentifier)
+                            nodeIdentifier = nodeIdentifier + 1
+
+                    # Bifurcation nodes
+                    if l == 0 and (axis1 != axis2):
+                        roNodeId[j].append([])
+                        for n in range(len(rox)):
+                            node = nodes.createNode(nodeIdentifier, nodetemplate)
+                            cache.setNode(node)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox [n])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
+                            roNodeId[j][k].append(nodeIdentifier)
+                            nodeIdentifier = nodeIdentifier + 1
+
+                        coNodeId[j].append([])
+                        for n in range(len(cox)):
+                            node = nodes.createNode(nodeIdentifier, nodetemplate)
+                            cache.setNode(node)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cox [n])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cod1[n])
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cod2[n])
+                            coNodeId[j][k].append(nodeIdentifier)
+                            nodeIdentifier = nodeIdentifier + 1
+
+        ################
+        # Create elements
+        ################
+        elementIdentifier = 1
+        for e4 in range(generationCount-1):
+            for e3 in range(2 ** e4):
+                elementsCountAlong = int(len(stemNodeId[e4][e3])/elementsCountAroundRoot) - 1
+                for e2 in range(elementsCountAlong):
+                    # # Connect root and bifurcation parents
+                    # if e2 == elementsCountAlongRoot:
+                    #     if rootNodeId[k] == paNodeId:
+                    #         # Reorder paNodeId for smoothness
+                    #         if ((elementsCountAroundRoot // 8) < (elementsCountAroundRoot / 8)):
+                    #             for i in range(((elementsCountAroundRoot // 8) * 2) + 1):
+                    #                 paNodeId.insert(0, paNodeId[-1])
+                    #                 paNodeId.pop(-1)
+                    #         else:
+                    #             for i in range(2 * (elementsCountAroundRoot // 8)):
+                    #                 paNodeId.insert(0, paNodeId[-1])
+                    #                 paNodeId.pop(-1)
+                    #         break
+                    for e1 in range(elementsCountAroundRoot):
+                        # Connect root
+                        bni1 = e2 * elementsCountAroundRoot + e1
+                        if (bni1 + 1) % (elementsCountAroundRoot * (e2 + 1)) != 0:
+                            bni2 = (bni1 + 1) % (elementsCountAroundRoot * (e2 + 1))
                         else:
-                            #len(rootNodeId[k]) != elementsCountAroundRoot:
-                            # Connect root
-                            bni1 = e2 * elementsCountAroundRoot + e1
-                            bni2 = e2 * elementsCountAroundRoot + (e1 + 1) % elementsCountAroundRoot
-                            nodeIdentifiers = [rootNodeId[k][bni1], rootNodeId[k][bni2], rootNodeId[k][bni1 + elementsCountAroundRoot], rootNodeId[k][bni2 + elementsCountAroundRoot]]
+                            bni2 = ((bni1 + 1) % (elementsCountAroundRoot * (e2 + 1))) + (elementsCountAroundRoot * e2)
+                        bni3 = bni1 + elementsCountAroundRoot
+                        bni4 = bni2 + elementsCountAroundRoot
+                        nodeIdentifiers = [stemNodeId[e4][e3][bni1], stemNodeId[e4][e3][bni2],
+                                           stemNodeId[e4][e3][bni3], stemNodeId[e4][e3][bni4]]
+                        if ((nodeIdentifiers[0] and nodeIdentifiers[1]) in paNodeId[e4][e3]) or \
+                                ((nodeIdentifiers[0] and nodeIdentifiers[1]) in lastNodeId[e3]):
+                            continue
 
                         element = mesh.createElement(elementIdentifier, elementtemplateStd)
                         element.setNodesByIdentifier(eftStd, nodeIdentifiers)
                         elementIdentifier += 1
 
-                elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
-                                                                      paNodeId, paStartIndex, c2NodeId,
-                                                                      c2StartIndex, c1NodeId, c1StartIndex,
-                                                                      roNodeId, coNodeId,
-                                                                      useCrossDerivatives)
-
-                # Store the root nodes for the next generation
-                for i in range(3):
-                    cx.insert(0, [])
-                    cd1.insert(0, [])
-                    cd2.insert(0, [])
-                    x.insert(0, [])
-                    d1.insert(0, [])
-                    d2.insert(0, [])
-
-                for i in range(2):
-                    nextRootNodeId.append([])
-                    elementsCountAlongRoot = max(2, math.ceil(curveLength[i+1] / maxElementLength))
-                    index = elementsCountAroundRoot * (elementsCountAlongRoot-1) if j == Generation - 2 else elementsCountAroundRoot * (elementsCountAlongRoot - 3)
-                    if i == 0:
-                        nextRootNodeId[k*2] = c1NodeId
-                        nextRootNodeId[k*2].extend(stemNodeId[:index])
-                    else:
-                        nextRootNodeId[(k*2)+1] = c2NodeId
-                        nextRootNodeId[(k*2)+1].extend(stemNodeId[index:])
-
-            # Connect children branch (last branch)
-            if j == Generation - 2:
-                for e3 in range(len(nextRootNodeId)):
-                    elementsCountAlongRoot = math.ceil(len(nextRootNodeId[e3]) / elementsCountAroundRoot - 1)
-                    for e2 in range(elementsCountAlongRoot):
-                        for e1 in range(elementsCountAroundRoot):
-                            bni1 = e2 * elementsCountAroundRoot + e1
-                            bni2 = e2 * elementsCountAroundRoot + (e1 + 1) % elementsCountAroundRoot
-                            nodeIdentifiers = [nextRootNodeId[e3][bni1], nextRootNodeId[e3][bni2], nextRootNodeId[e3][bni1 + elementsCountAroundRoot], nextRootNodeId[e3][bni2 + elementsCountAroundRoot]]
-                            element = mesh.createElement(elementIdentifier, elementtemplateStd)
-                            element.setNodesByIdentifier(eftStd, nodeIdentifiers)
-                            elementIdentifier = elementIdentifier + 1
-
-            rootNodeId = nextRootNodeId
-            nextRootNodeId = []
-
+                # Bifurcation elements
+                try:
+                    elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
+                                                                          paNodeId[e4][e3], paStartIndex[e4][e3], c2NodeId[e4][e3],
+                                                                          c2StartIndex[e4][e3], c1NodeId[e4][e3], c1StartIndex[e4][e3],
+                                                                          roNodeId[e4][e3], coNodeId[e4][e3],
+                                                                          useCrossDerivatives)
+                except:
+                    pass
         return []
+
+    # @classmethod
+    # def extractNewFiles(cls, region, options, functionOptions, editGroupName):
+    #     # root = tkinter.Tk()
+    #     # root.withdraw()
+    #     # folder_selected = filedialog.askopenfilename()
+    #
+    #     filename = "C:\\Users\\asuk875\\Desktop\\LOCAL-SPARC\\mapclient-workflows\\mesh_1.exf"
+    #     context = Context("importedScaffold")
+    #     region = context.getDefaultRegion()
+    #     result = region.readFile(filename) # if uploaded successfully, return 0
+    #     if result != 1:
+    #         print('File is not read successfully')
+    #     else:
+    #         print('File is read successfully')
+    #
+    #     fieldModule = region.getFieldmodule()
+    #     coordinates = findOrCreateFieldCoordinates(fieldModule)
+    #     nodeset = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    #     nodeIter = nodeset.createNodeiterator()
+    #     node = nodeIter.next()
+    #     fieldcache = fieldModule.createFieldcache()
+    #
+    #     while node.isValid():
+    #         identifier = node.getIdentifier()
+    #         fieldcacheCheck = fieldcache.setNode(node)
+    #         result, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+    #         node = nodeIter.next()
+    #         print('node Id:', identifier)
+    #         print('Coordinate:', x)
+    #
+    #     mesh = fieldModule.findMeshByDimension(1)
+    #     elementIter = mesh.createElementiterator()
+    #     element = elementIter.next()
+    #
+    #     while element.isValid():
+    #         eft = element.getElementfieldtemplate(coordinates, -1)
+    #         node_identifiers = getElementNodeIdentifiers(element, eft)
+    #         identifier = element.getIdentifier()
+    #         element = elementIter.next()
+    #         print('element Id:', identifier)
+    #         print('node_identifiers:', node_identifiers)
+    #
+    #     print('Scaffold:', options['Bifurcation tree']._scaffoldSettings)
+    #     print('region:', region)
+    #     print('options:', options)
+    #     print('functionOptions:', functionOptions)
+    #     print('editGroupName:', editGroupName)
+    #     # print('New fieldParameters:', fieldParameters)
+    #     return False, True # settings not changed, nodes changed
+
+
+    # @classmethod
+    # def getInteractiveFunctions(cls):
+    #     """
+    #     Supply client with functions for smoothing path parameters.
+    #     """
+    #     return[
+    #         ("Read a central path file", {'File Directory': '\\...'},
+    #          lambda region, options, functionOptions, editGroupName:
+    #          cls.extractNewFiles(region, options, functionOptions, editGroupName))
+    #     ] + Scaffold_base.getInteractiveFunctions()
