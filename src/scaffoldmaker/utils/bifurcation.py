@@ -355,9 +355,6 @@ def readRegionFromFile(filename):
     :return nodes: Node identifier, coordinates and d1[x1, x2, x2]
     :return element: Element identifier and node identifiers [n1, n2]
     """
-    # root = tkinter.Tk()
-    # root.withdraw()
-    # folder_selected = filedialog.askopenfilename()
 
     context = Context("importedScaffold")
     region = context.getDefaultRegion()
@@ -454,6 +451,5 @@ def readRegionFromFile(filename):
         node_identifiers.pop(0)
 
     nodeTree._rootNode = nodeTreeIndex[0]
-    # nodeTree.generateZincModel(region)
 
     return generationCount, nodeTree
