@@ -106,7 +106,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         # Bifurcation tree extraction
         Readfile = True
         if Readfile is True:
-            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\mesh_6.exf"
+            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\mesh_9.exf"
             generationCount, bifurcationTree = readRegionFromFile(filename)
             fieldParameters = None
         else:
@@ -220,8 +220,14 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                     # Parental branch
                     xParent1, xParentd1, rParent1, xParent2, xParentd2, rParent2 = rootNode.getChildCurve(0)
                     # Get the right(0) [left(1)] children curve from the bifurcation tree
-                    xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[j][k].getChildCurve(0)
-                    xLeft1, xLeftd1, rLeft1, xLeft2, xLeftd2, rLeft2 = child1[j][k].getChildCurve(1)
+                    try:
+                        xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[j][k].getChildCurve(0)
+                    except:
+                        missingRight[j][k] = True
+                    try:
+                        xLeft1, xLeftd1, rLeft1, xLeft2, xLeftd2, rLeft2 = child1[j][k].getChildCurve(1)
+                    except:
+                        missingLeft[j][k] = True
                 else:
                     if (k % 2) == 0:
                         try:
@@ -239,7 +245,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                             child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
                     else:
                         try:
-                            child1[j][k] = child1[j - 1][k//2].getChild(1)
+                            child1[j][k] = child1[j-1][k//2].getChild(1)
                         except:
                             continue
                         if fieldParameters != None:
@@ -265,12 +271,11 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                         missingLeft[j][k] = True
 
                 # Set up the curve axis for bifurcation
-                axis1 = normalize(xRightd2)
-                axis2 = normalize(xLeftd2)
-
-                if missingRight[j][k] and missingLeft[j][k]:
+                if missingRight[j][k] or missingLeft[j][k]:
                     side = [1.0, 0.0, 0.0]
                 else:
+                    axis1 = normalize(xRightd2)
+                    axis2 = normalize(xLeftd2)
                     side = cross(axis1, axis2)
                     side = [element * -1 for element in side]
 
