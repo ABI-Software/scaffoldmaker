@@ -101,52 +101,53 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 7
+                'Number of elements': 8
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  12.4, 11.9, 0.0 ], [  0.3, -14.4, 0.0 ], [  8.7, -1.4, 0.0 ], [  0.5, -3.7, 0.0 ], [ 0.0, 0.0, 7.4 ], [ 0.0, 0.0,  1.6 ] ],
-                [ [   9.5, -0.2, 0.0 ], [ -6.1,  -8.9, 0.0 ], [  6.6, -5.1, 0.0 ], [ -3.9, -4.3, 0.0 ], [ 0.0, 0.0, 8.5 ], [ 0.0, 0.0,  0.7 ] ],
-                [ [   2.3, -5.2, 0.0 ], [ -9.4,  -2.3, 0.0 ], [  2.1, -9.1, 0.0 ], [ -6.4, -1.6, 0.0 ], [ 0.0, 0.0, 9.0 ], [ 0.0, 0.0, -0.1 ] ],
-                [ [  -7.8, -3.9, 0.0 ], [ -7.5,   4.5, 0.0 ], [ -6.0, -8.0, 0.0 ], [ -3.4,  3.4, 0.0 ], [ 0.0, 0.0, 8.1 ], [ 0.0, 0.0, -1.5 ] ],
-                [ [ -11.7,  1.7, 0.0 ], [ -1.7,   7.2, 0.0 ], [ -6.4, -3.5, 0.0 ], [  1.4,  4.0, 0.0 ], [ 0.0, 0.0, 6.2 ], [ 0.0, 0.0, -2.8 ] ],
-                [ [ -10.7,  9.4, 0.0 ], [  0.4,   5.3, 0.0 ], [ -2.9,  0.0, 0.0 ], [  1.1,  1.3, 0.0 ], [ 0.0, 0.0, 2.4 ], [ 0.0, 0.0, -1.0 ] ],
-                [ [ -10.7, 12.2, 0.0 ], [ -0.3,   2.7, 0.0 ], [ -3.5, -0.3, 0.0 ], [ -2.3, -1.9, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0,  3.0 ] ],
-                [ [ -11.3, 14.8, 0.0 ], [ -1.0,   2.5, 0.0 ], [ -3.5, -0.3, 0.0 ], [ -2.3, -1.9, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0,  3.0 ] ] ] ),
+                [ [  12.4, 11.9, 0.0 ], [ -0.1, -14.5, 0.0 ], [  8.7, -1.4, 0.0 ], [ -0.7, -3.5, 0.0 ], [ 0.0, 0.0, 7.4 ], [ 0.0, 0.0,  1.5 ] ], 
+                [ [   9.5, -0.2, 0.0 ], [ -5.7,  -9.0, 0.0 ], [  6.6, -5.1, 0.0 ], [ -3.5, -3.9, 0.0 ], [ 0.0, 0.0, 8.5 ], [ 0.0, 0.0,  0.7 ] ], 
+                [ [   2.8, -5.5, 0.0 ], [ -6.5,  -2.5, 0.0 ], [  2.1, -9.1, 0.0 ], [ -4.0, -1.5, 0.0 ], [ 0.0, 0.0, 9.0 ], [ 0.0, 0.0,  0.0 ] ], 
+                [ [  -2.4, -5.9, 0.0 ], [ -5.5,   0.8, 0.0 ], [ -1.6, -9.2, 0.0 ], [ -4.0,  0.5, 0.0 ], [ 0.0, 0.0, 8.8 ], [ 0.0, 0.0, -0.4 ] ], 
+                [ [  -7.8, -3.9, 0.0 ], [ -5.0,   3.9, 0.0 ], [ -6.0, -8.0, 0.0 ], [ -2.5,  2.7, 0.0 ], [ 0.0, 0.0, 8.1 ], [ 0.0, 0.0, -1.2 ] ], 
+                [ [ -11.7,  1.7, 0.0 ], [ -1.7,   7.2, 0.0 ], [ -6.4, -3.5, 0.0 ], [  1.4,  4.0, 0.0 ], [ 0.0, 0.0, 6.2 ], [ 0.0, 0.0, -2.8 ] ], 
+                [ [ -10.7,  9.4, 0.0 ], [  0.3,   5.3, 0.0 ], [ -2.9,  0.0, 0.0 ], [  0.5,  0.7, 0.0 ], [ 0.0, 0.0, 2.4 ], [ 0.0, 0.0, -0.3 ] ], 
+                [ [ -10.7, 12.2, 0.0 ], [ -0.3,   2.7, 0.0 ], [ -3.5, -0.3, 0.0 ], [ -0.3, -0.1, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0,  0.5 ] ], 
+                [ [ -11.3, 14.8, 0.0 ], [ -0.9,   2.5, 0.0 ], [ -3.5, -0.3, 0.0 ], [  0.3,  0.1, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0, -0.5 ] ] ] ),
 
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-2',
+                    'identifierRanges': '1-3',
                     'name': get_stomach_term('fundus of stomach')[0],
                     'ontId': get_stomach_term('fundus of stomach')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '3-4',
+                    'identifierRanges': '4-5',
                     'name': get_stomach_term('body of stomach')[0],
                     'ontId': get_stomach_term('body of stomach')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5',
+                    'identifierRanges': '6',
                     'name': get_stomach_term('pyloric antrum')[0],
                     'ontId': get_stomach_term('pyloric antrum')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '6',
+                    'identifierRanges': '7',
                     'name': get_stomach_term('pylorus')[0],
                     'ontId': get_stomach_term('pylorus')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '7',
+                    'identifierRanges': '8',
                     'name': get_stomach_term('duodenum')[0],
                     'ontId': get_stomach_term('duodenum')[1]
                 }]
@@ -266,7 +267,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of radial elements in annulus': 1,  # KM
             'Wall thickness': 5.0,
             'Limiting ridge': False,
-            'Fundus end position along factor': 0.3,
+            # 'Fundus end position along factor': 0.24,
             'Gastro-oesophagal junction': copy.deepcopy(ostiumOption),
             'Gastro-oesophagal junction position along factor': 0.35,
             'Annulus derivative factor': 1.0,
@@ -288,11 +289,11 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Gastro-oesophagal junction position along factor'] = 0.55
             options['Annulus derivative factor'] = 0.2
             options['Limiting ridge'] = True
-            options['Fundus end position along factor'] = 0.5
+            # options['Fundus end position along factor'] = 0.5
         elif 'Stomach coordinates' in parameterSetName:
             options['Wall thickness'] = 0.5
             options['Gastro-oesophagal junction position along factor'] = 0.45
-            options['Fundus end position along factor'] = 0.45
+            # options['Fundus end position along factor'] = 0.45
 
         cls.updateSubScaffoldOptions(options)
         return options
@@ -308,7 +309,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of radial elements in annulus',
             'Wall thickness',
             'Limiting ridge',
-            'Fundus end position along factor',
+            # 'Fundus end position along factor',
             'Gastro-oesophagal junction',
             'Gastro-oesophagal junction position along factor',
             'Annulus derivative factor',
@@ -385,7 +386,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         # if options['Number of elements along'] < 8:
         #     options['Number of elements along'] = 8
         for key in [
-            'Fundus end position along factor',
+            # 'Fundus end position along factor',
             'Annulus derivative factor']:
             if options[key] < 0:
                 options[key] = 0.0
@@ -431,7 +432,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         GOJOptions = options['Gastro-oesophagal junction']
         GOJSettings = GOJOptions.getScaffoldSettings()
         useLimitingRidge = options['Limiting ridge']
-        fundusEndPositionAlongFactor = options['Fundus end position along factor']
+        # fundusEndPositionAlongFactor = options['Fundus end position along factor']
         elementsCountAnnulus = options['Number of radial elements in annulus']
         annulusDerivativeFactor = options['Annulus derivative factor']
 
@@ -505,35 +506,32 @@ class MeshType_3d_stomach1(Scaffold_base):
         sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
         sd3, sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
 
-        # # Calculate length of central path
-        # testStomachCentralPathLength = 0.0
-        # for e in range(len(sx) - 1):
-        #     arcLength = interp.getCubicHermiteArcLength(sx[e], sd1[e], sx[e + 1], sd1[e + 1])
-        #     # print(e+1, arcLength)
-        #     testStomachCentralPathLength += arcLength
-        # testLengthElementAlong = testStomachCentralPathLength / elementsCountAlongTrackSurface
-
         # Create annotation groups for stomach sections
         allAnnotationGroups = []
-        elementsCountAlongGroups = []
-        stomachCentralPathLength = arcLengthOfGroupsAlong[0]
-        lengthElementAlong = stomachCentralPathLength / elementsCountAlong
-        lengthElementAlongTrackSurface = stomachCentralPathLength / elementsCountAlongTrackSurface
-        totalElementsAlongGroup = 0
-        roundDownGroup = []
-        for i in range(1, len(stomachTermsAlong)):
-            elementsCountAlongGroup = round(arcLengthOfGroupsAlong[i]/lengthElementAlong)
-            totalElementsAlongGroup += elementsCountAlongGroup
-            mod1 = (arcLengthOfGroupsAlong[i]/lengthElementAlong) % 1.0
-            roundDownGroup.append(mod1 if mod1 < 0.5 else 0.0)
-            elementsCountAlongGroups.append(elementsCountAlongGroup)
+        stomachCentralPathLength = sum(arcLengthOfGroupsAlong[1:])
+        fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1]/stomachCentralPathLength
+        arcLengthRatioForGroupsFromFundusEnd = []
+        checkLength = 0.0
+        for i in range(2, len(stomachTermsAlong)):
+            checkLength += arcLengthOfGroupsAlong[i]
+            arcLengthRatio = (arcLengthOfGroupsAlong[i])/(stomachCentralPathLength - arcLengthOfGroupsAlong[1])
+            arcLengthRatioForGroupsFromFundusEnd.append(arcLengthRatio)
 
-        if totalElementsAlongGroup < elementsCountAlong:
-            for n in range(elementsCountAlong - totalElementsAlongGroup):
-                closestToPt5 = max(roundDownGroup)
-                idx = roundDownGroup.index(closestToPt5)
-                elementsCountAlongGroups[idx] += 1
-                roundDownGroup[idx] = 0.0
+        # totalElementsAlongGroup = 0
+        # roundDownGroup = []
+        # for i in range(1, len(stomachTermsAlong)):
+        #     elementsCountAlongGroup = round(arcLengthOfGroupsAlong[i]/lengthElementAlong)
+        #     totalElementsAlongGroup += elementsCountAlongGroup
+        #     mod1 = (arcLengthOfGroupsAlong[i]/lengthElementAlong) % 1.0
+        #     roundDownGroup.append(mod1 if mod1 < 0.5 else 0.0)
+        #     elementsCountAlongGroups.append(elementsCountAlongGroup)
+        #
+        # if totalElementsAlongGroup < elementsCountAlong:
+        #     for n in range(elementsCountAlong - totalElementsAlongGroup):
+        #         closestToPt5 = max(roundDownGroup)
+        #         idx = roundDownGroup.index(closestToPt5)
+        #         elementsCountAlongGroups[idx] += 1
+        #         roundDownGroup[idx] = 0.0
 
         stomachGroup = AnnotationGroup(region, get_stomach_term("stomach"))
         fundusGroup = AnnotationGroup(region, get_stomach_term("fundus of stomach"))
@@ -548,17 +546,12 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 [stomachGroup, pylorusGroup],
                                 [stomachGroup, duodenumGroup]]
 
-        annotationGroupsAlong = []
-        for i in range(len(elementsCountAlongGroups)):
-            elementsCount = elementsCountAlongGroups[i]
-            for n in range(elementsCount):
-                annotationGroupsAlong.append(annotationGroupAlong[i])
-
         nodeIdentifier = firstNodeIdentifier
         elementIdentifier = firstElementIdentifier
 
         # Fundus diameter
         fundusRadius = vector.magnitude(sd2[0])
+        lengthElementAlongTrackSurface = stomachCentralPathLength / elementsCountAlongTrackSurface
         elementsAlongFundus = int(fundusRadius / lengthElementAlongTrackSurface)
 
         d2Apex = []
@@ -815,6 +808,52 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         xOesoToDuodGC = xAlongGCOesoToFundusEnd[:-1] + xAlongGCFundusEndToDuod
         d2OesoToDuodGC = d2AlongGCOesoToFundusEnd[:-1] + d2AlongGCFundusEndToDuod
+
+        # Use element spacing on greater curvature to determine where annotation groups should sit
+        arcLengthGCFromFundusEnd = 0.0
+        arcLengthsGCFromFundusEnd = []
+        for n2 in range(len(xAlongGCFundusEndToDuod) - 1):
+            arcLengthGCFromFundusEnd += interp.getCubicHermiteArcLength(xAlongGCFundusEndToDuod[n2], d2AlongGCFundusEndToDuod[n2],
+                                                        xAlongGCFundusEndToDuod[n2 + 1], d2AlongGCFundusEndToDuod[n2 + 1])
+            arcLengthsGCFromFundusEnd.append(arcLengthGCFromFundusEnd)
+        arcLengthGCFundusEndToDuod = arcLengthGCFromFundusEnd
+
+        # Move along elements on GC and assign to annotation group
+        elementsCountAlongGroups = []
+        elementsCountAlongGroups.append(elementsAlongFundus)
+        groupLength = 0.0
+        e = 0
+        elementsCount = 1
+        length = arcLengthsGCFromFundusEnd[e]
+        for i in range(len(arcLengthRatioForGroupsFromFundusEnd)):
+            groupLength += arcLengthRatioForGroupsFromFundusEnd[i] * arcLengthGCFundusEndToDuod
+
+            if e == len(arcLengthsGCFromFundusEnd) - 2:
+                elementsCount += 1
+                elementsCountAlongGroups.append(elementsCount)
+            else:
+                while length < groupLength:
+                    elementsCount += 1
+                    e += 1
+                    length = arcLengthsGCFromFundusEnd[e]
+
+                # check which end is grouplength closer to
+                distToUpperEnd = abs(length - groupLength)
+                distToLowerEnd = abs(groupLength - arcLengthsGCFromFundusEnd[e - 1])
+                if distToLowerEnd < distToUpperEnd:
+                    elementsCount -= 1
+                    elementsCountAlongGroups.append(elementsCount)
+                    e -= 1
+                    length = arcLengthsGCFromFundusEnd[e]
+                else:
+                    elementsCountAlongGroups.append(elementsCount)
+            elementsCount = 0
+
+        annotationGroupsAlong = []
+        for i in range(len(elementsCountAlongGroups)):
+            elementsCount = elementsCountAlongGroups[i]
+            for n in range(elementsCount):
+                annotationGroupsAlong.append(annotationGroupAlong[i])
 
         # for n2 in range(len(xAlongUpFundus)):
         #     node = nodes.createNode(nodeIdentifier, nodetemplate)
