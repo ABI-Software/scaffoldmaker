@@ -522,4 +522,3 @@ class eftfactory_bicubichermitelinear:
         assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftWedgeCollapseXi2:  Failed to validate eft'
 
         return eft
-    

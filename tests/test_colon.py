@@ -112,14 +112,14 @@ class ColonScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 108.03959866945482, -36.876103983560014, -25.93217903595996 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 185.43446761757468, 48.07433517752282, 34.995316052158934 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [ 108.02506479907721, -36.876103983560014, -25.89741158484918 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 185.46457506076914, 48.1011574894518, 34.995316052158934 ], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 186.72988844629867, 75.79769125771575, 3.2000000000000006 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 186.72988844629867, 77.41781871321301, 3.2000000000000006 ], 1.0E-6)
 
         textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
         minimums, maximums = evaluateFieldNodesetRange(textureCoordinates, nodes)
@@ -136,10 +136,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 14623.340352853866, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 14612.416789097502, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 26869.74823158621, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 26826.06954301569, delta=1.0E-6)
 
     def test_mousecolon1(self):
         """
