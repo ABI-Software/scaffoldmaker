@@ -1660,7 +1660,6 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi2(self, collapseNodes):
         '''
-        EDIT
         Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi1 = 1.
         :return: Element field template
         '''
