@@ -9,7 +9,8 @@ import math
 import copy
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+    findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -384,9 +385,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
-        GOJPositionAlongFactor = options['Gastro-esophagal junction position along factor']
-        GOJOptions = options['Gastro-esophagal junction']
-        GOJSettings = GOJOptions.getScaffoldSettings()
+        GEJPositionAlongFactor = options['Gastro-esophagal junction position along factor']
+        GEJOptions = options['Gastro-esophagal junction']
+        GEJSettings = GEJOptions.getScaffoldSettings()
         limitingRidge = options['Limiting ridge']
         elementsCountAnnulus = options['Number of radial elements in annulus']
         annulusDerivativeFactor = options['Annulus derivative factor']
@@ -418,6 +419,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
 
         cache = fm.createFieldcache()
+        mesh = fm.findMeshByDimension(3)
 
         nodeIdentifier = 1
         elementIdentifier = 1
@@ -476,6 +478,17 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 [stomachGroup, antrumGroup],
                                 [stomachGroup, pylorusGroup],
                                 [stomachGroup, duodenumGroup]]
+
+        # annotation fiducial points
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
 
         # Fundus diameter
         fundusRadius = vector.magnitude(sd2[0])
@@ -590,12 +603,11 @@ class MeshType_3d_stomach1(Scaffold_base):
                                            xTrackSurface, d1TrackSurface, d2TrackSurface, loop1=True)
 
         # Set up gastro-esophagal junction
-        GOJSettings['Number of elements around ostium'] = elementsCountAroundEso
-        GOJPosition = trackSurfaceStomach.createPositionProportion(0.5, GOJPositionAlongFactor)
-        xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(GOJPosition, derivatives=True)
+        GEJSettings['Number of elements around ostium'] = elementsCountAroundEso
+        GEJPosition = trackSurfaceStomach.createPositionProportion(0.5, GEJPositionAlongFactor)
+        xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(GEJPosition, derivatives=True)
         axis1 = d1Centre
 
-        mesh = fm.findMeshByDimension(3)
         esophagusGroup = AnnotationGroup(region, get_stomach_term("esophagus"))
         esophagusMeshGroup = esophagusGroup.getMeshGroup(mesh)
         esophagogastricJunctionGroup = AnnotationGroup(region, get_stomach_term("esophagogastric junction"))
@@ -603,11 +615,12 @@ class MeshType_3d_stomach1(Scaffold_base):
         allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup]
 
         nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
-            generateOstiumMesh(region, GOJSettings, trackSurfaceStomach, GOJPosition, axis1,
+            generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
                                nodeIdentifier, elementIdentifier, vesselMeshGroups=[[esophagusMeshGroup]],
                                ostiumMeshGroups=[esophagogastricJunctionMeshGroup])
 
         stomachStartNode = nextNodeIdentifier
+        stomachStartElement = nextElementIdentifier
         nodeIdentifier = nextNodeIdentifier
         elementIdentifier = nextElementIdentifier
 
@@ -1991,6 +2004,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                             result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                             if scaleFactors:
                                 result3 = element.setScaleFactors(eft1, scaleFactors)
+                            if e1 == 0:
+                                fundusBodyJunctionElementIdentifier = elementIdentifier
                             elementIdentifier += 1
                             annotationGroups = annotationGroupsAlong[e2]
                             if annotationGroups:
@@ -2201,6 +2216,27 @@ class MeshType_3d_stomach1(Scaffold_base):
             elementsCountRadial = elementsCountAnnulus, meshGroups= [stomachMeshGroup, cardiaMeshGroup],
             tracksurface=trackSurfaceStomach, startProportions = startProportions, endProportions = endProportions,
             rescaleStartDerivatives = True, rescaleEndDerivatives = True)
+
+        nodeIdentifier = nextNodeIdentifier
+
+        # annotation fiducial points
+        GEJLCElement = mesh.findElementByIdentifier(stomachStartElement - elementsAroundHalfEso)
+        GEJLCXi = [0.0, 1.0, 1.0]
+        cache.setMeshLocation(GEJLCElement, GEJLCXi)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, "gastro-esophagal junction on lesser curvature")
+        markerLocation.assignMeshLocation(cache, GEJLCElement, GEJLCXi)
+
+        fundusBodyJunctionElement = mesh.findElementByIdentifier(fundusBodyJunctionElementIdentifier)
+        fundusBodyJunctionXi = [0.0, 0.0 if limitingRidge else 1.0, 1.0]
+        cache.setMeshLocation(fundusBodyJunctionElement, fundusBodyJunctionXi)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, "limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature")
+        markerLocation.assignMeshLocation(cache, fundusBodyJunctionElement, fundusBodyJunctionXi)
 
         fm.endChange()
 
