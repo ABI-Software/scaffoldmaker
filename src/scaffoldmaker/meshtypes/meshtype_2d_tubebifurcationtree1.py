@@ -105,8 +105,8 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
 
         # Bifurcation tree extraction
         Readfile = True
-        if Readfile is True:
-            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\mesh_9.exf"
+        if Readfile:
+            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\mesh_6.exf"
             generationCount, bifurcationTree = readRegionFromFile(filename)
             fieldParameters = None
         else:
@@ -145,6 +145,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         lastNodeId = []
         missingRight = []
         missingLeft = []
+        noRootNode = []
 
         # Generate bifurcation tree nodes and elements and return a next nodeIdentifier
         # nodeIdentifier = bifurcationTree.generateZincModel(region)[0]
@@ -205,7 +206,13 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                 c2NodeId[j].append([])
 
                 if j == 0:
-                    child1[j][k] = rootNode.getChild(0)
+                    try:
+                        child1[j][k] = rootNode.getChild(1)
+                        child1[j][k] = rootNode
+                        noRootNode = True
+                    except:
+                        child1[j][k] = rootNode.getChild(0)
+                        noRootNode = False
                     if fieldParameters != None:
                         # Update central path - Parent nodes
                         centralPathIndex[j][k] = 1
@@ -219,6 +226,10 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                         child1[j][k].getChild(1)._d1 = fieldParameters[nextCentralPathIndex[1]][1][1]
                     # Parental branch
                     xParent1, xParentd1, rParent1, xParent2, xParentd2, rParent2 = rootNode.getChildCurve(0)
+                    if noRootNode:
+                        xParent2 = xParent1
+                        xParentd2 = xParentd1
+                        rParent2 = rParent1
                     # Get the right(0) [left(1)] children curve from the bifurcation tree
                     try:
                         xRight1, xRightd1, rRight1, xRight2, xRightd2, rRight2 = child1[j][k].getChildCurve(0)
@@ -360,10 +371,17 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                         stemNodeId[j][k] = c1NodeId[j-1][k // 2].copy() if (k % 2) == 0 else c2NodeId[j-1][k // 2].copy()
                     for m in range(len(x[k][l])):
                         # Skip replicated nodes at each child branch
-                        if skip is True:
+                        if skip:
                             paNodeId[j][k] = c1NodeId[j-1][k // 2].copy() if (k % 2) == 0 else c2NodeId[j-1][k // 2].copy()
                             skip = False
                             continue
+                        # Skip replicated nodes at each parent (Only for noRootNodes)
+                        if noRootNode and (m <= (len(x[k][l]) - 2)):
+                            if (x[k][0][m][0] == x[k][0][m-1][0]):
+                                x[k][0][m+1] = x[k][0][m]
+                                d1[k][0][m + 1] = d1[k][0][m]
+                                d2[k][0][m + 1] = d2[k][0][m]
+                                continue
                         for n in range(elementsCountAroundRoot):
                             node = nodes.createNode(nodeIdentifier, nodetemplate)
                             cache.setNode(node)
@@ -393,14 +411,18 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                     roNodeId[j].append([])
                     coNodeId[j].append([])
                     if l == 0 and (missingLeft[j][k] is not True) and (missingRight[j][k] is not True):
-                        for n in range(len(rox)):
-                            node = nodes.createNode(nodeIdentifier, nodetemplate)
-                            cache.setNode(node)
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox [n])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
-                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
-                            roNodeId[j][k].append(nodeIdentifier)
-                            nodeIdentifier = nodeIdentifier + 1
+                        # Skip rox nodes at each bifurcation (Only for noRootNodes)
+                        if noRootNode and (x[k][0][0][0] == x[k][0][1][0]):
+                            pass
+                        else:
+                            for n in range(len(rox)):
+                                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                                cache.setNode(node)
+                                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox [n])
+                                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
+                                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
+                                roNodeId[j][k].append(nodeIdentifier)
+                                nodeIdentifier = nodeIdentifier + 1
 
                         for n in range(len(cox)):
                             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -430,6 +452,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                         bni4 = bni2 + elementsCountAroundRoot
                         nodeIdentifiers = [stemNodeId[e4][e3][bni1], stemNodeId[e4][e3][bni2],
                                            stemNodeId[e4][e3][bni3], stemNodeId[e4][e3][bni4]]
+                        # print(nodeIdentifiers)
                         if ((nodeIdentifiers[0] and nodeIdentifiers[1]) in paNodeId[e4][e3]) or \
                                 ((nodeIdentifiers[0] and nodeIdentifiers[1]) in lastNodeId[e3]):
                             continue
@@ -440,7 +463,19 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
 
                 # Bifurcation/Junction elements
                 try:
-                    elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
+                    if noRootNode:
+                        noRootNode = False
+                        elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
+                                                                              [], paStartIndex[e4][e3],
+                                                                              c2NodeId[e4][e3],
+                                                                              c2StartIndex[e4][e3], c1NodeId[e4][e3],
+                                                                              c1StartIndex[e4][e3],
+                                                                              paNodeId[e4][e3], coNodeId[e4][e3],
+                                                                              useCrossDerivatives)
+                        print('success')
+                    else:
+                        # Bifurcation for no root node
+                        elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
                                                                           paNodeId[e4][e3], paStartIndex[e4][e3], c2NodeId[e4][e3],
                                                                           c2StartIndex[e4][e3], c1NodeId[e4][e3], c1StartIndex[e4][e3],
                                                                           roNodeId[e4][e3], coNodeId[e4][e3],

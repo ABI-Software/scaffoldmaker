@@ -185,7 +185,10 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     starting at hex2 and between hex1 and hex2, respectively.
     :return next elementIdentifier.
     '''
-    paCount = len(paNodeId)
+    if paNodeId == []:
+        paCount = len(roNodeId)
+    else:
+        paCount = len(paNodeId)
     c1Count = len(c1NodeId)
     c2Count = len(c2NodeId)
     pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
@@ -204,39 +207,42 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     elementtemplateMod = mesh.createElementtemplate()
     elementtemplateMod.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
 
-    for e1 in range(paCount):
-        eft = eftStd
-        elementtemplate = elementtemplateStd
-        np = e1 + paStartIndex
-        nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
-        scalefactors = None
-        meshGroups = [ ]
+    if paNodeId == []:
+        pass
+    else:
+        for e1 in range(paCount):
+            eft = eftStd
+            elementtemplate = elementtemplateStd
+            np = e1 + paStartIndex
+            nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
+            scalefactors = None
+            meshGroups = [ ]
 
-        if e1 in (0, pac1Count - 1, pac1Count, paCount - 1):
-            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-            if not useCrossDerivatives:
-                for n in range(4):
-                    eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-            if e1 in (0, pac1Count):
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-            elif e1 in (pac1Count - 1, paCount - 1):
-                remapEftNodeValueLabel(eft, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
+            if e1 in (0, pac1Count - 1, pac1Count, paCount - 1):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 in (0, pac1Count):
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                elif e1 in (pac1Count - 1, paCount - 1):
+                    remapEftNodeValueLabel(eft, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
 
-        element = mesh.createElement(elementIdentifier, elementtemplate)
-        result2 = element.setNodesByIdentifier(eft, nids)
-        if scalefactors:
-            result3 = element.setScaleFactors(eft, scalefactors)
-        else:
-            result3 = '-'
-        #print('create element tube bifurcation pa', element.isValid(), elementIdentifier, result2, result3, nids)
-        elementIdentifier += 1
-        for meshGroup in meshGroups:
-            meshGroup.addElement(element)
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            result2 = element.setNodesByIdentifier(eft, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft, scalefactors)
+            else:
+                result3 = '-'
+            #print('create element tube bifurcation pa', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier += 1
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
 
     for e1 in range(c1Count):
         eft = eftStd
@@ -252,25 +258,40 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         scalefactors = None
         meshGroups = [ ]
 
-        if e1 in (0, pac1Count, c1Count - 1):
-            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-            if not useCrossDerivatives:
-                for n in range(4):
-                    eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-            if e1 == 0:
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-            elif e1 == pac1Count:
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-            elif e1 == (c1Count - 1):
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
+        if paNodeId == []:
+            if e1 in (0, pac1Count, c1Count - 1):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 == pac1Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                elif e1 == (c1Count - 1):
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
+        else:
+            if e1 in (0, pac1Count, c1Count - 1):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 == 0:
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elif e1 == pac1Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                elif e1 == (c1Count - 1):
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
 
         element = mesh.createElement(elementIdentifier, elementtemplate)
         result2 = element.setNodesByIdentifier(eft, nids)
@@ -296,27 +317,50 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         scalefactors = None
         meshGroups = [ ]
 
-        if e1 <= c1c2Count:
-            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-            if not useCrossDerivatives:
-                for n in range(4):
-                    eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-            scalefactors = [ -1.0 ]
-            setEftScaleFactorIds(eft, [1], [])
-            if e1 == 0:
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-                scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-            elif e1 < (c1c2Count - 1):
-                scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-            elif e1 == (c1c2Count - 1):
-                scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
-            elif e1 == c1c2Count:
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
+        if paNodeId == []:
+            if e1 <= c1c2Count:
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                scalefactors = [ -1.0 ]
+                setEftScaleFactorIds(eft, [1], [])
+                if e1 == 0:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [  ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                    scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 < (c1c2Count - 1):
+                    scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 == (c1c2Count - 1):
+                    scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [  ])
+                elif e1 == c1c2Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [  ] ) ])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [  ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
+        else:
+            if e1 <= c1c2Count:
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                scalefactors = [ -1.0 ]
+                setEftScaleFactorIds(eft, [1], [])
+                if e1 == 0:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                    scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 < (c1c2Count - 1):
+                    scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 == (c1c2Count - 1):
+                    scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
+                elif e1 == c1c2Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
 
         element = mesh.createElement(elementIdentifier, elementtemplate)
         result2 = element.setNodesByIdentifier(eft, nids)
