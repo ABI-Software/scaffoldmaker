@@ -249,7 +249,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Gastro-esophagal junction position along factor': 0.35,
             'Annulus derivative factor': 1.0,
             'Use cross derivatives': False,
-            'Use linear through wall' : False, # need to deal with wedge not available in bicubichermite
+            'Use linear through wall' : False,
             'Refine': False,
             'Refine number of elements around': 1,
             'Refine number of elements along': 1,
@@ -894,9 +894,24 @@ class MeshType_3d_stomach1(Scaffold_base):
                         endPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[-1][n + (0 if n < elementsAroundHalfDuod else 1)])
                     endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
                     xSampled = getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1,
-                                                                      startProportion2, endProportion1, endProportion2,
-                                                                      2)[0]
+                                                                      startProportion2, endProportion1, endProportion2, 2)[0]
                     xAve.append(xSampled[1])
+
+                # Find 6 pt junction
+                p1x_6pt = o1_x[1][elementsAroundHalfEso]
+                d = o1_d2[1][elementsAroundHalfEso]
+                rotFrame = matrix.getRotationMatrixFromAxisAngle(o1_d1[1][elementsAroundHalfEso], math.pi)
+                p1d = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2] for j in range(3)]
+                p1d_6pt = [annulusDerivativeFactor * c for c in p1d]
+
+                p2x_6pt = xAve[int(len(xAve)*0.5) + 1]
+                p2d_6pt = findDerivativeBetweenPoints(p2x_6pt, xAve[int(len(xAve) * 0.5) + 2])
+
+                p3x_6pt = xAve[int(len(xAve) * 0.5) - 1]
+                p3d_6pt = findDerivativeBetweenPoints(p3x_6pt, xAve[int(len(xAve) * 0.5) - 2])
+
+                x6pt = get_bifurcation_triple_point(p1x_6pt, p1d_6pt, p2x_6pt, p2d_6pt, p3x_6pt, p3d_6pt)[0]
+                xAve[int(len(xAve) * 0.5)] = x6pt
 
                 for n in range(len(xAve)):
                     v1 = xAve[n]
