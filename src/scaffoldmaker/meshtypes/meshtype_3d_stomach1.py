@@ -7,7 +7,8 @@ wall, with variable radius and thickness along.
 from __future__ import division
 import math
 import copy
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
+    getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
@@ -2271,6 +2272,54 @@ class MeshType_3d_stomach1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
                                                        refineElementsCountThroughWall)
         return
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        '''
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        '''
+
+        limitingRidge = options['Limiting ridge']
+
+        if limitingRidge:
+            fm = region.getFieldmodule()
+            fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
+            bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
+            cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
+            antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
+
+            limitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction"))
+            innerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction on inner wall"))
+            outerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction on outer wall"))
+
+            mesh2d = fm.findMeshByDimension(2)
+            is_fundus = fundusGroup.getGroup()
+            is_body = bodyGroup.getGroup()
+            is_cardia = cardiaGroup.getGroup()
+            is_antrum = antrumGroup.getGroup()
+            is_limitingRidgeBody = fm.createFieldAnd(is_fundus, is_body)
+            is_limitingRidgeCardia = fm.createFieldAnd(is_body, is_cardia)
+            is_limitingRidgeAntrum = fm.createFieldAnd(is_antrum, is_cardia)
+            is_limitingRidgeBodyCardia = fm.createFieldOr(is_limitingRidgeBody, is_limitingRidgeCardia)
+            is_limitingRidgeAntrumCardia = fm.createFieldOr(is_limitingRidgeAntrum, is_limitingRidgeCardia)
+            is_limitingRidge = fm.createFieldOr(is_limitingRidgeBodyCardia, is_limitingRidgeAntrumCardia)
+            limitingRidgeGroup.getMeshGroup(mesh2d).addElementsConditional(is_limitingRidge)
+
+            mesh1d = fm.findMeshByDimension(1)
+            is_exterior = fm.createFieldIsExterior()
+            is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            is_exterior_face_inner = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+
+            is_limitingRidgeInner = fm.createFieldAnd(is_limitingRidge, is_exterior_face_inner)
+            innerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeInner)
+
+            is_limitingRidgeOuter = fm.createFieldAnd(is_limitingRidge, is_exterior_face_outer)
+            outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):
     """
