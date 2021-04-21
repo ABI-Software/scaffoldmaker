@@ -275,8 +275,6 @@ class MeshType_3d_heart1(Scaffold_base):
             elif e == (elementsCountAroundLeftAtriumFreeWall - 1):
                 # general linear map d3 adjacent to collapsed sulcus
                 eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1], [])
-                scalefactors = [ -1.0 ]
                 remapEftNodeValueLabel(eft1, [ 6, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, []) ])
 
             result = elementtemplate1.defineField(coordinates, -1, eft1)

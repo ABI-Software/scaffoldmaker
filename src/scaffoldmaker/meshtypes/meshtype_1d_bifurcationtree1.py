@@ -134,6 +134,14 @@ class TreeNode:
             self._r.append(r)
         self._children.append(childTreeNode)
 
+    def getChild(self, childIndex):
+        '''
+        :param childIndex: Index starting at 0 into child tree node list.
+        Return x1, d1, r1, x2, d2, r2
+        '''
+        assert 0 <= childIndex < len(self._children)
+        return self._children[childIndex]
+
     def getChildCurve(self, childIndex):
         '''
         :param childIndex: Index starting at 0 into child tree node list.
@@ -223,7 +231,7 @@ class BifurcationTree:
             self._radius = findOrCreateFieldFiniteElement(self._fieldmodule, "radius", components_count=1, managed=True)
             self._fieldcache = self._fieldmodule.createFieldcache()
             parentNode = None
-            self._generateZincModelTree(self._rootNode, parentNode, nextNodeIdentifier, nextElementIdentifier)
+            nextNodeIdentifier, nextElementIdentifier = self._generateZincModelTree(self._rootNode, parentNode, nextNodeIdentifier, nextElementIdentifier)
         return nextNodeIdentifier, nextElementIdentifier
 
     def _getZincNodetemplate(self, d1VersionsCount, rVersionsCount):

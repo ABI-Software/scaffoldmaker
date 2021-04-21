@@ -1009,7 +1009,6 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                 # 7-node collapsed LV free wall element 1, by lv crest and la
                 nids = [ nsdl, nsdl + 1, laNodeId[0][3], nsdl + nowl, nsdl + nowl + 1, lv_crest_nid1, laNodeId[1][3] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1], [])
                 remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS2, [])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 remapEftNodeValueLabel(eft1, [ 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
@@ -1151,7 +1150,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                 # supraventricular crest outer 2, outer infundibulum 1
                 nids = [ nidr + 4, nidr + 5, rv_crest_nid1, rvOutletNodeId[0][2], nidr + nowr + 4, nidr + nowr + 5, rv_crest_nid2, rvOutletNodeId[1][2] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 meshGroups += [ conusArteriosusMeshGroup ]
@@ -1159,7 +1158,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                 # outer infundibulum 2
                 nids = [ nidr + 5, nidr + 6, rvOutletNodeId[0][2], rvOutletNodeId[0][3], nidr + nowr + 5, nidr + nowr + 6, rvOutletNodeId[1][2], rvOutletNodeId[1][3] ]
                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
+                setEftScaleFactorIds(eft1, [1], [])
                 tricubichermite.setEftLinearDerivative(eft1, [ 3, 7 ], Node.VALUE_LABEL_D_DS3, 3, 7, 1)
                 tricubichermite.setEftLinearDerivative(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS3, 4, 8, 1)
                 meshGroups += [ conusArteriosusMeshGroup ]

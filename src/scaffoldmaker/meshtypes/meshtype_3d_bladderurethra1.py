@@ -21,6 +21,7 @@ from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
+from opencmiss.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -301,11 +302,13 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
+        if options['Number of elements around'] % 2 != 0:
+            options['Number of elements around'] += 1
         if options['Number of elements through wall'] > 1:
             if options['Include ureter']:
                 options['Number of elements through wall'] = 1
-        if options['Ureter position around'] < 0.1:
-            options['Ureter position around'] = 0.1
+        if options['Ureter position around'] < 0.5:
+            options['Ureter position around'] = 0.5  # ureters are on the dorsal part of the bladder
         elif options['Ureter position around'] > 0.9:
             options['Ureter position around'] = 0.9
         if options['Ureter position down'] < 0.15:
@@ -366,6 +369,19 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         fm.beginChange()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fm.findMeshByDimension(3)
+
+        # Annotation fiducial point
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+
+        cache = fm.createFieldcache()
 
         # Central path
         # Bladder part
@@ -651,8 +667,67 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         elementsCountAlongBody = round(ureterPositionDown * elementsCountAlongBladder - 1)
         elementsCountAlongNeck = elementsCountAlongBladder - elementsCountAlongBody
 
+        # Define outer layer of the bladder to create the trackSurface on it
+        outerNodes_x = []
+        outerNodes_d1 = []
+        outerNodes_d2 = []
+        for n2 in range(elementsCountAlongBladder + 1):
+            for n1 in range(elementsCountAround):
+                outerNodes_x.append(xList[(2 * n2 + 1) * elementsCountAround + n1])
+                outerNodes_d1.append(d1List[(2 * n2 + 1) * elementsCountAround + n1])
+                outerNodes_d2.append(d2List[(2 * n2 + 1) * elementsCountAround + n1])
+
+        if includeUreter:
+            elementsCount1 = elementsCountAround // 2
+            elementsCount2 = elementsCountAlongBladder
+            # Create trackSurface at the outer layer of the bladder for ureter 1
+            nodesOnTrackSurface_x = []
+            nodesOnTrackSurface_d1 = []
+            nodesOnTrackSurface_d2 = []
+            for n2 in range(elementsCountAlongBladder + 1):
+                for n1 in range(elementsCountAround // 2 + 1):
+                    nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
+                    nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
+                    nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
+            trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
+                                               nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
+
+            ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
+            ureterElementPositionAround = ureter1Position.e1
+            ureterElementPositionDown = ureter1Position.e2
+            elementToDeleteStartIdx1 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
+                                       + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
+
+            elementIndex = elementToDeleteStartIdx1 - elementsCountAround * ureterElementPositionDown
+            if ureterElementPositionAround > (elementsCountAround / 4):
+                elementsCountVentral1 = (elementsCountAround // 4)
+            else:
+                elementsCountVentral1 = elementIndex - 1
+
+            # Create trackSurface at the outer layer of the bladder for ureter 2
+            nodesOnTrackSurface2_x = []
+            nodesOnTrackSurface2_d1 = []
+            nodesOnTrackSurface2_d2 = []
+            for n2 in range(elementsCountAlongBladder + 1):
+                for n1 in range(elementsCountAround // 2, elementsCountAround):
+                    nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround + n1])
+                    nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
+                    nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
+                nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
+                nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
+
+            trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
+                                               nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
+            ureter2Position = TrackSurfacePosition(elementsCountAround // 2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
+                                                   ureterElementPositionDown,
+                                                   (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
+                                                   ureter1Position.xi2)
+        else:
+            elementsCountVentral1 = elementsCountAround // 4
+
         # Create annotation groups for bladder and urethra
-        bodyGroup = AnnotationGroup(region, get_bladder_term("Dome of the Bladder"))
+        bodyGroup = AnnotationGroup(region, get_bladder_term("dome of the bladder"))
         neckGroup = AnnotationGroup(region, get_bladder_term("neck of urinary bladder"))
         bladderGroup = AnnotationGroup(region, get_bladder_term("urinary bladder"))
         urethraGroup = AnnotationGroup(region, get_bladder_term("urethra"))
@@ -692,62 +767,59 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
 
-        annotationGroups.append(ureterGroup)
+        if includeUreter:
+            annotationGroups.append(ureterGroup)
 
-        # Define outer layer of the bladder to create the trackSurface on it
-        outerNodes_x = []
-        outerNodes_d1 = []
-        outerNodes_d2 = []
-        for n2 in range(elementsCountAlongBladder + 1):
-            for n1 in range(elementsCountAround):
-                outerNodes_x.append(xList[(2 * n2 + 1) * elementsCountAround + n1])
-                outerNodes_d1.append(d1List[(2 * n2 + 1) * elementsCountAround + n1])
-                outerNodes_d2.append(d2List[(2 * n2 + 1) * elementsCountAround + n1])
+        # Create annotation groups for dorsal and ventral parts of the bladder and urethra
+        bladderDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of bladder"))
+        bladderVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of bladder"))
+        dorsalBladderMeshGroup = bladderDorsalGroup.getMeshGroup(mesh)
+        ventralBladderMeshGroup = bladderVentralGroup.getMeshGroup(mesh)
+        if includeUrethra:
+            urethraDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of urethra"))
+            urethraVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of urethra"))
+            dorsalUrethraMeshGroup = urethraDorsalGroup.getMeshGroup(mesh)
+            ventralUrethraMeshGroup = urethraVentralGroup.getMeshGroup(mesh)
+
+        for e2 in range(elementsCountAlong):
+            for e3 in range(elementsCountThroughWall):
+                for e1 in range(elementsCountAround):
+                    elementIdx = e3 * elementsCountAround + e2 * elementsCountThroughWall * elementsCountAround + e1 + 1
+                    if e1 < elementsCountVentral1 or e1 > elementsCountAround - elementsCountVentral1 - 1:
+                        element = mesh.findElementByIdentifier(elementIdx)
+                        if e2 < elementsCountAlongBladder:
+                            ventralBladderMeshGroup.addElement(element)
+                        else:
+                            ventralUrethraMeshGroup.addElement(element)
+                    else:
+                        element = mesh.findElementByIdentifier(elementIdx)
+                        if e2 < elementsCountAlongBladder:
+                            dorsalBladderMeshGroup.addElement(element)
+                        else:
+                            dorsalUrethraMeshGroup.addElement(element)
+
+        annotationGroups.append(bladderDorsalGroup)
+        annotationGroups.append(bladderVentralGroup)
+        if includeUrethra:
+            annotationGroups.append(urethraDorsalGroup)
+            annotationGroups.append(urethraVentralGroup)
 
         if includeUreter:
-            elementsCount1 = elementsCountAround // 2
-            elementsCount2 = elementsCountAlongBladder
-            # Create trackSurface at the outer layer of the bladder for ureter 1
-            nodesOnTrackSurface_x = []
-            nodesOnTrackSurface_d1 = []
-            nodesOnTrackSurface_d2 = []
-            for n2 in range(elementsCountAlongBladder + 1):
-                for n1 in range(elementsCountAround // 2 + 1):
-                    nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-            trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
-                                               nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
-
-            ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
-            ureterElementPositionAround = ureter1Position.e1
-            ureterElementPositionDown = ureter1Position.e2
-
-            # Create trackSurface at the outer layer of the bladder for ureter 2
-            nodesOnTrackSurface2_x = []
-            nodesOnTrackSurface2_d1 = []
-            nodesOnTrackSurface2_d2 = []
-            for n2 in range(elementsCountAlongBladder + 1):
-                for n1 in range(elementsCountAround // 2, elementsCountAround):
-                    nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-                nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
-                nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
-                nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
-
-            trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
-                                               nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
-            ureter2Position = TrackSurfacePosition(elementsCountAround//2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
-                                                   ureterElementPositionDown,
-                                                   (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
-                                                   ureter1Position.xi2)
-            bladderMeshGroup = [neckMeshGroup, urinaryBladderMeshGroup]
+            bladderMeshGroup = [neckMeshGroup, urinaryBladderMeshGroup, dorsalBladderMeshGroup]
             generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCountAround, elementsCountThroughWall,
                             elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
                             ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
                             d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
                             ureterMeshGroup, bladderMeshGroup)
+
+        # Apex annotation point
+        nodeIdentifier = nextNodeIdentifier
+        idx = 1
+        element1 = mesh.findElementByIdentifier(idx)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, 'Apex of urinary bladder')
+        markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
 
         fm.endChange()
         return annotationGroups
@@ -779,9 +851,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         '''
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
-        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("Dome of the Bladder"))
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dome of the bladder"))
         neckGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("neck of urinary bladder"))
         urinaryBladderGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urinary bladder"))
+        bladderVentralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of bladder"))
+        bladderDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of bladder"))
 
         mesh2d = fm.findMeshByDimension(2)
 
@@ -801,6 +875,14 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         is_urinaryBladder_serosa = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_1)
         is_urinaryBladder_lumen = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_0)
 
+        is_dorsal_bladder = bladderDorsalGroup.getFieldElementGroup(mesh2d)
+        is_ventral_bladder = bladderVentralGroup.getFieldElementGroup(mesh2d)
+
+        serosaOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
+        serosaOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_serosa)
+        lumenOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("bladder lumen"))
+        lumenOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_lumen)
+
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of body of urinary bladder"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa)
         lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of body of urinary bladder"))
@@ -811,22 +893,86 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         lumenOfNeck = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of neck of urinary bladder"))
         lumenOfNeck.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen)
 
-        serosaOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
-        serosaOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_serosa)
-        lumenOfUrinaryBladder = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("bladder lumen"))
-        lumenOfUrinaryBladder.getMeshGroup(mesh2d).addElementsConditional(is_urinaryBladder_lumen)
+        is_bladder_serosa_dorsal = fm.createFieldAnd(is_urinaryBladder_serosa, is_dorsal_bladder)
+        serosaOfBladder_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of urinary bladder"))
+        serosaOfBladder_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_bladder_serosa_dorsal)
+
+        is_bladder_serosa_ventral = fm.createFieldAnd(is_urinaryBladder_serosa, is_ventral_bladder)
+        serosaOfBladder_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of urinary bladder"))
+        serosaOfBladder_ventral.getMeshGroup(mesh2d).addElementsConditional(is_bladder_serosa_ventral)
+
+        is_bladder_lumen_dorsal = fm.createFieldAnd(is_urinaryBladder_lumen, is_dorsal_bladder)
+        lumenOfBladder_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of bladder lumen"))
+        lumenOfBladder_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_bladder_lumen_dorsal)
+
+        is_bladder_lumen_ventral = fm.createFieldAnd(is_urinaryBladder_lumen, is_ventral_bladder)
+        lumenOfBladder_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of bladder lumen"))
+        lumenOfBladder_ventral.getMeshGroup(mesh2d).addElementsConditional(is_bladder_lumen_ventral)
+
+        is_body_serosa_dorsal = fm.createFieldAnd(is_body_serosa, is_dorsal_bladder)
+        serosaOfBody_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of body of urinary bladder"))
+        serosaOfBody_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa_dorsal)
+
+        is_body_serosa_ventral = fm.createFieldAnd(is_body_serosa, is_ventral_bladder)
+        serosaOfBody_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of body of urinary bladder"))
+        serosaOfBody_ventral.getMeshGroup(mesh2d).addElementsConditional(is_body_serosa_ventral)
+
+        is_body_lumen_dorsal = fm.createFieldAnd(is_body_lumen, is_dorsal_bladder)
+        lumenOfBody_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of lumen of body of urinary bladder"))
+        lumenOfBody_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen_dorsal)
+
+        is_body_lumen_ventral = fm.createFieldAnd(is_body_lumen, is_ventral_bladder)
+        lumenOfBody_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of lumen of body of urinary bladder"))
+        lumenOfBody_ventral.getMeshGroup(mesh2d).addElementsConditional(is_body_lumen_ventral)
+
+        is_neck_serosa_dorsal = fm.createFieldAnd(is_neck_serosa, is_dorsal_bladder)
+        serosaOfNeck_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of neck of urinary bladder"))
+        serosaOfNeck_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_neck_serosa_dorsal)
+
+        is_neck_serosa_ventral = fm.createFieldAnd(is_neck_serosa, is_ventral_bladder)
+        serosaOfNeck_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of neck of urinary bladder"))
+        serosaOfNeck_ventral.getMeshGroup(mesh2d).addElementsConditional(is_neck_serosa_ventral)
+
+        is_neck_lumen_dorsal = fm.createFieldAnd(is_neck_lumen, is_dorsal_bladder)
+        lumenOfNeck_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of lumen of neck of urinary bladder"))
+        lumenOfNeck_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen_dorsal)
+
+        is_neck_lumen_ventral = fm.createFieldAnd(is_neck_lumen, is_ventral_bladder)
+        lumenOfNeck_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of lumen of neck of urinary bladder"))
+        lumenOfNeck_ventral.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen_ventral)
 
         if options['Include urethra'] == True:
             urethraGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("urethra"))
+            urethraVentralGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("ventral part of urethra"))
+            urethraDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of urethra"))
 
             is_urethra = urethraGroup.getFieldElementGroup(mesh2d)
             is_urethra_serosa = fm.createFieldAnd(is_urethra, is_exterior_face_xi3_1)
             is_urethra_lumen = fm.createFieldAnd(is_urethra, is_exterior_face_xi3_0)
 
+            is_dorsal_urethra = urethraDorsalGroup.getFieldElementGroup(mesh2d)
+            is_ventral_urethra = urethraVentralGroup.getFieldElementGroup(mesh2d)
+
             serosaOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urethra"))
             serosaOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_serosa)
             lumenOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("lumen of urethra"))
             lumenOfUrethra.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen)
+
+            is_urethra_serosa_dorsal = fm.createFieldAnd(is_urethra_serosa, is_dorsal_urethra)
+            serosaOfUrethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of serosa of urethra"))
+            serosaOfUrethra_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_urethra_serosa_dorsal)
+
+            is_urethra_serosa_ventral = fm.createFieldAnd(is_urethra_serosa, is_ventral_urethra)
+            serosaOfUrethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of serosa of urethra"))
+            serosaOfUrethra_ventral.getMeshGroup(mesh2d).addElementsConditional(is_urethra_serosa_ventral)
+
+            is_urethra_lumen_dorsal = fm.createFieldAnd(is_urethra_lumen, is_dorsal_urethra)
+            lumenOfUrethra_dorsal = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("dorsal part of lumen of urethra"))
+            lumenOfUrethra_dorsal.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen_dorsal)
+
+            is_urethra_lumen_ventral = fm.createFieldAnd(is_urethra_lumen, is_ventral_urethra)
+            lumenOfUrethra_ventral = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("ventral part of lumen of urethra"))
+            lumenOfUrethra_ventral.getMeshGroup(mesh2d).addElementsConditional(is_urethra_lumen_ventral)
 
 def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCountAround, elementsCountThroughWall,
                     elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
