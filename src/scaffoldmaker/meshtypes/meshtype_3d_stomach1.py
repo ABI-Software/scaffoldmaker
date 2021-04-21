@@ -2225,6 +2225,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         stomachMeshGroup = stomachGroup.getMeshGroup(mesh)
         allAnnotationGroups.append(cardiaGroup)
 
+        lastDuodenumElementIdentifier = elementIdentifier
+
         nextNodeIdentifier, nextElementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
@@ -2235,7 +2237,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         nodeIdentifier = nextNodeIdentifier
 
-        # annotation fiducial points
+        # annotation fiducial points for embedding in whole body
         GEJLCElement = mesh.findElementByIdentifier(stomachStartElement - elementsAroundHalfEso)
         GEJLCXi = [0.0, 1.0, 1.0]
         cache.setMeshLocation(GEJLCElement, GEJLCXi)
@@ -2253,6 +2255,15 @@ class MeshType_3d_stomach1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, "limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature")
         markerLocation.assignMeshLocation(cache, fundusBodyJunctionElement, fundusBodyJunctionXi)
+
+        duodenumGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - elementsCountAroundDuod)
+        duodenumGCXi = [0.0, 1.0, 1.0]
+        cache.setMeshLocation(duodenumGCElement, duodenumGCXi)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, "duodenum on greater curvature")
+        markerLocation.assignMeshLocation(cache, duodenumGCElement, duodenumGCXi)
 
         fm.endChange()
 
