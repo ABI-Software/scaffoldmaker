@@ -37,8 +37,8 @@ class MeshType_3d_stomach1(Scaffold_base):
     Generates a 3-D stomach mesh with variable numbers of elements around the esophagus and duodenum,
     along the central line, and through wall. The stomach is created using a central path as the longitudinal axis
     of the stomach. D2 of the central path points to the greater curvature of the stomach and magnitude of D2 and D3
-    are the radii of the stomach in the respective direction. D2 and D3 on the first node of the central path provide
-    the radii of the fundus dome.
+    are the radii of the stomach in the respective direction. D2 on the first node of the central path provide
+    the radius of the fundus dome.
     """
     centralPathDefaultScaffoldPackages = {
         'Human 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -461,9 +461,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         stomachCentralPathLength = sum(arcLengthOfGroupsAlong[1:])
         fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1]/stomachCentralPathLength
         arcLengthRatioForGroupsFromFundusEnd = []
-        checkLength = 0.0
         for i in range(2, len(stomachTermsAlong)):
-            checkLength += arcLengthOfGroupsAlong[i]
             arcLengthRatio = (arcLengthOfGroupsAlong[i])/(stomachCentralPathLength - arcLengthOfGroupsAlong[1])
             arcLengthRatioForGroupsFromFundusEnd.append(arcLengthRatio)
 
@@ -538,7 +536,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 d2Around.append(d2)
             d2Ellipses.append(d2Around)
 
-        # Merge fundus and body
+        # Merge fundus apex and body
         xAll = [[sx[0]] * elementsCountAroundDuod] + xEllipses
         d2All = [d2Apex] + d2Ellipses
 
@@ -2381,9 +2379,9 @@ def getSmoothedSampledPointsOnTrackSurface(trackSurface, startProportion1, start
 
 def smoothD1Around(xAround, d1Around):
     """
-    Rearrange points around so that points starts from left side of the annulus to the greater curvature
+    Rearrange points around so that the group of points starts from left side of the annulus to the greater curvature
     and ends on the right side of the annulus. This put points in consecutive order for derivative smoothing.
-    Smoothed derivatives are re-arranged such that it starts from the greater curvature and goes to the right
+    The smoothed derivatives are then re-arranged such that it starts from the greater curvature and goes to the right
     side of the annulus, followed by the left side of the annulus and closing the loop back at the greater curvature.
     :param xAround: points around a loop joining to the annulus.
     :param d1Around: derivative of points.
@@ -2400,9 +2398,9 @@ def smoothD1Around(xAround, d1Around):
 
 def findD1CurvatureAround(xAround, d1Around, normsAround):
     """
-    Rearrange points around so that points starts from left side of the annulus to the greater curvature
+    Rearrange points around so that the group of points starts from left side of the annulus to the greater curvature
     and ends on the right side of the annulus. This put points in consecutive order for calculating curvature.
-    Curvatures are re-arranged such that it starts from the greater curvature and goes to the right
+    The calculated curvatures are then re-arranged such that it starts from the greater curvature and goes to the right
     side of the annulus, followed by the left side of the annulus and closing the loop back at the greater curvature.
     :param xAround: points around a loop joining to the annulus.
     :param d1Around: derivative of points.
