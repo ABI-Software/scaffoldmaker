@@ -55,7 +55,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(823, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(338, nodes.getSize())
+        self.assertEqual(341, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -63,7 +63,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [-17.977095466754566, -15.437578891036395, -8.706694306455596], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [17.943222678234513, 15.166959982968175, 8.725549026319936], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [17.943222678234513, 15.191836205539767, 8.725549026319936], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -75,10 +75,10 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 2436.587011786455, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 2436.4955183926895, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 1168.9736652790561, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 1168.9418891341106, delta=1.0E-6)
 
 if __name__ == "__main__":
     unittest.main()
