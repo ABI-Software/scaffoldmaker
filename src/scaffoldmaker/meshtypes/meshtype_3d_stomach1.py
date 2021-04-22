@@ -1892,6 +1892,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, [1])])
                                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
                                 elif e1 == 1:  # Bottom right wedge
+                                    scaleFactors = [-1.0]
                                     nodeIdentifiers = [bni11, bni21, bni22,
                                                        bni11 + elementsCountAround1,
                                                        bni21 + elementsCountAround2,
@@ -1915,6 +1916,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 bni21 = startNode + elementsAroundThroughWall + e1 + elementsCountAround2 * e3
                                 bni22 = startNode + elementsAroundThroughWall + (e1 + 1) % elementsCountAround2 + elementsCountAround2 * e3
                                 if e1 == elementsCountAround1:  # Bottom left wedge
+                                    scaleFactors = [-1.0]
                                     nodeIdentifiers = [bni12, bni21, bni22,
                                                        bni12 + elementsCountAround1,
                                                        bni21 + elementsCountAround2,
@@ -1994,6 +1996,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 nodeIdentifiers = [bni11, bni12, bni21,
                                                    bni11 + elementsCountAround1, bni12 + elementsCountAround1,
                                                    bni21 + elementsCountAround2]
+                                scaleFactors = [-1.0]
                                 eft1 = eftfactory.createEftWedgeCollapseXi2([4, 8])
                                 elementtemplateX.defineField(coordinates, -1, eft1)
                                 elementtemplate1 = elementtemplateX
