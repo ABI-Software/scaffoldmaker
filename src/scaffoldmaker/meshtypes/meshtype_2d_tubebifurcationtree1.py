@@ -104,9 +104,9 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         cache = fm.createFieldcache()
 
         # Bifurcation tree extraction
-        Readfile = True
+        Readfile = False
         if Readfile:
-            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\mesh_6.exf"
+            filename = "D:\\Python\\venv_sparc\\mapclient_workflow\\scaffold\\airway\\mesh_6.exf"
             generationCount, bifurcationTree = readRegionFromFile(filename)
             fieldParameters = None
         else:
@@ -450,9 +450,13 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                             bni2 = ((bni1 + 1) % (elementsCountAroundRoot * (e2 + 1))) + (elementsCountAroundRoot * e2)
                         bni3 = bni1 + elementsCountAroundRoot
                         bni4 = bni2 + elementsCountAroundRoot
+                        if (0 < e4 < (generationCount-2)) and (e2 == 0):
+                            bni3 = ((bni3 + 1) % elementsCountAroundRoot) + elementsCountAroundRoot
+                            bni4 = ((bni4 + 1) % elementsCountAroundRoot) + elementsCountAroundRoot
+
                         nodeIdentifiers = [stemNodeId[e4][e3][bni1], stemNodeId[e4][e3][bni2],
                                            stemNodeId[e4][e3][bni3], stemNodeId[e4][e3][bni4]]
-                        # print(nodeIdentifiers)
+
                         if ((nodeIdentifiers[0] and nodeIdentifiers[1]) in paNodeId[e4][e3]) or \
                                 ((nodeIdentifiers[0] and nodeIdentifiers[1]) in lastNodeId[e3]):
                             continue
@@ -472,11 +476,11 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                                                                               c1StartIndex[e4][e3],
                                                                               paNodeId[e4][e3], coNodeId[e4][e3],
                                                                               useCrossDerivatives)
-                        print('success')
                     else:
                         # Bifurcation for no root node
+                        PaIndex = -1 if (1 < e4 < (generationCount - 1)) else paStartIndex[e4][e3]
                         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
-                                                                          paNodeId[e4][e3], paStartIndex[e4][e3], c2NodeId[e4][e3],
+                                                                          paNodeId[e4][e3], PaIndex, c2NodeId[e4][e3],
                                                                           c2StartIndex[e4][e3], c1NodeId[e4][e3], c1StartIndex[e4][e3],
                                                                           roNodeId[e4][e3], coNodeId[e4][e3],
                                                                           useCrossDerivatives)
