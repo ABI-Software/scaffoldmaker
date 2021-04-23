@@ -611,12 +611,13 @@ class MeshType_3d_stomach1(Scaffold_base):
         esophagusMeshGroup = esophagusGroup.getMeshGroup(mesh)
         esophagogastricJunctionGroup = AnnotationGroup(region, get_stomach_term("esophagogastric junction"))
         esophagogastricJunctionMeshGroup = esophagogastricJunctionGroup.getMeshGroup(mesh)
+        stomachMeshGroup = stomachGroup.getMeshGroup(mesh)
         allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup]
 
         nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
             generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
                                nodeIdentifier, elementIdentifier, vesselMeshGroups=[[esophagusMeshGroup]],
-                               ostiumMeshGroups=[esophagogastricJunctionMeshGroup])
+                               ostiumMeshGroups=[stomachMeshGroup, esophagogastricJunctionMeshGroup])
 
         stomachStartNode = nextNodeIdentifier
         stomachStartElement = nextElementIdentifier
@@ -2223,7 +2224,6 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         cardiaGroup = AnnotationGroup(region, get_stomach_term("cardia of stomach"))
         cardiaMeshGroup = cardiaGroup.getMeshGroup(mesh)
-        stomachMeshGroup = stomachGroup.getMeshGroup(mesh)
         allAnnotationGroups.append(cardiaGroup)
 
         lastDuodenumElementIdentifier = elementIdentifier
