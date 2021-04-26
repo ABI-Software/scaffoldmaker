@@ -813,68 +813,37 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                             d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
                             ureterMeshGroup, bladderMeshGroup)
 
-        # Apex annotation point
-        nodeIdentifier = nextNodeIdentifier + elementsCountAroundUreter * 4 * 2 + elementsCountAroundUreter * 2 * 2 * elementsCountUreterRadial
-        idx = 1
-        element1 = mesh.findElementByIdentifier(idx)
-        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        cache.setNode(markerPoint)
-        markerName.assignString(cache, 'Apex of urinary bladder')
-        markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
-
-        # Markers for ureters
+        # Define markers for apex, ureter and urethra junctions with bladder
+        idx1 = 1
+        xi1 = [0.0, 0.0, 0.0]
         if includeUreter:
-            # Left ureter
-            nodeIdentifier += 1
-            idx1 = elementsCountAlong * elementsCountAround + elementsCountAroundUreter
-            element1 = mesh.findElementByIdentifier(idx1)
-            markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerUreter1Point)
-            markerName.assignString(cache, 'ureter junction of bladder trigone')
-            markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 1.0])
-            # Right ureter
-            nodeIdentifier += 1
-            idx2 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
-            element2 = mesh.findElementByIdentifier(idx2)
-            markerUreter2Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerUreter2Point)
-            markerName.assignString(cache, 'ureter junction of bladder trigone')
-            markerLocation.assignMeshLocation(cache, element2, [0.0, 1.0, 1.0])
+            idx2 = elementsCountAlong * elementsCountAround + elementsCountAroundUreter
+            idx3 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
+            xi2 = [0.0, 1.0, 0.0]
+            xi3 = [0.0, 1.0, 0.0]
         else:
-            # Left ureter
-            nodeIdentifier += 1
-            idx1 = ureterElementPositionDown * elementsCountAround + ureterElementPositionAround + 1
-            element1 = mesh.findElementByIdentifier(idx1)
-            markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerUreter1Point)
-            markerName.assignString(cache, 'ureter junction of bladder trigone')
-            markerLocation.assignMeshLocation(cache, element1, [ureter1Position.xi1, ureter1Position.xi2, 1.0])
-            # Right ureter
-            nodeIdentifier += 1
-            idx2 = ureterElementPositionDown * elementsCountAround + elementsCountAround - ureterElementPositionAround
-            element2 = mesh.findElementByIdentifier(idx2)
-            markerUreter2Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerUreter2Point)
-            markerName.assignString(cache, 'ureter junction of bladder trigone')
-            markerLocation.assignMeshLocation(cache, element2, [1-ureter1Position.xi1, ureter1Position.xi2, 1.0])
+            idx2 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
+            idx3 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + elementsCountAround - ureterElementPositionAround
+            xi2 = [ureter1Position.xi1, ureter1Position.xi2, 0.0]
+            xi3 = [1 - ureter1Position.xi1, ureter1Position.xi2, 0.0]
+        idx4 = (elementsCountAlongBladder - 1) * elementsCountAround * elementsCountThroughWall + elementsCountAround // 2
+        xi4 = [1.0, 1.0, 0.0]
+        idx5 = (elementsCountAlongBladder - 1) * elementsCountAround * elementsCountThroughWall + 1
+        xi5 = [0.0, 1.0, 0.0]
 
-        # Markers for urethra
-        # Dorsal
-        nodeIdentifier += 1
-        idx1 = (elementsCountAlongBladder - 1) * elementsCountAround + elementsCountAround // 2
-        element1 = mesh.findElementByIdentifier(idx1)
-        markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        cache.setNode(markerUreter1Point)
-        markerName.assignString(cache, 'urethra junction with bladder dorsal')
-        markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
-        # Ventral
-        nodeIdentifier += 1
-        idx1 = (elementsCountAlongBladder - 1) * elementsCountAround + 1
-        element1 = mesh.findElementByIdentifier(idx1)
-        markerUreter1Point = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        cache.setNode(markerUreter1Point)
-        markerName.assignString(cache, 'urethra junction with bladder ventral')
-        markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 1.0])
+        element_id = [idx1, idx2, idx3, idx4, idx5]
+        xi = [xi1, xi2, xi3, xi4, xi5]
+        marker_dic = {"name": ["Apex of urinary bladder", " left ureter junction with bladder", "right ureter junction with bladder",
+                      "urethra junction with bladder dorsal", "urethra junction with bladder ventral"], "element_id": element_id, "xi": xi}
+
+        nodeIdentifier = nextNodeIdentifier + elementsCountAroundUreter * 4 * 2 + elementsCountAroundUreter * 2 * 2 * elementsCountUreterRadial
+        for n in range(len(marker_dic["name"])):
+            element1 = mesh.findElementByIdentifier(marker_dic["element_id"][n])
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, (marker_dic["name"][n]))
+            markerLocation.assignMeshLocation(cache, element1, marker_dic["xi"][n])
+            nodeIdentifier += 1
 
         fm.endChange()
         return annotationGroups
