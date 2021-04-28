@@ -1007,7 +1007,7 @@ class MeshType_3d_lung1(Scaffold_base):
             nodeIdentifier += 1
             cache.setNode(markerPoint)
             markerName.assignString(cache, 'apex of left lung')
-            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
+            markerLocation.assignMeshLocation(cache, element1, [1.0, 0.0, 1.0])
 
             idx = elementsCount1 * elementsCount2
             element1 = mesh.findElementByIdentifier(idx)
