@@ -821,7 +821,7 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi1 collapsed on xi3 = 0 or xi3 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi1.
         :return: Element field template
         '''
         eft = self.createEftBasic()
@@ -897,7 +897,7 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 0 or Xi3 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi2.
         :return: Element field template
         '''
         eft = self.createEftBasic()
@@ -1666,7 +1666,7 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi2(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi1 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi2.
         :return: Element field template
         '''
         eft = self.createEftBasic()
