@@ -929,11 +929,31 @@ class eftfactory_tricubichermite:
             else:
                 valid = False
             ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
-        elif collapseNodes in [[4, 8]]:
+
+        elif collapseNodes in [[3, 7]]:
+            nodes = [1, 3, 5, 7]
+            # remap parameters on xi1 = 0 before collapsing nodes
+            if collapseNodes == [3, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            else:
+                valid = False
+            ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
+
+        elif collapseNodes in [[2, 6], [4, 8]]:
             nodes = [2, 4, 6, 8]
-            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-            remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            # remap parameters on xi1 = 1 before collapsing nodes
+            if collapseNodes == [2, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            elif collapseNodes == [4, 8]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            else:
+                valid = False
             ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
+
         else:
             valid = False
 
@@ -1663,31 +1683,3 @@ class eftfactory_tricubichermite:
         self._mesh.destroyElement(origElement1)
         self._mesh.destroyElement(origElement2)
         fm.endChange()
-
-    def createEftWedgeCollapseXi2(self, collapseNodes):
-        '''
-        Create a tricubic hermite element field for a wedge element collapsed in xi2.
-        :return: Element field template
-        '''
-        eft = self.createEftBasic()
-
-        if collapseNodes in [[4, 8]]:
-            setEftScaleFactorIds(eft, [1], [])
-            nodes = [2, 4, 6, 8]
-            remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-            ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
-
-        elif collapseNodes in [[3, 7]]:
-            nodes = [1, 3, 5, 7]
-            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-            remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-            ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
-
-        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
-        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
-        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
-
-        remapEftLocalNodes(eft, 6, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi2:  Failed to validate eft'
-        return eft

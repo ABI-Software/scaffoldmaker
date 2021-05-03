@@ -1998,7 +1998,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                                    bni11 + elementsCountAround1, bni12 + elementsCountAround1,
                                                    bni21 + elementsCountAround2]
                                 scaleFactors = [-1.0]
-                                eft1 = eftfactory.createEftWedgeCollapseXi2([4, 8])
+                                eft1 = eftfactory.createEftWedgeCollapseXi2Quadrant([4, 8])
                                 elementtemplateX.defineField(coordinates, -1, eft1)
                                 elementtemplate1 = elementtemplateX
 
@@ -2007,7 +2007,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 nodeIdentifiers = [bni11, bni12, bni21,
                                                    bni11 + elementsCountAround1, bni12 + elementsCountAround1,
                                                    bni21 + elementsCountAround2]
-                                eft1 = eftfactory.createEftWedgeCollapseXi2([3, 7])
+                                eft1 = eftfactory.createEftWedgeCollapseXi2Quadrant([3, 7])
                                 elementtemplateX.defineField(coordinates, -1, eft1)
                                 elementtemplate1 = elementtemplateX
 
