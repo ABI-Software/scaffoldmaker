@@ -2254,6 +2254,15 @@ class MeshType_3d_stomach1(Scaffold_base):
         markerName.assignString(cache, "limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature")
         markerLocation.assignMeshLocation(cache, fundusBodyJunctionElement, fundusBodyJunctionXi)
 
+        pylorusGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - (elementsCountAlongGroups[-1] +1) * elementsCountAroundDuod)
+        pylorusGCXi = [0.0, 1.0, 1.0]
+        cache.setMeshLocation(pylorusGCElement, pylorusGCXi)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, "pylorus on greater curvature")
+        markerLocation.assignMeshLocation(cache, pylorusGCElement, pylorusGCXi)
+
         duodenumGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - elementsCountAroundDuod)
         duodenumGCXi = [0.0, 1.0, 1.0]
         cache.setMeshLocation(duodenumGCElement, duodenumGCXi)
