@@ -252,8 +252,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Use cross derivatives': False,
             'Use linear through wall' : False,
             'Refine': False,
-            'Refine number of elements around': 1,
-            'Refine number of elements along': 1,
+            'Refine number of elements surface': 1,
             'Refine number of elements through wall': 1
         }
         if 'Rat 1' in parameterSetName:
@@ -285,8 +284,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
-            'Refine number of elements around',
-            'Refine number of elements along',
+            'Refine number of elements surface',
             'Refine number of elements through wall']
 
     @classmethod
@@ -350,8 +348,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Annulus derivative factor'] = 0.1
         for key in [
             'Number of elements through wall',
-            'Refine number of elements around',
-            'Refine number of elements along',
+            'Refine number of elements surface',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
@@ -2277,8 +2274,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        refineElementsCountAround = options['Refine number of elements around']
-        refineElementsCountAlong = options['Refine number of elements along']
+        refineElementsCountAround = options['Refine number of elements surface']
+        refineElementsCountAlong = options['Refine number of elements surface']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
