@@ -830,7 +830,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         svcInletGroup = AnnotationGroup(region, get_heart_term("superior vena cava inlet"))
         ivcGroup = AnnotationGroup(region, get_heart_term("inferior vena cava"))
         svcGroup = AnnotationGroup(region, get_heart_term("superior vena cava"))
-        annotationGroups += [ ivcInletGroup, svcInletGroup, ivcGroup, svcGroup ]
+        laeVenousMidpointGroup = AnnotationGroup(region, get_heart_term("left atrium epicardium venous midpoint"))
+        raeVenousMidpointGroup = AnnotationGroup(region, get_heart_term("right atrium epicardium venous midpoint"))
+        annotationGroups += [ laeVenousMidpointGroup, ivcGroup, ivcInletGroup, raeVenousMidpointGroup, svcGroup, svcInletGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
@@ -2525,6 +2527,23 @@ class MeshType_3d_heartatria1(Scaffold_base):
             tracksurface=laTrackSurface, startProportions=lpvoProportions, endProportions=lpvaProportions,
             rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0)
 
+        # left atrium epicardium venous midpoint marker point
+        if commonLeftRightPvOstium:
+            laevmElementId = elementIdentifier - elementsCountAroundLpvOstium*elementsCountRadialPVAnnuli + (elementsCountAroundLpvOstium // 2);
+            if lpvOstiumSettings['Number of vessels'] == 3:
+                laevmElementId += 1
+            laevmXi = [ 0.0, 0.0, 1.0 ]
+        else:
+            laevmElementId = elementIdentifier - elementsCountAroundLpvOstium
+            laevmXi = [ 0.0, 1.0, 1.0 ]
+        laevmElement = mesh.findElementByIdentifier(laevmElementId)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, laeVenousMidpointGroup.getName())
+        markerLocation.assignMeshLocation(cache, laevmElement, laevmXi)
+        laeVenousMidpointGroup.getNodesetGroup(nodes).addNode(markerPoint)
+
         if not commonLeftRightPvOstium:
             # create right pulmonary vein annulus
             rpvax  = [ [ None ]*elementsCountAroundRpvOstium, [ None ]*elementsCountAroundRpvOstium ]
@@ -2664,9 +2683,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
             vcaNodeId = [ [ None ]*elementsCountAroundVC, [ None ]*elementsCountAroundVC ]
             vcaDerivativesMap = [ [ None ]*elementsCountAroundVC, [ None ]*elementsCountAroundVC ]
             if v == 0:  # ivc
-                # set points clockwise from interatrial groove at venous midpoint
+                # set points clockwise starting above crux of heart
                 ix = 0
-                # over interatrial groove from cristvenous midpoint to anterior, including both corners
+                # up interatrial groove to venous midpoint, including both corners
                 for n1 in range(elementsCountOverRightAtriumVenous//2, -1, -1):
                     ns = (elementsCountAroundAtrialSeptum - 1 + elementsCountOverRightAtriumNonVenousAnterior + elementsCountOverRightAtriumVenous//2 + n1) % elementsCountAroundFossa
                     ng = elementsCountOverRightAtriumNonVenousAnterior + elementsCountOverRightAtriumVenous//2 + n1
@@ -2819,6 +2838,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 maxEndThickness = 1.5*raVenousFreeWallThickness,
                 elementsCountRadial = elementsCountAlongVCInlet,
                 meshGroups = rowMeshGroups)
+
+            if v == 0:  # ivc
+                # right atrium epicardium venous midpoint marker point
+                raevmElementId = elementIdentifier - elementsCountAroundVC + elementsCountOverRightAtriumVenous//2 + elementsCountOverSideRightAtriumVC//2
+                raevmXi = [ 0.5 if (elementsCountOverSideRightAtriumVC % 2) else 0.0, 1.0, 1.0 ]
+                raevmElement = mesh.findElementByIdentifier(raevmElementId)
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, raeVenousMidpointGroup.getName())
+                markerLocation.assignMeshLocation(cache, raevmElement, raevmXi)
+                raeVenousMidpointGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
         # create left atrial appendage
         position = laTrackSurface.createPositionProportion(laaMidpointOver, laaMidpointLeft)

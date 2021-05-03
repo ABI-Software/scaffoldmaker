@@ -137,6 +137,7 @@ class MeshType_3d_heart1(Scaffold_base):
         ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         atriaAnnotationGroups = MeshType_3d_heartatria1.generateBaseMesh(region, options)
         annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
+        cruxGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("crux of heart"))
         lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
 
@@ -395,13 +396,12 @@ class MeshType_3d_heart1(Scaffold_base):
         # annotation fiducial points
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
         cruxXi = [ 0.5, 0.5, 1.0 ]
-        cache.setMeshLocation(cruxElement, cruxXi)
-        result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, "crux of heart")
+        markerName.assignString(cache, cruxGroup.getName())
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
+        cruxGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 

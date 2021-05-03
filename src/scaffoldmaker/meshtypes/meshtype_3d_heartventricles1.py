@@ -246,10 +246,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
 
+        apexGroup = AnnotationGroup(region, get_heart_term("apex of heart"))
         lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
         rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
-        annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
+        annotationGroups = [ apexGroup, lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -1023,8 +1024,9 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, 'APEX')  # interlex.org has 'apex of heart'
+        markerName.assignString(cache, apexGroup.getName())
         markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
+        apexGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 
