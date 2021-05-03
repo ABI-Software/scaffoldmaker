@@ -252,6 +252,9 @@ class eftfactory_bicubichermitelinear:
     def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
         '''
         Create a bicubic hermite linear element field for a wedge element collapsed in xi1.
+        :param collapseNodes: As the element can be collapsed in xi1 at either ends of xi2 or xi3, collapseNodes
+        are the local indices of nodes whose d2 (for elements collapse at either ends of xi2) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d1 before collapsing the nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
@@ -309,6 +312,9 @@ class eftfactory_bicubichermitelinear:
     def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
         '''
         Create a bicubic hermite linear element field for a wedge element collapsed in xi2.
+        :param collapseNodes: As the element can be collapsed in xi2 at either ends of xi1 or xi3, collapseNodes
+        are the local indices of nodes whose d1 (for elements collapse at either ends of xi1) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d2 before collapsing the nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
