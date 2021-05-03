@@ -302,7 +302,8 @@ class eftfactory_bicubichermitelinear:
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
 
         remapEftLocalNodes(eft, 6, ln_map)
-        assert eft.validate(), 'eftfactory_bicubichermitelinear.createEftWedgeCollapseXi1Quadrant:  Failed to validate eft'
+        if not eft.validate():
+            print('eftfactory_bicubichermitelinear.createEftWedgeCollapseXi1Quadrant:  Failed to validate eft for collapseNodes', collapseNodes)
         return eft
 
     def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
