@@ -241,13 +241,13 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around esophagus': 8,
             'Number of elements around duodenum': 12,
-            'Number of elements between annulus and duodenum': 6,
-            'Number of radial elements in annulus': 1, 
+            'Number of elements between cardia and duodenum': 6,
+            'Number of elements across cardia': 1,
             'Wall thickness': 5.0,
             'Limiting ridge': False,
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
             'Gastro-esophagal junction position along factor': 0.35,
-            'Annulus derivative factor': 1.0,
+            'Cardia derivative factor': 1.0,
             'Use cross derivatives': False,
             'Use linear through wall' : False,
             'Refine': False,
@@ -257,7 +257,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         if 'Rat 1' in parameterSetName:
             options['Number of elements around esophagus'] = 12
             options['Number of elements around duodenum'] = 14
-            options['Number of elements between annulus and duodenum'] = 2
+            options['Number of elements between cardia and duodenum'] = 2
             options['Wall thickness'] = 0.5
             options['Gastro-esophagal junction position along factor'] = 0.55
             options['Annulus derivative factor'] = 0.2
@@ -272,13 +272,13 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Central path',
             'Number of elements around esophagus',
             'Number of elements around duodenum',
-            'Number of elements between annulus and duodenum',
-            'Number of radial elements in annulus',
+            'Number of elements between cardia and duodenum',
+            'Number of elements across cardia',
             'Wall thickness',
             'Limiting ridge',
             'Gastro-esophagal junction',
             'Gastro-esophagal junction position along factor',
-            'Annulus derivative factor',
+            'Cardia derivative factor',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -340,10 +340,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 12
         if options['Number of elements around duodenum'] % 2:
             options['Number of elements around duodenum'] += 1
-        if options['Number of elements between annulus and duodenum'] < 2:
-            options['Number of elements between annulus and duodenum'] = 2
-        if options['Annulus derivative factor'] <= 0.0:
-            options['Annulus derivative factor'] = 0.1
+        if options['Number of elements between cardia and duodenum'] < 2:
+            options['Number of elements between cardia and duodenum'] = 2
+        if options['Cardia derivative factor'] <= 0.0:
+            options['Cardia derivative factor'] = 0.1
         for key in [
             'Refine number of elements surface',
             'Refine number of elements through wall']:
@@ -374,7 +374,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         centralPath = options['Central path']
         elementsCountAroundEso = options['Number of elements around esophagus']
         elementsCountAroundDuod = options['Number of elements around duodenum']
-        elementsAlongAnnulusToDuod = options['Number of elements between annulus and duodenum']
+        elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
         elementsCountThroughWall = 1
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
@@ -384,14 +384,14 @@ class MeshType_3d_stomach1(Scaffold_base):
         GEJOptions = options['Gastro-esophagal junction']
         GEJSettings = GEJOptions.getScaffoldSettings()
         limitingRidge = options['Limiting ridge']
-        elementsCountAnnulus = options['Number of radial elements in annulus']
-        annulusDerivativeFactor = options['Annulus derivative factor']
+        elementsCountAcrossCardia = options['Number of elements across cardia']
+        cardiaDerivativeFactor = options['Cardia derivative factor']
 
         elementsCountAlongTrackSurface = 20
         elementsAroundHalfEso = int(elementsCountAroundEso * 0.5)
         elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
         elementsAroundHalfDuod = int(elementsCountAroundDuod * 0.5)
-        elementsCountAlong = elementsAlongAnnulusToDuod + elementsAroundHalfEso + 1
+        elementsCountAlong = elementsAlongCardiaToDuod + elementsAroundHalfEso + 1
         zero = [0.0, 0.0, 0.0]
 
         fm = region.getFieldmodule()
@@ -639,7 +639,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         xAlongUpFundus = []
         d2AlongUpFundus = []
         xAlongUpFundus.append(o1_x[1][0])
-        d2AlongUpFundus.append([annulusDerivativeFactor * c for c in o1_d2[1][0]])
+        d2AlongUpFundus.append([cardiaDerivativeFactor * c for c in o1_d2[1][0]])
 
         # From esophagus to fundus apex
         esoStartProportion2 = trackSurfaceStomach.getProportion(o1_Positions[0])[1]
@@ -772,7 +772,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, GCProportion2, endProportion1,
                                                        endProportion2, elementsAroundHalfDuod + 1,
                                                        startDerivative=d1GC, endDerivative=d1EndOstium,
-                                                       endDerivativeMagnitude=annulusDerivativeFactor * vector.magnitude(d2))
+                                                       endDerivativeMagnitude=cardiaDerivativeFactor * vector.magnitude(d2))
             # Second half
             ostiumIdx2 = -n2
             startPosition = o1_Positions[ostiumIdx2]
@@ -782,7 +782,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1, startProportion2, 1.0,
                                                        GCProportion2, elementsAroundHalfDuod + 1,
                                                        startDerivative=d1StartOstium, endDerivative=d1GC,
-                                                       startDerivativeMagnitude=annulusDerivativeFactor *
+                                                       startDerivativeMagnitude=cardiaDerivativeFactor *
                                                                                 vector.magnitude(d1StartOstium))
 
             xAround = xFirstHalf[:-1] + xSecondHalf[1:-1]
@@ -896,7 +896,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 d = o1_d2[1][elementsAroundHalfEso]
                 rotFrame = matrix.getRotationMatrixFromAxisAngle(o1_d1[1][elementsAroundHalfEso], math.pi)
                 p1d = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2] for j in range(3)]
-                p1d_6pt = [annulusDerivativeFactor * c for c in p1d]
+                p1d_6pt = [cardiaDerivativeFactor * c for c in p1d]
 
                 p2x_6pt = xAve[int(len(xAve)*0.5) + 1]
                 p2d_6pt = findDerivativeBetweenPoints(p2x_6pt, xAve[int(len(xAve) * 0.5) + 2])
@@ -994,7 +994,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             d = o1_d2[1][ostiumIdx]
             rotFrame = matrix.getRotationMatrixFromAxisAngle(o1_d1[1][ostiumIdx], math.pi)
             p1d = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2] for j in range(3)]
-            p1d = [annulusDerivativeFactor * c for c in p1d]
+            p1d = [cardiaDerivativeFactor * c for c in p1d]
 
             xLoops = xLoopsRight if nSide == 0 else xLoopsLeft
             p2x = xLoops[0][elementsAroundQuarterEso + 1]  # downstream bifurcation
@@ -1065,7 +1065,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         ostiumPosition = o1_Positions[ostiumIdx]
                         ostiumProportion1, ostiumProportion2 = trackSurfaceStomach.getProportion(ostiumPosition)
                         d = findDerivativeBetweenPoints(xLoop, xOstium)
-                        endDerivativeMag = vector.magnitude(o1_d2[1][ostiumIdx]) * annulusDerivativeFactor
+                        endDerivativeMag = vector.magnitude(o1_d2[1][ostiumIdx]) * cardiaDerivativeFactor
                         xSampled, dSampled = \
                             getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, xLoopProportion1,
                                                                    xLoopProportion2, ostiumProportion1,
@@ -1088,7 +1088,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         ostiumPosition = o1_Positions[-ostiumIdx]
                         ostiumProportion1, ostiumProportion2 = trackSurfaceStomach.getProportion(ostiumPosition)
                         d = findDerivativeBetweenPoints(xOstium, xLoop)
-                        startDerivativeMag = vector.magnitude(o1_d2[1][-ostiumIdx]) * annulusDerivativeFactor
+                        startDerivativeMag = vector.magnitude(o1_d2[1][-ostiumIdx]) * cardiaDerivativeFactor
                         xSampled, dSampled = \
                             getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, ostiumProportion1,
                                                                    ostiumProportion2, xLoopProportion1,
@@ -1155,7 +1155,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 ostiumPosition = o1_Positions[ostiumIdx]
                 ostiumProportion1, ostiumProportion2 = trackSurfaceStomach.getProportion(ostiumPosition)
                 d = findDerivativeBetweenPoints(xLoop, xOstium)
-                endDerivativeMag = vector.magnitude(o1_d2[1][ostiumIdx]) * annulusDerivativeFactor
+                endDerivativeMag = vector.magnitude(o1_d2[1][ostiumIdx]) * cardiaDerivativeFactor
                 xSampled, dSampled = \
                     getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, xLoopProportion1,
                                                            xLoopProportion2, ostiumProportion1,
@@ -1172,7 +1172,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 ostiumPosition = o1_Positions[-ostiumIdx]
                 ostiumProportion1, ostiumProportion2 = trackSurfaceStomach.getProportion(ostiumPosition)
                 d = findDerivativeBetweenPoints(xOstium, xLoop)
-                startDerivativeMag = vector.magnitude(o1_d2[1][-ostiumIdx]) * annulusDerivativeFactor
+                startDerivativeMag = vector.magnitude(o1_d2[1][-ostiumIdx]) * cardiaDerivativeFactor
 
                 xSampled, dSampled = \
                     getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, ostiumProportion1, ostiumProportion2,
@@ -1238,10 +1238,10 @@ class MeshType_3d_stomach1(Scaffold_base):
                 pass
             else:
                 if elementsCountAroundEso > 8:
-                    xStart = xAlongAround[-(elementsAlongAnnulusToDuod + 3)][n]
+                    xStart = xAlongAround[-(elementsAlongCardiaToDuod + 3)][n]
                 else:
                     xStart = xUp[-1][n]
-                xEnd = xAlongAround[-(elementsAlongAnnulusToDuod + 1)][n - (1 if n > elementsAroundHalfDuod else 0)]
+                xEnd = xAlongAround[-(elementsAlongCardiaToDuod + 1)][n - (1 if n > elementsAroundHalfDuod else 0)]
 
                 startPosition = trackSurfaceStomach.findNearestPosition(xStart)
                 d2Start = trackSurfaceStomach.evaluateCoordinates(startPosition, derivatives=True)[2]
@@ -1252,7 +1252,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 xSampled = interp.sampleCubicHermiteCurves([xStart, xEnd], [d2Start, d2End], 2)[0]
                 xNewPosition = trackSurfaceStomach.findNearestPosition(xSampled[1])
                 xNew = trackSurfaceStomach.evaluateCoordinates(xNewPosition)
-                xAlongAround[-(elementsAlongAnnulusToDuod + 2)][n] = xNew
+                xAlongAround[-(elementsAlongCardiaToDuod + 2)][n] = xNew
 
         # Assemble nodes and d1
         xOuter = []
@@ -2226,7 +2226,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints_x, endPoints_d1, endPoints_d2, None, endNode_Id, endDerivativesMap,
-            elementsCountRadial = elementsCountAnnulus, meshGroups= [stomachMeshGroup, cardiaMeshGroup],
+            elementsCountRadial = elementsCountAcrossCardia, meshGroups= [stomachMeshGroup, cardiaMeshGroup],
             tracksurface=trackSurfaceStomach, startProportions = startProportions, endProportions = endProportions,
             rescaleStartDerivatives = True, rescaleEndDerivatives = True)
 
