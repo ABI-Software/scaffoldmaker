@@ -4,7 +4,7 @@ Common resource for heart annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 heart_terms = [
-    ( "heart", "FMA:7088", "UBERON:0000948" ),
+    ( "heart", "UBERON:0000948", "FMA:7088" ),
     # ventricles
     ( "left ventricle myocardium", "FMA:9558" ),
     ( "right ventricle myocardium", "FMA:9535" ),

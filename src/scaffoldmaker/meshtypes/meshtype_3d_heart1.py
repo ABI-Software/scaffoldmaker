@@ -137,6 +137,7 @@ class MeshType_3d_heart1(Scaffold_base):
         ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         atriaAnnotationGroups = MeshType_3d_heartatria1.generateBaseMesh(region, options)
         annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
+        heartGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("heart"))
         cruxGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("crux of heart"))
         lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
@@ -216,6 +217,7 @@ class MeshType_3d_heart1(Scaffold_base):
         # Create elements
         #################
 
+        heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
         rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
 
@@ -238,7 +240,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 lavNodeId[0][0][n1], lavNodeId[0][0][n1 + 1], lavNodeId[0][1][n1], lavNodeId[0][1][n1 + 1],
                 lavNodeId[1][0][n1], lavNodeId[1][0][n1 + 1], lavNodeId[1][1][n1], lavNodeId[1][1][n1 + 1]]
             scalefactors = None
-            meshGroups = [ lFibrousRingMeshGroup ]
+            meshGroups = [ heartMeshGroup, lFibrousRingMeshGroup ]
 
             if e == -1:
                 # interatrial groove straddles left and right atria, collapsed to 6 node wedge
@@ -300,7 +302,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 ravNodeId[0][0][n1], ravNodeId[0][0][n1 + 1], ravNodeId[0][1][n1], ravNodeId[0][1][n1 + 1],
                 ravNodeId[1][0][n1], ravNodeId[1][0][n1 + 1], ravNodeId[1][1][n1], ravNodeId[1][1][n1 + 1]]
             scalefactors = None
-            meshGroups = [ rFibrousRingMeshGroup ]
+            meshGroups = [ heartMeshGroup, rFibrousRingMeshGroup ]
 
             if e == -1:
                 # interatrial groove straddles left and right atria, collapsed to 6 node wedge
@@ -355,7 +357,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 meshGroup.addElement(element)
 
         # fibrous ring septum:
-        meshGroups = [ lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
+        meshGroups = [ heartMeshGroup, lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
         for e in range(elementsCountAroundAtrialSeptum):
             eft1 = eftFibrousRing
             nlm = e - elementsCountAroundAtrialSeptum
@@ -401,7 +403,8 @@ class MeshType_3d_heart1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, cruxGroup.getName())
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
-        cruxGroup.getNodesetGroup(nodes).addNode(markerPoint)
+        for group in [ heartGroup, cruxGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 
