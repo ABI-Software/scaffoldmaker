@@ -4,8 +4,11 @@ Common resource for lungs annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 lung_terms = [
+    ("horizontal fissure of right lung", "UBERON: None", "ILX: None"),
     ("lung", "UBERON:0002048", "ILX:0726937"),
     ("left lung", "UBERON:0002168", "ILX:0733450"),
+    ("oblique fissure of left lung", "UBERON: None", "ILX: None"),
+    ("oblique fissure of right lung", "UBERON: None", "ILX: None"),
     ("right lung", "UBERON:0002167", "ILX:0729582"),
     ("upper lobe of left lung", "UBERON:0008952", "ILX:0735339"),
     ("lower lobe of left lung", "UBERON:0008953", "ILX:0735534"),

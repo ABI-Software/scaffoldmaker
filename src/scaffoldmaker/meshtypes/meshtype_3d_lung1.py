@@ -2,7 +2,7 @@
 Generates 3D lung surface mesh.
 '''
 
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
@@ -684,6 +684,49 @@ class MeshType_3d_lung1(Scaffold_base):
         assert isinstance(meshrefinement, MeshRefinement)
         refineElementsCount = options['Refine number of elements']
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        try:
+            # create fissure groups
+            fm = region.getFieldmodule()
+            upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
+            lowerLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of left lung"))
+
+            upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
+            middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
+            lowerRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of right lung"))
+
+            mesh2d = fm.findMeshByDimension(2)
+            is_exterior = fm.createFieldIsExterior()
+            is_upperLeftGroup = upperLeftGroup.getFieldElementGroup(mesh2d)
+            is_lowerLeftGroup = lowerLeftGroup.getFieldElementGroup(mesh2d)
+
+            is_upperRightGroup = upperRightGroup.getFieldElementGroup(mesh2d)
+            is_middleRightGroup = middleRightGroup.getFieldElementGroup(mesh2d)
+            is_lowerRightGroup = lowerRightGroup.getFieldElementGroup(mesh2d)
+
+            is_obliqueLeftGroup = fm.createFieldAnd(is_upperLeftGroup, is_lowerLeftGroup)
+            is_obliqueRightGroup = fm.createFieldOr(fm.createFieldAnd(is_lowerRightGroup, is_upperRightGroup),
+                                                    fm.createFieldAnd(is_lowerRightGroup, is_middleRightGroup))
+            is_horizontalRightGroup = fm.createFieldAnd(is_upperRightGroup, is_middleRightGroup)
+
+            obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
+            obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
+            obliqueRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of right lung"))
+            obliqueRightGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueRightGroup)
+            horizontalRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("horizontal fissure of right lung"))
+            horizontalRightGroup.getMeshGroup(mesh2d).addElementsConditional(is_horizontalRightGroup)
+        except:
+            pass
 
 def getLungNodes(lungSide, cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
                  lElementsCount1, lElementsCount2, lElementsCount3,
