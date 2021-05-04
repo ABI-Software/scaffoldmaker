@@ -318,7 +318,7 @@ class MeshType_3d_lung1(Scaffold_base):
                 lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
 
             # Right lung nodes
-            getLungNodes(rightLung, cache, coordinates, generateParameters,
+            nodeIndex, nodeIdentifier = getLungNodes(rightLung, cache, coordinates, generateParameters,
                 nodes, nodetemplate, nodeFieldParameters,
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
@@ -342,6 +342,63 @@ class MeshType_3d_lung1(Scaffold_base):
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
+
+            # Marker points
+            lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
+            idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
+            element1 = mesh.findElementByIdentifier(idx)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, 'apex of left lung')
+            markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
+
+            idx = lElementsCount1 * (lElementsCount2 - 1) + 1
+            element1 = mesh.findElementByIdentifier(idx)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, 'ventral base of left lung')
+            markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 0.0])
+
+            idx = lElementsCount1 * (lElementsCount2 // 2)
+            element1 = mesh.findElementByIdentifier(idx)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, 'medial base of left lung')
+            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 0.0])
+
+            upperLeftElementCount = (uElementsCount1 * uElementsCount2 * (uElementsCount3-1))
+            leftLungElementCount = lowerLeftElementCount + upperLeftElementCount
+
+            lowerRightElementCount = lowerLeftElementCount
+
+            idx = leftLungElementCount + lowerRightElementCount + \
+                  (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
+
+            element1 = mesh.findElementByIdentifier(idx)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, 'apex of right lung')
+            markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
+
+            idx = leftLungElementCount + lElementsCount1 * lElementsCount2
+            element1 = mesh.findElementByIdentifier(idx)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, 'ventral base of right lung')
+            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 0.0])
+
+            idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * (lElementsCount3 - 1)) + lElementsCount1
+            element1 = mesh.findElementByIdentifier(idx)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, 'lateral side of right lung')
+            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
 
         elif isMouse:
             # valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
