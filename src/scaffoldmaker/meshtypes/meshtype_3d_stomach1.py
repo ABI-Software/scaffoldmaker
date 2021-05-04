@@ -2242,7 +2242,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, GEJLCGroup.getName())
         markerLocation.assignMeshLocation(cache, GEJLCElement, GEJLCXi)
-        GEJLCGroup.getNodesetGroup(nodes).addNode(markerPoint)
+        for group in [stomachGroup, GEJLCGroup]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         fundusBodyJunctionGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature"))
         fundusBodyJunctionElement = mesh.findElementByIdentifier(fundusBodyJunctionElementIdentifier)
@@ -2253,7 +2254,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, fundusBodyJunctionGroup.getName())
         markerLocation.assignMeshLocation(cache, fundusBodyJunctionElement, fundusBodyJunctionXi)
-        fundusBodyJunctionGroup.getNodesetGroup(nodes).addNode(markerPoint)
+        for group in [stomachGroup, fundusBodyJunctionGroup]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         pylorusGCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("pylorus on greater curvature"))
         pylorusGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - (elementsCountAlongGroups[-1] + 1) * elementsCountAroundDuod)
@@ -2264,7 +2266,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, pylorusGCGroup.getName())
         markerLocation.assignMeshLocation(cache, pylorusGCElement, pylorusGCXi)
-        pylorusGCGroup.getNodesetGroup(nodes).addNode(markerPoint)
+        for group in [stomachGroup, pylorusGCGroup]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         duodenumGCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("duodenum on greater curvature"))
         duodenumGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - elementsCountAroundDuod)
@@ -2275,7 +2278,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, duodenumGCGroup.getName())
         markerLocation.assignMeshLocation(cache, duodenumGCElement, duodenumGCXi)
-        duodenumGCGroup.getNodesetGroup(nodes).addNode(markerPoint)
+        for group in [stomachGroup, duodenumGCGroup]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         fm.endChange()
 
