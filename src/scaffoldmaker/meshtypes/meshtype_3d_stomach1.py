@@ -610,7 +610,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
             generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
-                               nodeIdentifier, elementIdentifier, vesselMeshGroups=[[esophagusMeshGroup]],
+                               nodeIdentifier, elementIdentifier, vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup]],
                                ostiumMeshGroups=[stomachMeshGroup, esophagogastricJunctionMeshGroup])
 
         stomachStartNode = nextNodeIdentifier
