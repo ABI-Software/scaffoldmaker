@@ -242,7 +242,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements around esophagus': 8,
             'Number of elements around duodenum': 12,
             'Number of elements between annulus and duodenum': 6,
-            'Number of elements through wall': 1,
             'Number of radial elements in annulus': 1, 
             'Wall thickness': 5.0,
             'Limiting ridge': False,
@@ -274,7 +273,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements around esophagus',
             'Number of elements around duodenum',
             'Number of elements between annulus and duodenum',
-            'Number of elements through wall',
             'Number of radial elements in annulus',
             'Wall thickness',
             'Limiting ridge',
@@ -347,7 +345,6 @@ class MeshType_3d_stomach1(Scaffold_base):
         if options['Annulus derivative factor'] <= 0.0:
             options['Annulus derivative factor'] = 0.1
         for key in [
-            'Number of elements through wall',
             'Refine number of elements surface',
             'Refine number of elements through wall']:
             if options[key] < 1:
@@ -378,7 +375,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         elementsCountAroundEso = options['Number of elements around esophagus']
         elementsCountAroundDuod = options['Number of elements around duodenum']
         elementsAlongAnnulusToDuod = options['Number of elements between annulus and duodenum']
-        elementsCountThroughWall = options['Number of elements through wall']
+        elementsCountThroughWall = 1
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
