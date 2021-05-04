@@ -252,7 +252,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Use cross derivatives': False,
             'Use linear through wall' : False,
             'Refine': False,
-            'Refine number of elements surface': 1,
+            'Refine number of elements surface': 4,
             'Refine number of elements through wall': 1
         }
         if 'Rat 1' in parameterSetName:
