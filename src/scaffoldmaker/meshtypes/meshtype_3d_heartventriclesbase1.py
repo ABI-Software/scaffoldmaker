@@ -739,7 +739,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
+        scalefactors4hanging = [ -1.0, 0.5, 0.125, 0.75 ]
 
         # LV base elements row 1, starting at anterior interventricular sulcus
         for e in range(-1, elementsCountAroundLVFreeWall):
@@ -850,16 +850,16 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                     remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 elif elementsCountRVHanging:
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
-                    setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
-                    scalefactors = scalefactors5hanging
+                    setEftScaleFactorIds(eft1, [1, 102, 108, 304], [])
+                    scalefactors = scalefactors4hanging
                     if e in [ 1, 3 ]:
                         # 1st of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4])
                     else:  # e in [ 2, 4 ]:
                         # 2nd of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4, 5])
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4, 5])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4])
                         if e == 4:
                             remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
             elif e == elementsCountRVFreeWallRegular:
