@@ -2236,41 +2236,49 @@ class MeshType_3d_stomach1(Scaffold_base):
         nodeIdentifier = nextNodeIdentifier
 
         # annotation fiducial points for embedding in whole body
+        GEJLCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("gastro-esophagal junction on lesser curvature"))
         GEJLCElement = mesh.findElementByIdentifier(stomachStartElement - elementsAroundHalfEso)
         GEJLCXi = [0.0, 1.0, 1.0]
         cache.setMeshLocation(GEJLCElement, GEJLCXi)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, "gastro-esophagal junction on lesser curvature")
+        markerName.assignString(cache, GEJLCGroup.getName())
         markerLocation.assignMeshLocation(cache, GEJLCElement, GEJLCXi)
+        GEJLCGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
+        fundusBodyJunctionGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature"))
         fundusBodyJunctionElement = mesh.findElementByIdentifier(fundusBodyJunctionElementIdentifier)
         fundusBodyJunctionXi = [0.0, 0.0 if limitingRidge else 1.0, 1.0]
         cache.setMeshLocation(fundusBodyJunctionElement, fundusBodyJunctionXi)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, "limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature")
+        markerName.assignString(cache, fundusBodyJunctionGroup.getName())
         markerLocation.assignMeshLocation(cache, fundusBodyJunctionElement, fundusBodyJunctionXi)
+        fundusBodyJunctionGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
-        pylorusGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - (elementsCountAlongGroups[-1] +1) * elementsCountAroundDuod)
+        pylorusGCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("pylorus on greater curvature"))
+        pylorusGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - (elementsCountAlongGroups[-1] + 1) * elementsCountAroundDuod)
         pylorusGCXi = [0.0, 1.0, 1.0]
         cache.setMeshLocation(pylorusGCElement, pylorusGCXi)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, "pylorus on greater curvature")
+        markerName.assignString(cache, pylorusGCGroup.getName())
         markerLocation.assignMeshLocation(cache, pylorusGCElement, pylorusGCXi)
+        pylorusGCGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
+        duodenumGCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("duodenum on greater curvature"))
         duodenumGCElement = mesh.findElementByIdentifier(lastDuodenumElementIdentifier - elementsCountAroundDuod)
         duodenumGCXi = [0.0, 1.0, 1.0]
         cache.setMeshLocation(duodenumGCElement, duodenumGCXi)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, "duodenum on greater curvature")
+        markerName.assignString(cache, duodenumGCGroup.getName())
         markerLocation.assignMeshLocation(cache, duodenumGCElement, duodenumGCXi)
+        duodenumGCGroup.getNodesetGroup(nodes).addNode(markerPoint)
 
         fm.endChange()
 
