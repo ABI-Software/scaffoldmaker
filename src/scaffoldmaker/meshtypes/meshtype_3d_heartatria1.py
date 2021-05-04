@@ -1638,8 +1638,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractProportions[nc][0], ractProportions[nc][1],
             ravtProportions[ran1raap][0], ravtProportions[ran1raap][1],
             elementsCount = elementsCountOverSideRightAtriumPouch,
-            #derivativeStart = [ (ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
-            derivativeStart = [ -d for d in ractd1[1][nc] ],
+            derivativeStart = [ (0.25*ractd2[1][nc][c] - 1.5*ractd1[1][nc][c]) for c in range(3) ],
+            #derivativeStart = [ -d for d in ractd1[1][nc] ],
             derivativeEnd = [ -d for d in ravtd2[1][ran1raap] ])
         # get inner points
         raapx  = [ [ None ], raapx  ]
@@ -1671,7 +1671,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ravtProportions[ran1raaq][0], ravtProportions[ran1raaq][1],
             elementsCount = elementsCountOverAtria//2 + elementsCountOverCristaTerminalisAnterior - 3,
             #derivativeStart = [ (ractd2[1][nc][c] - 0.5*ractd1[1][nc][c]) for c in range(3) ],
-            derivativeStart = [ (ractd2[1][nc][c] -ractd1[1][nc][c]) for c in range(3) ],
+            derivativeStart = [ (0.5*ractd2[1][nc][c] - ractd1[1][nc][c]) for c in range(3) ],
             derivativeEnd = [ -d for d in ravtd2[1][ran1raaq] ])
         # get inner points
         raaqx  = [ [ None ], raaqx  ]
