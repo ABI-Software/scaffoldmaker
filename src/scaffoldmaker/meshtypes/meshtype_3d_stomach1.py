@@ -749,50 +749,46 @@ class MeshType_3d_stomach1(Scaffold_base):
                 break
 
         ptsOnTrackSurfaceGC = []
-        xAlongAround = []
-        d1AlongAround = []
+        xAroundEllipse = []
+        d1AroundEllipse = []
         for n2 in range(elementsCountAlongTrackSurface + 1):
             ptsOnTrackSurfaceGC.append(xSampledAll[n2][0])
 
-        # Rings adjacent to triple point (excluding triple point rings) to 6 point junction
+        # Ring upstream of 6 point junction
         # First half
-        for n2 in range(elementsAroundQuarterEso + 1, elementsAroundHalfEso):
-            ostiumIdx = n2
-            GCIdx = elementsAroundHalfDuod - 1 + n2
-            GCPosition, d1GC = findClosestPositionAndDerivativeOnTrackSurface(xEsoToDuodGC[GCIdx], ptsOnTrackSurfaceGC,
-                                                                              trackSurfaceStomach, 0.0,
-                                                                              elementsCountAlongTrackSurface)
-            GCProportion1, GCProportion2 = trackSurfaceStomach.getProportion(GCPosition)
-            endPosition = o1_Positions[ostiumIdx]
-            rotFrame = matrix.getRotationMatrixFromAxisAngle(vector.normalise(o1_d1[1][ostiumIdx]), math.pi)
-            d2 = o1_d2[1][ostiumIdx]
-            d1EndOstium = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-            endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
+        n2 = elementsAroundHalfEso - 1
+        ostiumIdx = n2
+        GCIdx = elementsAroundHalfDuod - 1 + n2
+        GCPosition, d1GC = findClosestPositionAndDerivativeOnTrackSurface(xEsoToDuodGC[GCIdx], ptsOnTrackSurfaceGC,
+                                                                          trackSurfaceStomach, 0.0,
+                                                                          elementsCountAlongTrackSurface)
+        GCProportion1, GCProportion2 = trackSurfaceStomach.getProportion(GCPosition)
+        endPosition = o1_Positions[ostiumIdx]
+        rotFrame = matrix.getRotationMatrixFromAxisAngle(vector.normalise(o1_d1[1][ostiumIdx]), math.pi)
+        d2 = o1_d2[1][ostiumIdx]
+        d1EndOstium = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
+        endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
 
-            xFirstHalf, d1FirstHalf = \
-                getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, GCProportion2, endProportion1,
-                                                       endProportion2, elementsAroundHalfDuod + 1,
-                                                       startDerivative=d1GC, endDerivative=d1EndOstium,
-                                                       endDerivativeMagnitude=cardiaDerivativeFactor * vector.magnitude(d2))
-            # Second half
-            ostiumIdx2 = -n2
-            startPosition = o1_Positions[ostiumIdx2]
-            d1StartOstium = o1_d2[1][ostiumIdx2]
-            startProportion1, startProportion2 = trackSurfaceStomach.getProportion(startPosition)
-            xSecondHalf, d1SecondHalf = \
-                getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1, startProportion2, 1.0,
-                                                       GCProportion2, elementsAroundHalfDuod + 1,
-                                                       startDerivative=d1StartOstium, endDerivative=d1GC,
-                                                       startDerivativeMagnitude=cardiaDerivativeFactor *
-                                                                                vector.magnitude(d1StartOstium))
+        xFirstHalf = \
+            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, GCProportion2, endProportion1,
+                                                   endProportion2, elementsAroundHalfDuod + 1,
+                                                   startDerivative=d1GC, endDerivative=d1EndOstium,
+                                                   endDerivativeMagnitude=cardiaDerivativeFactor * vector.magnitude(d2))[0]
+        # Second half
+        ostiumIdx2 = -n2
+        startPosition = o1_Positions[ostiumIdx2]
+        d1StartOstium = o1_d2[1][ostiumIdx2]
+        startProportion1, startProportion2 = trackSurfaceStomach.getProportion(startPosition)
+        xSecondHalf = \
+            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1, startProportion2, 1.0,
+                                                   GCProportion2, elementsAroundHalfDuod + 1,
+                                                   startDerivative=d1StartOstium, endDerivative=d1GC,
+                                                   startDerivativeMagnitude=cardiaDerivativeFactor *
+                                                                            vector.magnitude(d1StartOstium))[0]
 
-            xAround = xFirstHalf[:-1] + xSecondHalf[1:-1]
-            d1Around = d1FirstHalf[:-1] + d1SecondHalf[1:-1]
+        xAroundBefore6Pt = xFirstHalf[:-1] + xSecondHalf[1:-1]
 
-            xAlongAround.append(xAround)
-            d1AlongAround.append(d1Around)
-
-        # Elements downstream of 6 pt junction
+        # Rings downstream of 6 pt junction
         for idx in range(-(elementsCountAlong - elementsAroundHalfEso - 1), 0):
             # Search for point on central path and use that to make ellipse
             xStart = xEsoToDuodGC[idx]
@@ -873,11 +869,12 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             d1Around = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around,
                                                                 magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+            xAroundEllipse.append(xAround)
+            d1AroundEllipse.append(d1Around)
 
             # Average adjacent ring with first downstream ring that is not adjacent to esophagus
             if idx == -(elementsCountAlong - elementsAroundHalfEso - 1):
                 xAve = []
-                dAve = []
                 xAve.append(xEsoToDuodGC[idx - 1])
 
                 for n in range(1, elementsCountAroundDuod):
@@ -886,7 +883,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     if n == elementsAroundHalfDuod:
                         endPosition = o1_Positions[elementsAroundHalfEso]
                     else:
-                        endPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[-1][n + (0 if n < elementsAroundHalfDuod else 1)])
+                        endPosition = trackSurfaceStomach.findNearestPosition(xAroundBefore6Pt[n + (0 if n < elementsAroundHalfDuod else 1)])
                     endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
                     xSampled = getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1,
                                                                       startProportion2, endProportion1, endProportion2, 2)[0]
@@ -906,26 +903,15 @@ class MeshType_3d_stomach1(Scaffold_base):
                 p3d_6pt = findDerivativeBetweenPoints(p3x_6pt, xAve[int(len(xAve) * 0.5) - 2])
 
                 x6pt = get_bifurcation_triple_point(p1x_6pt, p1d_6pt, p2x_6pt, p2d_6pt, p3x_6pt, p3d_6pt)[0]
-                xAve[int(len(xAve) * 0.5)] = x6pt
 
-                for n in range(len(xAve)):
-                    v1 = xAve[n]
-                    v2 = xAve[(n + 1) % len(xAve)]
-                    d1 = findDerivativeBetweenPoints(v1, v2)
-                    dAve.append(d1)
-                dAve = interp.smoothCubicHermiteDerivativesLoop(xAve, dAve)
-                xAlongAround.append(xAve)
-                d1AlongAround.append(dAve)
-            xAlongAround.append(xAround)
-            d1AlongAround.append(d1Around)
-
-        # Re-sample rings from downstream of triple point (excluding triple point) to
-        # 6pt junction (excluding 6pt) so that the nodes around the cardia transit in a smooth curve
-        # from triple point to 6pt junction
+        # Gradually vary derivative magnitude at annulus to create smooth transition of nodes around the cardia
+        # between triple point to 6pt junction
         distBetween6ptJunctionOstium = vector.magnitude([o1_x[1][elementsAroundHalfEso][c] - x6pt[c] for c in range(3)])
         distAnnulusAtQuarterEso = cardiaDerivativeFactor * vector.magnitude(o1_d2[1][elementsAroundQuarterEso])
 
         n = 0
+        xAlongAround = []
+        d1AlongAround = []
         for n2 in range(elementsAroundQuarterEso + 1, elementsAroundHalfEso):
             xi = n/elementsAroundQuarterEso
             derivativeMagnitude = xi * distBetween6ptJunctionOstium + (1-xi) * distAnnulusAtQuarterEso
@@ -960,10 +946,9 @@ class MeshType_3d_stomach1(Scaffold_base):
             xAround = xFirstHalf[:-1] + xSecondHalf[1:-1]
             d1Around = d1FirstHalf[:-1] + d1SecondHalf[1:-1]
 
-            # Replace original values
-            xAlongAround[n] = xAround
-            d1AlongAround[n] = d1Around
             n += 1
+            xAlongAround.append(xAround)
+            d1AlongAround.append(d1Around)
 
         # Resample ring with 6pt junction to improve smoothness
         idx = -(elementsCountAlong - elementsAroundHalfEso - 1)
@@ -972,13 +957,12 @@ class MeshType_3d_stomach1(Scaffold_base):
         xAve.append(xEsoToDuodGC[idx - 1])
 
         for n1 in range(1, elementsCountAroundDuod + 1):
-            startPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[n - 1][n1])
+            startPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[-1][n1])
             startProportion1, startProportion2 = trackSurfaceStomach.getProportion(startPosition)
-            endPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[n + 1][n1 + (0 if n1 < elementsAroundHalfDuod + 1 else -1)])
+            endPosition = trackSurfaceStomach.findNearestPosition(xAroundEllipse[0][n1 + (0 if n1 < elementsAroundHalfDuod + 1 else -1)])
             endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
             xSampled = getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1,
                                                               startProportion2, endProportion1, endProportion2, 2)[0]
-
             xAve.append(xSampled[1])
 
         xAve[int(len(xAve) * 0.5)] = x6pt
@@ -990,8 +974,11 @@ class MeshType_3d_stomach1(Scaffold_base):
             d1 = findDerivativeBetweenPoints(v1, v2)
             dAve.append(d1)
         dAve = interp.smoothCubicHermiteDerivativesLoop(xAve, dAve)
-        xAlongAround[n] = xAve
-        d1AlongAround[n] = dAve
+        xAlongAround.append(xAve)
+        d1AlongAround.append(dAve)
+
+        xAlongAround += xAroundEllipse
+        d1AlongAround += d1AroundEllipse
 
         # Sample 2 loops next to annulus from point on GC to point on first ring on xAlongAround
         ptsOnTrackSurfaceEsoToFundus = []
