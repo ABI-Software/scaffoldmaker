@@ -657,7 +657,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             d2AlongUpFundus.append(d2)
 
         # From fundus apex to end
-        for n2 in range(startIdx - (0 if limitingRidge else 1)):
+        for n2 in range(startIdx + (1 if limitingRidge else 0)):
             xAlongUpFundus.append(xSampledAll[n2][0])
             d2AlongUpFundus.append(d2SampledAll[n2][0])
 
