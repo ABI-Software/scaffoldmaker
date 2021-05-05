@@ -260,7 +260,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements between cardia and duodenum'] = 2
             options['Wall thickness'] = 0.5
             options['Gastro-esophagal junction position along factor'] = 0.55
-            options['Annulus derivative factor'] = 0.2
+            options['Cardia derivative factor'] = 0.2
             options['Limiting ridge'] = True
 
         cls.updateSubScaffoldOptions(options)
@@ -768,6 +768,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             d2 = o1_d2[1][ostiumIdx]
             d1EndOstium = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
             endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
+
             xFirstHalf, d1FirstHalf = \
                 getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, GCProportion2, endProportion1,
                                                        endProportion2, elementsAroundHalfDuod + 1,
@@ -918,6 +919,80 @@ class MeshType_3d_stomach1(Scaffold_base):
             xAlongAround.append(xAround)
             d1AlongAround.append(d1Around)
 
+        # Re-sample rings from downstream of triple point (excluding triple point) to
+        # 6pt junction (excluding 6pt) so that the nodes around the cardia transit in a smooth curve
+        # from triple point to 6pt junction
+        distBetween6ptJunctionOstium = vector.magnitude([o1_x[1][elementsAroundHalfEso][c] - x6pt[c] for c in range(3)])
+        distAnnulusAtQuarterEso = cardiaDerivativeFactor * vector.magnitude(o1_d2[1][elementsAroundQuarterEso])
+
+        n = 0
+        for n2 in range(elementsAroundQuarterEso + 1, elementsAroundHalfEso):
+            xi = n/elementsAroundQuarterEso
+            derivativeMagnitude = xi * distBetween6ptJunctionOstium + (1-xi) * distAnnulusAtQuarterEso
+            ostiumIdx = n2
+            GCIdx = elementsAroundHalfDuod - 1 + n2
+            GCPosition, d1GC = findClosestPositionAndDerivativeOnTrackSurface(xEsoToDuodGC[GCIdx], ptsOnTrackSurfaceGC,
+                                                                              trackSurfaceStomach, 0.0,
+                                                                              elementsCountAlongTrackSurface)
+            GCProportion1, GCProportion2 = trackSurfaceStomach.getProportion(GCPosition)
+            endPosition = o1_Positions[ostiumIdx]
+            rotFrame = matrix.getRotationMatrixFromAxisAngle(vector.normalise(o1_d1[1][ostiumIdx]), math.pi)
+            d2 = o1_d2[1][ostiumIdx]
+            d1EndOstium = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
+            endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
+
+            xFirstHalf, d1FirstHalf = \
+                getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, GCProportion2, endProportion1,
+                                                       endProportion2, elementsAroundHalfDuod + 1,
+                                                       startDerivative=d1GC, endDerivative=d1EndOstium,
+                                                       endDerivativeMagnitude=derivativeMagnitude)
+            # Second half
+            ostiumIdx2 = -n2
+            startPosition = o1_Positions[ostiumIdx2]
+            d1StartOstium = o1_d2[1][ostiumIdx2]
+            startProportion1, startProportion2 = trackSurfaceStomach.getProportion(startPosition)
+            xSecondHalf, d1SecondHalf = \
+                getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1, startProportion2, 1.0,
+                                                       GCProportion2, elementsAroundHalfDuod + 1,
+                                                       startDerivative=d1StartOstium, endDerivative=d1GC,
+                                                       startDerivativeMagnitude=derivativeMagnitude)
+
+            xAround = xFirstHalf[:-1] + xSecondHalf[1:-1]
+            d1Around = d1FirstHalf[:-1] + d1SecondHalf[1:-1]
+
+            # Replace original values
+            xAlongAround[n] = xAround
+            d1AlongAround[n] = d1Around
+            n += 1
+
+        # Resample ring with 6pt junction to improve smoothness
+        idx = -(elementsCountAlong - elementsAroundHalfEso - 1)
+        xAve = []
+        dAve = []
+        xAve.append(xEsoToDuodGC[idx - 1])
+
+        for n1 in range(1, elementsCountAroundDuod + 1):
+            startPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[n - 1][n1])
+            startProportion1, startProportion2 = trackSurfaceStomach.getProportion(startPosition)
+            endPosition = trackSurfaceStomach.findNearestPosition(xAlongAround[n + 1][n1 + (0 if n1 < elementsAroundHalfDuod + 1 else -1)])
+            endProportion1, endProportion2 = trackSurfaceStomach.getProportion(endPosition)
+            xSampled = getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, startProportion1,
+                                                              startProportion2, endProportion1, endProportion2, 2)[0]
+
+            xAve.append(xSampled[1])
+
+        xAve[int(len(xAve) * 0.5)] = x6pt
+        del xAve[int(len(xAve) * 0.5) + 1]
+
+        for n1 in range(len(xAve)):
+            v1 = xAve[n1]
+            v2 = xAve[(n1 + 1) % len(xAve)]
+            d1 = findDerivativeBetweenPoints(v1, v2)
+            dAve.append(d1)
+        dAve = interp.smoothCubicHermiteDerivativesLoop(xAve, dAve)
+        xAlongAround[n] = xAve
+        d1AlongAround[n] = dAve
+
         # Sample 2 loops next to annulus from point on GC to point on first ring on xAlongAround
         ptsOnTrackSurfaceEsoToFundus = []
         for n2 in range(elementsCountAlongTrackSurface + 1):
@@ -953,8 +1028,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     d2GC = d2GCRot
 
                     xEnd = xAlongAround[0][elementsAroundHalfDuod + 1 + nLoop]
-                    d2End = [xAlongAround[1][elementsAroundHalfDuod + nLoop][c] -
-                             xAlongAround[0][elementsAroundHalfDuod + (0 if elementsCountAroundEso > 8 else 1) + nLoop][c] for c in range(3)]
+                    d2End = [xAlongAround[1][elementsAroundHalfDuod + nLoop + 1][c] -
+                             xAlongAround[0][elementsAroundHalfDuod + (1 if elementsCountAroundEso > 8 else 2) + nLoop][c] for c in range(3)]
 
                 nx = [xEsoToDuodGC[GCIdx], xEnd]
                 nd2 = [d2GC, d2End]
@@ -1231,28 +1306,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             d = findDerivativeBetweenPoints(xLoopGCTriplePt[n], xLoopGCTriplePt[(n+1) % len(xLoopGCTriplePt)])
             dLoopGCTriplePt.append(d)
         dSmoothLoopGCTriplePt = interp.smoothCubicHermiteDerivativesLoop(xLoopGCTriplePt, dLoopGCTriplePt)
-
-        # Resample loop before 6 point junction
-        for n in range(1, elementsCountAroundDuod + 1):
-            if elementsAroundHalfDuod <= n <= elementsAroundHalfDuod + 1:
-                pass
-            else:
-                if elementsCountAroundEso > 8:
-                    xStart = xAlongAround[-(elementsAlongCardiaToDuod + 3)][n]
-                else:
-                    xStart = xUp[-1][n]
-                xEnd = xAlongAround[-(elementsAlongCardiaToDuod + 1)][n - (1 if n > elementsAroundHalfDuod else 0)]
-
-                startPosition = trackSurfaceStomach.findNearestPosition(xStart)
-                d2Start = trackSurfaceStomach.evaluateCoordinates(startPosition, derivatives=True)[2]
-
-                endPosition = trackSurfaceStomach.findNearestPosition(xEnd)
-                d2End = trackSurfaceStomach.evaluateCoordinates(endPosition, derivatives=True)[2]
-
-                xSampled = interp.sampleCubicHermiteCurves([xStart, xEnd], [d2Start, d2End], 2)[0]
-                xNewPosition = trackSurfaceStomach.findNearestPosition(xSampled[1])
-                xNew = trackSurfaceStomach.evaluateCoordinates(xNewPosition)
-                xAlongAround[-(elementsAlongCardiaToDuod + 2)][n] = xNew
 
         # Assemble nodes and d1
         xOuter = []
