@@ -37,7 +37,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)
-        self.assertEqual(27, len(annotationGroups))
+        self.assertEqual(32, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(289, mesh3d.getSize())
@@ -46,7 +46,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(1356, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(528, nodes.getSize())
+        self.assertEqual(530, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -69,10 +69,10 @@ class HeartScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 36498.33179537934, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 36508.985114306226, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 221262.95992336908, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 221285.56778831664, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -99,15 +99,34 @@ class HeartScaffoldTestCase(unittest.TestCase):
             size = group.getMeshGroup(mesh2d).getSize()
             self.assertEqual(expectedSizes2d[name], size, name)
 
+        # test finding a marker in scaffold
+        markerGroup = fieldmodule.findFieldByName("marker").castGroup()
+        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        self.assertEqual(7, markerNodes.getSize())
+        markerName = fieldmodule.findFieldByName("marker_name")
+        self.assertTrue(markerName.isValid())
+        markerLocation = fieldmodule.findFieldByName("marker_location")
+        self.assertTrue(markerLocation.isValid())
+        # test apex marker point
+        cache = fieldmodule.createFieldcache()
+        node = findNodeWithName(markerNodes, markerName, "apex of heart")
+        self.assertTrue(node.isValid())
+        cache.setNode(node)
+        element, xi = markerLocation.evaluateMeshLocation(cache, 3)
+        self.assertEqual(1, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [ 0.0, 0.0, 1.0 ], 1.0E-10)
+        apexGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("apex of heart"))
+        self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
+
         # refine 2x2x2 and check result
-        # first remove any surface annotation groups as they are re-added by defineFaceAnnotations
+        # first remove any face (but not point) annotation groups as they are re-added by defineFaceAnnotations
         removeAnnotationGroups = []
         for annotationGroup in annotationGroups:
-            if annotationGroup.getMeshGroup(mesh3d).getSize() == 0:
+            if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
                 removeAnnotationGroups.append(annotationGroup)
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(18, len(annotationGroups))
+        self.assertEqual(23, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -126,7 +145,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(27, len(annotationGroups))
+        self.assertEqual(32, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(2236, mesh3d.getSize())
@@ -135,7 +154,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         mesh1d = refineFieldmodule.findMeshByDimension(1)
         self.assertEqual(8623, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(3183, nodes.getSize())
+        self.assertEqual(3185, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -159,18 +178,21 @@ class HeartScaffoldTestCase(unittest.TestCase):
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
-        self.assertEqual(5, markerNodes.getSize())
+        self.assertEqual(7, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
         markerLocation = refineFieldmodule.findFieldByName("marker_location")
         self.assertTrue(markerLocation.isValid())
+        # test apex marker point
         cache = refineFieldmodule.createFieldcache()
-        node = findNodeWithName(markerNodes, markerName, "APEX")
+        node = findNodeWithName(markerNodes, markerName, "apex of heart")
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
         self.assertEqual(5, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 0.0, 1.0 ], 1.0E-10)
+        apexGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("apex of heart"))
+        self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
 
 if __name__ == "__main__":
     unittest.main()
