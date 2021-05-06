@@ -1309,15 +1309,14 @@ class eftfactory_tricubichermite:
         from localNode1 at xi1=0 and localNode2 at xi1=1 to midside xi1 = 0.5.
         Note! Cross derivatives are not handled and are currently unmodified.
         :param otherBasisNode: Other node along xi1 which needs its dxi1 derivative halved
-        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.25 0.125 0.75
+        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.125 0.75
         '''
         n = hangingBasisNode - 1
         o = otherBasisNode - 1
         sfneg1 = scaleFactorIndexes[0]
         sf05 = scaleFactorIndexes[1]
-        sf025 = scaleFactorIndexes[2]
-        sf0125 = scaleFactorIndexes[3]
-        sf075 = scaleFactorIndexes[4]
+        sf0125 = scaleFactorIndexes[2]
+        sf075 = scaleFactorIndexes[3]
         # otherBasisNode d/dxi1 must be halved
         eft.setTermScaling(o*8 + 2, 1, [sf05])
         # workaround for Zinc limitation where faces are not found due to only first
@@ -1363,15 +1362,14 @@ class eftfactory_tricubichermite:
         from localNode1 at xi3=0 and localNode2 at xi3=1 to midside xi3 = 0.5.
         Note! Cross derivatives are not handled and are currently unmodified.
         :param otherBasisNode: Other node along xi3 which needs its dxi3 derivative halved
-        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.25 0.125 0.75
+        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.125 0.75
         '''
         n = hangingBasisNode - 1
         o = otherBasisNode - 1
         sfneg1 = scaleFactorIndexes[0]
         sf05 = scaleFactorIndexes[1]
-        sf025 = scaleFactorIndexes[2]
-        sf0125 = scaleFactorIndexes[3]
-        sf075 = scaleFactorIndexes[4]
+        sf0125 = scaleFactorIndexes[2]
+        sf075 = scaleFactorIndexes[3]
         # otherBasisNode d/dxi3 must be halved
         eft.setTermScaling(o*8 + 5, 1, [sf05])
         # workaround for Zinc limitation where faces are not found due to only first

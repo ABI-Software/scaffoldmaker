@@ -337,10 +337,12 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldmodule.findMeshByDimension(3)
 
+        heartGroup = AnnotationGroup(region, get_heart_term("heart"))
+        apexGroup = AnnotationGroup(region, get_heart_term("apex of heart"))
         lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
         rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
-        annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
+        annotationGroups = [ heartGroup, apexGroup, lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
@@ -924,22 +926,23 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         # Create elements
         #################
 
+        heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
 
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         #print("LV elements")
-        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ lvMeshGroup ])
+        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, lvMeshGroup ])
         #print("RV elements")
-        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ rvMeshGroup ])
+        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, rvMeshGroup ])
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         # interventricular sulcus elements
-        meshGroups = [ lvMeshGroup, rvMeshGroup ]
+        meshGroups = [ heartMeshGroup, lvMeshGroup, rvMeshGroup ]
         lvNodeId = lvShield.nodeId
         rvNodeId = rvShield.nodeId
         n1ln, n2ln = lvShield.convertRimIndex(0)
@@ -1031,8 +1034,10 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, 'APEX')  # interlex.org has 'apex of heart'
+        markerName.assignString(cache, apexGroup.getName())
         markerLocation.assignMeshLocation(cache, apexElement, [ 0.0, 0.0, 1.0 ])
+        for group in [ heartGroup, lvGroup, apexGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 

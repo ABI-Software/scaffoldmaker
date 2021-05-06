@@ -54,15 +54,19 @@ class MeshType_3d_heart1(Scaffold_base):
         optionNames = MeshType_3d_heartventriclesbase1.getOrderedOptionNames()
         optionNamesAtria = MeshType_3d_heartatria1.getOrderedOptionNames()
         # insert new numbers of elements from atria; others came with ventriclesbase1
-        optionNames.insert(7, 'Number of elements along vena cava inlet')
-        optionNames.insert(8, 'Number of elements over atria')
+        optionNames.insert(7, 'Number of elements along atrial appendages')
+        optionNames.insert(8, 'Number of elements along vena cava inlet')
+        optionNames.insert(9, 'Number of elements over atria')
+        optionNames.insert(10, 'Number of elements radial pulmonary vein annuli')
         # remove number of elements, unit scale and dependent options from atria options
         for key in [
+            'Number of elements along atrial appendages',
             'Number of elements along vena cava inlet',
             'Number of elements around atrial septum',
             'Number of elements around left atrium free wall',
             'Number of elements around right atrium free wall',
             'Number of elements over atria',
+            'Number of elements radial pulmonary vein annuli',
             'Unit scale',
             'Aorta outer plus diameter']:
             optionNamesAtria.remove(key)
@@ -133,6 +137,8 @@ class MeshType_3d_heart1(Scaffold_base):
         ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         atriaAnnotationGroups = MeshType_3d_heartatria1.generateBaseMesh(region, options)
         annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
+        heartGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("heart"))
+        cruxGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("crux of heart"))
         lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
 
@@ -211,6 +217,7 @@ class MeshType_3d_heart1(Scaffold_base):
         # Create elements
         #################
 
+        heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
         rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
 
@@ -233,7 +240,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 lavNodeId[0][0][n1], lavNodeId[0][0][n1 + 1], lavNodeId[0][1][n1], lavNodeId[0][1][n1 + 1],
                 lavNodeId[1][0][n1], lavNodeId[1][0][n1 + 1], lavNodeId[1][1][n1], lavNodeId[1][1][n1 + 1]]
             scalefactors = None
-            meshGroups = [ lFibrousRingMeshGroup ]
+            meshGroups = [ heartMeshGroup, lFibrousRingMeshGroup ]
 
             if e == -1:
                 # interatrial groove straddles left and right atria, collapsed to 6 node wedge
@@ -295,7 +302,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 ravNodeId[0][0][n1], ravNodeId[0][0][n1 + 1], ravNodeId[0][1][n1], ravNodeId[0][1][n1 + 1],
                 ravNodeId[1][0][n1], ravNodeId[1][0][n1 + 1], ravNodeId[1][1][n1], ravNodeId[1][1][n1 + 1]]
             scalefactors = None
-            meshGroups = [ rFibrousRingMeshGroup ]
+            meshGroups = [ heartMeshGroup, rFibrousRingMeshGroup ]
 
             if e == -1:
                 # interatrial groove straddles left and right atria, collapsed to 6 node wedge
@@ -350,7 +357,7 @@ class MeshType_3d_heart1(Scaffold_base):
                 meshGroup.addElement(element)
 
         # fibrous ring septum:
-        meshGroups = [ lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
+        meshGroups = [ heartMeshGroup, lFibrousRingMeshGroup, rFibrousRingMeshGroup ]
         for e in range(elementsCountAroundAtrialSeptum):
             eft1 = eftFibrousRing
             nlm = e - elementsCountAroundAtrialSeptum
@@ -391,13 +398,13 @@ class MeshType_3d_heart1(Scaffold_base):
         # annotation fiducial points
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
         cruxXi = [ 0.5, 0.5, 1.0 ]
-        cache.setMeshLocation(cruxElement, cruxXi)
-        result, cruxCoordinates = coordinates.evaluateReal(cache, 3)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, "crux of heart")
+        markerName.assignString(cache, cruxGroup.getName())
         markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
+        for group in [ heartGroup, cruxGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 
