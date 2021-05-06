@@ -821,7 +821,10 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi1 collapsed on xi3 = 0 or xi3 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi1.
+        :param collapseNodes: As the element can be collapsed in xi1 at either ends of xi2 or xi3, collapseNodes
+        are the local indices of nodes whose d2 (for elements collapse at either ends of xi2) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d1 before collapsing the nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
@@ -897,7 +900,10 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 0 or Xi3 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi2.
+        :param collapseNodes: As the element can be collapsed in xi2 at either ends of xi1 or xi3, collapseNodes
+        are the local indices of nodes whose d1 (for elements collapse at either ends of xi1) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d2 before collapsing the nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
@@ -929,11 +935,31 @@ class eftfactory_tricubichermite:
             else:
                 valid = False
             ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
-        elif collapseNodes in [[4, 8]]:
+
+        elif collapseNodes in [[3, 7]]:
+            nodes = [1, 3, 5, 7]
+            # remap parameters on xi1 = 0 before collapsing nodes
+            if collapseNodes == [3, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            else:
+                valid = False
+            ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
+
+        elif collapseNodes in [[2, 6], [4, 8]]:
             nodes = [2, 4, 6, 8]
-            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-            remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            # remap parameters on xi1 = 1 before collapsing nodes
+            if collapseNodes == [2, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            elif collapseNodes == [4, 8]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            else:
+                valid = False
             ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
+
         else:
             valid = False
 
