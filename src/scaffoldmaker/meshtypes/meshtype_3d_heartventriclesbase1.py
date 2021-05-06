@@ -300,6 +300,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         annotationGroups = MeshType_3d_heartventricles1.generateBaseMesh(region, options)
 
         # find/add annotation groups
+        heartGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("heart"))
         lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
         rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
@@ -726,6 +727,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         # Create elements
         #################
 
+        heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
@@ -739,14 +741,14 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-        scalefactors5hanging = [ -1.0, 0.5, 0.25, 0.125, 0.75 ]
+        scalefactors4hanging = [ -1.0, 0.5, 0.125, 0.75 ]
 
         # LV base elements row 1, starting at anterior interventricular sulcus
         for e in range(-1, elementsCountAroundLVFreeWall):
             eft1 = eft
             nids = None
             scalefactors = None
-            meshGroups = [ lvMeshGroup ]
+            meshGroups = [ heartMeshGroup, lvMeshGroup ]
 
             if e == -1:
                 # 4 node collapsed tetrahedral element on anterior interventricular sulcus
@@ -810,7 +812,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             eft1 = eft
             nids = None
             scalefactors = None
-            meshGroups = [ rvMeshGroup ]
+            meshGroups = [ heartMeshGroup, rvMeshGroup ]
             addMarker = None
 
             noa = e
@@ -850,16 +852,16 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                     remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                 elif elementsCountRVHanging:
                     eft1 = tricubichermite.createEftNoCrossDerivatives()
-                    setEftScaleFactorIds(eft1, [1, 102, 104, 108, 304], [])
-                    scalefactors = scalefactors5hanging
+                    setEftScaleFactorIds(eft1, [1, 102, 108, 304], [])
+                    scalefactors = scalefactors4hanging
                     if e in [ 1, 3 ]:
                         # 1st of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4, 5])
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4, 5])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 2, 1, 1, 2, [1, 2, 3, 4])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 6, 5, 5, 6, [1, 2, 3, 4])
                     else:  # e in [ 2, 4 ]:
                         # 2nd of pair of elements with hanging nodes at xi1=0.5 on xi2 == 0 plane
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4, 5])
-                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4, 5])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 1, 2, 1, 2, [1, 2, 3, 4])
+                        tricubichermite.setEftMidsideXi1HangingNode(eft1, 5, 6, 5, 6, [1, 2, 3, 4])
                         if e == 4:
                             remapEftNodeValueLabel(eft1, [ 4, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
             elif e == elementsCountRVFreeWallRegular:
@@ -970,7 +972,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             eft1 = eft
             nids = None
             scalefactors = None
-            meshGroups = [ lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
+            meshGroups = [ heartMeshGroup, lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
 
             lv1 = elementsCountAroundLVFreeWall + e
             lv2 = (lv1 + 1)%elementsCountAroundLV
@@ -1073,7 +1075,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             eft1 = eft
             nids = None
             scalefactors = None
-            meshGroups = [ lvMeshGroup ]
+            meshGroups = [ heartMeshGroup, lvMeshGroup ]
             addMarker = None
 
             eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -1196,7 +1198,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             eft1 = eft
             nids = None
             scalefactors = None
-            meshGroups = [ rvMeshGroup ]
+            meshGroups = [ heartMeshGroup, rvMeshGroup ]
 
             if e == 0:
                 # 6 node collapsed vs-ra shim element
