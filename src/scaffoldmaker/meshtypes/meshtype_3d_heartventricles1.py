@@ -246,10 +246,12 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         mesh = fm.findMeshByDimension(3)
 
+        heartGroup = AnnotationGroup(region, get_heart_term("heart"))
+        apexGroup = AnnotationGroup(region, get_heart_term("apex of heart"))
         lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
         rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
-        annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
+        annotationGroups = [ heartGroup, apexGroup, lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -702,6 +704,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         # Create elements
         #################
 
+        heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
@@ -725,7 +728,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
                 # LV apex
 
-                meshGroups = [ lvMeshGroup ]
+                meshGroups = [ heartMeshGroup, lvMeshGroup ]
                 for e1 in range(elementsCountAroundLV):
 
                     eft1 = eft
@@ -777,7 +780,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
                     eft1 = eft
                     scalefactors = None
-                    meshGroups = [ lvMeshGroup ]
+                    meshGroups = [ heartMeshGroup, lvMeshGroup ]
 
                     va = e1 if (e1 >= 0) else (elementsCountAroundLV - 1)
                     vb = e1 + 1
@@ -829,7 +832,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
                     eft1 = eft
                     scalefactors = None
-                    meshGroups = [ rvMeshGroup ]
+                    meshGroups = [ heartMeshGroup, rvMeshGroup ]
                     ua = e1
                     ub = e1 + 1
                     va = elementsCountAroundLVFreeWall + e1
@@ -910,10 +913,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     elif e1 == (elementsCountAroundRVFreeWall - 1):
                         # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [ -1.0 ]
                         if e2 == elementsCountUpLVApex:
                             # collapsed RV corner uses outside d/dxi2 = d1
+                            setEftScaleFactorIds(eft1, [1], [])
+                            scalefactors = [ -1.0 ]
                             remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
                             remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                             remapEftNodeValueLabel(eft1, [ 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
@@ -945,7 +948,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
                     eft1 = eft
                     scalefactors = None
-                    meshGroups = [ lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
+                    meshGroups = [ heartMeshGroup, lvMeshGroup, rvMeshGroup, vSeptumMeshGroup ]
 
                     ua = -e1
                     ub = ua - 1
@@ -1023,8 +1026,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, 'APEX')  # interlex.org has 'apex of heart'
+        markerName.assignString(cache, apexGroup.getName())
         markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
+        for group in [ heartGroup, lvGroup, apexGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 

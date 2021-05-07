@@ -577,7 +577,7 @@ class MeshType_3d_lung1(Scaffold_base):
                  lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
 
             # Diaphragm lung nodes
-            getDiaphragmaticLungNodes(cache, coordinates, generateParameters,
+            diaNodeIndex, nodeIdentifier = getDiaphragmaticLungNodes(cache, coordinates, generateParameters,
                  nodes, nodetemplate, nodeFieldParameters,
                  diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3,
                  diaphragmaticNodeIds, nodeIndex, nodeIdentifier)
@@ -918,7 +918,6 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                     nodeIdentifiers.pop(6)
                     nodeIdentifiers.pop(2)
                     eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft, [1], [])
                     nodes = [3, 4, 7, 8]
                     collapseNodes = [3, 7]
                     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
@@ -1028,7 +1027,6 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 elif (e3 == (uElementsCount3 - 2)) and (e2 == (uElementsCount2 - 2)):
                     # Remapped cube element 2
                     eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft, [1], [])
                     remapEftNodeValueLabel(eft, [1, 2], Node.VALUE_LABEL_D_DS3,
                                            [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
                 elif None in nodeIdentifiers:
@@ -1125,17 +1123,17 @@ def getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtem
                     NodeIds[e3 + 1][e2 + 1][e1], NodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                 if (e1 == 1) and (e3 == (elementsCount3 - 1)):
+                    # wedge elements along crest
                     nodeIdentifiers.pop(6)
                     nodeIdentifiers.pop(4)
                     eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft, [1], [])
                     nodes = [5, 6, 7, 8]
                     collapseNodes = [5, 7]
                     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                     if e2 == 0:
-                        # Remapping the element
+                        setEftScaleFactorIds(eft, [1], [])
                         remapEftNodeValueLabel(eft, [3], Node.VALUE_LABEL_D_DS2,
                                                [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [1])])
                     ln_map = [1, 2, 3, 4, 5, 5, 6, 6]

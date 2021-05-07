@@ -821,17 +821,20 @@ class eftfactory_tricubichermite:
 
     def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi1 collapsed on xi3 = 0 or xi3 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi1.
+        :param collapseNodes: As the element can be collapsed in xi1 at either ends of xi2 or xi3, collapseNodes
+        are the local indices of nodes whose d2 (for elements collapse at either ends of xi2) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d1 before collapsing the nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
-        setEftScaleFactorIds(eft, [1], [])
 
         valid = True
         if collapseNodes in [[1, 3], [2, 4]]:
             nodes = [1, 2, 3, 4]
             # remap parameters on xi3 = 0 before collapsing nodes
             if collapseNodes == [1, 3]:
+                setEftScaleFactorIds(eft, [1], [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
             elif collapseNodes == [2, 4]:
@@ -847,6 +850,7 @@ class eftfactory_tricubichermite:
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
             elif collapseNodes == [6, 8]:
+                setEftScaleFactorIds(eft, [1], [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
             else:
@@ -856,6 +860,7 @@ class eftfactory_tricubichermite:
             nodes = [1, 2, 5, 6]
             # remap parameters on xi2 = 0 before collapsing nodes
             if collapseNodes == [1, 5]:
+                setEftScaleFactorIds(eft, [1], [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
             elif collapseNodes == [2, 6]:
@@ -871,6 +876,7 @@ class eftfactory_tricubichermite:
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
             elif collapseNodes == [4, 8]:
+                setEftScaleFactorIds(eft, [1], [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
             else:
@@ -888,22 +894,26 @@ class eftfactory_tricubichermite:
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
 
         remapEftLocalNodes(eft, 6, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi1Quadrant:  Failed to validate eft'
+        if not eft.validate():
+            print('eftfactory_tricubichermite.createEftWedgeCollapseXi1Quadrant:  Failed to validate eft for collapseNodes', collapseNodes)
         return eft
 
     def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
         '''
-        Create a tricubic hermite element field for a wedge element, where xi2 collapsed on xi3 = 0 or Xi3 = 1.
+        Create a tricubic hermite element field for a wedge element collapsed in xi2.
+        :param collapseNodes: As the element can be collapsed in xi2 at either ends of xi1 or xi3, collapseNodes
+        are the local indices of nodes whose d1 (for elements collapse at either ends of xi1) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d2 before collapsing the nodes.
         :return: Element field template
         '''
         eft = self.createEftBasic()
-        setEftScaleFactorIds(eft, [1], [])
 
         valid = True
         if collapseNodes in [[1, 2], [3, 4]]:
             nodes = [1, 2, 3, 4]
             # remap parameters on xi3 = 0 before collapsing nodes
             if collapseNodes == [1, 2]:
+                setEftScaleFactorIds(eft, [1], [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
             elif collapseNodes == [3, 4]:
@@ -919,16 +929,37 @@ class eftfactory_tricubichermite:
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
             elif collapseNodes == [7, 8]:
+                setEftScaleFactorIds(eft, [1], [])
                 remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                 remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
             else:
                 valid = False
             ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
-        elif collapseNodes in [[4, 8]]:
+
+        elif collapseNodes in [[3, 7]]:
+            nodes = [1, 3, 5, 7]
+            # remap parameters on xi1 = 0 before collapsing nodes
+            if collapseNodes == [3, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            else:
+                valid = False
+            ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
+
+        elif collapseNodes in [[2, 6], [4, 8]]:
             nodes = [2, 4, 6, 8]
-            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-            remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            # remap parameters on xi1 = 1 before collapsing nodes
+            if collapseNodes == [2, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            elif collapseNodes == [4, 8]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            else:
+                valid = False
             ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
+
         else:
             valid = False
 
@@ -941,7 +972,8 @@ class eftfactory_tricubichermite:
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
 
         remapEftLocalNodes(eft, 6, ln_map)
-        assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeCollapseXi2Quadrant:  Failed to validate eft'
+        if not eft.validate():
+            print('eftfactory_tricubichermite.createEftWedgeCollapseXi2Quadrant:  Failed to validate eft for collapseNodes', collapseNodes)
         return eft
 
     def createEftTetrahedronCollapseXi1Xi2Quadrant(self, peakNode, sideNode):
@@ -1303,15 +1335,14 @@ class eftfactory_tricubichermite:
         from localNode1 at xi1=0 and localNode2 at xi1=1 to midside xi1 = 0.5.
         Note! Cross derivatives are not handled and are currently unmodified.
         :param otherBasisNode: Other node along xi1 which needs its dxi1 derivative halved
-        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.25 0.125 0.75
+        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.125 0.75
         '''
         n = hangingBasisNode - 1
         o = otherBasisNode - 1
         sfneg1 = scaleFactorIndexes[0]
         sf05 = scaleFactorIndexes[1]
-        sf025 = scaleFactorIndexes[2]
-        sf0125 = scaleFactorIndexes[3]
-        sf075 = scaleFactorIndexes[4]
+        sf0125 = scaleFactorIndexes[2]
+        sf075 = scaleFactorIndexes[3]
         # otherBasisNode d/dxi1 must be halved
         eft.setTermScaling(o*8 + 2, 1, [sf05])
         # workaround for Zinc limitation where faces are not found due to only first
@@ -1357,15 +1388,14 @@ class eftfactory_tricubichermite:
         from localNode1 at xi3=0 and localNode2 at xi3=1 to midside xi3 = 0.5.
         Note! Cross derivatives are not handled and are currently unmodified.
         :param otherBasisNode: Other node along xi3 which needs its dxi3 derivative halved
-        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.25 0.125 0.75
+        :param scaleFactorIndexes: Local scale factor indexes for general values -1.0 0.5 0.125 0.75
         '''
         n = hangingBasisNode - 1
         o = otherBasisNode - 1
         sfneg1 = scaleFactorIndexes[0]
         sf05 = scaleFactorIndexes[1]
-        sf025 = scaleFactorIndexes[2]
-        sf0125 = scaleFactorIndexes[3]
-        sf075 = scaleFactorIndexes[4]
+        sf0125 = scaleFactorIndexes[2]
+        sf075 = scaleFactorIndexes[3]
         # otherBasisNode d/dxi3 must be halved
         eft.setTermScaling(o*8 + 5, 1, [sf05])
         # workaround for Zinc limitation where faces are not found due to only first

@@ -20,7 +20,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         Test creation of small intestine scaffold.
         """
         parameterSetNames = MeshType_3d_smallintestine1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Mouse 1"])
+        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Mouse 1"])
         centralPathDefaultScaffoldPackages = {
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {

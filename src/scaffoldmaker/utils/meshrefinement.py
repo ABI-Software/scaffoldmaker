@@ -46,6 +46,7 @@ class MeshRefinement:
         minimumsField = None
         maximumsField = None
         self._sourceMesh = self._sourceFm.findMeshByDimension(3)
+        self._sourceNodes = self._sourceFm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self._sourceElementiterator = self._sourceMesh.createElementiterator()
         self._octree = Octree(minimums, maximums)
 
@@ -72,12 +73,13 @@ class MeshRefinement:
         self._sourceAnnotationGroups = sourceAnnotationGroups
         self._annotationGroups = []
         self._sourceAndTargetMeshGroups = []
+        self._sourceAndTargetNodesetGroups = []
         for sourceAnnotationGroup in sourceAnnotationGroups:
-            sourceMeshGroup = sourceAnnotationGroup.getMeshGroup(self._sourceMesh)
             targetAnnotationGroup = AnnotationGroup(self._targetRegion, sourceAnnotationGroup.getTerm())
-            targetMeshGroup = targetAnnotationGroup.getMeshGroup(self._targetMesh)
             self._annotationGroups.append(targetAnnotationGroup)
-            self._sourceAndTargetMeshGroups.append( ( sourceMeshGroup, targetMeshGroup) )
+            self._sourceAndTargetMeshGroups.append( ( sourceAnnotationGroup.getMeshGroup(self._sourceMesh), targetAnnotationGroup.getMeshGroup(self._targetMesh)) )
+            self._sourceAndTargetNodesetGroups.append( ( sourceAnnotationGroup.getNodesetGroup(self._sourceNodes), targetAnnotationGroup.getNodesetGroup(self._targetNodes)) )
+
         # prepare element -> marker point list map
         self.elementMarkerMap = {}
         sourceMarkerGroup = findOrCreateFieldGroup(self._sourceFm, "marker")
@@ -96,7 +98,7 @@ class MeshRefinement:
                 if not markerList:
                     markerList = []
                     self.elementMarkerMap[elementIdentifier] = markerList
-                markerList.append( ( markerName, xi ) )
+                markerList.append( ( markerName, xi, node.getIdentifier() ) )
             node = nodeIter.next()
         if self.elementMarkerMap:
             self._targetMarkerGroup = findOrCreateFieldGroup(self._targetFm, "marker")
@@ -203,7 +205,8 @@ class MeshRefinement:
                 elementOffset = [ 1, numberInXi1, numberInXi1*numberInXi2 ]
                 targetXi = [ 0.0 ]*3
                 for marker in markerList:
-                    markerName, sourceXi = marker
+                    markerName, sourceXi, sourceNodeIdentifier = marker
+                    sourceNode = self._sourceNodes.findNodeByIdentifier(sourceNodeIdentifier)
                     node = self._targetMarkerNodes.createNode(self._nodeIdentifier, self._targetMarkerTemplate)
                     self._targetCache.setNode(node)
                     self._targetMarkerName.assignString(self._targetCache, markerName)
@@ -221,6 +224,10 @@ class MeshRefinement:
                     targetElement = self._targetMesh.findElementByIdentifier(targetElementIdentifier)
                     result = self._targetMarkerLocation.assignMeshLocation(self._targetCache, targetElement, targetXi)
                     self._nodeIdentifier += 1
+                    # add new node to matching annotation groups the previous one was in
+                    for sourceAndTargetNodesetGroup in self._sourceAndTargetNodesetGroups:
+                        if sourceAndTargetNodesetGroup[0].containsNode(sourceNode):
+                            sourceAndTargetNodesetGroup[1].addNode(node)
 
         return nids, nx
 
