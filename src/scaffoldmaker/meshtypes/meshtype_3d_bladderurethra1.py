@@ -111,15 +111,15 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 10.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 10.0], [0.0, 0.0, 10.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 20.0], [0.0, 0.0, 10], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 30.0], [0.0, 0.0, 10], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 40.0], [-0.4, 0.3, 7.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[-0.5, -2.1, 49.6], [-1.0, -1.9, 7.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[-0.9, -3.8, 59.3], [-1.4, -0.6, 8.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[-1.3, -3.6, 71.5], [-0.1, 2.0, 8.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 80.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 20.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 20.0], [0.0, 0.0, 20.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 40.0], [0.0, 0.0, 20], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 60.0], [0.0, 0.0, 20], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 80.0], [-0.4, 0.3, 17.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-0.5, -2.1, 100.6], [-1.0, -1.9, 17.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-0.9, -3.8, 120.3], [-1.4, -0.6, 18.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-1.3, -3.6, 140.5], [-0.1, 2.0, 18.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 160.0], [0.9, 4.0, 15.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -283,18 +283,21 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
         if 'Human' in parameterSetName:
-            options['Major diameter'] = 65.0
+            options['Number of elements along bladder'] = 6
+            options['Number of elements around'] = 8
+            options['Major diameter'] = 75.0
             options['Minor diameter'] = 35.0
             options['Wall thickness'] = 0.2
-            options['Neck diameter 1'] = 1.0
-            options['Neck diameter 2'] = 0.5
+            options['Neck diameter 1'] = 4.0
+            options['Neck diameter 2'] = 3.0
             options['Wall thickness'] = 0.5
-            options['Neck angle degrees'] = 120
+            options['Neck angle degrees'] = 115
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
             options['Ureter position down'] = 0.83
-            options['Urethra diameter 1'] = 0.75
-            options['Urethra diameter 2'] = 0.65
-            options['Urethra wall thickness'] = 0.25
+            options['Include urethra'] = False
+            options['Urethra diameter 1'] = 1.5
+            options['Urethra diameter 2'] = 1.0
+            options['Urethra wall thickness'] = 0.5
         return options
 
     @staticmethod
