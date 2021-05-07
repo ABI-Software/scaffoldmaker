@@ -1951,7 +1951,6 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 bni21 = startNode + elementsAroundThroughWall + e1 + elementsCountAround2 * e3
                                 bni22 = startNode + elementsAroundThroughWall + (e1 + 1) % elementsCountAround2 + elementsCountAround2 * e3
                                 if e1 == elementsCountAround1:  # Bottom left wedge
-                                    scaleFactors = [-1.0]
                                     nodeIdentifiers = [bni12, bni21, bni22,
                                                        bni12 + elementsCountAround1,
                                                        bni21 + elementsCountAround2,
@@ -2016,6 +2015,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 for e3 in range(elementsCountThroughWall):
                     for e1 in range(elementsCountAround1):
                         if e1 != int(elementsCountAround1 * 0.5):
+                            scaleFactors = []
                             eft1 = eftStandard
                             elementtemplate1 = elementtemplateStandard
                             bni11 = startNode + e3 * elementsCountAround1 + e1
@@ -2070,6 +2070,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             elif e2 == elementsAroundQuarterEso + 1:
                 for e3 in range(elementsCountThroughWall):
                     for e1 in range(elementsCountAround1 + 1):
+                        scaleFactors = []
                         eft1 = eftStandard
                         elementtemplate1 = elementtemplateStandard
                         if e1 < int(elementsCountAround1 * 0.5) + 1:
