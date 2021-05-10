@@ -51,7 +51,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[0.85, 3.05, 89.94], [-0.2, 1.8, 15.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[0.26, 5.98, 107.94], [-0.6, 4.5, 16.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[-0.66, 12.47, 127.07], [0.35, 6.67, 14.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
-
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -197,12 +196,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements along': 1,
                 'Unit scale': 1.0,
                 'Outlet': False,
-                'Ostium diameter': 1.0,
-                'Ostium length': 0.25,
-                'Ostium wall thickness': 0.02,
+                'Ostium diameter': 3.0,
+                'Ostium length': 0.5,
+                'Ostium wall thickness': 0.5,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
-                'Vessel inner diameter': 0.3,
+                'Vessel inner diameter': 1.0,
                 'Vessel wall thickness': 0.1,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -283,8 +282,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
         if 'Human' in parameterSetName:
-            options['Number of elements along bladder'] = 6
-            options['Number of elements around'] = 8
+            options['Number of elements along bladder'] = 8
+            options['Number of elements around'] = 12
             options['Major diameter'] = 75.0
             options['Minor diameter'] = 35.0
             options['Wall thickness'] = 0.2
@@ -292,8 +291,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Neck diameter 2'] = 3.0
             options['Wall thickness'] = 0.5
             options['Neck angle degrees'] = 115
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ureter position down'] = 0.83
+            options['Ureter position around'] = 0.82  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.63
             options['Include urethra'] = False
             options['Urethra diameter 1'] = 1.5
             options['Urethra diameter 2'] = 1.0
