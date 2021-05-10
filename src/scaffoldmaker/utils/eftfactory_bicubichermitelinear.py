@@ -249,6 +249,124 @@ class eftfactory_bicubichermitelinear:
         assert eft.validate(), 'eftfactory_tricubichermite.createEftWedgeXi1Zero:  Failed to validate eft'
         return eft
 
+    def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
+        '''
+        Create a bicubic hermite linear element field for a wedge element collapsed in xi1.
+        :param collapseNodes: As the element can be collapsed in xi1 at either ends of xi2 or xi3, collapseNodes
+        are the local indices of nodes whose d2 (for elements collapse at either ends of xi2) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d1 before collapsing the nodes.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+        setEftScaleFactorIds(eft, [1], [])
+
+        valid = True
+        if collapseNodes in [[1, 3], [2, 4]]: # xi3 = 0
+            nodes = [1, 2, 3, 4]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            ln_map = [1, 1, 2, 2, 3, 4, 5, 6]
+        elif collapseNodes in [[5, 7], [6, 8]]: # xi3 = 1
+            nodes = [5, 6, 7, 8]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            ln_map = [1, 2, 3, 4, 5, 5, 6, 6]
+        elif collapseNodes in [[1, 5], [2, 6]]:
+            nodes = [1, 2, 5, 6]
+            # remap parameters on xi2 = 0 before collapsing nodes
+            if collapseNodes == [1, 5]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            elif collapseNodes == [2, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            else:
+                valid = False
+            ln_map = [1, 1, 2, 3, 4, 4, 5, 6]
+        elif collapseNodes in [[3, 7], [4, 8]]:
+            nodes = [3, 4, 7, 8]
+            # remap parameters on xi2 = 1 before collapsing nodes
+            if collapseNodes == [3, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            elif collapseNodes == [4, 8]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 3, 4, 5, 6, 6]
+        else:
+            valid = False
+
+        if not valid:
+            assert False, "createEftWedgeCollapseXi1Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+
+        # zero cross derivative parameters
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
+
+        remapEftLocalNodes(eft, 6, ln_map)
+        if not eft.validate():
+            print('eftfactory_bicubichermitelinear.createEftWedgeCollapseXi1Quadrant:  Failed to validate eft for collapseNodes', collapseNodes)
+        return eft
+
+    def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
+        '''
+        Create a bicubic hermite linear element field for a wedge element collapsed in xi2.
+        :param collapseNodes: As the element can be collapsed in xi2 at either ends of xi1 or xi3, collapseNodes
+        are the local indices of nodes whose d1 (for elements collapse at either ends of xi1) or
+        d3 (for elements collapse at either ends of xi3) are remapped with d2 before collapsing the nodes.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        valid = True
+        if collapseNodes in [[1, 2], [3, 4]]: # xi3 = 0
+            nodes = [1, 2, 3, 4]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            ln_map = [1, 2, 1, 2, 3, 4, 5, 6]
+        elif collapseNodes in [[5, 6], [7, 8]]: # xi3 = 1
+            nodes = [5, 6, 7, 8]
+            remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            ln_map = [1, 2, 3, 4, 5, 6, 5, 6]
+
+        elif collapseNodes in [[3, 7]]:
+            nodes = [1, 3, 5, 7]
+            # remap parameters on xi1 = 0 before collapsing nodes
+            if collapseNodes == [3, 7]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            else:
+                valid = False
+            ln_map = [1, 2, 1, 3, 4, 5, 4, 6]
+
+        elif collapseNodes in [[2, 6], [4, 8]]:
+            nodes = [2, 4, 6, 8]
+            # remap parameters on xi1 = 1 before collapsing nodes
+            if collapseNodes == [2, 6]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+            elif collapseNodes == [4, 8]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 2, 4, 5, 6, 5]
+
+        else:
+            valid = False
+
+        if not valid:
+            assert False, "createEftWedgeCollapseXi2Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+
+        # zero cross derivative parameters
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
+
+        remapEftLocalNodes(eft, 6, ln_map)
+        if not eft.validate():
+            print('eftfactory_bicubichermitelinear.createEftWedgeCollapseXi2Quadrant:  Failed to validate eft for collapseNodes', collapseNodes)
+        return eft
+
     def createEftWedgeXi1ZeroOpenTube(self):
         '''
         Create a basic bicubic hermite linear element template for elements

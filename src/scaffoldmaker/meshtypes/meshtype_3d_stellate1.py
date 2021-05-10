@@ -403,10 +403,10 @@ class MeshType_3d_stellate1(Scaffold_base):
 
                         if e1 == 0:  # wheel
                             eft1 = bicubichermitelinear.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [-1.0]
                             if armCount == 3:
                                 if e2 == 0:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     scaleEftNodeValueLabels(eft1, [1, 5], [Node.VALUE_LABEL_D_DS1,
                                                              Node.VALUE_LABEL_D_DS2], [1])
                                     ns = [3, 7]
@@ -417,9 +417,13 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                            [(Node.VALUE_LABEL_D_DS1, []),
                                                             (Node.VALUE_LABEL_D_DS2, [])])
                                     if e2 == 0:
+                                        setEftScaleFactorIds(eft1, [1], [])
+                                        scalefactors = [-1.0]
                                         remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
                                 elif na == 1:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                            [(Node.VALUE_LABEL_D_DS1, [1])])
                                     if e2 == 0:
@@ -430,6 +434,8 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS2, [1])])
                                 elif na == 2:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                            [(Node.VALUE_LABEL_D_DS2, [1])])
                                     if e2 == 0:
@@ -441,6 +447,8 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
                             elif armCount == 4:
                                 if e2 == 0:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     scaleEftNodeValueLabels(eft1, [1, 5], [Node.VALUE_LABEL_D_DS1,
                                                              Node.VALUE_LABEL_D_DS2], [1])
                                     ns = [3, 7]
@@ -451,9 +459,13 @@ class MeshType_3d_stellate1(Scaffold_base):
                                                            [(Node.VALUE_LABEL_D_DS1, []),
                                                             (Node.VALUE_LABEL_D_DS2, [])])
                                     if e2 == 0:
+                                        setEftScaleFactorIds(eft1, [1], [])
+                                        scalefactors = [-1.0]
                                         remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
                                 elif na == 1:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                            [(Node.VALUE_LABEL_D_DS1, [1]),
                                                             (Node.VALUE_LABEL_D_DS2, [])])
@@ -464,6 +476,8 @@ class MeshType_3d_stellate1(Scaffold_base):
                                         remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
                                 elif na == 2:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                            [(Node.VALUE_LABEL_D_DS1, [1]),
                                                             (Node.VALUE_LABEL_D_DS2, [1])])
@@ -474,6 +488,8 @@ class MeshType_3d_stellate1(Scaffold_base):
                                         remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS2,
                                                                [(Node.VALUE_LABEL_D_DS2, [1])])
                                 elif na == 3:
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, ns, Node.VALUE_LABEL_D_DS1,
                                                            [(Node.VALUE_LABEL_D_DS1, []),
                                                             (Node.VALUE_LABEL_D_DS2, [1])])
