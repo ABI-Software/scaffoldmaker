@@ -36,7 +36,12 @@ bladder_terms = [
     ("ventral part of serosa of urethra", "ILX:0739306"),
     ("ventral part of serosa of urinary bladder", "ILX:0739249"),
     ("ventral part of bladder", "None"),
-    ("ventral part of urethra", "ILX:0739259")
+    ("ventral part of urethra", "ILX:0739259"),
+    ("apex of urinary bladder", "ILX:0774405"),
+    ("left ureter junction with bladder", "None"),
+    ("right ureter junction with bladder", "None"),
+    ("urethra junction with bladder dorsal", "None"),
+    ("urethra junction with bladder ventral", "None")
 ]
 
 def get_bladder_term(name : str):
