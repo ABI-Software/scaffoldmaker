@@ -344,61 +344,56 @@ class MeshType_3d_lung1(Scaffold_base):
                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
 
             # Marker points
+            lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
+            markerList = []
+
             lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
+
+            leftApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_lung_term("apex of left lung"))
             idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'apex of left lung')
-            markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
+            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 0.0, 1.0] })
 
+            leftVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("ventral base of left lung"))
             idx = lElementsCount1 * (lElementsCount2 - 1) + 1
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'ventral base of left lung')
-            markerLocation.assignMeshLocation(cache, element1, [0.0, 1.0, 0.0])
+            markerList.append({"group": leftVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
+            leftMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_lung_term("medial base of left lung"))
             idx = lElementsCount1 * (lElementsCount2 // 2)
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'medial base of left lung')
-            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 0.0])
+            markerList.append({"group": leftMedialGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
 
             upperLeftElementCount = (uElementsCount1 * uElementsCount2 * (uElementsCount3-1))
             leftLungElementCount = lowerLeftElementCount + upperLeftElementCount
-
             lowerRightElementCount = lowerLeftElementCount
 
+            rightApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_lung_term("apex of right lung"))
             idx = leftLungElementCount + lowerRightElementCount + \
                   (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
+            markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
 
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'apex of right lung')
-            markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
-
+            rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_lung_term("ventral base of right lung"))
             idx = leftLungElementCount + lElementsCount1 * lElementsCount2
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'ventral base of right lung')
-            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 0.0])
+            markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [1.0, 1.0, 1.0]})
 
+            rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_lung_term("lateral side of right lung"))
             idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * (lElementsCount3 - 1)) + lElementsCount1
-            element1 = mesh.findElementByIdentifier(idx)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, 'lateral side of right lung')
-            markerLocation.assignMeshLocation(cache, element1, [1.0, 1.0, 1.0])
+            markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 1.0, 1.0]})
+
+            for marker in markerList:
+                annotationGroup = marker["group"]
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                cache.setNode(markerPoint)
+                markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]),
+                                                  marker["xi"])
+                markerName.assignString(cache, annotationGroup.getName())
+                annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
+                lungNodesetGroup.addNode(markerPoint)
+                nodeIdentifier += 1
 
         elif isMouse:
             # valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3 ]
