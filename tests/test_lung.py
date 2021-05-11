@@ -41,7 +41,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
-        # check coordinates range, epicardium surface area and volume
+        # check coordinates range, outside surface area and volume
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
@@ -122,6 +122,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         refineFieldmodule = refineRegion.getFieldmodule()
         options['Refine'] = True
         options['Refine number of elements'] = 4
+        refineNumberOfElements = options['Refine number of elements']
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
         annotationGroups = meshrefinement.getAnnotationGroups()
@@ -151,11 +152,11 @@ class LungScaffoldTestCase(unittest.TestCase):
         for name in expectedSizes3d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
             size = group.getMeshGroup(mesh3d).getSize()
-            self.assertEqual(expectedSizes3d[name]*4**3, size, name)
+            self.assertEqual(expectedSizes3d[name]*(refineNumberOfElements**3), size, name)
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
             size = group.getMeshGroup(mesh2d).getSize()
-            self.assertEqual(expectedSizes2d[name]*16, size, name)
+            self.assertEqual(expectedSizes2d[name]*(refineNumberOfElements**2), size, name)
 
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()

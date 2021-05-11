@@ -70,9 +70,9 @@ class MeshType_3d_lung1(Scaffold_base):
         :return: annotationGroups
         '''
         parameterSetName = options['Base parameter set']
-        isMouse = 'Mouse' in parameterSetName
-        isHuman = 'Human' in parameterSetName
-
+        isMouse = 'Mouse 1' in parameterSetName
+        isHuman = 'Human 1' in parameterSetName
+        print(parameterSetName)
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
@@ -695,9 +695,14 @@ class MeshType_3d_lung1(Scaffold_base):
         :param annotationGroups: List of annotation groups for top-level elements.
         New face annotation groups are appended to this list.
         """
-        try:
-            # create fissure groups
-            fm = region.getFieldmodule()
+        parameterSetName = options['Base parameter set']
+        isMouse = 'Mouse 1' in parameterSetName
+        isHuman = 'Human 1' in parameterSetName
+
+        # create fissure groups
+        fm = region.getFieldmodule()
+
+        if isHuman:
             upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
             lowerLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of left lung"))
 
@@ -715,8 +720,8 @@ class MeshType_3d_lung1(Scaffold_base):
             is_lowerRightGroup = lowerRightGroup.getFieldElementGroup(mesh2d)
 
             is_obliqueLeftGroup = fm.createFieldAnd(is_upperLeftGroup, is_lowerLeftGroup)
-            is_obliqueRightGroup = fm.createFieldOr(fm.createFieldAnd(is_lowerRightGroup, is_upperRightGroup),
-                                                    fm.createFieldAnd(is_lowerRightGroup, is_middleRightGroup))
+            is_obliqueRightGroup = fm.createFieldAnd(fm.createFieldOr(is_middleRightGroup, is_upperRightGroup),
+                                                     is_lowerRightGroup)
             is_horizontalRightGroup = fm.createFieldAnd(is_upperRightGroup, is_middleRightGroup)
 
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
@@ -725,8 +730,7 @@ class MeshType_3d_lung1(Scaffold_base):
             obliqueRightGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueRightGroup)
             horizontalRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("horizontal fissure of right lung"))
             horizontalRightGroup.getMeshGroup(mesh2d).addElementsConditional(is_horizontalRightGroup)
-        except:
-            pass
+
 
 def getLungNodes(lungSide, cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
                  lElementsCount1, lElementsCount2, lElementsCount3,
