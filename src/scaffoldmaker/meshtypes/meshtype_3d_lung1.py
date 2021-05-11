@@ -72,7 +72,7 @@ class MeshType_3d_lung1(Scaffold_base):
         parameterSetName = options['Base parameter set']
         isMouse = 'Mouse 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
-        print(parameterSetName)
+
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
@@ -706,26 +706,27 @@ class MeshType_3d_lung1(Scaffold_base):
             upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
             lowerLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of left lung"))
 
+            mesh2d = fm.findMeshByDimension(2)
+            is_upperLeftGroup = upperLeftGroup.getFieldElementGroup(mesh2d)
+            is_lowerLeftGroup = lowerLeftGroup.getFieldElementGroup(mesh2d)
+
+            is_obliqueLeftGroup = fm.createFieldAnd(is_upperLeftGroup, is_lowerLeftGroup)
+            obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
+            obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
+
+        if isHuman or isMouse:
             upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
             middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
             lowerRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of right lung"))
-
-            mesh2d = fm.findMeshByDimension(2)
-            is_exterior = fm.createFieldIsExterior()
-            is_upperLeftGroup = upperLeftGroup.getFieldElementGroup(mesh2d)
-            is_lowerLeftGroup = lowerLeftGroup.getFieldElementGroup(mesh2d)
 
             is_upperRightGroup = upperRightGroup.getFieldElementGroup(mesh2d)
             is_middleRightGroup = middleRightGroup.getFieldElementGroup(mesh2d)
             is_lowerRightGroup = lowerRightGroup.getFieldElementGroup(mesh2d)
 
-            is_obliqueLeftGroup = fm.createFieldAnd(is_upperLeftGroup, is_lowerLeftGroup)
             is_obliqueRightGroup = fm.createFieldAnd(fm.createFieldOr(is_middleRightGroup, is_upperRightGroup),
                                                      is_lowerRightGroup)
             is_horizontalRightGroup = fm.createFieldAnd(is_upperRightGroup, is_middleRightGroup)
 
-            obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
-            obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
             obliqueRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of right lung"))
             obliqueRightGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueRightGroup)
             horizontalRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("horizontal fissure of right lung"))
