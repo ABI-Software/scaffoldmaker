@@ -701,12 +701,12 @@ class MeshType_3d_lung1(Scaffold_base):
 
         # create fissure groups
         fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
 
         if isHuman:
             upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
             lowerLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of left lung"))
 
-            mesh2d = fm.findMeshByDimension(2)
             is_upperLeftGroup = upperLeftGroup.getFieldElementGroup(mesh2d)
             is_lowerLeftGroup = lowerLeftGroup.getFieldElementGroup(mesh2d)
 
