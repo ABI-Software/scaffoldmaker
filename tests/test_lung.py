@@ -20,7 +20,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         scaffold = MeshType_3d_lung1
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1" ])
-        options = scaffold.getDefaultOptions(["Human"])
+        options = scaffold.getDefaultOptions(["Human 1"])
         self.assertEqual(3, len(options))
         self.assertFalse(scaffold.checkOptions(options))
 
@@ -28,7 +28,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)
-        self.assertEqual(11, len(annotationGroups))
+        self.assertEqual(17, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(88, mesh3d.getSize())
@@ -116,7 +116,7 @@ class LungScaffoldTestCase(unittest.TestCase):
                 removeAnnotationGroups.append(annotationGroup)
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(8, len(annotationGroups))
+        self.assertEqual(14, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -135,7 +135,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(11, len(annotationGroups))
+        self.assertEqual(17, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(5632, mesh3d.getSize())
