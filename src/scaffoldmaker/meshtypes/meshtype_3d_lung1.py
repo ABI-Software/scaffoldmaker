@@ -377,7 +377,7 @@ class MeshType_3d_lung1(Scaffold_base):
             rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                    get_lung_term("ventral base of right lung"))
             idx = leftLungElementCount + lElementsCount1 * lElementsCount2
-            markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [1.0, 1.0, 1.0]})
+            markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
 
             rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                    get_lung_term("lateral side of right lung"))
