@@ -814,35 +814,47 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                             ureterMeshGroup, bladderMeshGroup)
 
         # Define markers for apex, ureter and urethra junctions with bladder
+        apexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("apex of urinary bladder"))
+        leftUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("left ureter junction with bladder"))
+        rightUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("right ureter junction with bladder"))
+        dorsalUrethraGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("urethra junction with bladder dorsal"))
+        ventralUrethraGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("urethra junction with bladder ventral"))
+
         idx1 = 1
         xi1 = [0.0, 0.0, 0.0]
+        markerList = []
+        markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
         if includeUreter:
             idx2 = elementsCountAlong * elementsCountAround + elementsCountAroundUreter
-            idx3 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
             xi2 = [0.0, 1.0, 0.0]
+            markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
+            idx3 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
             xi3 = [0.0, 1.0, 0.0]
+            markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
         else:
             idx2 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
-            idx3 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + elementsCountAround - ureterElementPositionAround
             xi2 = [ureter1Position.xi1, ureter1Position.xi2, 0.0]
+            markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
+            idx3 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + elementsCountAround - ureterElementPositionAround
             xi3 = [1 - ureter1Position.xi1, ureter1Position.xi2, 0.0]
+            markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
         idx4 = (elementsCountAlongBladder - 1) * elementsCountAround * elementsCountThroughWall + elementsCountAround // 2
         xi4 = [1.0, 1.0, 0.0]
+        markerList.append({"group": dorsalUrethraGroup, "elementId": idx4, "xi": xi4})
         idx5 = (elementsCountAlongBladder - 1) * elementsCountAround * elementsCountThroughWall + 1
         xi5 = [0.0, 1.0, 0.0]
-
-        element_id = [idx1, idx2, idx3, idx4, idx5]
-        xi = [xi1, xi2, xi3, xi4, xi5]
-        marker_dic = {"name": ["Apex of urinary bladder", " left ureter junction with bladder", "right ureter junction with bladder",
-                      "urethra junction with bladder dorsal", "urethra junction with bladder ventral"], "element_id": element_id, "xi": xi}
+        markerList.append({"group": ventralUrethraGroup, "elementId": idx5, "xi": xi5})
 
         nodeIdentifier = nextNodeIdentifier + elementsCountAroundUreter * 4 * 2 + elementsCountAroundUreter * 2 * 2 * elementsCountUreterRadial
-        for n in range(len(marker_dic["name"])):
-            element1 = mesh.findElementByIdentifier(marker_dic["element_id"][n])
+        bladderNodesetGroup = bladderGroup.getNodesetGroup(nodes)
+        for marker in markerList:
+            annotationGroup = marker["group"]
             markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
             cache.setNode(markerPoint)
-            markerName.assignString(cache, (marker_dic["name"][n]))
-            markerLocation.assignMeshLocation(cache, element1, marker_dic["xi"][n])
+            markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]), marker["xi"])
+            markerName.assignString(cache, annotationGroup.getName())
+            annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
+            bladderNodesetGroup.addNode(markerPoint)
             nodeIdentifier += 1
 
         fm.endChange()
