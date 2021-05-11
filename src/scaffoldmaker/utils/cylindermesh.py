@@ -392,6 +392,12 @@ class CylinderMesh:
         elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
         self._endElementIdentifier = elementIdentifier
 
+    def getElementsCountAround(self):
+        return self._elementsCountAround
+
+    def getElementIdentifiers(self):
+        return self._shield.elementId
+
 
 class Ellipse2D:
     """

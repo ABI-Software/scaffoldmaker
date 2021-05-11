@@ -337,10 +337,12 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldmodule.findMeshByDimension(3)
 
+        heartGroup = AnnotationGroup(region, get_heart_term("heart"))
+        apexGroup = AnnotationGroup(region, get_heart_term("apex of heart"))
         lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
         rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
-        annotationGroups = [ lvGroup, rvGroup, vSeptumGroup ]
+        annotationGroups = [ heartGroup, apexGroup, lvGroup, rvGroup, vSeptumGroup ]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
@@ -924,27 +926,27 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         # Create elements
         #################
 
+        heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lvMeshGroup = lvGroup.getMeshGroup(mesh)
         rvMeshGroup = rvGroup.getMeshGroup(mesh)
         vSeptumMeshGroup = vSeptumGroup.getMeshGroup(mesh)
 
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         #print("LV elements")
-        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ lvMeshGroup ])
+        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, lvMeshGroup ])
         #print("RV elements")
-        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ rvMeshGroup ])
+        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, rvMeshGroup ])
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         # interventricular sulcus elements
-        meshGroups = [ lvMeshGroup, rvMeshGroup ]
+        meshGroups = [ heartMeshGroup, lvMeshGroup, rvMeshGroup ]
         lvNodeId = lvShield.nodeId
         rvNodeId = rvShield.nodeId
         n1ln, n2ln = lvShield.convertRimIndex(0)
         n1rn, n2rn = rvShield.convertRimIndex(elementsCountAroundFull)
-        scalefactors = [ -1.0 ]
         for ix in range(elementsCountAroundFull):
             n1lp, n2lp = n1ln, n2ln
             n1ln, n2ln = lvShield.convertRimIndex(ix + 1)
@@ -954,10 +956,12 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             nids = [ rvNodeId[0][n2rp][n1rp], rvNodeId[0][n2rn][n1rn], lvNodeId[0][n2lp][n1lp], lvNodeId[0][n2ln][n1ln],
                      rvNodeId[1][n2rp][n1rp], rvNodeId[1][n2rn][n1rn], lvNodeId[1][n2lp][n1lp], lvNodeId[1][n2ln][n1ln] ]
             eft1 = tricubichermite.createEftNoCrossDerivatives()
-            setEftScaleFactorIds(eft1, [1], [])
+            scalefactors = None
 
             if ix <= lvShield.elementsCountUpRegular:
                 nids = [ nids[1], nids[3], nids[0], nids[2], nids[5], nids[7], nids[4], nids[6] ]
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
                 if ix == lvShield.elementsCountUpRegular:
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
@@ -974,6 +978,8 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             elif ix >= (elementsCountAroundFull - 1 - lvShield.elementsCountUpRegular):
                 nids = [ nids[2], nids[0], nids[3], nids[1], nids[6], nids[4], nids[7], nids[5] ]
                 if ix == (elementsCountAroundFull - 1 - lvShield.elementsCountUpRegular):
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
                     remapEftNodeValueLabel(eft1, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                     remapEftNodeValueLabel(eft1, [ 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
@@ -981,12 +987,18 @@ class MeshType_3d_heartventricles3(Scaffold_base):
                 else:
                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                 if ix == (elementsCountAroundFull - 1 - rvShield.elementsCountUpRegular):
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
                 elif ix < (elementsCountAroundFull - 1 - rvShield.elementsCountUpRegular):
+                    setEftScaleFactorIds(eft1, [1], [])
+                    scalefactors = [ -1.0 ]
                     remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
                     remapEftNodeValueLabel(eft1, [ 2, 4, 6, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
             else:
+                setEftScaleFactorIds(eft1, [1], [])
+                scalefactors = [ -1.0 ]
                 if ix == rvShield.elementsCountUpRegular:
                     scaleEftNodeValueLabels(eft1, [ 2, 6 ], [ Node.VALUE_LABEL_D_DS1 , Node.VALUE_LABEL_D_DS2 ], [ 1 ])
                     remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [1] ) ])
@@ -1008,7 +1020,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
             elementtemplate1.defineField(coordinates, -1, eft1)
             element = mesh.createElement(elementIdentifier, elementtemplate1)
             result2 = element.setNodesByIdentifier(eft1, nids)
-            result3 = element.setScaleFactors(eft1, scalefactors)
+            result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
             #print('create element sulcus', elementIdentifier, result2, result3, nids)
             #self.elementId[e2][e1] = elementIdentifier
             elementIdentifier += 1
@@ -1022,8 +1034,10 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
         cache.setNode(markerPoint)
-        markerName.assignString(cache, 'APEX')  # interlex.org has 'apex of heart'
+        markerName.assignString(cache, apexGroup.getName())
         markerLocation.assignMeshLocation(cache, apexElement, [ 0.0, 0.0, 1.0 ])
+        for group in [ heartGroup, lvGroup, apexGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
 
         return annotationGroups
 
