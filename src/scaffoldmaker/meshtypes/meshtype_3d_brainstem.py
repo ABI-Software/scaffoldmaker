@@ -228,9 +228,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
         xiPM['rostral-dorsal'] = [1.0, 1.0, 1.0]
         for key in eIndexPM.keys():
             pointMarkers[key] = {"elementID": eIndexPM[key], "xi": xiPM[key]}
+        # the following emergent markers are in bodyCoordinates. Will not work in normal coordinates system.
         emergentMarkers = createCranialNerveEmergentMarkers(region, mesh, "coordinates")
         pointMarkers.update(emergentMarkers)
-
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         cache = fm.createFieldcache()
@@ -307,66 +307,70 @@ def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
     # return element xi
     # use findMeshLocation to find the elementxi in an arbitrary mesh of given number of elements.
 
-    # brainstem_coordinates: the left-side nerves
-    nerveDict = {'OCULOMOTOR_left':[-0.13912257342955267, -0.5345161733750351, -0.7374762051676923],
-                 'TROCHLEAR_left':[-0.13148279719950992, 0.4218745504359067, -0.7375838988856348],
-                 'TRIGEMINAL_left': [-0.7605971693047597, -0.4025791045292648, -0.6862730212268676],
-                 'ABDUCENS_left': [-0.19517975766630574, -0.6252563181242173, -0.8205128205130072],
-                 'FACIAL_left': [-0.5824675040481234, -0.3554448371502354, -0.24509655553058302],
-                 'VESTIBULOCOCHLEAR_left': [-0.6147505791411602, -0.32790803815838, -0.24509655403515848],
-                 'GLOSSOPHARYNGEAL_left': [-0.7307312460087607, -0.2576952819028721, -0.39215539053073717],
-                 'VAGUS_left': [-0.6741855912315219, -0.25981298010131126, -0.24509655277992023],
-                 'ACCESSORY_cranialRoot_left':[-0.6741855912315219, -0.25981298010131126, -0.24509655277992023],
-                 'HYPOGLOSSAL_left': [-0.044776303107883636, -0.5027870527016534, -0.10510117079651562]
-                 }
+    if coordinatesName == "bodyCoordinates":
+        # brainstem_coordinates: the left-side nerves
+        nerveDict = {'OCULOMOTOR_left':[-0.13912257342955267, -0.5345161733750351, -0.7374762051676923],
+                     'TROCHLEAR_left':[-0.13148279719950992, 0.4218745504359067, -0.7375838988856348],
+                     'TRIGEMINAL_left': [-0.7605971693047597, -0.4025791045292648, -0.6862730212268676],
+                     'ABDUCENS_left': [-0.19517975766630574, -0.6252563181242173, -0.8205128205130072],
+                     'FACIAL_left': [-0.5824675040481234, -0.3554448371502354, -0.24509655553058302],
+                     'VESTIBULOCOCHLEAR_left': [-0.6147505791411602, -0.32790803815838, -0.24509655403515848],
+                     'GLOSSOPHARYNGEAL_left': [-0.7307312460087607, -0.2576952819028721, -0.39215539053073717],
+                     'VAGUS_left': [-0.6741855912315219, -0.25981298010131126, -0.24509655277992023],
+                     'ACCESSORY_cranialRoot_left':[-0.6741855912315219, -0.25981298010131126, -0.24509655277992023],
+                     'HYPOGLOSSAL_left': [-0.044776303107883636, -0.5027870527016534, -0.10510117079651562]
+                     }
 
-    rightDict = {}
-    for key in nerveDict.keys():
-        nerveName = key.split('_')[0]+'_right'
-        xyz = [-1*nerveDict[key][0], nerveDict[key][1], nerveDict[key][2]]
-        rightDict.update({nerveName:xyz})
-    nerveDict.update(rightDict)
+        rightDict = {}
+        for key in nerveDict.keys():
+            nerveName = key.split('_')[0]+'_right'
+            xyz = [-1*nerveDict[key][0], nerveDict[key][1], nerveDict[key][2]]
+            rightDict.update({nerveName:xyz})
+        nerveDict.update(rightDict)
 
-    nerveNames = list(nerveDict.keys())
+        nerveNames = list(nerveDict.keys())
 
-    # add to data coordinates
-    markerNameField = 'marker_name'
-    fm = region.getFieldmodule()
-    cache = fm.createFieldcache()
-    datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-    data_coordinates = findOrCreateFieldCoordinates(fm, "data_coordinates")
-    markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-    dnodetemplate = datapoints.createNodetemplate()
-    dnodetemplate.defineField(data_coordinates)
-    dnodetemplate.setValueNumberOfVersions(data_coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    dnodetemplate.defineField(markerName)
-    dnodeIdentifier = 1
-    for nerveName in nerveNames:
-        node = datapoints.createNode(dnodeIdentifier, dnodetemplate)
-        cache.setNode(node)
-        addEnd = nerveDict[nerveName].copy()
-        data_coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, addEnd)
-        markerName.assignString(cache, nerveName)
-        dnodeIdentifier += 1
+        # add to data coordinates
+        markerNameField = 'marker_name'
+        fm = region.getFieldmodule()
+        cache = fm.createFieldcache()
+        datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        data_coordinates = findOrCreateFieldCoordinates(fm, "data_coordinates")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        dnodetemplate = datapoints.createNodetemplate()
+        dnodetemplate.defineField(data_coordinates)
+        dnodetemplate.setValueNumberOfVersions(data_coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        dnodetemplate.defineField(markerName)
+        dnodeIdentifier = 1
+        for nerveName in nerveNames:
+            node = datapoints.createNode(dnodeIdentifier, dnodetemplate)
+            cache.setNode(node)
+            addEnd = nerveDict[nerveName].copy()
+            data_coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, addEnd)
+            markerName.assignString(cache, nerveName)
+            dnodeIdentifier += 1
 
-    # find element-xi for these data_coordinates
-    dataNamesField = fm.findFieldByName(markerNameField)
-    coordinates = findOrCreateFieldCoordinates(fm, coordinatesName)
-    found_mesh_location = fm.createFieldFindMeshLocation(data_coordinates, coordinates, mesh)
-    found_mesh_location.setSearchMode(found_mesh_location.SEARCH_MODE_NEAREST)
-    xi_projected_data = {}
-    nodeIter = datapoints.createNodeiterator()
-    node = nodeIter.next()
-    while node.isValid():
-        cache.setNode(node)
-        element, xi = found_mesh_location.evaluateMeshLocation(cache, 3)
-        marker_name = dataNamesField.evaluateString(cache)
-        if element.isValid():
-            addProjection = {marker_name:{"elementID": element.getIdentifier(), "xi": xi,"nodeID": node.getIdentifier()}}
-            xi_projected_data.update(addProjection)
+        # find element-xi for these data_coordinates
+        dataNamesField = fm.findFieldByName(markerNameField)
+        coordinates = findOrCreateFieldCoordinates(fm, coordinatesName)
+        found_mesh_location = fm.createFieldFindMeshLocation(data_coordinates, coordinates, mesh)
+        found_mesh_location.setSearchMode(found_mesh_location.SEARCH_MODE_NEAREST)
+        xi_projected_data = {}
+        nodeIter = datapoints.createNodeiterator()
         node = nodeIter.next()
+        while node.isValid():
+            cache.setNode(node)
+            element, xi = found_mesh_location.evaluateMeshLocation(cache, 3)
+            marker_name = dataNamesField.evaluateString(cache)
+            if element.isValid():
+                addProjection = {marker_name:{"elementID": element.getIdentifier(), "xi": xi,"nodeID": node.getIdentifier()}}
+                xi_projected_data.update(addProjection)
+            node = nodeIter.next()
 
-    result = datapoints.destroyAllNodes()
+        result = datapoints.destroyAllNodes()
+
+    else:
+        xi_projected_data = {}
 
     return xi_projected_data
 
