@@ -162,61 +162,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
 
-        addNuclearGroupAnnotation = False
 
         elemPerLayer = ((elementsCountAcrossMajor - 2) * elementsCountAcrossMinor) + (
                     2 * (elementsCountAcrossMinor - 2))
-        if addNuclearGroupAnnotation:
-            NAGroup = AnnotationGroup(region, get_brainstem_annotation_term('nucleus ambiguus'))
-            NTSGroup = AnnotationGroup(region, get_brainstem_annotation_term('nucleus tractus solitarius'))
-            rapheGroup = AnnotationGroup(region, get_brainstem_annotation_term('raphe complex'))
-            mPBGroup = AnnotationGroup(region, get_brainstem_annotation_term('medial parabrachial nucleus'))
-            lPBGroup = AnnotationGroup(region, get_brainstem_annotation_term('lateral parabrachial nucleus'))
-            KFNGroup = AnnotationGroup(region, get_brainstem_annotation_term('Kölliker-Fuse nucleus'))
-            RTNGroup = AnnotationGroup(region, get_brainstem_annotation_term('retrotrapezoid nucleus'))
-            botzGroup = AnnotationGroup(region, get_brainstem_annotation_term('Bötzinger complex'))
-            prebotzGroup = AnnotationGroup(region, get_brainstem_annotation_term('pre-Bötzinger complex'))
-            rVRGGroup = AnnotationGroup(region, get_brainstem_annotation_term('rostral ventral respiratory group'))
-            cVRGGroup = AnnotationGroup(region, get_brainstem_annotation_term('caudal ventral respiratory group'))
-            DRGGroup = AnnotationGroup(region, get_brainstem_annotation_term('dorsal respiratory group'))
-            xyzProportion = {}
-            xyzProportion['NA'] = [[0.3,0.5,0.3], [0.7,0.5,0.3]]
-            xyzProportion['NTS'] = [[0.4,0.8,0.3], [0.6,0.8,0.3]]
-            xyzProportion['raphe'] = [[0.45,0.1,0.7], [0.55,0.1,0.7]]
-            xyzProportion['mPB'] = [[0.2,0.65,0.9], [0.8,0.65,0.9]]
-            xyzProportion['lPB'] = [[0.15,0.65,0.9], [0.85,0.65,0.9]]
-            xyzProportion['KFN'] = [[0.1,0.65,0.9], [0.9,0.65,0.9]]
-            xyzProportion['RTN'] = [[0.1,0.1,0.7], [0.9,0.1,0.7]]
-            xyzProportion['botz'] = [[0.1,0.5,0.6], [0.9,0.5,0.6]]
-            xyzProportion['prebotz'] = [[0.1,0.5,0.5], [0.9,0.5,0.5]]
-            xyzProportion['rVRG'] = [[0.1,0.5,0.4], [0.9,0.5,0.4]]
-            xyzProportion['cVRG'] = [[0.1,0.5,0.3], [0.9,0.5,0.3]]
-            xyzProportion['DRG'] = [[0.4,0.8,0.3], [0.6,0.8,0.3]] # inside NTS
-            nucAbbrev = [key for key in xyzProportion.keys() if isinstance(xyzProportion[key], list)]
-            elementIndex = {}
-            xi1 = {}
-            for nuc in nucAbbrev:
-                elementIndex[nuc] = []
-                for prow in xyzProportion[nuc]:
-                    # element numbering is along minor, descending x, and ends have 2 less elements
-                    elemsPerColumn = [elementsCountAcrossMinor-2]+ [elementsCountAcrossMinor]*(elementsCountAcrossMajor-2)+[elementsCountAcrossMinor-2]
-                    cumElemsPerColumn = [0] + [sum(elemsPerColumn[:i + 1]) for i in range(len(elemsPerColumn))]
-                    for i in range(3):
-                        prow[i] -= 0.1 if prow[i] == 1 else 0
-                    [nx, ny, nz] = [int(prow[0] * elementsCountAcrossMajor),
-                                    int(prow[1] * elementsCountAcrossMinor),
-                                    int(prow[2] * elementsCountAlong)]
-                    if (nx == 0 or nx >= elementsCountAcrossMajor-1):# and ny > (elementsCountAcrossMinor/2):
-                        ny = int(ny/2)
-                    nx -= 1 if nx == elementsCountAcrossMajor else 0
-                    nz -= 1 if nz == elementsCountAlong else 0
-                    elementIndex[nuc].append(ny + cumElemsPerColumn[nx] + (elemPerLayer*nz) + 1)
-                    xi1[nuc] = 1 if prow == 1 else prow
-
-            # order the same as nucAbbrev
-            annotationGroups = [ NAGroup, NTSGroup, rapheGroup, mPBGroup, lPBGroup, KFNGroup, RTNGroup, botzGroup, prebotzGroup, rVRGGroup, cVRGGroup, DRGGroup ]
-        else:
-            annotationGroups = []
         brainstemGroup = AnnotationGroup(region, get_brainstem_annotation_term('brainstem'))
         midbrainGroup = AnnotationGroup(region, get_brainstem_annotation_term('midbrain'))
         ponsGroup = AnnotationGroup(region, get_brainstem_annotation_term('pons'))
@@ -225,8 +173,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         midbrainMeshGroup = midbrainGroup.getMeshGroup(mesh)
         ponsMeshGroup = ponsGroup.getMeshGroup(mesh)
         medullaMeshGroup = medullaGroup.getMeshGroup(mesh)
-        allMeshGroups = [igroup.getMeshGroup(mesh) for igroup in annotationGroups]
-        annotationGroups += [brainstemGroup, midbrainGroup, ponsGroup, medullaGroup]
+        annotationGroups = [brainstemGroup, midbrainGroup, ponsGroup, medullaGroup]
 
         #######################
         # CREATE MAIN BODY MESH
@@ -249,12 +196,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
                             cylinderShape=cylinderShape,
                                  tapered = taperedParams,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
-
-        if addNuclearGroupAnnotation:
-            for jn, nuc in enumerate(nucAbbrev):
-                for elementIdentifier in elementIndex[nuc]:
-                    element = mesh.findElementByIdentifier(elementIdentifier)
-                    allMeshGroups[jn].addElement(element)
 
         iRegionBoundaries = [int(7*elementsCountAlong/15),int(14*elementsCountAlong/15)]
         for elementIdentifier in range(1, mesh.getSize()+1):
