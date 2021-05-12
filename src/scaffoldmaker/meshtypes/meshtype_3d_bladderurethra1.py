@@ -287,13 +287,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Major diameter'] = 75.0
             options['Minor diameter'] = 35.0
             options['Wall thickness'] = 0.2
-            options['Neck diameter 1'] = 4.0
-            options['Neck diameter 2'] = 3.0
+            options['Neck diameter 1'] = 5.0
+            options['Neck diameter 2'] = 4.0
             options['Wall thickness'] = 0.5
             options['Neck angle degrees'] = 115
             options['Ureter position around'] = 0.82  # should be on the dorsal part (> 0.5)
             options['Ureter position down'] = 0.63
-            options['Include urethra'] = False
             options['Urethra diameter 1'] = 1.5
             options['Urethra diameter 2'] = 1.0
             options['Urethra wall thickness'] = 0.5
