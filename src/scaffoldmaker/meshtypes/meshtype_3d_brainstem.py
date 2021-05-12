@@ -9,18 +9,18 @@ from opencmiss.zinc.node import Node
 from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
-from scaffoldmaker.annotation.brainstem_annotation_terms import get_brainstem_annotation_term
+from scaffoldmaker.annotation.brainstem_terms import get_brainstem_annotation_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, Tapered, ConeBaseProgression, CylinderCentralPath
+from scaffoldmaker.utils.cylindermeshShelley import CylinderMesh, CylinderShape, CylinderEnds, Tapered, ConeBaseProgression, CylinderCentralPath
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
 class MeshType_3d_brainstem1(Scaffold_base):
     """
-Generates a tapered cylinder for the brainstem based on solid cylinder mesh, with variable numbers of elements in major, minor and length directions. Regions of the brainstem are annotated.
+    Generates a tapered cylinder for the brainstem based on solid cylinder mesh, with variable numbers of elements in major, minor and length directions. Regions of the brainstem are annotated.
     """
 
     centralPathDefaultScaffoldPackages = {
@@ -32,14 +32,22 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
                 'Length': 3.0,
                 'Number of elements': 3
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnodeStringFromNodeValues( # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                     [[0.0, -1.0, 5.0], [0.0, 0.0, -4.5], [5.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 2.4, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, 0.5], [0.0, 0.0, -4.5], [5.8, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, -4.0], [0.0, 0.0, -4.5], [8.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, -8.5], [0.0, 0.0, -4.5], [10.2, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 5.5, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, -1.0, 0.5], [0.0, 0.0, -4.5], [6.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, -1.0, -4.0], [0.0, 0.0, -4.5], [7.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4.5, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, -1.0, -8.5], [0.0, 0.0, -4.5], [8.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 5.5, 0.0], [0.0, 0.0, 0.0]],
                     [[0.0, -1.0, -13.0], [0.0, 0.0, -4.5], [9.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 6.0, 0.0], [0.0, 0.0, 0.0]]
+            # 'meshEdits': exnodeStringFromNodeValues( # dimensional.
+            #     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+            #      Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+            #         [[0.0, -1.0, 5.0], [0.0, 0.0, -4.5], [5.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 2.4, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, -1.0, 0.5], [0.0, 0.0, -4.5], [5.8, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, -1.0, -4.0], [0.0, 0.0, -4.5], [8.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4.5, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, -1.0, -8.5], [0.0, 0.0, -4.5], [10.2, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 5.5, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, -1.0, -13.0], [0.0, 0.0, -4.5], [9.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 6.0, 0.0], [0.0, 0.0, 0.0]]
                 ])
         })
     }
@@ -55,15 +63,14 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
-            'Number of elements along': 8,
+            'Number of elements along': 12,
             'Lower half': False,
+            'Taper major increment': 0.2,
+            'Taper minor increment': 0.1,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across major and minor': 1,
-            'Refine number of elements along': 1,
-            'Taper major increment': 0.2,
-            'Taper minor increment': 0.1,
-            'Along length': 3
+            'Refine number of elements along': 1
         }
         return options
 
@@ -106,7 +113,6 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
-            'Along length',
             'Lower half',
             'Refine',
             'Refine number of elements across major and minor',
@@ -144,9 +150,11 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
         :return: None
         """
 
+        bodyCoordinatesName = 'brainstem_coordinates'
         fm = region.getFieldmodule()
         mesh = fm.findMeshByDimension(3)
         coordinates = findOrCreateFieldCoordinates(fm)
+        bodyCoordinates = findOrCreateFieldCoordinates(fm,bodyCoordinatesName)
 
         centralPath = options['Central path']
         full = not options['Lower half']
@@ -222,31 +230,9 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
         allMeshGroups = [igroup.getMeshGroup(mesh) for igroup in annotationGroups]
         annotationGroups += [brainstemGroup, midbrainGroup, ponsGroup, medullaGroup]
 
-        ############################################################
-        # point markers for alignment during scaffoldfitter
-        ############################################################
-        eIndexPM = {}
-        xiPM = {}
-        pointMarkers = {}
-        eIndexPM['caudal-dorsal'] = int(elemPerLayer/2)
-        eIndexPM['midRostCaud-dorsal'] = int(elemPerLayer / 2) + (elemPerLayer * int((elementsCountAlong/2)-1))
-        eIndexPM['rostral-dorsal'] = (elemPerLayer*(elementsCountAlong-1)) + int(elemPerLayer/2)
-        eIndexPM['caudal-ventral'] = int(elemPerLayer/2) - (elementsCountAcrossMinor-1)
-        eIndexPM['midRostCaud-ventral'] = eIndexPM['midRostCaud-dorsal'] - (elementsCountAcrossMinor-1)
-        eIndexPM['rostral-ventral'] = int((elemPerLayer*(elementsCountAlong-1)) + (int(elemPerLayer/2) - elementsCountAcrossMinor + 1))
-        xiPM['caudal-ventral'] = [1.0, 0.0, 0.0]
-        xiPM['caudal-dorsal'] = [1.0, 0.0, 1.0]
-        xiPM['midRostCaud-ventral'] = [1.0, 1.0, 0.0]
-        xiPM['midRostCaud-dorsal'] = [1.0, 1.0, 1.0]
-        xiPM['rostral-ventral'] = [1.0, 1.0, 0.0]
-        xiPM['rostral-dorsal'] = [1.0, 1.0, 1.0]
-        for key in eIndexPM.keys():
-            pointMarkers[key] = {"elementID": eIndexPM[key], "xi": xiPM[key]}
-
         #######################
         # CREATE MAIN BODY MESH
         #######################
-        alongLength = options['Along length']
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
@@ -261,8 +247,8 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
                             alongAxis=cylinderCentralPath.alongAxis[0], majorAxis=cylinderCentralPath.majorAxis[0],
                             minorRadius=cylinderCentralPath.minorRadii[0])
 
-        cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
-                                 cylinderShape=cylinderShape,
+        cylinder1 = CylinderMesh(fm, coordinates, bodyCoordinates, elementsCountAlong, base,
+                            cylinderShape=cylinderShape,
                                  tapered = taperedParams,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
@@ -271,13 +257,14 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
                 for elementIdentifier in elementIndex[nuc]:
                     element = mesh.findElementByIdentifier(elementIdentifier)
                     allMeshGroups[jn].addElement(element)
-        i3groups = [2*int(elementsCountAlong/5),4*int(elementsCountAlong/5)]
+
+        iRegionBoundaries = [int(7*elementsCountAlong/15),int(14*elementsCountAlong/15)]
         for elementIdentifier in range(1, mesh.getSize()+1):
             element = mesh.findElementByIdentifier(elementIdentifier)
             brainstemMeshGroup.addElement(element)
-            if elementIdentifier > (i3groups[-1]*elemPerLayer):
+            if elementIdentifier > (iRegionBoundaries[-1]*elemPerLayer):
                 midbrainMeshGroup.addElement(element)
-            elif elementIdentifier > (i3groups[0]*elemPerLayer) and elementIdentifier <= (i3groups[-1]*elemPerLayer):
+            elif elementIdentifier > (iRegionBoundaries[0]*elemPerLayer) and elementIdentifier <= (iRegionBoundaries[-1]*elemPerLayer):
                 ponsMeshGroup.addElement(element)
             else:
                 medullaMeshGroup.addElement(element)
@@ -285,6 +272,27 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
         ##############################
         # point markers
         ##############################
+        eIndexPM = {}
+        xiPM = {}
+        pointMarkers = {}
+        eIndexPM['caudal-dorsal'] = int(elemPerLayer/2)
+        eIndexPM['midRostralCaudal-dorsal'] = int(elemPerLayer / 2) + (elemPerLayer * int((elementsCountAlong/2)-1))
+        eIndexPM['rostral-dorsal'] = (elemPerLayer*(elementsCountAlong-1)) + int(elemPerLayer/2)
+        eIndexPM['caudal-ventral'] = int(elemPerLayer/2) - (elementsCountAcrossMinor-1)
+        eIndexPM['midRostralCaudal-ventral'] = eIndexPM['midRostralCaudal-dorsal'] - (elementsCountAcrossMinor-1)
+        eIndexPM['rostral-ventral'] = int((elemPerLayer*(elementsCountAlong-1)) + (int(elemPerLayer/2) - elementsCountAcrossMinor + 1))
+        xiPM['caudal-ventral'] = [1.0, 0.0, 0.0]
+        xiPM['caudal-dorsal'] = [1.0, 0.0, 1.0]
+        xiPM['midRostralCaudal-ventral'] = [1.0, 1.0, 0.0]
+        xiPM['midRostralCaudal-dorsal'] = [1.0, 1.0, 1.0]
+        xiPM['rostral-ventral'] = [1.0, 1.0, 0.0]
+        xiPM['rostral-dorsal'] = [1.0, 1.0, 1.0]
+        for key in eIndexPM.keys():
+            pointMarkers[key] = {"elementID": eIndexPM[key], "xi": xiPM[key]}
+        emergentMarkers = createCranialNerveEmergentMarkers(region, mesh, bodyCoordinatesName)
+        pointMarkers.update(emergentMarkers)
+
+
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         cache = fm.createFieldcache()
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
@@ -295,15 +303,16 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
-        for key in pointMarkers:
-            addMarker = {"name": key, "xi": pointMarkers[key]["xi"]}
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, addMarker["name"])
-            elementID = pointMarkers[key]["elementID"]
-            element = mesh.findElementByIdentifier(elementID)
-            markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+        if pointMarkers:
+            for key in pointMarkers:
+                addMarker = {"name": key, "xi": pointMarkers[key]["xi"]}
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                elementID = pointMarkers[key]["elementID"]
+                element = mesh.findElementByIdentifier(elementID)
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
 
         return annotationGroups
 
@@ -353,3 +362,72 @@ Generates a tapered cylinder for the brainstem based on solid cylinder mesh, wit
             is_subface = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
             subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, (subregion+'_exterior', None))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface)
+
+def createCranialNerveEmergentMarkers(region, mesh, coordName):
+    # create marker points for locations the cranial nerves emerge from brainstem mesh, based on the USF cat brainstem data.
+    # return element xi
+    # use findMeshLocation to find the elementxi in an arbitrary mesh of given number of elements.
+
+    # brainstem_coordinates: the left-side nerves
+    nerveDict = {'OCULOMOTOR_left':[-0.13912257342955267, -0.5345161733750351, -0.7374762051676923],
+                 'TROCHLEAR_left':[-0.13148279719950992, 0.4218745504359067, -0.7375838988856348],
+                 'TRIGEMINAL_left': [-0.7605971693047597, -0.4025791045292648, -0.6862730212268676],
+                 'ABDUCENS_left': [-0.19517975766630574, -0.6252563181242173, -0.8205128205130072],
+                 'FACIAL_left': [-0.5824675040481234, -0.3554448371502354, -0.24509655553058302],
+                 'VESTIBULOCOCHLEAR_left': [-0.6147505791411602, -0.32790803815838, -0.24509655403515848],
+                 'GLOSSOPHARYNGEAL_left': [-0.7307312460087607, -0.2576952819028721, -0.39215539053073717],
+                 'VAGUS_left': [-0.6741855912315219, -0.25981298010131126, -0.24509655277992023],
+                 'ACCESSORY_cranialRoot_left':[-0.6741855912315219, -0.25981298010131126, -0.24509655277992023],
+                 'HYPOGLOSSAL_left': [-0.044776303107883636, -0.5027870527016534, -0.10510117079651562]
+                 }
+
+    rightDict = {}
+    for key in nerveDict.keys():
+        nerveName = key.split('_')[0]+'_right'
+        xyz = [-1*nerveDict[key][0], nerveDict[key][1], nerveDict[key][2]]
+        rightDict.update({nerveName:xyz})
+    nerveDict.update(rightDict)
+
+    nerveNames = list(nerveDict.keys())
+
+    # add to data coordinates
+    markerNameField = 'marker_name'
+    fm = region.getFieldmodule()
+    cache = fm.createFieldcache()
+    datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+    data_coordinates = findOrCreateFieldCoordinates(fm, "data_coordinates")
+    markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+    dnodetemplate = datapoints.createNodetemplate()
+    dnodetemplate.defineField(data_coordinates)
+    dnodetemplate.setValueNumberOfVersions(data_coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    dnodetemplate.defineField(markerName)
+    dnodeIdentifier = 1
+    for nerveName in nerveNames:
+        node = datapoints.createNode(dnodeIdentifier, dnodetemplate)
+        cache.setNode(node)
+        addEnd = nerveDict[nerveName].copy()
+        data_coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, addEnd)
+        markerName.assignString(cache, nerveName)
+        dnodeIdentifier += 1
+
+    # find element-xi for these data_coordinates
+    dataNamesField = fm.findFieldByName(markerNameField)
+    coordinates = findOrCreateFieldCoordinates(fm, coordName)
+    found_mesh_location = fm.createFieldFindMeshLocation(data_coordinates, coordinates, mesh)
+    found_mesh_location.setSearchMode(found_mesh_location.SEARCH_MODE_NEAREST)
+    xi_projected_data = {}
+    nodeIter = datapoints.createNodeiterator()
+    node = nodeIter.next()
+    while node.isValid():
+        cache.setNode(node)
+        element, xi = found_mesh_location.evaluateMeshLocation(cache, 3)
+        marker_name = dataNamesField.evaluateString(cache)
+        if element.isValid():
+            addProjection = {marker_name:{"elementID": element.getIdentifier(), "xi": xi,"nodeID": node.getIdentifier()}}
+            xi_projected_data.update(addProjection)
+        node = nodeIter.next()
+
+    result = datapoints.destroyAllNodes()
+
+    return xi_projected_data
+

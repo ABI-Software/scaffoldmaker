@@ -90,7 +90,6 @@ class Scaffolds(object):
             MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
             MeshType_3d_tube1,
-            MeshType_3d_tubeseptum1
             MeshType_3d_tubeseptum1,
             MeshType_3d_wholebody1
             ]
