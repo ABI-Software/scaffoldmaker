@@ -13,7 +13,7 @@ from scaffoldmaker.annotation.brainstem_terms import get_brainstem_annotation_te
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.cylindermeshShelley import CylinderMesh, CylinderShape, CylinderEnds, Tapered, ConeBaseProgression, CylinderCentralPath
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, Tapered, ConeBaseProgression, CylinderCentralPath
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
@@ -150,11 +150,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
         :return: None
         """
 
-        bodyCoordinatesName = 'brainstem_coordinates'
         fm = region.getFieldmodule()
         mesh = fm.findMeshByDimension(3)
         coordinates = findOrCreateFieldCoordinates(fm)
-        bodyCoordinates = findOrCreateFieldCoordinates(fm,bodyCoordinatesName)
 
         centralPath = options['Central path']
         full = not options['Lower half']
@@ -247,7 +245,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                             alongAxis=cylinderCentralPath.alongAxis[0], majorAxis=cylinderCentralPath.majorAxis[0],
                             minorRadius=cylinderCentralPath.minorRadii[0])
 
-        cylinder1 = CylinderMesh(fm, coordinates, bodyCoordinates, elementsCountAlong, base,
+        cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                             cylinderShape=cylinderShape,
                                  tapered = taperedParams,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
@@ -289,7 +287,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         xiPM['rostral-dorsal'] = [1.0, 1.0, 1.0]
         for key in eIndexPM.keys():
             pointMarkers[key] = {"elementID": eIndexPM[key], "xi": xiPM[key]}
-        emergentMarkers = createCranialNerveEmergentMarkers(region, mesh, bodyCoordinatesName)
+        emergentMarkers = createCranialNerveEmergentMarkers(region, mesh, "coordinates")
         pointMarkers.update(emergentMarkers)
 
 
@@ -363,7 +361,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
             subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, (subregion+'_exterior', None))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface)
 
-def createCranialNerveEmergentMarkers(region, mesh, coordName):
+def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
     # create marker points for locations the cranial nerves emerge from brainstem mesh, based on the USF cat brainstem data.
     # return element xi
     # use findMeshLocation to find the elementxi in an arbitrary mesh of given number of elements.
@@ -412,7 +410,7 @@ def createCranialNerveEmergentMarkers(region, mesh, coordName):
 
     # find element-xi for these data_coordinates
     dataNamesField = fm.findFieldByName(markerNameField)
-    coordinates = findOrCreateFieldCoordinates(fm, coordName)
+    coordinates = findOrCreateFieldCoordinates(fm, coordinatesName)
     found_mesh_location = fm.createFieldFindMeshLocation(data_coordinates, coordinates, mesh)
     found_mesh_location.setSearchMode(found_mesh_location.SEARCH_MODE_NEAREST)
     xi_projected_data = {}
