@@ -739,7 +739,6 @@ class MeshType_3d_lung1(Scaffold_base):
             markerList = []
 
             idx = elementsCount1 * elementsCount2 * (elementsCount3 - 1) + elementsCount1 * (elementsCount2 // 2)
-            print(idx)
             markerList.append({"group": leftApexGroup, "elementId": idx, "xi": [1.0, 1.0, 1.0]})
 
             idx = elementsCount1 * elementsCount2
