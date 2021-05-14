@@ -3,7 +3,7 @@ Interpolation functions shared by mesh generators.
 '''
 
 from __future__ import division
-import collections
+from collections.abc import Sequence
 import copy
 from enum import Enum
 import math
@@ -505,7 +505,7 @@ def interpolateSampleCubicHermite(v, d, pe, pxi, psf):
     assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleCubicHermite. Invalid element, xi'
     vOut = []
     dOut = []
-    if isinstance(v[0], collections.Sequence):
+    if isinstance(v[0], Sequence):
         for n in range(valuesCountOut):
             e = pe[n]
             v1 = v[e]
@@ -540,7 +540,7 @@ def interpolateSampleLinear(v, pe, pxi):
     valuesCountOut = len(pe)
     assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleLinear. Invalid element, xi'
     vOut = []
-    if isinstance(v[0], collections.Sequence):
+    if isinstance(v[0], Sequence):
         vLen = len(v[0])
         for n in range(valuesCountOut):
             wp = pxi[n]

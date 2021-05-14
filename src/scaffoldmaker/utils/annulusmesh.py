@@ -2,7 +2,7 @@
 Utility functions for generating annulus mesh between start and end loops of points.
 '''
 from __future__ import division
-import collections
+from collections.abc import Sequence
 import copy
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
@@ -161,8 +161,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             'createAnnulusMesh3d:  Mismatch in number of points/nodes in layers through wall'
     rowMeshGroups = meshGroups
     if meshGroups:
-        assert isinstance(meshGroups, collections.Sequence), 'createAnnulusMesh3d:  Mesh groups is not a sequence'
-        if (len(meshGroups) == 0) or (not isinstance(meshGroups[0], collections.Sequence)):
+        assert isinstance(meshGroups, Sequence), 'createAnnulusMesh3d:  Mesh groups is not a sequence'
+        if (len(meshGroups) == 0) or (not isinstance(meshGroups[0], Sequence)):
             rowMeshGroups = [ meshGroups ]*elementsCountRadial
         else:
             assert len(meshGroups) == elementsCountRadial, 'createAnnulusMesh3d:  Length of meshGroups sequence does not equal elementsCountRadial'
