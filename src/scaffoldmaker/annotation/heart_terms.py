@@ -51,11 +51,11 @@ heart_terms = [
     ( "right cusp of pulmonary valve", "FMA:7250" ),
     ( "anterior cusp of pulmonary valve", "FMA:7249" ),
     ( "left cusp of pulmonary valve", "FMA:7247" ),
-    # future: fiducial markers
+    # fiducial markers
     ( "apex of heart", "UBERON:0002098", "FMA:7164"),
-    ( "crux of heart", "ILX:0777104", "FMA:7220" ),
-    ( "left atrium epicardium venous midpoint", "None"),  # point at centre of pulmonary vein ostia on left atrium epicardium, on anterior/ventral side for rodents
-    ( "right atrium epicardium venous midpoint", "None")  # point at centre of inferior & superior vena cavae on right atrium epicardium
+    ( "crux of heart", "ILX:0777104", "FMA:7220" ),  # point on posterior surface where the four chambers meet on interventricular, atrio-ventricular and interatrial sulci
+    ( "left atrium epicardium venous midpoint", "ILX:0778116"),  # point at centre of pulmonary vein ostia on left atrium epicardium, on anterior/ventral side for rodents
+    ( "right atrium epicardium venous midpoint", "ILX:0778117")  # point at centre of inferior & superior vena cavae on right atrium epicardium
     ]
 
 def get_heart_term(name : str):
