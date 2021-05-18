@@ -131,6 +131,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
         annotationGroups = meshrefinement.getAnnotationGroups()
+        del meshrefinement
 
         refineFieldmodule.defineAllFaces()
         oldAnnotationGroups = copy.copy(annotationGroups)
