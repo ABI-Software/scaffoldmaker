@@ -23,9 +23,9 @@ def derivativeSignsToExpressionTerms(valueLabels, signs, scaleFactorIdx = None):
     '''
     expressionTerms = []
     for i in range(len(valueLabels)):
-        if signs[i] is 1:
+        if signs[i] == 1:
             expressionTerms.append((valueLabels[i], ([ scaleFactorIdx ] if scaleFactorIdx else [])))
-        elif signs[i] is -1:
+        elif signs[i] == -1:
             expressionTerms.append((valueLabels[i], ([1, scaleFactorIdx] if scaleFactorIdx else [1])))
     return expressionTerms
 
