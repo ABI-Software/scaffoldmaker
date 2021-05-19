@@ -77,8 +77,11 @@ class MeshRefinement:
         for sourceAnnotationGroup in sourceAnnotationGroups:
             targetAnnotationGroup = AnnotationGroup(self._targetRegion, sourceAnnotationGroup.getTerm())
             self._annotationGroups.append(targetAnnotationGroup)
-            self._sourceAndTargetMeshGroups.append( ( sourceAnnotationGroup.getMeshGroup(self._sourceMesh), targetAnnotationGroup.getMeshGroup(self._targetMesh)) )
-            self._sourceAndTargetNodesetGroups.append( ( sourceAnnotationGroup.getNodesetGroup(self._sourceNodes), targetAnnotationGroup.getNodesetGroup(self._targetNodes)) )
+            # assume have only highest dimension element or node/point annotation groups:
+            if sourceAnnotationGroup.hasMeshGroup(self._sourceMesh):
+                self._sourceAndTargetMeshGroups.append( ( sourceAnnotationGroup.getMeshGroup(self._sourceMesh), targetAnnotationGroup.getMeshGroup(self._targetMesh)) )
+            else:
+                self._sourceAndTargetNodesetGroups.append( ( sourceAnnotationGroup.getNodesetGroup(self._sourceNodes), targetAnnotationGroup.getNodesetGroup(self._targetNodes)) )
 
         # prepare element -> marker point list map
         self.elementMarkerMap = {}
