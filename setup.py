@@ -21,7 +21,6 @@ requires = [
     # minimal requirements listing
     "opencmiss.utils >= 0.3",
     "opencmiss.zinc",  # not yet on pypi - need manual install from opencmiss.org
-    "ZincPythonTools @ https://api.github.com/repos/OpenCMISS-Bindings/ZincPythonTools/tarball/master",
     "scipy",
     "numpy",
 ]
