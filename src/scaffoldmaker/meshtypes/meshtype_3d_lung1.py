@@ -131,6 +131,8 @@ class MeshType_3d_lung1(Scaffold_base):
                                                               get_lung_term("ventral base of left lung"))
         rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                get_lung_term("ventral base of right lung"))
+        rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_lung_term("laterodorsal tip of middle lobe of right lung"))
 
         if isHuman:
             # Annotation groups
@@ -146,9 +148,6 @@ class MeshType_3d_lung1(Scaffold_base):
                                                                  get_lung_term("medial base of left lung"))
             rightMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                  get_lung_term("medial base of right lung"))
-            rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_lung_term(
-                                                                       "laterodorsal tip of middle lobe of right lung"))
 
         elif isMouse or isRat:
             # Annotation groups
@@ -938,6 +937,9 @@ class MeshType_3d_lung1(Scaffold_base):
 
             idx = leftLungElementsCount + (lElementsCount1 // 2)
             markerList.append({"group": rightDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+
+            idx = leftLungElementsCount + + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
+            markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
 
             upperRightLungElementsCount = (uElementsCount1 - 1) * uElementsCount2 * (uElementsCount3 + 1)
             rightLungElementsCount = lowerRightLungElementsCount + upperRightLungElementsCount
