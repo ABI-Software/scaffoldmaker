@@ -19,7 +19,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_lung1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1" ])
+        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Rat 1" ])
         options = scaffold.getDefaultOptions(["Human 1"])
         self.assertEqual(3, len(options))
         self.assertFalse(scaffold.checkOptions(options))
@@ -28,7 +28,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)
-        self.assertEqual(17, len(annotationGroups))
+        self.assertEqual(20, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(88, mesh3d.getSize())
@@ -37,7 +37,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(334, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(138, nodes.getSize())
+        self.assertEqual(141, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -45,8 +45,8 @@ class LungScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 14.153, 62.444, -354.889 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 297.502, 234.911, -23.486 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [ 14.153, 62.444, -353.40564 ], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 297.502, 245.3003, -23.486 ], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
@@ -60,10 +60,10 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 139195.03021771502, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 138894.27893716586, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 7169261.158690422, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 7225489.982550352, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -94,7 +94,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
         markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
-        self.assertEqual(6, markerNodes.getSize())
+        self.assertEqual(9, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
         markerLocation = fieldmodule.findFieldByName("marker_location")
@@ -116,7 +116,7 @@ class LungScaffoldTestCase(unittest.TestCase):
                 removeAnnotationGroups.append(annotationGroup)
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(14, len(annotationGroups))
+        self.assertEqual(17, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -135,7 +135,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(17, len(annotationGroups))
+        self.assertEqual(20, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(5632, mesh3d.getSize())
@@ -144,7 +144,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         mesh1d = refineFieldmodule.findMeshByDimension(1)
         self.assertEqual(17848, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(6144, nodes.getSize())
+        self.assertEqual(6147, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -162,7 +162,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
-        self.assertEqual(6, markerNodes.getSize())
+        self.assertEqual(9, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
         markerLocation = refineFieldmodule.findFieldByName("marker_location")
