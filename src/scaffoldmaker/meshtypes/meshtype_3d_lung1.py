@@ -994,6 +994,7 @@ class MeshType_3d_lung1(Scaffold_base):
         parameterSetName = options['Base parameter set']
         isMouse = 'Mouse 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
+        isRat = 'Rat 1' in parameterSetName
 
         # create fissure groups
         fm = region.getFieldmodule()
@@ -1010,7 +1011,7 @@ class MeshType_3d_lung1(Scaffold_base):
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
             obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
 
-        if isHuman or isMouse:
+        if isHuman or isMouse or isRat:
             upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
             middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
             lowerRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of right lung"))
