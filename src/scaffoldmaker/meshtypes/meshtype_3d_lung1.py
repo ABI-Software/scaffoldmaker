@@ -156,11 +156,11 @@ class MeshType_3d_lung1(Scaffold_base):
             annotationGroups.append(diaphragmaticLungGroup)
 
             accessoryApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                    get_lung_term("apex of accessory lung"))
+                                                                    get_lung_term("apex of right lung accessory lobe"))
             accessoryVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                       get_lung_term("ventral base of accessory lung"))
+                                                                       get_lung_term("ventral base of right lung accessory lobe"))
             accessoryDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                      get_lung_term("dorsal base of accessory lung"))
+                                                                      get_lung_term("dorsal base of right lung accessory lobe"))
 
         # Annotation fiducial point
         markerGroup = findOrCreateFieldGroup(fm, "marker")
