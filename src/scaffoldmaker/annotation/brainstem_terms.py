@@ -4,11 +4,11 @@ Common resource for testing annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 brainstem_terms = [
-                    ("medulla oblongata", "FMA:62004", "UBERON:0001896"),
-                    ("pons", "FMA:67943", "UBERON:0000988"),
-                    ("midbrain", "FMA:61993", "UBERON:0001891"),
-                    ("diencephalon", "FMA:62001", "UBERON:0001894"),
-                    ("brainstem", "FMA:79876", "UBERON:0002298")
+                    ("medulla oblongata", "UBERON:0001896"),
+                    ("pons", "UBERON:0000988"),
+                    ("midbrain", "UBERON:0001891"),
+                    ("diencephalon", "UBERON:0001894"),
+                    ("brainstem", "UBERON:0002298")
                 ]
 
 def get_brainstem_annotation_term(name : str):

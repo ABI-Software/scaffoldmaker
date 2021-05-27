@@ -35,19 +35,11 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'meshEdits': exnodeStringFromNodeValues( # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[0.0, -1.0, 5.0], [0.0, 0.0, -4.5], [5.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 2.4, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, 0.5], [0.0, 0.0, -4.5], [6.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, -4.0], [0.0, 0.0, -4.5], [7.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, -8.5], [0.0, 0.0, -4.5], [8.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 5.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, -1.0, -13.0], [0.0, 0.0, -4.5], [9.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 6.0, 0.0], [0.0, 0.0, 0.0]]
-            # 'meshEdits': exnodeStringFromNodeValues( # dimensional.
-            #     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-            #      Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-            #         [[0.0, -1.0, 5.0], [0.0, 0.0, -4.5], [5.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 2.4, 0.0], [0.0, 0.0, 0.0]],
-            #         [[0.0, -1.0, 0.5], [0.0, 0.0, -4.5], [5.8, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4, 0.0], [0.0, 0.0, 0.0]],
-            #         [[0.0, -1.0, -4.0], [0.0, 0.0, -4.5], [8.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 4.5, 0.0], [0.0, 0.0, 0.0]],
-            #         [[0.0, -1.0, -8.5], [0.0, 0.0, -4.5], [10.2, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 5.5, 0.0], [0.0, 0.0, 0.0]],
-            #         [[0.0, -1.0, -13.0], [0.0, 0.0, -4.5], [9.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 6.0, 0.0], [0.0, 0.0, 0.0]]
+                    [[0.0, -1.0, 5.0], [0.0, 0.0, -4.5], [5.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, -2.4, 0.0], [0.0, -2.2, 0.0]],
+                    [[0.0, -1.0, 0.5], [0.0, 0.0, -4.5], [6.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, -4, 0.0], [0.0, -1.1, 0.0]],
+                    [[0.0, -1.0, -4.0], [0.0, 0.0, -4.5], [7.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, -4.5, 0.0], [0.0, -0.8, 0.0]],
+                    [[0.0, -1.0, -8.5], [0.0, 0.0, -4.5], [8.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, -5.5, 0.0], [0.0, -0.8, 0.0]],
+                    [[0.0, -1.0, -13.0], [0.0, 0.0, -4.5], [9.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, -6.0, 0.0], [0.0, -0.2, 0.0]]
                 ])
         })
     }
@@ -64,9 +56,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
             'Number of elements along': 12,
-            'Lower half': False,
-            'Taper major increment': 0.2,
-            'Taper minor increment': 0.1,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across major and minor': 1,
@@ -113,7 +102,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements along',
-            'Lower half',
             'Refine',
             'Refine number of elements across major and minor',
             'Refine number of elements along'
@@ -155,7 +143,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
 
         centralPath = options['Central path']
-        full = not options['Lower half']
+        full = True
         elementsCountAcrossMajor = options['Number of elements across major']
         if not full:
             elementsCountAcrossMajor //= 2
@@ -182,11 +170,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        taperedParams = Tapered(majorRatio=options['Taper major increment'],
-                                minorRatio=options['Taper minor increment'],
-                                majorProgressionMode=ConeBaseProgression.ARITHMETIC_PROGRESSION,
-                                minorProgressionMode=ConeBaseProgression.ARITHMETIC_PROGRESSION)
-
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
                             centre=[0.0, 0.0, 0.0],
                             alongAxis=cylinderCentralPath.alongAxis[0], majorAxis=cylinderCentralPath.majorAxis[0],
@@ -194,7 +177,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                             cylinderShape=cylinderShape,
-                                 tapered = taperedParams,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
         iRegionBoundaries = [int(7*elementsCountAlong/15),int(14*elementsCountAlong/15)]
