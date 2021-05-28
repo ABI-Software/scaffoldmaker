@@ -15,6 +15,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
+from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
@@ -38,6 +39,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solid
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
+from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
@@ -61,6 +63,7 @@ class Scaffolds(object):
             MeshType_3d_bladderurethra1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
+            MeshType_3d_brainstem1,
             MeshType_3d_cecum1,
             MeshType_3d_colon1,
             MeshType_3d_colonsegment1,
@@ -84,6 +87,7 @@ class Scaffolds(object):
             MeshType_3d_sphereshell1,
             MeshType_3d_sphereshellseptum1,
             MeshType_3d_stellate1,
+            MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
             MeshType_3d_tube1,
             MeshType_3d_tubeseptum1,

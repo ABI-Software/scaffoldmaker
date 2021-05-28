@@ -51,7 +51,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[0.85, 3.05, 89.94], [-0.2, 1.8, 15.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[0.26, 5.98, 107.94], [-0.6, 4.5, 16.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[-0.66, 12.47, 127.07], [0.35, 6.67, 14.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
-
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -86,6 +85,40 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     [[-0.9, -3.8, 59.3], [-1.4, -0.6, 8.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[-1.3, -3.6, 71.5], [-0.1, 2.0, 8.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
                     [[0.0, 0.0, 80.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-4',
+                    'name': get_bladder_term('urinary bladder')[0],
+                    'ontId': get_bladder_term('urinary bladder')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-8',
+                    'name': get_bladder_term('urethra')[0],
+                    'ontId': get_bladder_term('urethra')[1]
+                }]
+            }),
+        'Human 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 8
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 20.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 20.0], [0.0, 0.0, 20.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 40.0], [0.0, 0.0, 20], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 60.0], [0.0, 0.0, 20], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 80.0], [-0.4, 0.3, 17.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-0.5, -2.1, 100.6], [-1.0, -1.9, 17.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-0.9, -3.8, 120.3], [-1.4, -0.6, 18.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[-1.3, -3.6, 140.5], [-0.1, 2.0, 18.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
+                    [[0.0, 0.0, 160.0], [0.9, 4.0, 15.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -154,6 +187,32 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Refine number of elements along': 4,
                 'Refine number of elements through wall': 1
             },
+        }),
+        'Ureter Human 1': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,  # implemented for 8
+                'Number of elements along': 1,
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium diameter': 3.0,
+                'Ostium length': 0.5,
+                'Ostium wall thickness': 0.5,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 2.0,
+                'Vessel inner diameter': 1.0,
+                'Vessel wall thickness': 0.1,
+                'Vessel angle 1 degrees': 0.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
         })
     }
 
@@ -166,16 +225,21 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         return [
             'Default',
             'Cat 1',
-            'Rat 1']
+            'Rat 1',
+            'Human 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Rat 1' in parameterSetName:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Rat 1']
+        elif 'Human 1' in parameterSetName:
+            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Human 1']
         else:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Cat 1']
         if 'Rat 1' in parameterSetName:
             ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Rat 1']
+        elif 'Human 1' in parameterSetName:
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Human 1']
         else:
             ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Cat 1']
         options = {
@@ -217,6 +281,21 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Urethra diameter 1'] = 0.75
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
+        if 'Human' in parameterSetName:
+            options['Number of elements along bladder'] = 8
+            options['Number of elements around'] = 12
+            options['Major diameter'] = 75.0
+            options['Minor diameter'] = 35.0
+            options['Wall thickness'] = 0.2
+            options['Neck diameter 1'] = 5.0
+            options['Neck diameter 2'] = 4.0
+            options['Wall thickness'] = 0.5
+            options['Neck angle degrees'] = 115
+            options['Ureter position around'] = 0.82  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.63
+            options['Urethra diameter 1'] = 1.5
+            options['Urethra diameter 2'] = 1.0
+            options['Urethra wall thickness'] = 0.5
         return options
 
     @staticmethod
@@ -677,52 +756,53 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 outerNodes_d1.append(d1List[(2 * n2 + 1) * elementsCountAround + n1])
                 outerNodes_d2.append(d2List[(2 * n2 + 1) * elementsCountAround + n1])
 
+        elementsCount1 = elementsCountAround // 2
+        elementsCount2 = elementsCountAlongBladder
+        # Create trackSurface at the outer layer of the bladder for ureter 1
+        nodesOnTrackSurface_x = []
+        nodesOnTrackSurface_d1 = []
+        nodesOnTrackSurface_d2 = []
+        for n2 in range(elementsCountAlongBladder + 1):
+            for n1 in range(elementsCountAround // 2 + 1):
+                nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
+        trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
+                                           nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
+
+        ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
+        ureterElementPositionAround = ureter1Position.e1
+        ureterElementPositionDown = ureter1Position.e2
+        elementToDeleteStartIdx1 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
+                                   + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
+
+        elementIndex = elementToDeleteStartIdx1 - elementsCountAround * ureterElementPositionDown
+
+        # Create trackSurface at the outer layer of the bladder for ureter 2
+        nodesOnTrackSurface2_x = []
+        nodesOnTrackSurface2_d1 = []
+        nodesOnTrackSurface2_d2 = []
+        for n2 in range(elementsCountAlongBladder + 1):
+            for n1 in range(elementsCountAround // 2, elementsCountAround):
+                nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
+                nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
+            nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
+            nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
+            nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
+
+        trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
+                                           nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
+        ureter2Position = TrackSurfacePosition(elementsCountAround // 2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
+                                               ureterElementPositionDown,
+                                               (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
+                                               ureter1Position.xi2)
+
         if includeUreter:
-            elementsCount1 = elementsCountAround // 2
-            elementsCount2 = elementsCountAlongBladder
-            # Create trackSurface at the outer layer of the bladder for ureter 1
-            nodesOnTrackSurface_x = []
-            nodesOnTrackSurface_d1 = []
-            nodesOnTrackSurface_d2 = []
-            for n2 in range(elementsCountAlongBladder + 1):
-                for n1 in range(elementsCountAround // 2 + 1):
-                    nodesOnTrackSurface_x.append(outerNodes_x[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-            trackSurfaceUreter1 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface_x,
-                                               nodesOnTrackSurface_d1, nodesOnTrackSurface_d2)
-
-            ureter1Position = trackSurfaceUreter1.createPositionProportion(ureterPositionAround, ureterPositionDown)
-            ureterElementPositionAround = ureter1Position.e1
-            ureterElementPositionDown = ureter1Position.e2
-            elementToDeleteStartIdx1 = elementsCountThroughWall * elementsCountAround * (ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)) \
-                                       + ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
-
-            elementIndex = elementToDeleteStartIdx1 - elementsCountAround * ureterElementPositionDown
             if ureterElementPositionAround > (elementsCountAround / 4):
                 elementsCountVentral1 = (elementsCountAround // 4)
             else:
                 elementsCountVentral1 = elementIndex - 1
-
-            # Create trackSurface at the outer layer of the bladder for ureter 2
-            nodesOnTrackSurface2_x = []
-            nodesOnTrackSurface2_d1 = []
-            nodesOnTrackSurface2_d2 = []
-            for n2 in range(elementsCountAlongBladder + 1):
-                for n1 in range(elementsCountAround // 2, elementsCountAround):
-                    nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround + n1])
-                    nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround + n1])
-                nodesOnTrackSurface2_x.append(outerNodes_x[n2 * elementsCountAround])
-                nodesOnTrackSurface2_d1.append(outerNodes_d1[n2 * elementsCountAround])
-                nodesOnTrackSurface2_d2.append(outerNodes_d2[n2 * elementsCountAround])
-
-            trackSurfaceUreter2 = TrackSurface(elementsCount1, elementsCount2, nodesOnTrackSurface2_x,
-                                               nodesOnTrackSurface2_d1, nodesOnTrackSurface2_d2)
-            ureter2Position = TrackSurfacePosition(elementsCountAround // 2 - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0 else 0),
-                                                   ureterElementPositionDown,
-                                                   (1 - ureter1Position.xi1) if ureter1Position.xi1 > 0 else ureter1Position.xi1,
-                                                   ureter1Position.xi2)
         else:
             elementsCountVentral1 = elementsCountAround // 4
 
@@ -812,14 +892,49 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                             d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
                             ureterMeshGroup, bladderMeshGroup)
 
-        # Apex annotation point
-        nodeIdentifier = nextNodeIdentifier
-        idx = 1
-        element1 = mesh.findElementByIdentifier(idx)
-        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        cache.setNode(markerPoint)
-        markerName.assignString(cache, 'Apex of urinary bladder')
-        markerLocation.assignMeshLocation(cache, element1, [0.0, 0.0, 1.0])
+        # Define markers for apex, ureter and urethra junctions with bladder
+        apexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("apex of urinary bladder"))
+        leftUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("left ureter junction with bladder"))
+        rightUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("right ureter junction with bladder"))
+        dorsalUrethraGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("urethra junction with bladder dorsal"))
+        ventralUrethraGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("urethra junction with bladder ventral"))
+
+        idx1 = 1
+        xi1 = [0.0, 0.0, 0.0]
+        markerList = []
+        markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
+        if includeUreter:
+            idx2 = elementsCountAlong * elementsCountAround + elementsCountAroundUreter
+            xi2 = [0.0, 1.0, 0.0]
+            markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
+            idx3 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
+            xi3 = [0.0, 1.0, 0.0]
+            markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
+        else:
+            idx2 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
+            xi2 = [ureter1Position.xi1, ureter1Position.xi2, 0.0]
+            markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
+            idx3 = ureterElementPositionDown * elementsCountAround * elementsCountThroughWall + elementsCountAround - ureterElementPositionAround
+            xi3 = [1 - ureter1Position.xi1, ureter1Position.xi2, 0.0]
+            markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
+        idx4 = (elementsCountAlongBladder - 1) * elementsCountAround * elementsCountThroughWall + elementsCountAround // 2
+        xi4 = [1.0, 1.0, 0.0]
+        markerList.append({"group": dorsalUrethraGroup, "elementId": idx4, "xi": xi4})
+        idx5 = (elementsCountAlongBladder - 1) * elementsCountAround * elementsCountThroughWall + 1
+        xi5 = [0.0, 1.0, 0.0]
+        markerList.append({"group": ventralUrethraGroup, "elementId": idx5, "xi": xi5})
+
+        nodeIdentifier = nextNodeIdentifier + elementsCountAroundUreter * 4 * 2 + elementsCountAroundUreter * 2 * 2 * elementsCountUreterRadial
+        bladderNodesetGroup = bladderGroup.getNodesetGroup(nodes)
+        for marker in markerList:
+            annotationGroup = marker["group"]
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerPoint)
+            markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]), marker["xi"])
+            markerName.assignString(cache, annotationGroup.getName())
+            annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
+            bladderNodesetGroup.addNode(markerPoint)
+            nodeIdentifier += 1
 
         fm.endChange()
         return annotationGroups

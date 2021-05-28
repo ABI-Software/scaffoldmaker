@@ -7,39 +7,42 @@ from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.bladder_terms import get_bladder_term
-from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
+from scaffoldmaker.annotation.stomach_terms import get_stomach_term
+from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 from testutils import assertAlmostEqualList
 
-class BladderScaffoldTestCase(unittest.TestCase):
+class StomachScaffoldTestCase(unittest.TestCase):
 
-    def test_bladderurethra1(self):
+    def test_stomach1(self):
         """
-        Test creation of bladder scaffold.
+        Test creation of stomach scaffold.
         """
-        scaffold = MeshType_3d_bladderurethra1
-        parameterSetNames = MeshType_3d_bladderurethra1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Cat 1", "Rat 1", "Human 1"])
-        options = scaffold.getDefaultOptions("Cat 1")
-        self.assertEqual(26, len(options))
-        self.assertEqual(12, options.get("Number of elements along bladder"))
-        self.assertEqual(12, options.get("Number of elements around"))
-        self.assertEqual(1, options.get("Number of elements through wall"))
+        scaffold = MeshType_3d_stomach1
+        parameterSetNames = scaffold.getParameterSetNames()
+        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Rat 1" ])
+        options = scaffold.getDefaultOptions("Rat 1")
+        self.assertEqual(15, len(options))
+        self.assertEqual(12, options.get("Number of elements around esophagus"))
+        self.assertEqual(14, options.get("Number of elements around duodenum"))
+        self.assertEqual(2, options.get("Number of elements between cardia and duodenum"))
+        self.assertEqual(1, options.get("Number of elements across cardia"))
         self.assertEqual(0.5, options.get("Wall thickness"))
-        self.assertEqual(45, options.get("Neck angle degrees"))
-        ostiumOptions = options['Ureter']
+        self.assertEqual(True, options.get("Limiting ridge"))
+        ostiumOptions = options['Gastro-esophagal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         self.assertEqual(1, ostiumSettings.get("Number of vessels"))
         self.assertEqual(8, ostiumSettings.get("Number of elements around ostium"))
         self.assertEqual(1, ostiumSettings.get("Number of elements through wall"))
-        self.assertEqual(2.2, ostiumSettings.get("Ostium diameter"))
-        self.assertEqual(0.5, ostiumSettings.get("Ostium length"))
+        self.assertEqual(4.0, ostiumSettings.get("Ostium diameter"))
+        self.assertEqual(3.5, ostiumSettings.get("Ostium length"))
         self.assertEqual(0.5, ostiumSettings.get("Ostium wall thickness"))
-        self.assertEqual(0.8, ostiumSettings.get("Vessel inner diameter"))
-        self.assertEqual(0.25, ostiumSettings.get("Vessel wall thickness"))
+        self.assertEqual(1.25, ostiumSettings.get("Vessel inner diameter"))
+        self.assertEqual(0.5, ostiumSettings.get("Vessel wall thickness"))
         self.assertEqual(0.0, ostiumSettings.get("Vessel angle 1 degrees"))
+        self.assertEqual(0.55, options.get("Gastro-esophagal junction position along factor"))
+        self.assertEqual(0.2, options.get("Cardia derivative factor"))
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -50,21 +53,21 @@ class BladderScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(240, mesh3d.getSize())
+        self.assertEqual(158, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(960, mesh2d.getSize())
+        self.assertEqual(643, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1201, mesh1d.getSize())
+        self.assertEqual(823, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(487, nodes.getSize())
+        self.assertEqual(342, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-15.48570141314588, -12.992184072505665, -0.5], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [15.485696373577879, 13.837600783918127, 127.68599990411343], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-18.535034704449842, -14.989550140413265, -8.726949180639382], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [18.39909561216101, 15.187335864125645, 8.727618869278126], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -76,41 +79,26 @@ class BladderScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 5335.535739164492, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 2452.212186914634, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 2555.81694845211, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 1175.367658574881, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
-            "dome of the bladder": 108,
-            "neck of urinary bladder": 36,
-            "urethra": 96,
-            "urinary bladder": 144
+            "body of stomach" : 28,
+            "cardia of stomach" : 12,
+            "duodenum" : 14,
+            "esophagus" : 24,
+            "fundus of stomach" : 38,
+            "pyloric antrum" : 28,
+            "pylorus": 14,
+            "stomach": 158
             }
         for name in expectedSizes3d:
-            group = getAnnotationGroupForTerm(annotationGroups, get_bladder_term(name))
+            group = getAnnotationGroupForTerm(annotationGroups, get_stomach_term(name))
             size = group.getMeshGroup(mesh3d).getSize()
             self.assertEqual(expectedSizes3d[name], size, name)
-
-        # test finding a marker in scaffold
-        markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
-        self.assertEqual(5, markerNodes.getSize())
-        markerName = fieldmodule.findFieldByName("marker_name")
-        self.assertTrue(markerName.isValid())
-        markerLocation = fieldmodule.findFieldByName("marker_location")
-        self.assertTrue(markerLocation.isValid())
-        # test apex marker point
-        cache = fieldmodule.createFieldcache()
-        node = findNodeWithName(markerNodes, markerName, "apex of urinary bladder")
-        self.assertTrue(node.isValid())
-        cache.setNode(node)
-        element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [ 0.0, 0.0, 0.0 ], 1.0E-10)
-        apexGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("apex of urinary bladder"))
-        self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
 
         # refine 4x4x4 and check result
         # first remove any surface annotation groups as they are re-added by defineFaceAnnotations
@@ -125,13 +113,11 @@ class BladderScaffoldTestCase(unittest.TestCase):
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
-        options['Refine number of elements along'] = 4
-        options['Refine number of elements around'] = 4
+        options['Refine number of elements surface'] = 4
         options['Refine number of elements through wall'] = 4
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
         annotationGroups = meshrefinement.getAnnotationGroups()
-        del meshrefinement
 
         refineFieldmodule.defineAllFaces()
         oldAnnotationGroups = copy.copy(annotationGroups)
@@ -141,22 +127,22 @@ class BladderScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(37, len(annotationGroups))
-
+        self.assertEqual(16, len(annotationGroups))
+#
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(15360, mesh3d.getSize())
+        self.assertEqual(10112, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(49920, mesh2d.getSize())
+        self.assertEqual(33232, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(53764, mesh1d.getSize())
+        self.assertEqual(36028, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(19210, nodes.getSize())
+        self.assertEqual(12936, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         # check some refined annotationGroups:
         for name in expectedSizes3d:
-            group = getAnnotationGroupForTerm(annotationGroups, get_bladder_term(name))
+            group = getAnnotationGroupForTerm(annotationGroups, get_stomach_term(name))
             size = group.getMeshGroup(mesh3d).getSize()
             self.assertEqual(expectedSizes3d[name]*64, size, name)
 
@@ -164,19 +150,18 @@ class BladderScaffoldTestCase(unittest.TestCase):
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
-        self.assertEqual(5, markerNodes.getSize())
+        self.assertEqual(4, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
         markerLocation = refineFieldmodule.findFieldByName("marker_location")
         self.assertTrue(markerLocation.isValid())
-        # test apex marker point
         cache = refineFieldmodule.createFieldcache()
-        node = findNodeWithName(markerNodes, markerName, "apex of urinary bladder")
+        node = findNodeWithName(markerNodes, markerName, "gastro-esophagal junction on lesser curvature")
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [ 0.0, 0.0, 0.0 ], 1.0E-10)
+        self.assertEqual(1213, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
 if __name__ == "__main__":
     unittest.main()
