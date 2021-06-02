@@ -18,8 +18,9 @@ from opencmiss.zinc.node import Node
 from opencmiss.zinc.element import Element
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm, mergeAnnotationGroups
 from scaffoldmaker.annotation.body_terms import get_body_term
+from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms
 from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field
+from opencmiss.zinc.field import Field, FieldFindMeshLocation
 from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.vector import setMagnitude
@@ -239,6 +240,28 @@ Generates body coordinates using a solid cylinder of all cube elements,
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
+        # body_coordinates
+        body_coordinates = findOrCreateFieldCoordinates(fieldmodule, name="body_coordinates")
+        tmp_region = region.createRegion()
+        tmp_fieldmodule = tmp_region.getFieldmodule()
+        tmp_body_coordinates = findOrCreateFieldCoordinates(tmp_fieldmodule, name="body_coordinates")
+        tmp_cylinder = CylinderMesh(tmp_fieldmodule, tmp_body_coordinates, elementsCountAlong, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+        sir = tmp_region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        tmp_region.write(sir)
+        result, buffer = srm.getBuffer()
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemoryBuffer(buffer)
+        region.read(sir)
+
+        del srm
+        del sir
+        del tmp_body_coordinates
+        del tmp_fieldmodule
+        del tmp_region
+
         # Groups of different parts of the body
         is_body = fieldmodule.createFieldConstant(1)
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
@@ -347,11 +370,13 @@ Generates body coordinates using a solid cylinder of all cube elements,
         markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
         markerName = findOrCreateFieldStoredString(fieldmodule, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fieldmodule, mesh, name="marker_location")
+        markerBodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="marker_body_coordinates")
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
+        markerTemplateInternal.defineField(markerBodyCoordinates)
         #
         middleLeft = elementsCountAcrossMinor//2
         topElem = elementsCountAcrossMajor - 1
@@ -360,92 +385,124 @@ Generates body coordinates using a solid cylinder of all cube elements,
         thoraxFirstElem = elementsCountAlongAbdomen
         middleDown = elementsCountAcrossMajor//2 - 1
 
-        animal = 'rat'
+        # organ landmarks groups
+        apexOfHeart = heart_terms.get_heart_term('apex of heart')
+        leftAtriumEpicardiumVenousMidpoint = heart_terms.get_heart_term('left atrium epicardium venous midpoint')
+        rightAtriumEpicardiumVenousMidpoint = heart_terms.get_heart_term('right atrium epicardium venous midpoint')
+        apexOfUrinaryBladder = bladder_terms.get_bladder_term('apex of urinary bladder')
+        leftUreterJunctionWithBladder = bladder_terms.get_bladder_term('left ureter junction with bladder')
+        rightUreterJunctionWithBladder = bladder_terms.get_bladder_term('right ureter junction with bladder')
+        urethraJunctionWithBladderDorsal = bladder_terms.get_bladder_term('urethra junction with bladder dorsal')
+        urethraJunctionWithBladderVentral = bladder_terms.get_bladder_term('urethra junction with bladder ventral')
+        gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term('gastro-esophagal junction on lesser curvature')
+        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge on greater curvature')
+        pylorusOnGreaterCurvature = stomach_terms.get_stomach_term('pylorus on greater curvature')
+        duodenumOnGreaterCurvature = stomach_terms.get_stomach_term('duodenum on greater curvature')
+        apexOfLeftLung = lung_terms.get_lung_term('apex of left lung')
+        ventralBaseOfLeftLung = lung_terms.get_lung_term('ventral base of left lung')
+        dorsalBaseOfLeftLung = lung_terms.get_lung_term('dorsal base of left lung')
+        apexOfRightLung = lung_terms.get_lung_term('apex of right lung')
+        ventralBaseOfRightLung = lung_terms.get_lung_term('ventral base of right lung')
+        dorsalBaseOfRightLung = lung_terms.get_lung_term('dorsal base of right lung')
+        laterodorsalTipOfMiddleLobeOfRightLung = lung_terms.get_lung_term('laterodorsal tip of middle lobe of right lung')
+        apexOfAccessoryLung = lung_terms.get_lung_term('apex of accessory lung')
+        ventralBaseOfAccessoryLung =  lung_terms.get_lung_term('ventral base of accessory lung')
+        dorsalBaseOfAccessoryLung = lung_terms.get_lung_term('dorsal base of accessory lung')
+        medialBaseOfLeftLung = lung_terms.get_lung_term("medial base of left lung")
+        medialBaseOfRightLung = lung_terms.get_lung_term("medial base of right lung")
+        junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("junction between fundus and body on greater curvature")
+
+        # marker coordinates. In future we want to have only one table for all species.
+        animal = 'human'
         if animal == 'rat':
             bodyMarkerPoints = [
-                {"name": "left hip joint", "elementId": elementId[1][0][middleLeft], "xi": [0.8, 0.5, 0.5]},
-                {"name": "right hip joint", "elementId": elementId[1][topElem][middleLeft], "xi": [0.2, 0.5, 0.5]},
-                {"name": "left shoulder joint", "elementId": elementId[neckFirstElem][0][middleRight], "xi": [0.8, 0.5, 0.5]},
-                {"name": "right shoulder joint", "elementId": elementId[neckFirstElem][topElem][middleRight], "xi": [0.2, 0.5, 0.5]},
-                {"name": "along left femur", "elementId": elementId[1][0][middleLeft], "xi": [0.2, 0.99, 0.5]},
-                {"name": "along right femur", "elementId": elementId[1][topElem][middleLeft], "xi": [0.8, 0.99, 0.5]},
-                {"name": "along left humerus", "elementId": elementId[neckFirstElem][0][middleRight], "xi": [0.5, 0.0, 0.5]},
-                {"name": "along right humerus", "elementId": elementId[neckFirstElem][topElem][middleRight], "xi": [0.5, 0.0, 0.5]},
-                {"name": "apex of heart", "elementId": 107, "xi": [0.511, 0.032, 0.355]},
-                {"name": "left atrium epicardium venous midpoint", "elementId": 127, "xi": [0.361, 0.535, 0.579]},
-                {"name": "right atrium epicardium venous midpoint", "elementId": 127, "xi": [0.805, 0.521, 0.59]},
-                {"name": "apex of urinary bladder", "elementId": 31, "xi": [0.602, 0.363, 0.025]},
-                {"name": "left ureter junction with bladder", "elementId": 33, "xi": [0.571, 0.112, 0.129]},
-                {"name": "right ureter junction with bladder", "elementId": 33, "xi": [0.155, 0.141, 0.017]},
-                {"name": "urethra junction with bladder dorsal", "elementId": 12, "xi": [0.132, 0.657, 0.71]},
-                {"name": "urethra junction with bladder ventral", "elementId": 12, "xi": [0.145, 0.637, 0.504]},
-                {"name": "gastro-esophagal junction on lesser curvature", "elementId": 88, "xi": [0.398, 0.543, 0.046]},
-                {"name": "limiting ridge on greater curvature", "elementId": 84, "xi": [0.406, 0.42, 0.357]},
-                {"name": "pylorus on greater curvature", "elementId": 87, "xi": [0.594, 0.535, 0.438]},
-                {"name": "duodenum on greater curvature", "elementId": 87, "xi": [0.854, 0.655, 0.31]},
-                {"name": "apex of left lung", "elementId": 147, "xi": [0.119, 0.345, 0.099]},
-                {"name": "ventral base of left lung", "elementId": 106, "xi": [0.023, 0.036, 0.044]},
-                {"name": "dorsal base of left lung", "elementId": 109, "xi": [0.861, 0.181, 0.525]},
-                {"name": "apex of right lung", "elementId": 153, "xi": [0.432, 0.262, 0.513]},
-                {"name": "ventral base of right lung", "elementId": 106, "xi": [0.527, 0.223, 0.122]},
-                {"name": "dorsal base of right lung", "elementId": 115, "xi": [0.21, 0.238, 0.501]},
-                {"name": "laterodorsal tip of middle lobe of right lung", "elementId": 137,"xi": [0.354, 0.328, 0.299]},
-                {"name": "apex of accessory lung", "elementId": 127, "xi": [0.793, 0.176, 0.683]},
-                {"name": "ventral base of accessory lung", "elementId": 106, "xi": [0.519, 0.217, 0.124]},
-                {"name": "dorsal base of accessory lung", "elementId": 107, "xi": [0.395, 0.113, 0.657]},
-                {"name": "caudal-dorsal	", "elementId": 176, "xi": [0.101, 0.528, 0.139]},
-                {"name": "midRostCaud-dorsal", "elementId": 175, "xi": [0.077, 0.912, 0.161]},
-                {"name": "rostral-dorsal", "elementId": 195, "xi": [0.089, 0.244, 0.016]},
-                {"name": "caudal-ventral", "elementId": 175, "xi": [0.091, 0.547, 0.932]},
-                {"name": "midRostCaud-ventral", "elementId": 174, "xi": [0.074, 0.898, 0.697]},
-                {"name": "rostral-ventral", "elementId": 194, "xi": [0.098, 0.27, 0.833]},
-                {"name": "TRIGEMINAL_left", "elementId": 174, "xi": [0.542, 0.951, 0.977]},
-                {"name": "ABDUCENS_left", "elementId": 194, "xi": [0.399, 0.001, 0.798]},
-                {"name": "FACIAL_left", "elementId": 175, "xi": [0.415, 0.826, 0.338]},
-                {"name": "VESTIBULOCOCHLEAR_left", "elementId": 175, "xi": [0.42, 0.825, 0.327]},
-                {"name": "GLOSSOPHARYNGEAL_left", "elementId": 175, "xi": [0.423, 0.825, 0.321]},
-                {"name": "VAGUS_left", "elementId": 175, "xi": [0.423, 0.825, 0.321]},
-                {"name": "HYPOGLOSSAL_left", "elementId": 175, "xi": [0.25, 0.776, 0.168]},
-                {"name": "TRIGEMINAL_right", "elementId": 168, "xi": [0.658, 0.951, 0.933]},
-                {"name": "ABDUCENS_right", "elementId": 168, "xi": [0.763, 0.998, 0.767]},
-                {"name": "FACIAL_right", "elementId": 169, "xi": [0.767, 0.8, 0.218]},
-                {"name": "VESTIBULOCOCHLEAR_right", "elementId": 169, "xi": [0.762, 0.801, 0.211]},
-                {"name": "GLOSSOPHARYNGEAL_right", "elementId": 169, "xi": [0.759, 0.802, 0.206]},
-                {"name": "VAGUS_right", "elementId": 169, "xi": [0.759, 0.802, 0.206]},
-                {"name": "HYPOGLOSSAL_right", "elementId": 169, "xi": [0.925, 0.77, 0.164]},
+                {"group": ("left hip joint", ''), "x": [0.367, 0.266, 0.477]},
+                {"group": ("right hip joint", ''), "x": [-0.367, 0.266, 0.477]},
+                {"group": ("left shoulder joint", ''), "x": [0.456, -0.071, 2.705]},
+                {"group": ("right shoulder joint", ''), "x": [-0.456, -0.071, 2.705]},
+                {"group": ("along left femur", ''), "x": [0.456, 0.07, 0.633]},
+                {"group": ("along right femur", ''), "x": [-0.456, 0.07, 0.633]},
+                {"group": ("along left humerus", ''), "x": [0.423, -0.173, 2.545]},
+                {"group": ("along right humerus", ''), "x": [-0.423, -0.173, 2.545]},
+                {"group": apexOfHeart, "x": [0.096, -0.128, 1.601]},
+                {"group": leftAtriumEpicardiumVenousMidpoint, "x": [0.127, -0.083, 2.079]},
+                {"group": rightAtriumEpicardiumVenousMidpoint, "x": [0.039, -0.082, 2.075]},
+                {"group": apexOfUrinaryBladder, "x": [-0.124, -0.383, 0.434]},
+                {"group": leftUreterJunctionWithBladder, "x": [-0.111, -0.172, 0.354]},
+                {"group": rightUreterJunctionWithBladder, "x": [-0.03, -0.196, 0.363]},
+                {"group": urethraJunctionWithBladderDorsal, "x": [-0.03, -0.26, 0.209]},
+                {"group": urethraJunctionWithBladderVentral, "x": [-0.037, -0.304, 0.203]},
+                {"group": gastroesophagalJunctionOnLesserCurvature, "x": [0.12, 0.009, 1.446]},
+                {"group": limitingRidgeOnGreaterCurvature, "x": [0.318, 0.097, 1.406]},
+                {"group": pylorusOnGreaterCurvature, "x": [0.08, -0.111, 1.443]},
+                {"group": duodenumOnGreaterCurvature, "x": [0.029, -0.138, 1.481]},
+                {"group": apexOfLeftLung, "x": [0.172, -0.175, 2.337]},
+                {"group": ventralBaseOfLeftLung, "x": [0.274, -0.285, 1.602]},
+                {"group": dorsalBaseOfLeftLung, "x": [0.037, 0.31, 1.649]},
+                {"group": apexOfRightLung, "x": [-0.086, -0.096, 2.311]},
+                {"group": ventralBaseOfRightLung, "x": [0.14, -0.357, 1.662]},
+                {"group": dorsalBaseOfRightLung, "x": [-0.054, 0.304, 1.667]},
+                {"group": laterodorsalTipOfMiddleLobeOfRightLung, "x": [-0.258, -0.173, 2.013]},
+                {"group": apexOfAccessoryLung, "x": [0.041, -0.063, 1.965]},
+                {"group": ventralBaseOfAccessoryLung, "x": [0.143, -0.356, 1.66]},
+                {"group": dorsalBaseOfAccessoryLung, "x": [0.121, -0.067, 1.627]},
+                {"group": ("caudal-dorsal	", ''), "x": [-0.032, 0.418, 2.713]},
+                {"group": ("midRostCaud-dorsal", ''), "x": [-0.016, 0.233, 2.836]},
+                {"group": ("rostral-dorsal", ''), "x": [-0.017, 0.203, 2.941]},
+                {"group": ("caudal-ventral", ''), "x": [-0.028, 0.388, 2.72]},
+                {"group": ("midRostCaud-ventral", ''), "x": [-0.014, 0.139, 2.831]},
+                {"group": ("rostral-ventral", ''), "x": [-0.019, 0.167, 2.95]},
+                {"group": ("TRIGEMINAL_left", ''), "x": [-0.105, 0.193, 2.848]},
+                {"group": ("ABDUCENS_left", ''), "x": [-0.078, 0.158, 2.864]},
+                {"group": ("FACIAL_left", ''), "x": [-0.101, 0.266, 2.808]},
+                {"group": ("VESTIBULOCOCHLEAR_left", ''), "x": [-0.101, 0.263, 2.808]},
+                {"group": ("GLOSSOPHARYNGEAL_left", ''), "x": [-0.102, 0.262, 2.808]},
+                {"group": ("VAGUS_left", ''), "x": [-0.102, 0.262, 2.808]},
+                {"group": ("HYPOGLOSSAL_left", ''), "x": [-0.053, 0.234, 2.792]},
+                {"group": ("TRIGEMINAL_right", ''), "x": [0.067, 0.185, 2.848]},
+                {"group": ("ABDUCENS_right", ''), "x": [0.046, 0.153, 2.863]},
+                {"group": ("FACIAL_right", ''), "x": [0.051, 0.244, 2.8]},
+                {"group": ("VESTIBULOCOCHLEAR_right", ''), "x": [0.052, 0.243, 2.8]},
+                {"group": ("GLOSSOPHARYNGEAL_right", ''), "x": [0.053, 0.242, 2.801]},
+                {"group": ("VAGUS_right", ''), "x": [0.053, 0.242, 2.801]},
+                {"group": ("HYPOGLOSSAL_right", ''), "x": [0.016, 0.234, 2.79]},
             ]
         elif animal == 'human':
             bodyMarkerPoints = [
-                {"name": "apex of left lung", "elementId": 187, "xi": [0.67, 0.425, 0.561]},
-                {"name": "dorsal base of left lung", "elementId": 109, "xi": [0.373, 0.477, 0.35]},
-                {"name": "medial base of left lung", "elementId": 107, "xi": [0.787, 0.644, 0.899]},
-                {"name": "ventral base of left lung", "elementId": 106, "xi": [0.181, 0.841, 0.353]},
-                {"name": "dorsal base of right lung", "elementId": 94, "xi": [0.817, 0.776, 0.822]},
-                {"name": "apex of right lung", "elementId": 193, "xi": [0.441, 0.407, 0.816]},
-                {"name": "medial base of right lung", "elementId": 114, "xi": [0.183, 0.594, 0.295]},
-                {"name": "ventral base of right lung", "elementId": 112, "xi": [0.983, 0.571, 0.704]},
-                {"name": "laterodorsal tip of middle lobe of right lung", "elementId": 157,"xi": [0.422, 0.985, 0.631]},
-                {"name": "gastro-esophagal junction on lesser curvature", "elementId": 66, "xi": [0.834, 0.648, 0.747]},
-                {"name": "junction between fundus and body on greater curvature", "elementId": 67, "xi": [0.029, 0.856, 0.05]},
-                {"name": "pylorus on greater curvature", "elementId": 72, "xi": [0.023, 0.434, 0.406]},
-                {"name": "duodenum on greater curvature", "elementId": 72, "xi": [0.28, 0.465, 0.417]},
-                {"name": "apex of heart", "elementId": 107, "xi": [0.292, 0.684, 0.053]},
-                {"name": "left atrium epicardium venous midpoint", "elementId": 148, "xi": [0.989, 0.209, 0.726]},
-                {"name": "right atrium epicardium venous midpoint", "elementId": 134, "xi": [0.233, 0.997, 0.187]},
-                {"name": "apex of urinary bladder", "elementId": 8, "xi": [0.975, 0.506, 0.643]},
-                {"name": "left ureter junction with bladder", "elementId": 8, "xi": [0.463, 0.691, 0.229]},
-                {"name": "right ureter junction with bladder", "elementId": 14, "xi": [0.53, 0.681, 0.27]},
-                {"name": "urethra junction with bladder dorsal", "elementId": 12, "xi": [0.034, 0.719, 0.789]},
-                {"name": "urethra junction with bladder ventral", "elementId": 12, "xi": [0.033, 0.693, 0.748]},
-            ]
+                {"group": apexOfLeftLung, "x": [0.066, -0.087, 2.999]},
+                {"group": dorsalBaseOfLeftLung, "x": [0.154, 0.260, 1.743]},
+                {"group": medialBaseOfLeftLung, "x": [0.043, -0.020, 1.796]},
+                {"group": ventralBaseOfLeftLung, "x": [0.219, -0.287, 1.859]},
+                {"group": dorsalBaseOfRightLung, "x": [-0.160, 0.160, 1.520]},
+                {"group": apexOfRightLung, "x": [-0.088, -0.036, 2.993]},
+                {"group": medialBaseOfRightLung, "x": [-0.036, 0.059, 1.780]},
+                {"group": ventralBaseOfRightLung, "x": [-0.230, -0.236, 1.773]},
+                {"group": laterodorsalTipOfMiddleLobeOfRightLung, "x": [-0.284, -0.093, 2.541]},
+                {"group": gastroesophagalJunctionOnLesserCurvature, "x": [0.037, -0.252, 1.161]},
+                {"group": junctionBetweenFundusAndBodyOnGreaterCurvature, "x": [0.188, -0.184, 1.227]},
+                {"group": pylorusOnGreaterCurvature, "x": [-0.006, -0.326, 1.093]},
+                {"group": duodenumOnGreaterCurvature, "x": [-0.076, -0.319, 1.103]},
+                {"group": apexOfHeart, "x": [0.137, -0.185, 1.809]},
+                {"group": leftAtriumEpicardiumVenousMidpoint, "x": [0.002, 0.145, 2.294]},
+                {"group": rightAtriumEpicardiumVenousMidpoint, "x": [-0.046, 0.037, 2.226]},
+                {"group": apexOfUrinaryBladder, "x": [0.005, 0.129, 0.161]},
+                {"group": leftUreterJunctionWithBladder, "x":[0.107, 0.045, 0.220]},
+                {"group": rightUreterJunctionWithBladder, "x":[-0.106, 0.053, 0.217]},
+                {"group": urethraJunctionWithBladderDorsal, "x": [-0.007, -0.244, 0.229]},
+                {"group": urethraJunctionWithBladderVentral, "x": [-0.007, -0.253, 0.220]},
+    ]
 
-        nodeIdentifier = cylinder1._endNodeIdentifier + 1000
+        nodeIdentifier = cylinder1._endNodeIdentifier + 100
+        marker_locations = fieldmodule.createFieldFindMeshLocation(markerBodyCoordinates, body_coordinates, mesh)
+        marker_locations.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
         for bodyMarkerPoint in bodyMarkerPoints:
-            element = mesh.findElementByIdentifier(bodyMarkerPoint["elementId"])
             markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
             fieldcache.setNode(markerPoint)
-            markerName.assignString(fieldcache, bodyMarkerPoint["name"])
-            markerLocation.assignMeshLocation(fieldcache, element, bodyMarkerPoint["xi"])
+            markerBodyCoordinates.assignReal(fieldcache, bodyMarkerPoint["x"])
+            markerName.assignString(fieldcache, bodyMarkerPoint["group"][0])
+
+            element, xi = marker_locations.evaluateMeshLocation(fieldcache, 3)
+            markerLocation.assignMeshLocation(fieldcache, element, xi)
             nodeIdentifier += 1
 
         return annotationGroups
