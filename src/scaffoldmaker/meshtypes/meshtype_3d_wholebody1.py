@@ -62,13 +62,17 @@ Generates body coordinates using a solid cylinder of all cube elements,
     def getParameterSetNames():
         return [
             'Default',
-            'Coarse',
-            'Fine']
+            'Human Coarse',
+            'Human Fine',
+            'Rat Coarse',
+            'Rat Fine'
+        ]
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Default']
         options = {
+            'Base parameter set': parameterSetName,
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
@@ -196,6 +200,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
         :return: List of AnnotationGroup
         """
 
+        baseParameterSetName = options['Base parameter set']
+        isHuman = 'Human' in baseParameterSetName
+        isRat = 'Rat' in baseParameterSetName
+        isDefault = 'Default' in baseParameterSetName
         centralPath = options['Central path']
         full = not options['Lower half']
         elementsCountAcrossMajor = options['Number of elements across major']
@@ -240,8 +248,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
-        # body_coordinates
-        body_coordinates = findOrCreateFieldCoordinates(fieldmodule, name="body_coordinates")
+        # body coordinates
+        bodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="body_coordinates")
         tmp_region = region.createRegion()
         tmp_fieldmodule = tmp_region.getFieldmodule()
         tmp_body_coordinates = findOrCreateFieldCoordinates(tmp_fieldmodule, name="body_coordinates")
@@ -413,8 +421,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
         junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("junction between fundus and body on greater curvature")
 
         # marker coordinates. In future we want to have only one table for all species.
-        animal = 'human'
-        if animal == 'rat':
+        if isRat:
             bodyMarkerPoints = [
                 {"group": ("left hip joint", ''), "x": [0.367, 0.266, 0.477]},
                 {"group": ("right hip joint", ''), "x": [-0.367, 0.266, 0.477]},
@@ -467,7 +474,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 {"group": ("VAGUS_right", ''), "x": [0.053, 0.242, 2.801]},
                 {"group": ("HYPOGLOSSAL_right", ''), "x": [0.016, 0.234, 2.79]},
             ]
-        elif animal == 'human':
+        elif isHuman or isDefault:
             bodyMarkerPoints = [
                 {"group": apexOfLeftLung, "x": [0.066, -0.087, 2.999]},
                 {"group": dorsalBaseOfLeftLung, "x": [0.154, 0.260, 1.743]},
@@ -492,16 +499,16 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 {"group": urethraJunctionWithBladderVentral, "x": [-0.007, -0.253, 0.220]},
     ]
 
-        nodeIdentifier = cylinder1._endNodeIdentifier + 100
-        marker_locations = fieldmodule.createFieldFindMeshLocation(markerBodyCoordinates, body_coordinates, mesh)
-        marker_locations.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
+        nodeIdentifier = cylinder1._endNodeIdentifier + 1
+        findMarkerLocation = fieldmodule.createFieldFindMeshLocation(markerBodyCoordinates, bodyCoordinates, mesh)
+        findMarkerLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
         for bodyMarkerPoint in bodyMarkerPoints:
             markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
             fieldcache.setNode(markerPoint)
             markerBodyCoordinates.assignReal(fieldcache, bodyMarkerPoint["x"])
             markerName.assignString(fieldcache, bodyMarkerPoint["group"][0])
 
-            element, xi = marker_locations.evaluateMeshLocation(fieldcache, 3)
+            element, xi = findMarkerLocation.evaluateMeshLocation(fieldcache, 3)
             markerLocation.assignMeshLocation(fieldcache, element, xi)
             nodeIdentifier += 1
 
