@@ -98,23 +98,51 @@ class CylinderCentralPath:
     Stores ellipses parameters a long the central path.
     """
 
-    def __init__(self, region, centralPath, elementsCount):
+    def __init__(self, region, centralPath, elementsCount, cylinderScaffold=True, annotationGroup=None):
         """
         :param region: Zinc region to define model in.
         :param centralPath: Central path subscaffold comes from meshtype_1d_path1 and used to calculate ellipse radii.
         :param elementsCount: Number of elements needs to be sampled along the central path.
         """
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
-                                                                        [Node.VALUE_LABEL_VALUE,
-                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                         Node.VALUE_LABEL_D_DS3,
-                                                                         Node.VALUE_LABEL_D2_DS1DS2,
-                                                                         Node.VALUE_LABEL_D2_DS1DS3])
-        del tmpRegion
+        if cylinderScaffold:
+            for i in range(len(annotationGroup)):
+                tmpRegion = region.createRegion()
+                centralPath.generate(tmpRegion)
+                cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = extractPathParametersFromRegion(tmpRegion,
+                                                                                [Node.VALUE_LABEL_VALUE,
+                                                                                 Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                                                                                 Node.VALUE_LABEL_D_DS3,
+                                                                                 Node.VALUE_LABEL_D2_DS1DS2,
+                                                                                 Node.VALUE_LABEL_D2_DS1DS3], groupName=annotationGroup[i])
+                if i == 0:
+                    cx = cxGroup
+                    cd1 = cd1Group
+                    cd2 = cd2Group
+                    cd3 = cd3Group
+                    cd12 = cd12Group
+                    cd13 = cd13Group
+
+                del tmpRegion
+        else:
+            # centralPath = [[Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+            # Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]]
+            cx = []
+            cd1 = []
+            cd2 = []
+            cd12 = []
+            cd3 = []
+            cd13 = []
+
+            for i in range(len(centralPath)):
+                cx.append(centralPath[i][0])
+                cd1.append(centralPath[i][1])
+                cd2.append(centralPath[i][2])
+                cd12.append(centralPath[i][3])
+                cd3.append(centralPath[i][4])
+                cd13.append(centralPath[i][5])
+
         # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')
+        #     print(i, '[', cx[i], '],')
 
         sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCount)
         sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
