@@ -16,14 +16,14 @@ brainstem_terms = [ # Landmarks and groups
                     ("pons", "UBERON:0000988", "ILX:0109019"),
 
                     # Geometric markers
-                    ("brainstem dorsal midline caudal point", "None"),
-                    ("brainstem ventral midline caudal point", "None"),
-                    ("brainstem dorsal midline cranial point", "None"),
-                    ("brainstem ventral midline cranial point", "None"),
-                    ("brainstem dorsal midline pons-medulla junction", "None"),
-                    ("brainstem ventral midline pons-medulla junction", "None"),
-                    ("brainstem dorsal midline midbrain-pons junction", "None"),
-                    ("brainstem ventral midline midbrain-pons junction", "None")
+                    ("brainstem dorsal midline caudal point", "ILX:0778144"),
+                    ("brainstem ventral midline caudal point", "ILX:0778145"),
+                    ("brainstem dorsal midline cranial point", "ILX:0778146 "),
+                    ("brainstem ventral midline cranial point", "ILX:0778147"),
+                    ("brainstem dorsal midline pons-medulla junction", "ILX:0778148"),
+                    ("brainstem ventral midline pons-medulla junction", "ILX:0778149"),
+                    ("brainstem dorsal midline midbrain-pons junction", "ILX:0778150"),
+                    ("brainstem ventral midline midbrain-pons junction", "ILX:0778151")
                 ]
 
 def get_brainstem_term(name : str):
