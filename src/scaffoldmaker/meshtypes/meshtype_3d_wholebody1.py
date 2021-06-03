@@ -70,26 +70,28 @@ Generates body coordinates using a solid cylinder of all cube elements,
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
+        if parameterSetName == 'Default':
+            parameterSetName = 'Human Coarse'
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Default']
-        options = {
-            'Base parameter set': parameterSetName,
-            'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements across major': 6,
-            'Number of elements across minor': 6,
-            'Number of elements across shell': 1,
-            'Number of elements across transition': 1,
-            'Number of elements in abdomen': 5,
-            'Number of elements in thorax': 3,
-            'Number of elements in neck': 1,
-            'Number of elements in head': 2,
-            'Shell thickness proportion': 0.2,
-            'Discontinuity on the core boundary': True,
-            'Lower half': False,
-            'Use cross derivatives': False,
-            'Refine': False,
-            'Refine number of elements across major': 1,
-            'Refine number of elements along': 1
-        }
+        options = {}
+        options['Base parameter set'] = parameterSetName
+        options['Central path'] = copy.deepcopy(centralPathOption)
+        options['Number of elements across major'] = 6
+        options['Number of elements across minor'] = 6
+        options['Number of elements across shell'] = 1
+        options['Number of elements across transition'] = 1
+        options['Number of elements in abdomen'] = 5
+        options['Number of elements in thorax'] = 3
+        options['Number of elements in neck'] = 1
+        options['Number of elements in head'] = 2
+        options['Shell thickness proportion'] = 0.2
+        options['Discontinuity on the core boundary'] = True
+        options['Lower half'] = False
+        options['Use cross derivatives'] = False
+        options['Refine'] = False
+        options['Refine number of elements across major'] = 1
+        options['Refine number of elements along'] = 1
+
         if 'Coarse' in parameterSetName:
             pass
         if 'Fine' in parameterSetName:
@@ -203,7 +205,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
         baseParameterSetName = options['Base parameter set']
         isHuman = 'Human' in baseParameterSetName
         isRat = 'Rat' in baseParameterSetName
-        isDefault = 'Default' in baseParameterSetName
+
         centralPath = options['Central path']
         full = not options['Lower half']
         elementsCountAcrossMajor = options['Number of elements across major']
@@ -453,28 +455,12 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 {"group": apexOfAccessoryLung, "x": [0.041, -0.063, 1.965]},
                 {"group": ventralBaseOfAccessoryLung, "x": [0.143, -0.356, 1.66]},
                 {"group": dorsalBaseOfAccessoryLung, "x": [0.121, -0.067, 1.627]},
-                {"group": ("caudal-dorsal	", ''), "x": [-0.032, 0.418, 2.713]},
-                {"group": ("midRostCaud-dorsal", ''), "x": [-0.016, 0.233, 2.836]},
-                {"group": ("rostral-dorsal", ''), "x": [-0.017, 0.203, 2.941]},
-                {"group": ("caudal-ventral", ''), "x": [-0.028, 0.388, 2.72]},
-                {"group": ("midRostCaud-ventral", ''), "x": [-0.014, 0.139, 2.831]},
-                {"group": ("rostral-ventral", ''), "x": [-0.019, 0.167, 2.95]},
-                {"group": ("TRIGEMINAL_left", ''), "x": [-0.105, 0.193, 2.848]},
-                {"group": ("ABDUCENS_left", ''), "x": [-0.078, 0.158, 2.864]},
-                {"group": ("FACIAL_left", ''), "x": [-0.101, 0.266, 2.808]},
-                {"group": ("VESTIBULOCOCHLEAR_left", ''), "x": [-0.101, 0.263, 2.808]},
-                {"group": ("GLOSSOPHARYNGEAL_left", ''), "x": [-0.102, 0.262, 2.808]},
-                {"group": ("VAGUS_left", ''), "x": [-0.102, 0.262, 2.808]},
-                {"group": ("HYPOGLOSSAL_left", ''), "x": [-0.053, 0.234, 2.792]},
-                {"group": ("TRIGEMINAL_right", ''), "x": [0.067, 0.185, 2.848]},
-                {"group": ("ABDUCENS_right", ''), "x": [0.046, 0.153, 2.863]},
-                {"group": ("FACIAL_right", ''), "x": [0.051, 0.244, 2.8]},
-                {"group": ("VESTIBULOCOCHLEAR_right", ''), "x": [0.052, 0.243, 2.8]},
-                {"group": ("GLOSSOPHARYNGEAL_right", ''), "x": [0.053, 0.242, 2.801]},
-                {"group": ("VAGUS_right", ''), "x": [0.053, 0.242, 2.801]},
-                {"group": ("HYPOGLOSSAL_right", ''), "x": [0.016, 0.234, 2.79]},
+                {"group": ("brainstem dorsal midline caudal point", "ILX:0778144"), "x": [-0.032, 0.418, 2.713]},
+                {"group": ("brainstem dorsal midline cranial point", "ILX:0778146 "), "x": [-0.017, 0.203, 2.941]},
+                {"group": ("brainstem ventral midline caudal point", "ILX:0778145"), "x": [-0.028, 0.388, 2.72]},
+                {"group": ("brainstem ventral midline cranial point", "ILX:0778147"), "x": [-0.019, 0.167, 2.95]},
             ]
-        elif isHuman or isDefault:
+        elif isHuman:
             bodyMarkerPoints = [
                 {"group": apexOfLeftLung, "x": [0.066, -0.087, 2.999]},
                 {"group": dorsalBaseOfLeftLung, "x": [0.154, 0.260, 1.743]},
