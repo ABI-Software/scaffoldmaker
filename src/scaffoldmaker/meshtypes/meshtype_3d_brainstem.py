@@ -24,6 +24,50 @@ class MeshType_3d_brainstem1(Scaffold_base):
     """
 
     centralPathDefaultScaffoldPackages = {
+        'Brainstem 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 3.0,
+                'Number of elements': 3
+            },
+            'meshEdits': exnodeStringFromNodeValues( # dimensional.
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    [ [0.0,0.0,-8.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-7.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-6.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-5.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-4.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-3.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-2.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,-1.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0, 0.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ]
+                ]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1',
+                    'name': get_brainstem_term('medulla oblongata')[0],
+                    'ontId': get_brainstem_term('medulla oblongata')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '2',
+                    'name': get_brainstem_term('pons')[0],
+                    'ontId': get_brainstem_term('pons')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3',
+                    'name': get_brainstem_term('midbrain')[0],
+                    'ontId': get_brainstem_term('midbrain')[1]
+                }]
+        }),
         'Cat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -75,13 +119,14 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [0.0,18.9,-50.7], [0.0,-3.1,15.4], [ 7.8,-0.1,-0.6], [0.0,0.0,0.0], [0.0, 6.2,-0.1], [0.0,0.0,0.0] ],
-                [ [0.0,14.6,-36.3], [0.0,-5.4,13.3], [ 8.5, 0.0,-0.1], [0.0,0.0,0.0], [0.0, 7.8,-0.3], [0.0,0.0,0.0] ],
-                [ [0.0, 8.3,-24.1], [0.0,-6.4,12.4], [10.6, 0.5, 0.1], [0.0,0.0,0.0], [0.0,10.9,-0.1], [0.0,0.0,0.0] ],
-                [ [0.0, 1.8,-11.4], [0.0,-5.3,13.3], [18.2, 1.3,-0.1], [0.0,0.0,0.0], [0.0,11.2, 0.2], [0.0,0.0,0.0] ],
-                [ [0.0,-2.3,  2.4], [0.0,-3.9,13.2], [20.2, 0.0, 0.1], [0.0,0.0,0.0], [0.0,16.4,-0.1], [0.0,0.0,0.0] ],
-                [ [0.0,-6.0, 15.0], [0.0,-2.6,12.9], [17.6, 2.8, 0.3], [0.0,0.0,0.0], [0.0,15.7,-0.0], [0.0,0.0,0.0] ],
-                [ [0.0,-7.5, 28.0], [0.0,-0.4,13.1], [19.2, 2.9, 0.5], [0.0,0.0,0.0], [0.0,14.7,-0.8], [0.0,0.0,0.0] ]
+                [ [0.0,18.9,-50.7], [0.0,-3.2,15.4], [ 7.8,-0.2,-0.0], [-0.1, 0.0,-0.1], [ 0.2, 6.1,1.3], [ 0.1, 0.5, 1.4] ],
+                [ [0.0,14.6,-36.3], [0.0,-5.4,13.3], [ 8.5, 0.0,-0.0], [ 1.4, 0.3, 0.1], [ 0.0, 7.2,2.9], [-0.3, 1.8, 1.9] ],
+                [ [0.0, 8.3,-24.1], [0.0,-6.4,12.5], [10.6, 0.4, 0.2], [ 4.8, 0.6, 0.2], [-0.5, 9.7,5.0], [-0.4, 1.6, 0.6] ],
+                [ [0.0, 1.8,-11.4], [0.0,-5.3,13.3], [18.2, 1.1, 0.4], [ 4.8,-0.2,-0.1], [-0.7,10.4,4.2], [ 0.2, 3.0,-0.2] ],
+                [ [0.0,-2.3,  2.4], [0.0,-3.9,13.2], [20.2, 0.0, 0.0], [-0.4, 0.9, 0.1], [-0.0,15.7,4.6], [-0.9, 2.3,-0.6] ],
+                [ [0.0,-6.0, 15.0], [0.0,-2.6,12.9], [17.6, 2.7, 0.6], [-0.5, 1.4, 0.0], [-2.5,15.2,3.1], [-1.1,-0.6,-2.1] ],
+                [ [0.0,-7.5, 28.0], [0.0,-0.4,13.1], [19.2, 2.9, 0.1], [ 3.7,-1.1,-1.0], [-2.2,14.5,0.4], [ 1.6,-0.7,-3.2] ]
+
                 ]),
             'userAnnotationGroups': [
                 {
@@ -117,22 +162,13 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    # [ [ 2.9,0.0,-5.4], [ 0.4, 0.0,1.6], [-0.0,-1.9,0.0], [0.0,0.0,0.0], [1.3,-0.0,-0.0], [0.0,0.0,0.0] ],
-                    # [ [ 2.7,0.0,-3.5], [-0.9, 0.0,1.9], [ 0.1,-1.8,0.0], [0.0,0.0,0.0], [1.3, 0.1, 0.8], [0.0,0.0,0.0] ],
-                    # [ [ 1.1,0.0,-1.8], [-1.4, 0.0,1.7], [-0.0,-2.0,0.0], [0.0,0.0,0.0], [1.3,-0.0, 1.0], [0.0,0.0,0.0] ],
-                    # [ [-0.1,0.0,-0.2], [-1.1, 0.0,1.5], [-0.0,-2.7,0.0], [0.0,0.0,0.0], [1.5,-0.0, 1.1], [0.0,0.0,0.0] ],
-                    # [ [-1.1,0.0, 1.2], [-0.7, 0.0,1.6], [ 0.0,-2.7,0.0], [0.0,0.0,0.0], [1.7, 0.0, 1.0], [0.0,0.0,0.0] ],
-                    # [ [-1.5,0.0, 3.0], [-1.1,-0.0,1.8], [ 0.0,-2.2,0.0], [0.0,0.0,0.0], [1.7, 0.0, 1.0], [0.0,0.0,0.0] ],
-                    # [ [-3.3,0.0, 4.6], [-2.4,-0.1,1.4], [-0.0,-2.7,0.1], [0.0,0.0,0.0], [1.6,-0.0, 1.0], [0.0,0.0,0.0] ]
-
-                    [ [0.0, 2.9,-5.4], [0.0, 0.4,1.6], [1.9,0.0,0.0], [0.0,0.0,0.0], [ 0.0,1.3,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0, 2.7,-3.5], [0.0,-0.9,1.9], [1.8,0.1,0.0], [0.0,0.0,0.0], [-0.1,1.3,0.8], [0.0,0.0,0.0] ],
-                    [ [0.0, 1.1,-1.8], [0.0,-1.4,1.7], [2.0,0.0,0.0], [0.0,0.0,0.0], [ 0.0,1.3,1.0], [0.0,0.0,0.0] ],
-                    [ [0.0,-0.1,-0.2], [0.0,-1.1,1.5], [2.7,0.0,0.0], [0.0,0.0,0.0], [ 0.0,1.5,1.1], [0.0,0.0,0.0] ],
-                    [ [0.0,-1.1, 1.2], [0.0,-0.7,1.6], [2.7,0.0,0.0], [0.0,0.0,0.0], [ 0.0,1.7,1.0], [0.0,0.0,0.0] ],
-                    [ [0.0,-1.5, 3.0], [0.0,-1.1,1.8], [2.2,0.0,0.0], [0.0,0.0,0.0], [ 0.0,1.7,1.0], [0.0,0.0,0.0] ],
-                    [ [0.0,-3.3, 4.6], [0.1,-2.4,1.4], [2.7,0.0,0.1], [0.0,0.0,0.0], [ 0.0,1.6,1.0], [0.0,0.0,0.0] ]
-
+                    [ [0.0, 2.9,-5.4], [0.0, 0.5,1.7], [1.9,0.0,0.0], [-0.2,0.2,0.1], [0.0,1.3,-0.3], [-0.1,0.3, 1.2] ],
+                    [ [0.0, 2.7,-3.5], [0.0,-0.9,2.0], [1.8,0.1,0.0], [ 0.0,0.0,0.0], [-0.1,1.4,0.6], [-0.0,0.0, 0.7] ],
+                    [ [0.0, 1.1,-1.8], [0.0,-1.4,1.7], [2.0,0.0,0.0], [ 0.5,0.0,0.0], [-0.0,1.3,1.1], [ 0.0,0.1, 0.2] ],
+                    [ [0.0,-0.1,-0.2], [0.0,-1.1,1.5], [2.7,0.0,0.0], [ 0.3,0.0,0.0], [-0.0,1.5,1.1], [ 0.0,0.3,-0.1] ],
+                    [ [0.0,-1.1, 1.2], [0.0,-0.7,1.6], [2.7,0.0,0.0], [-0.2,0.0,0.0], [-0.0,1.8,0.8], [ 0.0,0.1,-0.1] ],
+                    [ [0.0,-1.5, 3.0], [0.0,-1.1,1.9], [2.2,0.0,0.0], [-0.1,0.0,0.0], [-0.0,1.7,1.0], [-0.0,-0.4,0.4] ],
+                    [ [0.0,-3.3, 4.6], [0.0,-2.4,1.3], [2.7,0.0,0.1], [ 1.1,0.1,0.1], [-0.1,0.9,1.7], [-0.1,-1.2,0.9] ]
                     ]),
             'userAnnotationGroups': [
                 {
@@ -167,6 +203,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
+            'Brainstem 1',
             'Cat 1',
             'Human 1',
             'Rat 1']
@@ -174,49 +211,34 @@ class MeshType_3d_brainstem1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if parameterSetName == 'Default':
-            parameterSetName = 'Cat 1'
+            parameterSetName = 'Brainstem 1'
 
-        if 'Cat 1' in parameterSetName:
+        if 'Brainstem 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Brainstem 1']
+
+        elif 'Cat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Cat 1']
-            options = {
-                'Base parameter set': parameterSetName,
-                'Central path': copy.deepcopy(centralPathOption),
-                'Number of elements across major': 6,
-                'Number of elements across minor': 6,
-                'Number of elements along': 12,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements across major and minor': 1,
-                'Refine number of elements along': 1
-            }
 
         elif 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
-            options = {
-                'Base parameter set': parameterSetName,
-                'Central path': copy.deepcopy(centralPathOption),
-                'Number of elements across major': 6,
-                'Number of elements across minor': 6,
-                'Number of elements along': 10,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements across major and minor': 1,
-                'Refine number of elements along': 1
-            }
 
         elif 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
-            options = {
-                'Base parameter set': parameterSetName,
-                'Central path': copy.deepcopy(centralPathOption),
-                'Number of elements across major': 6,
-                'Number of elements across minor': 6,
-                'Number of elements along': 8,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements across major and minor': 1,
-                'Refine number of elements along': 1
-            }
+
+        centralPathOption1 = cls.centralPathDefaultScaffoldPackages['Brainstem 1']
+
+        options = {
+            'Base parameter set': parameterSetName,
+            'Central path': copy.deepcopy(centralPathOption),
+            'Brainstem path': copy.deepcopy(centralPathOption1),
+            'Number of elements across major': 6,
+            'Number of elements across minor': 6,
+            'Number of elements along': 8,
+            'Use cross derivatives': False,
+            'Refine': False,
+            'Refine number of elements across major and minor': 1,
+            'Refine number of elements along': 1
+        }
 
         return options
 
@@ -234,13 +256,13 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Central path' or optionName == 'Brainstem path':
             return [MeshType_1d_path1]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
+        if optionName == 'Central path' or optionName == 'Brainstem path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
@@ -257,7 +279,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Central path' or optionName == 'Brainstem path':
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
@@ -289,11 +311,13 @@ class MeshType_3d_brainstem1(Scaffold_base):
         :return: None
         """
         parameterSetName = options['Base parameter set']
+        isBrainstem = 'Brainstem 1' in parameterSetName
         isCat = 'Cat 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
 
         centralPath = options['Central path']
+        brainstemPath = options['Brainstem path']
         elementsCountAcrossMajor = options['Number of elements across major']
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
@@ -350,7 +374,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
         ventralMidMidbrainPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                        get_brainstem_term('brainstem ventral midline midbrain-pons junction'))
 
-
         #######################
         # CREATE MAIN BODY MESH
         #######################
@@ -370,155 +393,57 @@ class MeshType_3d_brainstem1(Scaffold_base):
                                  cylinderCentralPath=cylinderCentralPath,
                                  useCrossDerivatives=False)
 
-        # Organ coordinates
+        brainstem_coordinates = findOrCreateFieldCoordinates(fm, name="brainstem coordinates")
+        # Brain coordinates
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
-        organ_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="organ coordinates")
+        tmp_brainstem_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="brainstem coordinates")
 
-        if isCat:
-            centralPath1 = [ # [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                # Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 0.5], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 1.0], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 1.5], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 2.0], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 2.5], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 3.0], [0.0, 0.0, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-            ]
+        cylinderCentralPath1 = CylinderCentralPath(tmp_region, brainstemPath, elementsCountAlong, annotationGroup=brainTermsAlong)
 
-            cylinderCentralPath1 = CylinderCentralPath(tmp_fm, centralPath1, elementsCountAlong, cylinderScaffold=False,
-                                                       annotationGroup=brainTermsAlong)
-            base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
-                                 centre=[0.0, 0.0, 0.0],
-                                 alongAxis=cylinderCentralPath1.alongAxis[0],
-                                 majorAxis=cylinderCentralPath1.majorAxis[0],
-                                 minorRadius=cylinderCentralPath1.minorRadii[0])
+        base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
+                             centre=[0.0, 0.0, 0.0],
+                             alongAxis=cylinderCentralPath1.alongAxis[0],
+                             majorAxis=cylinderCentralPath1.majorAxis[0],
+                             minorRadius=cylinderCentralPath1.minorRadii[0])
 
-            cylinder2 = CylinderMesh(tmp_fm, organ_coordinates, elementsCountAlong, base1,
-                                     cylinderShape=cylinderShape,
-                                     cylinderCentralPath=cylinderCentralPath1,
-                                     useCrossDerivatives=False)
+        cylinder2 = CylinderMesh(tmp_fm, tmp_brainstem_coordinates, elementsCountAlong, base1,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath1,
+                                 useCrossDerivatives=False)
 
-            sir = tmp_region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemory()
-            tmp_region.write(sir)
-            result, buffer = srm.getBuffer()
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(buffer)
-            fielditer = fm.createFielditerator()
+        # Write two coordinates
+        sir = tmp_region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        tmp_region.write(sir)
+        result, buffer = srm.getBuffer()
+
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemoryBuffer(buffer)
+        fielditer = fm.createFielditerator()
+        field = fielditer.next()
+        region.read(sir)
+
+        while field.isValid():
             field = fielditer.next()
-            while field.isValid():
-                field = fielditer.next()
+        del srm
+        del sir
+        del tmp_fm
+        del tmp_brainstem_coordinates
+        del tmp_region
 
-            # Annotating groups
-            iRegionBoundaries = [int(7 * elementsCountAlong / 15), int(14 * elementsCountAlong / 15)]
-            for elementIdentifier in range(1, mesh.getSize() + 1):
-                element = mesh.findElementByIdentifier(elementIdentifier)
-                brainstemMeshGroup.addElement(element)
-                if elementIdentifier > (iRegionBoundaries[-1] * elementsPerLayer):
-                    midbrainMeshGroup.addElement(element)
-                elif (elementIdentifier > (iRegionBoundaries[0] * elementsPerLayer)) and (elementIdentifier <= (iRegionBoundaries[-1] * elementsPerLayer)):
-                    ponsMeshGroup.addElement(element)
-                else:
-                    medullaMeshGroup.addElement(element)
-
-        elif isHuman:
-            centralPath1 = [
-                # [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                # Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-                [ [0.0,0.0,-50.0], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ],
-                [ [0.0,0.0,-37.0], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ],
-                [ [0.0,0.0,-24.1], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ],
-                [ [0.0,0.0,-11.1], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ],
-                [ [0.0,0.0,  1.9], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ],
-                [ [0.0,0.0, 14.9], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ],
-                [ [0.0,0.0, 27.8], [0.0,0.0,13.0], [25.9,0.0,0.0], [0.0,0.0,0.0], [-0.0,25.9,0.0], [0.0,0.0,0.0] ]
-            ]
-
-            cylinderCentralPath1 = CylinderCentralPath(tmp_fm, centralPath1, elementsCountAlong, cylinderScaffold=False,
-                                                       annotationGroup=brainTermsAlong)
-            base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
-                                 centre=[0.0, 0.0, 0.0],
-                                 alongAxis=cylinderCentralPath1.alongAxis[0],
-                                 majorAxis=cylinderCentralPath1.majorAxis[0],
-                                 minorRadius=cylinderCentralPath1.minorRadii[0])
-
-            cylinder2 = CylinderMesh(tmp_fm, organ_coordinates, elementsCountAlong, base1,
-                                     cylinderShape=cylinderShape,
-                                     cylinderCentralPath=cylinderCentralPath1,
-                                     useCrossDerivatives=False)
-
-            sir = tmp_region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemory()
-            tmp_region.write(sir)
-            result, buffer = srm.getBuffer()
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(buffer)
-            fielditer = fm.createFielditerator()
-            field = fielditer.next()
-            while field.isValid():
-                field = fielditer.next()
-
-            # Annotating groups
-            iRegionBoundaries = [int(6 * elementsCountAlong / 15), int(13 * elementsCountAlong / 15)]
-            for elementIdentifier in range(1, mesh.getSize() + 1):
-                element = mesh.findElementByIdentifier(elementIdentifier)
-                brainstemMeshGroup.addElement(element)
-                if elementIdentifier > (iRegionBoundaries[-1] * elementsPerLayer):
-                    midbrainMeshGroup.addElement(element)
-                elif (elementIdentifier > (iRegionBoundaries[0] * elementsPerLayer)) and (
-                        elementIdentifier <= (iRegionBoundaries[-1] * elementsPerLayer)):
-                    ponsMeshGroup.addElement(element)
-                else:
-                    medullaMeshGroup.addElement(element)
-
-        elif isRat:
-            centralPath1 = [ # [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                # Node.VALUE _LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-                [[0.0, 0.0,  0.0], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0,  1.8], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0,  3.6], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0,  5.3], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0,  7.1], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0,  8.9], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 10.7], [0.0, 0.0, 1.8], [0.0, 3.6, 0.0], [0.0, 0.0, 0.0], [-3.6, 0.0, 0.0], [0.0, 0.0, 0.0]]
-            ]
-
-            cylinderCentralPath1 = CylinderCentralPath(tmp_fm, centralPath1, elementsCountAlong, cylinderScaffold=False, annotationGroup=brainTermsAlong)
-            base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
-                                centre=[0.0, 0.0, 0.0],
-                                alongAxis=cylinderCentralPath1.alongAxis[0],
-                                majorAxis=cylinderCentralPath1.majorAxis[0],
-                                minorRadius=cylinderCentralPath1.minorRadii[0])
-
-            cylinder2 = CylinderMesh(tmp_fm, organ_coordinates, elementsCountAlong, base1,
-                                     cylinderShape=cylinderShape,
-                                     cylinderCentralPath=cylinderCentralPath1,
-                                     useCrossDerivatives=False)
-
-            sir = tmp_region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemory()
-            tmp_region.write(sir)
-            result, buffer = srm.getBuffer()
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(buffer)
-            fielditer = fm.createFielditerator()
-            field = fielditer.next()
-            while field.isValid():
-                field = fielditer.next()
-
-            # Annotating groups
-            iRegionBoundaries = [int(7 * elementsCountAlong / 15), int(13 * elementsCountAlong / 15)]
-            for elementIdentifier in range(1, mesh.getSize() + 1):
-                element = mesh.findElementByIdentifier(elementIdentifier)
-                brainstemMeshGroup.addElement(element)
-                if elementIdentifier > (iRegionBoundaries[-1] * elementsPerLayer):
-                    midbrainMeshGroup.addElement(element)
-                elif (elementIdentifier > (iRegionBoundaries[0] * elementsPerLayer)) and (elementIdentifier <= (iRegionBoundaries[-1] * elementsPerLayer)):
-                    ponsMeshGroup.addElement(element)
-                else:
-                    medullaMeshGroup.addElement(element)
+        # Annotating groups
+        iRegionBoundaries = [int(6 * elementsCountAlong / 15), int(13 * elementsCountAlong / 15)]
+        for elementIdentifier in range(1, mesh.getSize() + 1):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            brainstemMeshGroup.addElement(element)
+            if elementIdentifier > (iRegionBoundaries[-1] * elementsPerLayer):
+                midbrainMeshGroup.addElement(element)
+            elif (elementIdentifier > (iRegionBoundaries[0] * elementsPerLayer)) and (
+                    elementIdentifier <= (iRegionBoundaries[-1] * elementsPerLayer)):
+                ponsMeshGroup.addElement(element)
+            else:
+                medullaMeshGroup.addElement(element)
 
         ################
         # point markers
@@ -527,6 +452,17 @@ class MeshType_3d_brainstem1(Scaffold_base):
         eIndexPM = {}
         xiPM = {}
         pointMarkers = {}
+
+        # pointMarkers = [
+        #     {"group" : dorsalMidCaudalGroup, "marker_brainstem_coordinates" : [ 3.0, 1.0, 0.0 ]},
+        #     {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [3.0, 1.0, 0.0]},
+        #     {"group": ventralMidCranialGroup, "marker_brainstem_coordinates": [3.0, 1.0, 0.0]}
+        # ]
+        #
+        # for pointMarker in pointMarkers:
+        #     group = pointMarker["group"]
+        #     markerName.assignString(fieldcache, group.getName())
+
 
         groupIndexPM['brainstem ventral midline caudal point'] = ventralMidCaudalGroup
         eIndexPM['brainstem ventral midline caudal point'] = int(elementsPerLayer / 2) - (elementsCountAcrossMinor - 1)
@@ -631,7 +567,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         is_face1 = fm.createFieldAnd(isGroup, is_exterior_face_xi1)
         is_face3 = fm.createFieldAnd(isGroup, is_exterior_face_xi3)
         is_face_ext = fm.createFieldOr(is_face1, is_face3)
-        faceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("brainstem_exterior", None))
+        faceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term('brainstem exterior'))
         faceGroup.getMeshGroup(mesh2d).addElementsConditional(is_face_ext)
 
         # external regions
@@ -640,7 +576,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
             subGroup = AnnotationGroup(region, get_brainstem_term(subregion))
             issub = subGroup.getFieldElementGroup(mesh2d)
             is_subface = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
-            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, (subregion + '_exterior', None))
+            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(subregion))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface)
 
 def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):

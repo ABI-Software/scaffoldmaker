@@ -23,7 +23,12 @@ brainstem_terms = [ # Landmarks and groups
                     ("brainstem dorsal midline pons-medulla junction", "ILX:0778148"),
                     ("brainstem ventral midline pons-medulla junction", "ILX:0778149"),
                     ("brainstem dorsal midline midbrain-pons junction", "ILX:0778150"),
-                    ("brainstem ventral midline midbrain-pons junction", "ILX:0778151")
+                    ("brainstem ventral midline midbrain-pons junction", "ILX:0778151"),
+
+                    # Surface
+                    ("brainstem exterior", "UBERON:0002298", "ILX:0101444"),
+                    ("midbrain exterior", "UBERON:0001891", "ILX:0106935"),
+                    ("medulla oblongata exterior", "UBERON:0001896", "ILX:0106736")
                 ]
 
 def get_brainstem_term(name : str):

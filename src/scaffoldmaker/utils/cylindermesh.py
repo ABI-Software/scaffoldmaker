@@ -124,6 +124,11 @@ class CylinderCentralPath:
                                                                                  Node.VALUE_LABEL_D_DS3,
                                                                                  Node.VALUE_LABEL_D2_DS1DS2,
                                                                                  Node.VALUE_LABEL_D2_DS1DS3], groupName=annotationGroup[i])
+                # arcLength = 0.0
+                # for e in range(len(cxGroup) - 1):
+                #     arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
+                #                                                  cxGroup[e + 1], cd1Group[e + 1])
+                # arcLengthOfGroupsAlong.append(arcLength)
                 if i == 0:
                     cx = cxGroup
                     cd1 = cd1Group
