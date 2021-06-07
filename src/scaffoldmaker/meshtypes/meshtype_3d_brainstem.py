@@ -204,7 +204,6 @@ class MeshType_3d_brainstem1(Scaffold_base):
     def getParameterSetNames():
         return [
             'Default',
-            'Brainstem 1',
             'Cat 1',
             'Human 1',
             'Rat 1']
@@ -212,26 +211,20 @@ class MeshType_3d_brainstem1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if parameterSetName == 'Default':
-            parameterSetName = 'Brainstem 1'
+            parameterSetName = 'Human 1'
 
-        if 'Brainstem 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Brainstem 1']
-
-        elif 'Cat 1' in parameterSetName:
+        if 'Cat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Cat 1']
 
-        elif 'Human 1' in parameterSetName:
+        if 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
 
-        elif 'Rat 1' in parameterSetName:
+        if 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
-
-        centralPathOption1 = cls.centralPathDefaultScaffoldPackages['Brainstem 1']
 
         options = {
             'Base parameter set': parameterSetName,
             'Central path': copy.deepcopy(centralPathOption),
-            'Brainstem path': copy.deepcopy(centralPathOption1),
             'Number of elements across major': 6,
             'Number of elements across minor': 6,
             'Number of elements along': 8,
@@ -257,13 +250,13 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path' or optionName == 'Brainstem path':
+        if optionName == 'Central path':
             return [MeshType_1d_path1]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path' or optionName == 'Brainstem path':
+        if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
@@ -280,7 +273,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path' or optionName == 'Brainstem path':
+        if optionName == 'Central path':
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
@@ -303,8 +296,8 @@ class MeshType_3d_brainstem1(Scaffold_base):
             options['Number of elements along'] = 2
         return dependentChanges
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
@@ -312,13 +305,12 @@ class MeshType_3d_brainstem1(Scaffold_base):
         :return: None
         """
         parameterSetName = options['Base parameter set']
-        isBrainstem = 'Brainstem 1' in parameterSetName
         isCat = 'Cat 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
 
         centralPath = options['Central path']
-        brainstemPath = options['Brainstem path']
+        brainstemPath = cls.centralPathDefaultScaffoldPackages['Brainstem 1']
         elementsCountAcrossMajor = options['Number of elements across major']
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAlong = options['Number of elements along']
@@ -528,12 +520,12 @@ class MeshType_3d_brainstem1(Scaffold_base):
         is_exterior_face_xi3 = fm.createFieldOr(fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)), fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)))
 
         # external regions
-        namelist = ['brainstem', 'midbrain', 'medulla oblongata', 'pons']
-        for subregion in namelist:
-            subGroup = AnnotationGroup(region, get_brainstem_term(subregion))
+        groupNames = ['brainstem', 'midbrain', 'medulla oblongata', 'pons']
+        for groupName in groupNames:
+            subGroup = AnnotationGroup(region, get_brainstem_term(groupName))
             issub = subGroup.getFieldElementGroup(mesh2d)
             is_subface_ext = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
-            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(subregion + ' exterior'))
+            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(groupName + ' exterior'))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface_ext)
 
 def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
