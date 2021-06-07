@@ -6,6 +6,7 @@ from __future__ import division
 import copy
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.node import Node
+from opencmiss.zinc.field import Field, FieldFindMeshLocation
 from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
@@ -394,6 +395,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                                  useCrossDerivatives=False)
 
         brainstem_coordinates = findOrCreateFieldCoordinates(fm, name="brainstem coordinates")
+
         # Brain coordinates
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
@@ -448,60 +450,16 @@ class MeshType_3d_brainstem1(Scaffold_base):
         ################
         # point markers
         ################
-        groupIndexPM = {}
-        eIndexPM = {}
-        xiPM = {}
-        pointMarkers = {}
-
-        # pointMarkers = [
-        #     {"group" : dorsalMidCaudalGroup, "marker_brainstem_coordinates" : [ 3.0, 1.0, 0.0 ]},
-        #     {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [3.0, 1.0, 0.0]},
-        #     {"group": ventralMidCranialGroup, "marker_brainstem_coordinates": [3.0, 1.0, 0.0]}
-        # ]
-        #
-        # for pointMarker in pointMarkers:
-        #     group = pointMarker["group"]
-        #     markerName.assignString(fieldcache, group.getName())
-
-
-        groupIndexPM['brainstem ventral midline caudal point'] = ventralMidCaudalGroup
-        eIndexPM['brainstem ventral midline caudal point'] = int(elementsPerLayer / 2) - (elementsCountAcrossMinor - 1)
-        xiPM['brainstem ventral midline caudal point'] = [1.0, 0.0, 0.0]
-
-        groupIndexPM['brainstem dorsal midline caudal point'] = dorsalMidCaudalGroup
-        eIndexPM['brainstem dorsal midline caudal point'] = int(elementsPerLayer / 2)
-        xiPM['brainstem dorsal midline caudal point'] = [1.0, 0.0, 1.0]
-
-        groupIndexPM['brainstem dorsal midline pons-medulla junction'] = dorsalMidMedullaPonsJunction
-        eIndexPM['brainstem dorsal midline pons-medulla junction'] = int((iRegionBoundaries[0]) * elementsPerLayer + elementsPerLayer / 2)
-        xiPM['brainstem dorsal midline pons-medulla junction'] = [1.0, 0.0, 1.0]
-
-        groupIndexPM['brainstem ventral midline pons-medulla junction'] = ventralMidMedullaPonsJunction
-        eIndexPM['brainstem ventral midline pons-medulla junction'] = int((iRegionBoundaries[0]) * elementsPerLayer + (elementsPerLayer / 2) - (elementsCountAcrossMinor - 1))
-        xiPM['brainstem ventral midline pons-medulla junction'] = [1.0, 0.0, 0.0]
-
-        groupIndexPM['brainstem dorsal midline midbrain-pons junction'] = dorsalMidMidbrainPonsJunction
-        eIndexPM['brainstem dorsal midline midbrain-pons junction'] = int(iRegionBoundaries[-1] * elementsPerLayer + elementsPerLayer / 2)
-        xiPM['brainstem dorsal midline midbrain-pons junction'] = [1.0, 0.0, 1.0]
-
-        groupIndexPM['brainstem ventral midline midbrain-pons junction'] = ventralMidMidbrainPonsJunction
-        eIndexPM['brainstem ventral midline midbrain-pons junction'] = int(iRegionBoundaries[-1] * elementsPerLayer + (elementsPerLayer / 2) - (elementsCountAcrossMinor - 1))
-        xiPM['brainstem ventral midline midbrain-pons junction'] = [1.0, 0.0, 0.0]
-
-        groupIndexPM['brainstem dorsal midline cranial point'] = dorsalMidCranGroup
-        eIndexPM['brainstem dorsal midline cranial point'] = (elementsPerLayer * (elementsCountAlong - 1)) + int(elementsPerLayer / 2)
-        xiPM['brainstem dorsal midline cranial point'] = [1.0, 1.0, 1.0]
-
-        groupIndexPM['brainstem ventral midline cranial point'] = ventralMidCranGroup
-        eIndexPM['brainstem ventral midline cranial point'] = int((elementsPerLayer * (elementsCountAlong - 1)) + (int(elementsPerLayer / 2) - elementsCountAcrossMinor + 1))
-        xiPM['brainstem ventral midline cranial point'] = [1.0, 1.0, 0.0]
-
-        for key in eIndexPM.keys():
-            pointMarkers[key] = {"group": groupIndexPM[key], "elementID": eIndexPM[key], "xi": xiPM[key]}
-
-        # the following emergent markers are in bodyCoordinates. Will not work in normal coordinates system.
-        emergentMarkers = createCranialNerveEmergentMarkers(region, mesh, "coordinates")
-        pointMarkers.update(emergentMarkers)
+        pointMarkers = [
+            {"group" : dorsalMidCaudalGroup, "marker_brainstem_coordinates" : [ 0.0, 1.0, -8.0 ]},
+            {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [0.0, -1.0, -8.0]},
+            {"group": dorsalMidCranGroup, "marker_brainstem_coordinates": [0.0, 1.0, 0.0]},
+            {"group": ventralMidCranGroup, "marker_brainstem_coordinates": [0.0, -1.0, 0.0]},
+            {"group": dorsalMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, -5.0]},
+            {"group": ventralMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, -5.0]},
+            {"group": dorsalMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, -2.0]},
+            {"group": ventralMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, -2.0]},
+        ]
 
         markerGroup = findOrCreateFieldGroup(fm, "marker")
         markerName = findOrCreateFieldStoredString(fm, name="marker_name")
@@ -509,26 +467,33 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerBrainstemCoordinates = findOrCreateFieldCoordinates(fm, name="marker_body_coordinates")
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
+        markerTemplateInternal.defineField(markerBrainstemCoordinates)
 
         cache = fm.createFieldcache()
 
-        if pointMarkers:
-            brainstemNodesetGroup = brainstemGroup.getNodesetGroup(nodes)
-            nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-            for key in pointMarkers:
-                annotationGroup = pointMarkers[key]["group"]
-                addMarker = {"name": key, "xi": pointMarkers[key]["xi"]}
-                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-                cache.setNode(markerPoint)
-                markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(pointMarkers[key]["elementID"]),
-                                                  addMarker["xi"])
-                markerName.assignString(cache, addMarker["name"])
-                annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
-                brainstemNodesetGroup.addNode(markerPoint)
-                nodeIdentifier += 1
+        brainstemNodesetGroup = brainstemGroup.getNodesetGroup(nodes)
+
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        findMarkerLocation = fm.createFieldFindMeshLocation(markerBrainstemCoordinates, brainstem_coordinates, mesh)
+        findMarkerLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
+
+        for pointMarker in pointMarkers:
+            group = pointMarker["group"]
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            cache.setNode(markerPoint)
+
+            markerBrainstemCoordinates.assignReal(cache, pointMarker["marker_brainstem_coordinates"])
+            markerName.assignString(cache, group.getName())
+
+            element, xi = findMarkerLocation.evaluateMeshLocation(cache, 3)
+            markerLocation.assignMeshLocation(cache, element, xi)
+            group.getNodesetGroup(nodes).addNode(markerPoint)
+            brainstemNodesetGroup.addNode(markerPoint)
+            nodeIdentifier += 1
 
         return annotationGroups
 
@@ -562,22 +527,14 @@ class MeshType_3d_brainstem1(Scaffold_base):
             fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)))
         is_exterior_face_xi3 = fm.createFieldOr(fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)), fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)))
 
-        annoGroup = AnnotationGroup(region, get_brainstem_term('brainstem'))
-        isGroup = annoGroup.getFieldElementGroup(mesh2d)
-        is_face1 = fm.createFieldAnd(isGroup, is_exterior_face_xi1)
-        is_face3 = fm.createFieldAnd(isGroup, is_exterior_face_xi3)
-        is_face_ext = fm.createFieldOr(is_face1, is_face3)
-        faceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term('brainstem exterior'))
-        faceGroup.getMeshGroup(mesh2d).addElementsConditional(is_face_ext)
-
         # external regions
-        namelist = ['midbrain', 'pons', 'medulla oblongata']
+        namelist = ['brainstem', 'midbrain', 'medulla oblongata', 'pons']
         for subregion in namelist:
             subGroup = AnnotationGroup(region, get_brainstem_term(subregion))
             issub = subGroup.getFieldElementGroup(mesh2d)
-            is_subface = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
-            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(subregion))
-            subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface)
+            is_subface_ext = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
+            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(subregion + ' exterior'))
+            subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface_ext)
 
 def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
     # create marker points for locations the cranial nerves emerge from brainstem mesh, based on the USF cat brainstem data.
