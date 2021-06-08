@@ -251,10 +251,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
         # body coordinates
-        bodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="body_coordinates")
+        bodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="body coordinates")
         tmp_region = region.createRegion()
         tmp_fieldmodule = tmp_region.getFieldmodule()
-        tmp_body_coordinates = findOrCreateFieldCoordinates(tmp_fieldmodule, name="body_coordinates")
+        tmp_body_coordinates = findOrCreateFieldCoordinates(tmp_fieldmodule, name="body coordinates")
         tmp_cylinder = CylinderMesh(tmp_fieldmodule, tmp_body_coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
