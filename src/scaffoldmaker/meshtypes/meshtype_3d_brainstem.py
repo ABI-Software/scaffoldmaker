@@ -31,20 +31,20 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 3.0,
-                'Number of elements': 3
+                'Number of elements': 6
             },
             'meshEdits': exnodeStringFromNodeValues( # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [ [0.0,0.0,-8.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-7.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-6.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-5.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-4.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-3.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-2.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0,-1.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
-                    [ [0.0,0.0, 0.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ]
+                    [ [0.0,0.0,0.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,1.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,2.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,3.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,4.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,5.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,6.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,7.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
+                    [ [0.0,0.0,8.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ]
                 ]),
             'userAnnotationGroups': [
                 {
@@ -75,16 +75,23 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 3.0,
-                'Number of elements': 3
+                'Number of elements': 6
             },
             'meshEdits': exnodeStringFromNodeValues( # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [ [0.0,1.0,-5.0], [0.0,0.0,4.5], [5.0,0.0,0.0], [1.0,0.0,0.0], [0.0,2.4,0.0], [0.0,2.2,0.0] ],
-                    [ [0.0,1.0,-0.5], [0.0,0.0,4.5], [6.0,0.0,0.0], [1.0,0.0,0.0], [0.0,4.0,0.0], [0.0,1.1,0.0] ],
-                    [ [0.0,1.0, 4.0], [0.0,0.0,4.5], [7.0,0.0,0.0], [1.0,0.0,0.0], [0.0,4.5,0.0], [0.0,0.8,0.0] ],
-                    [ [0.0,1.0, 8.5], [0.0,0.0,4.5], [8.0,0.0,0.0], [1.0,0.0,0.0], [0.0,5.5,0.0], [0.0,0.8,0.0] ],
-                    [ [0.0,1.0,13.0], [0.0,0.0,4.5], [9.0,0.0,0.0], [1.0,0.0,0.0], [0.0,6.0,0.0], [0.0,0.2,0.0] ]
+                    # [ [0.0,1.0,-5.0], [0.0,0.0,4.5], [5.0,0.0,0.0], [1.0,0.0,0.0], [0.0,2.4,0.0], [0.0,2.2,0.0] ],
+                    # [ [0.0,1.0,-0.5], [0.0,0.0,4.5], [6.0,0.0,0.0], [1.0,0.0,0.0], [0.0,4.0,0.0], [0.0,1.1,0.0] ],
+                    # [ [0.0,1.0, 4.0], [0.0,0.0,4.5], [7.0,0.0,0.0], [1.0,0.0,0.0], [0.0,4.5,0.0], [0.0,0.8,0.0] ],
+                    # [ [0.0,1.0, 8.5], [0.0,0.0,4.5], [8.0,0.0,0.0], [1.0,0.0,0.0], [0.0,5.5,0.0], [0.0,0.8,0.0] ],
+                    # [ [0.0,1.0,13.0], [0.0,0.0,4.5], [9.0,0.0,0.0], [1.0,0.0,0.0], [0.0,6.0,0.0], [0.0,0.2,0.0] ]
+                    [ [0.0,18.9,-50.7], [0.0,-3.2,15.4], [ 7.8,-0.2,0.0], [ 0.5, 0.2, 0.0], [ 0.2,6.1, 1.3], [-0.1,0.7, 1.7] ],
+                    [ [0.0,14.6,-36.3], [0.0,-5.4,13.3], [ 8.5, 0.0,0.0], [ 0.9, 0.2, 0.1], [ 0.0,7.2, 2.9], [-0.2,1.4, 1.6] ],
+                    [ [0.0, 8.3,-24.1], [0.0,-6.4,12.5], [ 9.6, 0.2,0.0], [ 4.4, 0.1, 0.0], [-0.2,8.9, 4.6], [-0.1,1.3, 0.5] ],
+                    [ [0.0, 1.8,-11.4], [0.0,-5.3,13.3], [17.4, 0.2,0.0], [ 5.3,-0.1,-0.0], [-0.1,9.8, 3.9], [ 0.1,2.6,-0.2] ],
+                    [ [0.0,-2.3,  2.4], [0.0,-3.9,13.2], [20.2, 0.0,0.0], [-0.4, 0.0,-0.0], [-0.0,14.1,4.2], [-0.0,2.2,-0.5] ],
+                    [ [0.0,-6.0, 15.0], [0.0,-2.6,12.9], [16.8, 0.2,0.0], [-2.4,-0.2,-0.0], [-0.2,14.4,2.9], [0.2, 0.2,-1.9] ],
+                    [ [0.0,-7.5, 28.0], [0.0,-0.4,13.1], [15.3,-0.4,0.0], [-0.6,-1.0,-0.1], [0.4, 14.5,0.4], [0.9,-0.0,-3.1] ]
                 ]),
             'userAnnotationGroups': [
                 {
@@ -120,14 +127,13 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [0.0,18.9,-50.7], [0.0,-3.2,15.4], [ 7.8,-0.2,-0.0], [-0.1, 0.0,-0.1], [ 0.2, 6.1,1.3], [ 0.1, 0.5, 1.4] ],
-                [ [0.0,14.6,-36.3], [0.0,-5.4,13.3], [ 8.5, 0.0,-0.0], [ 1.4, 0.3, 0.1], [ 0.0, 7.2,2.9], [-0.3, 1.8, 1.9] ],
-                [ [0.0, 8.3,-24.1], [0.0,-6.4,12.5], [10.6, 0.4, 0.2], [ 4.8, 0.6, 0.2], [-0.5, 9.7,5.0], [-0.4, 1.6, 0.6] ],
-                [ [0.0, 1.8,-11.4], [0.0,-5.3,13.3], [18.2, 1.1, 0.4], [ 4.8,-0.2,-0.1], [-0.7,10.4,4.2], [ 0.2, 3.0,-0.2] ],
-                [ [0.0,-2.3,  2.4], [0.0,-3.9,13.2], [20.2, 0.0, 0.0], [-0.4, 0.9, 0.1], [-0.0,15.7,4.6], [-0.9, 2.3,-0.6] ],
-                [ [0.0,-6.0, 15.0], [0.0,-2.6,12.9], [17.6, 2.7, 0.6], [-0.5, 1.4, 0.0], [-2.5,15.2,3.1], [-1.1,-0.6,-2.1] ],
-                [ [0.0,-7.5, 28.0], [0.0,-0.4,13.1], [19.2, 2.9, 0.1], [ 3.7,-1.1,-1.0], [-2.2,14.5,0.4], [ 1.6,-0.7,-3.2] ]
-
+                [ [ 0.0, 18.9,-50.7], [ 0.0,-3.2, 15.4], [  7.8,-0.2, 0.0], [ 0.5, 0.3, 0.0], [ 0.2, 6.1,  1.3], [-0.2, 0.7, 1.7] ],
+                [ [ 0.0, 14.6,-36.3], [ 0.0,-5.4, 13.3], [  8.5, 0.0, 0.0], [ 0.9, 0.1, 0.0], [-0.0, 7.2,  2.9], [-0.1, 1.4, 1.7] ],
+                [ [ 0.0,  8.3,-24.1], [ 0.0,-6.4, 12.5], [  9.6, 0.1, 0.0], [ 4.4, 0.0, 0.0], [-0.1, 8.9,  4.6], [-0.0, 1.3, 0.5] ],
+                [ [ 0.0,  1.8,-11.4], [ 0.0,-5.3, 13.3], [ 17.4, 0.1, 0.0], [ 5.3,-0.0,-0.0], [-0.1, 9.8,  3.9], [ 0.0, 2.6,-0.2] ],
+                [ [ 0.0,- 2.3,  2.4], [ 0.0,-3.9, 13.2], [ 20.2, 0.0, 0.0], [-0.4, 0.0,-0.0], [-0.0, 14.1, 4.2], [-0.0, 2.2,-0.5] ],
+                [ [ 0.0,- 6.0, 15.0], [ 0.0,-2.6, 12.9], [ 16.8, 0.1, 0.0], [-2.4,-0.2,-0.0], [-0.1, 14.4, 2.9], [ 0.2, 0.2,-1.9] ],
+                [ [ 0.0,- 7.5, 28.0], [ 0.0,-0.4, 13.1], [ 15.3,-0.4, 0.0], [-0.6,-0.8,-0.1], [ 0.4, 14.5, 0.4], [ 0.7,-0.0,-3.1] ]
                 ]),
             'userAnnotationGroups': [
                 {
@@ -163,13 +169,13 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [ [0.0, 2.9,-5.4], [0.0, 0.5,1.7], [1.9,0.0,0.0], [-0.2,0.2,0.1], [0.0,1.3,-0.3], [-0.1,0.3, 1.2] ],
-                    [ [0.0, 2.7,-3.5], [0.0,-0.9,2.0], [1.8,0.1,0.0], [ 0.0,0.0,0.0], [-0.1,1.4,0.6], [-0.0,0.0, 0.7] ],
-                    [ [0.0, 1.1,-1.8], [0.0,-1.4,1.7], [2.0,0.0,0.0], [ 0.5,0.0,0.0], [-0.0,1.3,1.1], [ 0.0,0.1, 0.2] ],
-                    [ [0.0,-0.1,-0.2], [0.0,-1.1,1.5], [2.7,0.0,0.0], [ 0.3,0.0,0.0], [-0.0,1.5,1.1], [ 0.0,0.3,-0.1] ],
-                    [ [0.0,-1.1, 1.2], [0.0,-0.7,1.6], [2.7,0.0,0.0], [-0.2,0.0,0.0], [-0.0,1.8,0.8], [ 0.0,0.1,-0.1] ],
-                    [ [0.0,-1.5, 3.0], [0.0,-1.1,1.9], [2.2,0.0,0.0], [-0.1,0.0,0.0], [-0.0,1.7,1.0], [-0.0,-0.4,0.4] ],
-                    [ [0.0,-3.3, 4.6], [0.0,-2.4,1.3], [2.7,0.0,0.1], [ 1.1,0.1,0.1], [-0.1,0.9,1.7], [-0.1,-1.2,0.9] ]
+                    [ [0.0, 2.9,-5.4], [0.0, 0.5,1.7], [1.9,0.0,0.0], [-0.2,0.2,0.1], [0.0,1.3,-0.4], [-0.1, 0.2, 1.2] ],
+                    [ [0.0, 2.7,-3.5], [0.0,-0.9,2.0], [1.8,0.1,0.0], [ 0.0,0.0,0.0], [-0.1,1.4,0.6], [-0.0, 0.0, 0.8] ],
+                    [ [0.0, 1.1,-1.8], [0.0,-1.4,1.7], [2.0,0.0,0.0], [ 0.5,0.0,0.0], [-0.0,1.3,1.1], [ 0.0, 0.1, 0.2] ],
+                    [ [0.0,-0.1,-0.2], [0.0,-1.1,1.5], [2.7,0.0,0.0], [ 0.3,0.0,0.0], [-0.0,1.5,1.1], [ 0.0, 0.2,-0.2] ],
+                    [ [0.0,-1.1, 1.2], [0.0,-0.7,1.6], [2.7,0.0,0.0], [-0.2,0.0,0.0], [-0.0,1.8,0.8], [ 0.0, 0.1,-0.1] ],
+                    [ [0.0,-1.5, 3.0], [0.0,-1.1,1.9], [2.2,0.0,0.0], [-0.1,0.0,0.0], [-0.0,1.7,1.0], [ 0.0,-0.4, 0.4] ],
+                    [ [0.0,-3.3, 4.6], [0.0,-2.4,1.3], [2.7,0.0,0.0], [ 1.1,0.0,0.0], [-0.0,0.9,1.7], [ 0.0,-1.2, 1.0] ]
                     ]),
             'userAnnotationGroups': [
                 {
@@ -343,13 +349,12 @@ class MeshType_3d_brainstem1(Scaffold_base):
                                 [brainstemGroup, medullaGroup]]
 
         # point markers
-        centralCanal = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('central canal of spinal cord'))
-        cerebralAqueduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('cerebral aqueduct'))
-        foramenCaecum = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('foramen caecum of medulla oblongata'))
-
+        # centralCanal = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+        #                                                        get_brainstem_term('central canal of spinal cord'))
+        # cerebralAqueduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+        #                                                        get_brainstem_term('cerebral aqueduct'))
+        # foramenCaecum = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+        #                                                        get_brainstem_term('foramen caecum of medulla oblongata'))
         dorsalMidCaudalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                get_brainstem_term('brainstem dorsal midline caudal point'))
         ventralMidCaudalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -443,14 +448,14 @@ class MeshType_3d_brainstem1(Scaffold_base):
         # point markers
         ################
         pointMarkers = [
-            {"group" : dorsalMidCaudalGroup, "marker_brainstem_coordinates" : [ 0.0, 1.0, -8.0 ]},
-            {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [0.0, -1.0, -8.0]},
-            {"group": dorsalMidCranGroup, "marker_brainstem_coordinates": [0.0, 1.0, 0.0]},
-            {"group": ventralMidCranGroup, "marker_brainstem_coordinates": [0.0, -1.0, 0.0]},
-            {"group": dorsalMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, -5.0]},
-            {"group": ventralMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, -5.0]},
-            {"group": dorsalMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, -2.0]},
-            {"group": ventralMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, -2.0]},
+            {"group" : dorsalMidCaudalGroup, "marker_brainstem_coordinates" : [ 0.0, 1.0, 0.0 ]},
+            {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [0.0, -1.0, 0.0]},
+            {"group": dorsalMidCranGroup, "marker_brainstem_coordinates": [0.0, 1.0, 8.0]},
+            {"group": ventralMidCranGroup, "marker_brainstem_coordinates": [0.0, -1.0, 8.0]},
+            {"group": dorsalMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, 3.0]},
+            {"group": ventralMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, 3.0]},
+            {"group": dorsalMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, 6.0]},
+            {"group": ventralMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, 6.0]},
         ]
 
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -514,10 +519,12 @@ class MeshType_3d_brainstem1(Scaffold_base):
         fm = region.getFieldmodule()
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi1 = fm.createFieldOr(
-            fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)),
-            fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)))
-        is_exterior_face_xi3 = fm.createFieldOr(fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)), fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)))
+        is_exterior_face_xi1 = fm.createFieldOr(fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)),
+                                                fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)))
+        is_exterior_face_xi2 = fm.createFieldOr(fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0)),
+                                                fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1)))
+        is_exterior_face_xi3 = fm.createFieldOr(fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)),
+                                                fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)))
 
         # external regions
         groupNames = ['brainstem', 'midbrain', 'medulla oblongata', 'pons']
@@ -526,6 +533,17 @@ class MeshType_3d_brainstem1(Scaffold_base):
             issub = subGroup.getFieldElementGroup(mesh2d)
             is_subface_ext = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
             subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(groupName + ' exterior'))
+            subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface_ext)
+
+        # brainstem interface
+        groupNames = ['brainstem-spinal cord interface', 'thalamus-brainstem interface']
+        for groupName in groupNames:
+            subGroupName = 'midbrain' if groupName == 'thalamus-brainstem interface' else 'medulla oblongata'
+            subGroup = AnnotationGroup(region, get_brainstem_term(subGroupName))
+            issub = subGroup.getFieldElementGroup(mesh2d)
+            is_subface_ext = fm.createFieldAnd(issub, is_exterior_face_xi2)
+            subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_brainstem_term(groupName))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface_ext)
 
 def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
