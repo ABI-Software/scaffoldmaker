@@ -375,11 +375,10 @@ class MeshType_3d_brainstem1(Scaffold_base):
         #######################
         # CREATE MAIN BODY MESH
         #######################
-        brainTermsAlong = [None, 'medulla oblongata', 'pons', 'midbrain']
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if not halfBrainStem else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
         # Body coordinates
-        cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong, annotationGroup=brainTermsAlong)
+        cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
                             centre=[0.0, 0.0, 0.0],
                             alongAxis=cylinderCentralPath.alongAxis[0],
@@ -398,7 +397,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         tmp_fm = tmp_region.getFieldmodule()
         tmp_brainstem_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="brainstem coordinates")
 
-        cylinderCentralPath1 = CylinderCentralPath(tmp_region, brainstemPath, elementsCountAlong, annotationGroup=brainTermsAlong)
+        cylinderCentralPath1 = CylinderCentralPath(tmp_region, brainstemPath, elementsCountAlong)
 
         base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
                              centre=[0.0, 0.0, 0.0],
@@ -419,12 +418,8 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
         sir = region.createStreaminformationRegion()
         srm = sir.createStreamresourceMemoryBuffer(buffer)
-        fielditer = fm.createFielditerator()
-        field = fielditer.next()
         region.read(sir)
 
-        while field.isValid():
-            field = fielditer.next()
         del srm
         del sir
         del tmp_fm
