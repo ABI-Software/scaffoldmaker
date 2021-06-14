@@ -6,11 +6,11 @@ Common resource for bladder annotation terms.
 bladder_terms = [
     ("bladder lumen", "UBERON:0009958"),
     ("dome of the bladder", "ILX:0738433"),
-    ("dorsal part of bladder lumen", "None"),
+    ("dorsal part of urinary bladder lumen", "ILX:0777128"),
     ("dorsal part of lumen of body of urinary bladder", "ILX:0739250"),
     ("dorsal part of lumen of neck of urinary bladder", "ILX:0739255"),
     ("dorsal part of lumen of urethra", "ILX:0739260"),
-    ("dorsal part of bladder", "None"),
+    ("dorsal part of bladder", "ILX:0778155"),
     ("dorsal part of urethra", "ILX:0739258"),
     ("dorsal part of serosa of body of urinary bladder", "ILX:0739278"),
     ("dorsal part of serosa of neck of urinary bladder", "ILX:0739280"),
@@ -27,7 +27,7 @@ bladder_terms = [
     ("ureter", "UBERON:0000056", "ILX:0728080"),
     ("urethra", "UBERON:0000057", "ILX:0733022"),
     ("urinary bladder", "UBERON:0001255", "FMA:15900"),
-    ("ventral part of bladder lumen", "None"),
+    ("ventral part of urinary bladder lumen", "ILX:0777129"),
     ("ventral part of lumen of body of urinary bladder", "ILX:0739251"),
     ("ventral part of lumen of neck of urinary bladder", "ILX:0739257"),
     ("ventral part of lumen of urethra", "ILX:0739261"),
@@ -35,13 +35,13 @@ bladder_terms = [
     ("ventral part of serosa of neck of urinary bladder", "ILX:0739281"),
     ("ventral part of serosa of urethra", "ILX:0739306"),
     ("ventral part of serosa of urinary bladder", "ILX:0739249"),
-    ("ventral part of bladder", "None"),
+    ("ventral part of bladder", "ILX:0778156 "),
     ("ventral part of urethra", "ILX:0739259"),
     ("apex of urinary bladder", "ILX:0774405"),
-    ("left ureter junction with bladder", "None"),
-    ("right ureter junction with bladder", "None"),
-    ("urethra junction with bladder dorsal", "None"),
-    ("urethra junction with bladder ventral", "None")
+    ("left ureter junction with bladder", "ILX:0778142"),
+    ("right ureter junction with bladder", "ILX:0778143"),
+    ("urethra junction of dorsal bladder neck", "ILX:0778154"),
+    ("urethra junction of ventral bladder neck", "ILX:0738410")
 ]
 
 def get_bladder_term(name : str):
