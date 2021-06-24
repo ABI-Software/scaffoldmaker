@@ -158,6 +158,48 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     'ontId': get_brainstem_term('midbrain')[1]
                 }]
         }),
+        'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 6
+            },
+            'meshEdits': exnodeStringFromNodeValues(  # dimensional.
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    ([ [0.0, 3.2,-5.9], [0.0, 0.6,1.9], [2.1,0.0,0.0], [-0.2,0.0,0.0], [0.0,1.4,-0.4], [0.0,0.2, 1.4] ] ),
+                    ([ [0.0, 3.0,-3.9], [0.0,-1.0,2.2], [2.0,0.0,0.0], [ 0.0,0.0,0.0], [0.0,1.5, 0.7], [0.0,0.0, 0.9] ] ),
+                    ([ [0.0, 1.2,-2.0], [0.0,-1.5,1.9], [2.2,0.0,0.0], [ 0.6,0.0,0.0], [0.0,1.4, 1.2], [0.0,0.1, 0.2] ] ),
+                    ([ [0.0,-0.1,-0.2], [0.0,-1.2,1.7], [3.0,0.0,0.0], [ 0.3,0.0,0.0], [0.0,1.7, 1.2], [0.0,0.2,-0.2] ] ),
+                    ([ [0.0,-1.2, 1.3], [0.0,-0.8,1.8], [3.0,0.0,0.0], [-0.2,0.0,0.0], [0.0,2.0, 0.9], [0.0,0.1,-0.1] ] ),
+                    ([ [0.0,-1.7, 3.3], [0.0,-1.2,2.1], [2.4,0.0,0.0], [-0.1,0.0,0.0], [0.0,1.9, 1.1], [0.0,-0.4,0.4] ] ),
+                    ([ [0.0,-3.6, 5.1], [0.0,-2.6,1.4], [3.0,0.0,0.0], [ 1.2,0.0,0.0], [0.0,1.0, 1.9], [0.0,-1.3,1.1] ] )
+                ]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_brainstem_term('medulla oblongata')[0],
+                    'ontId': get_brainstem_term('medulla oblongata')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-4',
+                    'name': get_brainstem_term('pons')[0],
+                    'ontId': get_brainstem_term('pons')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-6',
+                    'name': get_brainstem_term('midbrain')[0],
+                    'ontId': get_brainstem_term('midbrain')[1]
+                }]
+        }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -212,6 +254,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'Default',
             'Cat 1',
             'Human 1',
+            'Mouse 1',
             'Rat 1']
 
     @classmethod
@@ -224,6 +267,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
         if 'Human 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
+
+        if 'Mouse 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
 
         if 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
@@ -313,6 +359,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         parameterSetName = options['Base parameter set']
         isCat = 'Cat 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
+        isMouse = 'Mouse 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
 
         centralPath = options['Central path']
