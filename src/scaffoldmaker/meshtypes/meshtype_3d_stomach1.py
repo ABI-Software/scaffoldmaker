@@ -250,7 +250,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
             'Gastro-esophagal junction position along factor': 0.35,
             'Cardia derivative factor': 1.0,
-            # 'Use cross derivatives': False,
             'Use linear through wall' : True,
             'Refine': False,
             'Refine number of elements surface': 4,
@@ -281,7 +280,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Gastro-esophagal junction',
             'Gastro-esophagal junction position along factor',
             'Cardia derivative factor',
-            # 'Use cross derivatives',
             'Use linear through wall',
             'Refine',
             'Refine number of elements surface',
@@ -379,7 +377,6 @@ class MeshType_3d_stomach1(Scaffold_base):
         elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
         elementsCountThroughWall = 1
         wallThickness = options['Wall thickness']
-        # useCrossDerivatives = options['Use cross derivatives']
         useCrossDerivatives = False
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
