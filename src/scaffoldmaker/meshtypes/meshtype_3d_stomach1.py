@@ -99,6 +99,64 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'ontId': get_stomach_term('duodenum')[1]
                 }]
             }),
+        'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 8
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                [ [  1.8,  3.3, 0.0 ], [  0.1, -3.6, 0.0 ], [  3.2, -0.6, 0.0 ], [ -1.2, -0.8, 0.0 ], [  0.0, 0.0, 3.2 ], [ 0.0, 0.0, -0.1 ] ],
+                [ [  1.1,  0.1, 0.0 ], [ -1.5, -2.7, 0.0 ], [  2.0, -1.5, 0.0 ], [ -1.2, -1.0, 0.0 ], [  0.0, 0.0, 3.1 ], [ 0.0, 0.0, -0.1 ] ],
+                [ [ -0.9, -1.8, 0.0 ], [ -2.3, -1.1, 0.0 ], [  0.8, -2.5, 0.0 ], [ -1.3, -0.9, 0.0 ], [  0.0, 0.0, 3.0 ], [ 0.0, 0.0, -0.2 ] ],
+                [ [ -3.2, -2.0, 0.0 ], [ -2.1,  0.4, 0.0 ], [ -0.6, -3.3, 0.0 ], [ -1.5, -0.2, 0.0 ], [  0.0, 0.0, 2.8 ], [ 0.0, 0.0, -0.0 ] ],
+                [ [ -5.0, -1.2, 0.0 ], [ -1.3,  1.3, 0.0 ], [ -2.2, -2.9, 0.0 ], [ -1.1,  0.9, 0.0 ], [  0.0, 0.0, 2.9 ], [ 0.0, 0.0, -0.3 ] ],
+                [ [ -5.7,  0.4, 0.0 ], [ -0.1,  2.1, 0.0 ], [ -2.8, -1.6, 0.0 ], [  0.2,  1.3, 0.0 ], [  0.0, 0.0, 2.2 ], [ 0.0, 0.0, -0.6 ] ],
+                [ [ -5.0,  2.6, 0.0 ], [  0.3,  1.8, 0.0 ], [ -1.6, -0.2, 0.0 ], [  0.4,  0.5, 0.0 ], [  0.0, 0.0, 1.8 ], [ 0.0, 0.0, -0.2 ] ],
+                [ [ -5.0,  4.0, 0.0 ], [ -0.1,  1.2, 0.0 ], [ -1.7, -0.2, 0.0 ], [ -0.2,  0.0, 0.0 ], [  0.0, 0.0, 1.7 ], [ 0.0, 0.0,  0.1 ] ],
+                [ [ -5.2,  5.0, 0.0 ], [ -0.3,  0.8, 0.0 ], [ -1.9, -0.2, 0.0 ], [ -0.2,  0.0, 0.0 ], [  0.0, 0.0, 2.0 ], [ 0.0, 0.0,  0.5 ] ] ] ),
+
+                    'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-3',
+                    'name': get_stomach_term('fundus of stomach')[0],
+                    'ontId': get_stomach_term('fundus of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '4-5',
+                    'name': get_stomach_term('body of stomach')[0],
+                    'ontId': get_stomach_term('body of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
+                    'name': get_stomach_term('pyloric antrum')[0],
+                    'ontId': get_stomach_term('pyloric antrum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '7',
+                    'name': get_stomach_term('pylorus')[0],
+                    'ontId': get_stomach_term('pylorus')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '8',
+                    'name': get_stomach_term('duodenum')[0],
+                    'ontId': get_stomach_term('duodenum')[1]
+                }]
+        }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -188,6 +246,35 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
+        'Mouse 1': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 12,
+                'Number of elements along': 2,
+                'Number of elements through wall': 1,  # not implemented for > 1
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium diameter': 1.5,
+                'Ostium length': 1.5,
+                'Ostium wall thickness': 0.25,
+                'Ostium inter-vessel distance': 0.0,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 0.3,
+                'Vessel wall thickness': 0.2,
+                'Vessel angle 1 degrees': 0.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        }),
         'Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
@@ -228,11 +315,15 @@ class MeshType_3d_stomach1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Mouse 1',
             'Rat 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Rat 1' in parameterSetName:
+        if 'Mouse 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
+        elif 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']       
         else:
@@ -255,7 +346,15 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Refine number of elements surface': 4,
             'Refine number of elements through wall': 1
         }
-        if 'Rat 1' in parameterSetName:
+        if 'Mouse 1' in parameterSetName:
+            options['Number of elements around esophagus'] = 12
+            options['Number of elements around duodenum'] = 14
+            options['Number of elements between cardia and duodenum'] = 2
+            options['Wall thickness'] = 0.25
+            options['Gastro-esophagal junction position along factor'] = 0.5
+            options['Cardia derivative factor'] = 0.3
+            options['Limiting ridge'] = True
+        elif 'Rat 1' in parameterSetName:
             options['Number of elements around esophagus'] = 12
             options['Number of elements around duodenum'] = 14
             options['Number of elements between cardia and duodenum'] = 2
