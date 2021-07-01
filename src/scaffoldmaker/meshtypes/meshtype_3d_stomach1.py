@@ -120,7 +120,65 @@ class MeshType_3d_stomach1(Scaffold_base):
                 [ [ -5.0,  4.0, 0.0 ], [ -0.1,  1.2, 0.0 ], [ -1.7, -0.2, 0.0 ], [ -0.2,  0.0, 0.0 ], [  0.0, 0.0, 1.7 ], [ 0.0, 0.0,  0.1 ] ],
                 [ [ -5.2,  5.0, 0.0 ], [ -0.3,  0.8, 0.0 ], [ -1.9, -0.2, 0.0 ], [ -0.2,  0.0, 0.0 ], [  0.0, 0.0, 2.0 ], [ 0.0, 0.0,  0.5 ] ] ] ),
 
-                    'userAnnotationGroups': [
+                'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-3',
+                    'name': get_stomach_term('fundus of stomach')[0],
+                    'ontId': get_stomach_term('fundus of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '4-5',
+                    'name': get_stomach_term('body of stomach')[0],
+                    'ontId': get_stomach_term('body of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
+                    'name': get_stomach_term('pyloric antrum')[0],
+                    'ontId': get_stomach_term('pyloric antrum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '7',
+                    'name': get_stomach_term('pylorus')[0],
+                    'ontId': get_stomach_term('pylorus')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '8',
+                    'name': get_stomach_term('duodenum')[0],
+                    'ontId': get_stomach_term('duodenum')[1]
+                }]
+        }),
+        'Mouse 2': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 8
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                [ [  0.9,  3.7, 0.0 ], [ -0.8, -3.6, 0.0 ], [  3.2, -0.6, 0.0 ], [ -1.3, -0.5, 0.0 ], [ 0.0, 0.0, 2.6 ], [ 0.0, 0.0,  0.9 ] ],
+                [ [ -0.1,  0.7, 0.0 ], [ -1.2, -2.3, 0.0 ], [  2.0, -1.5, 0.0 ], [ -1.1, -1.3, 0.0 ], [ 0.0, 0.0, 3.1 ], [ 0.0, 0.0,  0.1 ] ],
+                [ [ -1.4, -1.1, 0.0 ], [ -1.5, -1.1, 0.0 ], [  1.0, -3.0, 0.0 ], [ -1.3, -0.8, 0.0 ], [ 0.0, 0.0, 3.0 ], [ 0.0, 0.0, -0.2 ] ],
+                [ [ -2.9, -1.6, 0.0 ], [ -1.6,  0.2, 0.0 ], [ -0.6, -3.3, 0.0 ], [ -1.4,  0.2, 0.0 ], [ 0.0, 0.0, 2.8 ], [ 0.0, 0.0, -0.1 ] ],
+                [ [ -4.3, -0.8, 0.0 ], [ -1.2,  1.1, 0.0 ], [ -1.8, -2.5, 0.0 ], [ -0.8,  1.1, 0.0 ], [ 0.0, 0.0, 2.9 ], [ 0.0, 0.0, -0.1 ] ],
+                [ [ -5.2,  0.6, 0.0 ], [ -0.8,  1.6, 0.0 ], [ -2.2, -1.1, 0.0 ], [  0.2,  1.1, 0.0 ], [ 0.0, 0.0, 2.5 ], [ 0.0, 0.0, -0.7 ] ],
+                [ [ -5.9,  2.3, 0.0 ], [ -0.5,  1.1, 0.0 ], [ -1.3, -0.4, 0.0 ], [  0.7,  0.3, 0.0 ], [ 0.0, 0.0, 1.4 ], [ 0.0, 0.0, -0.7 ] ],
+                [ [ -6.2,  3.2, 0.0 ], [ -0.5,  0.9, 0.0 ], [ -0.8, -0.3, 0.0 ], [  0.1,  0.0, 0.0 ], [ 0.0, 0.0, 0.9 ], [ 0.0, 0.0, -0.2 ] ],
+                [ [ -6.8,  4.1, 0.0 ], [ -0.7,  1.0, 0.0 ], [ -1.1, -0.5, 0.0 ], [ -0.8, -0.3, 0.0 ], [ 0.0, 0.0, 1.1 ], [ 0.0, 0.0,  0.6 ] ] ] ),
+
+                'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
@@ -316,6 +374,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Default',
             'Human 1',
             'Mouse 1',
+            'Mouse 2',
             'Rat 1']
 
     @classmethod
@@ -323,9 +382,12 @@ class MeshType_3d_stomach1(Scaffold_base):
         if 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
+        elif 'Mouse 2' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 2']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
         elif 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']       
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
@@ -346,12 +408,12 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Refine number of elements surface': 4,
             'Refine number of elements through wall': 1
         }
-        if 'Mouse 1' in parameterSetName:
+        if 'Mouse' in parameterSetName:
             options['Number of elements around esophagus'] = 12
             options['Number of elements around duodenum'] = 14
             options['Number of elements between cardia and duodenum'] = 2
             options['Wall thickness'] = 0.25
-            options['Gastro-esophagal junction position along factor'] = 0.5
+            options['Gastro-esophagal junction position along factor'] = 0.5 if 'Mouse 1' in parameterSetName else 0.53
             options['Cardia derivative factor'] = 0.3
             options['Limiting ridge'] = True
         elif 'Rat 1' in parameterSetName:
@@ -768,9 +830,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 interp.sampleCubicHermiteCurvesSmooth(xAlongUpFundus, d2AlongUpFundus,
                                                       elementsAlongGCFromEsoToFundusEnd,
                                                       derivativeMagnitudeStart=vector.magnitude(d2AlongUpFundus[0]))[0:2]
+
             # Sample from limiting ridge to duodenum
             xAlongDownFundus[0] = xAlongGCEsoToFundusEnd[-1]
             d2AlongDownFundus[0] = d2AlongGCEsoToFundusEnd[-1]
+
+            if xAlongDownFundus[0] == xAlongDownFundus[1]:
+                del xAlongDownFundus[1], d2AlongDownFundus[1]
+
             xAlongGCFundusEndToDuod, d2AlongGCFundusEndToDuod = \
                 interp.sampleCubicHermiteCurves(xAlongDownFundus, d2AlongDownFundus, elementsAlongFundusEndToDuod,
                                                 addLengthStart=0.5 * vector.magnitude(d2AlongDownFundus[0]),
@@ -2498,25 +2565,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         for group in [stomachGroup, duodenumGCGroup]:
             group.getNodesetGroup(nodes).addNode(markerPoint)
 
-        # # Create annotation groups for dorsal and ventral parts of the stomach
-        # dorsalGroup = AnnotationGroup(region, get_stomach_term("dorsal stomach"))
-        # ventralGroup = AnnotationGroup(region, get_stomach_term("ventral stomach"))
-        # dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
-        # ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
-        #
-        # for e2 in range(len(elementIdxMat)):
-        #     for e3 in range(len(elementIdxMat[e2])):
-        #         for e1 in range(len(elementIdxMat[e2][e3])):
-        #             elementIdx = elementIdxMat[e2][e3][e1]
-        #             element = mesh.findElementByIdentifier(elementIdx)
-        #             if e1 < 0.5 * len(elementIdxMat[e2][e3]):
-        #                 dorsalMeshGroup.addElement(element)
-        #             else:
-        #                 ventralMeshGroup.addElement(element)
-        # allAnnotationGroups.append(dorsalGroup)
-        # allAnnotationGroups.append(ventralGroup)
-
-        # Create split coordinate field - version 1 on ventral, version 2 on dorsal
+        # Create split coordinate field
         nodesOnSplitMargin = []
         nodesOnLCMargin = []
 
@@ -2598,7 +2647,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         element = elementIter.next()
         splitElementtemplate1 = mesh.createElementtemplate()
         splitElementtemplate2 = mesh.createElementtemplate()
-        elementsOnVentralSide = []
+
         count = 0
         elementsInOstium = elementsCountAroundEso * elementsAlongEsophagus * elementsThroughEsophagusWall
         closedLoopElementId = nextElementIdentifier - elementsCountAroundEso * elementsCountAcrossCardia - \
@@ -2723,6 +2772,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             is_limitingRidgeOuter = fm.createFieldAnd(is_limitingRidge, is_exterior_face_outer)
             outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
+
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):
     """
