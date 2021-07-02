@@ -2565,6 +2565,24 @@ class MeshType_3d_stomach1(Scaffold_base):
         for group in [stomachGroup, duodenumGCGroup]:
             group.getNodesetGroup(nodes).addNode(markerPoint)
 
+        # Create annotation groups for dorsal and ventral parts of the stomach
+        dorsalGroup = AnnotationGroup(region, get_stomach_term("dorsal stomach"))
+        ventralGroup = AnnotationGroup(region, get_stomach_term("ventral stomach"))
+        dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
+        ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
+
+        for e2 in range(len(elementIdxMat)):
+            for e3 in range(len(elementIdxMat[e2])):
+                for e1 in range(len(elementIdxMat[e2][e3])):
+                    elementIdx = elementIdxMat[e2][e3][e1]
+                    element = mesh.findElementByIdentifier(elementIdx)
+                    if e1 < 0.5 * len(elementIdxMat[e2][e3]):
+                        dorsalMeshGroup.addElement(element)
+                    else:
+                        ventralMeshGroup.addElement(element)
+        allAnnotationGroups.append(dorsalGroup)
+        allAnnotationGroups.append(ventralGroup)
+
         # Create split coordinate field
         nodesOnSplitMargin = []
         nodesOnLCMargin = []
@@ -2772,6 +2790,84 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             is_limitingRidgeOuter = fm.createFieldAnd(is_limitingRidge, is_exterior_face_outer)
             outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
+
+        serosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_stomach_term("serosa of stomach"))
+        mucosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_stomach_term("mucosa of stomach"))
+
+        outerSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_stomach_term("serosa split margin"))
+        esoSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_stomach_term("esophagus on serosa split margin"))
+        fundusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_stomach_term("fundus on serosa split margin"))
+        bodySplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_stomach_term("body on serosa split margin"))
+        antrumSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                     get_stomach_term("antrum on serosa split margin"))
+        pylorusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_stomach_term("pylorus on serosa split margin"))
+
+        serosaDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_stomach_term("serosa of dorsal stomach"))
+        serosaVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_stomach_term("serosa of ventral stomach"))
+
+        stomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("stomach"))
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
+        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
+        antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
+        pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pylorus"))
+        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("dorsal stomach"))
+        ventralGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("ventral stomach"))
+
+        fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
+        is_stomach = stomachGroup.getGroup()
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_inner = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_serosa = fm.createFieldAnd(is_stomach, is_exterior_face_outer)
+        is_mucosa = fm.createFieldAnd(is_stomach, is_exterior_face_inner)
+        serosaGroup.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+        mucosaGroup.getMeshGroup(mesh2d).addElementsConditional(is_mucosa)
+        is_dorsal = dorsalGroup.getGroup()
+        is_ventral = ventralGroup.getGroup()
+        is_dorsalSerosa = fm.createFieldAnd(is_dorsal, is_serosa)
+        is_ventralSerosa = fm.createFieldAnd(is_ventral, is_serosa)
+        serosaDorsalGroup.getMeshGroup(mesh2d).addElementsConditional(is_dorsalSerosa)
+        serosaVentralGroup.getMeshGroup(mesh2d).addElementsConditional(is_ventralSerosa)
+
+        is_margin = fm.createFieldAnd(is_dorsal, is_ventral)
+        mesh1d = fm.findMeshByDimension(1)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_marginOuter = fm.createFieldAnd(is_margin, is_exterior_face_outer)
+        outerSplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_marginOuter)
+
+        is_eso = esoGroup.getGroup()
+        is_esoMargin = fm.createFieldAnd(is_marginOuter, is_eso)
+        esoSplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_esoMargin)
+
+        is_fundus = fundusGroup.getGroup()
+        is_fundusMargin = fm.createFieldAnd(is_marginOuter, is_fundus)
+        fundusSplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_fundusMargin)
+
+        is_body = bodyGroup.getGroup()
+        is_bodyMargin = fm.createFieldAnd(is_marginOuter, is_body)
+        bodySplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_bodyMargin)
+
+        is_antrum = antrumGroup.getGroup()
+        is_antrumMargin = fm.createFieldAnd(is_marginOuter, is_antrum)
+        antrumSplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_antrumMargin)
+
+        is_pylorus = pylorusGroup.getGroup()
+        is_pylorusMargin = fm.createFieldAnd(is_marginOuter, is_pylorus)
+        pylorusSplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_pylorusMargin)
 
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):
