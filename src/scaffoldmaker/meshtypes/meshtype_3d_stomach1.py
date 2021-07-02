@@ -2518,8 +2518,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         # annotation fiducial points for embedding in whole body
         GEJLCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("gastro-esophagal junction on lesser curvature"))
-        GEJLCElement = mesh.findElementByIdentifier(stomachStartElement - elementsAroundHalfEso)
-        GEJLCXi = [0.0, 1.0, 1.0]
+        GEJLCElement = mesh.findElementByIdentifier(stomachStartElement - elementsAroundHalfEso - 1)
+        GEJLCXi = [1.0, 1.0, 1.0]
         cache.setMeshLocation(GEJLCElement, GEJLCXi)
         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
         nodeIdentifier += 1
