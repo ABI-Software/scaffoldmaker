@@ -262,7 +262,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
-                'Vessel inner diameter': 0.3,
+                'Vessel inner diameter': 0.5,
                 'Vessel wall thickness': 0.2,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
