@@ -279,7 +279,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
-                'Number of elements around ostium': 8,
+                'Number of elements around ostium': 12,
                 'Number of elements along': 2,
                 'Number of elements through wall': 1,  # not implemented for > 1
                 'Unit scale': 1.0,
