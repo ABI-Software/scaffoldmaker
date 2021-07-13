@@ -2651,8 +2651,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                 result1 = splitElementtemplate2.defineField(splitCoordinates, -1, eft2)
                 result2 = element.merge(splitElementtemplate2)
                 element.setNodesByIdentifier(eft2, nodeIdentifiers)
-                if eft2.getNumberOfLocalScaleFactors() == 1:
-                    result3 = element.setScaleFactors(eft2, [-1.0])
+                if eft2.getNumberOfLocalScaleFactors() > 0:
+                    element.setScaleFactor(eft2, 1, -1.0)
             else:
                 result1 = splitElementtemplate1.defineField(splitCoordinates, -1, eft)
                 result2 = element.merge(splitElementtemplate1)
