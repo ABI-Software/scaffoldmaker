@@ -38,31 +38,29 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 8
+                'Number of elements': 5
                 },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 15.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 30.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 45.0], [0.0, 0.0, 15.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.1, 60.45], [0.4, 1.1, 13.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 1.42, 75.2], [0.3, 1.4, 13.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 3.05, 89.94], [-0.2, 1.8, 15.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 5.98, 107.94], [-0.6, 4.5, 16.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 12.47, 127.07], [0.35, 6.67, 14.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+                    [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 15.000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 30.000], [0.0000, 0.0959, 22.926], [0.0000, 0.5000, 0.0021], [0.0000, 0.0002, 0.0080]],
+                    [[0.0000, 0.2582, 60.850], [0.0000, 1.1010, 30.038], [0.0000, 0.4999, 0.0107], [0.0000, 0.0032, 0.0398]],
+                    [[0.0000, 2.1551, 90.021], [0.0000, 5.6726, 33.424], [0.0000, 0.4911, 0.0937], [0.0000, 0.0177, 0.0814]],
+                    [[0.0000, 12.470, 127.10], [0.0000, 14.883, 40.532], [0.0000, 0.4758, 0.1537], [0.0000, 0.0493, 0.1522]],
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-5',
+                    'identifierRanges': '1-3',
                     'name': get_bladder_term('urinary bladder')[0],
                     'ontId': get_bladder_term('urinary bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '6-8',
+                    'identifierRanges': '4-5',
                     'name': get_bladder_term('urethra')[0],
                     'ontId': get_bladder_term('urethra')[1]
                 }]
@@ -72,31 +70,29 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 8
+                'Number of elements': 5
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 20.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 20.0], [0.0, 0.0, 20.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 40.0], [0.0, 0.0, 20], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 60.0], [0.0, 0.0, 20], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 80.0], [-0.4, 0.3, 17.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -2.1, 100.6], [-1.0, -1.9, 17.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -3.8, 120.3], [-1.4, -0.6, 18.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -3.6, 140.5], [-0.1, 2.0, 18.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 160.0], [0.9, 4.0, 15.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+                    [[0.0000, 0.0000, 0.0000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000,  0.0000], [0.0000,  0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 20.000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000,  0.0000], [0.0000,  0.0000, 0.0000]],
+                    [[0.0000, 0.0000, 40.000], [0.0000,  0.0000, 30.003], [0.0000, 0.5000,  0.0000], [0.0000, -0.0000, 0.0028]],
+                    [[0.0000, 0.0000, 80.000], [0.0000,  1.8911, 40.202], [0.0000, 0.4993, -0.0254], [0.0000, -0.0002, 0.0080]],
+                    [[0.0000, 3.8000, 120.30], [0.0000,  1.2771, 30.329], [0.0000, 0.4996, -0.0190], [0.0000, -0.0018, 0.0279]],
+                    [[0.0000, 3.6000, 140.50], [0.0000, -1.6581, 9.9571], [0.0000, 0.4977, -0.0480], [0.0000, -0.0034, 0.0483]],
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-4',
+                    'identifierRanges': '1-3',
                     'name': get_bladder_term('urinary bladder')[0],
                     'ontId': get_bladder_term('urinary bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5-8',
+                    'identifierRanges': '4-5',
                     'name': get_bladder_term('urethra')[0],
                     'ontId': get_bladder_term('urethra')[1]
                 }]
@@ -106,31 +102,29 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 8
+                'Number of elements': 5
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 10.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 10.0], [0.0, 0.0, 10.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 20.0], [0.0, 0.0, 10], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 30.0], [0.0, 0.0, 10], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 40.0], [-0.4, 0.3, 7.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -2.1, 45.0], [-1.0, -1.9, 7.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -3.8, 50.0], [-1.4, -0.6, 8.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -3.6, 55.0], [-0.1, 2.0, 8.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 60.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+                    [[0.0000,  0.0000, 0.0000], [0.0000,  0.0301, 0.8134], [0.0000, 0.5000,  0.0000], [0.0000,  0.0000, -0.0204]],
+                    [[0.0000,  0.0000, 1.2321], [0.0000, -0.0120, 1.6504], [0.0000, 0.5000,  0.0000], [0.0000,  0.0001, -0.0093]],
+                    [[0.0000,  0.0000, 3.3002], [0.0000, -0.0024, 1.9672], [0.0000, 0.5000,  0.0000], [0.0000, -0.0001,  0.0105]],
+                    [[0.0000,  0.0000, 5.1649], [0.0000, -0.1043, 2.3452], [0.0000, 0.4997,  0.0163], [0.0000, -0.0004, -0.0039]],
+                    [[0.0000, -0.3056, 7.9736], [0.0000,  0.1381, 2.5534], [0.0000, 0.4987, -0.0319], [0.0000, -0.0157, -0.0861]],
+                    [[0.0000,  0.1840, 10.193], [0.0000,  0.8202, 1.8381], [0.0000, 0.4573, -0.1876], [0.0000, -0.0400, -0.1607]],
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-4',
+                    'identifierRanges': '1-3',
                     'name': get_bladder_term('urinary bladder')[0],
                     'ontId': get_bladder_term('urinary bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5-8',
+                    'identifierRanges': '4-5',
                     'name': get_bladder_term('urethra')[0],
                     'ontId': get_bladder_term('urethra')[1]
                 }]
@@ -140,31 +134,29 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 8
+                'Number of elements': 5
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 23.3], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 25.0], [0.0, 0.0, 21.3], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 40.0], [0.0, 0.0, 20.4], [0.0, 0.5, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 65.0], [0.4, 1.0, 24.5], [0.0, 0.5, 0.1], [0.0, -0.0, -0.0]],
-                    [[0.0, 2.4, 90.0], [0.5, 4.2, 23.0], [0.0, 0.5, -0.2], [-0.0, -0.0, -0.1]],
-                    [[0.0, 9.2, 110.0], [0.1, 5.6, 15.4], [-0.0, 0.5, -0.2], [-0.0, 0.0, 0.0]],
-                    [[0.0, 15.3, 125.0], [0.2, 5.3, 12.0], [-0.0, 0.5, -0.2], [0.0, 0.0, -0.1]],
-                    [[0.0, 21.2, 140.0], [0.1, 7.7, 11.9], [0.0, 0.4, -0.3], [0.0, -0.1, -0.1]],
-                    [[0.0, 30.0, 150.0], [2.6, 18.4, 12.5], [-0.0, 0.3, -0.4], [-0.0, -0.2, -0.2]]]),
+                    [[0.0000, 0.0000, 0.0000], [0.0000, 0.0154, 30.752], [0.0000, 0.5000, 0.0003], [0.0000, 0.0179, 0.0102]],
+                    [[0.0000, 0.1469, 32.068], [0.0000, 0.2784, 33.382], [0.0000, 0.5000, 0.0042], [0.0000, 0.0179, 0.0181]],
+                    [[0.0000, 0.5666, 66.756], [0.0000, 2.1900, 31.319], [0.0000, 0.5372, 0.0376], [0.0001, 0.0113, 0.0541]],
+                    [[0.0000, 4.1370, 94.593], [0.0000, 6.1473, 29.506], [0.0000, 0.5272, 0.1098], [0.0000, 0.0382, 0.0822]],
+                    [[0.0000, 13.121, 125.46], [0.0000, 11.416, 27.599], [0.0000, 0.4620, 0.1911], [0.0017, 0.0742, 0.1095]],
+                    [[0.0000, 26.328, 149.56], [0.0000, 14.845, 20.395], [0.0000, 0.4043, 0.2942], [0.0044, 0.0800, 0.1341]],
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-4',
+                    'identifierRanges': '1-3',
                     'name': get_bladder_term('urinary bladder')[0],
                     'ontId': get_bladder_term('urinary bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5-8',
+                    'identifierRanges': '4-6',
                     'name': get_bladder_term('urethra')[0],
                     'ontId': get_bladder_term('urethra')[1]
                 }]
@@ -174,31 +166,29 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 8
+                'Number of elements': 5
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 10.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 10.0], [0.0, 0.0, 10.0], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 20.0], [0.0, 0.0, 10], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 30.0], [0.0, 0.0, 10], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 40.0], [-0.4, 0.3, 7.7], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -2.1, 49.6], [-1.0, -1.9, 7.2], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -3.8, 59.3], [-1.4, -0.6, 8.8], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, -3.6, 71.5], [-0.1, 2.0, 8.4], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]],
-                    [[0.0, 0.0, 80.0], [0.9, 4.0, 5.5], [0.0, 0.5, 0.0], [0.0, 0.0, -0.5]]]),
+                    [[0.0000,  0.0000,  0.000000], [0.0000,  0.0000, 0.8141], [0.0000, 0.5000, -0.0185], [0.0000,  0.0000,  0.0000]],
+                    [[0.0000,  0.0000,  1.232100], [0.0000,  0.0000, 1.6501], [0.0000, 0.5000,  0.0036], [0.0000,  0.0000,  0.0000]],
+                    [[0.0000,  0.0000,  3.300200], [0.0000,  0.0000, 1.9664], [0.0000, 0.5000,  0.0006], [0.0000, -0.0002,  0.0086]],
+                    [[0.0000,  0.0000,  5.164900], [0.0000, -0.0334, 2.3482], [0.0000, 0.4995,  0.0222], [0.0000, -0.0006, -0.0093]],
+                    [[0.0000, -0.0806,  7.995376], [0.0000,  0.0855, 2.7595], [0.0000, 0.4990, -0.0270], [0.0000, -0.0217, -0.1032]],
+                    [[0.0000,  0.1622, 10.672070], [0.0000,  0.3991, 2.5873], [0.0000, 0.4514, -0.2014], [0.0000, -0.0611, -0.2082]],
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-4',
+                    'identifierRanges': '1-3',
                     'name': get_bladder_term('urinary bladder')[0],
                     'ontId': get_bladder_term('urinary bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5-8',
+                    'identifierRanges': '4-5',
                     'name': get_bladder_term('urethra')[0],
                     'ontId': get_bladder_term('urethra')[1]
                 }]
@@ -230,7 +220,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
-        'Ureter Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
+        'Ureter Human 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
@@ -238,12 +228,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements along': 1,
                 'Unit scale': 1.0,
                 'Outlet': False,
-                'Ostium diameter': 1.0,
-                'Ostium length': 0.25,
-                'Ostium wall thickness': 0.02,
+                'Ostium diameter': 3.0,
+                'Ostium length': 0.5,
+                'Ostium wall thickness': 0.5,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
-                'Vessel inner diameter': 0.3,
+                'Vessel inner diameter': 1.0,
                 'Vessel wall thickness': 0.1,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -264,13 +254,13 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements along': 1,
                 'Unit scale': 1.0,
                 'Outlet': False,
-                'Ostium diameter': 1.0,
-                'Ostium length': 0.25,
+                'Ostium diameter': 0.5,
+                'Ostium length': 0.05,
                 'Ostium wall thickness': 0.02,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
-                'Vessel inner diameter': 0.3,
-                'Vessel wall thickness': 0.1,
+                'Vessel inner diameter': 0.1,
+                'Vessel wall thickness': 0.05,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -308,7 +298,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
-        'Ureter Human 1': ScaffoldPackage(MeshType_3d_ostium1, {
+        'Ureter Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
@@ -316,13 +306,13 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements along': 1,
                 'Unit scale': 1.0,
                 'Outlet': False,
-                'Ostium diameter': 3.0,
-                'Ostium length': 0.5,
-                'Ostium wall thickness': 0.5,
+                'Ostium diameter': 0.5,
+                'Ostium length': 0.05,
+                'Ostium wall thickness': 0.02,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
-                'Vessel inner diameter': 1.0,
-                'Vessel wall thickness': 0.1,
+                'Vessel inner diameter': 0.1,
+                'Vessel wall thickness': 0.05,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -353,25 +343,20 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Rat 1' in parameterSetName:
-            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Rat 1']
-        if 'Mouse 1' in parameterSetName:
-            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Mouse 1']
-        if 'Pig 1' in parameterSetName:
-            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Pig 1']
-        elif 'Human 1' in parameterSetName:
+        if 'Human 1' in parameterSetName:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Human 1']
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Human 1']
+        elif 'Mouse 1' in parameterSetName:
+            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Mouse 1']
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Mouse 1']
+        elif 'Pig 1' in parameterSetName:
+            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Pig 1']
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Pig 1']
+        elif 'Rat 1' in parameterSetName:
+            centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Rat 1']
+            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Rat 1']
         else:
             centralPathOption_LUT = cls.centralPathDefaultScaffoldPackages_LUT['Cat 1']
-        if 'Rat 1' in parameterSetName:
-            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Rat 1']
-        if 'Mouse 1' in parameterSetName:
-            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Mouse 1']
-        if 'Pig 1' in parameterSetName:
-            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Pig 1']
-        elif 'Human 1' in parameterSetName:
-            ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Human 1']
-        else:
             ureterOption = cls.ostiumDefaultScaffoldPackages['Ureter Cat 1']
         options = {
             'Central path LUT': copy.deepcopy(centralPathOption_LUT),
@@ -401,41 +386,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             'Refine number of elements along': 4,
             'Refine number of elements through wall': 1
             }
-        if 'Rat' in parameterSetName:
-            options['Major diameter'] = 20.0
-            options['Minor diameter'] = 10.0
-            options['Wall thickness'] = 0.2
-            options['Neck diameter 1'] = 3.5
-            options['Neck diameter 2'] = 2.0
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ureter position down'] = 0.83
-            options['Urethra diameter 1'] = 0.75
-            options['Urethra diameter 2'] = 0.65
-            options['Urethra wall thickness'] = 0.25
-        if 'Mouse' in parameterSetName:
-            options['Major diameter'] = 30.0
-            options['Minor diameter'] = 30.0
-            options['Wall thickness'] = 0.2
-            options['Neck diameter 1'] = 5.0
-            options['Neck diameter 2'] = 7.0
-            options['Neck angle degrees'] = 25
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ureter position down'] = 0.83
-            options['Urethra diameter 1'] = 2.0
-            options['Urethra diameter 2'] = 2.0
-            options['Urethra wall thickness'] = 0.25
-        if 'Pig' in parameterSetName:
-            options['Major diameter'] = 30.0
-            options['Minor diameter'] = 30.0
-            options['Wall thickness'] = 0.3
-            options['Neck diameter 1'] = 8.0
-            options['Neck diameter 2'] = 7.5
-            options['Neck angle degrees'] = 25
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ureter position down'] = 0.83
-            options['Urethra diameter 1'] = 2.0
-            options['Urethra diameter 2'] = 2.0
-            options['Urethra wall thickness'] = 0.25
         if 'Human' in parameterSetName:
             options['Number of elements along bladder'] = 8
             options['Number of elements around'] = 12
@@ -451,6 +401,42 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Urethra diameter 1'] = 1.5
             options['Urethra diameter 2'] = 1.0
             options['Urethra wall thickness'] = 0.5
+        if 'Mouse' in parameterSetName:
+            options['Major diameter'] = 3.0
+            options['Minor diameter'] = 2.5
+            options['Wall thickness'] = 0.1
+            options['Neck diameter 1'] = 0.5
+            options['Neck diameter 2'] = 0.5
+            options['Neck angle degrees'] = 25
+            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.83
+            options['Urethra diameter 1'] = 0.1
+            options['Urethra diameter 2'] = 0.1
+            options['Urethra wall thickness'] = 0.05
+        if 'Pig' in parameterSetName:
+            options['Major diameter'] = 30.0
+            options['Minor diameter'] = 30.0
+            options['Wall thickness'] = 0.3
+            options['Neck diameter 1'] = 8.0
+            options['Neck diameter 2'] = 7.5
+            options['Neck angle degrees'] = 25
+            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.83
+            options['Urethra diameter 1'] = 1.0
+            options['Urethra diameter 2'] = 1.0
+            options['Urethra wall thickness'] = 0.25
+        if 'Rat' in parameterSetName:
+            options['Major diameter'] = 3.5
+            options['Minor diameter'] = 2.5
+            options['Wall thickness'] = 0.1
+            options['Neck diameter 1'] = 0.5
+            options['Neck diameter 2'] = 0.5
+            options['Neck angle degrees'] = 25
+            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Ureter position down'] = 0.83
+            options['Urethra diameter 1'] = 0.1
+            options['Urethra diameter 2'] = 0.1
+            options['Urethra wall thickness'] = 0.05
         return options
 
     @staticmethod
