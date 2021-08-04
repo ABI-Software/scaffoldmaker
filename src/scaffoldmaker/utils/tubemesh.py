@@ -156,7 +156,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                 vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
                 if vector.magnitude(vectorToFirstNode) > 0.0:
                     cp = vector.crossproduct3(vector.normalise(vectorToFirstNode), sd2[nAlongSegment])
-                    if vector.magnitude(cp) > 0:
+                    if vector.magnitude(cp) > 1e-12:
                         cp = vector.normalise(cp)
                         signThetaRot2 = vector.dotproduct(unitTangent, cp)
                         thetaRot2 = math.acos(
