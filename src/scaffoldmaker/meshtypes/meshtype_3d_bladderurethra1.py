@@ -389,7 +389,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         if 'Human' in parameterSetName:
             options['Number of elements along bladder'] = 8
             options['Number of elements around'] = 12
-            options['Major diameter'] = 75.0
+            options['Major diameter'] = 45.0
             options['Minor diameter'] = 35.0
             options['Wall thickness'] = 0.2
             options['Neck diameter 1'] = 5.0
