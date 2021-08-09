@@ -18,21 +18,66 @@ from scaffoldmaker.utils.interpolation import DerivativeScalingMode, sampleCubic
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from enum import Enum
 
-class ShieldShape(Enum):
+class ShieldShape2D(Enum):
     SHIELD_SHAPE_FULL = 1
     SHIELD_SHAPE_LOWER_HALF = 2
+
+class ShieldShape3D(Enum):
+    SHIELD_SHAPE_FULL = 1
+    SHIELD_SHAPE_HALF_NNP = 2    # NNP is a3>=3
+    SHIELD_SHAPE_OCTANT_PPP = 3   # in a right hand coordinate system (a1,a2,a3), PPP means a1>=0, a2>=0 and a3>=0
 
 class ShieldRimDerivativeMode(Enum):
     SHIELD_RIM_DERIVATIVE_MODE_AROUND = 1  # rim derivatives are d1 anticlockwise around shield, d3 outward
     SHIELD_RIM_DERIVATIVE_MODE_REGULAR = 2  # rim derivatives d1, d2 match interior nodes for regular elements
 
-class ShieldMesh:
+class ShieldMesh3D:
+    '''
+    Generates a 3D shield mesh.
+    '''
+
+    def __init__(self, elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3, elementsCountRim,
+                 shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP):
+        '''
+        Parameters
+        '''
+        assert elementsCountRim >= 0
+        # assert elementsCountAlong >= 1
+        # assert elementsCountAcross >= (elementsCountRim + 4)
+        # assert elementsCountUpFull >= (elementsCountRim + 2)
+        self.elementsCountAcrossAcrossAxis1 = elementsCountAcrossAxis1
+        self.elementsCountAcrossAcrossAxis2 = elementsCountAcrossAxis2
+        self.elementsCountAcrossAcrossAxis3 = elementsCountAcrossAxis3
+        # self.elementsCountUpFull = elementsCountUpFull
+        # elementsCountUp = elementsCountUpFull//2 if shieldMode == ShieldShape2D.SHIELD_SHAPE_FULL else elementsCountUpFull
+        # self.elementsCountUp = elementsCountUp
+        self.elementsCountRim = elementsCountRim
+        # self.elementsCountAlong = elementsCountAlong
+        # self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
+        # elementsCountAcrossNonRim = self.elementsCountAcross - 2*elementsCountRim
+        # self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
+        self._mode = shieldMode
+
+        # self.px  = [ [] for _ in range(elementsCountAlong+1) ]
+        # self.pd1 = [ [] for _ in range(elementsCountAlong+1) ]
+        # self.pd2 = [ [] for _ in range(elementsCountAlong+1) ]
+        # self.pd3 = [ [] for _ in range(elementsCountAlong+1) ]
+        # self.nodeId = [ [] for _ in range(elementsCountAlong+1) ]
+        # for n3 in range(elementsCountAlong+1):
+        #     for n2 in range(elementsCountUpFull + 1):
+        #         for p in [ self.px[n3], self.pd1[n3], self.pd2[n3], self.pd3[n3], self.nodeId[n3] ]:
+        #             p.append([ None ]*(elementsCountAcross + 1))
+        #
+        # self.elementId = [ [[ None ]*elementsCountAcross for n2 in range(elementsCountUpFull)] for e3 in range(elementsCountAlong) ]
+
+
+class ShieldMesh2D:
     '''
     Shield mesh generator.
     '''
 
     def __init__(self, elementsCountAcross, elementsCountUpFull, elementsCountRim, trackSurface : TrackSurface=None,
-                 elementsCountAlong=1, shieldMode=ShieldShape.SHIELD_SHAPE_LOWER_HALF, shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR):
+                 elementsCountAlong=1, shieldMode=ShieldShape2D.SHIELD_SHAPE_LOWER_HALF, shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR):
         '''
         Data structure for defining a shield-shaped mesh which is flat on the top and rounded around the bottom
         and/or the same mirror mirrored on top.
@@ -68,7 +113,7 @@ class ShieldMesh:
         assert elementsCountUpFull >= (elementsCountRim + 2)
         self.elementsCountAcross = elementsCountAcross
         self.elementsCountUpFull = elementsCountUpFull
-        elementsCountUp = elementsCountUpFull//2 if shieldMode == ShieldShape.SHIELD_SHAPE_FULL else elementsCountUpFull
+        elementsCountUp = elementsCountUpFull//2 if shieldMode == ShieldShape2D.SHIELD_SHAPE_FULL else elementsCountUpFull
         self.elementsCountUp = elementsCountUp
         self.elementsCountRim = elementsCountRim
         self.elementsCountAlong = elementsCountAlong
@@ -362,7 +407,7 @@ class ShieldMesh:
         #        s += str(n1) if self.px[1][n2][n1] else " "
         #    print(n2, s, n2 - self.elementsCountUp - 1)
 
-        if self._mode == ShieldShape.SHIELD_SHAPE_FULL and mirrorPlane:
+        if self._mode == ShieldShape2D.SHIELD_SHAPE_FULL and mirrorPlane:
             self.generateNodesForOtherHalf(mirrorPlane)
 
         for n2 in range(self.elementsCountUpFull + 1):

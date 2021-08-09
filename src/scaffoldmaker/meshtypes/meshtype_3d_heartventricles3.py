@@ -21,7 +21,7 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScali
     sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.shieldmesh import ShieldMesh
+from scaffoldmaker.utils.shieldmesh import ShieldMesh2D
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 
 
@@ -490,7 +490,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         lad1 = [ [-s for s in d ] for d in lad1 ]
         lad3 = [ vector.setMagnitude(d, lvFreeWallThickness) for d in lad3 ]
 
-        rvShield = ShieldMesh(elementsCountAroundRVFreeWall, elementsCountUpRVFreeWall, 0)
+        rvShield = ShieldMesh2D(elementsCountAroundRVFreeWall, elementsCountUpRVFreeWall, 0)
         rvx  = rvShield.px
         rvd1 = rvShield.pd1
         rvd2 = rvShield.pd2
@@ -601,7 +601,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         # LV free wall
         elementsCountUpLV = elementsCountUpLVFreeWall + elementsCountUpLVApex
-        lvShield = ShieldMesh(elementsCountAroundLVFreeWall, elementsCountUpLV, elementsCountUpLVApex, lvTrackSurface)
+        lvShield = ShieldMesh2D(elementsCountAroundLVFreeWall, elementsCountUpLV, elementsCountUpLVApex, lvTrackSurface)
         lvx  = lvShield.px
         lvd1 = lvShield.pd1
         lvd2 = lvShield.pd2

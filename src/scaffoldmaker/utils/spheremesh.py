@@ -1,7 +1,6 @@
 """
-Utility functions for generating a generalised 3-D solid cylinder (extruded ellipse/circle). The radii and ellipses
- orientation can be controlled using a central path subscaffold. It can be used to generate
-a solid truncated cone. It also can be used for transition from a 2D base to another base (e.g., ellipse to a circle).
+Utility functions for generating a 3-D solid spheroid. It can be used to generate
+a solid sphere.
 """
 
 from enum import Enum
@@ -17,24 +16,14 @@ from scaffoldmaker.utils.mirror import Mirror
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 
 
-class CylinderShape(Enum):
-    CYLINDER_SHAPE_FULL = 1  # full cylinder is created
-    CYLINDER_SHAPE_LOWER_HALF = 2  # lower half cylinder
+class SphereShape(Enum):
+    SPHERE_SHAPE_FULL = 1  # full sphere is created
+    SPHERE_SHAPE_LOWER_HALF = 2  # lower half sphere
 
 
-class EllipseShape(Enum):
-    Ellipse_SHAPE_FULL = 1  # full ellipse is created
-    Ellipse_SHAPE_LOWER_HALF = 2  # lower half ellipse
-
-
-class CylinderType(Enum):
-    CYLINDER_STRAIGHT = 1  # regular cylinder
-    CYLINDER_TAPERED = 2  # cylinder radius changes along the cylinder axis
-
-
-class ConeBaseProgression(Enum):
-    GEOMETRIC_PROGRESSION = 1  # geometric sequence decrease for major radius of bases
-    ARITHMETIC_PROGRESSION = 2  # arithmetic sequence decrease for major radius of bases
+# class EllipseShape(Enum):
+#     Ellipse_SHAPE_FULL = 1  # full ellipse is created
+#     Ellipse_SHAPE_LOWER_HALF = 2  # lower half ellipse
 
 
 class CylinderEnds:
@@ -75,66 +64,48 @@ class CylinderEnds:
         self.pd3 = None
 
 
-class Tapered:
-    """
-    Stores parameters for making a tapered cylinder.
-    """
-
-    def __init__(self, majorRatio=1.0, majorProgressionMode=ConeBaseProgression.GEOMETRIC_PROGRESSION,
-                 minorRatio=1.0, minorProgressionMode=ConeBaseProgression.GEOMETRIC_PROGRESSION):
-        """
-        :param ratio: radius common ratio increment along cylinder axis.
-        :param progressionMode: controls the change in radius along cylinder axis. r_n+1 = r_n+ratio for arithmetic,
-        r_n+1 = r_n*ratio for geometric progression.
-        """
-        self.majorRatio = majorRatio
-        self.majorProgressionMode = majorProgressionMode
-        self.minorRatio = minorRatio
-        self.minorProgressionMode = minorProgressionMode
-
-
-class CylinderCentralPath:
-    """
-    Stores ellipses parameters a long the central path.
-    """
-
-    def __init__(self, region, centralPath, elementsCount):
-        """
-        :param region: Zinc region to define model in.
-        :param centralPath: Central path subscaffold comes from meshtype_1d_path1 and used to calculate ellipse radii.
-        :param elementsCount: Number of elements needs to be sampled along the central path.
-        """
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
-                                                                        [Node.VALUE_LABEL_VALUE,
-                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                         Node.VALUE_LABEL_D_DS3,
-                                                                         Node.VALUE_LABEL_D2_DS1DS2,
-                                                                         Node.VALUE_LABEL_D2_DS1DS3])
-        del tmpRegion
-        # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')
-
-        sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCount)
-        sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-        sd3, sd13 = interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
-
-        self.centres = sx
-        self.majorRadii = [vector.magnitude(a) for a in sd2]
-        self.majorAxis = sd2
-        self.minorRadii = [vector.magnitude(a) for a in sd3]
-        self.minorAxis = sd3
-        self.alongAxis = sd1
+# class CylinderCentralPath:
+#     """
+#     Stores ellipses parameters a long the central path.
+#     """
+#
+#     def __init__(self, region, centralPath, elementsCount):
+#         """
+#         :param region: Zinc region to define model in.
+#         :param centralPath: Central path subscaffold comes from meshtype_1d_path1 and used to calculate ellipse radii.
+#         :param elementsCount: Number of elements needs to be sampled along the central path.
+#         """
+#         tmpRegion = region.createRegion()
+#         centralPath.generate(tmpRegion)
+#         cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
+#                                                                         [Node.VALUE_LABEL_VALUE,
+#                                                                          Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+#                                                                          Node.VALUE_LABEL_D_DS3,
+#                                                                          Node.VALUE_LABEL_D2_DS1DS2,
+#                                                                          Node.VALUE_LABEL_D2_DS1DS3])
+#         del tmpRegion
+#         # for i in range(len(cx)):
+#         #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')
+#
+#         sx, sd1, se, sxi, ssf = sampleCubicHermiteCurves(cx, cd1, elementsCount)
+#         sd2, sd12 = interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+#         sd3, sd13 = interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
+#
+#         self.centres = sx
+#         self.majorRadii = [vector.magnitude(a) for a in sd2]
+#         self.majorAxis = sd2
+#         self.minorRadii = [vector.magnitude(a) for a in sd3]
+#         self.minorAxis = sd3
+#         self.alongAxis = sd1
 
 
-class CylinderMesh:
+class SphereMesh:
     """
     Cylinder mesh generator. Extrudes an ellipse/circle.
     """
 
     def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
-                 cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
+                 cylinderShape=SphereShape.SPHERE_SHAPE_FULL,
                  tapered=None, cylinderCentralPath=None, useCrossDerivatives=False):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
@@ -158,7 +129,7 @@ class CylinderMesh:
         self._elementsCountAcrossMinor = base._elementsCountAcrossMinor
         self._elementsCountAcrossMajor = base._elementsCountAcrossMajor
         self._elementsCountUp = base._elementsCountAcrossMajor // 2 \
-            if cylinderShape == CylinderShape.CYLINDER_SHAPE_FULL else base._elementsCountAcrossMajor
+            if cylinderShape == SphereShape.Sphere_SHAPE_FULL else base._elementsCountAcrossMajor
         self._elementsCountAcrossShell = base._elementsCountAcrossShell
         self._elementsCountAcrossTransition = base._elementsCountAcrossTransition
         self._elementsCountAcrossRim = self._elementsCountAcrossShell + self._elementsCountAcrossTransition - 1
@@ -171,7 +142,7 @@ class CylinderMesh:
         self._endNodeIdentifier = 1
         self._endElementIdentifier = 1
         self._cylinderShape = cylinderShape
-        self._cylinderType = CylinderType.CYLINDER_STRAIGHT
+        # self._cylinderType = CylinderType.CYLINDER_STRAIGHT
         if (tapered is not None) or cylinderCentralPath:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
