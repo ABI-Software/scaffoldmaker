@@ -269,12 +269,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements along': 1,
                 'Unit scale': 1.0,
                 'Outlet': False,
-                'Ostium diameter': 1.0,
+                'Ostium diameter': 1.3,
                 'Ostium length': 0.25,
-                'Ostium wall thickness': 0.02,
+                'Ostium wall thickness': 0.3,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
-                'Vessel inner diameter': 0.3,
+                'Vessel inner diameter': 0.45,
                 'Vessel wall thickness': 0.1,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -300,7 +300,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Ostium wall thickness': 0.4,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
-                'Vessel inner diameter': 0.8,
+                'Vessel inner diameter': 0.9,
                 'Vessel wall thickness': 0.2,
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -413,41 +413,49 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             options['Neck angle degrees'] = 115
             options['Ureter position around'] = 0.82  # should be on the dorsal part (> 0.5)
             options['Ureter position down'] = 0.63
+            options['Number of elements along urethra'] = 8
             options['Urethra diameter 1'] = 1.5
             options['Urethra diameter 2'] = 1.0
             options['Urethra wall thickness'] = 0.5
         if 'Mouse' in parameterSetName:
+            options['Number of elements along bladder'] = 8
             options['Major diameter'] = 20.0
             options['Minor diameter'] = 15.0
-            options['Wall thickness'] = 0.2
+            options['Wall thickness'] = 0.5
             options['Neck diameter 1'] = 4.0
-            options['Neck diameter 2'] = 3.5
-            options['Neck angle degrees'] = 25
+            options['Neck diameter 2'] = 3.0
+            options['Neck angle degrees'] = 45
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ureter position down'] = 0.83
+            options['Number of elements along urethra'] = 6
+            options['Ureter position down'] = 0.865
             options['Urethra diameter 1'] = 0.75
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
         if 'Pig' in parameterSetName:
+            options['Number of elements along bladder'] = 8
             options['Major diameter'] = 30.0
             options['Minor diameter'] = 25.0
-            options['Wall thickness'] = 0.4
-            options['Neck diameter 1'] = 5.0
-            options['Neck diameter 2'] = 4.0
-            options['Neck angle degrees'] = 25
+            options['Wall thickness'] = 0.5
+            options['Neck diameter 1'] = 6.0
+            options['Neck diameter 2'] = 5.5
+            options['Neck angle degrees'] = 45
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
-            options['Ureter position down'] = 0.83
-            options['Urethra diameter 1'] = 1.0
+            options['Ureter position down'] = 0.865
+            options['Number of elements along urethra'] = 6
+            options['Urethra diameter 1'] = 1.25
             options['Urethra diameter 2'] = 1.0
             options['Urethra wall thickness'] = 0.25
         if 'Rat' in parameterSetName:
+            options['Number of elements along bladder'] = 12
             options['Major diameter'] = 20.0
             options['Minor diameter'] = 15.0
             options['Wall thickness'] = 0.2
             options['Neck diameter 1'] = 3.5
             options['Neck diameter 2'] = 3.0
+            options['Neck angle degrees'] = 45
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
             options['Ureter position down'] = 0.83
+            options['Number of elements along urethra'] = 8
             options['Urethra diameter 1'] = 0.75
             options['Urethra diameter 2'] = 0.65
             options['Urethra wall thickness'] = 0.25
