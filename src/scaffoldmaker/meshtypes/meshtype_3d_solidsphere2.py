@@ -14,6 +14,11 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from opencmiss.zinc.node import Node
+from opencmiss.zinc.field import Field
+from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
+from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape
+from scaffoldmaker.utils.shieldmesh import ShieldMesh3D, ShieldShape3D
+
 
 
 class MeshType_3d_solidsphere2(Scaffold_base):
@@ -115,8 +120,8 @@ with variable numbers of elements across axes and shell directions.
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
+        # if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
+        #     options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
 
         # if options['Number of elements across major'] < 4:
@@ -169,18 +174,16 @@ with variable numbers of elements across axes and shell directions.
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
-        # cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
+        centre = [0.0, 0.0, 0.0]
+        axis1 = [1.0, 0.0, 0.0]
+        axis2 = [0.0, 1.0, 0.0]
+        axis3 = [0.0, 0.0, 1.0]
+        axes = [axis1, axis2, axis3]
+        elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
 
-        # cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
-
-        # base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
-        #                     elementsCountAcrossTransition,
-        #                     shellProportion,
-        #                     [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
-        #                     cylinderCentralPath.minorRadii[0])
-        # cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
-        #                          cylinderShape=cylinderShape,
-        #                          cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+        sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                     elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                     sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
 
         annotationGroup = []
         return annotationGroup

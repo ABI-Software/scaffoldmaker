@@ -749,6 +749,9 @@ class Ellipse2D:
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
 
+    def getShield(self):
+        return self.__shield
+
 
 def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, height):
     """

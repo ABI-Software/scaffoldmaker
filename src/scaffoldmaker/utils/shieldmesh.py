@@ -36,7 +36,7 @@ class ShieldMesh3D:
     Generates a 3D shield mesh.
     '''
 
-    def __init__(self, elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3, elementsCountRim,
+    def __init__(self, elementsCountAcross, elementsCountRim,
                  shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP):
         '''
         Parameters
@@ -45,9 +45,8 @@ class ShieldMesh3D:
         # assert elementsCountAlong >= 1
         # assert elementsCountAcross >= (elementsCountRim + 4)
         # assert elementsCountUpFull >= (elementsCountRim + 2)
-        self.elementsCountAcrossAcrossAxis1 = elementsCountAcrossAxis1
-        self.elementsCountAcrossAcrossAxis2 = elementsCountAcrossAxis2
-        self.elementsCountAcrossAcrossAxis3 = elementsCountAcrossAxis3
+        self.elementsCountAcross = elementsCountAcross
+
         # self.elementsCountUpFull = elementsCountUpFull
         # elementsCountUp = elementsCountUpFull//2 if shieldMode == ShieldShape2D.SHIELD_SHAPE_FULL else elementsCountUpFull
         # self.elementsCountUp = elementsCountUp
@@ -58,17 +57,198 @@ class ShieldMesh3D:
         # self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
         self._mode = shieldMode
 
-        # self.px  = [ [] for _ in range(elementsCountAlong+1) ]
-        # self.pd1 = [ [] for _ in range(elementsCountAlong+1) ]
-        # self.pd2 = [ [] for _ in range(elementsCountAlong+1) ]
-        # self.pd3 = [ [] for _ in range(elementsCountAlong+1) ]
-        # self.nodeId = [ [] for _ in range(elementsCountAlong+1) ]
-        # for n3 in range(elementsCountAlong+1):
-        #     for n2 in range(elementsCountUpFull + 1):
-        #         for p in [ self.px[n3], self.pd1[n3], self.pd2[n3], self.pd3[n3], self.nodeId[n3] ]:
-        #             p.append([ None ]*(elementsCountAcross + 1))
-        #
-        # self.elementId = [ [[ None ]*elementsCountAcross for n2 in range(elementsCountUpFull)] for e3 in range(elementsCountAlong) ]
+        self.px  = [ [] for _ in range(elementsCountAcross[2] + 1) ]
+        self.pd1 = [ [] for _ in range(elementsCountAcross[2] + 1) ]
+        self.pd2 = [ [] for _ in range(elementsCountAcross[2] + 1) ]
+        self.pd3 = [ [] for _ in range(elementsCountAcross[2] + 1) ]
+        self.nodeId = [ [] for _ in range(elementsCountAcross[2] + 1) ]
+        for n3 in range(elementsCountAcross[2] + 1):
+            for n2 in range(elementsCountAcross[0] + 1):
+                for p in [ self.px[n3], self.pd1[n3], self.pd2[n3], self.pd3[n3], self.nodeId[n3] ]:
+                    p.append([ None ]*(elementsCountAcross[1] + 1))
+
+        self.elementId = [ [[ None ]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])] for e3 in range(elementsCountAcross[2]) ]
+
+    def getQudaruplePoint(self):
+        """
+
+        :return:
+        """
+        n1a = 1
+        n2a = 1
+        n3a = 1
+        n2b = self.elementsCountAcross[0]
+        x = [self.px[0][n2a][n1a][0],self.px[n3a][n2b][n1a][1],self.px[n3a][n2a][0][2]]
+        self.px[n3a][n2a][n1a] = [c for c in x]
+        self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2b][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+
+    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier,mirrorPlane=None):
+        """
+        Create shield nodes from coordinates.
+        :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        :param startNodeIdentifier: First node identifier to use.
+        :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
+        :return: next nodeIdentifier.
+         """
+        nodeIdentifier = startNodeIdentifier
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        cache = fieldmodule.createFieldcache()
+
+        #for n2 in range(self.elementsCountUp, -1, -1):
+        #    s = ""
+        #    for n1 in range(self.elementsCountAcross + 1):
+        #        s += str(n1) if self.px[1][n2][n1] else " "
+        #    print(n2, s, n2 - self.elementsCountUp - 1)
+
+        # if self._mode == ShieldShape2D.SHIELD_SHAPE_FULL and mirrorPlane:
+        #     self.generateNodesForOtherHalf(mirrorPlane)
+
+        for n2 in range(self.elementsCountAcross[0] + 1):
+            for n3 in range(self.elementsCountAcross[2] + 1):
+                for n1 in range(self.elementsCountAcross[1] + 1):
+                    if self.px[n3][n2][n1]:
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        self.nodeId[n3][n2][n1] = nodeIdentifier
+                        cache.setNode(node)
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, self.px [n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, self.pd1[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, self.pd2[n3][n2][n1])
+                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, self.pd3[n3][n2][n1])
+                        nodeIdentifier += 1
+
+        return nodeIdentifier
+
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
+        """
+        Create shield elements from nodes.
+        :param fieldmodule: Zinc fieldmodule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :param startElementIdentifier: First element identifier to use.
+        :param meshGroups: Zinc mesh groups to add elements to.
+        :return: next elementIdentifier.
+         """
+        elementIdentifier = startElementIdentifier
+        useCrossDerivatives = False
+        mesh = fieldmodule.findMeshByDimension(3)
+
+        tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
+        eft = tricubichermite.createEftNoCrossDerivatives()
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate.defineField(coordinates, -1, eft)
+
+        elementtemplate1 = mesh.createElementtemplate()
+        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        # isEven = (self.elementsCountAcross % 2) == 0
+        e1a = self.elementsCountRim
+        for e3 in range(self.elementsCountAcross[2]):
+            for e2 in range(self.elementsCountAcross[0]):
+                for e1 in range(self.elementsCountAcross[1]):
+                    eft1 = eft
+                    scalefactors = None
+                    if e3==0 and e2==1 and e1==0:
+                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
+                                 self.nodeId[e3][e2][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+1][e2][e1+1],self.nodeId[e3+1][e2+1][e1+1]]
+                    elif e3==0 and e2==1 and e1==1:
+                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
+                                 self.nodeId[e3][e2-1][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2-1][e1+1],self.nodeId[e3+2][e2+1][e1+1]]
+
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
+                                               [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3,
+                                               [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
+                                               [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1,[8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+
+                    elif e3==0 and e2==0 and e1==0:
+                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
+                                 self.nodeId[e3][e2][e1+2],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2][e1+2],self.nodeId[e3+1][e2+1][e1+1]]
+
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
+
+                    elif e3 == 1 and e2 == 1 and e1 == 0:
+                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2-1][e1], self.nodeId[e3+1][e2+1][e1],
+                                self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2-1][e1+2], self.nodeId[e3+1][e2+1][e1+2]]
+
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+
+
+                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+
+
+
+                    else:
+                        continue
+
+
+                    if eft1 is not eft:
+                        elementtemplate1.defineField(coordinates, -1, eft1)
+                        element = mesh.createElement(elementIdentifier, elementtemplate1)
+                    else:
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                    result2 = element.setNodesByIdentifier(eft1, nids)
+                    if scalefactors:
+                        result3 = element.setScaleFactors(eft1, scalefactors)
+                    else:
+                        result3 = 7
+
+                    self.elementId[e3][e2][e1] = elementIdentifier
+
+                    elementIdentifier += 1
+
+        return elementIdentifier
 
 
 class ShieldMesh2D:
