@@ -65,8 +65,7 @@ with variable numbers of elements across axes and shell directions.
             # 'Lower half': False,
             'Use cross derivatives': False,
             'Refine': False,
-            'Refine number of elements across major': 1,
-            'Refine number of elements along': 1
+            'Refine number of elements across': 1,
         }
         return options
 
@@ -83,8 +82,7 @@ with variable numbers of elements across axes and shell directions.
             'Shell element thickness proportion',
             # 'Lower half',
             'Refine',
-            'Refine number of elements across major',
-            'Refine number of elements along'
+            'Refine number of elements across'
         ]
 
     @classmethod
@@ -196,8 +194,6 @@ with variable numbers of elements across axes and shell directions.
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshRefinement, MeshRefinement)
-        refineElementsCountAcrossAxis1 = options['Refine number of elements across axis1']
-        refineElementsCountAcrossAxis2 = options['Refine number of elements across axis2']
-        refineElementsCountAcrossAxis3 = options['Refine number of elements across axis3']
+        refineElementsCountAcross = options['Refine number of elements across']
         # refineElementsCountAlong = options['Refine number of elements along']
-        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossAxis1, refineElementsCountAcrossAxis2, refineElementsCountAcrossAxis3)
+        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcross, refineElementsCountAcross, refineElementsCountAcross)
