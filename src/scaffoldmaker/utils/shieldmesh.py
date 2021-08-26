@@ -69,7 +69,7 @@ class ShieldMesh3D:
 
         self.elementId = [ [[ None ]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])] for e3 in range(elementsCountAcross[2]) ]
 
-    def getQudaruplePoint(self):
+    def getQuadruplePoint(self):
         """
 
         :return:
@@ -151,14 +151,43 @@ class ShieldMesh3D:
 
         # isEven = (self.elementsCountAcross % 2) == 0
         e1a = self.elementsCountRim
+        e1b = e1a + 1
+        # e1z = self.elementsCountAcross - 1 - self.elementsCountRim
+        # e1y = e1z - 1
+        e2a = self.elementsCountRim
+        e2b = self.elementsCountRim + 1
+        e2c = self.elementsCountRim + 2
+        # e2z = 2*self.elementsCountUp-1-self.elementsCountRim
+        # e2y = e2z - 1
+        # e2x = e2z - 2
         for e3 in range(self.elementsCountAcross[2]):
             for e2 in range(self.elementsCountAcross[0]):
                 for e1 in range(self.elementsCountAcross[1]):
                     eft1 = eft
                     scalefactors = None
-                    if e3==0 and e2==1 and e1==0:
+                    if e3 == 0 and e2 > 0 and e1 == 0:
                         nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
                                  self.nodeId[e3][e2][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+1][e2][e1+1],self.nodeId[e3+1][e2+1][e1+1]]
+                    elif e3==0 and e2==0 and e1==0:
+                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+2][e2][e1], self.nodeId[e3+1][e2+1][e1],
+                                 self.nodeId[e3][e2][e1+2],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2][e1+2],self.nodeId[e3+1][e2+1][e1+1]]
+
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
                     elif e3==0 and e2==1 and e1==1:
                         nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
                                  self.nodeId[e3][e2-1][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2-1][e1+1],self.nodeId[e3+2][e2+1][e1+1]]
@@ -178,30 +207,8 @@ class ShieldMesh3D:
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                         remapEftNodeValueLabel(eft1,[8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
 
-                    elif e3==0 and e2==0 and e1==0:
-                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
-                                 self.nodeId[e3][e2][e1+2],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2][e1+2],self.nodeId[e3+1][e2+1][e1+1]]
-
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [-1.0]
-
-                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
-                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
-                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
-
                     elif e3 == 1 and e2 == 1 and e1 == 0:
-                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2-1][e1], self.nodeId[e3+1][e2+1][e1],
+                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2-1][e1], self.nodeId[e3+1][e2+1][e1],
                                 self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2-1][e1+2], self.nodeId[e3+1][e2+1][e1+2]]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()

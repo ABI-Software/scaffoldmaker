@@ -81,8 +81,8 @@ class SphereMesh:
         """
         for i in range(3):
             assert (self._elementsCount[i] > 1), 'createSphereMesh3d:  Invalid number of elements'
-            assert (self._elementsCount[i] % 2 == 0), 'createSphereMesh3d: number of across elements' \
-                                                          ' is not an even number'
+            # assert (self._elementsCount[i] % 2 == 0), 'createSphereMesh3d: number of across elements' \
+            #                                               ' is not an even number'
 
         assert (self._sphereShape in [self._sphereShape.SPHERE_SHAPE_FULL,
                                         self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP]), \
@@ -99,19 +99,17 @@ class SphereMesh:
         self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim,
                  shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP)
 
-        self.calculateBoundaryElipses(fieldModule, coordinates)
-        # self.generateNodes(nodes, fieldModule, coordinates)
-        # self.generateElements(mesh, fieldModule, coordinates)
+        self.calculateBoundaryElipses()
+        self.generateNodes(nodes, fieldModule, coordinates)
+        self.generateElements(mesh, fieldModule, coordinates)
 
-    def calculateBoundaryElipses(self, fieldModule, coordinates):
+    def calculateBoundaryElipses(self):
         """
 
         :return:
         """
 
         centre = self._centre
-        elementsCountAcrossMajor = 2 * self._elementsCount[1]
-        elementsCountAcrossMinor = 2 * self._elementsCount[0]
         elementsCountAcrossShell = self._elementsCountAcrossShell
         elementsCountAcrossTransition = self._elementsCountAcrossTransition
         shellProportion = self._shellProportion
@@ -124,10 +122,16 @@ class SphereMesh:
                       (self._coreRadius[2], self._coreRadius[1]),
                       (self._coreRadius[0], self._coreRadius[2])]
 
+        elementsCount = [(2 * self._elementsCount[0], 2 * self._elementsCount[1]),
+                         (2 * self._elementsCount[2], 2 * self._elementsCount[1]),
+                         (2 * self._elementsCount[0], 2 * self._elementsCount[2])]
+
         for i in range(3):
             majorAxis = ellipseAxes[i][0]
             minorAxis = ellipseAxes[i][1]
             alongAxis = ellipseAxes[i][2]
+            elementsCountAcrossMajor = elementsCount[i][0]
+            elementsCountAcrossMinor = elementsCount[i][1]
             coreMajorRadius = coreRadius[i][0]
             coreMinorRadius = coreRadius[i][1]
             ellipse = Ellipse2D(centre, majorAxis, minorAxis,
@@ -137,41 +141,10 @@ class SphereMesh:
 
             self.copyEllipsesNodesToShieldNodes(ellipse, alongAxis, i)
 
-        self._shield3D.getQudaruplePoint()
-        self._shield3D.pd2[1][1][0] = [self._shield3D.px[1][1][1][c] - self._shield3D.px[1][1][0][c] for c in range(3)]
-        self._shield3D.pd2[0][1][1] = [self._shield3D.px[1][1][1][c] - self._shield3D.px[0][1][1][c] for c in range(3)]
-        self._shield3D.pd2[1][2][1] = [-(self._shield3D.px[1][1][1][c] - self._shield3D.px[1][2][1][c]) for c in range(3)]
 
-        temp = self._shield3D.pd2[1][1][0]
-        self._shield3D.pd2[1][1][0] = [-c for c in self._shield3D.pd3[1][1][0]]
-        self._shield3D.pd3[1][1][0] = [c for c in temp]
-        temp = self._shield3D.pd2[1][2][1]
-        self._shield3D.pd2[1][2][1] = [c for c in self._shield3D.pd1[1][2][1]]
-        self._shield3D.pd1[1][2][1] = temp
-        temp = self._shield3D.pd2[1][2][0]
-        self._shield3D.pd2[1][2][0] = [c for c in self._shield3D.pd1[1][2][0]]
-        self._shield3D.pd1[1][2][0] = temp
-
-        x = [0.57735026, 0.57735026, 0.57735026]
-        self._shield3D.px[2][0][2] = x
-        self._shield3D.pd1[2][0][2] = [self._shield3D.px[2][2][2][c] - self._shield3D.px[2][0][2][c] for c in range(3)]
-        self._shield3D.pd2[2][0][2] = [-(self._shield3D.px[0][0][2][c] - self._shield3D.px[2][0][2][c]) for c in range(3)]
-        self._shield3D.pd3[2][0][2] = [-(self._shield3D.px[1][1][1][c] - self._shield3D.px[2][0][2][c]) for c in range(3)]
-
-        radius = 1.0
-        theta = math.atan(math.sqrt(1.0/2.0))
-        arclength = radius*theta
-        self._shield3D.pd2[0][0][2] = vector.setMagnitude(self._shield3D.pd2[0][0][2], arclength)
-        self._shield3D.pd2[1][0][0] = vector.setMagnitude(self._shield3D.pd2[1][0][0], arclength)
-        self._shield3D.pd2[2][2][2] = vector.setMagnitude(self._shield3D.pd2[2][2][2], arclength)
-        self._shield3D.pd2[2][0][2] = vector.vectorRejection(self._shield3D.pd2[2][0][2], self._shield3D.pd3[2][0][2])
-        self._shield3D.pd2[2][0][2] = vector.setMagnitude(self._shield3D.pd2[2][0][2], arclength)
-        self._shield3D.pd1[2][0][2] = vector.crossproduct3(self._shield3D.pd2[2][0][2], self._shield3D.pd3[2][0][2])
-        self._shield3D.pd1[2][0][2] = vector.setMagnitude(self._shield3D.pd1[2][0][2], arclength)
+        self.createAdditionalPointsForIncreasingElementsCount()
 
 
-        self._shield3D.generateNodes(fieldModule, coordinates, 1)
-        self._shield3D.generateElements(fieldModule, coordinates, 1)
 
     def copyEllipsesNodesToShieldNodes(self, ellipse, alongAxis, ellipsenumber):
         """
@@ -191,8 +164,8 @@ class SphereMesh:
                         n1s = n1 + 1
                     else:
                         n1s = n1
-                    n1e = n1 + 2
-                    if shield.px[0][n2][n1 + self._elementsCount[1]]:
+                    n1e = n1 + self._elementsCount[1]
+                    if shield.px[0][n2][n1e]:
                         self._shield3D.px[0][n2][n1s] = [c for c in shield.px[0][n2][n1e]]
                         self._shield3D.pd1[0][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
                         self._shield3D.pd3[0][n2][n1s] = [c for c in shield.pd3[0][n2][n1e]]
@@ -205,8 +178,8 @@ class SphereMesh:
                         n1s = n1 + 1
                     else:
                         n1s = n1
-                    n2e = n3 + 2
-                    n1e = n1 + 2
+                    n2e = n3 + self._elementsCount[2]
+                    n1e = n1 + self._elementsCount[1]
                     if n3 == 0:
                         self._shield3D.pd2[n3][n2s][n1s] = [c for c in shield.pd1[0][n2e][n1e]]
                     else:
@@ -219,8 +192,8 @@ class SphereMesh:
             for n3 in range(self._elementsCount[2] + 1):
                 for n2 in range(self._elementsCount[0] + 1):
 
-                    if n2 == self._elementsCount[2] and n3 == self._elementsCount[2] - 1:
-                        n3s = n3 + 1
+                    if n2 == 0 and n3 == self._elementsCount[2] - 1:
+                        n3s = self._elementsCount[2]
                     else:
                         n3s = n3
                     n1e = self._elementsCount[2] - n3
@@ -239,7 +212,238 @@ class SphereMesh:
                         else:
                             self._shield3D.pd2[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
 
+    def createAdditionalPointsForIncreasingElementsCount(self):
+        """
 
+        :return:
+        """
+
+        self.calculate_regular_nodes()
+        self._shield3D.getQuadruplePoint()
+        self.fixD2DerivativesOnTheEllipses()
+        self.remapDerivativesOnTheEllipses()
+
+        # reverse d2 for 0,0,0
+        self._shield3D.pd2[0][0][0] = [-c for c in self._shield3D.pd2[0][0][0]]
+
+        self.calculate_surface_nodes()
+        self.smooth_triple_curves()
+
+    def calculate_regular_nodes(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        if self._elementsCount[0] == 3:
+            self.CreateRegularNodeOnBoundary()
+            n3 = 0
+            n1 = 0
+            for n2 in range(n2a + 1, n2b):
+                # First create the node for regular node. We are using the neighbour nodes x,y,z to do it but  TODO eventully we need to use the sampling between boundary nodes.
+                x = [self._shield3D.px[n3][n2][n1 + 1][0], self._shield3D.px[n3 + 1][n2 + 1][n1 + 1][1],
+                     self._shield3D.px[n3 + 1][n2][n1][2]]
+                self._shield3D.px[n3 + 1][n2][n1 + 1] = x
+                self._shield3D.pd1[n3 + 1][n2][n1 + 1] = [
+                    (self._shield3D.px[n3 + 1][n2 + 1][n1 + 1][c] - self._shield3D.px[n3 + 1][n2][n1 + 1][c]) for c in
+                    range(3)]
+                self._shield3D.pd2[n3 + 1][n2][n1 + 1] = [
+                    -(self._shield3D.px[n3][n2][n1 + 1][c] - self._shield3D.px[n3 + 1][n2][n1 + 1][c]) for c in
+                    range(3)]
+                self._shield3D.pd3[n3 + 1][n2][n1 + 1] = [
+                    -(self._shield3D.px[n3 + 1][n2][n1][c] - self._shield3D.px[n3 + 1][n2][n1 + 1][c]) for c in
+                    range(3)]
+                # using new point obtain the d2 derivatives of the neighbour nodes
+                self._shield3D.pd2[n3 + 1][n2][n1] = [
+                    self._shield3D.px[n3 + 1][n2][n1 + 1][c] - self._shield3D.px[n3 + 1][n2][n1][c] for c in range(3)]
+                self._shield3D.pd2[n3][n2][n1 + 1] = [
+                    self._shield3D.px[n3 + 1][n2][n1 + 1][c] - self._shield3D.px[n3][n2][n1 + 1][c] for c in range(3)]
+                self._shield3D.pd2[n3 + 1][n2 + 1][n1 + 1] = [
+                    self._shield3D.px[n3 + 1][n2 + 1][n1 + 1][c] - self._shield3D.px[n3][n2 + 1][n1 + 1][c] for c in
+                    range(3)]
+
+            self.remapRegularCurvesOnEllipses()
+
+    def remapRegularCurvesOnEllipses(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        # We need to remap the derivatives as we want d1 to be in -axis1 direction, d2, axis3 and d3, axis2. We need to think about the directions as well. e.g.
+        # d1, d2, d3 could be simply axis1,axis2 and axis3. However this one was chosen so it could be consistent with the cylinder mesh that makes joining them
+        # a little easier. TODO d1,d2,d3 directions in regular elements.
+        # for nodes on the ellipse2, d2 is -d3 and d3 is d2. TODO we can add another method to ellipse so it gives us what we expect for derivatives.
+        n3 = 0
+        n1 = 0
+        for n2 in range(n2a + 1, n2b):
+            temp = self._shield3D.pd2[n3 + 1][n2][n1]
+            self._shield3D.pd2[n3 + 1][n2][n1] = [-c for c in self._shield3D.pd3[n3 + 1][n2][n1]]
+            self._shield3D.pd3[n3 + 1][n2][n1] = temp
+            # for ellipse 1, swap d2 and d1
+            temp = self._shield3D.pd2[n3 + 1][n2 + 1][n1 + 1]
+            self._shield3D.pd2[n3 + 1][n2 + 1][n1 + 1] = [c for c in self._shield3D.pd1[n3 + 1][n2 + 1][n1 + 1]]
+            self._shield3D.pd1[n3 + 1][n2 + 1][n1 + 1] = temp
+
+    def CreateRegularNodeOnBoundary(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        # create the other two nodes to create the elements.
+        radius = self._radius[0]  # TODO need to be changed for spheroid
+
+        elementsAroundEllipse12 = self._elementsCount[0] + self._elementsCount[1] - 2
+        radiansAroundEllipse12 = math.pi / 2
+        radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
+        elementsAroundEllipse13 = self._elementsCount[0] + self._elementsCount[2] - 2
+        radiansAroundEllipse13 = math.pi / 2
+        radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
+
+        n3 = 0
+        n1 = 0
+        for n2 in range(n2a + 1, n2b):
+            theta_2 = math.pi / 4  # TODO actually it should change with the number of elements.
+            theta_3 = radiansPerElementAroundEllipse12
+            phi_3 = calculate_azimuth(theta_3, theta_2)
+            # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
+            theta_3 = 2 * radiansPerElementAroundEllipse12
+            x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
+                 radius * math.cos(phi_3)]
+
+            e1, e2, e3 = sphere_local_orthogonal_unit_vectors(x, self._axes[2])
+            self._shield3D.px[n3 + 1][n2][n1 + 2] = x
+            self._shield3D.pd1[n3 + 1][n2][n1 + 2] = e1
+            self._shield3D.pd2[n3 + 1][n2][n1 + 2] = e2
+            self._shield3D.pd3[n3 + 1][n2][n1 + 2] = e3
+
+            arcLength = radius * phi_3
+            self._shield3D.pd2[n3 + 1][n2][n1 + 2] = vector.setMagnitude(self._shield3D.pd2[n3 + 1][n2][n1 + 2], arcLength)
+
+
+    def fixD2DerivativesOnTheEllipses(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        self._shield3D.pd2[n3b][n2a][n1a] = [self._shield3D.px[n3b][n2a][n1b][c] - self._shield3D.px[n3b][n2a][n1a][c]
+                                             for c in range(3)]
+        self._shield3D.pd2[0][1][1] = [self._shield3D.px[1][1][1][c] - self._shield3D.px[0][1][1][c] for c in range(3)]
+        self._shield3D.pd2[n3b][n2b][n1b] = [
+            -(self._shield3D.px[n3b][n2a][n1b][c] - self._shield3D.px[n3b][n2b][n1b][c]) for c in range(3)]
+
+    def remapDerivativesOnTheEllipses(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        temp = self._shield3D.pd2[1][1][0]
+        self._shield3D.pd2[1][1][0] = [-c for c in self._shield3D.pd3[1][1][0]]
+        self._shield3D.pd3[1][1][0] = [c for c in temp]
+        temp = self._shield3D.pd2[n3b][n2b][n1b]
+        self._shield3D.pd2[n3b][n2b][n1b] = [c for c in self._shield3D.pd1[n3b][n2b][n1b]]
+        self._shield3D.pd1[n3b][n2b][n1b] = temp
+        temp = self._shield3D.pd2[n3b][n2b][n1a]
+        self._shield3D.pd2[n3b][n2b][n1a] = [c for c in self._shield3D.pd1[n3b][n2b][n1a]]
+        self._shield3D.pd1[n3b][n2b][n1a] = temp
+
+    def calculate_surface_nodes(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        radius = self._radius[0]  # TODO need to be changed for spheroid
+
+        elementsAroundEllipse12 = self._elementsCount[0] + self._elementsCount[1] - 2
+        radiansAroundEllipse12 = math.pi / 2
+        radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
+        elementsAroundEllipse13 = self._elementsCount[0] + self._elementsCount[2] - 2
+        radiansAroundEllipse13 = math.pi / 2
+        radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
+
+        theta_2 = radiansPerElementAroundEllipse13  # TODO actually it should change with the number of elements.
+        theta_3 = radiansPerElementAroundEllipse12
+        phi_3 = calculate_azimuth(theta_3, theta_2)
+        # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
+        x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
+             radius * math.cos(phi_3)]
+        self._shield3D.px[n3b + 1][0][n1b + 1] = x
+        self._shield3D.pd1[n3b + 1][0][n1b + 1] = [
+            self._shield3D.px[n3b + 1][n2b][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c] for c in range(3)]
+        self._shield3D.pd2[n3b + 1][0][n1b + 1] = [
+            -(self._shield3D.px[0][0][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n3b + 1][c]) for c in range(3)]
+        self._shield3D.pd3[n3b + 1][0][n1b + 1] = [
+            -(self._shield3D.px[1][1][1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c]) for c in range(3)]
+
+    def smooth_triple_curves(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        radius = 1.0
+        theta = math.atan(math.sqrt(1.0 / 2.0))
+        arclength = radius * theta
+        self._shield3D.pd2[0][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[0][0][n1b + 1], arclength)
+        self._shield3D.pd2[n3b + 1][0][0] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][0][0], arclength)
+        self._shield3D.pd2[n3b + 1][n2b][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][n2b][n1b + 1],
+                                                                        arclength)
+        self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.vectorRejection(self._shield3D.pd2[n3b + 1][0][n1b + 1],
+                                                                         self._shield3D.pd3[n3b + 1][0][n1b + 1])
+        self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1],
+                                                                      arclength)
+        self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.crossproduct3(self._shield3D.pd2[n3b + 1][0][n1b + 1],
+                                                                       self._shield3D.pd3[n3b + 1][0][n1b + 1])
+        d2mag = vector.magnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1])
+        thetad1ncurve = math.pi / 6
+        self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd1[n3b + 1][0][n1b + 1],
+                                                                      d2mag / math.tan(thetad1ncurve))
 
     def generateNodes(self, nodes, fieldModule, coordinates):
         """
@@ -250,7 +454,7 @@ class SphereMesh:
         """
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier)
+        nodeIdentifier = self._shield3D.generateNodes(fieldModule, coordinates, nodeIdentifier)
         self._endNodeIdentifier = nodeIdentifier
 
     def generateElements(self, mesh, fieldModule, coordinates):
@@ -262,5 +466,30 @@ class SphereMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier, [])
         self._endElementIdentifier = elementIdentifier
+
+
+def calculate_azimuth(theta, theta_p):
+    """
+    Given polar angles in different planes, calculates the azimuth angle.
+    :param theta: polar angle.
+    :param theta_p: polar angle wrt other direction.
+    :return: Azimuth angle.
+    """
+    return math.atan(1/(math.tan(theta_p)*math.cos(theta)))
+
+
+def sphere_local_orthogonal_unit_vectors(x, axis3):
+    """
+    Find local orthogonal unit vectors for a point on a sphere
+    :param x: coordinates of the point.
+    :param axis3: The third axis in Cartesian coordinate system (axis1, axis2, axis3)
+    :return: e1, e2, e3. Unit vectors. e3 is normal to the boundary, e2 is in (e3, axis3) plane and e1 normal to them.
+    """
+    e3 = vector.normalise(x)
+    e2 = vector.vectorRejection(axis3, e3)
+    e2 = vector.normalise(e2)
+    e1 = vector.crossproduct3(e2, e3)
+
+    return e1, e2, e3
