@@ -200,6 +200,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     'ontId': get_brainstem_term('midbrain')[1]
                 }]
         }),
+
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -241,6 +242,99 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     'name': get_brainstem_term('midbrain')[0],
                     'ontId': get_brainstem_term('midbrain')[1]
                 }]
+        }),
+
+        'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 6
+            },
+            'meshEdits': exnodeStringFromNodeValues(  # dimensional.
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    ([[0.0, 25.6, -29.3], [0.0, -5.4, 3.5], [4.8, 0.0, 0.0], [-0.7, 0.0, 0.0], [0.0, 1.8, 2.9],
+                      [0.0, 1.1, 1.4]]),
+                    ([[0.0, 19.5, -25.3], [0.0, -6.7, 4.8], [5.7, 0.0, 0.0], [2.5, 0.0, 0.0], [0.0, 2.8, 4.0],
+                      [0.0, 0.8, 0.7]]),
+                    ([[0.0, 12.2, -19.9], [0.0, -6.7, 5.4], [10.1, 0.0, 0.0], [3.0, 0.0, 0.0], [0.0, 3.3, 4.2],
+                      [0.0, 1.5, 0.5]]),
+                    ([[0.0, 6.0, -14.5], [0.0, -5.5, 6.3], [12.9, -0.2, -0.2], [0.7, 0.0, 0.0], [0.1, 5.7, 4.9],
+                      [0.0, 2.0, -0.6]]),
+                    ([[0.0, 1.5, -7.4], [0.0, -2.8, 7.0], [11.4, 0.0, 0.0], [-0.3, 0.2, 0.0], [0.0, 7.4, 3.0],
+                      [-0.2, 2.4, -1.2]]),
+                    ([[0.0, 0.1, -1.0], [0.0, -1.5, 6.9], [11.2, 0.3, 0.1], [-0.5, 0.1, 0.1], [-0.3, 11.3, 2.5],
+                      [-0.1, 1.5, -0.2]]),
+                    ([[0.0, -1.5, 6.6], [0.0, -2.0, 7.4], [10.3, 0.2, 0.0], [-1.3, -0.2, -0.0], [-0.2, 9.4, 2.5],
+                      [0.2, -2.3, 0.9]])
+                ]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_brainstem_term('medulla oblongata')[0],
+                    'ontId': get_brainstem_term('medulla oblongata')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-4',
+                    'name': get_brainstem_term('pons')[0],
+                    'ontId': get_brainstem_term('pons')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-6',
+                    'name': get_brainstem_term('midbrain')[0],
+                    'ontId': get_brainstem_term('midbrain')[1]
+                }]
+        }),
+
+        'Sheep 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 6
+            },
+            'meshEdits': exnodeStringFromNodeValues(  # dimensional.
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    ([ [ 0.0, 21.3,-33.2], [ 0.0,-7.5, 6.0], [  4.8, 0.0, 0.0], [ 4.8,-0.0,-0.0], [ 0.0,  2.8, 3.5], [ 0.0, 3.2, 1.3] ] ),
+                    ([ [ 0.0, 14.5,-26.7], [ 0.0,-6.1, 7.2], [  8.5,-0.0,-0.0], [ 2.6, 0.0, 0.0], [ 0.0,  4.9, 4.1], [-0.0, 1.1, 0.1] ] ),
+                    ([ [ 0.0,  9.2,-19.0], [ 0.0,-5.2, 7.2], [ 10.1, 0.0, 0.0], [ 1.1,-0.1,-0.0], [ 0.0,  5.0, 3.6], [ 0.1, 0.4,-0.6] ] ),
+                    ([ [ 0.0,  4.0,-12.2], [ 0.0,-3.5, 7.0], [ 10.8,-0.2,-0.1], [-0.4, 0.2, 0.0], [ 0.1,  5.7, 2.9], [-0.1, 0.8,-1.4] ] ),
+                    ([ [ 0.0,  2.1, -5.5], [ 0.0,-1.2, 7.6], [  9.4, 0.3, 0.1], [ 0.1, 0.2, 0.1], [-0.2,  6.6, 1.0], [-0.2, 2.2,-0.3] ] ),
+                    ([ [ 0.0,  1.9,  2.9], [ 0.0,-2.1, 8.8], [ 11.2, 0.2, 0.1], [ 3.3,-0.1,-0.0], [-0.2, 10.4, 2.5], [ 0.1, 0.3, 2.0] ] ),
+                    ([ [ 0.0, -2.3, 11.4], [ 0.0,-6.2, 8.1], [ 16.2, 0.1, 0.0], [ 6.7,-0.2,-0.0], [-0.0,  6.7, 5.1], [ 0.3,-7.7, 3.2] ] )
+                ]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_brainstem_term('medulla oblongata')[0],
+                    'ontId': get_brainstem_term('medulla oblongata')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-4',
+                    'name': get_brainstem_term('pons')[0],
+                    'ontId': get_brainstem_term('pons')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-6',
+                    'name': get_brainstem_term('midbrain')[0],
+                    'ontId': get_brainstem_term('midbrain')[1]
+                }]
         })
     }
 
@@ -255,7 +349,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
             'Cat 1',
             'Human 1',
             'Mouse 1',
-            'Rat 1']
+            'Rat 1',
+            'Pig 1',
+            'Sheep 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -273,6 +369,12 @@ class MeshType_3d_brainstem1(Scaffold_base):
 
         if 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
+
+        if 'Pig 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
+
+        if 'Sheep 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Sheep 1']
 
         options = {
             'Base parameter set': parameterSetName,
@@ -361,6 +463,8 @@ class MeshType_3d_brainstem1(Scaffold_base):
         isHuman = 'Human 1' in parameterSetName
         isMouse = 'Mouse 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
+        isPig = 'Pig 1' in parameterSetName
+        isSheep = 'Sheep 1' in parameterSetName
 
         centralPath = options['Central path']
         brainstemPath = cls.centralPathDefaultScaffoldPackages['Brainstem 1']
