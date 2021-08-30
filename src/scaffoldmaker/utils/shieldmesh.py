@@ -84,6 +84,35 @@ class ShieldMesh3D:
         self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
         self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
 
+    def smoothDerivativesToSurfaceQuadruple(self, n3, fixAllDirections=False):
+        '''
+        Smooth derivatives leading to quadruple point where 3 hex elements merge.
+        :param n3: Index of through-wall coordinates to use.
+        '''
+        n1b = self.elementsCountAcross[1] - (self.elementsCountRim + 1)
+        # n1z = self.elementsCountAcross[] - self.elementsCountRim
+        # n1y = n1z - 1
+        # m1a = self.elementsCountAcross - self.elementsCountRim
+        # m1b = m1a - 1
+        n2a = self.elementsCountRim
+        n2b = n2a + 1
+        n2c = n2a + 2
+
+        tx = []
+        td3 = []
+        for n2 in range(n2c):
+            if n2 < n2b:
+                tx.append(self.px[n3][n2][n1b + 1])
+                td3.append([-self.pd3[n3][n2][n1b+1][c] for c in range(3)])
+            else:
+                tx.append(self.px[n3-1][n2][n1b])
+                td3.append([(self.pd1[n3-1][n2b][n1b][c] - self.pd2[n3-1][n2b][n1b][c] - self.pd3[n3-1][n2b][n1b][c]) for c in range(3)] )
+
+        td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
+
+        for n2 in range(n2b):
+            self.pd3[n3][n2][n1b+1] = [-td3[n2][c] for c in range(3)]
+
     def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier,mirrorPlane=None):
         """
         Create shield nodes from coordinates.
@@ -101,6 +130,7 @@ class ShieldMesh3D:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
         cache = fieldmodule.createFieldcache()
 
         #for n2 in range(self.elementsCountUp, -1, -1):
@@ -157,7 +187,7 @@ class ShieldMesh3D:
         e2a = self.elementsCountRim
         e2b = self.elementsCountRim + 1
         e2c = self.elementsCountRim + 2
-        # e2z = 2*self.elementsCountUp-1-self.elementsCountRim
+        e2z = self.elementsCountAcross[0] - 1
         # e2y = e2z - 1
         # e2x = e2z - 2
         for e3 in range(self.elementsCountAcross[2]):
@@ -176,10 +206,14 @@ class ShieldMesh3D:
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+
+                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+
+
                         remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                         remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1,
@@ -205,11 +239,15 @@ class ShieldMesh3D:
                         remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1,[8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
 
-                    elif e3 == 1 and e2 == 1 and e1 == 0:
-                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2-1][e1], self.nodeId[e3+1][e2+1][e1],
-                                self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2-1][e1+2], self.nodeId[e3+1][e2+1][e1+2]]
+                    elif e3 == 1 and e2 >= e2b and e1 == 0:
+                        if e2 == 1:
+                            e2r = e2 - 1
+                        else:
+                            e2r = e2
+                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2r][e1], self.nodeId[e3+1][e2+1][e1],
+                                self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2r][e1+2], self.nodeId[e3+1][e2+1][e1+2]]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
@@ -218,20 +256,22 @@ class ShieldMesh3D:
                         remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
 
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
 
+                        if e2 == e2z:
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])  # The order is important
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
 
-
-                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
 
 
 

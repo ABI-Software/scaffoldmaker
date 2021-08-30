@@ -88,3 +88,10 @@ def parallelVectors(v1, v2):
     if magnitude(crossproduct3(v1, v2)) < TOL * (magnitude(v1)+magnitude(v2)):
         return True
     return False
+
+
+def angleBetweenVectors(v1, v2):
+    """
+    :return: Angle between vectors v1 and v2 in radians
+    """
+    return math.acos(dotproduct(normalise(v1), normalise(v2)))

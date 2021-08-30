@@ -270,6 +270,47 @@ class SphereMesh:
 
             self.remapRegularCurvesOnEllipses()
 
+    def CreateRegularNodeOnBoundary(self):
+        """
+
+        :return:
+        """
+        n3a = 0
+        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+        n2b = self._elementsCount[0]
+        n1a = 0
+        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
+
+        # create the other two nodes to create the elements.
+        radius = self._radius[0]  # TODO need to be changed for spheroid
+
+        elementsAroundEllipse12 = self._elementsCount[0] + self._elementsCount[1] - 2
+        radiansAroundEllipse12 = math.pi / 2
+        radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
+        elementsAroundEllipse13 = self._elementsCount[0] + self._elementsCount[2] - 2
+        radiansAroundEllipse13 = math.pi / 2
+        radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
+
+        n3 = 1
+        n1 = 0
+        for n2 in range(n2a + 1, n2b):
+            theta_1 = math.pi / 4  # TODO actually it should change with the number of elements.
+            theta_3 = 2*radiansPerElementAroundEllipse12
+            phi_3 = calculate_azimuth(math.pi/2 - theta_3, theta_1)
+            # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
+            x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
+                 radius * math.cos(phi_3)]
+
+            a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
+            self._shield3D.px[n3 + 1][n2][n1 + 2] = x
+            self._shield3D.pd1[n3 + 1][n2][n1 + 2] = a1
+            self._shield3D.pd2[n3 + 1][n2][n1 + 2] = a2
+            self._shield3D.pd3[n3 + 1][n2][n1 + 2] = a3
+
+            arcLength = radius * phi_3
+            self._shield3D.pd2[n3 + 1][n2][n1 + 2] = vector.setMagnitude(self._shield3D.pd2[n3 + 1][n2][n1 + 2], arcLength)
+
     def remapRegularCurvesOnEllipses(self):
         """
 
@@ -296,49 +337,6 @@ class SphereMesh:
             temp = self._shield3D.pd2[n3 + 1][n2 + 1][n1 + 1]
             self._shield3D.pd2[n3 + 1][n2 + 1][n1 + 1] = [c for c in self._shield3D.pd1[n3 + 1][n2 + 1][n1 + 1]]
             self._shield3D.pd1[n3 + 1][n2 + 1][n1 + 1] = temp
-
-    def CreateRegularNodeOnBoundary(self):
-        """
-
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        # create the other two nodes to create the elements.
-        radius = self._radius[0]  # TODO need to be changed for spheroid
-
-        elementsAroundEllipse12 = self._elementsCount[0] + self._elementsCount[1] - 2
-        radiansAroundEllipse12 = math.pi / 2
-        radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
-        elementsAroundEllipse13 = self._elementsCount[0] + self._elementsCount[2] - 2
-        radiansAroundEllipse13 = math.pi / 2
-        radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
-
-        n3 = 0
-        n1 = 0
-        for n2 in range(n2a + 1, n2b):
-            theta_2 = math.pi / 4  # TODO actually it should change with the number of elements.
-            theta_3 = radiansPerElementAroundEllipse12
-            phi_3 = calculate_azimuth(theta_3, theta_2)
-            # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
-            theta_3 = 2 * radiansPerElementAroundEllipse12
-            x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
-                 radius * math.cos(phi_3)]
-
-            e1, e2, e3 = sphere_local_orthogonal_unit_vectors(x, self._axes[2])
-            self._shield3D.px[n3 + 1][n2][n1 + 2] = x
-            self._shield3D.pd1[n3 + 1][n2][n1 + 2] = e1
-            self._shield3D.pd2[n3 + 1][n2][n1 + 2] = e2
-            self._shield3D.pd3[n3 + 1][n2][n1 + 2] = e3
-
-            arcLength = radius * phi_3
-            self._shield3D.pd2[n3 + 1][n2][n1 + 2] = vector.setMagnitude(self._shield3D.pd2[n3 + 1][n2][n1 + 2], arcLength)
-
 
     def fixD2DerivativesOnTheEllipses(self):
         """
@@ -407,13 +405,32 @@ class SphereMesh:
         # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
         x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
              radius * math.cos(phi_3)]
+
+        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
         self._shield3D.px[n3b + 1][0][n1b + 1] = x
+        self._shield3D.pd1[n3b + 1][0][n1b + 1] = a1
+        self._shield3D.pd2[n3b + 1][0][n1b + 1] = a2
+        self._shield3D.pd3[n3b + 1][0][n1b + 1] = a3
+
+        arcLength = calculate_arc_length(x, self._shield3D.px[n3a][0][n1b + 1], radius)
+        self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1], arcLength)
+        self._shield3D.smoothDerivativesToSurfaceQuadruple(n3b+1)
+
         self._shield3D.pd1[n3b + 1][0][n1b + 1] = [
             self._shield3D.px[n3b + 1][n2b][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c] for c in range(3)]
-        self._shield3D.pd2[n3b + 1][0][n1b + 1] = [
-            -(self._shield3D.px[0][0][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n3b + 1][c]) for c in range(3)]
-        self._shield3D.pd3[n3b + 1][0][n1b + 1] = [
-            -(self._shield3D.px[1][1][1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c]) for c in range(3)]
+        # self._shield3D.pd2[n3b + 1][0][n1b + 1] = [
+        #     -(self._shield3D.px[0][0][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n3b + 1][c]) for c in range(3)]
+        # self._shield3D.pd3[n3b + 1][0][n1b + 1] = [
+        #     -(self._shield3D.px[1][1][1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c]) for c in range(3)]
+
+
+
+        n1a = 1
+        n2a = 1
+        n3a = 1
+        self._shield3D.pd1[n3a][n2a][n1a] = [-(self._shield3D.px[n3a+1][n2a-1][n1a+1][0] - self._shield3D.px[n3a][n2a][n1a][0]), 0.0, 0.0]
+        self._shield3D.pd2[n3a][n2a][n1a] = [0.0, 0.0, (self._shield3D.px[n3a+1][n2a-1][n1a+1][2] - self._shield3D.px[n3a][n2a][n1a][2])]
+        self._shield3D.pd3[n3a][n2a][n1a] = [0.0, (self._shield3D.px[n3a+1][n2a-1][n1a+1][1] - self._shield3D.px[n3a][n2a][n1a][1]), 0.0]
 
     def smooth_triple_curves(self):
         """
@@ -472,15 +489,16 @@ class SphereMesh:
 
 def calculate_azimuth(theta, theta_p):
     """
-    Given polar angles in different planes, calculates the azimuth angle.
-    :param theta: polar angle.
+    Given polar angles of a point on the sphere surfaces, calculate the azimuth angle.
+    :param theta: polar angle. In orthonormal coordinate system (axis1, axis2, axis3) with right-hand rule,
+    theta is angle between common axis and point projection on plane of theta. In case theta=theta_3 and theta_p = theta_1, theta is between axis2 and projection
     :param theta_p: polar angle wrt other direction.
     :return: Azimuth angle.
     """
     return math.atan(1/(math.tan(theta_p)*math.cos(theta)))
 
 
-def sphere_local_orthogonal_unit_vectors(x, axis3):
+def local_orthogonal_unit_vectors(x, axis3):
     """
     Find local orthogonal unit vectors for a point on a sphere
     :param x: coordinates of the point.
@@ -493,3 +511,14 @@ def sphere_local_orthogonal_unit_vectors(x, axis3):
     e1 = vector.crossproduct3(e2, e3)
 
     return e1, e2, e3
+
+
+def calculate_arc_length(x1, x2, radius):
+    """
+    Calculate the arc length between points x1 and x2.
+    :param x1, x2: points coordinates.
+    :param radius: sphere radius.
+    :return: arc length
+    """
+    angle = vector.angleBetweenVectors(x1, x2)
+    return radius * angle
