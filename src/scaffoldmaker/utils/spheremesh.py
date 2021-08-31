@@ -414,10 +414,19 @@ class SphereMesh:
 
         arcLength = calculate_arc_length(x, self._shield3D.px[n3a][0][n1b + 1], radius)
         self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1], arcLength)
+
+
+        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[0])
+        # btd1 = [
+        #     self._shield3D.px[n3b + 1][n2b][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c] for c in range(3)]
+        self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude([-c for c in a2], arcLength)
         self._shield3D.smoothDerivativesToSurfaceQuadruple(n3b+1)
 
-        self._shield3D.pd1[n3b + 1][0][n1b + 1] = [
-            self._shield3D.px[n3b + 1][n2b][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c] for c in range(3)]
+
+        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[1])
+        # btd1 = [
+        #     self._shield3D.px[n3b + 1][n2b][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n1b + 1][c] for c in range(3)]
+        self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.setMagnitude([-c for c in a2], arcLength)
         # self._shield3D.pd2[n3b + 1][0][n1b + 1] = [
         #     -(self._shield3D.px[0][0][n1b + 1][c] - self._shield3D.px[n3b + 1][0][n3b + 1][c]) for c in range(3)]
         # self._shield3D.pd3[n3b + 1][0][n1b + 1] = [
@@ -451,16 +460,26 @@ class SphereMesh:
         self._shield3D.pd2[n3b + 1][0][0] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][0][0], arclength)
         self._shield3D.pd2[n3b + 1][n2b][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][n2b][n1b + 1],
                                                                         arclength)
-        self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.vectorRejection(self._shield3D.pd2[n3b + 1][0][n1b + 1],
-                                                                         self._shield3D.pd3[n3b + 1][0][n1b + 1])
-        self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1],
-                                                                      arclength)
-        self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.crossproduct3(self._shield3D.pd2[n3b + 1][0][n1b + 1],
-                                                                       self._shield3D.pd3[n3b + 1][0][n1b + 1])
-        d2mag = vector.magnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1])
-        thetad1ncurve = math.pi / 6
-        self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd1[n3b + 1][0][n1b + 1],
-                                                                      d2mag / math.tan(thetad1ncurve))
+        # atz = vector.vectorRejection(self._shield3D.pd2[n3b + 1][0][n1b + 1], self._shield3D.pd3[n3b + 1][0][n1b + 1])
+        # self._shield3D.pd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(atz, arclength)
+        atx = vector.vectorRejection(self._shield3D.pd1[n3b + 1][0][n1b + 1], self._shield3D.pd3[n3b + 1][0][n1b + 1])
+        self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(atx, arclength)
+
+
+        # self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.crossproduct3(self._shield3D.pd2[n3b + 1][0][n1b + 1],
+        #                                                                self._shield3D.pd3[n3b + 1][0][n1b + 1])
+        # self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd1[n3b + 1][0][n1b + 1],
+        #                                                               arclength)
+
+        # dmag = calculate_arc_length(self._shield3D.px[n3b + 1][0][n1b + 1], self._shield3D.px[n3b + 1][2][n1b + 1], radius)
+        # d2mag = vector.magnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1])
+        # d1mag = math.sqrt(dmag*dmag - d2mag*d2mag)
+        # self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd1[n3b + 1][0][n1b + 1], d1mag)
+        # d2mag = vector.magnitude(self._shield3D.pd2[n3b + 1][0][n1b + 1])
+        # thetad1ncurve = math.pi / 6
+        # self._shield3D.pd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(self._shield3D.pd1[n3b + 1][0][n1b + 1],
+        #                                                               d2mag / math.tan(thetad1ncurve))
+
 
     def generateNodes(self, nodes, fieldModule, coordinates):
         """

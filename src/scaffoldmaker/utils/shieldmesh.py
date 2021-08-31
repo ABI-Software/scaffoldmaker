@@ -77,10 +77,10 @@ class ShieldMesh3D:
         n1a = 1
         n2a = 1
         n3a = 1
-        n2b = self.elementsCountAcross[0]
-        x = [self.px[0][n2a][n1a][0],self.px[n3a][n2b][n1a][1],self.px[n3a][n2a][0][2]]
+        # n2b = self.elementsCountAcross[0]
+        x = [self.px[0][n2a][n1a][0],self.px[n3a][n2a+1][n1a][1],self.px[n3a][n2a][0][2]]
         self.px[n3a][n2a][n1a] = [c for c in x]
-        self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2b][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2a+1][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
         self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
         self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
 
@@ -218,8 +218,9 @@ class ShieldMesh3D:
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                         remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
+                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
                     elif e3==0 and e2==1 and e1==1:
@@ -236,7 +237,7 @@ class ShieldMesh3D:
                                                [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
                         remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
                                                [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1,
+                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
@@ -265,9 +266,8 @@ class ShieldMesh3D:
                             remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
                             remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])  # The order is important
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
                             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
