@@ -69,6 +69,47 @@ class ShieldMesh3D:
 
         self.elementId = [ [[ None ]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])] for e3 in range(elementsCountAcross[2]) ]
 
+    def getQuadruplePoint2(self):
+        """
+
+        :return:
+        """
+        n1a = 1
+        n2a = 1
+        n3a = 1
+        # n2b = self.elementsCountAcross[0]
+        for n2 in range(self.elementsCountAcross[0]):
+            if n2 > 0:
+                x = [self.px[0][n2][n1a][0], self.px[0][n2][n1a][1],self.px[n3a][n2][0][2]]
+                self.px[n3a][n2][n1a] = x
+                n2r = n2 - 1 if n2 == 1 else n2
+                if n2 == 1:
+                    self.pd1[n3a][n2][n1a] = [-(self.px[n3a + 1][n2r][n1a + 1][0] - self.px[n3a][n2][n1a][0]), 0.0, 0.0]
+                else:
+                    self.pd1[n3a][n2][n1a] = self.pd1[0][n2][n1a]
+                self.pd2[n3a][n2][n1a] = [0.0, 0.0, (self.px[n3a + 1][n2r][n1a + 1][2] - self.px[n3a][n2][n1a][2])]
+                self.pd3[n3a][n2][n1a] = [0.0, (self.px[n3a + 1][n2r][n1a + 1][1] - self.px[n3a][n2][n1a][1]), 0.0]
+
+        n3 = 1
+        n1 = 1
+        tx = []
+        td1 = []
+        for n2 in range(self.elementsCountAcross[0] + 1):
+            if n2 > 0:
+                tx.append(self.px[n3][n2][n1])
+                td1.append(self.pd1[n3][n2][n1])
+
+        td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
+
+        for n2 in range(self.elementsCountAcross[0] + 1):
+            if n2 > 1:
+                n2t = n2 - 1
+                self.pd1[n3][n2][n1] = td1[n2t]
+
+        # self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2a+1][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        # self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        # self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+
     def getQuadruplePoint(self):
         """
 
@@ -78,11 +119,16 @@ class ShieldMesh3D:
         n2a = 1
         n3a = 1
         # n2b = self.elementsCountAcross[0]
-        x = [self.px[0][n2a][n1a][0],self.px[n3a][n2a+1][n1a][1],self.px[n3a][n2a][0][2]]
-        self.px[n3a][n2a][n1a] = [c for c in x]
-        self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2a+1][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
-        self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
-        self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        for n2 in range(self.elementsCountAcross[0]):
+            if n2 > 0:
+                x = [self.px[0][n2][n1a][0], self.px[0][n2][n1a][1],self.px[n3a][n2][0][2]]
+                self.px[n3a][n2][n1a] = x
+                self.pd1[n3a][n2][n1a] = self.pd1[0][n2][n1a]
+                self.pd2[n3a][n2][n1a] = self.pd2[0][n2][n1a]
+                self.pd3[n3a][n2][n1a] = self.pd3[0][n2][n1a]
+        # self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2a+1][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        # self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
+        # self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
 
     def smoothDerivativesToSurfaceQuadruple(self, n3, fixAllDirections=False):
         '''
@@ -182,7 +228,7 @@ class ShieldMesh3D:
         # isEven = (self.elementsCountAcross % 2) == 0
         e1a = self.elementsCountRim
         e1b = e1a + 1
-        # e1z = self.elementsCountAcross - 1 - self.elementsCountRim
+        # e1z = self.elementsCountAcross[1] - 1 - self.elementsCountRim
         # e1y = e1z - 1
         e2a = self.elementsCountRim
         e2b = self.elementsCountRim + 1
@@ -195,10 +241,10 @@ class ShieldMesh3D:
                 for e1 in range(self.elementsCountAcross[1]):
                     eft1 = eft
                     scalefactors = None
-                    if e3 == 0 and e2 > 0 and e1 == 0:
+                    if e3 == 0 and e2 > e2a and e1 == 0:
                         nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
                                  self.nodeId[e3][e2][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+1][e2][e1+1],self.nodeId[e3+1][e2+1][e1+1]]
-                    elif e3==0 and e2==0 and e1==0:
+                    elif e3 == 0 and e2 == 0 and e1 == 0:
                         nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+2][e2][e1], self.nodeId[e3+1][e2+1][e1],
                                  self.nodeId[e3][e2][e1+2],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2][e1+2],self.nodeId[e3+1][e2+1][e1+1]]
 
@@ -223,24 +269,33 @@ class ShieldMesh3D:
                         remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
-                    elif e3==0 and e2==1 and e1==1:
+                    elif e3 == 0 and e2 >= e2b and e1 == 1:
+                        if e2 == 1:
+                            e2r = e2 - 1
+                        else:
+                            e2r = e2
                         nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
-                                 self.nodeId[e3][e2-1][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2-1][e1+1],self.nodeId[e3+2][e2+1][e1+1]]
+                                 self.nodeId[e3][e2r][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2r][e1+1],self.nodeId[e3+2][e2+1][e1+1]]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
-                                               [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3,
                                                [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
                         remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
                                                [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+
+                        if e2 == e2b:
+                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+
+                        if e2 == e2z:
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
 
                     elif e3 == 1 and e2 >= e2b and e1 == 0:
                         if e2 == 1:
@@ -254,12 +309,17 @@ class ShieldMesh3D:
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+
 
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
+
+
+                        if e2 == e2b:
+                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
 
                         if e2 == e2z:
                             remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
@@ -271,6 +331,17 @@ class ShieldMesh3D:
                             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                        else:
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [1])])  # finish swap
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
 
 
 
@@ -592,6 +663,47 @@ class ShieldMesh2D:
                         self.pd2[n3][n2][n1] = td1[ix]
                 else:
                     self.pd1[n3][n2][n1] = td1[ix]
+
+    def remap_derivatives(self, squareMapping, circleMapping=None):
+        """
+        It remaps the derivatives as indicated by squareMapping and circleMapping. Limited to SHIELD_RIM_DERIVATIVE_MODE_AROUND.
+        :param squareMapping: List[up, right]. Determines what derivatives should be in the up and right directions in the
+         square part. Their values are in [1,2,3] range which 1, 2, 3 means d1, d2 and d3 respectively.
+          The negative sign reverses the direction. e.g. [-3,2] means d3 is down and d2 is right. The third derivative
+           is determined by the other two. RH rule applied. Assumes [1,3] initially.
+        :param circleMapping: List[circumferential, radial]. Determines what derivatives should be used for
+         circumferential and radial directions around the circle.
+         [-1, 3] means d1 -> clockwise and around. d3 -> outward and radial. Assumes [1,3] initially.
+        :return:
+        """
+        dct = {1: self.pd1, 2: self.pd2, 3: self.pd3}
+        perm = {(1, 2): -3, (2, 3): -1, (3, 1): -2, (3, 2): 1, (1, 3): 2, (2, 1): 3}
+
+        square = True
+        tripleRow = [self.elementsCountRim + 1, self.elementsCountUpFull - (self.elementsCountRim + 1)]
+        ellipseMapping = [squareMapping, circleMapping]
+        for mapping in ellipseMapping:
+            if mapping:
+                signs = []
+                for c in mapping:
+                    sign = 1 if c > 0 else -1
+                    signs.append(sign)
+                derv = (abs(mapping[0]), abs(mapping[1]))
+                sign = 1 if perm[derv] > 0 else -1
+                signs.append(signs[0]*signs[1]*sign)
+                dervMapping = (derv[0], derv[1], abs(perm[derv]))
+                temp1 = copy.deepcopy(self.pd3)
+                temp2 = copy.deepcopy(self.pd2)
+                for n2 in range(self.elementsCountUpFull + 1):
+                    for n3 in range(self.elementsCountAlong+1):
+                        for n1 in range(self.elementsCountAcross + 1):
+                            if self.px[n3][n2][n1]:
+                                is_on_square = ((self.px[n3][n2][0] and self.px[n3][0][n1]) or n2 in tripleRow)
+                                if (is_on_square and square) or (not is_on_square and not square):
+                                    dct[dervMapping[0]][n3][n2][n1] = [signs[0]*c for c in self.pd1[n3][n2][n1]]
+                                    dct[dervMapping[1]][n3][n2][n1] = [signs[1]*c for c in temp1[n3][n2][n1]]
+                                    dct[dervMapping[2]][n3][n2][n1] = [signs[2]*c for c in temp2[n3][n2][n1]]
+            square = False
 
     def generateNodesForOtherHalf(self, mirrorPlane):
         """
