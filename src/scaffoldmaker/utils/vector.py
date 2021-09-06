@@ -57,7 +57,7 @@ def vectorProjection(v1, v2):
     :return: A projection vector.
     """
     s1 = scalarProjection(v1, v2)
-    return scalarProduct(s1, normalise(v2))
+    return scaleVector(normalise(v2), s1)
 
 
 def vectorRejection(v1, v2):
@@ -69,14 +69,14 @@ def vectorRejection(v1, v2):
     return addVectors(v1, v1p, 1.0, -1.0)
 
 
-def scalarProduct(s, v):
+def scaleVector(v, s):
     """
     Calculate s * v
-    :param s: Scalar.
     :param v: Vector.
+    :param s: Scalar.
     :return:
     """
-    return [s * v[c] for c in range(len(v))]
+    return [s * c for c in v]
 
 
 def parallelVectors(v1, v2):
@@ -95,3 +95,14 @@ def angleBetweenVectors(v1, v2):
     :return: Angle between vectors v1 and v2 in radians
     """
     return math.acos(dotproduct(normalise(v1), normalise(v2)))
+
+
+def rotateVectorAroundVector(v, k, a):
+    """
+    Rotate vector v, by an angle a (right-hand rule) in radians around vector k.
+    :return: rotated vector.
+    """
+    k = normalise(k)
+    vperp = addVectors(v, crossproduct3(k, v), math.cos(a), math.sin(a))
+    vparal = scaleVector(k, dotproduct(k, v)*(1 - math.cos(a)))
+    return addVectors(vperp, vparal)
