@@ -463,6 +463,7 @@ class Ellipse2D:
         self.smoothTransitionRims()
         if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
             self.generateNodesForUpperHalf()
+        self.calculateD2()
 
     def generateBase1DMesh(self, rx):
         """
@@ -748,6 +749,19 @@ class Ellipse2D:
                         self.pd1[n2][n1])
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
+
+    def calculateD2(self):
+        """
+        :return:
+        """
+        btx = self.px
+        btd2 = self.pd2
+
+        nte = normalToEllipse(self.majorAxis, self.minorAxis)
+        for n2 in range(self.elementsCountAcrossMajor + 1):
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if btx[n2][n1]:
+                    btd2[n2][n1] = nte
 
     def getShield(self):
         return self.__shield
