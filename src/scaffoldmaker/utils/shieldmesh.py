@@ -304,6 +304,47 @@ class ShieldMesh3D:
 
         return nodeIdentifier
 
+    # node types
+    CORNER_1 = 1
+    CORNER_2 = 29
+    CORNER_3 = 28
+
+    QUADRUPLE_DOWN_LEFT = 6
+    QUADRUPLE_RIGHT = 12
+    QUADRUPLE_UP = 18
+    QUADRUPLE0_DOWN_LEFT = 7
+    QUADRUPLE0_RIGHT = 11
+    QUADRUPLE0_UP = 30
+
+    TRIPLE_12_LEFT = 5
+    TRIPLE_12_RIGHT = 9
+    TRIPLE_13_DOWN = 2
+    TRIPLE_13_UP = 21
+    TRIPLE_23_UP = 20
+    TRIPLE_23_DOWN = 14
+    TRIPLE0_12_LEFT = 32
+    TRIPLE0_12_RIGHT = 33
+    TRIPLE0_13_DOWN = 4
+    TRIPLE0_13_Up = 27
+    TRIPLE0_23_DOWN = 13
+    TRIPLE0_23_UP = 26
+
+
+    BOUNDARY_12 = 3
+    BOUNDARY_13 = 24
+    BOUNDARY_23 = 19
+
+    TRIPLE_CURVE_1_DOWN = 15
+    TRIPLE_CURVE_1_UP = 23
+    TRIPLE_CURVE_2_DOWN = 8
+    TRIPLE_CURVE_2_UP = 22
+    TRIPLE_CURVE0_1_UP = 17
+    TRIPLE_CURVE0_1_DOWN = 31
+    TRIPLE_CURVE0_2_DOWN = 10
+    TRIPLE_CURVE0_2_UP = 16
+
+    SURFACE_REGULAR = 25
+
     def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
         """
         Create shield elements from nodes.
@@ -337,234 +378,192 @@ class ShieldMesh3D:
         e2z = self.elementsCountAcross[0] - 1
         # e2y = e2z - 1
         # e2x = e2z - 2
+
         for e3 in range(self.elementsCountAcross[2]):
             for e2 in range(self.elementsCountAcross[0]):
                 for e1 in range(self.elementsCountAcross[1]):
                     eft1 = eft
                     scalefactors = None
-                    if e3 == 0 and e2 > e2a and e1 < e1z:
-                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
-                                 self.nodeId[e3][e2][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+1][e2][e1+1],self.nodeId[e3+1][e2+1][e1+1]]
-                    elif e3 == 0 and e2 == 0 and e1 == e1y:
-                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+2][e2][e1], self.nodeId[e3+1][e2+1][e1],
-                                 self.nodeId[e3][e2][e1+2],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2][e1+2],self.nodeId[e3+1][e2+1][e1+1]]
+                    nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2 + 1][e1], self.nodeId[e3 + 1][e2][e1], self.nodeId[e3 + 1][e2 + 1][e1],
+                            self.nodeId[e3][e2][e1 + 1], self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3 + 1][e2][e1 + 1], self.nodeId[e3 + 1][e2 + 1][e1 + 1]]
+
+                    element_regular = (e3 == 0 and e2 > e2a and e1 < e1z)
+                    element_quadruple_down_left = (e3 == 0 and e2 == 0 and e1 == e1y)
+                    element_quadruple_down_right = (e3 == 0 and e2 >= e2b and e1 == e1z)
+                    element_quadruple_up_left = (e3 == 1 and e2 >= e2b and e1 == e1y)
+                    element_quadruple_down = (e3 == 0 and e2 == 0 and e1 < e1y)
+                    element_quadruple_up = (e3 == 1 and e2 >= e2b and e1 < e1y)
+
+                    if element_regular:
+                        pass
+                    elif element_quadruple_down_left:
+                        nids[2] = self.nodeId[e3+2][e2][e1]
+                        nids[4] = self.nodeId[e3][e2][e1+2]
+                        nids[6] = self.nodeId[e3+2][e2][e1+2]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
-                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
+                        self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_12_LEFT)
+                        self.remap_eft_node_value_label(eft1, [6], self.TRIPLE0_12_LEFT)
+                        self.remap_eft_node_value_label(eft1, [7], self.QUADRUPLE_DOWN_LEFT)
+                        self.remap_eft_node_value_label(eft1, [8], self.QUADRUPLE0_DOWN_LEFT)
 
                         if e1y == 0:
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                            self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_13_DOWN)
+                            self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                            self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_DOWN)
                         else:
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            self.remap_eft_node_value_label(eft1, [4], self.TRIPLE_CURVE0_2_DOWN)
+                            self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_12)
+                            self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_DOWN)
 
-
-                    elif e3 == 0 and e2 == 0 and e1<e1y:
-                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+2][e2][e1], self.nodeId[e3+1][e2+1][e1],
-                                self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+2][e2][e1+1], self.nodeId[e3+1][e2+1][e1+1]]
+                    elif element_quadruple_down:
+                        nids[2] = self.nodeId[e3+2][e2][e1]
+                        nids[6] = self.nodeId[e3+2][e2][e1+1]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
-                        remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-                                               [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                        self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_13_DOWN)
+                        self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12)
+                        self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_2_DOWN)
+                        self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_CURVE0_2_DOWN)
 
                         if e1 == 0:
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                            self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_DOWN)
                         else:
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_DOWN)
 
-                    elif e3 == 0 and e2 >= e2b and e1 == e1z:
+                    elif element_quadruple_down_right:
                         if e2 == 1:
                             e2r = e2 - 1
                         else:
                             e2r = e2
-                        nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1],self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2+1][e1],
-                                 self.nodeId[e3][e2r][e1+1],self.nodeId[e3][e2+1][e1+1],self.nodeId[e3+2][e2r][e1+1],self.nodeId[e3+2][e2+1][e1+1]]
+
+                        nids[4] = self.nodeId[e3][e2r][e1+1]
+                        nids[6] = self.nodeId[e3+2][e2r][e1+1]
+                        nids[7] = self.nodeId[e3+2][e2+1][e1+1]
 
                         if e2 == e2b or e2 == e2z:
                             eft1 = tricubichermite.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             scalefactors = [-1.0]
 
-
                         if e2 == e2b:
-                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            self.remap_eft_node_value_label(eft1, [1], self.TRIPLE0_12_RIGHT)
+                            self.remap_eft_node_value_label(eft1, [3], self.QUADRUPLE0_RIGHT)
+                            self.remap_eft_node_value_label(eft1, [7], self.QUADRUPLE_RIGHT)
                             if e2b == e2z:
-                                remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
-                                                       [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-
-                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                                self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_23_DOWN)
+                                self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_DOWN)
                         elif e2 == e2z:
-                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3,
-                                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+                            self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE0_1_DOWN)
+                            self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_23_DOWN)
+                            self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_DOWN)
 
-                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-
-                    elif e3 == 1 and e2 >= e2b and e1 == e1y:
+                    elif element_quadruple_up_left:
                         if e2 == 1:
                             e2r = e2 - 1
                         else:
                             e2r = e2
-                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2r][e1], self.nodeId[e3+1][e2+1][e1],
-                                self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2r][e1+2], self.nodeId[e3+1][e2+1][e1+2]]
+                        nids[2] = self.nodeId[e3+1][e2r][e1]
+                        nids[6] = self.nodeId[e3+1][e2r][e1+2]
+                        nids[7] = self.nodeId[e3+1][e2+1][e1+2]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-
                         if e2 == e2b:
-                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            self.remap_eft_node_value_label(eft1, [1], self.TRIPLE_CURVE0_2_UP)
+                            self.remap_eft_node_value_label(eft1, [6], self.TRIPLE_CURVE0_1_UP)
+                            self.remap_eft_node_value_label(eft1, [7], self.QUADRUPLE_UP)
                             if e2b == e2z:
-
-                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
+                                self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_UP)
                                 if e1y == 0:
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
                                 else:
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
                             else:
-                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_CURVE_1_UP)
                                 if e1y == 0:
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swaps
-                                    remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                    remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                    remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                    remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swaps
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_13)
                                 else:
-                                    remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                    remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.SURFACE_REGULAR)
                         elif e2 == e2z:
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+                            self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_UP)
+                            self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_CURVE0_1_UP)
+                            self.remap_eft_node_value_label(eft1, [6], self.TRIPLE0_23_UP)
+                            self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_1_UP)
                             if e1y == 0:
-                                remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swaps
+                                self.remap_eft_node_value_label(eft1, [4], self.CORNER_3)
+                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13)
                             else:
-                                remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
+                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR)
                         else:
                             if e1y == 0:
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swaps
-                                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2,
-                                                       [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2,
-                                                       [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                                remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                self.remap_eft_node_value_label(eft1, [3, 4], self.BOUNDARY_13)
+                                self.remap_eft_node_value_label(eft1, [5, 6], self.TRIPLE_CURVE0_1_UP)
+                                self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_1_UP)
 
-                    elif e3 == 1 and e2 >= e2b and e1 < e1y:
+                    elif element_quadruple_up:
                         if e2 == e2b:
                             e2r = e2 - 1
                         else:
                             e2r = e2
-                        nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2+1][e1], self.nodeId[e3+1][e2r][e1], self.nodeId[e3+1][e2+1][e1],
-                                self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2+1][e1+1], self.nodeId[e3+1][e2r][e1+1], self.nodeId[e3+1][e2+1][e1+1]]
+
+                        nids[2] = self.nodeId[e3+1][e2r][e1]
+                        nids[6] = self.nodeId[e3+1][e2r][e1+1]
 
                         eft1 = tricubichermite.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
                         if e2 == e2b:
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                            # remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                            # remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                            # remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                            if e2 == e2z:
-                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            if e1 == 0:
+                                self.remap_eft_node_value_label(eft1, [1], self.TRIPLE0_13_Up)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1], self.TRIPLE_CURVE0_2_UP)
+                            self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_CURVE0_2_UP)
+                            self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_2_UP)
+                            if e2b == e2z:
+                                self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23)
                                 if e1 == 0:
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.CORNER_3)
                                 else:
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                    remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
 
                             else:
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                # remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
-                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-
+                                if e1 == 0:
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_13)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE0_2_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.SURFACE_REGULAR)
+                                self.remap_eft_node_value_label(eft1, [8], self.SURFACE_REGULAR)
                         elif e2 == e2z:
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            if e1 == 0:
+                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13)
+                                self.remap_eft_node_value_label(eft1, [4], self.CORNER_3)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR)
+                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
+                            self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR)
+                            self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23)
 
                     else:
                         continue
-
 
                     if eft1 is not eft:
                         elementtemplate1.defineField(coordinates, -1, eft1)
@@ -582,6 +581,125 @@ class ShieldMesh3D:
                     elementIdentifier += 1
 
         return elementIdentifier
+
+    def remap_eft_node_value_label(self, eft, localNodeIndexes, NODE_TYPE):
+        """
+        remaps derivatives for common types of nodes.
+        :return:
+        """
+        if NODE_TYPE == self.CORNER_1:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.CORNER_2:
+            pass
+        elif NODE_TYPE == self.CORNER_3:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+        elif NODE_TYPE == self.QUADRUPLE_DOWN_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
+                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+        elif NODE_TYPE == self.QUADRUPLE_RIGHT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
+                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+        elif NODE_TYPE == self.QUADRUPLE_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.QUADRUPLE0_DOWN_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
+        elif NODE_TYPE == self.QUADRUPLE0_RIGHT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3,
+                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.QUADRUPLE0_UP:
+            pass
+
+        elif NODE_TYPE == self.TRIPLE_12_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.TRIPLE_12_RIGHT:
+            pass
+        elif NODE_TYPE == self.TRIPLE_13_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+        elif NODE_TYPE == self.TRIPLE_13_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
+        elif NODE_TYPE == self.TRIPLE_23_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.TRIPLE_23_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE0_12_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+        elif NODE_TYPE == self.TRIPLE0_12_RIGHT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3,
+                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE0_13_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+        elif NODE_TYPE == self.TRIPLE0_13_Up:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
+                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+        elif NODE_TYPE == self.TRIPLE0_23_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3,
+                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE0_23_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
+                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+
+        elif NODE_TYPE == self.BOUNDARY_12:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.BOUNDARY_13:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swaps
+        elif NODE_TYPE == self.BOUNDARY_23:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+        elif NODE_TYPE == self.TRIPLE_CURVE_1_DOWN:
+            pass
+        elif NODE_TYPE == self.TRIPLE_CURVE_1_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE_CURVE_2_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+        elif NODE_TYPE == self.TRIPLE_CURVE_2_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE_CURVE0_1_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
+                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE_CURVE0_1_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3,
+                                   [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE_CURVE0_2_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1,
+                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+        elif NODE_TYPE == self.TRIPLE_CURVE0_2_UP:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
+                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+        elif NODE_TYPE == self.SURFACE_REGULAR:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        else:
+            raise ValueError("Remapping for derivatives of this 'node type' is not implemented")
 
 
 class ShieldMesh2D:

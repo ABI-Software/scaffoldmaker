@@ -98,11 +98,11 @@ class SphereMesh:
 
         self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode)
 
-        self.calculateBoundaryElipses2()
+        self.calculateBoundaryElipses()
         self.generateNodes(nodes, fieldModule, coordinates)
         self.generateElements(mesh, fieldModule, coordinates)
 
-    def calculateBoundaryElipses2(self):
+    def calculateBoundaryElipses(self):
         """
 
         :return:
@@ -138,12 +138,10 @@ class SphereMesh:
                          elementsCountAcrossTransition, shellProportion, coreMajorRadius, coreMinorRadius,
                          ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
 
-            self.copyEllipsesNodesToShieldNodes2(ellipse, alongAxis, i)
+            self.copyEllipsesNodesToShieldNodes(ellipse, i)
+        self.createAdditionalPointsForIncreasingElementsCount()
 
-
-        self.createAdditionalPointsForIncreasingElementsCount2()
-
-    def copyEllipsesNodesToShieldNodes2(self, ellipse, alongAxis, ellipsenumber):
+    def copyEllipsesNodesToShieldNodes(self, ellipse, ellipsenumber):
         """
         Copy coordinates and derivatives of ellipse to shield.
         :param n3: the index number of ellipse along the central path.
@@ -225,121 +223,7 @@ class SphereMesh:
                             else:
                                 btd1[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
 
-    def calculateBoundaryElipses(self):
-        """
-
-        :return:
-        """
-
-        centre = self._centre
-        elementsCountAcrossShell = self._elementsCountAcrossShell
-        elementsCountAcrossTransition = self._elementsCountAcrossTransition
-        shellProportion = self._shellProportion
-
-        ellipseAxes = [[self._axes[0], self._axes[1], self._axes[2]],
-                       [[-c for c in self._axes[2]], self._axes[1], self._axes[0]],
-                       [self._axes[0], [-c for c in self._axes[2]], self._axes[1]]]
-
-        coreRadius = [(self._coreRadius[0], self._coreRadius[1]),
-                      (self._coreRadius[2], self._coreRadius[1]),
-                      (self._coreRadius[0], self._coreRadius[2])]
-
-        elementsCount = [(2 * self._elementsCount[0], 2 * self._elementsCount[1]),
-                         (2 * self._elementsCount[2], 2 * self._elementsCount[1]),
-                         (2 * self._elementsCount[0], 2 * self._elementsCount[2])]
-
-        for i in range(3):
-            majorAxis = ellipseAxes[i][0]
-            minorAxis = ellipseAxes[i][1]
-            alongAxis = ellipseAxes[i][2]
-            elementsCountAcrossMajor = elementsCount[i][0]
-            elementsCountAcrossMinor = elementsCount[i][1]
-            coreMajorRadius = coreRadius[i][0]
-            coreMinorRadius = coreRadius[i][1]
-            ellipse = Ellipse2D(centre, majorAxis, minorAxis,
-                         elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
-                         elementsCountAcrossTransition, shellProportion, coreMajorRadius, coreMinorRadius,
-                         ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
-
-            self.copyEllipsesNodesToShieldNodes(ellipse, alongAxis, i)
-
-
-        self.createAdditionalPointsForIncreasingElementsCount()
-
-
-    def copyEllipsesNodesToShieldNodes(self, ellipse, alongAxis, ellipsenumber):
-        """
-        Copy coordinates and derivatives of ellipse to shield.
-        :param n3: the index number of ellipse along the central path.
-        """
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        shield = ellipse.getShield()
-
-        # Modify the shield12 to get only the quarter that you want. make others None so you can generate the nodes.
-        if ellipsenumber == 0:
-            for n2 in range(self._elementsCount[0] + 1):  # TODO modify this to number of elements.
-                for n1 in range(self._elementsCount[1] + 1):
-                    # only first quadrant is needed  TODO we need to modify this to number of elements half of the elments across each direction.
-                    # btd2[0][n2][n1] = [c for c in alongAxis]
-                    if n2 == 0 and n1 == self._elementsCount[1] - 1:
-                        n1s = n1 + 1
-                    else:
-                        n1s = n1
-                    n1e = n1 + self._elementsCount[1]
-                    if shield.px[0][n2][n1e]:
-                        btx[0][n2][n1s] = [c for c in shield.px[0][n2][n1e]]
-                        btd1[0][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
-                        btd2[0][n2][n1s] = [c for c in shield.pd2[0][n2][n1e]]
-                        btd3[0][n2][n1s] = [c for c in shield.pd3[0][n2][n1e]]
-        elif ellipsenumber == 1:
-            n2s = self._elementsCount[0]
-            for n3 in range(self._elementsCount[2] + 1):
-                for n1 in range(self._elementsCount[1] + 1):
-                    btd2[n3][n2s][n1] = [c for c in alongAxis]
-                    if n3 == self._elementsCount[2] and n1 == self._elementsCount[1] - 1:
-                        n1s = n1 + 1
-                    else:
-                        n1s = n1
-                    n2e = n3 + self._elementsCount[2]
-                    n1e = n1 + self._elementsCount[1]
-                    if n3 == 0:
-                        btd2[n3][n2s][n1s] = [c for c in shield.pd1[0][n2e][n1e]]
-                    else:
-                        if shield.px[0][n2e][n1 + self._elementsCount[1]]:
-                            btx[n3][n2s][n1s] = [c for c in shield.px[0][n2e][n1e]]
-                            btd1[n3][n2s][n1s] = [c for c in shield.pd1[0][n2e][n1e]]
-                            btd3[n3][n2s][n1s] = [c for c in shield.pd3[0][n2e][n1e]]
-        elif ellipsenumber == 2:
-            n1s = 0
-            for n3 in range(self._elementsCount[2] + 1):
-                for n2 in range(self._elementsCount[0] + 1):
-
-                    if n2 == 0 and n3 == self._elementsCount[2] - 1:
-                        n3s = self._elementsCount[2]
-                    else:
-                        n3s = n3
-                    n1e = self._elementsCount[2] - n3
-                    if n3 == 0:
-                        if n2 == 0:
-                            btd2[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
-                        elif 0 < n2 < self._elementsCount[0]:
-                            btd2[n3][n2][n1s] = [-c for c in shield.pd3[0][n2][n1e]]
-                    else:
-                        if n2 < self._elementsCount[0]:
-                            btd2[n3][n2][n1s] = [c for c in alongAxis]
-                            if shield.px[0][n2][n1e]:
-                                btx[n3s][n2][n1s] = [c for c in shield.px[0][n2][n1e]]
-                                btd1[n3s][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
-                                btd3[n3s][n2][n1s] = [c for c in shield.pd3[0][n2][n1e]]
-                        else:
-                            btd2[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
-
-    def createAdditionalPointsForIncreasingElementsCount2(self):
+    def createAdditionalPointsForIncreasingElementsCount(self):
         """
 
         :return:
@@ -347,38 +231,11 @@ class SphereMesh:
 
         self.calculate_surface_quadruple_point()
         self.sample_triple_curves()
-        # self.calculate_regular_nodes2()
-        #
         self._shield3D.getQuadruplePoint2()
-        self.fixD2DerivativesOnTheEllipses2()
+        self.fixD2DerivativesOnTheEllipses()
         n3z = self._elementsCount[2]
         self._shield3D.smoothDerivativesToSurfaceQuadruple(n3z)
         self.smoothDerivativesToSurface()
-
-    def remap_ellipse_derivatives(self):
-        """
-
-        :return:
-        """
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-
-
-
-        # temp = btd2[1][1][0]
-        # btd2[1][1][0] = [-c for c in btd3[1][1][0]]
-        # btd3[1][1][0] = [c for c in temp]
-        # temp = btd2[n3b][n2b][n1b]
-        # btd2[n3b][n2b][n1b] = [c for c in btd1[n3b][n2b][n1b]]
-        # btd1[n3b][n2b][n1b] = temp
-        # temp = btd2[n3b][n2b][n1a]
-        # btd2[n3b][n2b][n1a] = [c for c in btd1[n3b][n2b][n1a]]
-        # btd1[n3b][n2b][n1a] = temp
-
-
 
     def calculate_surface_quadruple_point(self):
         """
@@ -536,196 +393,6 @@ class SphereMesh:
         arcLength = calculate_arc_length(btx[0][0][n1z], btx[n3z][0][n1z])
         btd2[0][0][n1z] = vector.setMagnitude(btd2[0][0][n1z], arcLength)
 
-
-    def calculate_regular_nodes2(self):
-        """
-        Node 1,2,1.
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        if self._elementsCount[0] == 3:
-            # self.CreateRegularNodeOnBoundary()
-            n3 = 0
-            n1 = 0
-            for n2 in range(n2a + 1, n2b):
-                # First create the node for regular node. We are using the neighbour nodes x,y,z to do it but  TODO eventualy we need to use the sampling between boundary nodes.
-                x = [btx[n3][n2][n1 + 1][0], btx[n3 + 1][n2 + 1][n1 + 1][1], btx[n3 + 1][n2][n1][2]]
-                btx[n3 + 1][n2][n1 + 1] = x
-                btd1[n3 + 1][n2][n1 + 1] = [(btx[n3 + 1][n2 + 1][n1 + 1][c] - btx[n3 + 1][n2][n1 + 1][c]) for c in range(3)]
-                btd2[n3 + 1][n2][n1 + 1] = [-(btx[n3][n2][n1 + 1][c] - btx[n3 + 1][n2][n1 + 1][c]) for c in range(3)]
-                btd3[n3 + 1][n2][n1 + 1] = [-(btx[n3 + 1][n2][n1][c] - btx[n3 + 1][n2][n1 + 1][c]) for c in range(3)]
-                # using new point obtain the d2 derivatives of the neighbour nodes
-                btd2[n3 + 1][n2][n1] = [btx[n3 + 1][n2][n1 + 1][c] - btx[n3 + 1][n2][n1][c] for c in range(3)]
-                btd2[n3][n2][n1 + 1] = [btx[n3 + 1][n2][n1 + 1][c] - btx[n3][n2][n1 + 1][c] for c in range(3)]
-                btd2[n3 + 1][n2 + 1][n1 + 1] = [btx[n3 + 1][n2 + 1][n1 + 1][c] - btx[n3][n2 + 1][n1 + 1][c] for c in range(3)]
-
-            self.remapRegularCurvesOnEllipses()
-
-    def createAdditionalPointsForIncreasingElementsCount(self):
-        """
-
-        :return:
-        """
-
-        self.calculate_regular_nodes()
-        self._shield3D.getQuadruplePoint()
-        self.fixD2DerivativesOnTheEllipses()
-        self.remapDerivativesOnTheEllipses()
-
-        # reverse d2 for 0,0,0
-        self._shield3D.pd2[0][0][0] = [-c for c in self._shield3D.pd2[0][0][0]]
-
-        self.calculate_surface_nodes()
-        self.smooth_triple_curves()
-
-    def calculate_regular_nodes(self):
-        """
-        Node 1,2,1.
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        if self._elementsCount[0] == 3:
-            self.CreateRegularNodeOnBoundary()
-            n3 = 0
-            n1 = 0
-            for n2 in range(n2a + 1, n2b):
-                # First create the node for regular node. We are using the neighbour nodes x,y,z to do it but  TODO eventualy we need to use the sampling between boundary nodes.
-                x = [btx[n3][n2][n1 + 1][0], btx[n3 + 1][n2 + 1][n1 + 1][1], btx[n3 + 1][n2][n1][2]]
-                btx[n3 + 1][n2][n1 + 1] = x
-                btd1[n3 + 1][n2][n1 + 1] = [(btx[n3 + 1][n2 + 1][n1 + 1][c] - btx[n3 + 1][n2][n1 + 1][c]) for c in range(3)]
-                btd2[n3 + 1][n2][n1 + 1] = [-(btx[n3][n2][n1 + 1][c] - btx[n3 + 1][n2][n1 + 1][c]) for c in range(3)]
-                btd3[n3 + 1][n2][n1 + 1] = [-(btx[n3 + 1][n2][n1][c] - btx[n3 + 1][n2][n1 + 1][c]) for c in range(3)]
-                # using new point obtain the d2 derivatives of the neighbour nodes
-                btd2[n3 + 1][n2][n1] = [btx[n3 + 1][n2][n1 + 1][c] - btx[n3 + 1][n2][n1][c] for c in range(3)]
-                btd2[n3][n2][n1 + 1] = [btx[n3 + 1][n2][n1 + 1][c] - btx[n3][n2][n1 + 1][c] for c in range(3)]
-                btd2[n3 + 1][n2 + 1][n1 + 1] = [btx[n3 + 1][n2 + 1][n1 + 1][c] - btx[n3][n2 + 1][n1 + 1][c] for c in range(3)]
-
-            self.remapRegularCurvesOnEllipses()
-
-    def remapRegularCurvesOnEllipses(self):
-        """
-
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        # We need to remap the derivatives as we want d1 to be in -axis1 direction, d2, axis3 and d3, axis2. We need to think about the directions as well. e.g.
-        # d1, d2, d3 could be simply axis1,axis2 and axis3. However this one was chosen so it could be consistent with the cylinder mesh that makes joining them
-        # a little easier. TODO d1,d2,d3 directions in regular elements.
-        # for nodes on the ellipse2, d2 is -d3 and d3 is d2. TODO we can add another method to ellipse so it gives us what we expect for derivatives.
-        n3 = 0
-        n1 = 0
-        for n2 in range(n2a + 1, n2b):
-            temp = btd2[n3 + 1][n2][n1]
-            btd2[n3 + 1][n2][n1] = [-c for c in btd3[n3 + 1][n2][n1]]
-            btd3[n3 + 1][n2][n1] = temp
-            # for ellipse 1, swap d2 and d1
-            temp = btd2[n3 + 1][n2 + 1][n1 + 1]
-            btd2[n3 + 1][n2 + 1][n1 + 1] = [c for c in btd1[n3 + 1][n2 + 1][n1 + 1]]
-            btd1[n3 + 1][n2 + 1][n1 + 1] = temp
-
-    def CreateRegularNodeOnBoundary(self):
-        """
-        Node 2,n2,2, triple curves or quadruple 0 or Q0.
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        # create the other two nodes to create the elements.
-        radius = self._radius[0]  # TODO need to be changed for spheroid
-
-        elementsAroundEllipse12 = self._elementsCount[0] + self._elementsCount[1] - 2
-        radiansAroundEllipse12 = math.pi / 2
-        radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
-        elementsAroundEllipse13 = self._elementsCount[0] + self._elementsCount[2] - 2
-        radiansAroundEllipse13 = math.pi / 2
-        radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
-
-        n3 = 1
-        n1 = 0
-        for n2 in range(n2a + 1, n2b):
-            theta_1 = math.pi / 4  # TODO actually it should change with the number of elements.
-            theta_3 = 2*radiansPerElementAroundEllipse12
-            phi_3 = calculate_azimuth(math.pi/2 - theta_3, theta_1)
-            # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
-            x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
-                 radius * math.cos(phi_3)]
-
-            a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
-            btx[n3 + 1][n2][n1 + 2] = x
-            btd1[n3 + 1][n2][n1 + 2] = a1
-            btd2[n3 + 1][n2][n1 + 2] = a2
-            btd3[n3 + 1][n2][n1 + 2] = a3
-
-            arcLength = radius * phi_3
-            btd2[n3 + 1][n2][n1 + 2] = vector.setMagnitude(btd2[n3 + 1][n2][n1 + 2], arcLength)
-
-    def fixD2DerivativesOnTheEllipses2(self):
-        """
-
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        n1 = 1 + self._elementsCount[1] - 2
-        for n2 in range(self._elementsCount[0] + 1):
-            if n2a <= n2 < self._elementsCount[0]:
-                btd3[n3b][n2][n1a] = [btx[n3b][n2][n1b][c] - btx[n3b][n2][n1a][c] for c in range(3)]
-                btd2[0][n2][n1] = [btx[1][n2][n1][c] - btx[0][n2][n1][c] for c in range(3)]
-        # btd1[n3b][n2b][n1b] = [-(btx[n3b][n2b-1][n1b][c] - btx[n3b][n2b][n1b][c]) for c in range(3)]
-
     def fixD2DerivativesOnTheEllipses(self):
         """
 
@@ -743,203 +410,11 @@ class SphereMesh:
         btd2 = self._shield3D.pd2
         btd3 = self._shield3D.pd3
 
-        btd2[n3b][n2a][n1a] = [btx[n3b][n2a][n1b][c] - btx[n3b][n2a][n1a][c] for c in range(3)]
-        btd2[0][1][1] = [btx[1][1][1][c] - btx[0][1][1][c] for c in range(3)]
-        btd2[n3b][n2b][n1b] = [-(btx[n3b][n2a][n1b][c] - btx[n3b][n2b][n1b][c]) for c in range(3)]
-
-    def remapDerivativesOnTheEllipses(self):
-        """
-
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        temp = btd2[1][1][0]
-        btd2[1][1][0] = [-c for c in btd3[1][1][0]]
-        btd3[1][1][0] = [c for c in temp]
-        temp = btd2[n3b][n2b][n1b]
-        btd2[n3b][n2b][n1b] = [c for c in btd1[n3b][n2b][n1b]]
-        btd1[n3b][n2b][n1b] = temp
-        temp = btd2[n3b][n2b][n1a]
-        btd2[n3b][n2b][n1a] = [c for c in btd1[n3b][n2b][n1a]]
-        btd1[n3b][n2b][n1a] = temp
-
-    def calculate_surface_nodes(self):
-        """
-
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        radius = self._radius[0]  # TODO need to be changed for spheroid
-
-        elementsAroundEllipse12 = self._elementsCount[0] + self._elementsCount[1] - 2
-        radiansAroundEllipse12 = math.pi / 2
-        radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
-        elementsAroundEllipse13 = self._elementsCount[0] + self._elementsCount[2] - 2
-        radiansAroundEllipse13 = math.pi / 2
-        radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
-
-        theta_2 = radiansPerElementAroundEllipse13  # TODO actually it should change with the number of elements.
-        theta_3 = radiansPerElementAroundEllipse12
-        phi_3 = calculate_azimuth(theta_3, theta_2)
-        # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
-        # x = [radius * math.sin(phi_3) * math.cos(theta_3), radius * math.sin(phi_3) * math.sin(theta_3),
-        #      radius * math.cos(phi_3)]
-        x = spherical_to_cartesian(radius, theta_3, phi_3)
-
-        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
-        btx[n3b + 1][0][n1b + 1] = x
-        # btd1[n3b + 1][0][n1b + 1] = a1
-        # btd2[n3b + 1][0][n1b + 1] = a2
-        btd3[n3b + 1][0][n1b + 1] = a3
-        nx, nd1 = sample_curves_sphere(x, btx[n3b + 1][n2b][n1b + 1], self._elementsCount[0]-1)
-        for nc in range(self._elementsCount[0]):
-            if nc == 0:
-                btd1[n3b + 1][0][n1b + 1] = nd1[0]
-            elif nc == n2b-1:
-                btd2[n3b + 1][n2b][n1b + 1] = vector.scaleVector(nd1[-1], -1)
-            else:
-                btx[n3b + 1][nc+1][n1b + 1] = nx[nc]
-                btd1[n3b + 1][nc+1][n1b + 1] = nd1[nc]
-
-        # for n2 in range(1, n2b - 1):
-        #     for n1 in range(n1b+1):
-        #         xi = 0.5
-        #         btd2[n3b + 1][n2][n1b + 1] = interpolateCubicHermite(btd2[0][n2][n1b + 1], [0, 0, 0], vector.scaleVector(btd2[n3b + 1][n2][0], -1), [0, 0, 0], xi)
-        if n2b > 2:
-            tx = []
-            td2 = []
-            n2 = 2
-            for n1 in range(self._elementsCount[1] - 1):
-                tx.append(btx[n3b + 1][n2][n1])
-                td2.append(btd2[n3b + 1][n2][n1])
-            tx.append(btx[n3b + 1][n2][n1b + 1])
-            td2.append(btd2[n3b + 1][n2][n1b + 1])
-            for n3 in range(self._elementsCount[2] - 2, -1, -1):
-                tx.append(btx[n3][n2][n1b + 1])
-                td2.append(vector.scaleVector(btd2[n3][n2][n1b + 1], -1))
-
-            td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True, fixEndDirection=True)
-
-            btd2[n3b + 1][n2][0] = td2[0]
-            for n1 in range(1, self._elementsCount[1] - 1):
-                btd2[n3b + 1][n2][n1] = td2[n1]
-            btd2[n3b + 1][n2][n1b + 1] = vector.scaleVector(td2[1], -1)
-            for n3 in range(self._elementsCount[2] - 2, -1, -1):
-                btd2[n3][n2][n1b + 1] = vector.scaleVector(td2[-1-n3], -1)
-
-
-        # btd
-        # for n2 in range(self._elementsCountAcrossMajor + 1):
-        #     for n1 in range(self._elementsCountAcrossMinor + 1):
-        #         td2 = []
-        #         tx = []
-        #         if btx[0][n2][n1]:
-        #             for n3 in range(self._elementsCountAlong + 1):
-        #                 tx.append(btx[n3][n2][n1])
-        #                 td2.append(btd2[n3][n2][n1])
-        #             td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True)
-        #             for n3 in range(self._elementsCountAlong + 1):
-        #                 btd2[n3][n2][n1] = td2[n3]
-
-
-
-        arcLength = calculate_arc_length(x, btx[n3a][0][n1b + 1])
-        # btd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(btd2[n3b + 1][0][n1b + 1], arcLength)
-
-
-
-        # a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[0])
-        # btd1 = [
-        #     btx[n3b + 1][n2b][n1b + 1][c] - btx[n3b + 1][0][n1b + 1][c] for c in range(3)]
-        # btd1[n3b + 1][0][n1b + 1] = vector.setMagnitude([-c for c in a2], arcLength)
-        self._shield3D.smoothDerivativesToSurfaceQuadruple(n3b+1)
-
-
-        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[1])
-        # btd1 = [
-        #     btx[n3b + 1][n2b][n1b + 1][c] - btx[n3b + 1][0][n1b + 1][c] for c in range(3)]
-        btd2[n3b + 1][0][n1b + 1] = vector.setMagnitude([-c for c in a2], arcLength)
-        # btd2[n3b + 1][0][n1b + 1] = [
-        #     -(btx[0][0][n1b + 1][c] - btx[n3b + 1][0][n3b + 1][c]) for c in range(3)]
-        # btd3[n3b + 1][0][n1b + 1] = [
-        #     -(btx[1][1][1][c] - btx[n3b + 1][0][n1b + 1][c]) for c in range(3)]
-
-
-
-        n1a = 1
-        n2a = 1
-        n3a = 1
-        btd1[n3a][n2a][n1a] = [-(btx[n3a+1][n2a-1][n1a+1][0] - btx[n3a][n2a][n1a][0]), 0.0, 0.0]
-        btd2[n3a][n2a][n1a] = [0.0, 0.0, (btx[n3a+1][n2a-1][n1a+1][2] - btx[n3a][n2a][n1a][2])]
-        btd3[n3a][n2a][n1a] = [0.0, (btx[n3a+1][n2a-1][n1a+1][1] - btx[n3a][n2a][n1a][1]), 0.0]
-
-    def smooth_triple_curves(self):
-        """
-
-        :return:
-        """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
-        btx = self._shield3D.px
-        btd1 = self._shield3D.pd1
-        btd2 = self._shield3D.pd2
-        btd3 = self._shield3D.pd3
-
-        radius = 1.0
-        theta = math.atan(math.sqrt(1.0 / 2.0))
-        arclength = radius * theta
-        btd2[0][0][n1b + 1] = vector.setMagnitude(btd2[0][0][n1b + 1], arclength)
-        btd2[n3b + 1][0][0] = vector.setMagnitude(btd2[n3b + 1][0][0], arclength)
-
-        self.smoothDerivativesToSurface()
-        # btd2[n3b + 1][n2b][n1b + 1] = vector.setMagnitude(btd2[n3b + 1][n2b][n1b + 1],
-        #                                                                 arclength)
-        # atz = vector.vectorRejection(btd2[n3b + 1][0][n1b + 1], btd3[n3b + 1][0][n1b + 1])
-        # btd2[n3b + 1][0][n1b + 1] = vector.setMagnitude(atz, arclength)
-        # atx = vector.vectorRejection(btd1[n3b + 1][0][n1b + 1], btd3[n3b + 1][0][n1b + 1])
-        # btd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(atx, arclength)
-
-
-        # btd1[n3b + 1][0][n1b + 1] = vector.crossproduct3(btd2[n3b + 1][0][n1b + 1],
-        #                                                                btd3[n3b + 1][0][n1b + 1])
-        # btd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(btd1[n3b + 1][0][n1b + 1],
-        #                                                               arclength)
-
-        # dmag = calculate_arc_length(btx[n3b + 1][0][n1b + 1], btx[n3b + 1][2][n1b + 1], radius)
-        # d2mag = vector.magnitude(btd2[n3b + 1][0][n1b + 1])
-        # d1mag = math.sqrt(dmag*dmag - d2mag*d2mag)
-        # btd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(btd1[n3b + 1][0][n1b + 1], d1mag)
-        # d2mag = vector.magnitude(btd2[n3b + 1][0][n1b + 1])
-        # thetad1ncurve = math.pi / 6
-        # btd1[n3b + 1][0][n1b + 1] = vector.setMagnitude(btd1[n3b + 1][0][n1b + 1],
-        #                                                               d2mag / math.tan(thetad1ncurve))
+        n1 = self._elementsCount[1] - 1
+        for n2 in range(self._elementsCount[0] + 1):
+            if n2a <= n2 < self._elementsCount[0]:
+                btd3[n3b][n2][n1a] = [btx[n3b][n2][n1b][c] - btx[n3b][n2][n1a][c] for c in range(3)]
+                btd2[0][n2][n1] = [btx[1][n2][n1][c] - btx[0][n2][n1][c] for c in range(3)]
 
     def smoothDerivativesToSurface(self):
         '''
@@ -1012,7 +487,6 @@ class SphereMesh:
         #             n3 = nc3 + n3b
         #             n1 = n3
         #             btd3[n3][n2][n1] = td3[nc3]
-
 
     def generateNodes(self, nodes, fieldModule, coordinates):
         """
