@@ -323,20 +323,21 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
                 if not useCrossDerivatives:
                     for n in range(4):
                         eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
                 if e1 == 0:
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
                     remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [  ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
                     scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
                 elif e1 < (c1c2Count - 1):
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
                     scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
                 elif e1 == (c1c2Count - 1):
-                    scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [  ])
-                elif e1 == c1c2Count:
-                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [  ] ) ])
-                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [  ])
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [  ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+
                 elementtemplateMod.defineField(coordinates, -1, eft)
                 elementtemplate = elementtemplateMod
         else:

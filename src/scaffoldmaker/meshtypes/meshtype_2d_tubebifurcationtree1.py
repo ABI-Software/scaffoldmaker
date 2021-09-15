@@ -104,9 +104,9 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         cache = fm.createFieldcache()
 
         # Bifurcation tree extraction
-        Readfile = True
+        Readfile = False
         if Readfile:
-            filename = "D:\Python\\venv_sparc39\\python_packages\\scaffoldmaker\\tests\\airway\\mesh_10.exf"
+            filename = "D:\Python\\venv_sparc39\\python_packages\\airway\\mesh_10.exf"
             generationCount, bifurcationTree = readRegionFromFile(filename)
             fieldParameters = None
         else:
@@ -461,12 +461,13 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                         # Connect root to bifuractions
                         if (e4 > 0) and (e2 == 0) and (elementsCount[e4][e3] > 3):
                             if (bni1 + 1) % (elementsCountAroundRoot * (e2 + 1)) != 0:
-                                bni2 = (bni1 + 3) % (elementsCountAroundRoot * (e2 + 1))
+                                bni1 = (bni1 + elementsCountAroundRoot - elementsCountAroundRoot//4) % (elementsCountAroundRoot * (e2 + 1))
+                                bni2 = (bni1 + 1) % (elementsCountAroundRoot * (e2 + 1))
                             else:
-                                bni2 = ((bni1 + 3) % (elementsCountAroundRoot * (e2 + 1))) + (
-                                            elementsCountAroundRoot * e2)
+                                bni1 = (bni1 + elementsCountAroundRoot - elementsCountAroundRoot//4) % (elementsCountAroundRoot * (e2 + 1))
+                                bni2 = (bni1 + 1) % (elementsCountAroundRoot * (e2 + 1))
 
-                            nodeIdentifiers = [stemNodeId[e4][e3][bni2], stemNodeId[e4][e3][bni1],
+                            nodeIdentifiers = [stemNodeId[e4][e3][bni1], stemNodeId[e4][e3][bni2],
                                                stemNodeId[e4][e3][bni3], stemNodeId[e4][e3][bni4]]
 
                         if ((nodeIdentifiers[0] and nodeIdentifiers[1]) in paNodeId[e4][e3]) or \
@@ -482,18 +483,17 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
                     if noRootNode:
                         noRootNode = False
                         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
-                                                                              [], paStartIndex[e4][e3],
-                                                                              c2NodeId[e4][e3],
-                                                                              c2StartIndex[e4][e3], c1NodeId[e4][e3],
-                                                                              c1StartIndex[e4][e3],
+                                                                              [], [],
+                                                                              c2NodeId[e4][e3], c2StartIndex[e4][e3],
+                                                                              c1NodeId[e4][e3], c1StartIndex[e4][e3],
                                                                               paNodeId[e4][e3], coNodeId[e4][e3],
                                                                               useCrossDerivatives)
                     else:
                         paStartIndex[e4][e3] = -elementsCountAroundRoot//4 if (elementsCount[e4][e3] < 4) and (e4 != 0) else paStartIndex[e4][e3]
                         # Bifurcation for no root node
                         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
-                                                                          paNodeId[e4][e3], paStartIndex[e4][e3], c2NodeId[e4][e3],
-                                                                          c2StartIndex[e4][e3],
+                                                                          paNodeId[e4][e3], paStartIndex[e4][e3],
+                                                                          c2NodeId[e4][e3], c2StartIndex[e4][e3],
                                                                           c1NodeId[e4][e3], c1StartIndex[e4][e3],
                                                                           roNodeId[e4][e3], coNodeId[e4][e3],
                                                                           useCrossDerivatives)
