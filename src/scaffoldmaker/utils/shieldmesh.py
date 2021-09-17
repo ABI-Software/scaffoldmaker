@@ -76,49 +76,30 @@ class ShieldMesh3D:
         """
         n1z = self.elementsCountAcross[1]
         n1y = n1z - 1
-        n1a = self.elementsCountAcross[1] - 1
-        n2a = 1
-        n3a = 1
         n3z = self.elementsCountAcross[2]
         n3y = n3z - 1
         n2z = self.elementsCountAcross[0]
-        # n2b = self.elementsCountAcross[0]
-        # for n2 in range(self.elementsCountAcross[0]):
-        #     if n2 > 0:
-        #         x = [self.px[0][n2][n1a][0], self.px[0][n2][n1a][1],self.px[n3a][n2][0][2]]
-        #         self.px[n3a][n2][n1a] = x
-        #         n2r = n2 - 1 if n2 == 1 else n2
-        #         if n2 == 1:
-        #             self.pd1[n3a][n2][n1a] = [-(self.px[n3a + 1][n2r][n1a + 1][0] - self.px[n3a][n2][n1a][0]), 0.0, 0.0]
-        #         else:
-        #             self.pd1[n3a][n2][n1a] = self.pd1[0][n2][n1a]
-        #         self.pd2[n3a][n2][n1a] = [0.0, 0.0, (self.px[n3a + 1][n2r][n1a + 1][2] - self.px[n3a][n2][n1a][2])]
-        #         self.pd3[n3a][n2][n1a] = [0.0, (self.px[n3a + 1][n2r][n1a + 1][1] - self.px[n3a][n2][n1a][1]), 0.0]
 
-        # n3 = 1
-        # n1 = 1 + self.elementsCountAcross[1] - 2
-        # tx = []
-        # td1 = []
-        # for n2 in range(self.elementsCountAcross[0] + 1):
-        #     if n2 > 0:
-        #         tx.append(self.px[n3][n2][n1])
-        #         td1.append(self.pd1[n3][n2][n1])
-        #
-        # td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
-        #
-        # for n2 in range(self.elementsCountAcross[0] + 1):
-        #     if n2 > 1:
-        #         n2t = n2 - 1
-        #         self.pd1[n3][n2][n1] = td1[n2t]
+        if self.elementsCountAcross[2] == min(self.elementsCountAcross):
+            n3r0, n2r0, n1r0 = 0, 1, n1y
+            n3r, n2r, n1r = 0, 0, n1z
+        elif self.elementsCountAcross[1] == min(self.elementsCountAcross):
+            n3r0, n2r0, n1r0 = n3y, 1, 0
+            n3r, n2r, n1r = n3z, 0, 0
+        else:
+            n3r0, n2r0, n1r0 = n3y, n2z, n1y
+            n3r, n2r, n1r = n3z, n2z, n1z
 
-        x = [min(self.px[0][1][n1y][0], self.px[n3y][1][0][0]),
-             min(self.px[0][1][n1y][1], self.px[n3y][n2z][n1y][1]),
-             min(self.px[n3y][1][0][2], self.px[n3y][n2z][n1y][2])]
-        self.px[n3a][1][n1a] = x
+        ts = vector.magnitude(vector.addVectors(self.px[n3r0][n2r0][n1r0], self.px[n3r][n2r][n1r], 1, -1))
+        ra = vector.magnitude(self.px[n3z][0][n1z])
+        x = vector.scaleVector(self.px[n3z][0][n1z], (1 - ts/ra))
+        self.px[n3y][1][n1y] = x
         n2r = 0
-        self.pd1[n3a][1][n1a] = [-(self.px[n3a + 1][n2r][n1a + 1][0] - self.px[n3a][1][n1a][0]), 0.0, 0.0]
-        self.pd2[n3a][1][n1a] = [0.0, 0.0, (self.px[n3a + 1][n2r][n1a + 1][2] - self.px[n3a][1][n1a][2])]
-        self.pd3[n3a][1][n1a] = [0.0, (self.px[n3a + 1][n2r][n1a + 1][1] - self.px[n3a][1][n1a][1]), 0.0]
+        self.pd1[n3y][1][n1y] = [-(self.px[n3y + 1][n2r][n1y + 1][0] - self.px[n3y][1][n1y][0]), 0.0, 0.0]
+        self.pd2[n3y][1][n1y] = [0.0, 0.0, (self.px[n3y + 1][n2r][n1y + 1][2] - self.px[n3y][1][n1y][2])]
+        self.pd3[n3y][1][n1y] = [0.0, (self.px[n3y + 1][n2r][n1y + 1][1] - self.px[n3y][1][n1y][1]), 0.0]
+
+
 
         # curve 1
         tx, td1 = sampleCubicHermiteCurves([self.px[n3z-1][1][n1y], self.px[n3z-1][n2z][n1y]],
@@ -130,66 +111,105 @@ class ShieldMesh3D:
             self.pd2[n3z-1][n2][n1y] = [0.0, 0.0, (self.px[n3z][n2][n1z][2] - self.px[n3z-1][n2][n1y][2])]
             self.pd3[n3z-1][n2][n1y] = [0.0, (self.px[n3z][n2][n1z][1] - self.px[n3z-1][n2][n1y][1]), 0.0]
 
-        # smooth d1 in curve1
-        tx = []
-        td1 = []
-        for n2 in range(1, self.elementsCountAcross[0]+1):
-            tx.append(self.px[n3z-1][n2][n1y])
-            td1.append(self.pd1[n3z-1][n2][n1y])
 
-        td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
-        for n2 in range(2, self.elementsCountAcross[0]+1):
-            self.pd1[n3z-1][n2][n1y] = td1[n2-1]
-
-
-        # curve 2 and parallel curves
+        # curve 2 and parallel curves TODO change all [1] to n3y.
         for n2 in range(1, self.elementsCountAcross[0]):
-            tx, td3 = sampleCubicHermiteCurves([self.px[1][n2][0], self.px[1][n2][n1a]],
-                                               [self.pd3[0][n2][0], self.pd3[0][n2][n1a]], self.elementsCountAcross[1] - 1)[:2]
+            tx, td3 = sampleCubicHermiteCurves([self.px[n3y][n2][0], self.px[n3y][n2][n1y]],
+                                               [self.pd3[0][n2][0], self.pd3[0][n2][n1y]], self.elementsCountAcross[1] - 1)[:2]
 
             for n1 in range(1, self.elementsCountAcross[1] - 1):
-                self.px[1][n2][n1] = tx[n1]
-                self.pd3[1][n2][n1] = td3[n1]
+                self.px[n3y][n2][n1] = tx[n1]
+                self.pd3[n3y][n2][n1] = td3[n1]
+
+        for n2 in range(1, self.elementsCountAcross[0]):
+            for n1 in range(1, self.elementsCountAcross[1] - 1):
                 if n2 == 1:
-                    self.pd1[1][n2][n1] = [self.px[1][1][n1][0] - self.px[n3z][0][n1][0], 0.0, 0.0]
-                    self.pd2[1][n2][n1] = [0.0, 0.0, -self.px[1][1][n1][2] + self.px[n3z][0][n1][2]]
+                    self.pd1[n3y][n2][n1] = [self.px[n3y][1][n1][0] - self.px[n3z][0][n1][0], 0.0, 0.0]
+                    self.pd2[n3y][n2][n1] = [0.0, 0.0, -self.px[n3y][1][n1][2] + self.px[n3z][0][n1][2]]
                 else:
-                    self.pd1[1][n2][n1] = vector.addVectors(self.px[1][n2][n1], self.px[1][n2+1][n1], -1, 1)
-                    self.pd2[1][n2][n1] = vector.addVectors(self.px[1][n2][n1], self.px[0][n2][n1], 1, -1)
+                    self.pd1[n3y][n2][n1] = vector.addVectors(self.px[n3y][n2][n1], self.px[n3y][n2+1][n1], -1, 1)
+                    self.pd2[n3y][n2][n1] = vector.addVectors(self.px[n3y][n2][n1], self.px[0][n2][n1], 1, -1)
 
-            tx = []
-            td3 = []
-            for n1 in range(self.elementsCountAcross[1]):
-                tx.append(self.px[1][n2][n1])
-                td3.append(self.pd3[1][n2][n1])
 
-            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True)
 
-            for n1 in range(self.elementsCountAcross[1]-1):
-                self.pd3[1][n2][n1] = td3[n1]
+
+        # sample along curve0_3
+        for n2 in range(1, self.elementsCountAcross[0]):
+            for n1 in range(1, self.elementsCountAcross[1]):
+                tx, td2 = sampleCubicHermiteCurves([self.px[0][n2][n1], self.px[n3y][n2][n1]],
+                                                   [self.pd2[0][n2][0], self.pd2[n3y][n2][0]], self.elementsCountAcross[2]-1)[:2]
+
+                for n3 in range(1, self.elementsCountAcross[2] - 1):
+                    self.px[n3][n2][n1] = tx[n3]
+                    self.pd2[n3][n2][n1] = td2[n3]
+
+        for n3 in range(1, self.elementsCountAcross[2] - 1):
+            for n2 in range(1, self.elementsCountAcross[0]):
+                for n1 in range(1, self.elementsCountAcross[1]):
+                    if n2 == 1 and n1 == n1y:
+                        self.pd1[n3][n2][n1] = [self.px[n3][n2][n1][0] - self.px[n3][n2-1][n1+1][0], 0.0, 0.0]
+                        self.pd3[n3][n2][n1] = [0.0, self.px[n3][n2-1][n1+1][1] - self.px[n3][n2][n1][1], 0.0]
+                    else:
+                        self.pd1[n3][n2][n1] = vector.addVectors(self.px[n3][n2+1][n1], self.px[n3][n2][n1], 1, -1)
+                        self.pd3[n3][n2][n1] = vector.addVectors(self.px[n3][n2][n1+1], self.px[n3][n2][n1], 1, -1)
+
 
         # smooth d1 in regular 1
-        for n1 in range(1, self.elementsCountAcross[1] - 1):
-            tx = []
-            td1 = []
-            for n2 in range(1, self.elementsCountAcross[0]+1):
-                tx.append(self.px[1][n2][n1])
-                td1.append(self.pd1[1][n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
-            for n2 in range(1, self.elementsCountAcross[0]+1):
-                self.pd1[1][n2][n1] = td1[n2-1]
+        if self.elementsCountAcross[0] >= 3:
+            for n3 in range(1, self.elementsCountAcross[2]):
+                for n1 in range(1, self.elementsCountAcross[1]):
+                    tx = []
+                    td1 = []
+                    for n2 in range(1, self.elementsCountAcross[0]+1):
+                        tx.append(self.px[n3][n2][n1])
+                        td1.append(self.pd1[n3][n2][n1])
+                    td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
+                    for n2 in range(1, self.elementsCountAcross[0]+1):
+                        self.pd1[n3][n2][n1] = td1[n2-1]
+        else:
+            for n3 in range(1, self.elementsCountAcross[2]):
+                for n1 in range(1, self.elementsCountAcross[1]):
+                    self.pd1[n3][1][n1] = vector.addVectors(self.px[n3][2][n1], self.px[n3][1][n1], 1, -1)
+                    self.pd1[n3][2][n1] = vector.setMagnitude(self.pd1[n3][2][n1], vector.magnitude(self.pd1[n3][1][n1]))
+
+        # smooth d3 in regular
+        if self.elementsCountAcross[1] >= 3:
+            for n3 in range(1, self.elementsCountAcross[2]):
+                for n2 in range(1, self.elementsCountAcross[0]):
+                    tx = []
+                    td3 = []
+                    for n1 in range(self.elementsCountAcross[1]):
+                        tx.append(self.px[n3][n2][n1])
+                        td3.append(self.pd3[n3][n2][n1])
+
+                    td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True)
+
+                    for n1 in range(self.elementsCountAcross[1]):
+                        self.pd3[n3][n2][n1] = td3[n1]
+        else:
+            for n3 in range(1, self.elementsCountAcross[2]):
+                for n2 in range(1, self.elementsCountAcross[0]):
+                    self.pd3[n3][n2][1] = vector.addVectors(self.px[n3][n2][1], self.px[n3][n2][0], 1, -1)
+                    self.pd3[n3][n2][0] = vector.setMagnitude(self.pd3[n3][n2][0], vector.magnitude(self.pd3[n3][n2][1]))
+
 
         # regular curves d2
         for n2 in range(1, self.elementsCountAcross[0]):
             for n1 in range(1, self.elementsCountAcross[1]):
-                tx = []
-                td2 = []
-                for n3 in range(2):
-                    tx.append(self.px[n3][n2][n1])
-                    td2.append(self.pd2[n3][n2][n1])
-                td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True, fixEndDerivative=True)
-                for n3 in range(1):
-                    self.pd2[n3][n2][n1] = td2[n3]
+                if self.elementsCountAcross[2] >= 3:
+                    tx = []
+                    td2 = []
+                    for n3 in range(self.elementsCountAcross[2]):
+                        tx.append(self.px[n3][n2][n1])
+                        td2.append(self.pd2[n3][n2][n1])
+                    td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True)
+                    for n3 in range(self.elementsCountAcross[2]):
+                        self.pd2[n3][n2][n1] = td2[n3]
+                else:
+                    self.pd2[1][n2][n1] = vector.addVectors(self.px[1][n2][n1], self.px[0][n2][n1], 1, -1)
+                    self.pd2[0][n2][n1] = vector.setMagnitude(self.pd2[0][n2][n1], vector.magnitude(self.pd2[1][n2][n1]))
+
+
 
 
         # smooth d3 on the surface of regular ones.
@@ -306,44 +326,53 @@ class ShieldMesh3D:
 
     # node types
     CORNER_1 = 1
-    CORNER_2 = 29
-    CORNER_3 = 28
+    CORNER_2 = 2
+    CORNER_3 = 3
 
-    QUADRUPLE_DOWN_LEFT = 6
-    QUADRUPLE_RIGHT = 12
-    QUADRUPLE_UP = 18
+    QUADRUPLE_DOWN_LEFT = 4
+    QUADRUPLE_RIGHT = 5
+    QUADRUPLE_UP = 6
     QUADRUPLE0_DOWN_LEFT = 7
-    QUADRUPLE0_RIGHT = 11
-    QUADRUPLE0_UP = 30
+    QUADRUPLE0_RIGHT = 8
+    QUADRUPLE0_UP = 9
 
-    TRIPLE_12_LEFT = 5
-    TRIPLE_12_RIGHT = 9
-    TRIPLE_13_DOWN = 2
-    TRIPLE_13_UP = 21
-    TRIPLE_23_UP = 20
-    TRIPLE_23_DOWN = 14
-    TRIPLE0_12_LEFT = 32
-    TRIPLE0_12_RIGHT = 33
-    TRIPLE0_13_DOWN = 4
-    TRIPLE0_13_Up = 27
-    TRIPLE0_23_DOWN = 13
-    TRIPLE0_23_UP = 26
+    TRIPLE_12_LEFT = 10
+    TRIPLE_12_RIGHT = 11
+    TRIPLE_13_DOWN = 12
+    TRIPLE_13_UP = 13
+    TRIPLE_23_UP = 14
+    TRIPLE_23_DOWN = 15
+    TRIPLE0_12_LEFT = 16
+    TRIPLE0_12_RIGHT = 17
+    TRIPLE0_13_DOWN = 18
+    TRIPLE0_13_Up = 19
+    TRIPLE0_23_DOWN = 20
+    TRIPLE0_23_UP = 21
 
+    BOUNDARY_12_LEFT = 22
+    BOUNDARY_12_RIGHT = 23
+    BOUNDARY_13_DOWN = 24
+    BOUNDARY_13_UP = 25
+    BOUNDARY_23_UP = 26
+    BOUNDARY_23_DOWN = 27
 
-    BOUNDARY_12 = 3
-    BOUNDARY_13 = 24
-    BOUNDARY_23 = 19
+    TRIPLE_CURVE_1_DOWN = 28
+    TRIPLE_CURVE_1_UP = 29
+    TRIPLE_CURVE_2_DOWN = 30
+    TRIPLE_CURVE_2_UP = 31
+    TRIPLE_CURVE_3_LEFT = 32
+    TRIPLE_CURVE_3_RIGHT = 33
+    TRIPLE_CURVE0_1_UP = 34
+    TRIPLE_CURVE0_1_DOWN = 35
+    TRIPLE_CURVE0_2_DOWN = 36
+    TRIPLE_CURVE0_2_UP = 37
+    TRIPLE_CURVE0_3_LEFT = 38
+    TRIPLE_CURVE0_3_RIGHT = 39
 
-    TRIPLE_CURVE_1_DOWN = 15
-    TRIPLE_CURVE_1_UP = 23
-    TRIPLE_CURVE_2_DOWN = 8
-    TRIPLE_CURVE_2_UP = 22
-    TRIPLE_CURVE0_1_UP = 17
-    TRIPLE_CURVE0_1_DOWN = 31
-    TRIPLE_CURVE0_2_DOWN = 10
-    TRIPLE_CURVE0_2_UP = 16
-
-    SURFACE_REGULAR = 25
+    SURFACE_REGULAR_DOWN_LEFT = 40
+    SURFACE_REGULAR_DOWN_RIGHT = 41
+    SURFACE_REGULAR_UP = 42
+    REGULAR = 43
 
     def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
         """
@@ -378,6 +407,8 @@ class ShieldMesh3D:
         e2z = self.elementsCountAcross[0] - 1
         # e2y = e2z - 1
         # e2x = e2z - 2
+        e3z = self.elementsCountAcross[2] - 1
+        e3y = e3z - 1
 
         for e3 in range(self.elementsCountAcross[2]):
             for e2 in range(self.elementsCountAcross[0]):
@@ -387,12 +418,16 @@ class ShieldMesh3D:
                     nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2 + 1][e1], self.nodeId[e3 + 1][e2][e1], self.nodeId[e3 + 1][e2 + 1][e1],
                             self.nodeId[e3][e2][e1 + 1], self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3 + 1][e2][e1 + 1], self.nodeId[e3 + 1][e2 + 1][e1 + 1]]
 
-                    element_regular = (e3 == 0 and e2 > e2a and e1 < e1z)
-                    element_quadruple_down_left = (e3 == 0 and e2 == 0 and e1 == e1y)
-                    element_quadruple_down_right = (e3 == 0 and e2 >= e2b and e1 == e1z)
-                    element_quadruple_up_left = (e3 == 1 and e2 >= e2b and e1 == e1y)
-                    element_quadruple_down = (e3 == 0 and e2 == 0 and e1 < e1y)
-                    element_quadruple_up = (e3 == 1 and e2 >= e2b and e1 < e1y)
+                    element_regular = (e3 <= e3y and e2 > e2a and e1 < e1z)
+                    element_quadruple_down_left = (e3 == e3y and e2 == 0 and e1 == e1y)
+                    element_quadruple_down_right = (e3 == e3y and e2 >= e2b and e1 == e1z)
+                    element_quadruple_up_left = (e3 == e3z and e2 >= e2b and e1 == e1y)
+                    element_quadruple_down = (e3 == e3y and e2 == 0 and e1 < e1y)
+                    element_quadruple_up = (e3 == e3z and e2 >= e2b and e1 < e1y)
+                    element_quadruple_left = (e3 < e3y and e2 == 0 and e1 == e1y)
+                    element_quadruple_right = (e3 < e3y and e2 == e2b and e1 == e1z)
+                    element_down_right = (e3 < e3y and e2 > e2b and e1 == e1z)
+                    element_down_left = (e3 < e3y and e2 == 0 and e1 < e1y)
 
                     if element_regular:
                         pass
@@ -412,11 +447,14 @@ class ShieldMesh3D:
 
                         if e1y == 0:
                             self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_13_DOWN)
-                            self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                            if e3y == 0:
+                                self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_13_DOWN)
                             self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_DOWN)
                         else:
                             self.remap_eft_node_value_label(eft1, [4], self.TRIPLE_CURVE0_2_DOWN)
-                            self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_12)
+                            self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_12_LEFT)
                             self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_DOWN)
 
                     elif element_quadruple_down:
@@ -427,16 +465,27 @@ class ShieldMesh3D:
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [-1.0]
 
-                        self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
                         self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_13_DOWN)
-                        self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12)
                         self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_2_DOWN)
                         self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_CURVE0_2_DOWN)
 
                         if e1 == 0:
                             self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_DOWN)
+                            if e3y == 0:
+                                self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                                self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12_LEFT)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_13_DOWN)
+                                self.remap_eft_node_value_label(eft1, [5], self.SURFACE_REGULAR_DOWN_LEFT)
                         else:
                             self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_DOWN)
+                            if e3y == 0:
+                                self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_12_LEFT)
+                                self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12_LEFT)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1, 5], self.SURFACE_REGULAR_DOWN_LEFT)
+
+
 
                     elif element_quadruple_down_right:
                         if e2 == 1:
@@ -460,10 +509,21 @@ class ShieldMesh3D:
                             if e2b == e2z:
                                 self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_23_DOWN)
                                 self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_DOWN)
+                                if e3y == 0:
+                                    self.remap_eft_node_value_label(eft1, [6], self.CORNER_2)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [6], self.BOUNDARY_23_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [4], self.TRIPLE_CURVE0_1_DOWN)
+                                self.remap_eft_node_value_label(eft1, [6], self.SURFACE_REGULAR_DOWN_RIGHT)
                         elif e2 == e2z:
                             self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE0_1_DOWN)
                             self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_23_DOWN)
                             self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_DOWN)
+                            if e3y == 0:
+                                self.remap_eft_node_value_label(eft1, [6], self.CORNER_2)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [6], self.BOUNDARY_23_DOWN)
 
                     elif element_quadruple_up_left:
                         if e2 == 1:
@@ -480,23 +540,24 @@ class ShieldMesh3D:
 
                         if e2 == e2b:
                             self.remap_eft_node_value_label(eft1, [1], self.TRIPLE_CURVE0_2_UP)
-                            self.remap_eft_node_value_label(eft1, [6], self.TRIPLE_CURVE0_1_UP)
                             self.remap_eft_node_value_label(eft1, [7], self.QUADRUPLE_UP)
                             if e2b == e2z:
-                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
+                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23_UP)
+                                self.remap_eft_node_value_label(eft1, [6], self.TRIPLE0_23_UP)
                                 self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_UP)
                                 if e1y == 0:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
                             else:
+                                self.remap_eft_node_value_label(eft1, [6], self.TRIPLE_CURVE0_1_UP)
                                 self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_CURVE_1_UP)
                                 if e1y == 0:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
-                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_13)
+                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_13_UP)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
-                                    self.remap_eft_node_value_label(eft1, [4], self.SURFACE_REGULAR)
+                                    self.remap_eft_node_value_label(eft1, [4], self.SURFACE_REGULAR_UP)
                         elif e2 == e2z:
 
                             self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_UP)
@@ -505,15 +566,19 @@ class ShieldMesh3D:
                             self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_1_UP)
                             if e1y == 0:
                                 self.remap_eft_node_value_label(eft1, [4], self.CORNER_3)
-                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13)
+                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13_UP)
                             else:
-                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
-                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR)
+                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23_UP)
+                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR_UP)
                         else:
                             if e1y == 0:
-                                self.remap_eft_node_value_label(eft1, [3, 4], self.BOUNDARY_13)
+                                self.remap_eft_node_value_label(eft1, [3, 4], self.BOUNDARY_13_UP)
                                 self.remap_eft_node_value_label(eft1, [5, 6], self.TRIPLE_CURVE0_1_UP)
                                 self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_1_UP)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [3, 4], self.SURFACE_REGULAR_UP)
+                                self.remap_eft_node_value_label(eft1, [5, 6], self.TRIPLE_CURVE0_2_UP)
+                                self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_2_UP)
 
                     elif element_quadruple_up:
                         if e2 == e2b:
@@ -536,31 +601,137 @@ class ShieldMesh3D:
                             self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_CURVE0_2_UP)
                             self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_2_UP)
                             if e2b == e2z:
-                                self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23)
+                                self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23_UP)
                                 if e1 == 0:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
                                     self.remap_eft_node_value_label(eft1, [4], self.CORNER_3)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
-                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
+                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23_UP)
 
                             else:
                                 if e1 == 0:
                                     self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_13_UP)
-                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_13)
+                                    self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_13_UP)
                                 else:
-                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE0_2_UP)
-                                    self.remap_eft_node_value_label(eft1, [4], self.SURFACE_REGULAR)
-                                self.remap_eft_node_value_label(eft1, [8], self.SURFACE_REGULAR)
+                                    self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE_2_UP)
+                                    self.remap_eft_node_value_label(eft1, [4], self.SURFACE_REGULAR_UP)
+                                self.remap_eft_node_value_label(eft1, [8], self.SURFACE_REGULAR_UP)
                         elif e2 == e2z:
                             if e1 == 0:
-                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13)
+                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13_UP)
                                 self.remap_eft_node_value_label(eft1, [4], self.CORNER_3)
                             else:
-                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR)
-                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23)
-                            self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR)
-                            self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23)
+                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR_UP)
+                                self.remap_eft_node_value_label(eft1, [4], self.BOUNDARY_23_UP)
+                            self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR_UP)
+                            self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23_UP)
+                        else:
+                            if e1 == 0:
+                                self.remap_eft_node_value_label(eft1, [3, 4], self.BOUNDARY_13_UP)
+                                self.remap_eft_node_value_label(eft1, [7, 8], self.SURFACE_REGULAR_UP)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [3, 4, 7, 8], self.SURFACE_REGULAR_UP)
+
+                    elif element_quadruple_left:
+                        nids[4] = self.nodeId[e3][e2][e1+2]
+                        nids[6] = self.nodeId[e3+1][e2][e1+2]
+
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_12_LEFT)
+                        self.remap_eft_node_value_label(eft1, [6], self.TRIPLE0_12_LEFT)
+                        self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_3_LEFT)
+                        self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_CURVE0_3_LEFT)
+
+                        if e1y == 0:
+                            self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13_DOWN)
+                            if e3 == 0:
+                                self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_13_DOWN)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_12_LEFT)
+                            self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR_DOWN_LEFT)
+
+                    elif element_quadruple_right:
+                        nids[4] = self.nodeId[e3][e2-1][e1+1]
+                        nids[6] = self.nodeId[e3+1][e2-1][e1+1]
+
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        self.remap_eft_node_value_label(eft1, [3], self.TRIPLE_CURVE0_3_RIGHT)
+                        self.remap_eft_node_value_label(eft1, [7], self.TRIPLE_CURVE_3_RIGHT)
+                        if e3y == 0:
+                            self.remap_eft_node_value_label(eft1, [1], self.TRIPLE0_12_RIGHT)
+                            self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_12_RIGHT)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [1], self.TRIPLE_CURVE0_3_RIGHT)
+                            self.remap_eft_node_value_label(eft1, [5], self.TRIPLE_CURVE_3_RIGHT)
+                        if e2b == e2z:
+                            self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23_DOWN)
+                            if e3 == 0:
+                                self.remap_eft_node_value_label(eft1, [6], self.CORNER_2)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [6], self.BOUNDARY_23_DOWN)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [6], self.CORNER_2)
+                            self.remap_eft_node_value_label(eft1, [8], self.SURFACE_REGULAR_DOWN_RIGHT)
+
+                    elif element_down_right:
+                        if e3 == 0:
+                            if e2 == e2z:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+
+                                self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12_RIGHT)
+                                self.remap_eft_node_value_label(eft1, [6], self.CORNER_2)
+                                self.remap_eft_node_value_label(eft1, [8], self.BOUNDARY_23_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12_RIGHT)
+                                self.remap_eft_node_value_label(eft1, [6], self.BOUNDARY_12_RIGHT)
+                                self.remap_eft_node_value_label(eft1, [8], self.SURFACE_REGULAR_DOWN_RIGHT)
+                        else:
+
+                            self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR_DOWN_RIGHT)
+                            self.remap_eft_node_value_label(eft1, [5], self.SURFACE_REGULAR_DOWN_RIGHT)
+                            if e2 == e2z:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                self.remap_eft_node_value_label(eft1, [6, 8], self.BOUNDARY_23_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [6, 8], self.SURFACE_REGULAR_DOWN_RIGHT)
+
+                    elif element_down_left:
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+
+                        if e3 == 0:
+                            self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12_LEFT)
+                            self.remap_eft_node_value_label(eft1, [7], self.SURFACE_REGULAR_DOWN_LEFT)
+                            if e1 == 0:
+                                self.remap_eft_node_value_label(eft1, [1], self.CORNER_1)
+                                self.remap_eft_node_value_label(eft1, [3], self.BOUNDARY_13_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1], self.BOUNDARY_12_LEFT)
+                                self.remap_eft_node_value_label(eft1, [3], self.SURFACE_REGULAR_DOWN_LEFT)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [5, 7], self.SURFACE_REGULAR_DOWN_LEFT)
+                            if e1 == 0:
+                                self.remap_eft_node_value_label(eft1, [1, 3], self.BOUNDARY_13_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [1, 3], self.SURFACE_REGULAR_DOWN_LEFT)
+
+
 
                     else:
                         continue
@@ -657,15 +828,24 @@ class ShieldMesh3D:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
                                    [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
 
-        elif NODE_TYPE == self.BOUNDARY_12:
+        elif NODE_TYPE == self.BOUNDARY_12_LEFT:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
-        elif NODE_TYPE == self.BOUNDARY_13:
+        elif NODE_TYPE == self.BOUNDARY_12_RIGHT:
+            pass
+        elif NODE_TYPE == self.BOUNDARY_13_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+        elif NODE_TYPE == self.BOUNDARY_13_UP:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swaps
-        elif NODE_TYPE == self.BOUNDARY_23:
+        elif NODE_TYPE == self.BOUNDARY_23_DOWN:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.BOUNDARY_23_UP:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
@@ -683,6 +863,11 @@ class ShieldMesh3D:
         elif NODE_TYPE == self.TRIPLE_CURVE_2_UP:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.TRIPLE_CURVE_3_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.TRIPLE_CURVE_3_RIGHT:
+            pass
         elif NODE_TYPE == self.TRIPLE_CURVE0_1_UP:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
                                    [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
@@ -695,9 +880,21 @@ class ShieldMesh3D:
         elif NODE_TYPE == self.TRIPLE_CURVE0_2_UP:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2,
                                    [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-        elif NODE_TYPE == self.SURFACE_REGULAR:
+        elif NODE_TYPE == self.TRIPLE_CURVE0_3_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+        elif NODE_TYPE == self.TRIPLE_CURVE0_3_RIGHT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+
+        elif NODE_TYPE == self.SURFACE_REGULAR_DOWN_LEFT:
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+        elif NODE_TYPE == self.SURFACE_REGULAR_DOWN_RIGHT:
+            pass
+        elif NODE_TYPE == self.SURFACE_REGULAR_UP:
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
             remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+        elif NODE_TYPE == self.REGULAR:
+            pass
         else:
             raise ValueError("Remapping for derivatives of this 'node type' is not implemented")
 

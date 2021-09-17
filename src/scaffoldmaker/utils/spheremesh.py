@@ -3,16 +3,14 @@ Utility functions for generating a solid spheroid.
 """
 
 from enum import Enum
-from scaffoldmaker.utils import vector, geometry
+from scaffoldmaker.utils import vector
 import math
 from opencmiss.zinc.field import Field
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
-from scaffoldmaker.utils.shieldmesh import ShieldMesh3D, ShieldShape3D, ShieldRimDerivativeMode
+from scaffoldmaker.utils.shieldmesh import ShieldMesh3D, ShieldShape3D
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine, interpolateSampleLinear, interpolateCubicHermite
-from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.mirror import Mirror
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape
 
 
@@ -20,6 +18,7 @@ class SphereShape(Enum):
     SPHERE_SHAPE_FULL = 1
     SPHERE_SHAPE_HALF_NNP = 2    # NNP is a3>=3
     SPHERESHIELD_SHAPE_OCTANT_PPP = 3
+
 
 class SphereMesh:
     """
@@ -98,11 +97,11 @@ class SphereMesh:
 
         self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode)
 
-        self.calculateBoundaryElipses()
+        self.calculateBoundaryEllipses()
         self.generateNodes(nodes, fieldModule, coordinates)
         self.generateElements(mesh, fieldModule, coordinates)
 
-    def calculateBoundaryElipses(self):
+    def calculateBoundaryEllipses(self):
         """
 
         :return:
@@ -232,7 +231,7 @@ class SphereMesh:
         self.calculate_surface_quadruple_point()
         self.sample_triple_curves()
         self._shield3D.getQuadruplePoint2()
-        self.fixD2DerivativesOnTheEllipses()
+        # self.fixD2DerivativesOnTheEllipses()
         n3z = self._elementsCount[2]
         self._shield3D.smoothDerivativesToSurfaceQuadruple(n3z)
         self.smoothDerivativesToSurface()
@@ -249,7 +248,9 @@ class SphereMesh:
         btd3 = self._shield3D.pd3
 
         n1z = self._elementsCount[1]
+        n1y = n1z - 1
         n3z = self._elementsCount[2]
+        n3y = n3z - 1
 
         radius = self._radius[0]  # TODO need to be changed for spheroid
 
@@ -260,20 +261,38 @@ class SphereMesh:
         radiansAroundEllipse13 = math.pi / 2
         radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
 
-        for n in range(min(self._elementsCount[0], self._elementsCount[1]) - 1):
-            theta_2 = (n+1) * radiansPerElementAroundEllipse13
-            theta_3 = (self._elementsCount[1] - 1) * radiansPerElementAroundEllipse12
-            phi_3 = calculate_azimuth(theta_3, theta_2)
-            # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
-            x = spherical_to_cartesian(radius, theta_3, phi_3)
+        # for n in range(min(self._elementsCount[0], self._elementsCount[1]) - 1):
+        #     theta_2 = (n+1) * radiansPerElementAroundEllipse13
+        #     theta_3 = (self._elementsCount[1] - 1) * radiansPerElementAroundEllipse12
+        #     phi_3 = calculate_azimuth(theta_3, theta_2)
+        #     # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
+        #     x = spherical_to_cartesian(radius, theta_3, phi_3)
+        #
+        #     a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
+        #     n1 = self._elementsCount[1] - n if n == 0 else self._elementsCount[1] - n - 1
+        #     n2 = n if n == 0 else n+1
+        #     btx[n3z][n2][n1] = x
+        #     btd1[n3z][n2][n1] = a1  # initialise
+        #     btd2[n3z][n2][n1] = a2  # initialise
+        #     btd3[n3z][n2][n1] = a3
 
-            a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
-            n1 = self._elementsCount[1] - n if n == 0 else self._elementsCount[1] - n - 1
-            n2 = n if n == 0 else n+1
-            btx[n3z][n2][n1] = x
-            btd1[n3z][n2][n1] = a1  # initialise
-            btd2[n3z][n2][n1] = a2  # initialise
-            btd3[n3z][n2][n1] = a3
+
+
+        theta_2 = n3y * radiansPerElementAroundEllipse13
+        theta_3 = n1y * radiansPerElementAroundEllipse12
+        phi_3 = calculate_azimuth(theta_3, theta_2)
+        # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
+        x = spherical_to_cartesian(radius, theta_3, phi_3)
+
+        x = [x[0]*self._axes[0][c] + x[1]*self._axes[1][c] + x[2]*self._axes[2][c] for c in range(3)]
+
+        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
+        n1 = n1z
+        n2 = 0
+        btx[n3z][n2][n1] = x
+        btd1[n3z][n2][n1] = a1  # initialise
+        btd2[n3z][n2][n1] = a2  # initialise
+        btd3[n3z][n2][n1] = a3
 
     def sample_triple_curves(self):
         """
@@ -302,6 +321,130 @@ class SphereMesh:
                 btx[n3z][nc + 1][n1z] = nx[nc]
                 btd1[n3z][nc + 1][n1z] = nd1[nc]
 
+
+
+        # WHY DO WE NEED THIS?????????
+        if self._elementsCount[1] >= 0 and self._elementsCount[0] >= 0:
+            n3 = n3z
+            for n2 in range(2, self._elementsCount[0]):
+                nx, nd1 = sample_curves_sphere(btx[n3][n2][0], btx[n3][n2][n1z], n1z - 1)
+                for n1 in range(self._elementsCount[1]+1):
+                    if n1 == 0:
+                        btd2[n3][n2][0] = nd1[0]
+                    elif n1 == n1z:
+                        btd2[n3][n2][n1] = vector.scaleVector(nd1[-1], -1)
+                    elif n1 == n1z - 1:
+                        continue
+                    else:
+                        btx[n3][n2][n1] = nx[n1]
+                        btd2[n3][n2][n1] = vector.scaleVector(nd1[n1], -1)
+                        a1, a2, a3 = local_orthogonal_unit_vectors(nx[n1], self._axes[2])
+                        btd1[n3z][n2][n1] = a1  # initialise
+                        btd3[n3z][n2][n1] = a3
+
+            # Regular curves from bottom to top (on triple curves)
+            for n2 in range(2, self._elementsCount[0]):
+                nx, nd1 = sample_curves_sphere(btx[0][n2][n1z], btx[n3z][n2][n1z], self._elementsCount[2] - 1)
+                for n3 in range(self._elementsCount[2] - 1):
+                    if n3 == 0:
+                        btd2[n3][n2][n1z] = nd1[0]
+                    else:
+                        btx[n3][n2][n1z] = nx[n3]
+                        btd2[n3][n2][n1z] = nd1[n3]
+                        a1, a2, a3 = local_orthogonal_unit_vectors(nx[n3], self._axes[2])
+                        btd1[n3][n2][n1z] = a1  # initialise
+                        btd3[n3][n2][n1z] = a3
+
+
+
+        # smooth d2 curve
+        # for n2 in range(n2a + 1, n2z):
+        #     a1, a2, a3 = local_orthogonal_unit_vectors(btx[n3z][n2][n1z], self._axes[2])
+        #     btd3[n3z][n2][n1z] = a3
+        #     tx = []
+        #     td2 = []
+        #     for n1 in range(self._elementsCount[1] - 1):
+        #         tx.append(btx[n3z][n2][n1])
+        #         td2.append(btd2[n3z][n2][n1])
+        #     tx.append(btx[n3z][n2][n1z])
+        #     td2.append(vector.crossproduct3(btd3[n3z][n2][n1z],btd1[n3z][n2][n1z]))
+        #     for n3 in range(self._elementsCount[2] - 2, -1, -1):
+        #         tx.append(btx[n3][n2][n1z])
+        #         td2.append(vector.scaleVector(btd2[n3][n2][n1z], -1))
+        #
+        #     td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True, fixEndDirection=True)
+        #
+        #     btd2[n3z][n2][0] = td2[0]
+        #     for n1 in range(1, self._elementsCount[1] - 1):
+        #         btd2[n3z][n2][n1] = vector.scaleVector(td2[n1], -1)
+        #     btd2[n3z][n2][n1z] = vector.scaleVector(td2[self._elementsCount[1] - 1], -1)
+        #     for n3 in range(self._elementsCount[2] - 2, -1, -1):
+        #         btd2[n3][n2][n1z] = vector.scaleVector(td2[-1 - n3], -1)
+
+        # curve 2
+        nx, nd1 = sample_curves_sphere(btx[n3z][0][0], btx[n3z][0][n1z], self._elementsCount[1] - 1)
+        for n1 in range(self._elementsCount[1]+1):
+            if n1 == n1z-1:
+                continue
+            if n1 == 0:
+                btd2[n3z][0][0] = nd1[0]
+            elif n1 == n1z:
+                btd2[n3z][0][n1z] = vector.scaleVector(nd1[-1], -1)
+            else:
+                btx[n3z][0][n1] = nx[n1]
+                btd2[n3z][0][n1] = vector.scaleVector(nd1[n1], -1)
+
+
+
+
+        if self._elementsCount[0] >= 3 and self._elementsCount[1] >= 3:
+            n3 = n3z
+            n2 = 2
+            n1 = 1
+            nx, nd1 = sample_curves_sphere(btx[n3][n2][n1], btx[n3][n2z][n1], n2z - 2)
+            for n2 in range(2, self._elementsCount[0] + 1):
+                if n2 == 2:
+                    btd1[n3][n2][n1] = nd1[0]
+                if n2 == n2z:
+                    btd2[n3][n2][n1] = vector.scaleVector(nd1[-1], -1)
+                else:
+                    btx[n3][n2][n1] = nx[n2 - 2]
+                    btd1[n3][n2][n1] = nd1[n2 - 2]
+                    a1, a2, a3 = local_orthogonal_unit_vectors(nx[n2 - 2], self._axes[2])
+                    btd2[n3z][n2][n1] = a2  # initialise
+                    btd3[n3z][n2][n1] = a3
+
+        if self._elementsCount[0] >= 2:
+            # Regular curves from bottom to top (on triple curves, curve 2)
+            for n1 in range(1, self._elementsCount[1] - 1):
+                nx, nd1 = sample_curves_sphere(btx[0][0][n1], btx[n3z][0][n1], self._elementsCount[2] - 1)
+                for n3 in range(self._elementsCount[2] - 1):
+                    if n3 == 0:
+                        btd2[n3][0][n1] = nd1[0]
+                    else:
+                        btx[n3][0][n1] = nx[n3]
+                        btd2[n3][0][n1] = nd1[n3]
+                        a1, a2, a3 = local_orthogonal_unit_vectors(nx[n3], self._axes[2])
+                        btd1[n3][0][n1] = a1  # initialise
+                        btd3[n3][0][n1] = a3
+
+
+        # sample on curve 3 of the triple curves and smooth the end derivatives.
+        # arcLength = calculate_arc_length(btx[0][0][n1z], btx[n3z][0][n1z])
+        # btd2[0][0][n1z] = vector.setMagnitude(btd2[0][0][n1z], arcLength)
+        nx, nd1 = sample_curves_sphere(btx[0][0][n1z], btx[n3z][0][n1z], self._elementsCount[2] - 1)
+        for n3 in range(self._elementsCount[2] - 1): # Last one use combination of d2 and d1
+            if n3 == 0:
+                btd2[n3][0][n1z] = nd1[n3]
+            else:
+                btx[n3][0][n1z] = nx[n3]
+                btd2[n3][0][n1z] = nd1[n3]
+                a1, a2, a3 = local_orthogonal_unit_vectors(nx[n3], self._axes[2])
+                btd1[n3][0][n1z] = a1  # initialise
+                btd3[n3][0][n1z] = a3
+
+
+
         # smooth d2 curve
         for n2 in range(n2a + 1, n2z):
             a1, a2, a3 = local_orthogonal_unit_vectors(btx[n3z][n2][n1z], self._axes[2])
@@ -326,18 +469,8 @@ class SphereMesh:
             for n3 in range(self._elementsCount[2] - 2, -1, -1):
                 btd2[n3][n2][n1z] = vector.scaleVector(td2[-1 - n3], -1)
 
-        # curve 2
-        nx, nd1 = sample_curves_sphere(btx[n3z][0][0], btx[n3z][0][n1z], self._elementsCount[1] - 1)
-        for n1 in range(self._elementsCount[1]+1):
-            if n1 == n1z-1:
-                continue
-            if n1 == 0:
-                btd2[n3z][0][0] = nd1[0]
-            elif n1 == n1z:
-                btd2[n3z][0][n1z] = vector.scaleVector(nd1[-1], -1)
-            else:
-                btx[n3z][0][n1] = nx[n1]
-                btd2[n3z][0][n1] = vector.scaleVector(nd1[n1], -1)
+
+
 
         # smooth d1 curve
         for n1 in range(1, n1z - 1):
@@ -387,11 +520,70 @@ class SphereMesh:
 
 
 
+        # smooth derivatives on horizontal curves below the triple curves.
+        for n3 in range(1, self._elementsCount[2] - 1):
+            tx = []
+            td1 = []
+            for n1 in range(self._elementsCount[1] + 1):
+                if n1 == n1z - 1:
+                    continue
+                elif n1 == 0:
+                    tx.append(btx[n3][0][n1])
+                    td1.append(btd2[n3][0][n1])
+                else:
+                    tx.append(btx[n3][0][n1])
+                    td1.append(btd1[n3][0][n1])
+            for n2 in range(2, self._elementsCount[0] + 1):
+                tx.append(btx[n3][n2][n1z])
+                if n2 == n2z:
+                    td1.append(vector.scaleVector(btd2[n3][n2][n1z], -1))
+                else:
+                    td1.append(btd1[n3][n2][n1z])
+
+            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
+
+            for n1 in range(self._elementsCount[1] + 1):
+                if n1 == n1z - 1:
+                    continue
+                elif n1 == 0:
+                    btd2[n3][0][n1] = td1[0]
+                elif n1 == n1z:
+                    btd1[n3][0][n1] = td1[n1-1]
+                else:
+                    btd1[n3][0][n1] = td1[n1]
+
+            for n2 in range(2, self._elementsCount[0] + 1):
+                if n2 == n2z:
+                    btd2[n3][n2][n1z] = vector.scaleVector(td1[-1], -1)
+                else:
+                    btd1[n3][n2][n1z] = td1[self._elementsCount[1] + n2 - 2]
 
 
-        # sample on curve 3 of the triple curves and smooth the end derivatives.
-        arcLength = calculate_arc_length(btx[0][0][n1z], btx[n3z][0][n1z])
-        btd2[0][0][n1z] = vector.setMagnitude(btd2[0][0][n1z], arcLength)
+
+
+
+        # sample on curve 1 of the triple curves and smooth the end derivatives.
+
+
+
+        # WHY DO WE NEED THIS?????????
+        # if self._elementsCount[1] >= 3 and self._elementsCount[0] >= 3:
+        #     n3 = n3z
+        #     for n2 in range(2, self._elementsCount[0]):
+        #         nx, nd1 = sample_curves_sphere(btx[n3][n2][0], btx[n3][n2][n1z], n1z - 1)
+        #         for n1 in range(self._elementsCount[1]):
+        #             if n1 == 0:
+        #                 btd2[n3][n2][0] = nd1[0]
+        #             elif n1 == n1z:
+        #                 btd2[n3][n2][n1] = vector.scaleVector(nd1[-1], -1)
+        #             elif n1 == n1z - 1:
+        #                 continue
+        #             else:
+        #                 btx[n3][n2][n1] = nx[n1]
+        #                 btd2[n3][n2][n1] = vector.scaleVector(nd1[n1], -1)
+        #                 a1, a2, a3 = local_orthogonal_unit_vectors(nx[n1], self._axes[2])
+        #                 btd1[n3z][n2][n1] = a1  # initialise
+        #                 btd3[n3z][n2][n1] = a3
 
     def fixD2DerivativesOnTheEllipses(self):
         """
@@ -421,13 +613,7 @@ class SphereMesh:
         Smooth derivatives leading to quadruple point where 3 hex elements merge.
         :param n3: Index of through-wall coordinates to use.
         '''
-        n3a = 0
         n3z = self._elementsCount[2]
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
         n1z = self._elementsCount[1]
 
         btx = self._shield3D.px
@@ -435,58 +621,43 @@ class SphereMesh:
         btd2 = self._shield3D.pd2
         btd3 = self._shield3D.pd3
 
-        for n2 in range(self._elementsCount[0]):
-            for n1 in range(1, self._elementsCount[1]+1):
-                if btx[n3z][n2][n1]:
-                    tx = []
-                    td3 = []
-                    if n2 == 0:
-                        if n1 == n1z:
-                            n2r = n2 + 1
-                            n1r = n1 - 1
-                            co = [-1, 1, 1]
-                        else:
-                            n2r = n2 + 1
-                            n1r = n1
-                            co = [-1, 1, 0]
-                    else:
-                        if n1 == n1z:
-                            n2r = n2
-                            n1r = n1 - 1
-                            co = [0, 1, 1]
-                        else:
-                            n2r = n2
-                            n1r = n1
-                            co = [0, 1, 0]
+        for n3 in range(1, self._elementsCount[2] + 1):
+            for n2 in range(self._elementsCount[0]):
+                for n1 in range(1, self._elementsCount[1]+1):
+                    if self.on_sphere(n3, n2, n1):
+                        # find indices of the neighbour node inside and contribution of its derivatives.
+                        n3r = n3 - 1 if n3 == n3z else n3
+                        n2r = n2 + 1 if n2 == 0 else n2
+                        n1r = n1 - 1 if n1 == n1z else n1
+                        co = [-1, 1, 1]
+                        co[0] = -1 if n2 == 0 else 0
+                        co[1] = 1 if n3 == n3z else 0
+                        co[2] = 1 if n1 == n1z else 0
 
-                    tx.append(btx[n3z-1][n2r][n1r])
-                    td3.append(
-                        [(co[0]*btd1[n3z-1][n2r][n1r][c] + co[1]*btd2[n3z-1][n2r][n1r][c] + co[2]*btd3[n3z-1][n2r][n1r][c]) for c in range(3)])
-                    for n3 in range(n3z, n3z + 1):
+                        tx = []
+                        td3 = []
+                        tx.append(btx[n3r][n2r][n1r])
+                        td3.append(
+                            [(co[0]*btd1[n3r][n2r][n1r][c] + co[1]*btd2[n3r][n2r][n1r][c] + co[2]*btd3[n3r][n2r][n1r][c]) for c in range(3)])
+
                         tx.append(btx[n3][n2][n1])
                         td3.append(btd3[n3][n2][n1])
-                    td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
-                    for n3 in range(n3z, n3z + 1):
-                        btd3[n3][n2][n1] = td3[n3 - n3z + 1]
 
-        # for n2 in range(self._elementsCount[0] + 1):
-        #     if 1 < n2 < self._elementsCount[0]:
-        #         tx = []
-        #         td3 = []
-        #         for n3 in range(n3b, n3b+2):
-        #             n1 = self._elementsCount[1] - 2 + n3
-        #             tx.append(btx[n3][n2][n1])
-        #             if n3 == n3b:
-        #                 td3.append(vector.addVectors(btd2[n3][n2][n1], btd3[n3][n2][n1]))
-        #             else:
-        #                 td3.append(btd3[n3][n2][n1])
-        #
-        #         td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
-        #
-        #         for nc3 in range(1, self._elementsCountAcrossShell + self._elementsCountAcrossTransition + 1):
-        #             n3 = nc3 + n3b
-        #             n1 = n3
-        #             btd3[n3][n2][n1] = td3[nc3]
+                        td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
+                        btd3[n3][n2][n1] = td3[1]
+
+    def on_sphere(self, n3, n2, n1):
+        """
+        Check if the given point is on the sphere.
+        :param n3, n2, n1: node indexes in data structure [n3][n2][n1]
+        :return: True, if it is on the sphere.
+        """
+        n3z = self._elementsCount[2]
+        n1z = self._elementsCount[1]
+
+        btx = self._shield3D.px
+
+        return (n3 == n3z or n2 == 0 or n1 == n1z) and btx[n3][n2][n1]
 
     def generateNodes(self, nodes, fieldModule, coordinates):
         """
