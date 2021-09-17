@@ -62,7 +62,9 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across transition': 1,
             # 'Number of elements along': 1,
             'Shell element thickness proportion': 1.0,
-            # 'Lower half': False,
+            'Octant': True,
+            'Hemisphere': False,
+            'Full': False,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across': 1,
@@ -80,7 +82,9 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across transition',
             # 'Number of elements along',
             'Shell element thickness proportion',
-            # 'Lower half',
+            'Octant',
+            'Hemisphere',
+            'Full',
             'Refine',
             'Refine number of elements across'
         ]
@@ -157,6 +161,9 @@ with variable numbers of elements across axes and shell directions.
 
         # centralPath = options['Central path']
         # full = not options['Lower half']
+        octant = options['Octant']
+        hemisphere = options['Hemisphere']
+        full = options['Full']
         elementsCountAcrossAxis1 = options['Number of elements across axis 1']
         elementsCountAcrossAxis2 = options['Number of elements across axis 2']
         elementsCountAcrossAxis3 = options['Number of elements across axis 3']
@@ -173,6 +180,7 @@ with variable numbers of elements across axes and shell directions.
         coordinates = findOrCreateFieldCoordinates(fm)
 
         centre = [0.0, 0.0, 0.0]
+
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
@@ -182,6 +190,72 @@ with variable numbers of elements across axes and shell directions.
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                      elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                      sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+        axis1 = [0.0, -1.0, 0.0]
+        if (hemisphere or full) and not octant:
+            axis2 = [1.0, 0.0, 0.0]
+            axis3 = [0.0, 0.0, 1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            sphere2 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+            axis1 = [-1.0, 0.0, 0.0]
+            axis2 = [0.0, -1.0, 0.0]
+            axis3 = [0.0, 0.0, 1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            sphere3 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+            axis1 = [0.0, 1.0, 0.0]
+            axis2 = [-1.0, 0.0, 0.0]
+            axis3 = [0.0, 0.0, 1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            sphere4 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+        if full and not octant and not hemisphere:
+            axis1 = [0.0, 1.0, 0.0]
+            axis2 = [1.0, 0.0, 0.0]
+            axis3 = [0.0, 0.0, -1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+
+            sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+            axis2 = [0.0, -1.0, 0.0]
+            axis1 = [1.0, 0.0, 0.0]
+            axis3 = [0.0, 0.0, -1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            sphere2 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+            axis2 = [-1.0, 0.0, 0.0]
+            axis1 = [0.0, -1.0, 0.0]
+            axis3 = [0.0, 0.0, -1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            sphere3 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
+
+            axis2 = [0.0, 1.0, 0.0]
+            axis1 = [-1.0, 0.0, 0.0]
+            axis3 = [0.0, 0.0, -1.0]
+            axes = [axis1, axis2, axis3]
+            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            sphere4 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
 
         annotationGroup = []
         return annotationGroup
