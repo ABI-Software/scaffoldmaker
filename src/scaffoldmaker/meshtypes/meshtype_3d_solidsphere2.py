@@ -191,12 +191,12 @@ with variable numbers of elements across axes and shell directions.
                      elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                      sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
 
-        axis1 = [0.0, -1.0, 0.0]
         if (hemisphere or full) and not octant:
+            axis1 = [0.0, -1.0, 0.0]
             axis2 = [1.0, 0.0, 0.0]
             axis3 = [0.0, 0.0, 1.0]
             axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
             sphere2 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                          sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
@@ -214,7 +214,7 @@ with variable numbers of elements across axes and shell directions.
             axis2 = [-1.0, 0.0, 0.0]
             axis3 = [0.0, 0.0, 1.0]
             axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
             sphere4 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                          sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
@@ -224,7 +224,7 @@ with variable numbers of elements across axes and shell directions.
             axis2 = [1.0, 0.0, 0.0]
             axis3 = [0.0, 0.0, -1.0]
             axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
 
             sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
@@ -243,7 +243,7 @@ with variable numbers of elements across axes and shell directions.
             axis1 = [0.0, -1.0, 0.0]
             axis3 = [0.0, 0.0, -1.0]
             axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
             sphere3 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                          sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False)
