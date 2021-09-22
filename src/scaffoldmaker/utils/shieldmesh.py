@@ -85,217 +85,6 @@ class ShieldMesh3D:
 
         self.elementId = [ [[ None ]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])] for e3 in range(elementsCountAcross[2]) ]
 
-    def getQuadruplePoint2(self):
-        """
-
-        :return:
-        """
-        n1z = self.elementsCountAcross[1]
-        n1y = n1z - 1
-        n3z = self.elementsCountAcross[2]
-        n3y = n3z - 1
-        n2z = self.elementsCountAcross[0]
-
-        if self.elementsCountAcross[2] == min(self.elementsCountAcross):
-            n3r0, n2r0, n1r0 = 0, 1, n1y
-            n3r, n2r, n1r = 0, 0, n1z
-        elif self.elementsCountAcross[1] == min(self.elementsCountAcross):
-            n3r0, n2r0, n1r0 = n3y, 1, 0
-            n3r, n2r, n1r = n3z, 0, 0
-        else:
-            n3r0, n2r0, n1r0 = n3y, n2z, n1y
-            n3r, n2r, n1r = n3z, n2z, n1z
-
-        ts = vector.magnitude(vector.addVectors([self.px[n3r0][n2r0][n1r0], self.px[n3r][n2r][n1r]], [1, -1]))
-        ra = vector.magnitude(self.px[n3z][0][n1z])
-        x = vector.scaleVector(self.px[n3z][0][n1z], (1 - ts/ra))
-        self.px[n3y][1][n1y] = x
-        n2r = 0
-        self.pd1[n3y][1][n1y] = [-(self.px[n3y + 1][n2r][n1y + 1][0] - self.px[n3y][1][n1y][0]), 0.0, 0.0]
-        self.pd2[n3y][1][n1y] = [0.0, 0.0, (self.px[n3y + 1][n2r][n1y + 1][2] - self.px[n3y][1][n1y][2])]
-        self.pd3[n3y][1][n1y] = [0.0, (self.px[n3y + 1][n2r][n1y + 1][1] - self.px[n3y][1][n1y][1]), 0.0]
-
-
-
-        # curve 1
-        tx, td1 = sampleCubicHermiteCurves([self.px[n3z-1][1][n1y], self.px[n3z-1][n2z][n1y]],
-                                           [self.pd1[0][1][n1y], self.pd1[0][n2z][n1y]], self.elementsCountAcross[0] - 1)[:2]
-
-        for n2 in range(2, self.elementsCountAcross[0]):
-            self.px[n3z-1][n2][n1y] = tx[n2-1]
-            self.pd1[n3z-1][n2][n1y] = td1[n2-1]
-            self.pd2[n3z-1][n2][n1y] = [0.0, 0.0, (self.px[n3z][n2][n1z][2] - self.px[n3z-1][n2][n1y][2])]
-            self.pd3[n3z-1][n2][n1y] = [0.0, (self.px[n3z][n2][n1z][1] - self.px[n3z-1][n2][n1y][1]), 0.0]
-
-
-        # curve 2 and parallel curves TODO change all [1] to n3y.
-        for n2 in range(1, self.elementsCountAcross[0]):
-            tx, td3 = sampleCubicHermiteCurves([self.px[n3y][n2][0], self.px[n3y][n2][n1y]],
-                                               [self.pd3[0][n2][0], self.pd3[0][n2][n1y]], self.elementsCountAcross[1] - 1)[:2]
-
-            for n1 in range(1, self.elementsCountAcross[1] - 1):
-                self.px[n3y][n2][n1] = tx[n1]
-                self.pd3[n3y][n2][n1] = td3[n1]
-
-        for n2 in range(1, self.elementsCountAcross[0]):
-            for n1 in range(1, self.elementsCountAcross[1] - 1):
-                if n2 == 1:
-                    self.pd1[n3y][n2][n1] = [self.px[n3y][1][n1][0] - self.px[n3z][0][n1][0], 0.0, 0.0]
-                    self.pd2[n3y][n2][n1] = [0.0, 0.0, -self.px[n3y][1][n1][2] + self.px[n3z][0][n1][2]]
-                else:
-                    self.pd1[n3y][n2][n1] = vector.addVectors([self.px[n3y][n2][n1], self.px[n3y][n2+1][n1]], [-1, 1])
-                    self.pd2[n3y][n2][n1] = vector.addVectors([self.px[n3y][n2][n1], self.px[0][n2][n1]], [1, -1])
-
-
-
-
-        # sample along curve0_3
-        for n2 in range(1, self.elementsCountAcross[0]):
-            for n1 in range(1, self.elementsCountAcross[1]):
-                tx, td2 = sampleCubicHermiteCurves([self.px[0][n2][n1], self.px[n3y][n2][n1]],
-                                                   [self.pd2[0][n2][0], self.pd2[n3y][n2][0]], self.elementsCountAcross[2]-1)[:2]
-
-                for n3 in range(1, self.elementsCountAcross[2] - 1):
-                    self.px[n3][n2][n1] = tx[n3]
-                    self.pd2[n3][n2][n1] = td2[n3]
-
-        for n3 in range(1, self.elementsCountAcross[2] - 1):
-            for n2 in range(1, self.elementsCountAcross[0]):
-                for n1 in range(1, self.elementsCountAcross[1]):
-                    if n2 == 1 and n1 == n1y:
-                        self.pd1[n3][n2][n1] = [self.px[n3][n2][n1][0] - self.px[n3][n2-1][n1+1][0], 0.0, 0.0]
-                        self.pd3[n3][n2][n1] = [0.0, self.px[n3][n2-1][n1+1][1] - self.px[n3][n2][n1][1], 0.0]
-                    else:
-                        self.pd1[n3][n2][n1] = vector.addVectors([self.px[n3][n2+1][n1], self.px[n3][n2][n1]], [1, -1])
-                        self.pd3[n3][n2][n1] = vector.addVectors([self.px[n3][n2][n1+1], self.px[n3][n2][n1]], [1, -1])
-
-
-        # smooth d1 in regular 1
-        if self.elementsCountAcross[0] >= 3:
-            for n3 in range(1, self.elementsCountAcross[2]):
-                for n1 in range(1, self.elementsCountAcross[1]):
-                    tx = []
-                    td1 = []
-                    for n2 in range(1, self.elementsCountAcross[0]+1):
-                        tx.append(self.px[n3][n2][n1])
-                        td1.append(self.pd1[n3][n2][n1])
-                    td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
-                    for n2 in range(1, self.elementsCountAcross[0]+1):
-                        self.pd1[n3][n2][n1] = td1[n2-1]
-        else:
-            for n3 in range(1, self.elementsCountAcross[2]):
-                for n1 in range(1, self.elementsCountAcross[1]):
-                    self.pd1[n3][1][n1] = vector.addVectors([self.px[n3][2][n1], self.px[n3][1][n1]], [1, -1])
-                    self.pd1[n3][2][n1] = vector.setMagnitude(self.pd1[n3][2][n1], vector.magnitude(self.pd1[n3][1][n1]))
-
-        # smooth d3 in regular
-        if self.elementsCountAcross[1] >= 3:
-            for n3 in range(1, self.elementsCountAcross[2]):
-                for n2 in range(1, self.elementsCountAcross[0]):
-                    tx = []
-                    td3 = []
-                    for n1 in range(self.elementsCountAcross[1]):
-                        tx.append(self.px[n3][n2][n1])
-                        td3.append(self.pd3[n3][n2][n1])
-
-                    td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True)
-
-                    for n1 in range(self.elementsCountAcross[1]):
-                        self.pd3[n3][n2][n1] = td3[n1]
-        else:
-            for n3 in range(1, self.elementsCountAcross[2]):
-                for n2 in range(1, self.elementsCountAcross[0]):
-                    self.pd3[n3][n2][1] = vector.addVectors([self.px[n3][n2][1], self.px[n3][n2][0]], [1, -1])
-                    self.pd3[n3][n2][0] = vector.setMagnitude(self.pd3[n3][n2][0], vector.magnitude(self.pd3[n3][n2][1]))
-
-
-        # regular curves d2
-        for n2 in range(1, self.elementsCountAcross[0]):
-            for n1 in range(1, self.elementsCountAcross[1]):
-                if self.elementsCountAcross[2] >= 3:
-                    tx = []
-                    td2 = []
-                    for n3 in range(self.elementsCountAcross[2]):
-                        tx.append(self.px[n3][n2][n1])
-                        td2.append(self.pd2[n3][n2][n1])
-                    td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True)
-                    for n3 in range(self.elementsCountAcross[2]):
-                        self.pd2[n3][n2][n1] = td2[n3]
-                else:
-                    self.pd2[1][n2][n1] = vector.addVectors([self.px[1][n2][n1], self.px[0][n2][n1]], [1, -1])
-                    self.pd2[0][n2][n1] = vector.setMagnitude(self.pd2[0][n2][n1], vector.magnitude(self.pd2[1][n2][n1]))
-
-
-
-
-        # smooth d3 on the surface of regular ones.
-        # for n2 in range(self.elementsCountAcross[0]):
-        #     for n1 in range(1, self.elementsCountAcross[1]+1):
-        #         if self.px[n3z][n2][n1]:
-        #             if n2 == 0:
-        #                 if n1 == n1z:
-        #                     xin = self.px[n3z-1][n2+1][n1-1]
-        #                 else:
-        #                     xin = self.px[n3z - 1][n2 + 1][n1]
-        #             else:
-        #                 xin = self.px[n3z - 1][n2][n1 - 1]
-        #
-        #             self.pd3[n3z][n2][n1] = vector.setMagnitude(self.pd3[n3z][n2][n1], mag)
-
-
-
-
-
-
-    def getQuadruplePoint(self):
-        """
-
-        :return:
-        """
-        n1a = 1
-        n2a = 1
-        n3a = 1
-        # n2b = self.elementsCountAcross[0]
-        for n2 in range(self.elementsCountAcross[0]):
-            if n2 > 0:
-                x = [self.px[0][n2][n1a][0], self.px[0][n2][n1a][1],self.px[n3a][n2][0][2]]
-                self.px[n3a][n2][n1a] = x
-                self.pd1[n3a][n2][n1a] = self.pd1[0][n2][n1a]
-                self.pd2[n3a][n2][n1a] = self.pd2[0][n2][n1a]
-                self.pd3[n3a][n2][n1a] = self.pd3[0][n2][n1a]
-        # self.pd1[n3a][n2a][n1a] = [(self.px[n3a][n2a+1][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
-        # self.pd2[n3a][n2a][n1a] = [-(self.px[0][n2a][n1a][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
-        # self.pd3[n3a][n2a][n1a] = [-(self.px[n3a][n2a][0][c] - self.px[n3a][n2a][n1a][c]) for c in range(3)]
-
-    def smoothDerivativesToSurfaceQuadruple(self, n3, fixAllDirections=False):
-        '''
-        Smooth derivatives leading to quadruple point where 3 hex elements merge.
-        :param n3: Index of through-wall coordinates to use.
-        '''
-        n1b = self.elementsCountAcross[1] - (self.elementsCountRim + 1)
-        # n1z = self.elementsCountAcross[] - self.elementsCountRim
-        # n1y = n1z - 1
-        # m1a = self.elementsCountAcross - self.elementsCountRim
-        # m1b = m1a - 1
-        n2a = self.elementsCountRim
-        n2b = n2a + 1
-        n2c = n2a + 2
-
-        tx = []
-        td3 = []
-        for n2 in range(n2c):
-            if n2 < n2b:
-                tx.append(self.px[n3][n2][n1b + 1])
-                td3.append([-self.pd3[n3][n2][n1b+1][c] for c in range(3)])
-            else:
-                tx.append(self.px[n3-1][n2][n1b])
-                td3.append([(self.pd1[n3-1][n2b][n1b][c] - self.pd2[n3-1][n2b][n1b][c] - self.pd3[n3-1][n2b][n1b][c]) for c in range(3)] )
-
-        td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True, fixEndDirection=True)
-
-        for n2 in range(n2b):
-            self.pd3[n3][n2][n1b+1] = [-td3[n2][c] for c in range(3)]
-
     def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier,mirrorPlane=None):
         """
         Create shield nodes from coordinates.
@@ -513,8 +302,9 @@ class ShieldMesh3D:
                         nids[6] = self.nodeId[e3+2][e2r][e1+1]
                         nids[7] = self.nodeId[e3+2][e2+1][e1+1]
 
+                        # if e2 == e2b or e2 == e2z:
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
                         if e2 == e2b or e2 == e2z:
-                            eft1 = tricubichermite.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             scalefactors = [-1.0]
 
@@ -537,9 +327,15 @@ class ShieldMesh3D:
                             self.remap_eft_node_value_label(eft1, [4], self.TRIPLE0_23_DOWN)
                             self.remap_eft_node_value_label(eft1, [8], self.TRIPLE_23_DOWN)
                             if e3y == 0:
+                                self.remap_eft_node_value_label(eft1, [5], self.BOUNDARY_12_RIGHT)
                                 self.remap_eft_node_value_label(eft1, [6], self.CORNER_2)
                             else:
+                                self.remap_eft_node_value_label(eft1, [5], self.SURFACE_REGULAR_DOWN_RIGHT)
                                 self.remap_eft_node_value_label(eft1, [6], self.BOUNDARY_23_DOWN)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [3, 4], self.TRIPLE_CURVE0_1_DOWN)
+                            self.remap_eft_node_value_label(eft1, [5, 6], self.SURFACE_REGULAR_DOWN_RIGHT)
+                            self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_1_DOWN)
 
                     elif element_quadruple_up_left:
                         if e2 == 1:
@@ -593,8 +389,8 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_1_UP)
                             else:
                                 self.remap_eft_node_value_label(eft1, [3, 4], self.SURFACE_REGULAR_UP)
-                                self.remap_eft_node_value_label(eft1, [5, 6], self.TRIPLE_CURVE0_2_UP)
-                                self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_2_UP)
+                                self.remap_eft_node_value_label(eft1, [5, 6], self.TRIPLE_CURVE0_1_UP)
+                                self.remap_eft_node_value_label(eft1, [7, 8], self.TRIPLE_CURVE_1_UP)
 
                     elif element_quadruple_up:
                         if e2 == e2b:
