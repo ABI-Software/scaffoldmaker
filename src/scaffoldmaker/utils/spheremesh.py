@@ -229,16 +229,16 @@ class SphereMesh:
         """
 
         self.calculate_surface_quadruple_point()
-        self.sample_triple_curves()
+        self.sample_triple_curves_on_sphere()
+        self.sample_regular_curves_on_sphere()
         self._shield3D.getQuadruplePoint2()
-        # self.fixD2DerivativesOnTheEllipses()
         n3z = self._elementsCount[2]
         self._shield3D.smoothDerivativesToSurfaceQuadruple(n3z)
         self.smoothDerivativesToSurface()
 
     def calculate_surface_quadruple_point(self):
         """
-        Calculate coordinates and derivatives of points where 3 hex elements merge.
+        Calculate coordinates and derivatives of the quadruple point on the surface, where 3 hex elements merge.
         :return:
         """
 
@@ -249,6 +249,7 @@ class SphereMesh:
 
         n1z = self._elementsCount[1]
         n1y = n1z - 1
+        n2z = self._elementsCount[0]
         n3z = self._elementsCount[2]
         n3y = n3z - 1
 
@@ -261,30 +262,16 @@ class SphereMesh:
         radiansAroundEllipse13 = math.pi / 2
         radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
 
-        # for n in range(min(self._elementsCount[0], self._elementsCount[1]) - 1):
-        #     theta_2 = (n+1) * radiansPerElementAroundEllipse13
-        #     theta_3 = (self._elementsCount[1] - 1) * radiansPerElementAroundEllipse12
-        #     phi_3 = calculate_azimuth(theta_3, theta_2)
-        #     # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
-        #     x = spherical_to_cartesian(radius, theta_3, phi_3)
-        #
-        #     a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
-        #     n1 = self._elementsCount[1] - n if n == 0 else self._elementsCount[1] - n - 1
-        #     n2 = n if n == 0 else n+1
-        #     btx[n3z][n2][n1] = x
-        #     btd1[n3z][n2][n1] = a1  # initialise
-        #     btd2[n3z][n2][n1] = a2  # initialise
-        #     btd3[n3z][n2][n1] = a3
-
-
-
         theta_2 = n3y * radiansPerElementAroundEllipse13
         theta_3 = n1y * radiansPerElementAroundEllipse12
         phi_3 = calculate_azimuth(theta_3, theta_2)
         # We assume it is a sphere not a spheroid for now. TODO Use the relations for spheroid instead
-        x = spherical_to_cartesian(radius, theta_3, phi_3)
+        # ratio = -0.1 * (min(self._elementsCount) - 2) + 1 if self._elementsCount[0] <= 2 else 0.2
+        ratio = 1
+        # local_x = intersection_of_two_great_circles_on_sphere(btx[0][0][n1y-1], btx[n3z][n2z][n1z], btx[0][2][n1z], btx[n3z][0][0])
+        local_x = spherical_to_cartesian(radius, theta_3, ratio * phi_3 + (1-ratio)*math.pi/2)
 
-        x = [x[0]*self._axes[0][c] + x[1]*self._axes[1][c] + x[2]*self._axes[2][c] for c in range(3)]
+        x = local_to_global_coordinates(local_x, self._axes, self._centre)
 
         a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
         n1 = n1z
@@ -294,9 +281,68 @@ class SphereMesh:
         btd2[n3z][n2][n1] = a2  # initialise
         btd3[n3z][n2][n1] = a3
 
-    def sample_triple_curves(self):
+    def sample_triple_curves_on_sphere(self):
         """
-        Sample points on the triple curves of quadruple point on the sphere surface.
+        Sample points on the triple curves of the 'quadruple point' on the sphere surface.
+        :return:
+        """
+        n1z = self._elementsCount[1]
+        n2z = self._elementsCount[0]
+        n3z = self._elementsCount[2]
+
+        # sample on curve 1 of the triple curves and smooth the end derivatives.
+        self.sample_curves_between_two_nodes_on_sphere([n3z, 0, n1z], [n3z, n2z, n1z], self._elementsCount[0] - 1,
+                                                       [1, None], [1], [-2])
+        # curve 2
+        self.sample_curves_between_two_nodes_on_sphere([n3z, 0, 0], [n3z, 0, n1z], self._elementsCount[1] - 1,
+                                                       [2], [-2], [None, -2])
+        # curve 3.
+        self.sample_curves_between_two_nodes_on_sphere([0, 0, n1z], [n3z, 0, n1z], self._elementsCount[2] - 1,
+                                                       [2], [2], [None, None])
+
+    def sample_regular_curves_on_sphere(self):
+        """
+        Create all other nodes on the sphere except the nodes on the triple curves and ellipses.
+        :return:
+        """
+        n2a = 1
+        n1z = self._elementsCount[1]
+        n2z = self._elementsCount[0]
+        n3z = self._elementsCount[2]
+
+        # regular curves crossing curve 1
+        for n2 in range(2, self._elementsCount[0]):
+            # bottom right
+            self.sample_curves_between_two_nodes_on_sphere([0, n2, n1z], [n3z, n2, n1z], self._elementsCount[2] - 1,
+                                                           [2], [2], [None, None])
+            # top
+            self.sample_curves_between_two_nodes_on_sphere([n3z, n2, 0], [n3z, n2, n1z], self._elementsCount[1] - 1,
+                                                           [2], [-2], [None, -2])
+
+        # regular curves crossing curve 2
+        for n1 in range(1, self._elementsCount[1] - 1):
+            # bottom left. Top is done before.
+            self.sample_curves_between_two_nodes_on_sphere([0, 0, n1], [n3z, 0, n1], self._elementsCount[2] - 1,
+                                                           [2], [2], [None, None])
+
+        # smooth regular curves crossing curve 1
+        for n2 in range(n2a + 1, n2z):
+            self.smooth_derivatives_regular_surface_curve(2, n2, [[2], [None, None]], [[-2], [-2]], [[None, -2], [-2]])
+
+        # smooth regular curves crossing curve 2
+        for n1 in range(1, n1z - 1):
+            self.smooth_derivatives_regular_surface_curve(1, n1, [[2], [None, None]], [[2], [1]], [[None, 1], [-2]])
+
+        # smooth regular curves crossing curve 3
+        for n3 in range(1, self._elementsCount[2] - 1):
+            self.smooth_derivatives_regular_surface_curve(3, n3, [[2], [None, None]], [[1], [1]], [[None, 1], [-2]])
+
+    def sample_curves_between_two_nodes_on_sphere(self, id1, id2, elementsOut, dStart, dbetween, dEnd):
+        """
+        samples curves on the sphere surface between two points given by their indexes.
+        :param id1, id2: [n3,n2,n1] for the first and second points.
+        :param dStart, dBetween, dEnd: Specifies the derivatives that are used for this curve at the beginning, end and
+         in between. e.g. dStart=[2, -1, None] means d2 for the first node, -1 for the second node and skip the third one.
         :return:
         """
         btx = self._shield3D.px
@@ -304,286 +350,146 @@ class SphereMesh:
         btd2 = self._shield3D.pd2
         btd3 = self._shield3D.pd3
 
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n3a = 0
+        # Find what index is constant
+        if id1[0] != id2[0]:
+            constant_index = 3
+            elementsCount = self._elementsCount[2]
+        elif id1[1] != id2[1]:
+            constant_index = 2
+            elementsCount = self._elementsCount[0]
+        elif id1[2] != id2[2]:
+            constant_index = 1
+            elementsCount = self._elementsCount[1]
+
+        else:
+            raise ValueError("None of n1, n2, or n3 is constant. Only on the constant curves.")
+
+        btd = {1: btd1, 2: btd2, 3: btd3}
+        idi = {0: id1[0], 1: id1[1], 2: id1[2]}
+
+        nx, nd1 = sample_curves_on_sphere(btx[id1[0]][id1[1]][id1[2]], btx[id2[0]][id2[1]][id2[2]], elementsOut)
+
+        nit = 0
+        for ni in range(elementsCount + 1):
+            idi[3 - constant_index] = ni
+
+            if ni < len(dStart):
+                if dStart[ni]:
+                    btd[dStart[ni]][idi[0]][idi[1]][idi[2]] = nd1[nit] if dStart[ni] > 0 else vector.scaleVector(
+                        nd1[nit], -1)
+                    nit += 1
+            elif ni > elementsCount - len(dEnd):
+                nie = ni - elementsCount + len(dEnd) - 1
+                if dEnd[nie]:
+                    btd[abs(dEnd[nie])][idi[0]][idi[1]][idi[2]] = nd1[nit] if dEnd[nie] > 0 else vector.scaleVector(
+                        nd1[nit], -1)
+                    nit += 1
+            else:
+                btx[idi[0]][idi[1]][idi[2]] = nx[nit]
+
+                a1, a2, a3 = local_orthogonal_unit_vectors(nx[nit], self._axes[2])
+                btd1[idi[0]][idi[1]][idi[2]] = a1  # initialise
+                btd2[idi[0]][idi[1]][idi[2]] = a2  # initialise
+                btd3[idi[0]][idi[1]][idi[2]] = a3  # initialise
+
+                btd[abs(dbetween[0])][idi[0]][idi[1]][idi[2]] = nd1[nit] if dbetween[0] > 0 else vector.scaleVector(
+                    nd1[nit], -1)
+                nit += 1
+
+    def smooth_derivatives_regular_surface_curve(self, constant_index, nc, dStart, dBetween, dEnd):
+        """
+        Smooth derivatives for each constant index curve. e.g. n2 = 3
+        :param constant_index: Specifies n1, n2 or n3 is constant.
+        :param nc: Index that is constant across the curve.
+        :param dStart, dBetween, dEnd: See sample_curves_between_two_nodes_on_sphere. The difference here is
+         the values are given for two curves that connect one end to the other end of the sphere surface.
+        :return:
+        """
+
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
         n1z = self._elementsCount[1]
         n2z = self._elementsCount[0]
         n3z = self._elementsCount[2]
 
-        # sample on curve 1 of the triple curves and smooth the end derivatives.
-        nx, nd1 = sample_curves_sphere(btx[n3z][0][n1z], btx[n3z][n2z][n1z], self._elementsCount[0] - 1)
-        for nc in range(self._elementsCount[0]):
-            if nc == 0:
-                btd1[n3z][0][n1z] = nd1[0]
-            elif nc == n2z - 1:
-                btd2[n3z][n2z][n1z] = vector.scaleVector(nd1[-1], -1)
-            else:
-                btx[n3z][nc + 1][n1z] = nx[nc]
-                btd1[n3z][nc + 1][n1z] = nd1[nc]
+        if constant_index == 1:
+            elementsCount = [self._elementsCount[2], self._elementsCount[0]]
+        elif constant_index == 2:
+            elementsCount = [self._elementsCount[1], self._elementsCount[2]]
+        elif constant_index == 3:
+            elementsCount = [self._elementsCount[1], self._elementsCount[0]]
 
+        btd = {1: btd1, 2: btd2, 3: btd3}
 
+        tx = []
+        td = []
+        for se in range(2):
+            for ni in range(elementsCount[se] + 1):
+                if constant_index == 1:
+                    ids = [ni, 0, nc] if se == 0 else [n3z, ni, nc]
+                elif constant_index == 2:
+                    ids = [n3z, nc, ni] if se == 0 else [elementsCount[se] - ni, nc, n1z]
+                elif constant_index == 3:
+                    ids = [nc, 0, ni] if se == 0 else [nc, ni, n1z]
 
-        # WHY DO WE NEED THIS?????????
-        if self._elementsCount[1] >= 0 and self._elementsCount[0] >= 0:
-            n3 = n3z
-            for n2 in range(2, self._elementsCount[0]):
-                nx, nd1 = sample_curves_sphere(btx[n3][n2][0], btx[n3][n2][n1z], n1z - 1)
-                for n1 in range(self._elementsCount[1]+1):
-                    if n1 == 0:
-                        btd2[n3][n2][0] = nd1[0]
-                    elif n1 == n1z:
-                        btd2[n3][n2][n1] = vector.scaleVector(nd1[-1], -1)
-                    elif n1 == n1z - 1:
-                        continue
+                if ni < len(dStart[se]):
+                    if dStart[se][ni]:
+                        tx.append(btx[ids[0]][ids[1]][ids[2]])
+                        if dStart[0][ni] > 0:
+                            td.append(btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]])
+                        else:
+                            td.append(vector.scaleVector(btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]], -1))
+                elif ni > elementsCount[se] - len(dEnd[se]):
+                    nie = ni - elementsCount[se] + len(dEnd[se]) - 1
+                    if dEnd[se][nie]:
+                        tx.append(btx[ids[0]][ids[1]][ids[2]])
+                        if dEnd[se][nie] > 0:
+                            td.append(btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]])
+                        else:
+                            td.append(vector.scaleVector(btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]], -1))
+                else:
+                    tx.append(btx[ids[0]][ids[1]][ids[2]])
+                    if dBetween[se][0] > 0:
+                        td.append(btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]])
                     else:
-                        btx[n3][n2][n1] = nx[n1]
-                        btd2[n3][n2][n1] = vector.scaleVector(nd1[n1], -1)
-                        a1, a2, a3 = local_orthogonal_unit_vectors(nx[n1], self._axes[2])
-                        btd1[n3z][n2][n1] = a1  # initialise
-                        btd3[n3z][n2][n1] = a3
+                        td.append(vector.scaleVector(btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]], -1))
 
-            # Regular curves from bottom to top (on triple curves)
-            for n2 in range(2, self._elementsCount[0]):
-                nx, nd1 = sample_curves_sphere(btx[0][n2][n1z], btx[n3z][n2][n1z], self._elementsCount[2] - 1)
-                for n3 in range(self._elementsCount[2] - 1):
-                    if n3 == 0:
-                        btd2[n3][n2][n1z] = nd1[0]
+        td = smoothCubicHermiteDerivativesLine(tx, td, fixStartDirection=True, fixEndDirection=True)
+
+        nit = 0
+        for se in range(2):
+            for ni in range(elementsCount[se] + 1):
+                if constant_index == 1:
+                    ids = [ni, 0, nc] if se == 0 else [n3z, ni, nc]
+                elif constant_index == 2:
+                    ids = [n3z, nc, ni] if se == 0 else [elementsCount[se] - ni, nc, n1z]
+                elif constant_index == 3:
+                    ids = [nc, 0, ni] if se == 0 else [nc, ni, n1z]
+
+                if ni < len(dStart[se]):
+                    if dStart[se][ni]:
+                        if dStart[0][ni] > 0:
+                            btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]] = td[nit]
+                        else:
+                            btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
+                        nit += 1
+                elif ni > elementsCount[se] - len(dEnd[se]):
+                    nie = ni - elementsCount[se] + len(dEnd[se]) - 1
+                    if dEnd[se][nie]:
+                        if dEnd[se][nie] > 0:
+                            btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]] = td[nit]
+                        else:
+                            btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
+                        nit += 1
+                else:
+                    if dBetween[se][0] > 0:
+                        btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]] = td[nit]
                     else:
-                        btx[n3][n2][n1z] = nx[n3]
-                        btd2[n3][n2][n1z] = nd1[n3]
-                        a1, a2, a3 = local_orthogonal_unit_vectors(nx[n3], self._axes[2])
-                        btd1[n3][n2][n1z] = a1  # initialise
-                        btd3[n3][n2][n1z] = a3
-
-
-
-        # smooth d2 curve
-        # for n2 in range(n2a + 1, n2z):
-        #     a1, a2, a3 = local_orthogonal_unit_vectors(btx[n3z][n2][n1z], self._axes[2])
-        #     btd3[n3z][n2][n1z] = a3
-        #     tx = []
-        #     td2 = []
-        #     for n1 in range(self._elementsCount[1] - 1):
-        #         tx.append(btx[n3z][n2][n1])
-        #         td2.append(btd2[n3z][n2][n1])
-        #     tx.append(btx[n3z][n2][n1z])
-        #     td2.append(vector.crossproduct3(btd3[n3z][n2][n1z],btd1[n3z][n2][n1z]))
-        #     for n3 in range(self._elementsCount[2] - 2, -1, -1):
-        #         tx.append(btx[n3][n2][n1z])
-        #         td2.append(vector.scaleVector(btd2[n3][n2][n1z], -1))
-        #
-        #     td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True, fixEndDirection=True)
-        #
-        #     btd2[n3z][n2][0] = td2[0]
-        #     for n1 in range(1, self._elementsCount[1] - 1):
-        #         btd2[n3z][n2][n1] = vector.scaleVector(td2[n1], -1)
-        #     btd2[n3z][n2][n1z] = vector.scaleVector(td2[self._elementsCount[1] - 1], -1)
-        #     for n3 in range(self._elementsCount[2] - 2, -1, -1):
-        #         btd2[n3][n2][n1z] = vector.scaleVector(td2[-1 - n3], -1)
-
-        # curve 2
-        nx, nd1 = sample_curves_sphere(btx[n3z][0][0], btx[n3z][0][n1z], self._elementsCount[1] - 1)
-        for n1 in range(self._elementsCount[1]+1):
-            if n1 == n1z-1:
-                continue
-            if n1 == 0:
-                btd2[n3z][0][0] = nd1[0]
-            elif n1 == n1z:
-                btd2[n3z][0][n1z] = vector.scaleVector(nd1[-1], -1)
-            else:
-                btx[n3z][0][n1] = nx[n1]
-                btd2[n3z][0][n1] = vector.scaleVector(nd1[n1], -1)
-
-
-
-
-        if self._elementsCount[0] >= 3 and self._elementsCount[1] >= 3:
-            n3 = n3z
-            n2 = 2
-            n1 = 1
-            nx, nd1 = sample_curves_sphere(btx[n3][n2][n1], btx[n3][n2z][n1], n2z - 2)
-            for n2 in range(2, self._elementsCount[0] + 1):
-                if n2 == 2:
-                    btd1[n3][n2][n1] = nd1[0]
-                if n2 == n2z:
-                    btd2[n3][n2][n1] = vector.scaleVector(nd1[-1], -1)
-                else:
-                    btx[n3][n2][n1] = nx[n2 - 2]
-                    btd1[n3][n2][n1] = nd1[n2 - 2]
-                    a1, a2, a3 = local_orthogonal_unit_vectors(nx[n2 - 2], self._axes[2])
-                    btd2[n3z][n2][n1] = a2  # initialise
-                    btd3[n3z][n2][n1] = a3
-
-        if self._elementsCount[0] >= 2:
-            # Regular curves from bottom to top (on triple curves, curve 2)
-            for n1 in range(1, self._elementsCount[1] - 1):
-                nx, nd1 = sample_curves_sphere(btx[0][0][n1], btx[n3z][0][n1], self._elementsCount[2] - 1)
-                for n3 in range(self._elementsCount[2] - 1):
-                    if n3 == 0:
-                        btd2[n3][0][n1] = nd1[0]
-                    else:
-                        btx[n3][0][n1] = nx[n3]
-                        btd2[n3][0][n1] = nd1[n3]
-                        a1, a2, a3 = local_orthogonal_unit_vectors(nx[n3], self._axes[2])
-                        btd1[n3][0][n1] = a1  # initialise
-                        btd3[n3][0][n1] = a3
-
-
-        # sample on curve 3 of the triple curves and smooth the end derivatives.
-        # arcLength = calculate_arc_length(btx[0][0][n1z], btx[n3z][0][n1z])
-        # btd2[0][0][n1z] = vector.setMagnitude(btd2[0][0][n1z], arcLength)
-        nx, nd1 = sample_curves_sphere(btx[0][0][n1z], btx[n3z][0][n1z], self._elementsCount[2] - 1)
-        for n3 in range(self._elementsCount[2] - 1): # Last one use combination of d2 and d1
-            if n3 == 0:
-                btd2[n3][0][n1z] = nd1[n3]
-            else:
-                btx[n3][0][n1z] = nx[n3]
-                btd2[n3][0][n1z] = nd1[n3]
-                a1, a2, a3 = local_orthogonal_unit_vectors(nx[n3], self._axes[2])
-                btd1[n3][0][n1z] = a1  # initialise
-                btd3[n3][0][n1z] = a3
-
-
-
-        # smooth d2 curve
-        for n2 in range(n2a + 1, n2z):
-            a1, a2, a3 = local_orthogonal_unit_vectors(btx[n3z][n2][n1z], self._axes[2])
-            btd3[n3z][n2][n1z] = a3
-            tx = []
-            td2 = []
-            for n1 in range(self._elementsCount[1] - 1):
-                tx.append(btx[n3z][n2][n1])
-                td2.append(btd2[n3z][n2][n1])
-            tx.append(btx[n3z][n2][n1z])
-            td2.append(vector.crossproduct3(btd3[n3z][n2][n1z],btd1[n3z][n2][n1z]))
-            for n3 in range(self._elementsCount[2] - 2, -1, -1):
-                tx.append(btx[n3][n2][n1z])
-                td2.append(vector.scaleVector(btd2[n3][n2][n1z], -1))
-
-            td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True, fixEndDirection=True)
-
-            btd2[n3z][n2][0] = td2[0]
-            for n1 in range(1, self._elementsCount[1] - 1):
-                btd2[n3z][n2][n1] = vector.scaleVector(td2[n1], -1)
-            btd2[n3z][n2][n1z] = vector.scaleVector(td2[self._elementsCount[1] - 1], -1)
-            for n3 in range(self._elementsCount[2] - 2, -1, -1):
-                btd2[n3][n2][n1z] = vector.scaleVector(td2[-1 - n3], -1)
-
-
-
-
-        # smooth d1 curve
-        for n1 in range(1, n1z - 1):
-            a1, a2, a3 = local_orthogonal_unit_vectors(btx[n3z][0][n1], self._axes[2])
-            btd3[n3z][0][n1] = a3
-            tx = []
-            td1 = []
-            tx.append(btx[0][0][n1])
-            td1.append(btd2[0][0][n1])
-            for n3 in range(1, self._elementsCount[2] - 1):
-                tx.append(btx[n3][0][n1])
-                td1.append(btd1[n3][0][n1])
-            tx.append(btx[n3z][0][n1])
-            td1.append(vector.crossproduct3(btd2[n3z][0][n1], btd3[n3z][0][n1]))
-            for n2 in range(2, self._elementsCount[0]):
-                tx.append(btx[n3z][n2][n1])
-                td1.append(btd1[n3z][n2][n1])
-            tx.append(btx[n3z][n2z][n1])
-            td1.append(vector.scaleVector(btd2[n3z][n2z][n1], -1))
-
-            # for n2 in range(self._elementsCount[1] - 1):
-            #     tx.append(btx[n3z][n2][n1])
-            #     td1.append(btd2[n3z][n2][n1])
-            # tx.append(btx[n3z][n2][n1z])
-            # td1.append(vector.crossproduct3(btd3[n3z][n2][n1z],btd1[n3z][n2][n1z]))
-            # for n3 in range(self._elementsCount[2] - 2, -1, -1):
-            #     tx.append(btx[n3][n2][n1z])
-            #     td1.append(vector.scaleVector(btd2[n3][n2][n1z], -1))
-
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
-            btd2[0][0][n1] = td1[0]
-            for n3 in range(1, self._elementsCount[2] - 1):
-                btd1[n3][0][n1] = td1[n3]
-            btd1[n3z][0][n1] = td1[self._elementsCount[2] - 1]
-            for n2 in range(2, self._elementsCount[0]):
-                btd1[n3z][n2][n1] = td1[self._elementsCount[2] + n2-2]
-            btd2[n3z][n2z][n1] = vector.scaleVector(td1[-1], -1)
-
-
-
-            # btd2[n3z][n2][0] = td1[0]
-            # for n1 in range(1, self._elementsCount[1] - 1):
-            #     btd2[n3z][n2][n1] = td1[n1]
-            # btd2[n3z][n2][n1z] = vector.scaleVector(td1[1], -1)
-            # for n3 in range(self._elementsCount[2] - 2, -1, -1):
-            #     btd2[n3][n2][n1z] = vector.scaleVector(td1[-1 - n3], -1)
-
-
-
-        # smooth derivatives on horizontal curves below the triple curves.
-        for n3 in range(1, self._elementsCount[2] - 1):
-            tx = []
-            td1 = []
-            for n1 in range(self._elementsCount[1] + 1):
-                if n1 == n1z - 1:
-                    continue
-                elif n1 == 0:
-                    tx.append(btx[n3][0][n1])
-                    td1.append(btd2[n3][0][n1])
-                else:
-                    tx.append(btx[n3][0][n1])
-                    td1.append(btd1[n3][0][n1])
-            for n2 in range(2, self._elementsCount[0] + 1):
-                tx.append(btx[n3][n2][n1z])
-                if n2 == n2z:
-                    td1.append(vector.scaleVector(btd2[n3][n2][n1z], -1))
-                else:
-                    td1.append(btd1[n3][n2][n1z])
-
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixStartDirection=True, fixEndDirection=True)
-
-            for n1 in range(self._elementsCount[1] + 1):
-                if n1 == n1z - 1:
-                    continue
-                elif n1 == 0:
-                    btd2[n3][0][n1] = td1[0]
-                elif n1 == n1z:
-                    btd1[n3][0][n1] = td1[n1-1]
-                else:
-                    btd1[n3][0][n1] = td1[n1]
-
-            for n2 in range(2, self._elementsCount[0] + 1):
-                if n2 == n2z:
-                    btd2[n3][n2][n1z] = vector.scaleVector(td1[-1], -1)
-                else:
-                    btd1[n3][n2][n1z] = td1[self._elementsCount[1] + n2 - 2]
-
-
-
-
-
-        # sample on curve 1 of the triple curves and smooth the end derivatives.
-
-
-
-        # WHY DO WE NEED THIS?????????
-        # if self._elementsCount[1] >= 3 and self._elementsCount[0] >= 3:
-        #     n3 = n3z
-        #     for n2 in range(2, self._elementsCount[0]):
-        #         nx, nd1 = sample_curves_sphere(btx[n3][n2][0], btx[n3][n2][n1z], n1z - 1)
-        #         for n1 in range(self._elementsCount[1]):
-        #             if n1 == 0:
-        #                 btd2[n3][n2][0] = nd1[0]
-        #             elif n1 == n1z:
-        #                 btd2[n3][n2][n1] = vector.scaleVector(nd1[-1], -1)
-        #             elif n1 == n1z - 1:
-        #                 continue
-        #             else:
-        #                 btx[n3][n2][n1] = nx[n1]
-        #                 btd2[n3][n2][n1] = vector.scaleVector(nd1[n1], -1)
-        #                 a1, a2, a3 = local_orthogonal_unit_vectors(nx[n1], self._axes[2])
-        #                 btd1[n3z][n2][n1] = a1  # initialise
-        #                 btd3[n3z][n2][n1] = a3
+                        btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
+                    nit += 1
 
     def fixD2DerivativesOnTheEllipses(self):
         """
@@ -721,14 +627,14 @@ def calculate_arc_length(x1, x2):
     return radius * angle
 
 
-def sample_curves_sphere(x1, x2, elementsOut):
+def sample_curves_on_sphere(x1, x2, elementsOut):
     """
 
     :param x1, x2: points coordinates.
     :param elementsOut:
     :return:
     """
-    deltax = vector.addVectors(x1, x2, -1, 1)
+    deltax = vector.addVectors([x1, x2], [-1, 1])
     normal = vector.crossproduct3(x1, deltax)
     angle = vector.angleBetweenVectors(x1, x2)
     anglePerElement = angle/elementsOut
@@ -766,3 +672,46 @@ def cartesian_to_spherical(x):
     return r, theta, phi
 
 
+def local_to_global_coordinates(local_x, local_axes, local_origin=None):
+    """
+    Get global coordinates of a point with local coordinates x = [x1, x2, x3] and axes of local coordinate system.
+    :param local_x: Coordinates in local coordinates system as a list of 3 components.
+    :param local_origin: Origin of local coordinates system specified as a list of 3 components wrt global coordinates system.
+    :param local_axes: Axes of local coordinates system, specified as a list of list 3X3 with respect to global coordinates system.
+    :return: Global coordinate system.
+    """
+    if local_origin is None:
+        local_origin = [0.0, 0.0, 0.0]
+    return vector.addVectors([vector.addVectors(local_axes, local_x), local_origin])
+
+
+def intersection_of_two_great_circles_on_sphere(p1, q1, p2, q2):
+    """
+    Find the intersection between arcs P1Q1 and P2Q2 on sphere.
+    :param p1, q1, p2, q2: arcs extremities coordinates.
+    :return: Point Sx, intersection between the arcs.
+    """
+    normal_to_plane_OP1Q1 = vector.crossproduct3(p1, q1)
+    normal_to_plane_OP2Q2 = vector.crossproduct3(p2, q2)
+
+    planes_intersection_vector = vector.crossproduct3(normal_to_plane_OP1Q1, normal_to_plane_OP2Q2)
+    if vector.magnitude(planes_intersection_vector) == 0:
+        sx = None
+    else:
+        sx = vector.setMagnitude(planes_intersection_vector, vector.magnitude(p1))
+        p1q1_angle = vector.angleBetweenVectors(p1, q1)
+        p1s_angle = vector.angleBetweenVectors(p1, sx)
+        p2s_angle = vector.angleBetweenVectors(p2, sx)
+        if p1s_angle > p1q1_angle or p2s_angle > p1q1_angle:
+            sx = vector.scaleVector(sx, -1)
+
+    return sx
+
+
+def point_projection_on_sphere(p1, radius):
+    """
+    Find closest point to p1 on the sphere.
+    :param p1: point.
+    :return:
+    """
+    return vector.setMagnitude(p1, radius)

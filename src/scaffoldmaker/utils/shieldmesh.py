@@ -38,9 +38,25 @@ class ShieldMesh3D:
 
     def __init__(self, elementsCountAcross, elementsCountRim,
                  shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP):
-        '''
-        Parameters
-        '''
+        """
+        3D shield structure can be used for a sphere mesh. 3 hex mesh merges to one box in the corner located in the centre.
+        The structure is a 3D version of the 2D shield structure. It has a 'quadruple point', a special node on the
+        surface where the elements merge. 'Triple curves' meet at the quadruple point and a fourth curve that connects
+        to another quadruple point which is inside.
+         The structure is like a elementsCountAcross[0] X elementsCountAcross[1] X elementsCountAcross[2] box where
+        some nodes does not exist and stored as None. The quadruple point is stored at [n3z][0][n1z] (top, front and right most node)
+        where n3z is top most and n1z is the right most indexes.
+         Triple curves and surfaces connecting to the quadruple point, divides the surface and interior into 3 regions
+        (top, left and right). Triple curve 1 connects the quadruple point to the plane 2-3. Similarly triple curves 2 and 3
+        connect the quadruple point to the planes 1-3 and 1-2, respectively. It is the same for the inside quadruple.
+        Any point on region left has n2 = 0. Similarly on region right -> n1 = n1z and on top -> n3 = n3z.
+        There is a gap between node indexes of a node on the triple curve and the next node on the surface.
+
+
+        :param elementsCountAcross:
+        :param elementsCountRim:
+        :param shieldMode:
+        """
         assert elementsCountRim >= 0
         # assert elementsCountAlong >= 1
         # assert elementsCountAcross >= (elementsCountRim + 4)
@@ -90,7 +106,7 @@ class ShieldMesh3D:
             n3r0, n2r0, n1r0 = n3y, n2z, n1y
             n3r, n2r, n1r = n3z, n2z, n1z
 
-        ts = vector.magnitude(vector.addVectors(self.px[n3r0][n2r0][n1r0], self.px[n3r][n2r][n1r], 1, -1))
+        ts = vector.magnitude(vector.addVectors([self.px[n3r0][n2r0][n1r0], self.px[n3r][n2r][n1r]], [1, -1]))
         ra = vector.magnitude(self.px[n3z][0][n1z])
         x = vector.scaleVector(self.px[n3z][0][n1z], (1 - ts/ra))
         self.px[n3y][1][n1y] = x
@@ -127,8 +143,8 @@ class ShieldMesh3D:
                     self.pd1[n3y][n2][n1] = [self.px[n3y][1][n1][0] - self.px[n3z][0][n1][0], 0.0, 0.0]
                     self.pd2[n3y][n2][n1] = [0.0, 0.0, -self.px[n3y][1][n1][2] + self.px[n3z][0][n1][2]]
                 else:
-                    self.pd1[n3y][n2][n1] = vector.addVectors(self.px[n3y][n2][n1], self.px[n3y][n2+1][n1], -1, 1)
-                    self.pd2[n3y][n2][n1] = vector.addVectors(self.px[n3y][n2][n1], self.px[0][n2][n1], 1, -1)
+                    self.pd1[n3y][n2][n1] = vector.addVectors([self.px[n3y][n2][n1], self.px[n3y][n2+1][n1]], [-1, 1])
+                    self.pd2[n3y][n2][n1] = vector.addVectors([self.px[n3y][n2][n1], self.px[0][n2][n1]], [1, -1])
 
 
 
@@ -150,8 +166,8 @@ class ShieldMesh3D:
                         self.pd1[n3][n2][n1] = [self.px[n3][n2][n1][0] - self.px[n3][n2-1][n1+1][0], 0.0, 0.0]
                         self.pd3[n3][n2][n1] = [0.0, self.px[n3][n2-1][n1+1][1] - self.px[n3][n2][n1][1], 0.0]
                     else:
-                        self.pd1[n3][n2][n1] = vector.addVectors(self.px[n3][n2+1][n1], self.px[n3][n2][n1], 1, -1)
-                        self.pd3[n3][n2][n1] = vector.addVectors(self.px[n3][n2][n1+1], self.px[n3][n2][n1], 1, -1)
+                        self.pd1[n3][n2][n1] = vector.addVectors([self.px[n3][n2+1][n1], self.px[n3][n2][n1]], [1, -1])
+                        self.pd3[n3][n2][n1] = vector.addVectors([self.px[n3][n2][n1+1], self.px[n3][n2][n1]], [1, -1])
 
 
         # smooth d1 in regular 1
@@ -169,7 +185,7 @@ class ShieldMesh3D:
         else:
             for n3 in range(1, self.elementsCountAcross[2]):
                 for n1 in range(1, self.elementsCountAcross[1]):
-                    self.pd1[n3][1][n1] = vector.addVectors(self.px[n3][2][n1], self.px[n3][1][n1], 1, -1)
+                    self.pd1[n3][1][n1] = vector.addVectors([self.px[n3][2][n1], self.px[n3][1][n1]], [1, -1])
                     self.pd1[n3][2][n1] = vector.setMagnitude(self.pd1[n3][2][n1], vector.magnitude(self.pd1[n3][1][n1]))
 
         # smooth d3 in regular
@@ -189,7 +205,7 @@ class ShieldMesh3D:
         else:
             for n3 in range(1, self.elementsCountAcross[2]):
                 for n2 in range(1, self.elementsCountAcross[0]):
-                    self.pd3[n3][n2][1] = vector.addVectors(self.px[n3][n2][1], self.px[n3][n2][0], 1, -1)
+                    self.pd3[n3][n2][1] = vector.addVectors([self.px[n3][n2][1], self.px[n3][n2][0]], [1, -1])
                     self.pd3[n3][n2][0] = vector.setMagnitude(self.pd3[n3][n2][0], vector.magnitude(self.pd3[n3][n2][1]))
 
 
@@ -206,7 +222,7 @@ class ShieldMesh3D:
                     for n3 in range(self.elementsCountAcross[2]):
                         self.pd2[n3][n2][n1] = td2[n3]
                 else:
-                    self.pd2[1][n2][n1] = vector.addVectors(self.px[1][n2][n1], self.px[0][n2][n1], 1, -1)
+                    self.pd2[1][n2][n1] = vector.addVectors([self.px[1][n2][n1], self.px[0][n2][n1]], [1, -1])
                     self.pd2[0][n2][n1] = vector.setMagnitude(self.pd2[0][n2][n1], vector.magnitude(self.pd2[1][n2][n1]))
 
 
