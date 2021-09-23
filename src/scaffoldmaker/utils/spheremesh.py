@@ -231,10 +231,8 @@ class SphereMesh:
         self.calculate_surface_quadruple_point()
         self.sample_triple_curves_on_sphere()
         self.sample_regular_curves_on_sphere()
-        self._shield3D.getQuadruplePoint2()
-        n3z = self._elementsCount[2]
-        self._shield3D.smoothDerivativesToSurfaceQuadruple(n3z)
-        self.smoothDerivativesToSurface()
+        self.create_interior_nodes()
+        self.smooth_derivatives_to_surface()
 
     def calculate_surface_quadruple_point(self):
         """
@@ -274,12 +272,11 @@ class SphereMesh:
         x = local_to_global_coordinates(local_x, self._axes, self._centre)
 
         a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
-        n1 = n1z
-        n2 = 0
-        btx[n3z][n2][n1] = x
-        btd1[n3z][n2][n1] = a1  # initialise
-        btd2[n3z][n2][n1] = a2  # initialise
-        btd3[n3z][n2][n1] = a3
+        n3r, n2r, n1r = self.get_triple_curves_end_node_parameters(1, index_output=True)
+        btx[n3r][n2r][n1r] = x
+        btd1[n3r][n2r][n1r] = a1  # initialise
+        btd2[n3r][n2r][n1r] = a2  # initialise
+        btd3[n3r][n2r][n1r] = a3
 
     def sample_triple_curves_on_sphere(self):
         """
@@ -291,13 +288,19 @@ class SphereMesh:
         n3z = self._elementsCount[2]
 
         # sample on curve 1 of the triple curves and smooth the end derivatives.
-        self.sample_curves_between_two_nodes_on_sphere([n3z, 0, n1z], [n3z, n2z, n1z], self._elementsCount[0] - 1,
+        n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, index_output=True)
+        n3r2, n2r2, n1r2 = self.get_triple_curves_end_node_parameters(1, cx=1, index_output=True)
+        self.sample_curves_between_two_nodes_on_sphere([n3r1, n2r1, n1r1], [n3r2, n2r2, n1r2], self._elementsCount[0] - 1,
                                                        [1, None], [1], [-2])
         # curve 2
-        self.sample_curves_between_two_nodes_on_sphere([n3z, 0, 0], [n3z, 0, n1z], self._elementsCount[1] - 1,
+        n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, cx=2, index_output=True)
+        n3r2, n2r2, n1r2 = self.get_triple_curves_end_node_parameters(1, index_output=True)
+        self.sample_curves_between_two_nodes_on_sphere([n3r1, n2r1, n1r1], [n3r2, n2r2, n1r2], self._elementsCount[1] - 1,
                                                        [2], [-2], [None, -2])
         # curve 3.
-        self.sample_curves_between_two_nodes_on_sphere([0, 0, n1z], [n3z, 0, n1z], self._elementsCount[2] - 1,
+        n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, cx=3, index_output=True)
+        n3r2, n2r2, n1r2 = self.get_triple_curves_end_node_parameters(1, index_output=True)
+        self.sample_curves_between_two_nodes_on_sphere([n3r1, n2r1, n1r1], [n3r2, n2r2, n1r2], self._elementsCount[2] - 1,
                                                        [2], [2], [None, None])
 
     def sample_regular_curves_on_sphere(self):
@@ -337,6 +340,16 @@ class SphereMesh:
         for n3 in range(1, self._elementsCount[2] - 1):
             self.smooth_derivatives_regular_surface_curve(3, n3, [[2], [None, None]], [[1], [1]], [[None, 1], [-2]])
 
+    def create_interior_nodes(self):
+        """
+
+        :return:
+        """
+
+        self.calculate_interior_quadruple_point()
+        self.sample_interior_curves()
+        self.smooth_regular_interior_curves()
+
     def sample_curves_between_two_nodes_on_sphere(self, id1, id2, elementsOut, dStart, dbetween, dEnd):
         """
         samples curves on the sphere surface between two points given by their indexes.
@@ -352,13 +365,13 @@ class SphereMesh:
 
         # Find what index is constant
         if id1[0] != id2[0]:
-            constant_index = 3
+            varying_index = 3
             elementsCount = self._elementsCount[2]
         elif id1[1] != id2[1]:
-            constant_index = 2
+            varying_index = 2
             elementsCount = self._elementsCount[0]
         elif id1[2] != id2[2]:
-            constant_index = 1
+            varying_index = 1
             elementsCount = self._elementsCount[1]
 
         else:
@@ -371,7 +384,7 @@ class SphereMesh:
 
         nit = 0
         for ni in range(elementsCount + 1):
-            idi[3 - constant_index] = ni
+            idi[3 - varying_index] = ni
 
             if ni < len(dStart):
                 if dStart[ni]:
@@ -491,30 +504,247 @@ class SphereMesh:
                         btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
                     nit += 1
 
-    def fixD2DerivativesOnTheEllipses(self):
+    def calculate_interior_quadruple_point(self):
         """
 
         :return:
         """
-        n3a = 0
-        n3b = self._elementsCount[2] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2a = (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-        n2b = self._elementsCount[0]
-        n1a = 0
-        n1b = self._elementsCount[1] - (self._elementsCountAcrossShell + self._elementsCountAcrossTransition)
-
         btx = self._shield3D.px
         btd1 = self._shield3D.pd1
         btd2 = self._shield3D.pd2
         btd3 = self._shield3D.pd3
 
-        n1 = self._elementsCount[1] - 1
-        for n2 in range(self._elementsCount[0] + 1):
-            if n2a <= n2 < self._elementsCount[0]:
-                btd3[n3b][n2][n1a] = [btx[n3b][n2][n1b][c] - btx[n3b][n2][n1a][c] for c in range(3)]
-                btd2[0][n2][n1] = [btx[1][n2][n1][c] - btx[0][n2][n1][c] for c in range(3)]
+        n1z = self._elementsCount[1]
+        n1y = n1z - 1
+        n3z = self._elementsCount[2]
+        n3y = n3z - 1
+        n2z = self._elementsCount[0]
 
-    def smoothDerivativesToSurface(self):
+        if self._elementsCount[2] == min(self._elementsCount):
+            cx = 3
+        elif self._elementsCount[1] == min(self._elementsCount):
+            cx = 2
+        else:
+            cx = 1
+        n3r0, n2r0, n1r0 = self.get_triple_curves_end_node_parameters(0, cx=cx, index_output=True)
+        n3r, n2r, n1r = self.get_triple_curves_end_node_parameters(1, cx=cx, index_output=True)
+
+        ts = vector.magnitude(vector.addVectors([btx[n3r0][n2r0][n1r0], btx[n3r][n2r][n1r]], [1, -1]))
+        ra = vector.magnitude(btx[n3z][0][n1z])
+        x = vector.scaleVector(btx[n3z][0][n1z], (1 - ts/ra))
+        n3r0, n2r0, n1r0 = self.get_triple_curves_end_node_parameters(0, index_output=True)
+        n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, index_output=True)
+        btx[n3r0][n2r0][n1r0] = x
+        btd1[n3r0][n2r0][n1r0] = [-(btx[n3r1][n2r1][n1r1][0] - btx[n3r0][n2r0][n1r0][0]), 0.0, 0.0]
+        btd2[n3r0][n2r0][n1r0] = [0.0, 0.0, (btx[n3r1][n2r1][n1r1][2] - btx[n3r0][n2r0][n1r0][2])]
+        btd3[n3r0][n2r0][n1r0] = [0.0, (btx[n3r1][n2r1][n1r1][1] - btx[n3r0][n2r0][n1r0][1]), 0.0]
+
+    def sample_interior_curves(self):
+        """
+
+        :return:
+        """
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
+        n1z = self._elementsCount[1]
+        n1y = n1z - 1
+        n3z = self._elementsCount[2]
+        n3y = n3z - 1
+        n2z = self._elementsCount[0]
+
+        # btd = {1: btd1, 2: btd2, 3: btd3}
+
+
+        #
+        # n3s = [[n3y, n3y, 0, 0], [n3y, n3y, 0, 0], [0, n3y, 0, n3y]]
+        # n2s = [[1, 1, 1, 1], [1, n2z, 1, n2z], [1, 1, 1, 1]]
+        # n1s = [[0, n1y, 0, n1y], [n1y, n1y, n1y, n1y], [n1y, n1y, 0, 0]]
+        #
+        # n3x2 = n3y
+        # n3d1 = 0
+        # n2x1 = 1
+        # n2d1 = 1
+        # n1x2 = n1y
+        # for nic in range(3):
+        #     n3x1 = 0 if nic == 2 else n3y
+        #     n3d2 = n3y if nic == 2 else 0
+        #     n2x2 = n2z if nic == 1 else 1
+        #     n2d2 = n2z if nic == 1 else 1
+        #     n1x1 = 0 if nic == 1 else n1y
+        #     n1d1 = n1y if nic == 1 else 0
+        #     n1d2 = 0 if nic == 2 else n1y
+        #
+        #     tx, td = sampleCubicHermiteCurves([btx[n3x1][n2x1][n1x1], btx[n3x2][n2x2][n1x2]],
+        #                                        [btd[nic][n3d1][n2d1][n1d1], btd[nic][n3d2][n2d2][n1d2]], self._elementsCount[nic] - 1)[:2]
+        #
+        #     for ni in range(ni0, self._elementsCount[nic] - 1 + ni0)
+
+        tx, td1 = sampleCubicHermiteCurves([btx[n3y][1][n1y], btx[n3y][n2z][n1y]],
+                                           [btd1[0][1][n1y], btd1[0][n2z][n1y]], self._elementsCount[0] - 1)[:2]
+
+        for n2 in range(2, self._elementsCount[0]):
+            btx[n3y][n2][n1y] = tx[n2-1]
+            btd1[n3y][n2][n1y] = td1[n2-1]
+            btd2[n3y][n2][n1y] = [0.0, 0.0, (btx[n3z][n2][n1z][2] - btx[n3y][n2][n1y][2])]
+            btd3[n3y][n2][n1y] = [0.0, (btx[n3z][n2][n1z][1] - btx[n3y][n2][n1y][1]), 0.0]
+
+        # curve 2 and parallel curves TODO change all [1] to n3y.
+        for n2 in range(1, self._elementsCount[0]):
+            tx, td3 = sampleCubicHermiteCurves([btx[n3y][n2][0], btx[n3y][n2][n1y]],
+                                               [btd3[0][n2][0], btd3[0][n2][n1y]], self._elementsCount[1] - 1)[:2]
+
+            for n1 in range(1, self._elementsCount[1] - 1):
+                btx[n3y][n2][n1] = tx[n1]
+                btd3[n3y][n2][n1] = td3[n1]
+
+        for n2 in range(1, self._elementsCount[0]):
+            for n1 in range(1, self._elementsCount[1] - 1):
+                if n2 == 1:
+                    btd1[n3y][n2][n1] = [btx[n3y][1][n1][0] - btx[n3z][0][n1][0], 0.0, 0.0]
+                    btd2[n3y][n2][n1] = [0.0, 0.0, -btx[n3y][1][n1][2] + btx[n3z][0][n1][2]]
+                else:
+                    btd1[n3y][n2][n1] = vector.addVectors([btx[n3y][n2][n1], btx[n3y][n2+1][n1]], [-1, 1])
+                    btd2[n3y][n2][n1] = vector.addVectors([btx[n3y][n2][n1], btx[0][n2][n1]], [1, -1])
+
+
+
+
+        # sample along curve0_3
+        for n2 in range(1, self._elementsCount[0]):
+            for n1 in range(1, self._elementsCount[1]):
+                tx, td2 = sampleCubicHermiteCurves([btx[0][n2][n1], btx[n3y][n2][n1]],
+                                                   [btd2[0][n2][0], btd2[n3y][n2][0]], self._elementsCount[2]-1)[:2]
+
+                for n3 in range(1, self._elementsCount[2] - 1):
+                    btx[n3][n2][n1] = tx[n3]
+                    btd2[n3][n2][n1] = td2[n3]
+
+        for n3 in range(1, self._elementsCount[2] - 1):
+            for n2 in range(1, self._elementsCount[0]):
+                for n1 in range(1, self._elementsCount[1]):
+                    if n2 == 1 and n1 == n1y:
+                        btd1[n3][n2][n1] = [btx[n3][n2][n1][0] - btx[n3][n2-1][n1+1][0], 0.0, 0.0]
+                        btd3[n3][n2][n1] = [0.0, btx[n3][n2-1][n1+1][1] - btx[n3][n2][n1][1], 0.0]
+                    else:
+                        btd1[n3][n2][n1] = vector.addVectors([btx[n3][n2+1][n1], btx[n3][n2][n1]], [1, -1])
+                        btd3[n3][n2][n1] = vector.addVectors([btx[n3][n2][n1+1], btx[n3][n2][n1]], [1, -1])
+
+    def smooth_regular_interior_curves(self):
+        """
+
+        :return:
+        """
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
+        n1z = self._elementsCount[1]
+        n1y = n1z - 1
+        n3z = self._elementsCount[2]
+        n3y = n3z - 1
+        n2z = self._elementsCount[0]
+
+        # smooth d1 in regular 1
+        if self._elementsCount[0] >= 3:
+            for n3 in range(1, self._elementsCount[2]):
+                for n1 in range(1, self._elementsCount[1]):
+                    tx = []
+                    td1 = []
+                    for n2 in range(1, self._elementsCount[0]+1):
+                        tx.append(btx[n3][n2][n1])
+                        td1.append(btd1[n3][n2][n1])
+                    td1 = smoothCubicHermiteDerivativesLine(tx, td1, fixEndDirection=True)
+                    for n2 in range(1, self._elementsCount[0]+1):
+                        btd1[n3][n2][n1] = td1[n2-1]
+        else:
+            for n3 in range(1, self._elementsCount[2]):
+                for n1 in range(1, self._elementsCount[1]):
+                    btd1[n3][1][n1] = vector.addVectors([btx[n3][2][n1], btx[n3][1][n1]], [1, -1])
+                    btd1[n3][2][n1] = vector.setMagnitude(btd1[n3][2][n1], vector.magnitude(btd1[n3][1][n1]))
+
+        # smooth d3 in regular
+        if self._elementsCount[1] >= 3:
+            for n3 in range(1, self._elementsCount[2]):
+                for n2 in range(1, self._elementsCount[0]):
+                    tx = []
+                    td3 = []
+                    for n1 in range(self._elementsCount[1]):
+                        tx.append(btx[n3][n2][n1])
+                        td3.append(btd3[n3][n2][n1])
+
+                    td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixStartDirection=True)
+
+                    for n1 in range(self._elementsCount[1]):
+                        btd3[n3][n2][n1] = td3[n1]
+        else:
+            for n3 in range(1, self._elementsCount[2]):
+                for n2 in range(1, self._elementsCount[0]):
+                    btd3[n3][n2][1] = vector.addVectors([btx[n3][n2][1], btx[n3][n2][0]], [1, -1])
+                    btd3[n3][n2][0] = vector.setMagnitude(btd3[n3][n2][0], vector.magnitude(btd3[n3][n2][1]))
+
+        # regular curves d2
+        for n2 in range(1, self._elementsCount[0]):
+            for n1 in range(1, self._elementsCount[1]):
+                if self._elementsCount[2] >= 3:
+                    tx = []
+                    td2 = []
+                    for n3 in range(self._elementsCount[2]):
+                        tx.append(btx[n3][n2][n1])
+                        td2.append(btd2[n3][n2][n1])
+                    td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=True)
+                    for n3 in range(self._elementsCount[2]):
+                        btd2[n3][n2][n1] = td2[n3]
+                else:
+                    btd2[1][n2][n1] = vector.addVectors([btx[1][n2][n1], btx[0][n2][n1]], [1, -1])
+                    btd2[0][n2][n1] = vector.setMagnitude(btd2[0][n2][n1], vector.magnitude(btd2[1][n2][n1]))
+
+    def get_triple_curves_end_node_parameters(self, rx, cx=None, index_output=False):
+        """
+        :param cx:
+        :param rx:
+        :return:
+        """
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
+        n3z = self._elementsCount[2]
+        n2z = self._elementsCount[0]
+        n1z = self._elementsCount[1]
+        n3y = n3z - 1
+        n1y = n1z - 1
+
+        if not cx:
+            n3r = n3y + rx
+            n2r = 1 - rx
+            n1r = n1y + rx
+        else:
+            if cx == 1:
+                n3r = n3y + rx
+                n2r = n2z
+                n1r = n1y + rx
+            elif cx == 2:
+                n3r = n3y + rx
+                n2r = 1 - rx
+                n1r = 0
+            elif cx == 3:
+                n3r = 0
+                n2r = 1 - rx
+                n1r = n1y + rx
+            else:
+                raise ValueError("curve index must be 1,2 or 3.")
+
+        if index_output:
+            return n3r, n2r, n1r
+        else:
+            return btx[n3r][n2r][n1r], btd1[n3r][n2r][n1r], btd2[n3r][n2r][n1r], btd3[n3r][n2r][n1r]
+
+    def smooth_derivatives_to_surface(self):
         '''
         Smooth derivatives leading to quadruple point where 3 hex elements merge.
         :param n3: Index of through-wall coordinates to use.
