@@ -25,9 +25,10 @@ class SphereMesh:
     Sphere mesh generator.
     """
 
+
     def __init__(self, fieldModule, coordinates, centre, axes, elementsCountAcross,
                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False):
+                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=None):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -63,6 +64,8 @@ class SphereMesh:
 
         self._centre = centre
 
+        self._boxMapping = boxMapping if boxMapping else [1, 3, 2]
+
         for i in range(3):
             elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - shellProportion)
             self._coreRadius.append(
@@ -97,11 +100,13 @@ class SphereMesh:
 
         self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode)
 
-        self.calculateBoundaryEllipses()
+        self.create_boundary_ellipses_nodes()
+        self.create_surface_and_interior_nodes()
+        self._shield3D.remap_derivatives(self._boxMapping, circleMapping=None, sphereMapping=None)
         self.generateNodes(nodes, fieldModule, coordinates)
         self.generateElements(mesh, fieldModule, coordinates)
 
-    def calculateBoundaryEllipses(self):
+    def create_boundary_ellipses_nodes(self):
         """
 
         :return:
@@ -137,10 +142,9 @@ class SphereMesh:
                          elementsCountAcrossTransition, shellProportion, coreMajorRadius, coreMinorRadius,
                          ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
 
-            self.copyEllipsesNodesToShieldNodes(ellipse, i)
-        self.createAdditionalPointsForIncreasingElementsCount()
+            self.copy_ellipses_nodes_to_shield_nodes(ellipse, i)
 
-    def copyEllipsesNodesToShieldNodes(self, ellipse, ellipsenumber):
+    def copy_ellipses_nodes_to_shield_nodes(self, ellipse, ellipsenumber):
         """
         Copy coordinates and derivatives of ellipse to shield.
         :param n3: the index number of ellipse along the central path.
@@ -222,7 +226,7 @@ class SphereMesh:
                             else:
                                 btd1[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
 
-    def createAdditionalPointsForIncreasingElementsCount(self):
+    def create_surface_and_interior_nodes(self):
         """
 
         :return:
