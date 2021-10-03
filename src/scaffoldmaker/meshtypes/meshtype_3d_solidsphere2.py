@@ -60,9 +60,6 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 3': 2,
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
-            # 'Number of elements along': 1,
-            'Derivatives configuration1': True,
-            'Derivatives configuration2': False,
             'Shell element thickness proportion': 1.0,
             'Octant': True,
             'Hemisphere': False,
@@ -82,9 +79,6 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 3',
             'Number of elements across shell',
             'Number of elements across transition',
-            # 'Number of elements along',
-            'Derivatives configuration1',
-            'Derivatives configuration2',
             'Shell element thickness proportion',
             'Octant',
             'Hemisphere',
@@ -130,17 +124,32 @@ with variable numbers of elements across axes and shell directions.
         #     options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
 
-        # if options['Number of elements across major'] < 4:
-        #     options['Number of elements across major'] = 4
-        # if options['Number of elements across major'] % 2:
-        #     options['Number of elements across major'] += 1
-        #
-        # if options['Number of elements across minor'] < 4:
-        #     options['Number of elements across minor'] = 4
-        # if options['Number of elements across minor'] % 2:
-        #     options['Number of elements across minor'] += 1
-        # if options['Number of elements along'] < 1:
-        #     options['Number of elements along'] = 1
+        if options['Octant']:
+            min1, min2, min3 = 2, 2, 2
+            co1, co2, co3 = 0, 0, 0
+        elif options['Hemisphere']:
+            dependentChanges = True
+            min1, min2, min3 = 4, 4, 2
+            co1, co2, co3 = 1, 1, 0
+        else:
+            dependentChanges = True
+            min1, min2, min3 = 4, 4, 4
+            co1, co2, co3 = 1, 1, 1
+
+        if options['Number of elements across axis 1'] < min1:
+            options['Number of elements across axis 1'] = min1
+        if options['Number of elements across axis 2'] < min2:
+            options['Number of elements across axis 2'] = min2
+        if options['Number of elements across axis 3'] < min3:
+            options['Number of elements across axis 3'] = min3
+
+        if options['Number of elements across axis 1'] % 2:
+            options['Number of elements across axis 1'] += co1
+        if options['Number of elements across axis 2'] % 2:
+            options['Number of elements across axis 2'] += co2
+        if options['Number of elements across axis 3'] % 2:
+            options['Number of elements across axis 3'] += co3
+
         # if options['Number of elements across transition'] < 1:
         #     options['Number of elements across transition'] = 1
         # Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
@@ -164,33 +173,25 @@ with variable numbers of elements across axes and shell directions.
         """
 
         # centralPath = options['Central path']
-        # full = not options['Lower half']
-        octant = options['Octant']
-        hemisphere = options['Hemisphere']
-        full = options['Full']
         elementsCountAcrossAxis1 = options['Number of elements across axis 1']
         elementsCountAcrossAxis2 = options['Number of elements across axis 2']
         elementsCountAcrossAxis3 = options['Number of elements across axis 3']
-        # if not full:
-        #     elementsCountAcrossMajor //= 2
-        # elementsCountAcrossMinor = options['Number of elements across minor']
+
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAcrossTransition = options['Number of elements across transition']
-        # elementsCountAlong = options['Number of elements along']
         shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
-        first = options['Derivatives configuration1']
-        second = options['Derivatives configuration2']
-        if first:
-            boxMapping = [1, 3, 2]
-        if second and not first:
-            boxMapping = [-1, 2, 3]
+        if options['Octant']:
+            sphere_shape = SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP
+        elif options['Hemisphere']:
+            sphere_shape = SphereShape.SPHERE_SHAPE_HALF_NNP
+        else:
+            sphere_shape = SphereShape.SPHERE_SHAPE_FULL
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         centre = [0.0, 0.0, 0.0]
-
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
@@ -199,79 +200,79 @@ with variable numbers of elements across axes and shell directions.
 
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                      elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                     sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+                     sphereShape=sphere_shape, useCrossDerivatives=False, boxMapping=[1, 3, 2])
 
-        if (hemisphere or full) and not octant:
-            axis1 = [0.0, -1.0, 0.0]
-            axis2 = [1.0, 0.0, 0.0]
-            axis3 = [0.0, 0.0, 1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
-            boxMapping = [3, -1, 2]
-            sphere2 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
-
-            axis1 = [-1.0, 0.0, 0.0]
-            axis2 = [0.0, -1.0, 0.0]
-            axis3 = [0.0, 0.0, 1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
-            boxMapping = [-1, -3, 2]
-            sphere3 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
-
-            axis1 = [0.0, 1.0, 0.0]
-            axis2 = [-1.0, 0.0, 0.0]
-            axis3 = [0.0, 0.0, 1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
-            boxMapping = [-3, 1, 2]
-            sphere4 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
-
-        if full and not octant and not hemisphere:
-            axis1 = [0.0, 1.0, 0.0]
-            axis2 = [1.0, 0.0, 0.0]
-            axis3 = [0.0, 0.0, -1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
-            boxMapping = [-3, -1, -2]
-            sphere5 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
-
-            axis2 = [0.0, -1.0, 0.0]
-            axis1 = [1.0, 0.0, 0.0]
-            axis3 = [0.0, 0.0, -1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
-            boxMapping = [1, -3, -2]
-            sphere6 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
-
-            axis2 = [-1.0, 0.0, 0.0]
-            axis1 = [0.0, -1.0, 0.0]
-            axis3 = [0.0, 0.0, -1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
-            boxMapping = [3, 1, -2]
-            sphere7 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
-
-            axis2 = [0.0, 1.0, 0.0]
-            axis1 = [-1.0, 0.0, 0.0]
-            axis3 = [0.0, 0.0, -1.0]
-            axes = [axis1, axis2, axis3]
-            elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
-            boxMapping = [-1, 3, -2]
-            sphere8 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
-                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        # if (hemisphere or full) and not octant:
+        #     axis1 = [0.0, -1.0, 0.0]
+        #     axis2 = [1.0, 0.0, 0.0]
+        #     axis3 = [0.0, 0.0, 1.0]
+        #     axes = [axis1, axis2, axis3]
+        #     elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
+        #     boxMapping = [3, -1, 2]
+        #     sphere2 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #                  sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        #
+        #     axis1 = [-1.0, 0.0, 0.0]
+        #     axis2 = [0.0, -1.0, 0.0]
+        #     axis3 = [0.0, 0.0, 1.0]
+        #     axes = [axis1, axis2, axis3]
+        #     elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+        #     boxMapping = [-1, -3, 2]
+        #     # sphere3 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #     #              elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #     #              sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        #     #
+        #     # axis1 = [0.0, 1.0, 0.0]
+        #     # axis2 = [-1.0, 0.0, 0.0]
+        #     # axis3 = [0.0, 0.0, 1.0]
+        #     # axes = [axis1, axis2, axis3]
+        #     # elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
+        #     # boxMapping = [-3, 1, 2]
+        #     # sphere4 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #     #              elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #     #              sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        #
+        # if full and not octant and not hemisphere:
+        #     axis1 = [0.0, 1.0, 0.0]
+        #     axis2 = [1.0, 0.0, 0.0]
+        #     axis3 = [0.0, 0.0, -1.0]
+        #     axes = [axis1, axis2, axis3]
+        #     elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
+        #     boxMapping = [-3, -1, -2]
+        #     sphere5 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #                  sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        #
+        #     axis2 = [0.0, -1.0, 0.0]
+        #     axis1 = [1.0, 0.0, 0.0]
+        #     axis3 = [0.0, 0.0, -1.0]
+        #     axes = [axis1, axis2, axis3]
+        #     elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+        #     boxMapping = [1, -3, -2]
+        #     sphere6 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #                  sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        #
+        #     axis2 = [-1.0, 0.0, 0.0]
+        #     axis1 = [0.0, -1.0, 0.0]
+        #     axis3 = [0.0, 0.0, -1.0]
+        #     axes = [axis1, axis2, axis3]
+        #     elementsCountAcross = [elementsCountAcrossAxis2, elementsCountAcrossAxis1, elementsCountAcrossAxis3]
+        #     boxMapping = [3, 1, -2]
+        #     sphere7 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #                  sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+        #
+        #     axis2 = [0.0, 1.0, 0.0]
+        #     axis1 = [-1.0, 0.0, 0.0]
+        #     axis3 = [0.0, 0.0, -1.0]
+        #     axes = [axis1, axis2, axis3]
+        #     elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
+        #     boxMapping = [-1, 3, -2]
+        #     sphere8 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
+        #                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+        #                  sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
 
         annotationGroup = []
         return annotationGroup

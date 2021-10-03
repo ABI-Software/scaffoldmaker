@@ -16,15 +16,21 @@ from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape
 
 class SphereShape(Enum):
     SPHERE_SHAPE_FULL = 1
-    SPHERE_SHAPE_HALF_NNP = 2    # NNP is a3>=3
+    SPHERE_SHAPE_HALF_NNP = 2    # NNP is a3>=0
     SPHERESHIELD_SHAPE_OCTANT_PPP = 3
+    SPHERESHIELD_SHAPE_OCTANT_NPP = 4
+    SPHERESHIELD_SHAPE_OCTANT_PNP = 5
+    SPHERESHIELD_SHAPE_OCTANT_NNP = 6
+    SPHERESHIELD_SHAPE_OCTANT_PPN = 7
+    SPHERESHIELD_SHAPE_OCTANT_NPN = 8
+    SPHERESHIELD_SHAPE_OCTANT_PNN = 9
+    SPHERESHIELD_SHAPE_OCTANT_NNN = 10
 
 
 class SphereMesh:
     """
     Sphere mesh generator.
     """
-
 
     def __init__(self, fieldModule, coordinates, centre, axes, elementsCountAcross,
                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
@@ -81,30 +87,323 @@ class SphereMesh:
         :param coordinates: Coordinate field to define.
         :return: Final values of nextNodeIdentifier, nextElementIdentifier.
         """
-        for i in range(3):
-            assert (self._elementsCount[i] > 1), 'createSphereMesh3d:  Invalid number of elements'
+        # for i in range(3):
+        #     assert (self._elementsCount[i] > 1), 'createSphereMesh3d:  Invalid number of elements'
             # assert (self._elementsCount[i] % 2 == 0), 'createSphereMesh3d: number of across elements' \
             #                                               ' is not an even number'
 
-        assert (self._sphereShape in [self._sphereShape.SPHERE_SHAPE_FULL,
-                                        self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP]), \
-            'createSphereMesh3d: Invalid sphere mode.'
+        # assert (self._sphereShape in [self._sphereShape.SPHERE_SHAPE_FULL,
+        #                                 self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP]), \
+        #     'createSphereMesh3d: Invalid sphere mode.'
+
+        elementsCountRim = self._elementsCountAcrossRim
+
+        if self._sphereShape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+            shieldMode = ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
+            shieldMode = ShieldShape3D.SHIELD_SHAPE_HALF_NNP
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
+            shieldMode = ShieldShape3D.SHIELD_SHAPE_FULL
+
+        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode, box_derivatives=[1, 3, 2])
 
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
 
+        elementsCountAcrossShell = self._elementsCountAcrossShell
+        elementsCountAcrossTransition = self._elementsCountAcrossTransition
+        shellProportion = self._shellProportion
+
+        if self._sphereShape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+            axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP)
+            octant1 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+            self.copy_octant_nodes_to_sphere_shield(octant1, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP)
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
+            axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP)
+            octant1 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+            self.copy_octant_nodes_to_sphere_shield(octant1, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP)
+
+            axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP)
+            octant2 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+            self.copy_octant_nodes_to_sphere_shield(octant2, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP)
+
+            axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP)
+            octant3 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+            self.copy_octant_nodes_to_sphere_shield(octant3, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP)
+
+            axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP)
+            octant4 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                         elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+            self.copy_octant_nodes_to_sphere_shield(octant4, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP)
+
+        self.generateNodes(nodes, fieldModule, coordinates)
+        self.generateElements(mesh, fieldModule, coordinates)
+
+    def get_octant_axes_and_elements_count(self, octant_shape):
+        """
+
+        :return:
+        """
+        if octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+            boxMapping = self._boxMapping
+            axes = self._axes
+            elementsCountAcross =  [c for c in self._elementsCount]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP:
+            boxMapping = [self._boxMapping[1], -self._boxMapping[0], self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[1], -1), vector.scaleVector(self._axes[0], 1), self._axes[2]]
+            elementsCountAcross = [self._elementsCount[1], self._elementsCount[0], self._elementsCount[2]]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP:
+            boxMapping = [-self._boxMapping[0], -self._boxMapping[1], self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[0], -1), vector.scaleVector(self._axes[1], -1), self._axes[2]]
+            elementsCountAcross = [c for c in self._elementsCount]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP:
+            boxMapping = [-self._boxMapping[1], self._boxMapping[0], self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[1], 1), vector.scaleVector(self._axes[0], -1), self._axes[2]]
+            elementsCountAcross = [self._elementsCount[1], self._elementsCount[0], self._elementsCount[2]]
+        else:
+            raise ValueError("Not implemented.")
+
+        if self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
+            elementsCountAcross[0] = elementsCountAcross[0]//2
+            elementsCountAcross[1] = elementsCountAcross[1]//2
+
+        return axes, elementsCountAcross, boxMapping
+
+    def copy_octant_nodes_to_sphere_shield(self, octant, octant_shape):
+        """
+
+        :param octant:
+        :return:
+        """
+        # self._shield3D.px = octant._shield3D.px
+        # self._shield3D.pd1 = octant._shield3D.pd1
+        # self._shield3D.pd2 = octant._shield3D.pd2
+        # self._shield3D.pd3 = octant._shield3D.pd3
+        n3a = 0
+        n3z = self._elementsCount[2]
+        n2a = 0
+        n2z = self._elementsCount[0]
+        n1a = 0
+        n1z = self._elementsCount[1]
+        if self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
+            if octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+                n3a = self._elementsCount[2]//2
+                n2z = self._elementsCount[0]//2
+                n1a = self._elementsCount[1]//2
+                c11, c21 = -n1a, 1
+                c12, c22 = 0, 1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP:
+                n3a = self._elementsCount[2]//2
+                n2a = self._elementsCount[0]//2
+                n1a = self._elementsCount[1]//2
+                c11, c21 = n1z, -1
+                c12, c22 = -n2a, 1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP:
+                n3a = self._elementsCount[2]//2
+                n2z = self._elementsCount[0]//2
+                n1z = self._elementsCount[1]//2
+                c11, c21 = -n1a, 1
+                c12, c22 = n2z, -1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP:
+                n3a = self._elementsCount[2]//2
+                n2a = self._elementsCount[0]//2
+                n1z = self._elementsCount[1]//2
+                c11, c21 = n1z, -1
+                c12, c22 = n2z, -1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN:
+                n3z = self._elementsCount[2]//2
+                n2z = self._elementsCount[0]//2
+                n1a = self._elementsCount[1]//2
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN:
+                n3z = self._elementsCount[2]//2
+                n2a = self._elementsCount[0]//2
+                n1a = self._elementsCount[1]//2
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN:
+                n3z = self._elementsCount[2]//2
+                n2z = self._elementsCount[0]//2
+                n1z = self._elementsCount[1]//2
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN:
+                n3z = self._elementsCount[2]//2
+                n2a = self._elementsCount[0]//2
+                n1z = self._elementsCount[1]//2
+            else:
+                raise ValueError("Not implemented.")
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
+            if octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+                n2z = self._elementsCount[0]//2
+                n1a = self._elementsCount[1]//2
+                c11, c21 = -n1a, 1
+                c12, c22 = 0, 1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP:
+                n2a = self._elementsCount[0]//2
+                n1a = self._elementsCount[1]//2
+                c11, c21 = n1z, -1
+                c12, c22 = -n2a, 1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP:
+                n2z = self._elementsCount[0]//2
+                n1z = self._elementsCount[1]//2
+                c11, c21 = -n1a, 1
+                c12, c22 = n2z, -1
+            elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP:
+                n2a = self._elementsCount[0]//2
+                n1z = self._elementsCount[1]//2
+                c11, c21 = n1z, -1
+                c12, c22 = n2z, -1
+        elif self._sphereShape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+            c11, c21 = 0, 1
+            c12, c22 = 0, 1
+        else:
+            raise ValueError("Not implemented.")
+
+        for n3 in range(n3a, n3z + 1):
+            for n2 in range(n2a, n2z + 1):
+                for n1 in range(n1a, n1z + 1):
+                    n3o, n2o, n1o = self.shield_index_mapping(n3 - n3a, c12 + c22*n2, c11 + c21*n1, octant_shape)
+                    self._shield3D.px[n3][n2][n1] = octant._shield3D.px[n3o][n2o][n1o]
+                    self._shield3D.pd1[n3][n2][n1] = octant._shield3D.pd1[n3o][n2o][n1o]
+                    self._shield3D.pd2[n3][n2][n1] = octant._shield3D.pd2[n3o][n2o][n1o]
+                    self._shield3D.pd3[n3][n2][n1] = octant._shield3D.pd3[n3o][n2o][n1o]
+
+    def shield_index_mapping(self, n3r, n2r, n1r, octant_shape):
+        """
+
+        :return:
+        """
+
+        if octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+            n3o, n2o, n1o = n3r, n2r, n1r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP:
+            n3o, n2o, n1o = n3r, n1r, n2r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP:
+            n3o, n2o, n1o = n3r, n1r, n2r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP:
+            n3o, n2o, n1o = n3r, n2r, n1r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN:
+            n3o, n2o, n1o = n3r, n2r, n1r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN:
+            n3o, n2o, n1o = n3r, n2r, n1r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN:
+            n3o, n2o, n1o = n3r, n2r, n1r
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN:
+            n3o, n2o, n1o = n3r, n2r, n1r
+        else:
+            raise ValueError("Not implemented.")
+
+        return n3o, n2o, n1o
+
+    def generateNodes(self, nodes, fieldModule, coordinates):
+        """
+        Create cylinder nodes from coordinates.
+        :param nodes: nodes from coordinates.
+        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        """
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        self._startNodeIdentifier = nodeIdentifier
+        nodeIdentifier = self._shield3D.generateNodes(fieldModule, coordinates, nodeIdentifier)
+        self._endNodeIdentifier = nodeIdentifier
+
+    def generateElements(self, mesh, fieldModule, coordinates):
+        """
+        Create cylinder elements from nodes.
+        :param mesh:
+        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
+        :param coordinates: Coordinate field to define.
+        """
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        self._startElementIdentifier = elementIdentifier
+        elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        self._endElementIdentifier = elementIdentifier
+
+
+class OctantMesh:
+    """
+    Sphere mesh generator.
+    """
+
+    def __init__(self, fieldModule, coordinates, centre, axes, elementsCountAcross,
+                 elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=None):
+        """
+        :param fieldModule: Zinc fieldModule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :param centre, axes: centre and axes of the sphere.
+        :param elementsCountAcross: [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3] Total number of elements
+         across the sphere axes.
+        :param elementsCountAcrossShell, elementsCountAcrossTransition: Total number of elements across each axis
+         consists of regular elements in the middle cube, transition elements from cube to a sphere (core boundary)
+          and shell elements around it. Shell nodes and derivatives are similar to the core boundary and don't need
+           remapping. The topology of the shield structure is extended to 3D with a quadruple points.
+        :param sphereShape: A value from enum sphereMode specifying. Octant_PPP for example, is the octant in axis1>=0
+        axis2>=0 and axis3>=0
+        """
+
+        self._axes = axes
+        self._radius = [vector.magnitude(axis) for axis in axes]
+        self._coreRadius = []
+        self._shield = None
+        self._elementsCount = elementsCountAcross
+        self._elementsCountAcrossShell = elementsCountAcrossShell
+        self._elementsCountAcrossTransition = elementsCountAcrossTransition
+        self._elementsCountAcrossRim = self._elementsCountAcrossShell + self._elementsCountAcrossTransition - 1
+        self._shellProportion = shellProportion
+        self._elementsCountAround12 = 2 * (self._elementsCount[0] + self._elementsCount[1] -
+                                         4*(self._elementsCountAcrossRim + 1))
+        self._startNodeIdentifier = 1
+        self._startElementIdentifier = 1
+        self._endNodeIdentifier = 1
+        self._endElementIdentifier = 1
+        self._sphereShape = sphereShape
+
+        self._useCrossDerivatives = useCrossDerivatives
+
+        self._centre = centre
+
+        self._boxMapping = boxMapping if boxMapping else [1, 3, 2]
+
+        for i in range(3):
+            elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - shellProportion)
+            self._coreRadius.append(
+                (1 - shellProportion * elementsCountAcrossShell / elementsAxis) * self._radius[i])
+
+        # generate the mesh
+        self.createOctantMesh3d(fieldModule, coordinates)
+
+    def createOctantMesh3d(self, fieldModule, coordinates):
+        """
+        Create a sphere mesh based on the shield topology.
+        :param fieldModule: Zinc fieldModule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :return: Final values of nextNodeIdentifier, nextElementIdentifier.
+        """
+        # for i in range(3):
+        #     assert (self._elementsCount[i] > 1), 'createSphereMesh3d:  Invalid number of elements'
+            # assert (self._elementsCount[i] % 2 == 0), 'createSphereMesh3d: number of across elements' \
+            #                                               ' is not an even number'
+
+        # assert (self._sphereShape in [self._sphereShape.SPHERE_SHAPE_FULL,
+        #                                 self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP]), \
+        #     'createSphereMesh3d: Invalid sphere mode.'
+
         elementsCountRim = self._elementsCountAcrossRim
 
-        shieldMode = ShieldShape3D.SHIELD_SHAPE_FULL if self._sphereShape is self._sphereShape.SPHERE_SHAPE_FULL \
-            else ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP
+        # shieldMode = ShieldShape3D.SHIELD_SHAPE_FULL if self._sphereShape is self._sphereShape.SPHERE_SHAPE_FULL \
+        #     else ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP
 
-        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode)
+        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP)
 
         self.create_boundary_ellipses_nodes()
         self.create_surface_and_interior_nodes()
-        self._shield3D.remap_derivatives(self._boxMapping, circleMapping=None, sphereMapping=None)
-        self.generateNodes(nodes, fieldModule, coordinates)
-        self.generateElements(mesh, fieldModule, coordinates)
+        self._shield3D.set_derivatives(self._boxMapping)
 
     def create_boundary_ellipses_nodes(self):
         """
@@ -149,6 +448,9 @@ class SphereMesh:
         Copy coordinates and derivatives of ellipse to shield.
         :param n3: the index number of ellipse along the central path.
         """
+        n1z = self._elementsCount[1]
+        n2z = self._elementsCount[0]
+        n3z = self._elementsCount[2]
 
         btx = self._shield3D.px
         btd1 = self._shield3D.pd1
@@ -174,7 +476,7 @@ class SphereMesh:
                         btd2[0][n2][n1s] = shield.pd2[0][n2][n1e]
                         btd3[0][n2][n1s] = shield.pd3[0][n2][n1e]
         elif ellipsenumber == 1:
-            shield.remap_derivatives([2, 3], circleMapping=None)
+            shield.remap_derivatives([2, 3], circleMapping=[2, 3])
             n2s = self._elementsCount[0]
             for n3 in range(self._elementsCount[2] + 1):
                 for n1 in range(self._elementsCount[1] + 1):
@@ -187,7 +489,7 @@ class SphereMesh:
                     n1e = n1 + self._elementsCount[1]
                     if n3 == 0:
                         if n1 == self._elementsCount[1]:
-                            btd2[n3][n2s][n1s] = [c for c in shield.pd1[0][n2e][n1e]]
+                            btd2[n3][n2s][n1s] = [c for c in shield.pd2[0][n2e][n1e]]
                         else:
                             btd2[n3][n2s][n1s] = [c for c in shield.pd2[0][n2e][n1e]]
                     else:
@@ -197,7 +499,7 @@ class SphereMesh:
                             btd2[n3][n2s][n1s] = [c for c in shield.pd2[0][n2e][n1e]]
                             btd3[n3][n2s][n1s] = [c for c in shield.pd3[0][n2e][n1e]]
         elif ellipsenumber == 2:
-            shield.remap_derivatives([1, -2], circleMapping=None)
+            shield.remap_derivatives([1, -2], circleMapping=[-2, 3])
             n1s = 0
             for n3 in range(self._elementsCount[2] + 1):
                 for n2 in range(self._elementsCount[0] + 1):
@@ -209,7 +511,7 @@ class SphereMesh:
                     n1e = self._elementsCount[2] - n3
                     if n3 == 0:
                         if n2 == 0:
-                            btd2[n3][n2][n1s] = [-c for c in shield.pd1[0][n2][n1e]]
+                            btd2[n3][n2][n1s] = [c for c in shield.pd2[0][n2][n1e]]
                         elif 0 < n2 < self._elementsCount[0]:
                             btd2[n3][n2][n1s] = [c for c in shield.pd2[0][n2][n1e]]
                     else:
@@ -222,7 +524,7 @@ class SphereMesh:
                                 btd3[n3s][n2][n1s] = [c for c in shield.pd3[0][n2][n1e]]
                         else:
                             if n3 == self._elementsCount[2]:
-                                btd2[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
+                                btd1[n3][n2][n1s] = [c for c in shield.pd2[0][n2][n1e]]
                             else:
                                 btd1[n3][n2][n1s] = [c for c in shield.pd1[0][n2][n1e]]
 
@@ -295,12 +597,12 @@ class SphereMesh:
         n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, index_output=True)
         n3r2, n2r2, n1r2 = self.get_triple_curves_end_node_parameters(1, cx=1, index_output=True)
         self.sample_curves_between_two_nodes_on_sphere([n3r1, n2r1, n1r1], [n3r2, n2r2, n1r2], self._elementsCount[0] - 1,
-                                                       [1, None], [1], [-2])
+                                                       [1, None], [1], [1])
         # curve 2
         n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, cx=2, index_output=True)
         n3r2, n2r2, n1r2 = self.get_triple_curves_end_node_parameters(1, index_output=True)
         self.sample_curves_between_two_nodes_on_sphere([n3r1, n2r1, n1r1], [n3r2, n2r2, n1r2], self._elementsCount[1] - 1,
-                                                       [2], [-2], [None, -2])
+                                                       [1], [-2], [None, -2])
         # curve 3.
         n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, cx=3, index_output=True)
         n3r2, n2r2, n1r2 = self.get_triple_curves_end_node_parameters(1, index_output=True)
@@ -324,7 +626,7 @@ class SphereMesh:
                                                            [2], [2], [None, None])
             # top
             self.sample_curves_between_two_nodes_on_sphere([n3z, n2, 0], [n3z, n2, n1z], self._elementsCount[1] - 1,
-                                                           [2], [-2], [None, -2])
+                                                           [1], [-2], [None, -2])
 
         # regular curves crossing curve 2
         for n1 in range(1, self._elementsCount[1] - 1):
@@ -334,15 +636,15 @@ class SphereMesh:
 
         # smooth regular curves crossing curve 1
         for n2 in range(n2a + 1, n2z):
-            self.smooth_derivatives_regular_surface_curve(2, n2, [[2], [None, None]], [[-2], [-2]], [[None, -2], [-2]])
+            self.smooth_derivatives_regular_surface_curve(2, n2, [[1], [None, None]], [[-2], [-2]], [[None, -2], [-2]])
 
         # smooth regular curves crossing curve 2
         for n1 in range(1, n1z - 1):
-            self.smooth_derivatives_regular_surface_curve(1, n1, [[2], [None, None]], [[2], [1]], [[None, 1], [-2]])
+            self.smooth_derivatives_regular_surface_curve(1, n1, [[2], [None, None]], [[2], [1]], [[None, 1], [1]])
 
         # smooth regular curves crossing curve 3
         for n3 in range(1, self._elementsCount[2] - 1):
-            self.smooth_derivatives_regular_surface_curve(3, n3, [[2], [None, None]], [[1], [1]], [[None, 1], [-2]])
+            self.smooth_derivatives_regular_surface_curve(3, n3, [[1], [None, None]], [[1], [1]], [[None, 1], [1]])
 
     def create_interior_nodes(self):
         """
@@ -359,7 +661,7 @@ class SphereMesh:
         samples curves on the sphere surface between two points given by their indexes.
         :param id1, id2: [n3,n2,n1] for the first and second points.
         :param dStart, dBetween, dEnd: Specifies the derivatives that are used for this curve at the beginning, end and
-         in between. e.g. dStart=[2, -1, None] means d2 for the first node, -1 for the second node and skip the third one.
+         in between. e.g. dStart=[2, -1, None] means d2 for the first node, -d1 for the second node and skip the third one.
         :return:
         """
         btx = self._shield3D.px
@@ -798,30 +1100,6 @@ class SphereMesh:
         btx = self._shield3D.px
 
         return (n3 == n3z or n2 == 0 or n1 == n1z) and btx[n3][n2][n1]
-
-    def generateNodes(self, nodes, fieldModule, coordinates):
-        """
-        Create cylinder nodes from coordinates.
-        :param nodes: nodes from coordinates.
-        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
-        :param coordinates: Coordinate field to define.
-        """
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield3D.generateNodes(fieldModule, coordinates, nodeIdentifier)
-        self._endNodeIdentifier = nodeIdentifier
-
-    def generateElements(self, mesh, fieldModule, coordinates):
-        """
-        Create cylinder elements from nodes.
-        :param mesh:
-        :param fieldModule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
-        :param coordinates: Coordinate field to define.
-        """
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
-        self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier, [])
-        self._endElementIdentifier = elementIdentifier
 
 
 def calculate_azimuth(theta, theta_p):
