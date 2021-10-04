@@ -120,7 +120,40 @@ class SphereMesh:
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                          sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
             self.copy_octant_nodes_to_sphere_shield(octant1, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP)
-        elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP or self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
+            if self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
+                axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(
+                    self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN)
+                octant5 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                                     elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                                     sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False,
+                                     boxMapping=boxMapping)
+                self.copy_octant_nodes_to_sphere_shield(octant5, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN)
+
+                axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(
+                    self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN)
+                octant6 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                                     elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                                     sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False,
+                                     boxMapping=boxMapping)
+                self.copy_octant_nodes_to_sphere_shield(octant6, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN)
+
+                axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(
+                    self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN)
+                octant7 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                                     elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                                     sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False,
+                                     boxMapping=boxMapping)
+                self.copy_octant_nodes_to_sphere_shield(octant7, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN)
+
+                axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(
+                    self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN)
+                octant8 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
+                                     elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                                     sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False,
+                                     boxMapping=boxMapping)
+                self.copy_octant_nodes_to_sphere_shield(octant8, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN)
+
             axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP)
             octant1 = OctantMesh(fieldModule, coordinates, self._centre, axes, elementsCountAcross,
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
@@ -169,12 +202,32 @@ class SphereMesh:
             boxMapping = [-self._boxMapping[1], self._boxMapping[0], self._boxMapping[2]]
             axes = [vector.scaleVector(self._axes[1], 1), vector.scaleVector(self._axes[0], -1), self._axes[2]]
             elementsCountAcross = [self._elementsCount[1], self._elementsCount[0], self._elementsCount[2]]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN:
+            boxMapping = [-self._boxMapping[1], -self._boxMapping[0], -self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[1], 1), vector.scaleVector(self._axes[0], 1), vector.scaleVector(self._axes[2], -1)]
+            elementsCountAcross = [self._elementsCount[1], self._elementsCount[0], self._elementsCount[2]]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN:
+            boxMapping = [self._boxMapping[0], -self._boxMapping[1], -self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[0], 1), vector.scaleVector(self._axes[1], -1), vector.scaleVector(self._axes[2], -1)]
+            elementsCountAcross = [self._elementsCount[0], self._elementsCount[1], self._elementsCount[2]]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN:
+            boxMapping = [self._boxMapping[1], self._boxMapping[0], -self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[1], -1), vector.scaleVector(self._axes[0], -1), vector.scaleVector(self._axes[2], -1)]
+            elementsCountAcross = [self._elementsCount[1], self._elementsCount[0], self._elementsCount[2]]
+        elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN:
+            boxMapping = [-self._boxMapping[0], self._boxMapping[1], -self._boxMapping[2]]
+            axes = [vector.scaleVector(self._axes[0], -1), vector.scaleVector(self._axes[1], 1), vector.scaleVector(self._axes[2], -1)]
+            elementsCountAcross = [self._elementsCount[0], self._elementsCount[1], self._elementsCount[2]]
         else:
             raise ValueError("Not implemented.")
 
         if self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
             elementsCountAcross[0] = elementsCountAcross[0]//2
             elementsCountAcross[1] = elementsCountAcross[1]//2
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
+            elementsCountAcross[0] = elementsCountAcross[0] // 2
+            elementsCountAcross[1] = elementsCountAcross[1] // 2
+            elementsCountAcross[2] = elementsCountAcross[2] // 2
 
         return axes, elementsCountAcross, boxMapping
 
@@ -184,16 +237,13 @@ class SphereMesh:
         :param octant:
         :return:
         """
-        # self._shield3D.px = octant._shield3D.px
-        # self._shield3D.pd1 = octant._shield3D.pd1
-        # self._shield3D.pd2 = octant._shield3D.pd2
-        # self._shield3D.pd3 = octant._shield3D.pd3
         n3a = 0
         n3z = self._elementsCount[2]
         n2a = 0
         n2z = self._elementsCount[0]
         n1a = 0
         n1z = self._elementsCount[1]
+        c13, c23 = 0, 1
         if self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
             if octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
                 n3a = self._elementsCount[2]//2
@@ -201,40 +251,56 @@ class SphereMesh:
                 n1a = self._elementsCount[1]//2
                 c11, c21 = -n1a, 1
                 c12, c22 = 0, 1
+                c13, c23 = -self._elementsCount[2]//2, 1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP:
                 n3a = self._elementsCount[2]//2
                 n2a = self._elementsCount[0]//2
                 n1a = self._elementsCount[1]//2
                 c11, c21 = n1z, -1
                 c12, c22 = -n2a, 1
+                c13, c23 = -self._elementsCount[2] // 2, 1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNP:
                 n3a = self._elementsCount[2]//2
                 n2z = self._elementsCount[0]//2
                 n1z = self._elementsCount[1]//2
                 c11, c21 = -n1a, 1
                 c12, c22 = n2z, -1
+                c13, c23 = -self._elementsCount[2] // 2, 1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP:
                 n3a = self._elementsCount[2]//2
                 n2a = self._elementsCount[0]//2
                 n1z = self._elementsCount[1]//2
                 c11, c21 = n1z, -1
                 c12, c22 = n2z, -1
+                c13, c23 = -self._elementsCount[2] // 2, 1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN:
                 n3z = self._elementsCount[2]//2
                 n2z = self._elementsCount[0]//2
                 n1a = self._elementsCount[1]//2
+                c11, c21 = n1z, -1
+                c12, c22 = n2z, -1
+                c13, c23 = self._elementsCount[2] // 2, -1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN:
                 n3z = self._elementsCount[2]//2
                 n2a = self._elementsCount[0]//2
                 n1a = self._elementsCount[1]//2
+                c11, c21 = -n1a, 1
+                c12, c22 = n2z, -1
+                c13, c23 = self._elementsCount[2] // 2, -1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN:
                 n3z = self._elementsCount[2]//2
                 n2z = self._elementsCount[0]//2
                 n1z = self._elementsCount[1]//2
+                c11, c21 = n1z, -1
+                c12, c22 = -n2a, 1
+                c13, c23 = self._elementsCount[2] // 2, -1
             elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN:
                 n3z = self._elementsCount[2]//2
                 n2a = self._elementsCount[0]//2
                 n1z = self._elementsCount[1]//2
+                c11, c21 = n1a, 1
+                c12, c22 = -n2a, 1
+                c13, c23 = self._elementsCount[2] // 2, -1
             else:
                 raise ValueError("Not implemented.")
         elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_NNP:
@@ -267,7 +333,7 @@ class SphereMesh:
         for n3 in range(n3a, n3z + 1):
             for n2 in range(n2a, n2z + 1):
                 for n1 in range(n1a, n1z + 1):
-                    n3o, n2o, n1o = self.shield_index_mapping(n3 - n3a, c12 + c22*n2, c11 + c21*n1, octant_shape)
+                    n3o, n2o, n1o = self.shield_index_mapping(c13 + c23*n3, c12 + c22*n2, c11 + c21*n1, octant_shape)
                     self._shield3D.px[n3][n2][n1] = octant._shield3D.px[n3o][n2o][n1o]
                     self._shield3D.pd1[n3][n2][n1] = octant._shield3D.pd1[n3o][n2o][n1o]
                     self._shield3D.pd2[n3][n2][n1] = octant._shield3D.pd2[n3o][n2o][n1o]
@@ -288,13 +354,13 @@ class SphereMesh:
         elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNP:
             n3o, n2o, n1o = n3r, n2r, n1r
         elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN:
-            n3o, n2o, n1o = n3r, n2r, n1r
+            n3o, n2o, n1o = n3r, n1r, n2r
         elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NPN:
             n3o, n2o, n1o = n3r, n2r, n1r
         elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN:
             n3o, n2o, n1o = n3r, n2r, n1r
         elif octant_shape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_NNN:
-            n3o, n2o, n1o = n3r, n2r, n1r
+            n3o, n2o, n1o = n3r, n1r, n2r
         else:
             raise ValueError("Not implemented.")
 
@@ -395,9 +461,6 @@ class OctantMesh:
         #     'createSphereMesh3d: Invalid sphere mode.'
 
         elementsCountRim = self._elementsCountAcrossRim
-
-        # shieldMode = ShieldShape3D.SHIELD_SHAPE_FULL if self._sphereShape is self._sphereShape.SPHERE_SHAPE_FULL \
-        #     else ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP
 
         self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP)
 
