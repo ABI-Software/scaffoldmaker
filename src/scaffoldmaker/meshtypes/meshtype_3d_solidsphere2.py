@@ -61,9 +61,9 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
             'Shell element thickness proportion': 1.0,
-            'Octant': True,
+            'Octant': False,
             'Hemisphere': False,
-            'Full': False,
+            'Full': True,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across': 1,
@@ -123,6 +123,17 @@ with variable numbers of elements across axes and shell directions.
         # if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
         #     options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
+
+        if options['Octant']:
+            dependentChanges = True
+            options['Hemisphere'] = False
+            options['Full'] = False
+        else:
+            if options['Hemisphere']:
+                dependentChanges = True
+                options['Full'] = False
+            else:
+                options['Full'] = True
 
         if options['Octant']:
             min1, min2, min3 = 2, 2, 2

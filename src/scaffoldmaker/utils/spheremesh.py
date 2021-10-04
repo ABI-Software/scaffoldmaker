@@ -640,7 +640,7 @@ class OctantMesh:
 
         x = local_to_global_coordinates(local_x, self._axes, self._centre)
 
-        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2])
+        a1, a2, a3 = local_orthogonal_unit_vectors(x, self._axes[2], self._centre)
         n3r, n2r, n1r = self.get_triple_curves_end_node_parameters(1, index_output=True)
         btx[n3r][n2r][n1r] = x
         btd1[n3r][n2r][n1r] = a1  # initialise
@@ -749,7 +749,7 @@ class OctantMesh:
         btd = {1: btd1, 2: btd2, 3: btd3}
         idi = {0: id1[0], 1: id1[1], 2: id1[2]}
 
-        nx, nd1 = sample_curves_on_sphere(btx[id1[0]][id1[1]][id1[2]], btx[id2[0]][id2[1]][id2[2]], elementsOut)
+        nx, nd1 = sample_curves_on_sphere(btx[id1[0]][id1[1]][id1[2]], btx[id2[0]][id2[1]][id2[2]], self._centre, elementsOut)
 
         nit = 0
         for ni in range(elementsCount + 1):
@@ -769,7 +769,7 @@ class OctantMesh:
             else:
                 btx[idi[0]][idi[1]][idi[2]] = nx[nit]
 
-                a1, a2, a3 = local_orthogonal_unit_vectors(nx[nit], self._axes[2])
+                a1, a2, a3 = local_orthogonal_unit_vectors(nx[nit], self._axes[2], self._centre)
                 btd1[idi[0]][idi[1]][idi[2]] = a1  # initialise
                 btd2[idi[0]][idi[1]][idi[2]] = a2  # initialise
                 btd3[idi[0]][idi[1]][idi[2]] = a3  # initialise
@@ -899,8 +899,10 @@ class OctantMesh:
         n3r, n2r, n1r = self.get_triple_curves_end_node_parameters(1, cx=cx, index_output=True)
 
         ts = vector.magnitude(vector.addVectors([btx[n3r0][n2r0][n1r0], btx[n3r][n2r][n1r]], [1, -1]))
-        ra = vector.magnitude(btx[n3z][0][n1z])
-        x = vector.scaleVector(btx[n3z][0][n1z], (1 - ts/ra))
+        ra = vector.addVectors([btx[n3z][0][n1z], self._centre], [1, -1])
+        radius = vector.magnitude(ra)
+        local_x = vector.scaleVector(ra, (1 - ts/radius))
+        x = vector.addVectors([local_x, self._centre], [1, 1])
         n3r0, n2r0, n1r0 = self.get_triple_curves_end_node_parameters(0, index_output=True)
         n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, index_output=True)
         btx[n3r0][n2r0][n1r0] = x
@@ -1176,14 +1178,15 @@ def calculate_azimuth(theta, theta_p):
     return math.atan(1/(math.tan(theta_p)*math.cos(theta)))
 
 
-def local_orthogonal_unit_vectors(x, axis3):
+def local_orthogonal_unit_vectors(x, axis3, origin):
     """
     Find local orthogonal unit vectors for a point on a sphere
     :param x: coordinates of the point.
     :param axis3: The third axis in Cartesian coordinate system (axis1, axis2, axis3)
     :return: e1, e2, e3. Unit vectors. e3 is normal to the boundary, e2 is in (e3, axis3) plane and e1 normal to them.
     """
-    e3 = vector.normalise(x)
+    r = vector.addVectors([x, origin], [1, -1])
+    e3 = vector.normalise(r)
     e2 = vector.vectorRejection(axis3, e3)
     e2 = vector.normalise(e2)
     e1 = vector.crossproduct3(e2, e3)
@@ -1191,36 +1194,41 @@ def local_orthogonal_unit_vectors(x, axis3):
     return e1, e2, e3
 
 
-def calculate_arc_length(x1, x2):
+def calculate_arc_length(x1, x2, origin):
     """
     Calculate the arc length between points x1 and x2.
     :param x1, x2: points coordinates.
     :return: arc length
     """
-    radius = vector.magnitude(x1)
-    angle = vector.angleBetweenVectors(x1, x2)
+    r1 = vector.addVectors([x1, origin], [1, -1])
+    r2 = vector.addVectors([x2, origin], [1, -1])
+    radius = vector.magnitude(r1)
+    angle = vector.angleBetweenVectors(r1, r2)
     return radius * angle
 
 
-def sample_curves_on_sphere(x1, x2, elementsOut):
+def sample_curves_on_sphere(x1, x2, origin, elementsOut):
     """
 
     :param x1, x2: points coordinates.
     :param elementsOut:
     :return:
     """
-    deltax = vector.addVectors([x1, x2], [-1, 1])
-    normal = vector.crossproduct3(x1, deltax)
-    angle = vector.angleBetweenVectors(x1, x2)
+    r1 = vector.addVectors([x1, origin], [1, -1])
+    r2 = vector.addVectors([x2, origin], [1, -1])
+    deltax = vector.addVectors([r1, r2], [-1, 1])
+    normal = vector.crossproduct3(r1, deltax)
+    angle = vector.angleBetweenVectors(r1, r2)
     anglePerElement = angle/elementsOut
-    arcLengthPerElement = calculate_arc_length(x1, x2)/elementsOut
+    arcLengthPerElement = calculate_arc_length(x1, x2, origin)/elementsOut
 
     nx = []
     nd1 = []
     for n1 in range(elementsOut + 1):
         radiansAcross = n1 * anglePerElement
-        x = vector.rotateVectorAroundVector(x1, normal, radiansAcross)
-        d1 = vector.setMagnitude(vector.crossproduct3(normal, x), arcLengthPerElement)
+        r = vector.rotateVectorAroundVector(r1, normal, radiansAcross)
+        x = vector.addVectors([r, origin], [1, 1])
+        d1 = vector.setMagnitude(vector.crossproduct3(normal, r), arcLengthPerElement)
         nx.append(x)
         nd1.append(d1)
 
