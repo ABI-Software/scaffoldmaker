@@ -1,5 +1,5 @@
 """
-Utility functions for generating a solid spheroid.
+Utility functions for generating a solid sphere/spheroid (ellipsoid in general).
 """
 
 from enum import Enum
@@ -178,8 +178,29 @@ class SphereMesh:
                          sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
             self.copy_octant_nodes_to_sphere_shield(octant4, self._sphereShape.SPHERESHIELD_SHAPE_OCTANT_NPP)
 
+        self.sphere_to_spheroid()
+
         self.generateNodes(nodes, fieldModule, coordinates)
         self.generateElements(mesh, fieldModule, coordinates)
+
+    def sphere_to_spheroid(self):
+        """
+
+        :return:
+        """
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
+        for n3 in range(self._elementsCount[2] + 1):
+            for n2 in range(self._elementsCount[0] + 1):
+                for n1 in range(self._elementsCount[1] + 1):
+                    if btx[n3][n2][n1]:
+                        btx[n3][n2][n1] = [self._radius[0] * btx[n3][n2][n1][0], self._radius[1] * btx[n3][n2][n1][1], self._radius[2] * btx[n3][n2][n1][2], ]
+                        btd1[n3][n2][n1] = [self._radius[0] * btd1[n3][n2][n1][0], self._radius[1] * btd1[n3][n2][n1][1], self._radius[2] * btd1[n3][n2][n1][2], ]
+                        btd2[n3][n2][n1] = [self._radius[0] * btd2[n3][n2][n1][0], self._radius[1] * btd2[n3][n2][n1][1], self._radius[2] * btd2[n3][n2][n1][2], ]
+                        btd3[n3][n2][n1] = [self._radius[0] * btd3[n3][n2][n1][0], self._radius[1] * btd3[n3][n2][n1][1], self._radius[2] * btd3[n3][n2][n1][2], ]
 
     def get_octant_axes_and_elements_count(self, octant_shape):
         """
@@ -229,6 +250,7 @@ class SphereMesh:
             elementsCountAcross[1] = elementsCountAcross[1] // 2
             elementsCountAcross[2] = elementsCountAcross[2] // 2
 
+        axes = [vector.normalise(v) for v in axes]
         return axes, elementsCountAcross, boxMapping
 
     def copy_octant_nodes_to_sphere_shield(self, octant, octant_shape):
@@ -636,7 +658,7 @@ class OctantMesh:
         # ratio = -0.1 * (min(self._elementsCount) - 2) + 1 if self._elementsCount[0] <= 2 else 0.2
         ratio = 1
         # local_x = intersection_of_two_great_circles_on_sphere(btx[0][0][n1y-1], btx[n3z][n2z][n1z], btx[0][2][n1z], btx[n3z][0][0])
-        local_x = spherical_to_cartesian(radius, theta_3, ratio * phi_3 + (1-ratio)*math.pi/2)
+        local_x = spherical_to_cartesian(1.0, theta_3, ratio * phi_3 + (1-ratio)*math.pi/2)
 
         x = local_to_global_coordinates(local_x, self._axes, self._centre)
 
@@ -1265,7 +1287,8 @@ def local_to_global_coordinates(local_x, local_axes, local_origin=None):
     """
     if local_origin is None:
         local_origin = [0.0, 0.0, 0.0]
-    return vector.addVectors([vector.addVectors(local_axes, local_x), local_origin])
+    normalised_axes = [vector.normalise(v) for v in local_axes]
+    return vector.addVectors([vector.addVectors(normalised_axes, local_x), local_origin])
 
 
 def intersection_of_two_great_circles_on_sphere(p1, q1, p2, q2):

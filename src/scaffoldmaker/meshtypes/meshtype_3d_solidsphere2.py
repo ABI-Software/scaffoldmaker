@@ -18,6 +18,7 @@ from opencmiss.zinc.field import Field
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
 from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape
 from scaffoldmaker.utils.shieldmesh import ShieldMesh3D, ShieldShape3D
+from scaffoldmaker.utils import vector
 
 
 
@@ -60,6 +61,9 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 3': 2,
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
+            'Radius1': 1.0,
+            'Radius2': 1.0,
+            'Radius3': 1.0,
             'Shell element thickness proportion': 1.0,
             'Octant': False,
             'Hemisphere': False,
@@ -79,6 +83,9 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 3',
             'Number of elements across shell',
             'Number of elements across transition',
+            'Radius1',
+            'Radius2',
+            'Radius3',
             'Shell element thickness proportion',
             'Octant',
             'Hemisphere',
@@ -161,6 +168,10 @@ with variable numbers of elements across axes and shell directions.
         if options['Number of elements across axis 3'] % 2:
             options['Number of elements across axis 3'] += co3
 
+        for radius in ['Radius1', 'Radius2', 'Radius3', ]:
+            if options[radius] <= 0:
+                options[radius] = 1.0
+
         # if options['Number of elements across transition'] < 1:
         #     options['Number of elements across transition'] = 1
         # Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
@@ -191,6 +202,7 @@ with variable numbers of elements across axes and shell directions.
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAcrossTransition = options['Number of elements across transition']
         shellProportion = options['Shell element thickness proportion']
+        radius = [options['Radius1'], options['Radius2'], options['Radius3']]
         useCrossDerivatives = options['Use cross derivatives']
         if options['Octant']:
             sphere_shape = SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP
@@ -206,7 +218,7 @@ with variable numbers of elements across axes and shell directions.
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
-        axes = [axis1, axis2, axis3]
+        axes = [vector.scaleVector(axis1, radius[0]), vector.scaleVector(axis2, radius[1]), vector.scaleVector(axis3, radius[2])]
         elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
 
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
