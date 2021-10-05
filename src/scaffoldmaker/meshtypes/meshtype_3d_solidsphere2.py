@@ -1,5 +1,5 @@
 """
-Generates a solid sphere using a ShieldMesh of all cube elements,
+Generates a solid sphere (spheroid/ellipsoid in general) using a ShieldMesh of all cube elements,
  with variable numbers of elements across axes and shell directions.
 """
 
@@ -9,17 +9,13 @@ import copy
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-# from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.field import Field
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
-from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape
-from scaffoldmaker.utils.shieldmesh import ShieldMesh3D, ShieldShape3D
 from scaffoldmaker.utils import vector
-
 
 
 class MeshType_3d_solidsphere2(Scaffold_base):
@@ -56,9 +52,9 @@ with variable numbers of elements across axes and shell directions.
         # centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
             # 'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements across axis 1': 2,
-            'Number of elements across axis 2': 2,
-            'Number of elements across axis 3': 2,
+            'Number of elements across axis 1': 4,
+            'Number of elements across axis 2': 4,
+            'Number of elements across axis 3': 4,
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
             'Radius1': 1.0,
@@ -81,12 +77,12 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 1',
             'Number of elements across axis 2',
             'Number of elements across axis 3',
-            'Number of elements across shell',
-            'Number of elements across transition',
+            # 'Number of elements across shell',
+            # 'Number of elements across transition',
             'Radius1',
             'Radius2',
             'Radius3',
-            'Shell element thickness proportion',
+            # 'Shell element thickness proportion',
             'Octant',
             'Hemisphere',
             'Full',
@@ -207,7 +203,7 @@ with variable numbers of elements across axes and shell directions.
         if options['Octant']:
             sphere_shape = SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP
         elif options['Hemisphere']:
-            sphere_shape = SphereShape.SPHERE_SHAPE_HALF_NNP
+            sphere_shape = SphereShape.SPHERE_SHAPE_HALF_AAP
         else:
             sphere_shape = SphereShape.SPHERE_SHAPE_FULL
 
@@ -223,7 +219,7 @@ with variable numbers of elements across axes and shell directions.
 
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                      elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                     sphereShape=sphere_shape, useCrossDerivatives=False, boxMapping=[1, 3, 2])
+                     sphereShape=sphere_shape, useCrossDerivatives=False)
 
         annotationGroup = []
         return annotationGroup
