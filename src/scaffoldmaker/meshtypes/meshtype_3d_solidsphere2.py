@@ -16,6 +16,7 @@ from opencmiss.zinc.node import Node
 from opencmiss.zinc.field import Field
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
 from scaffoldmaker.utils import vector
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 
 
 class MeshType_3d_solidsphere2(Scaffold_base):
@@ -210,6 +211,14 @@ with variable numbers of elements across axes and shell directions.
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
+        mesh = fm.findMeshByDimension(3)
+        boxGroup = AnnotationGroup(region, ("box group", ""))
+        boxMeshGroup = boxGroup.getMeshGroup(mesh)
+        transitionGroup = AnnotationGroup(region, ("transition group", ""))
+        transitionMeshGroup = transitionGroup.getMeshGroup(mesh)
+        meshGroups = [boxMeshGroup, transitionMeshGroup]
+        annotationGroups = [boxGroup, transitionGroup]
+
         centre = [0.0, 0.0, 0.0]
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
@@ -219,10 +228,10 @@ with variable numbers of elements across axes and shell directions.
 
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                      elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                     sphereShape=sphere_shape, useCrossDerivatives=False)
+                     sphereShape=sphere_shape, useCrossDerivatives=False, meshGroups=meshGroups)
 
-        annotationGroup = []
-        return annotationGroup
+        return annotationGroups
+
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):

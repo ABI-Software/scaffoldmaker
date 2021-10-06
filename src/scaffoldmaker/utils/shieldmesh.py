@@ -1318,6 +1318,14 @@ class ShieldMesh3D:
 
                     elementIdentifier += 1
 
+                    if element_type == self.ELEMENT_REGULAR:
+                        for meshGroup in meshGroups[:1]:
+                            meshGroup.addElement(element)
+                    else:
+                        for meshGroup in meshGroups[1:2]:
+                            meshGroup.addElement(element)
+
+
         return elementIdentifier
 
     def local_node_mapping(self, boxMapping):
