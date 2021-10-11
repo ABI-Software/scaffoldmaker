@@ -903,7 +903,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         d3Final += d3List[(elementsCountThroughWall + 1) * elementsCountAround:]
 
         xFlat = d1Flat = d2Flat = d3Flat = []
-        xTexture = d1Texture = d2Texture = d3Texture = []
 
         # Obtain elements count along body and neck of the bladder for defining annotation groups
         elementsCountAlongBody = round(ureterPositionDown * elementsCountAlongBladder - 1)
@@ -1004,7 +1003,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-            region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
+            region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier,
