@@ -335,12 +335,11 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
 
     return xList, d1List, d2List, d3List, curvatureList
 
-def createFlatAndTextureCoordinates(xiList, lengthAroundList,
+def createFlatCoordinates(xiList, lengthAroundList,
     totalLengthAlong, wallThickness, elementsCountAround,
     elementsCountAlong, elementsCountThroughWall, transitElementList):
     """
-    Calculates flat coordinates and texture coordinates
-    for a tube when it is opened into a flat preparation.
+    Calculates flat coordinates for a tube when it is opened into a flat preparation.
     :param xiList: List containing xi for each point around
     the outer surface of the tube.
     :param lengthAroundList: List of total arclength around the
@@ -352,7 +351,7 @@ def createFlatAndTextureCoordinates(xiList, lengthAroundList,
     :param elementsCountThroughWall: Number of elements through wall.
     :param transitElementList: stores true if element around is a
     transition element between a big and small element.
-    :return: coordinates and derivatives of flat and texture coordinates fields.
+    :return: coordinates and derivatives of flat coordinates field.
     """
 
     # Calculate flat coordinates and derivatives
@@ -397,55 +396,20 @@ def createFlatAndTextureCoordinates(xiList, lengthAroundList,
                 d2FlatList.append(d2Flat)
     d2FlatList = d2FlatList + d2FlatList[-(elementsCountAround+1)*(elementsCountThroughWall+1):]
 
-    # Calculate texture coordinates and derivatives
-    xTextureList = []
-    d1Texture = []
-    d1TextureList = []
-    d2TextureList = []
-
-    d2 = [0.0, 1.0 / elementsCountAlong, 0.0]
-    xiTexture = xiList[0]
-
-    for n1 in range(len(xiTexture)):
-        d1 = [xiTexture[n1] - xiTexture[n1-1] if n1 > 0 else xiTexture[n1+1] - xiTexture[n1],
-              0.0,
-              0.0]
-        d1Texture.append(d1)
-
-    # To modify derivative along transition elements
-    for i in range(len(transitElementList)):
-        if transitElementList[i]:
-            d1Texture[i+1] = d1Texture[i+2]
-
-    for n2 in range(elementsCountAlong + 1):
-        for n3 in range(elementsCountThroughWall + 1):
-            for n1 in range(elementsCountAround + 1):
-                u = [ xiTexture[n1],
-                      1.0 / elementsCountAlong * n2,
-                      1.0 / elementsCountThroughWall * n3]
-                d1 = d1Texture[n1]
-                xTextureList.append(u)
-                d1TextureList.append(d1)
-                d2TextureList.append(d2)
-
-    return xFlatList, d1FlatList, d2FlatList, xTextureList, d1TextureList, d2TextureList
+    return xFlatList, d1FlatList, d2FlatList
 
 def createNodesAndElements(region,
     x, d1, d2, d3,
     xFlat, d1Flat, d2Flat,
-    xTexture, d1Texture, d2Texture,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
     annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
     useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
     """
-    Create nodes and elements for the coordinates, flat coordinates,
-    and texture coordinates field.
+    Create nodes and elements for the coordinates and flat coordinates fields.
     :param x, d1, d2, d3: coordinates and derivatives of coordinates field.
     :param xFlat, d1Flat, d2Flat, d3Flat: coordinates and derivatives of
     flat coordinates field.
-    :param xTexture, d1Texture, d2Texture, d3Texture: coordinates and derivatives
-    of texture coordinates field.
     :param elementsCountAround: Number of elements around tube.
     :param elementsCountAlong: Number of elements along tube.
     :param elementsCountThroughWall: Number of elements through wall.
@@ -499,8 +463,8 @@ def createNodesAndElements(region,
     if xFlat:
         # Flat coordinates field
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        eftTexture1 = bicubichermitelinear.createEftBasic()
-        eftTexture2 = bicubichermitelinear.createEftOpenTube()
+        eftFlat1 = bicubichermitelinear.createEftBasic()
+        eftFlat2 = bicubichermitelinear.createEftOpenTube()
 
         flatCoordinates = findOrCreateFieldCoordinates(fm, name="flat coordinates")
         flatNodetemplate1 = nodes.createNodetemplate()
@@ -521,38 +485,11 @@ def createNodesAndElements(region,
 
         flatElementtemplate1 = mesh.createElementtemplate()
         flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        flatElementtemplate1.defineField(flatCoordinates, -1, eftTexture1)
+        flatElementtemplate1.defineField(flatCoordinates, -1, eftFlat1)
 
         flatElementtemplate2 = mesh.createElementtemplate()
         flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        flatElementtemplate2.defineField(flatCoordinates, -1, eftTexture2)
-
-    if xTexture:
-        # Texture coordinates field
-        textureCoordinates = findOrCreateFieldTextureCoordinates(fm)
-        textureNodetemplate1 = nodes.createNodetemplate()
-        textureNodetemplate1.defineField(textureCoordinates)
-        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if useCrossDerivatives:
-            textureNodetemplate1.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-
-        textureNodetemplate2 = nodes.createNodetemplate()
-        textureNodetemplate2.defineField(textureCoordinates)
-        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
-        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
-        textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
-        if useCrossDerivatives:
-            textureNodetemplate2.setValueNumberOfVersions(textureCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
-
-        elementtemplate1 = mesh.createElementtemplate()
-        elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        elementtemplate1.defineField(textureCoordinates, -1, eftTexture1)
-
-        elementtemplate2 = mesh.createElementtemplate()
-        elementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        elementtemplate2.defineField(textureCoordinates, -1, eftTexture2)
+        flatElementtemplate2.defineField(flatCoordinates, -1, eftFlat2)
 
     # Create nodes
     # Coordinates field
@@ -571,8 +508,8 @@ def createNodesAndElements(region,
         # print('NodeIdentifier = ', nodeIdentifier, x[n], d1[n], d2[n])
         nodeIdentifier = nodeIdentifier + 1
 
-    # Flat and texture coordinates fields
-    if xFlat and xTexture:
+    # Flat coordinates field
+    if xFlat:
         nodeIdentifier = firstNodeIdentifier
         for n2 in range(elementsCountAlong + 1):
             for n3 in range(elementsCountThroughWall + 1):
@@ -580,29 +517,20 @@ def createNodesAndElements(region,
                     i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1
                     node = nodes.findNodeByIdentifier(nodeIdentifier)
                     node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
-                    node.merge(textureNodetemplate2 if n1 == 0 else textureNodetemplate1)
                     cache.setNode(node)
                     # print('NodeIdentifier', nodeIdentifier, 'version 1, xList Index =', i+1)
                     flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFlat[i])
                     flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Flat[i])
                     flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Flat[i])
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTexture[i])
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Texture[i])
-                    textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Texture[i])
                     if useCrossDerivatives:
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                     if n1 == 0:
                         # print('NodeIdentifier', nodeIdentifier, 'version 2, xList Index =', i+elementsCountAround+1)
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xFlat[i+elementsCountAround])
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Flat[i+elementsCountAround])
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Flat[i+elementsCountAround])
-                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xTexture[i+elementsCountAround])
-                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Texture[i+elementsCountAround])
-                        textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Texture[i+elementsCountAround])
                         if useCrossDerivatives:
                             flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
-                            textureCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                     nodeIdentifier = nodeIdentifier + 1
 
     # create elements
@@ -667,10 +595,9 @@ def createNodesAndElements(region,
                 onOpening = e1 > elementsCountAround - 2
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nodeIdentifiers)
-                if xFlat and xTexture:
+                if xFlat:
                     element.merge(flatElementtemplate2 if onOpening else flatElementtemplate1)
-                    element.merge(elementtemplate2 if onOpening else elementtemplate1)
-                    element.setNodesByIdentifier(eftTexture2 if onOpening else eftTexture1, nodeIdentifiers)
+                    element.setNodesByIdentifier(eftFlat2 if onOpening else eftFlat1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
 
                 annotationGroups = annotationGroupsAround[e1] + annotationGroupsAlong[e2] + \

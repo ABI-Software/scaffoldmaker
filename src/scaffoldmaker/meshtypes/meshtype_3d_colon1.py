@@ -9,7 +9,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints,\
-    getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi
+    getTeniaColi, createFlatCoordinatesTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -628,29 +628,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroupsAround,
                 closedProximalEnd)
 
-            # Create flat and texture coordinates
-            xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
+            # Create flat coordinates
+            xFlat, d1Flat, d2Flat = createFlatCoordinatesTeniaColi(
                 xiList, relaxedLengthList, length, wallThickness, tcCount, tcThickness,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
                 elementsCountThroughWall, transitElementList, closedProximalEnd)
 
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
                 tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)
 
         else:
-            # Create flat and texture coordinates
-            xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
+            # Create flat coordinates
+            xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
                 xiList, relaxedLengthList, length, wallThickness, elementsCountAround,
                 elementsCountAlong, elementsCountThroughWall, transitElementList)
 
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
                 annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
