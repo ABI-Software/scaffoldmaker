@@ -463,7 +463,8 @@ class MeshType_3d_cecum1(Scaffold_base):
         d2Cecum += d2List[(elementsCountThroughWall + 1) * elementsCountAround:]
         d3Cecum += d3List[(elementsCountThroughWall + 1) * elementsCountAround:]
 
-        xFlat = d1Flat = d2Flat = d3Flat = []
+        xFlat = d1Flat = d2Flat = []
+        xOrgan = d1Organ = d2Organ = []
 
         # Create nodes and elements
         if tcThickness > 0:
@@ -474,7 +475,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 tubeTCWidthList, tcThickness, sxRefList, annotationGroupsAround, closedProximalEnd)
 
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-                    region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat,
+                    region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
                     elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
                     tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                     firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
@@ -482,7 +483,7 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         else:
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-                region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat,
+                region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
                 elementsCountAround, elementsCountAlong, elementsCountThroughWall,
                 annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,

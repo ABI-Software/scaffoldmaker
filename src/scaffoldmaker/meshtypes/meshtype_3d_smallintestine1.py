@@ -921,14 +921,16 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         flatWidthList, xiList = smallIntestineSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()
 
-        # Create flat and texture coordinates
+        # Create flat coordinates
         xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
             xiList, flatWidthList, length, wallThickness, elementsCountAround,
             elementsCountAlong, elementsCountThroughWall, transitElementList)
 
+        xOrgan = d1Organ = d2Organ = []
+
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
+            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,

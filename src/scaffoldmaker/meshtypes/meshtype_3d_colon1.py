@@ -9,7 +9,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints,\
-    getTeniaColi, createFlatCoordinatesTeniaColi, createNodesAndElementsTeniaColi
+    getTeniaColi, createFlatCoordinatesTeniaColi, createColonCoordinatesTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -475,6 +475,11 @@ class MeshType_3d_colon1(Scaffold_base):
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
 
+        # Colon coordinates
+        lengthToDiameterRatio = 24
+        wallThicknessToDiameterRatio = 0.1
+        teniaColiThicknessToDiameterRatio = 0.005
+
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
@@ -634,13 +639,22 @@ class MeshType_3d_colon1(Scaffold_base):
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
                 elementsCountThroughWall, transitElementList, closedProximalEnd)
 
+            # Create colon coordinates
+            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, lengthToDiameterRatio,
+                                                                       wallThicknessToDiameterRatio,
+                                                                       teniaColiThicknessToDiameterRatio, tcCount,
+                                                                       elementsCountAroundTC,
+                                                                       elementsCountAroundHaustrum,
+                                                                       elementsCountAlong, elementsCountThroughWall,
+                                                                       transitElementList, closedProximalEnd)
+
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
-                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
-                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
-                closedProximalEnd)
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
+                "colon coordinates", elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
+                elementsCountThroughWall, tcCount, annotationGroupsAround, annotationGroupsAlong,
+                annotationGroupsThroughWall, firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall,
+                useCrossDerivatives, closedProximalEnd)
 
         else:
             # Create flat coordinates
@@ -648,10 +662,17 @@ class MeshType_3d_colon1(Scaffold_base):
                 xiList, relaxedLengthList, length, wallThickness, elementsCountAround,
                 elementsCountAlong, elementsCountThroughWall, transitElementList)
 
+            # Create colon coordinates
+            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, lengthToDiameterRatio,
+                                                                       wallThicknessToDiameterRatio,
+                                                                       elementsCountAround,
+                                                                       elementsCountAlong, elementsCountThroughWall,
+                                                                       transitElementList)
+
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
-                elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
+                "colon coordinates", elementsCountAround, elementsCountAlong, elementsCountThroughWall,
                 annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)

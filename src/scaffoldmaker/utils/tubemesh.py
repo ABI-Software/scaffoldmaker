@@ -398,9 +398,57 @@ def createFlatCoordinates(xiList, lengthAroundList,
 
     return xFlatList, d1FlatList, d2FlatList
 
+def createOrganCoordinates(xiList, lengthToDiameterRatio, wallThicknessToDiameterRatio,
+                           elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList):
+    """
+    Calculates organ coordinates and derivatives represented by a cylindrical tube with a unit inner diameter,
+    length equivalent to lengthToDiameterRatio and wall thickness of wallThicknessToDiameterRatio.
+    :param xiList: List containing xi for each point around the outer surface of the tube.
+    :param lengthToDiameterRatio: Ratio of total length along organ to inner diameter of organ
+    :param wallThicknessToDiameterRatio: Ratio of wall thickness to inner diameter of organ.
+    :param elementsCountAround: Number of elements around tube.
+    :param elementsCountAlong: Number of elements along tube.
+    :param elementsCountThroughWall: Number of elements through wall.
+    :param transitElementList: stores true if element around is a transition element between a big and small element.
+    :return: coordinates and derivatives of organ coordinates field.
+    """
+    # Calculate organ coordinates and derivatives
+    xOrganList = []
+    d1OrganList = []
+    d2OrganList = []
+    d2 = [0.0, lengthToDiameterRatio / elementsCountAlong, 0.0]
+
+    for n2 in range(elementsCountAlong + 1):
+        cx = [0.0, lengthToDiameterRatio / elementsCountAlong * n2, 0.0]
+        xiFace = xiList[n2]
+        for n3 in range(elementsCountThroughWall + 1):
+            radius = 0.5 + wallThicknessToDiameterRatio/elementsCountThroughWall * n3
+            axis1 = [0.0, 0.0, radius]
+            axis2 = [radius, 0.0, 0.0]
+            d1List = []
+            for n1 in range(len(xiFace) - 1):
+                dTheta = (xiFace[n1 + 1 if n1 < len(xiFace) - 1 else 0] - xiFace[n1]) * 2.0 * math.pi
+                radiansAround = 2.0 * math.pi * xiFace[n1]
+                cosRadiansAround = math.cos(radiansAround)
+                sinRadiansAround = math.sin(radiansAround)
+                xOrganList.append([(cx[c] + cosRadiansAround * axis1[c] + sinRadiansAround * axis2[c]) for c in range(3)])
+                d1List.append([ dTheta*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
+                d2OrganList.append(d2)
+
+            # To modify derivative along transition elements
+            for i in range(len(transitElementList)):
+                if transitElementList[i]:
+                    d1List[i] = vector.setMagnitude(d1List[i], vector.magnitude(d1List[i - 1]))
+                    d1List[i + 1] = vector.setMagnitude(d1List[i+ 1], vector.magnitude(d1List[(i + 2) % elementsCountAround]))
+
+            d1OrganList += d1List
+
+    return xOrganList, d1OrganList, d2OrganList
+
 def createNodesAndElements(region,
     x, d1, d2, d3,
     xFlat, d1Flat, d2Flat,
+    xOrgan, d1Organ, d2Organ, organCoordinateFieldName,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
     annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
@@ -410,6 +458,8 @@ def createNodesAndElements(region,
     :param x, d1, d2, d3: coordinates and derivatives of coordinates field.
     :param xFlat, d1Flat, d2Flat, d3Flat: coordinates and derivatives of
     flat coordinates field.
+    :param xOrgan, d1Organ, d2Organ, d3Organ, organCoordinateFieldName: coordinates, derivatives and name of organ
+    coordinates field.
     :param elementsCountAround: Number of elements around tube.
     :param elementsCountAlong: Number of elements along tube.
     :param elementsCountThroughWall: Number of elements through wall.
@@ -491,6 +541,24 @@ def createNodesAndElements(region,
         flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         flatElementtemplate2.defineField(flatCoordinates, -1, eftFlat2)
 
+    if xOrgan:
+        # Organ coordinates field
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
+        eftOrgan = bicubichermitelinear.createEftBasic()
+
+        organCoordinates = findOrCreateFieldCoordinates(fm, name=organCoordinateFieldName)
+        organNodetemplate = nodes.createNodetemplate()
+        organNodetemplate.defineField(organCoordinates)
+        organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        if useCrossDerivatives:
+            organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+        organElementtemplate = mesh.createElementtemplate()
+        organElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        organElementtemplate.defineField(organCoordinates, -1, eftOrgan)
+
     # Create nodes
     # Coordinates field
     for n in range(len(x)):
@@ -532,6 +600,20 @@ def createNodesAndElements(region,
                         if useCrossDerivatives:
                             flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                     nodeIdentifier = nodeIdentifier + 1
+
+    # Organ coordinates field
+    if xOrgan:
+        nodeIdentifier = firstNodeIdentifier
+        for n in range(len(xOrgan)):
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            node.merge(organNodetemplate)
+            cache.setNode(node)
+            organCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOrgan[n])
+            organCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Organ[n])
+            organCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Organ[n])
+            if useCrossDerivatives:
+                organCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            nodeIdentifier = nodeIdentifier + 1
 
     # create elements
     elementtemplate3 = mesh.createElementtemplate()
@@ -598,6 +680,9 @@ def createNodesAndElements(region,
                 if xFlat:
                     element.merge(flatElementtemplate2 if onOpening else flatElementtemplate1)
                     element.setNodesByIdentifier(eftFlat2 if onOpening else eftFlat1, nodeIdentifiers)
+                if xOrgan:
+                    element.merge(organElementtemplate)
+                    element.setNodesByIdentifier(eftOrgan, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
 
                 annotationGroups = annotationGroupsAround[e1] + annotationGroupsAlong[e2] + \
