@@ -313,11 +313,11 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Proximal inner radius'] = 1.0
             options['Proximal tenia coli width'] = 0.5
             options['Proximal-transverse inner radius'] = 0.9
-            options['Proximal-transverse tenia coli width'] = 0.7
+            options['Proximal-transverse tenia coli width'] = 0.5
             options['Transverse-distal inner radius'] = 0.7
-            options['Transverse-distal tenia coli width'] = 1.0
+            options['Transverse-distal tenia coli width'] = 0.5
             options['Distal inner radius'] = 0.7
-            options['Distal tenia coli width'] = 1.0
+            options['Distal tenia coli width'] = 0.5
         elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 120
             options['Proximal length'] = 3000.0
