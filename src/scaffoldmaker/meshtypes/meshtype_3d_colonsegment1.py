@@ -7,11 +7,11 @@ and thickness along.
 
 import copy
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
@@ -305,14 +305,11 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         for i in range(elementsCountAlongSegment):
             annotationGroupsAlong.append([ ])
 
-        # serosaGroup = AnnotationGroup(region, get_colon_term("serosa of colon"))
-        # submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
-        # mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
-        # annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup], [serosaGroup]]
-
-        annotationGroupsThroughWall = []
-        for i in range(elementsCountThroughWall):
-            annotationGroupsThroughWall.append([ ])
+        mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+        submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+        circularMuscleGroup = AnnotationGroup(region, get_colon_term("Circular muscle layer of colon"))
+        longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
+        annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup], [circularMuscleGroup], [longitudinalMuscleGroup]]
 
         # Create inner points
         nSegment = 0
@@ -395,6 +392,37 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
                                                        refineElementsCountThroughWall)
         return
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        '''
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        '''
+        # Create 2d surface mesh groups
+        fm = region.getFieldmodule()
+        longitudinalMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
+                                                            get_colon_term("Longitudinal muscle layer of colon"))
+        circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
+                                                            get_colon_term("Circular muscle layer of colon"))
+        mesh2d = fm.findMeshByDimension(2)
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+
+        is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
+        is_serosa = fm.createFieldAnd(is_longitudinalMuscle, is_exterior_face_xi3_1)
+        is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
+        is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
+
+        serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
+        serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+
+        myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("myenteric nerve plexus"))
+        myentericPlexus.getMeshGroup(mesh2d).addElementsConditional(is_myentericPlexus)
 
 class ColonSegmentTubeMeshInnerPoints:
     """
@@ -2115,7 +2143,8 @@ def createNodesAndElementsTeniaColi(region,
                 element.merge(organElementtemplate if eTC < int(elementsCountAroundTC*0.5) - 1 else organElementtemplate1)
                 element.setNodesByIdentifier(eftOrgan if eTC < int(elementsCountAroundTC*0.5) - 1 else eftOrgan1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[e2]
+            annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[e2] + \
+                               annotationGroupsThroughWall[-1]
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2183,7 +2212,8 @@ def createNodesAndElementsTeniaColi(region,
                         element.setNodesByIdentifier(eftOrgan1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[elementsCountAround + int(
-                    elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[e2]
+                    elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[e2] + \
+                                   annotationGroupsThroughWall[-1]
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2233,7 +2263,7 @@ def createNodesAndElementsTeniaColi(region,
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[
                                    elementsCountAround + int(elementsCountAroundTC * (tcCount - 0.5)) + eTC] + \
-                               annotationGroupsAlong[e2]
+                               annotationGroupsAlong[e2] + annotationGroupsThroughWall[-1]
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
