@@ -238,7 +238,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
     return xWarpedList, d1WarpedList, d2WarpedListFinal, d3WarpedUnitList
 
 def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
-    wallThicknessList, elementsCountAround,
+    wallThicknessList, relativeThicknessList, elementsCountAround,
     elementsCountAlong, elementsCountThroughWall, transitElementList):
     """
     Generates coordinates from inner to outer surface using coordinates
@@ -248,6 +248,7 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     :param d2Inner: Derivatives on inner surface along tube
     :param d3Inner: Derivatives on inner surface through wall
     :param wallThicknessList: Wall thickness for each element along tube
+    :param relativeThicknessList: Relative wall thickness for each element through wall
     :param elementsCountAround: Number of elements around tube
     :param elementsCountAlong: Number of elements along tube
     :param elementsCountThroughWall: Number of elements through tube wall
@@ -264,6 +265,14 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     d1List = []
     d2List = []
     d3List = []
+
+    if relativeThicknessList:
+        xi3 = 0.0
+        xi3List = [0.0]
+        for n3 in range(elementsCountThroughWall):
+            xi3 += relativeThicknessList[n3]
+            xi3List.append(xi3)
+        relativeThicknessList.append(relativeThicknessList[-1])
 
     for n2 in range(elementsCountAlong + 1):
         wallThickness = wallThicknessList[n2]
@@ -305,7 +314,7 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
             curvatureAlong.append(curvature)
 
         for n3 in range(elementsCountThroughWall + 1):
-            xi3 = 1/elementsCountThroughWall * n3
+            xi3 = xi3List[n3] if relativeThicknessList else 1.0/elementsCountThroughWall * n3
             for n1 in range(elementsCountAround):
                 n = n2*elementsCountAround + n1
                 norm = d3Inner[n]
@@ -330,20 +339,17 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
                 curvatureList.append(curvature)
 
                 #dx_ds3
-                d3 = [c * wallThickness/elementsCountThroughWall for c in norm]
+                d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
                 d3List.append(d3)
 
     return xList, d1List, d2List, d3List, curvatureList
 
-def createFlatCoordinates(xiList, lengthAroundList,
-    totalLengthAlong, wallThickness, elementsCountAround,
-    elementsCountAlong, elementsCountThroughWall, transitElementList):
+def createFlatCoordinates(xiList, lengthAroundList, totalLengthAlong, wallThickness, relativeThicknessList,
+                          elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList):
     """
     Calculates flat coordinates for a tube when it is opened into a flat preparation.
-    :param xiList: List containing xi for each point around
-    the outer surface of the tube.
-    :param lengthAroundList: List of total arclength around the
-    outer surface for each element along.
+    :param xiList: List containing xi for each point around the outer surface of the tube.
+    :param lengthAroundList: List of total arclength around the outer surface for each element along.
     :param totalLengthAlong: Total length along tube.
     :param wallThickness: Thickness of wall.
     :param elementsCountAround: Number of elements around tube.
@@ -353,6 +359,13 @@ def createFlatCoordinates(xiList, lengthAroundList,
     transition element between a big and small element.
     :return: coordinates and derivatives of flat coordinates field.
     """
+    if relativeThicknessList:
+        xi3 = 0.0
+        xi3List = [0.0]
+        for n3 in range(elementsCountThroughWall):
+            xi3 += relativeThicknessList[n3]
+            xi3List.append(xi3)
+        relativeThicknessList.append(relativeThicknessList[-1])
 
     # Calculate flat coordinates and derivatives
     xFlatList = []
@@ -373,7 +386,7 @@ def createFlatCoordinates(xiList, lengthAroundList,
 
         xPad = (lengthAroundList[0] - lengthAround)*0.5
         for n3 in range(elementsCountThroughWall + 1):
-            z = wallThickness / elementsCountThroughWall * n3
+            z = wallThickness * (xi3List[n3] if relativeThicknessList else 1.0 / elementsCountThroughWall * n3)
             for n1 in range(elementsCountAround + 1):
                 xFlat = [xPad + xiFace[n1] * lengthAround,
                         totalLengthAlong / elementsCountAlong * n2,
@@ -398,12 +411,13 @@ def createFlatCoordinates(xiList, lengthAroundList,
 
     return xFlatList, d1FlatList, d2FlatList
 
-def createOrganCoordinates(xiList, lengthToDiameterRatio, wallThicknessToDiameterRatio,
+def createOrganCoordinates(xiList, relativeThicknessList, lengthToDiameterRatio, wallThicknessToDiameterRatio,
                            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList):
     """
     Calculates organ coordinates and derivatives represented by a cylindrical tube with a unit inner diameter,
     length equivalent to lengthToDiameterRatio and wall thickness of wallThicknessToDiameterRatio.
     :param xiList: List containing xi for each point around the outer surface of the tube.
+    :param relativeThicknessList: Relative thickness of each element through wall.
     :param lengthToDiameterRatio: Ratio of total length along organ to inner diameter of organ
     :param wallThicknessToDiameterRatio: Ratio of wall thickness to inner diameter of organ.
     :param elementsCountAround: Number of elements around tube.
@@ -412,6 +426,14 @@ def createOrganCoordinates(xiList, lengthToDiameterRatio, wallThicknessToDiamete
     :param transitElementList: stores true if element around is a transition element between a big and small element.
     :return: coordinates and derivatives of organ coordinates field.
     """
+    if relativeThicknessList:
+        xi3 = 0.0
+        xi3List = [0.0]
+        for n3 in range(elementsCountThroughWall):
+            xi3 += relativeThicknessList[n3]
+            xi3List.append(xi3)
+        relativeThicknessList.append(relativeThicknessList[-1])
+
     # Calculate organ coordinates and derivatives
     xOrganList = []
     d1OrganList = []
@@ -422,7 +444,8 @@ def createOrganCoordinates(xiList, lengthToDiameterRatio, wallThicknessToDiamete
         cx = [0.0, lengthToDiameterRatio / elementsCountAlong * n2, 0.0]
         xiFace = xiList[n2]
         for n3 in range(elementsCountThroughWall + 1):
-            radius = 0.5 + wallThicknessToDiameterRatio/elementsCountThroughWall * n3
+            xi3 = xi3List[n3] if relativeThicknessList else 1.0/elementsCountThroughWall * n3
+            radius = 0.5 + wallThicknessToDiameterRatio * xi3
             axis1 = [0.0, 0.0, radius]
             axis2 = [radius, 0.0, 0.0]
             d1List = []

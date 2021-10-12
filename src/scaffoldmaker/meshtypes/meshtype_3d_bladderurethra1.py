@@ -860,9 +860,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             wallThicknessList = [bladderWallThickness] * (elementsCountAlong + 1)
         transitElementList = [0] * elementsCountAround
 
+        relativeThicknessList = []
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
                                                                                         d2WarpedList, d3WarpedUnitList,
                                                                                         wallThicknessList,
+                                                                                        relativeThicknessList,
                                                                                         elementsCountAround,
                                                                                         elementsCountAlong,
                                                                                         elementsCountThroughWall,

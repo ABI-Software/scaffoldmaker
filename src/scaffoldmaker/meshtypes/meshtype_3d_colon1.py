@@ -471,6 +471,10 @@ class MeshType_3d_colon1(Scaffold_base):
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
         wallThickness = segmentSettings['Wall thickness']
+        mucosaRelThickness = segmentSettings['Mucosa relative thickness']
+        submucosaRelThickness = segmentSettings['Submucosa relative thickness']
+        circularRelThickness = segmentSettings['Circular muscle layer relative thickness']
+        longitudinalRelThickness = segmentSettings['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
@@ -580,6 +584,9 @@ class MeshType_3d_colon1(Scaffold_base):
         d3UnitExtrude = []
         sxRefExtrudeList = []
 
+        relativeThicknessList = [mucosaRelThickness, submucosaRelThickness, circularRelThickness,
+                                 longitudinalRelThickness]
+
         # Create object
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
@@ -618,7 +625,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, contractedWallThicknessList,
+            d2Extrude, d3UnitExtrude, contractedWallThicknessList, relativeThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
@@ -635,12 +642,13 @@ class MeshType_3d_colon1(Scaffold_base):
 
             # Create flat coordinates
             xFlat, d1Flat, d2Flat = createFlatCoordinatesTeniaColi(
-                xiList, relaxedLengthList, length, wallThickness, tcCount, tcThickness,
+                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, tcCount, tcThickness,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
                 elementsCountThroughWall, transitElementList, closedProximalEnd)
 
             # Create colon coordinates
-            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, lengthToDiameterRatio,
+            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, relativeThicknessList,
+                                                                       lengthToDiameterRatio,
                                                                        wallThicknessToDiameterRatio,
                                                                        teniaColiThicknessToDiameterRatio, tcCount,
                                                                        elementsCountAroundTC,
@@ -659,11 +667,12 @@ class MeshType_3d_colon1(Scaffold_base):
         else:
             # Create flat coordinates
             xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
-                xiList, relaxedLengthList, length, wallThickness, elementsCountAround,
+                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, elementsCountAround,
                 elementsCountAlong, elementsCountThroughWall, transitElementList)
 
             # Create colon coordinates
-            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, lengthToDiameterRatio,
+            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessList,
+                                                                       lengthToDiameterRatio,
                                                                        wallThicknessToDiameterRatio,
                                                                        elementsCountAround,
                                                                        elementsCountAlong, elementsCountThroughWall,

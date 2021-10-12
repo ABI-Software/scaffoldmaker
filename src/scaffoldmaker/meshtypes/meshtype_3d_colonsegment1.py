@@ -54,7 +54,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements around tenia coli' : 2,
             'Number of elements around haustrum' : 8,
             'Number of elements along segment' : 4,
-            'Number of elements through wall' : 1,
+            'Number of elements through wall' : 4,
             'Start phase': 0.0,
             'Start inner radius': 43.5,
             'Start inner radius derivative': 0.0,
@@ -72,6 +72,10 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'End tenia coli width derivative': 0.0,
             'Tenia coli thickness': 1.6,
             'Wall thickness': 1.6,
+            'Mucosa relative thickness': 0.3,
+            'Submucosa relative thickness': 0.3,
+            'Circular muscle layer relative thickness': 0.3,
+            'Longitudinal muscle layer relative thickness': 0.1,
             'Use cross derivatives' : False,
             'Use linear through wall' : True,
             'Refine' : False,
@@ -103,6 +107,11 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['End tenia coli width'] = 0.8
             options['Tenia coli thickness'] = 0.0
             options['Wall thickness'] = 0.55
+            options['Mucosa relative thickness'] = 0.4
+            options['Submucosa relative thickness'] = 0.1
+            options['Circular muscle layer relative thickness'] = 0.3
+            options['Longitudinal muscle layer relative thickness'] = 0.2
+
         elif 'Pig' in parameterSetName:
             options['Start inner radius'] = 20.0
             options['End inner radius'] = 20.0
@@ -116,6 +125,11 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['End tenia coli width'] = 5.0
             options['Tenia coli thickness'] = 0.5
             options['Wall thickness'] = 2.0
+            options['Mucosa relative thickness'] = 0.34
+            options['Submucosa relative thickness'] = 0.25
+            options['Circular muscle layer relative thickness'] = 0.25
+            options['Longitudinal muscle layer relative thickness'] = 0.16
+
         return options
 
     @staticmethod
@@ -142,6 +156,10 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'End tenia coli width derivative',
             'Tenia coli thickness',
             'Wall thickness',
+            'Mucosa relative thickness',
+            'Submucosa relative thickness',
+            'Circular muscle layer relative thickness',
+            'Longitudinal muscle layer relative thickness',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -179,7 +197,11 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Segment length mid derivative factor',
             'Segment length',
             'Tenia coli thickness',
-            'Wall thickness']:
+            'Wall thickness',
+            'Mucosa relative thickness',
+            'Submucosa relative thickness',
+            'Circular muscle layer relative thickness',
+            'Longitudinal muscle layer relative thickness' ]:
             if options[key] < 0.0:
                 options[key] = 0.0
         if options['Corner inner radius factor'] < 0.1:
@@ -232,6 +254,10 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         endTCWidthDerivative = options['End tenia coli width derivative']
         tcThickness = options['Tenia coli thickness']
         wallThickness = options['Wall thickness']
+        mucosaRelThickness = options['Mucosa relative thickness']
+        submucosaRelThickness = options['Submucosa relative thickness']
+        circularRelThickness = options['Circular muscle layer relative thickness']
+        longitudinalRelThickness = options['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
@@ -306,10 +332,12 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             closedProximalEnd)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
+        relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
+                                 circularRelThickness, longitudinalRelThickness]
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
-            d2WarpedList, d3WarpedUnitList, contractedWallThicknessList,
+            d2WarpedList, d3WarpedUnitList, contractedWallThicknessList, relativeThicknessList,
             elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
 
         xColonSegment = d1ColonSegment = d2ColonSegment = []
@@ -325,7 +353,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
 
             # Create flat coordinates
             xFlat, d1Flat, d2Flat = createFlatCoordinatesTeniaColi(
-                xiList, relaxedLengthList, segmentLength, wallThickness, tcCount, tcThickness,
+                xiList, relaxedLengthList, segmentLength, wallThickness, relativeThicknessList, tcCount, tcThickness,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
                 elementsCountThroughWall, transitElementList, closedProximalEnd)
 
@@ -339,7 +367,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         else:
             # Create flat coordinates
             xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
-                xiList, relaxedLengthList, segmentLength, wallThickness, elementsCountAround,
+                xiList, relaxedLengthList, segmentLength, wallThickness, relativeThicknessList, elementsCountAround,
                 elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
 
             # Create nodes and elements
@@ -1426,7 +1454,7 @@ def combineTeniaColiWithColon(xList, d1List, d2List, d3List, xTC, d1TC, d2TC,
     return x, d1, d2, d3
 
 def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
-    totalLengthAlong, wallThickness, tcCount, tcThickness,
+    totalLengthAlong, wallThickness, relativeThicknessList, tcCount, tcThickness,
     elementsCountAroundTC, elementsCountAroundHaustrum,
     elementsCountAlong, elementsCountThroughWall, transitElementList, closedProximalEnd):
     """
@@ -1438,6 +1466,7 @@ def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
     its most relaxed state for each element along.
     :param totalLengthAlong: Total length along colon.
     :param wallThickness: Thickness of wall.
+    :param relativeThicknessList: Relative thickness of each element through wall.
     :param tcCount: Number of tenia coli.
     :param tcThickness: Thickness of tenia coli at its thickest region.
     :param elementsCountAroundTC: Number of elements around tenia coli.
@@ -1455,8 +1484,8 @@ def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum )*tcCount
 
     # Find flat coordinates for colon
-    xFlatColon, d1FlatColon, d2FlatColon = tubemesh.createFlatCoordinates(xiList, relaxedLengthList,
-                                                                          totalLengthAlong, wallThickness,
+    xFlatColon, d1FlatColon, d2FlatColon = tubemesh.createFlatCoordinates(xiList, relaxedLengthList, totalLengthAlong,
+                                                                          wallThickness, relativeThicknessList,
                                                                           elementsCountAround, elementsCountAlong,
                                                                           elementsCountThroughWall, transitElementList)
 
@@ -1521,7 +1550,7 @@ def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
 
     return xFlat, d1Flat, d2Flat
 
-def createColonCoordinatesTeniaColi(xiList, lengthToDiameterRatio, wallThicknessToDiameterRatio,
+def createColonCoordinatesTeniaColi(xiList, relativeThicknessList, lengthToDiameterRatio, wallThicknessToDiameterRatio,
                                     teniaColiThicknessToDiameterRatio, tcCount, elementsCountAroundTC,
                                     elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
                                     transitElementList, closedProximalEnd):
@@ -1530,6 +1559,7 @@ def createColonCoordinatesTeniaColi(xiList, lengthToDiameterRatio, wallThickness
     with unit inner diameter, length of lengthToDiameterRatio, wall thickness of wallThicknessToDiameterRatio, with
     tenia coli of teniaColiThicknessToDiameterRatio running along its length.
     :param xiList: List containing xi for each point around the outer surface of colon in its most relaxed state.
+    :param relativeThicknessList: Relative thickness for each element through wall.
     :param lengthToDiameterRatio: Ratio of total length along organ to inner diameter of organ
     :param wallThicknessToDiameterRatio: Ratio of wall thickness to inner diameter of organ.
     :param teniaColiThicknessToDiameterRatio: Ratio of tenia coli thickness to inner diameter of organ.
@@ -1546,7 +1576,7 @@ def createColonCoordinatesTeniaColi(xiList, lengthToDiameterRatio, wallThickness
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum )*tcCount
 
     # Find organ coordinates for colon
-    xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, lengthToDiameterRatio,
+    xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessList, lengthToDiameterRatio,
                                                               wallThicknessToDiameterRatio, elementsCountAround,
                                                               elementsCountAlong, elementsCountThroughWall,
                                                               transitElementList)
