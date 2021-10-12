@@ -171,7 +171,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
     @staticmethod
     def checkOptions(options):
         for key in [
-            'Number of elements through wall',
             'Refine number of elements around',
             'Refine number of elements along segment',
             'Refine number of elements through wall']:
@@ -184,6 +183,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                 options[key] = 2
         if options['Number of elements around haustrum'] < 4:
             options['Number of elements around haustrum'] = 4
+        if options['Number of elements through wall'] != 4:
+            options['Number of elements through wall'] = 4
         for key in [
             'Number of elements around tenia coli',
             'Number of elements around haustrum']:
