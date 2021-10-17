@@ -484,6 +484,7 @@ class MeshType_3d_colon1(Scaffold_base):
         lengthToDiameterRatio = 24
         wallThicknessToDiameterRatio = 0.1
         teniaColiThicknessToDiameterRatio = 0.025
+        relativeThicknessListColonCoordinates = [0.25, 0.25, 0.25, 0.25]
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -650,7 +651,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 elementsCountThroughWall, transitElementList, closedProximalEnd)
 
             # Create colon coordinates
-            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, relativeThicknessList,
+            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, relativeThicknessListColonCoordinates,
                                                                        lengthToDiameterRatio,
                                                                        wallThicknessToDiameterRatio,
                                                                        teniaColiThicknessToDiameterRatio, tcCount,
@@ -674,7 +675,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 elementsCountAlong, elementsCountThroughWall, transitElementList)
 
             # Create colon coordinates
-            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessList,
+            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessListColonCoordinates,
                                                                        lengthToDiameterRatio,
                                                                        wallThicknessToDiameterRatio,
                                                                        elementsCountAround,

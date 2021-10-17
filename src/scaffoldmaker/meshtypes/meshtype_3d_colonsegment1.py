@@ -1588,7 +1588,7 @@ def createColonCoordinatesTeniaColi(xiList, relativeThicknessList, lengthToDiame
     with unit inner diameter, length of lengthToDiameterRatio, wall thickness of wallThicknessToDiameterRatio, with
     tenia coli of teniaColiThicknessToDiameterRatio running along its length.
     :param xiList: List containing xi for each point around the outer surface of colon in its most relaxed state.
-    :param relativeThicknessList: Relative thickness for each element through wall.
+    :param relativeThicknessList: Relative thickness for each element through wall for colon coordinates.
     :param lengthToDiameterRatio: Ratio of total length along organ to inner diameter of organ
     :param wallThicknessToDiameterRatio: Ratio of wall thickness to inner diameter of organ.
     :param teniaColiThicknessToDiameterRatio: Ratio of tenia coli thickness to inner diameter of organ.

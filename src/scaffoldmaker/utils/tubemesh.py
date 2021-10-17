@@ -417,7 +417,7 @@ def createOrganCoordinates(xiList, relativeThicknessList, lengthToDiameterRatio,
     Calculates organ coordinates and derivatives represented by a cylindrical tube with a unit inner diameter,
     length equivalent to lengthToDiameterRatio and wall thickness of wallThicknessToDiameterRatio.
     :param xiList: List containing xi for each point around the outer surface of the tube.
-    :param relativeThicknessList: Relative thickness of each element through wall.
+    :param relativeThicknessList: Relative thickness of each element through wall for organ coordinates.
     :param lengthToDiameterRatio: Ratio of total length along organ to inner diameter of organ
     :param wallThicknessToDiameterRatio: Ratio of wall thickness to inner diameter of organ.
     :param elementsCountAround: Number of elements around tube.
