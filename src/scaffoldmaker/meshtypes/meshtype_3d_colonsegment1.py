@@ -1901,7 +1901,12 @@ def createNodesAndElementsTeniaColi(region,
 
     # Create elements
     allAnnotationGroups = []
-    longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
+
+    for group in annotationGroupsThroughWall:
+        longitudinalMuscle = findAnnotationGroupByName(group, "Longitudinal muscle layer of colon")
+
+    if longitudinalMuscle:
+        longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
 
     if closedProximalEnd:
         elementtemplate3 = mesh.createElementtemplate()
@@ -1981,7 +1986,7 @@ def createNodesAndElementsTeniaColi(region,
             element.setScaleFactors(eft4 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[0] + \
-                               [longitudinalMuscleGroup]
+                               ([longitudinalMuscleGroup] if longitudinalMuscle else [])
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2035,7 +2040,7 @@ def createNodesAndElementsTeniaColi(region,
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[elementsCountAround + int(
                     elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[0] + \
-                                   [longitudinalMuscleGroup]
+                                   ([longitudinalMuscleGroup] if longitudinalMuscle else [])
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2083,7 +2088,7 @@ def createNodesAndElementsTeniaColi(region,
             element.setScaleFactors(eft5 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[0] + \
-                               [longitudinalMuscleGroup]
+                               ([longitudinalMuscleGroup] if longitudinalMuscle else [])
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2162,7 +2167,7 @@ def createNodesAndElementsTeniaColi(region,
                 element.setNodesByIdentifier(eftOrgan if eTC < int(elementsCountAroundTC*0.5) - 1 else eftOrgan1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[e2] + \
-                               [longitudinalMuscleGroup]
+                               ([longitudinalMuscleGroup] if longitudinalMuscle else [])
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2231,7 +2236,7 @@ def createNodesAndElementsTeniaColi(region,
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[elementsCountAround + int(
                     elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[e2] + \
-                                   [longitudinalMuscleGroup]
+                                   ([longitudinalMuscleGroup] if longitudinalMuscle else [])
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2281,7 +2286,7 @@ def createNodesAndElementsTeniaColi(region,
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[
                                    elementsCountAround + int(elementsCountAroundTC * (tcCount - 0.5)) + eTC] + \
-                               annotationGroupsAlong[e2] + [longitudinalMuscleGroup]
+                               annotationGroupsAlong[e2] + ([longitudinalMuscleGroup] if longitudinalMuscle else [])
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
