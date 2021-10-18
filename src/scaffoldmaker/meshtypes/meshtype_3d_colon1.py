@@ -483,7 +483,7 @@ class MeshType_3d_colon1(Scaffold_base):
         # Colon coordinates
         lengthToDiameterRatio = 24
         wallThicknessToDiameterRatio = 0.1
-        teniaColiThicknessToDiameterRatio = wallThicknessToDiameterRatio/elementsCountThroughWall
+        teniaColiThicknessToDiameterRatio = 0.25*wallThicknessToDiameterRatio
         relativeThicknessListColonCoordinates = [1.0/elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
 
         firstNodeIdentifier = 1
