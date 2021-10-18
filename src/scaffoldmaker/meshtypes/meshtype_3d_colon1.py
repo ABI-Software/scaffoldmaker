@@ -595,11 +595,11 @@ class MeshType_3d_colon1(Scaffold_base):
                 annotationGroupsThroughWall.append([submucosaGroup])
             if circularRelThickness > 0.0:
                 relativeThicknessList.append(circularRelThickness)
-                circularMuscleGroup = AnnotationGroup(region, get_colon_term("Circular muscle layer of colon"))
+                circularMuscleGroup = AnnotationGroup(region, get_colon_term("circular muscle layer of colon"))
                 annotationGroupsThroughWall.append([circularMuscleGroup])
             if longitudinalRelThickness > 0.0:
                 relativeThicknessList.append(longitudinalRelThickness)
-                longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
+                longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
                 annotationGroupsThroughWall.append([longitudinalMuscleGroup])
             totalProportions = sum(relativeThicknessList)
             for i in range(len(relativeThicknessList)):
