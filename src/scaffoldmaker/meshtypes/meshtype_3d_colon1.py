@@ -601,6 +601,9 @@ class MeshType_3d_colon1(Scaffold_base):
                 relativeThicknessList.append(longitudinalRelThickness)
                 longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
                 annotationGroupsThroughWall.append([longitudinalMuscleGroup])
+            totalProportions = sum(relativeThicknessList)
+            for i in range(len(relativeThicknessList)):
+                relativeThicknessList[i] = relativeThicknessList[i] / totalProportions
         else:
             relativeThicknessList = [1.0]
             annotationGroupsThroughWall = [[]]
