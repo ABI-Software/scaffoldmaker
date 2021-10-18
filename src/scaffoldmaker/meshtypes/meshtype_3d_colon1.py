@@ -6,7 +6,7 @@ variable radius and thickness along.
 
 import copy
 from opencmiss.zinc.element import Element
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints,\
@@ -483,8 +483,8 @@ class MeshType_3d_colon1(Scaffold_base):
         # Colon coordinates
         lengthToDiameterRatio = 24
         wallThicknessToDiameterRatio = 0.1
-        teniaColiThicknessToDiameterRatio = 0.025
-        relativeThicknessListColonCoordinates = [0.25, 0.25, 0.25, 0.25]
+        teniaColiThicknessToDiameterRatio = wallThicknessToDiameterRatio/elementsCountThroughWall
+        relativeThicknessListColonCoordinates = [1.0/elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -576,20 +576,34 @@ class MeshType_3d_colon1(Scaffold_base):
             for n in range(elementsCount):
                 annotationGroupsAlong.append(annotationGroupAlong[i])
 
-        mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
-        submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
-        circularMuscleGroup = AnnotationGroup(region, get_colon_term("Circular muscle layer of colon"))
-        longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
-        annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup], [circularMuscleGroup], [longitudinalMuscleGroup]]
-
         xExtrude = []
         d1Extrude = []
         d2Extrude = []
         d3UnitExtrude = []
         sxRefExtrudeList = []
 
-        relativeThicknessList = [mucosaRelThickness, submucosaRelThickness, circularRelThickness,
-                                 longitudinalRelThickness]
+        if elementsCountThroughWall > 1:
+            relativeThicknessList = []
+            annotationGroupsThroughWall = []
+            if mucosaRelThickness > 0.0:
+                relativeThicknessList.append(mucosaRelThickness)
+                mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+                annotationGroupsThroughWall.append([mucosaGroup])
+            if submucosaRelThickness > 0.0:
+                relativeThicknessList.append(submucosaRelThickness)
+                submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+                annotationGroupsThroughWall.append([submucosaGroup])
+            if circularRelThickness > 0.0:
+                relativeThicknessList.append(circularRelThickness)
+                circularMuscleGroup = AnnotationGroup(region, get_colon_term("Circular muscle layer of colon"))
+                annotationGroupsThroughWall.append([circularMuscleGroup])
+            if longitudinalRelThickness > 0.0:
+                relativeThicknessList.append(longitudinalRelThickness)
+                longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
+                annotationGroupsThroughWall.append([longitudinalMuscleGroup])
+        else:
+            relativeThicknessList = [1.0]
+            annotationGroupsThroughWall = [[]]
 
         # Create object
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
@@ -719,22 +733,22 @@ class MeshType_3d_colon1(Scaffold_base):
         '''
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
-        longitudinalMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                            get_colon_term("Longitudinal muscle layer of colon"))
-        circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                        get_colon_term("Circular muscle layer of colon"))
-        mesh2d = fm.findMeshByDimension(2)
-        is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        longitudinalMuscleGroup = findAnnotationGroupByName(annotationGroups, "Longitudinal muscle layer of colon")
+        circularMuscleGroup = findAnnotationGroupByName(annotationGroups, "Circular muscle layer of colon")
 
-        is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
-        is_serosa = fm.createFieldAnd(is_longitudinalMuscle, is_exterior_face_xi3_1)
-        is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
-        is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
+        if longitudinalMuscleGroup and circularMuscleGroup:
+            mesh2d = fm.findMeshByDimension(2)
+            is_exterior = fm.createFieldIsExterior()
+            is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
 
-        serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
-        serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+            is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
+            is_serosa = fm.createFieldAnd(is_longitudinalMuscle, is_exterior_face_xi3_1)
+            is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
+            is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
 
-        myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                             get_colon_term("myenteric nerve plexus"))
-        myentericPlexus.getMeshGroup(mesh2d).addElementsConditional(is_myentericPlexus)
+            serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
+            serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+
+            myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_colon_term("myenteric nerve plexus"))
+            myentericPlexus.getMeshGroup(mesh2d).addElementsConditional(is_myentericPlexus)

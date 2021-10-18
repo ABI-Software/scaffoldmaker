@@ -11,7 +11,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
@@ -183,7 +183,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                 options[key] = 2
         if options['Number of elements around haustrum'] < 4:
             options['Number of elements around haustrum'] = 4
-        if options['Number of elements through wall'] != 4:
+        if options['Number of elements through wall'] > 4:
             options['Number of elements through wall'] = 4
         for key in [
             'Number of elements around tenia coli',
@@ -305,12 +305,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         for i in range(elementsCountAlongSegment):
             annotationGroupsAlong.append([ ])
 
-        mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
-        submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
-        circularMuscleGroup = AnnotationGroup(region, get_colon_term("Circular muscle layer of colon"))
-        longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
-        annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup], [circularMuscleGroup], [longitudinalMuscleGroup]]
-
         # Create inner points
         nSegment = 0
         closedProximalEnd = False
@@ -330,8 +324,29 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             closedProximalEnd)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
-        relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
-                                 circularRelThickness, longitudinalRelThickness]
+
+        if elementsCountThroughWall > 1:
+            relativeThicknessList = []
+            annotationGroupsThroughWall = []
+            if mucosaRelThickness > 0.0:
+                relativeThicknessList.append(mucosaRelThickness)
+                mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+                annotationGroupsThroughWall.append([mucosaGroup])
+            if submucosaRelThickness > 0.0:
+                relativeThicknessList.append(submucosaRelThickness)
+                submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+                annotationGroupsThroughWall.append([submucosaGroup])
+            if circularRelThickness > 0.0:
+                relativeThicknessList.append(circularRelThickness)
+                circularMuscleGroup = AnnotationGroup(region, get_colon_term("Circular muscle layer of colon"))
+                annotationGroupsThroughWall.append([circularMuscleGroup])
+            if longitudinalRelThickness > 0.0:
+                relativeThicknessList.append(longitudinalRelThickness)
+                longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
+                annotationGroupsThroughWall.append([longitudinalMuscleGroup])
+        else:
+            relativeThicknessList = [1.0]
+            annotationGroupsThroughWall = [[]]
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
@@ -405,24 +420,29 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         '''
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
-        longitudinalMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                            get_colon_term("Longitudinal muscle layer of colon"))
-        circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                            get_colon_term("Circular muscle layer of colon"))
-        mesh2d = fm.findMeshByDimension(2)
-        is_exterior = fm.createFieldIsExterior()
-        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
 
-        is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
-        is_serosa = fm.createFieldAnd(is_longitudinalMuscle, is_exterior_face_xi3_1)
-        is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
-        is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
+        longitudinalMuscleGroup = findAnnotationGroupByName(annotationGroups, "Longitudinal muscle layer of colon")
+        circularMuscleGroup = findAnnotationGroupByName(annotationGroups, "Circular muscle layer of colon")
 
-        serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
-        serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+        if longitudinalMuscleGroup and circularMuscleGroup:
+            # longitudinalMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
+            #                                                     get_colon_term("Longitudinal muscle layer of colon"))
+            # circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
+            #                                                     get_colon_term("Circular muscle layer of colon"))
+            mesh2d = fm.findMeshByDimension(2)
+            is_exterior = fm.createFieldIsExterior()
+            is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
 
-        myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("myenteric nerve plexus"))
-        myentericPlexus.getMeshGroup(mesh2d).addElementsConditional(is_myentericPlexus)
+            is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
+            is_serosa = fm.createFieldAnd(is_longitudinalMuscle, is_exterior_face_xi3_1)
+            is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
+            is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
+
+            serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
+            serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+
+            myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("myenteric nerve plexus"))
+            myentericPlexus.getMeshGroup(mesh2d).addElementsConditional(is_myentericPlexus)
 
 class ColonSegmentTubeMeshInnerPoints:
     """
@@ -1887,6 +1907,7 @@ def createNodesAndElementsTeniaColi(region,
 
     # Create elements
     allAnnotationGroups = []
+    longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("Longitudinal muscle layer of colon"))
 
     if closedProximalEnd:
         elementtemplate3 = mesh.createElementtemplate()
@@ -1965,7 +1986,8 @@ def createNodesAndElementsTeniaColi(region,
             element.setNodesByIdentifier(eft4 if tetrahedralElement else eft6, nodeIdentifiers)
             element.setScaleFactors(eft4 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
-            annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[0]
+            annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[0] + \
+                               [longitudinalMuscleGroup]
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2018,7 +2040,8 @@ def createNodesAndElementsTeniaColi(region,
 
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[elementsCountAround + int(
-                    elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[0]
+                    elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[0] + \
+                                   [longitudinalMuscleGroup]
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2065,7 +2088,8 @@ def createNodesAndElementsTeniaColi(region,
             element.setNodesByIdentifier(eft5 if tetrahedralElement else eft6, nodeIdentifiers)
             element.setScaleFactors(eft5 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
-            annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[0]
+            annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[0] + \
+                               [longitudinalMuscleGroup]
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2144,7 +2168,7 @@ def createNodesAndElementsTeniaColi(region,
                 element.setNodesByIdentifier(eftOrgan if eTC < int(elementsCountAroundTC*0.5) - 1 else eftOrgan1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[e2] + \
-                               annotationGroupsThroughWall[-1]
+                               [longitudinalMuscleGroup]
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
@@ -2213,7 +2237,7 @@ def createNodesAndElementsTeniaColi(region,
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[elementsCountAround + int(
                     elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[e2] + \
-                                   annotationGroupsThroughWall[-1]
+                                   [longitudinalMuscleGroup]
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2263,7 +2287,7 @@ def createNodesAndElementsTeniaColi(region,
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[
                                    elementsCountAround + int(elementsCountAroundTC * (tcCount - 0.5)) + eTC] + \
-                               annotationGroupsAlong[e2] + annotationGroupsThroughWall[-1]
+                               annotationGroupsAlong[e2] + [longitudinalMuscleGroup]
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:
