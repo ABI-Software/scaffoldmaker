@@ -124,7 +124,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         colonCoordinates = fieldmodule.findFieldByName("colon coordinates").castFiniteElement()
         minimums, maximums = evaluateFieldNodesetRange(colonCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [-0.6, 0.0, -0.6], 1.0E-4)
-        assertAlmostEqualList(self, maximums, [ 0.6, 24.0, 0.605], 1.0E-4)
+        assertAlmostEqualList(self, maximums, [ 0.6, 24.0, 0.625], 1.0E-4)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
