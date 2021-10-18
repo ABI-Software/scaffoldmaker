@@ -741,7 +741,12 @@ class MeshType_3d_colon1(Scaffold_base):
         colonGroup = getAnnotationGroupForTerm(annotationGroups, get_colon_term("colon"))
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_colon = colonGroup.getFieldElementGroup(mesh2d)
         is_serosa = fm.createFieldAnd(is_colon, is_exterior_face_xi3_1)
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
         serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+        is_mucosaInnerSurface = fm.createFieldAnd(is_colon, is_exterior_face_xi3_0)
+        mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_colon_term("inner surface of colonic mucosa"))
+        mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
