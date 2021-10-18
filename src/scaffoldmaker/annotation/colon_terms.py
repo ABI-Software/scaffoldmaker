@@ -13,7 +13,6 @@ colon_terms = [
     ( "distal colon", "UBERON:0008971", "ILX:0727523"),
     ( "Longitudinal muscle layer of colon", "ILX:0775554"),
     ( "mesenteric zone", "None"),
-    ( "myenteric nerve plexus", "UBERON:0002439", "FMA:63252", "ILX:0725342"),
     ( "non-mesenteric zone", "None"),
     ( "proximal colon", "UBERON:0008972", "ILX:0733240"),
     ( "serosa of colon", "UBERON:0003335", "FMA:14990", "ILX:0736932"),

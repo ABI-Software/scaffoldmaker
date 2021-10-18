@@ -742,15 +742,3 @@ class MeshType_3d_colon1(Scaffold_base):
         is_serosa = fm.createFieldAnd(is_colon, is_exterior_face_xi3_1)
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
         serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
-
-        longitudinalMuscleGroup = findAnnotationGroupByName(annotationGroups, "Longitudinal muscle layer of colon")
-        circularMuscleGroup = findAnnotationGroupByName(annotationGroups, "Circular muscle layer of colon")
-
-        if longitudinalMuscleGroup and circularMuscleGroup:
-            is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
-            is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
-            is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
-
-            myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 get_colon_term("myenteric nerve plexus"))
-            myentericPlexus.getMeshGroup(mesh2d).addElementsConditional(is_myentericPlexus)
