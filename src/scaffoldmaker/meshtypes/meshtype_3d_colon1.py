@@ -6,7 +6,7 @@ variable radius and thickness along.
 
 import copy
 from opencmiss.zinc.element import Element
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints,\
@@ -733,21 +733,23 @@ class MeshType_3d_colon1(Scaffold_base):
         '''
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
+
+        colonGroup = getAnnotationGroupForTerm(annotationGroups, get_colon_term("colon"))
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_colon = colonGroup.getFieldElementGroup(mesh2d)
+        is_serosa = fm.createFieldAnd(is_colon, is_exterior_face_xi3_1)
+        serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
+        serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+
         longitudinalMuscleGroup = findAnnotationGroupByName(annotationGroups, "Longitudinal muscle layer of colon")
         circularMuscleGroup = findAnnotationGroupByName(annotationGroups, "Circular muscle layer of colon")
 
         if longitudinalMuscleGroup and circularMuscleGroup:
-            mesh2d = fm.findMeshByDimension(2)
-            is_exterior = fm.createFieldIsExterior()
-            is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-
             is_longitudinalMuscle = longitudinalMuscleGroup.getFieldElementGroup(mesh2d)
-            is_serosa = fm.createFieldAnd(is_longitudinalMuscle, is_exterior_face_xi3_1)
             is_circularMuscle = circularMuscleGroup.getFieldElementGroup(mesh2d)
             is_myentericPlexus = fm.createFieldAnd(is_longitudinalMuscle, is_circularMuscle)
-
-            serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
-            serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
 
             myentericPlexus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                  get_colon_term("myenteric nerve plexus"))
