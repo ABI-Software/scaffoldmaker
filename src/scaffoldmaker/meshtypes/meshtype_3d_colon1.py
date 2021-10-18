@@ -295,9 +295,9 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Transverse length'] = 3500.0
             options['Distal length'] = 1650.0
             options['Proximal inner radius'] = 35.0
-            options['Proximal tenia coli width'] = 3.0
+            options['Proximal tenia coli width'] = 12.0
             options['Proximal-transverse inner radius'] = 15.0
-            options['Proximal-transverse tenia coli width'] = 3.0
+            options['Proximal-transverse tenia coli width'] = 6.0
             options['Transverse-distal inner radius'] = 9.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal inner radius'] = 10.5
