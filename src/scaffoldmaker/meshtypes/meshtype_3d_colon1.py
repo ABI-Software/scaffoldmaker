@@ -582,31 +582,18 @@ class MeshType_3d_colon1(Scaffold_base):
         d3UnitExtrude = []
         sxRefExtrudeList = []
 
-        if elementsCountThroughWall > 1:
-            relativeThicknessList = []
-            annotationGroupsThroughWall = []
-            if mucosaRelThickness > 0.0:
-                relativeThicknessList.append(mucosaRelThickness)
-                mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
-                annotationGroupsThroughWall.append([mucosaGroup])
-            if submucosaRelThickness > 0.0:
-                relativeThicknessList.append(submucosaRelThickness)
-                submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
-                annotationGroupsThroughWall.append([submucosaGroup])
-            if circularRelThickness > 0.0:
-                relativeThicknessList.append(circularRelThickness)
-                circularMuscleGroup = AnnotationGroup(region, get_colon_term("circular muscle layer of colon"))
-                annotationGroupsThroughWall.append([circularMuscleGroup])
-            if longitudinalRelThickness > 0.0:
-                relativeThicknessList.append(longitudinalRelThickness)
-                longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
-                annotationGroupsThroughWall.append([longitudinalMuscleGroup])
-            totalProportions = sum(relativeThicknessList)
-            for i in range(len(relativeThicknessList)):
-                relativeThicknessList[i] = relativeThicknessList[i] / totalProportions
-        else:
+        if elementsCountThroughWall == 1:
             relativeThicknessList = [1.0]
             annotationGroupsThroughWall = [[]]
+        else:
+            relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
+                                     circularRelThickness, longitudinalRelThickness]
+            mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+            submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+            circularMuscleGroup = AnnotationGroup(region, get_colon_term("circular muscle layer of colon"))
+            longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
+            annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup],
+                                           [circularMuscleGroup], [longitudinalMuscleGroup]]
 
         # Create object
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
