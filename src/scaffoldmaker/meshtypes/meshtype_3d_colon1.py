@@ -5,11 +5,12 @@ variable radius and thickness along.
 """
 
 import copy
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from opencmiss.zinc.element import Element
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints,\
-    getTeniaColi, createFlatAndTextureCoordinatesTeniaColi, createNodesAndElementsTeniaColi
+    getTeniaColi, createFlatCoordinatesTeniaColi, createColonCoordinatesTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -294,9 +295,9 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Transverse length'] = 3500.0
             options['Distal length'] = 1650.0
             options['Proximal inner radius'] = 35.0
-            options['Proximal tenia coli width'] = 3.0
+            options['Proximal tenia coli width'] = 12.0
             options['Proximal-transverse inner radius'] = 15.0
-            options['Proximal-transverse tenia coli width'] = 3.0
+            options['Proximal-transverse tenia coli width'] = 6.0
             options['Transverse-distal inner radius'] = 9.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal inner radius'] = 10.5
@@ -313,11 +314,11 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Proximal inner radius'] = 1.0
             options['Proximal tenia coli width'] = 0.5
             options['Proximal-transverse inner radius'] = 0.9
-            options['Proximal-transverse tenia coli width'] = 0.7
+            options['Proximal-transverse tenia coli width'] = 0.5
             options['Transverse-distal inner radius'] = 0.7
-            options['Transverse-distal tenia coli width'] = 1.0
+            options['Transverse-distal tenia coli width'] = 0.5
             options['Distal inner radius'] = 0.7
-            options['Distal tenia coli width'] = 1.0
+            options['Distal tenia coli width'] = 0.5
         elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 120
             options['Proximal length'] = 3000.0
@@ -471,9 +472,19 @@ class MeshType_3d_colon1(Scaffold_base):
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
         wallThickness = segmentSettings['Wall thickness']
+        mucosaRelThickness = segmentSettings['Mucosa relative thickness']
+        submucosaRelThickness = segmentSettings['Submucosa relative thickness']
+        circularRelThickness = segmentSettings['Circular muscle layer relative thickness']
+        longitudinalRelThickness = segmentSettings['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
         useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
+
+        # Colon coordinates
+        lengthToDiameterRatio = 24
+        wallThicknessToDiameterRatio = 0.1
+        teniaColiThicknessToDiameterRatio = 0.25*wallThicknessToDiameterRatio
+        relativeThicknessListColonCoordinates = [1.0/elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -565,15 +576,24 @@ class MeshType_3d_colon1(Scaffold_base):
             for n in range(elementsCount):
                 annotationGroupsAlong.append(annotationGroupAlong[i])
 
-        annotationGroupsThroughWall = []
-        for i in range(elementsCountThroughWall):
-            annotationGroupsThroughWall.append([ ])
-
         xExtrude = []
         d1Extrude = []
         d2Extrude = []
         d3UnitExtrude = []
         sxRefExtrudeList = []
+
+        if elementsCountThroughWall == 1:
+            relativeThicknessList = [1.0]
+            annotationGroupsThroughWall = [[]]
+        else:
+            relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
+                                     circularRelThickness, longitudinalRelThickness]
+            mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+            submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+            circularMuscleGroup = AnnotationGroup(region, get_colon_term("circular muscle layer of colon"))
+            longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
+            annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup],
+                                           [circularMuscleGroup], [longitudinalMuscleGroup]]
 
         # Create object
         colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
@@ -613,7 +633,7 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, contractedWallThicknessList,
+            d2Extrude, d3UnitExtrude, contractedWallThicknessList, relativeThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
@@ -628,30 +648,48 @@ class MeshType_3d_colon1(Scaffold_base):
                 tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroupsAround,
                 closedProximalEnd)
 
-            # Create flat and texture coordinates
-            xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = createFlatAndTextureCoordinatesTeniaColi(
-                xiList, relaxedLengthList, length, wallThickness, tcCount, tcThickness,
+            # Create flat coordinates
+            xFlat, d1Flat, d2Flat = createFlatCoordinatesTeniaColi(
+                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, tcCount, tcThickness,
                 elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
                 elementsCountThroughWall, transitElementList, closedProximalEnd)
 
+            # Create colon coordinates
+            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, relativeThicknessListColonCoordinates,
+                                                                       lengthToDiameterRatio,
+                                                                       wallThicknessToDiameterRatio,
+                                                                       teniaColiThicknessToDiameterRatio, tcCount,
+                                                                       elementsCountAroundTC,
+                                                                       elementsCountAroundHaustrum,
+                                                                       elementsCountAlong, elementsCountThroughWall,
+                                                                       transitElementList, closedProximalEnd)
+
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
-                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
-                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
-                closedProximalEnd)
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
+                "colon coordinates", elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
+                elementsCountThroughWall, tcCount, annotationGroupsAround, annotationGroupsAlong,
+                annotationGroupsThroughWall, firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall,
+                useCrossDerivatives, closedProximalEnd)
 
         else:
-            # Create flat and texture coordinates
-            xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
-                xiList, relaxedLengthList, length, wallThickness, elementsCountAround,
+            # Create flat coordinates
+            xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
+                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, elementsCountAround,
                 elementsCountAlong, elementsCountThroughWall, transitElementList)
+
+            # Create colon coordinates
+            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessListColonCoordinates,
+                                                                       lengthToDiameterRatio,
+                                                                       wallThicknessToDiameterRatio,
+                                                                       elementsCountAround,
+                                                                       elementsCountAlong, elementsCountThroughWall,
+                                                                       transitElementList)
 
             # Create nodes and elements
             nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
-                elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
+                "colon coordinates", elementsCountAround, elementsCountAlong, elementsCountThroughWall,
                 annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)
@@ -672,3 +710,30 @@ class MeshType_3d_colon1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
                                                        refineElementsCountThroughWall)
         return
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        '''
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        '''
+        # Create 2d surface mesh groups
+        fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
+
+        colonGroup = getAnnotationGroupForTerm(annotationGroups, get_colon_term("colon"))
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_colon = colonGroup.getFieldElementGroup(mesh2d)
+        is_serosa = fm.createFieldAnd(is_colon, is_exterior_face_xi3_1)
+        serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
+        serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+        is_mucosaInnerSurface = fm.createFieldAnd(is_colon, is_exterior_face_xi3_0)
+        mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_colon_term("inner surface of colonic mucosa"))
+        mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)

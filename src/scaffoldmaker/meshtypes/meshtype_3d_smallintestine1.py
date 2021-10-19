@@ -859,6 +859,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         d1Extrude = []
         d2Extrude = []
         d3UnitExtrude = []
+        relativeThicknessList = []
 
         # Create object
         smallIntestineSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
@@ -916,19 +917,21 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, [wallThickness]*(elementsCountAlong+1),
+            d2Extrude, d3UnitExtrude, [wallThickness]*(elementsCountAlong+1), relativeThicknessList,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         flatWidthList, xiList = smallIntestineSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()
 
-        # Create flat and texture coordinates
-        xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture = tubemesh.createFlatAndTextureCoordinates(
-            xiList, flatWidthList, length, wallThickness, elementsCountAround,
+        # Create flat coordinates
+        xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
+            xiList, flatWidthList, length, wallThickness, relativeThicknessList, elementsCountAround,
             elementsCountAlong, elementsCountThroughWall, transitElementList)
+
+        xOrgan = d1Organ = d2Organ = []
 
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xTexture, d1Texture, d2Texture,
+            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
