@@ -67,7 +67,7 @@ with variable numbers of elements across axes and shell directions.
             'Full': True,
             'Use cross derivatives': False,
             'Refine': False,
-            'Refine number of elements across': 1,
+            'Refine number of elements': 1,
         }
         return options
 
@@ -88,7 +88,7 @@ with variable numbers of elements across axes and shell directions.
             'Hemisphere',
             'Full',
             'Refine',
-            'Refine number of elements across'
+            'Refine number of elements'
         ]
 
     @classmethod
@@ -241,5 +241,5 @@ with variable numbers of elements across axes and shell directions.
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshRefinement, MeshRefinement)
-        refineElementsCountAcross = options['Refine number of elements across']
+        refineElementsCountAcross = options['Refine number of elements']
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcross, refineElementsCountAcross, refineElementsCountAcross)

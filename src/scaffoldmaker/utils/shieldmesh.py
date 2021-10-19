@@ -1111,6 +1111,7 @@ class ShieldMesh3D:
 
                         if e2o == e2bo:
                             self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_2_UP)
+                            self.remap_eft_node_value_label(eft1, [lnm[5]], self.QUADRUPLE0_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.QUADRUPLE_UP)
                             if e2bo == e2zo:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_23_UP)
