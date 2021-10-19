@@ -91,7 +91,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         del tmpRegion
 
         annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
-        self.assertEqual(7, len(annotationGroups))
+        self.assertEqual(11, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -99,13 +99,13 @@ class ColonScaffoldTestCase(unittest.TestCase):
             for annotationGroup in annotationGroups:
                 annotationGroup.addSubelements()
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(432, mesh3d.getSize())
+        self.assertEqual(1512, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(1656, mesh2d.getSize())
+        self.assertEqual(4986, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(2043, mesh1d.getSize())
+        self.assertEqual(5463, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(819, nodes.getSize())
+        self.assertEqual(1989, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -121,10 +121,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 186.72988844629867, 77.41781871321301, 3.2000000000000006 ], 1.0E-6)
 
-        textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
-        minimums, maximums = evaluateFieldNodesetRange(textureCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 0.9812471574796385, 1.0, 2.0 ], 1.0E-6)
+        colonCoordinates = fieldmodule.findFieldByName("colon coordinates").castFiniteElement()
+        minimums, maximums = evaluateFieldNodesetRange(colonCoordinates, nodes)
+        assertAlmostEqualList(self, minimums, [-0.6, 0.0, -0.6], 1.0E-4)
+        assertAlmostEqualList(self, maximums, [ 0.6, 24.0, 0.625], 1.0E-4)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -139,7 +139,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(surfaceArea, 14612.416789097502, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 26826.06954301569, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 26825.42839677291, delta=1.0E-6)
 
     def test_mousecolon1(self):
         """
@@ -150,38 +150,38 @@ class ColonScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
-        self.assertEqual(6, len(annotationGroups))
+        self.assertEqual(10, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(400, mesh3d.getSize())
+        self.assertEqual(1600, mesh3d.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
-        textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
-        self.assertTrue(textureCoordinates.isValid())
+        colonCoordinates = fieldmodule.findFieldByName("colon coordinates").castFiniteElement()
+        self.assertTrue(colonCoordinates.isValid())
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
             flatSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, flatCoordinates, faceMeshGroup)
             flatSurfaceAreaField.setNumbersOfPoints(4)
-            textureSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, textureCoordinates, faceMeshGroup)
-            textureSurfaceAreaField.setNumbersOfPoints(4)
-            textureVolumeField = fieldmodule.createFieldMeshIntegral(one, textureCoordinates, mesh3d)
-            textureVolumeField.setNumbersOfPoints(3)
+            colonSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, colonCoordinates, faceMeshGroup)
+            colonSurfaceAreaField.setNumbersOfPoints(4)
+            colonVolumeField = fieldmodule.createFieldMeshIntegral(one, colonCoordinates, mesh3d)
+            colonVolumeField.setNumbersOfPoints(3)
         fieldcache = fieldmodule.createFieldcache()
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 629.440514706522, delta=1.0E-6)
-        result, textureSurfaceArea = textureSurfaceAreaField.evaluateReal(fieldcache, 1)
+        self.assertAlmostEqual(flatSurfaceArea, 629.4883774904393, delta=1.0E-6)
+        result, colonSurfaceArea = colonSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(textureSurfaceArea, 1.0, delta=1.0E-6)
-        result, textureVolume = textureVolumeField.evaluateReal(fieldcache, 1)
+        self.assertAlmostEqual(colonSurfaceArea, 90.4578820802557, delta=1.0E-6)
+        result, colonVolume = colonVolumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(textureVolume, 1.0, delta=1.0E-6)
+        self.assertAlmostEqual(colonVolume, 8.290058800222006, delta=1.0E-6)
 
 if __name__ == "__main__":
     unittest.main()
