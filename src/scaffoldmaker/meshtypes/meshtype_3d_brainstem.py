@@ -3,19 +3,22 @@ Brainstem mesh using a tapered cylinder
 """
 
 from __future__ import division
+
 import copy
+
+from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
+    findOrCreateFieldStoredString
+from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.node import Node
-from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
-from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.brainstem_terms import get_brainstem_annotation_term
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, Tapered, ConeBaseProgression, CylinderCentralPath
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
 
 class MeshType_3d_brainstem1(Scaffold_base):

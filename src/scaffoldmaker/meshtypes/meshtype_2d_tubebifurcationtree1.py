@@ -4,7 +4,6 @@ Generates a 2-D tube bifurcation mesh.
 
 from __future__ import division
 import math
-from opencmiss.utils.maths.vectorops import cross, mult, normalize, sub
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -12,7 +11,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bif
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.bifurcation import get_curve_circle_points, \
-    make_tube_bifurcation_points, make_tube_bifurcation_elements_2d
+    make_tube_bifurcation_points
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import getCubicHermiteArcLength
 

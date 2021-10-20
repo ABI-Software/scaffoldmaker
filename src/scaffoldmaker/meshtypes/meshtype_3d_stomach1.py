@@ -5,31 +5,33 @@ wall, with variable radius and thickness along.
 """
 
 from __future__ import division
-import math
+
 import copy
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
-    getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
-from scaffoldmaker.annotation.stomach_terms import get_stomach_term
+import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
+    getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
-from scaffoldmaker.utils.bifurcation import get_bifurcation_triple_point
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.eft_utils import scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftNodeValueLabel
-from scaffoldmaker.utils.geometry import createEllipsePoints
-from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
+from scaffoldmaker.utils.bifurcation import get_bifurcation_triple_point
+from scaffoldmaker.utils.eft_utils import scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftNodeValueLabel
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.geometry import createEllipsePoints
+from scaffoldmaker.utils.tracksurface import TrackSurface
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
 
 class MeshType_3d_stomach1(Scaffold_base):

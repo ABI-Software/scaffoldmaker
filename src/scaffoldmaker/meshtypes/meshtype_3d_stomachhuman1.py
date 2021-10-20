@@ -4,6 +4,7 @@ Provenance information at http://models.cellml.org/workspace/516
 """
 
 from __future__ import division
+
 import numpy as np
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFibres
 from opencmiss.zinc.context import Context
@@ -13,6 +14,7 @@ from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scipy.interpolate import splprep, splev
+
 
 class Stomach:
     '''

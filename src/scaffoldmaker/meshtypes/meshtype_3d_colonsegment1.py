@@ -7,6 +7,7 @@ and thickness along.
 
 import copy
 import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -14,13 +15,14 @@ from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import matrix
+from scaffoldmaker.utils import tubemesh
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
-from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
+
 
 class MeshType_3d_colonsegment1(Scaffold_base):
     '''

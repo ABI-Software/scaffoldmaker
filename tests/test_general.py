@@ -1,6 +1,7 @@
 import unittest
-from opencmiss.utils.maths.vectorops import magnitude
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+
+from opencmiss.maths.vectorops import magnitude
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -10,11 +11,11 @@ from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
-from testutils import assertAlmostEqualList
-
 from scaffoldmaker.utils.zinc_utils import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
     nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
+
+from testutils import assertAlmostEqualList
 
 
 class GeneralScaffoldTestCase(unittest.TestCase):

@@ -1,5 +1,6 @@
 import copy
 import unittest
+
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
@@ -12,7 +13,9 @@ from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues
+
 from testutils import assertAlmostEqualList
+
 
 class ColonScaffoldTestCase(unittest.TestCase):
 

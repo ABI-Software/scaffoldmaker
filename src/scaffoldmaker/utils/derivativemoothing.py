@@ -2,14 +2,14 @@
 Class for globally smoothing field derivatives.
 '''
 from __future__ import division
+
 import math
-from opencmiss.utils.maths.vectorops import add, magnitude
+
+from opencmiss.maths.vectorops import magnitude
 from opencmiss.utils.zinc.field import findOrCreateFieldGroup
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.result import RESULT_OK as ZINC_OK
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteArcLength, interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.vector import setMagnitude
 

@@ -4,14 +4,15 @@ around, up the central axis, and radially.
 """
 
 from __future__ import division
+
 import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+
 
 class MeshType_3d_lens1(Scaffold_base):
     '''

@@ -3,11 +3,13 @@ Generates a 1-D tree of bifurcating curves with radius.
 """
 
 from __future__ import division
-from math import cos, radians, sin, sqrt
-from opencmiss.utils.maths.vectorops import add, cross, magnitude, mult, normalize, sub
+
+from math import cos, radians, sin
+
+from opencmiss.maths.vectorops import add, cross, magnitude, mult, normalize, sub
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFiniteElement
-from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base

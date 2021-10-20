@@ -5,11 +5,13 @@ Supports serialisation to/from JSON. Can be used as a scaffold option.
 
 import copy
 import math
+
+from opencmiss.maths.vectorops import euler_to_rotation_matrix
 from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.utils.maths.vectorops import euler_to_rotation_matrix
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+
 
 class ScaffoldPackage:
     '''

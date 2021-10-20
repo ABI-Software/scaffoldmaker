@@ -5,21 +5,23 @@ Bicubic with linear through wall.
 """
 
 from __future__ import division
+
 import math
-from opencmiss.utils.maths.vectorops import eulerToRotationMatrix3
+
+from opencmiss.maths.vectorops import eulerToRotationMatrix3
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.geometry import createCirclePoints
-from scaffoldmaker.utils.interpolation import interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.geometry import createCirclePoints
+from scaffoldmaker.utils.interpolation import interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import vector
+
 
 class MeshType_3d_heartarterialvalve1(Scaffold_base):
     '''

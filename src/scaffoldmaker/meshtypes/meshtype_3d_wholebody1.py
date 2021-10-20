@@ -4,25 +4,26 @@ Generates body coordinates using a solid cylinder of all cube elements,
 """
 
 from __future__ import division
-import math
+
 import copy
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup,\
+
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
-from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.element import Element
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm, mergeAnnotationGroups
-from scaffoldmaker.annotation.body_terms import get_body_term
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field
 from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
+from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.body_terms import get_body_term
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import setMagnitude
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
 
 class MeshType_3d_wholebody1(Scaffold_base):
