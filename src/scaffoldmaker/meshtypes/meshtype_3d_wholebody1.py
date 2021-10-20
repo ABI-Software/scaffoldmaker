@@ -9,17 +9,18 @@ import copy
 
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
-from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
+from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from opencmiss.zinc.node import Node
+from opencmiss.zinc.element import Element
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
+from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms, brainstem_terms
+from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field, FieldFindMeshLocation
+from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import setMagnitude
@@ -62,30 +63,36 @@ Generates body coordinates using a solid cylinder of all cube elements,
     def getParameterSetNames():
         return [
             'Default',
-            'Coarse',
-            'Fine']
+            'Human Coarse',
+            'Human Fine',
+            'Rat Coarse',
+            'Rat Fine'
+        ]
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
+        if parameterSetName == 'Default':
+            parameterSetName = 'Human Coarse'
         centralPathOption = cls.centralPathDefaultScaffoldPackages['Default']
-        options = {
-            'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements across major': 6,
-            'Number of elements across minor': 6,
-            'Number of elements across shell': 1,
-            'Number of elements across transition': 1,
-            'Number of elements in abdomen': 5,
-            'Number of elements in thorax': 3,
-            'Number of elements in neck': 1,
-            'Number of elements in head': 2,
-            'Shell thickness proportion': 0.2,
-            'Discontinuity on the core boundary': True,
-            'Lower half': False,
-            'Use cross derivatives': False,
-            'Refine': False,
-            'Refine number of elements across major': 1,
-            'Refine number of elements along': 1
-        }
+        options = {}
+        options['Base parameter set'] = parameterSetName
+        options['Central path'] = copy.deepcopy(centralPathOption)
+        options['Number of elements across major'] = 6
+        options['Number of elements across minor'] = 6
+        options['Number of elements across shell'] = 1
+        options['Number of elements across transition'] = 1
+        options['Number of elements in abdomen'] = 5
+        options['Number of elements in thorax'] = 3
+        options['Number of elements in neck'] = 1
+        options['Number of elements in head'] = 2
+        options['Shell thickness proportion'] = 0.2
+        options['Discontinuity on the core boundary'] = True
+        options['Lower half'] = False
+        options['Use cross derivatives'] = False
+        options['Refine'] = False
+        options['Refine number of elements across major'] = 1
+        options['Refine number of elements along'] = 1
+
         if 'Coarse' in parameterSetName:
             pass
         if 'Fine' in parameterSetName:
@@ -196,6 +203,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
         :return: List of AnnotationGroup
         """
 
+        baseParameterSetName = options['Base parameter set']
+        isHuman = 'Human' in baseParameterSetName
+        isRat = 'Rat' in baseParameterSetName
+
         centralPath = options['Central path']
         full = not options['Lower half']
         elementsCountAcrossMajor = options['Number of elements across major']
@@ -239,6 +250,28 @@ Generates body coordinates using a solid cylinder of all cube elements,
         cylinder1 = CylinderMesh(fieldmodule, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+
+        # body coordinates
+        bodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="body coordinates")
+        tmp_region = region.createRegion()
+        tmp_fieldmodule = tmp_region.getFieldmodule()
+        tmp_body_coordinates = findOrCreateFieldCoordinates(tmp_fieldmodule, name="body coordinates")
+        tmp_cylinder = CylinderMesh(tmp_fieldmodule, tmp_body_coordinates, elementsCountAlong, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+        sir = tmp_region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        tmp_region.write(sir)
+        result, buffer = srm.getBuffer()
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemoryBuffer(buffer)
+        region.read(sir)
+
+        del srm
+        del sir
+        del tmp_body_coordinates
+        del tmp_fieldmodule
+        del tmp_region
 
         # Groups of different parts of the body
         is_body = fieldmodule.createFieldConstant(1)
@@ -348,11 +381,13 @@ Generates body coordinates using a solid cylinder of all cube elements,
         markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
         markerName = findOrCreateFieldStoredString(fieldmodule, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fieldmodule, mesh, name="marker_location")
+        markerBodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="marker_body_coordinates")
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
+        markerTemplateInternal.defineField(markerBodyCoordinates)
         #
         middleLeft = elementsCountAcrossMinor//2
         topElem = elementsCountAcrossMajor - 1
@@ -361,27 +396,115 @@ Generates body coordinates using a solid cylinder of all cube elements,
         thoraxFirstElem = elementsCountAlongAbdomen
         middleDown = elementsCountAcrossMajor//2 - 1
 
-        bodyMarkerPoints = [
-            {"name": "left hip joint", "elementId": elementId[1][0][middleLeft], "xi": [0.8, 0.5, 0.5]},
-            {"name": "right hip joint", "elementId": elementId[1][topElem][middleLeft], "xi": [0.2, 0.5, 0.5]},
-            {"name": "left shoulder joint", "elementId": elementId[neckFirstElem][0][middleRight], "xi": [0.8, 0.5, 0.5]},
-            {"name": "right shoulder joint", "elementId": elementId[neckFirstElem][topElem][middleRight], "xi": [0.2, 0.5, 0.5]},
-            {"name": "along left femur", "elementId": elementId[1][0][middleLeft], "xi": [0.2, 0.99, 0.5]},
-            {"name": "along right femur", "elementId": elementId[1][topElem][middleLeft], "xi": [0.8, 0.99, 0.5]},
-            {"name": "along left humerus", "elementId": elementId[neckFirstElem][0][middleRight], "xi": [0.5, 0.0, 0.5]},
-            {"name": "along right humerus", "elementId": elementId[neckFirstElem][topElem][middleRight], "xi": [0.5, 0.0, 0.5]},
-            {"name": "heart apex", "elementId": elementId[thoraxFirstElem][middleDown][middleRight], "xi": [0.5, 0.5, 0.0]},
-            {"name": "atrial base", "elementId": elementId[thoraxFirstElem + 1][middleDown][middleRight], "xi": [0.7, 0.5, 0.0]},
-            {"name": "aorta", "elementId": elementId[thoraxFirstElem + 1][middleDown][middleRight], "xi": [0.7, 0.5, 0.2]}
-        ]
+        # organ landmarks groups
+        apexOfHeart = heart_terms.get_heart_term('apex of heart')
+        leftAtriumEpicardiumVenousMidpoint = heart_terms.get_heart_term('left atrium epicardium venous midpoint')
+        rightAtriumEpicardiumVenousMidpoint = heart_terms.get_heart_term('right atrium epicardium venous midpoint')
+        apexOfUrinaryBladder = bladder_terms.get_bladder_term('apex of urinary bladder')
+        leftUreterJunctionWithBladder = bladder_terms.get_bladder_term('left ureter junction with bladder')
+        rightUreterJunctionWithBladder = bladder_terms.get_bladder_term('right ureter junction with bladder')
+        urethraJunctionWithBladderDorsal = bladder_terms.get_bladder_term('urethra junction of dorsal bladder neck')
+        urethraJunctionWithBladderVentral = bladder_terms.get_bladder_term('urethra junction of ventral bladder neck')
+        gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term('gastro-esophagal junction on lesser curvature')
+        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge on greater curvature')
+        pylorusOnGreaterCurvature = stomach_terms.get_stomach_term('pylorus on greater curvature')
+        duodenumOnGreaterCurvature = stomach_terms.get_stomach_term('duodenum on greater curvature')
+        junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("junction between fundus and body on greater curvature")
+        apexOfLeftLung = lung_terms.get_lung_term('apex of left lung')
+        ventralBaseOfLeftLung = lung_terms.get_lung_term('ventral base of left lung')
+        dorsalBaseOfLeftLung = lung_terms.get_lung_term('dorsal base of left lung')
+        apexOfRightLung = lung_terms.get_lung_term('apex of right lung')
+        ventralBaseOfRightLung = lung_terms.get_lung_term('ventral base of right lung')
+        dorsalBaseOfRightLung = lung_terms.get_lung_term('dorsal base of right lung')
+        laterodorsalTipOfMiddleLobeOfRightLung = lung_terms.get_lung_term('laterodorsal tip of middle lobe of right lung')
+        apexOfRightLungAccessoryLobe = lung_terms.get_lung_term('apex of right lung accessory lobe')
+        ventralBaseOfRightLungAccessoryLobe = lung_terms.get_lung_term('ventral base of right lung accessory lobe')
+        dorsalBaseOfRightLungAccessoryLobe = lung_terms.get_lung_term('dorsal base of right lung accessory lobe')
+        medialBaseOfLeftLung = lung_terms.get_lung_term("medial base of left lung")
+        medialBaseOfRightLung = lung_terms.get_lung_term("medial base of right lung")
+        brainstemDorsalMidlineCaudalPoint = brainstem_terms.get_brainstem_term('brainstem dorsal midline caudal point')
+        brainstemDorsalMidlineCranialPoint = brainstem_terms.get_brainstem_term('brainstem dorsal midline cranial point')
+        brainstemVentralMidlineCaudalPoint = brainstem_terms.get_brainstem_term('brainstem ventral midline caudal point')
+        brainstemVentralMidlineCranialPoint = brainstem_terms.get_brainstem_term('brainstem ventral midline cranial point')
 
-        nodeIdentifier = cylinder1._endNodeIdentifier + 1000
+        # marker coordinates. In future we want to have only one table for all species.
+        if isRat:
+            bodyMarkerPoints = [
+                {"group": ("left hip joint", ''), "x": [0.367, 0.266, 0.477]},
+                {"group": ("right hip joint", ''), "x": [-0.367, 0.266, 0.477]},
+                {"group": ("left shoulder joint", ''), "x": [0.456, -0.071, 2.705]},
+                {"group": ("right shoulder joint", ''), "x": [-0.456, -0.071, 2.705]},
+                {"group": ("along left femur", ''), "x": [0.456, 0.07, 0.633]},
+                {"group": ("along right femur", ''), "x": [-0.456, 0.07, 0.633]},
+                {"group": ("along left humerus", ''), "x": [0.423, -0.173, 2.545]},
+                {"group": ("along right humerus", ''), "x": [-0.423, -0.173, 2.545]},
+                {"group": apexOfUrinaryBladder, "x": [-0.124, -0.383, 0.434]},
+                {"group": leftUreterJunctionWithBladder, "x": [-0.111, -0.172, 0.354]},
+                {"group": rightUreterJunctionWithBladder, "x": [-0.03, -0.196, 0.363]},
+                {"group": urethraJunctionWithBladderDorsal, "x": [-0.03, -0.26, 0.209]},
+                {"group": urethraJunctionWithBladderVentral, "x": [-0.037, -0.304, 0.203]},
+                {"group": brainstemDorsalMidlineCaudalPoint, "x": [-0.032, 0.418, 2.713]},
+                {"group": brainstemDorsalMidlineCranialPoint, "x": [-0.017, 0.203, 2.941]},
+                {"group": brainstemVentralMidlineCaudalPoint, "x": [-0.028, 0.388, 2.72]},
+                {"group": brainstemVentralMidlineCranialPoint, "x": [-0.019, 0.167, 2.95]},
+                {"group": apexOfHeart, "x": [0.096, -0.128, 1.601]},
+                {"group": leftAtriumEpicardiumVenousMidpoint, "x": [0.127, -0.083, 2.079]},
+                {"group": rightAtriumEpicardiumVenousMidpoint, "x": [0.039, -0.082, 2.075]},
+                {"group": apexOfLeftLung, "x": [0.172, -0.175, 2.337]},
+                {"group": ventralBaseOfLeftLung, "x": [0.274, -0.285, 1.602]},
+                {"group": dorsalBaseOfLeftLung, "x": [0.037, 0.31, 1.649]},
+                {"group": apexOfRightLung, "x": [-0.086, -0.096, 2.311]},
+                {"group": ventralBaseOfRightLung, "x": [0.14, -0.357, 1.662]},
+                {"group": dorsalBaseOfRightLung, "x": [-0.054, 0.304, 1.667]},
+                {"group": laterodorsalTipOfMiddleLobeOfRightLung, "x": [-0.258, -0.173, 2.013]},
+                {"group": apexOfRightLungAccessoryLobe, "x": [0.041, -0.063, 1.965]},
+                {"group": ventralBaseOfRightLungAccessoryLobe, "x": [0.143, -0.356, 1.66]},
+                {"group": dorsalBaseOfRightLungAccessoryLobe, "x": [0.121, -0.067, 1.627]},
+                {"group": gastroesophagalJunctionOnLesserCurvature, "x": [0.12, 0.009, 1.446]},
+                {"group": limitingRidgeOnGreaterCurvature, "x": [0.318, 0.097, 1.406]},
+                {"group": pylorusOnGreaterCurvature, "x": [0.08, -0.111, 1.443]},
+                {"group": duodenumOnGreaterCurvature, "x": [0.029, -0.138, 1.481]},
+            ]
+        elif isHuman:
+            bodyMarkerPoints = [
+                {"group": urethraJunctionWithBladderDorsal, "x": [-0.0071, -0.2439, 0.1798]},
+                {"group": urethraJunctionWithBladderVentral, "x": [-0.007, -0.2528, 0.1732]},
+                {"group": leftUreterJunctionWithBladder, "x": [0.1074, 0.045, 0.1728]},
+                {"group": rightUreterJunctionWithBladder, "x": [-0.1058, 0.0533, 0.1701]},
+                {"group": apexOfUrinaryBladder, "x": [0.005, 0.1286, 0.1264]},
+                {"group": brainstemDorsalMidlineCaudalPoint, "x": [0.0068, 0.427, 2.7389]},
+                {"group": brainstemDorsalMidlineCranialPoint, "x": [0.008, -0.0231, 3.0778]},
+                {"group": brainstemVentralMidlineCaudalPoint, "x": [0.0054, 0.3041, 2.7374]},
+                {"group": brainstemVentralMidlineCranialPoint, "x": [0.0025, -0.2308, 3.091]},
+                {"group": apexOfHeart, "x": [0.1373, -0.1855, 1.421]},
+                {"group": leftAtriumEpicardiumVenousMidpoint, "x": [0.0024, 0.1452, 1.8022]},
+                {"group": rightAtriumEpicardiumVenousMidpoint, "x": [-0.0464, 0.0373, 1.7491]},
+                {"group": apexOfLeftLung, "x": [0.0655, -0.0873, 2.3564]},
+                {"group": apexOfRightLung, "x": [-0.088, -0.0363, 2.3518]},
+                {"group": laterodorsalTipOfMiddleLobeOfRightLung, "x": [-0.2838, -0.0933, 1.9962]},
+                {"group": ventralBaseOfLeftLung, "x": [0.219, -0.2866, 1.4602]},
+                {"group": medialBaseOfLeftLung, "x": [0.0426, -0.0201, 1.4109]},
+                {"group": ventralBaseOfRightLung, "x": [-0.2302, -0.2356, 1.3926]},
+                {"group": medialBaseOfRightLung, "x": [-0.0363, 0.0589, 1.3984]},
+                {"group": dorsalBaseOfLeftLung, "x": [0.1544, 0.2603, 1.3691]},
+                {"group": dorsalBaseOfRightLung, "x": [0.0369, -0.2524, 0.912]},
+                {"group": gastroesophagalJunctionOnLesserCurvature, "x": [-0.0062, -0.3259, 0.8586]},
+                {"group": pylorusOnGreaterCurvature, "x": [-0.0761, -0.3189, 0.8663]},
+                {"group": duodenumOnGreaterCurvature, "x": [-0.1599, 0.1601, 1.1939]},
+                {"group": junctionBetweenFundusAndBodyOnGreaterCurvature, "x": [0.1884, -0.1839, 0.9639]},
+            ]
+
+        nodeIdentifier = cylinder1._endNodeIdentifier
+        findMarkerLocation = fieldmodule.createFieldFindMeshLocation(markerBodyCoordinates, bodyCoordinates, mesh)
+        findMarkerLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
         for bodyMarkerPoint in bodyMarkerPoints:
-            element = mesh.findElementByIdentifier(bodyMarkerPoint["elementId"])
             markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
             fieldcache.setNode(markerPoint)
-            markerName.assignString(fieldcache, bodyMarkerPoint["name"])
-            markerLocation.assignMeshLocation(fieldcache, element, bodyMarkerPoint["xi"])
+            markerBodyCoordinates.assignReal(fieldcache, bodyMarkerPoint["x"])
+            markerName.assignString(fieldcache, bodyMarkerPoint["group"][0])
+
+            element, xi = findMarkerLocation.evaluateMeshLocation(fieldcache, 3)
+            markerLocation.assignMeshLocation(fieldcache, element, xi)
             nodeIdentifier += 1
 
         return annotationGroups

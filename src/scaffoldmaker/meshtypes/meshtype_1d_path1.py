@@ -154,6 +154,7 @@ class MeshType_1d_path1(Scaffold_base):
         if makeD3Normal:
             d3 = parameters[-1]
             if options['D2 derivatives']:
+                d2 = parameters[1]
                 for c in range(len(d1)):
                     d3[c] = vector.setMagnitude(vector.crossproduct3(d1[c], d2[c]), vector.magnitude(d3[c]))
             else:

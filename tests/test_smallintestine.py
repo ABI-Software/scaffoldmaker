@@ -100,11 +100,6 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, minimums, [ -1.39038154442654, 0.0, 0.0 ], 1.0E-6)
         assertAlmostEqualList(self, maximums, [ 4.891237158967401, 25.293706698841913, 0.1 ], 1.0E-6)
 
-        textureCoordinates = fieldmodule.findFieldByName("texture coordinates").castFiniteElement()
-        minimums, maximums = evaluateFieldNodesetRange(textureCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 0.875, 1.0, 1.0 ], 1.0E-6)
-
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
@@ -114,10 +109,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(3)
             flatSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, flatCoordinates, faceMeshGroup)
             flatSurfaceAreaField.setNumbersOfPoints(4)
-            textureSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, textureCoordinates, faceMeshGroup)
-            textureSurfaceAreaField.setNumbersOfPoints(4)
-            textureVolumeField = fieldmodule.createFieldMeshIntegral(one, textureCoordinates, mesh3d)
-            textureVolumeField.setNumbersOfPoints(3)
+
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
@@ -128,12 +120,6 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(flatSurfaceArea, 171.37026123844635, delta=1.0E-3)
-        result, textureSurfaceArea = textureSurfaceAreaField.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(textureSurfaceArea, 1.0, delta=1.0E-6)
-        result, textureVolume = textureVolumeField.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(textureVolume, 1.0, delta=1.0E-6)
 
 if __name__ == "__main__":
     unittest.main()
