@@ -65,7 +65,7 @@ with variable numbers of elements across axes and shell directions.
             'Octant': False,
             'Hemisphere': False,
             'Full': True,
-            'Box derivatives': [-1, 2, 3],
+            'Box derivatives': [1, 2, 3],
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements': 1,
@@ -172,9 +172,9 @@ with variable numbers of elements across axes and shell directions.
                 options[radius] = 1.0
 
         if not all(abs(d) in [1, 2, 3] for d in options['Box derivatives']):
-            options['Box derivatives'] = [1, 3, 2]
+            options['Box derivatives'] = [1, 2, 3]
         if len(options['Box derivatives']) > len(set(options['Box derivatives'])):
-            options['Box derivatives'] = [1, 3, 2]
+            options['Box derivatives'] = [1, 2, 3]
 
         # if options['Number of elements across transition'] < 1:
         #     options['Number of elements across transition'] = 1
@@ -208,7 +208,11 @@ with variable numbers of elements across axes and shell directions.
         shellProportion = options['Shell element thickness proportion']
         radius = [options['Radius1'], options['Radius2'], options['Radius3']]
         useCrossDerivatives = options['Use cross derivatives']
-        sphereBoxDerivatives = options['Box derivatives']
+        sphereBoxDerivatives = [-options['Box derivatives'][0], options['Box derivatives'][1],
+                                options['Box derivatives'][2]]  # To make the values more intuitive for the user but
+        # consistent with [back, right, up]
+        # sphereBoxDerivatives = [1, 3, 2]  # consistent with default derivatives of cylinder mesh.
+        # This is the default value that is used for base sphere.
 
         if options['Octant']:
             sphere_shape = SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP
@@ -228,7 +232,6 @@ with variable numbers of elements across axes and shell directions.
         meshGroups = [boxMeshGroup, transitionMeshGroup]
         annotationGroups = [boxGroup, transitionGroup]
 
-        # sphereBoxDerivatives = [1, 3, 2]  # consistent with default derivatives of cylinder mesh.
         centre = [0.0, 0.0, 0.0]
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
