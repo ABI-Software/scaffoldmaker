@@ -11,7 +11,7 @@ colon_terms = [
     ( "colon", "UBERON:0001155", "FMA:14543", "ILX:0736005"),
     ( "colonic mucosa", "UBERON:0000317", "FMA:14984", "ILX:0731046"),
     ( "distal colon", "UBERON:0008971", "ILX:0727523"),
-    ( "inner surface of colonic mucosa", "None"),
+    ( "inner surface of colonic mucosa", "ILX:0793083"),
     ( "longitudinal muscle layer of colon", "ILX:0775554"),
     ( "mesenteric zone", "None"),
     ( "non-mesenteric zone", "None"),
