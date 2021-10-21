@@ -880,15 +880,15 @@ class ShieldMesh3D:
 
         if octant_number == 1:
             if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-                corner3derivs = [2, -1, 3]
+                corner3derivs = [-2, 1, 3]
             else:
-                corner3derivs = [1, 2, 3]
+                corner3derivs = [-2, 1, 3]
         elif octant_number == 2:
-            corner3derivs = [-2, 1, 3]
-        elif octant_number == 3:
             corner3derivs = [-1, -2, 3]
-        elif octant_number == 4:
+        elif octant_number == 3:
             corner3derivs = [2, -1, 3]
+        elif octant_number == 4:
+            corner3derivs = [1, 2, 3]
         elif octant_number == 5:
             corner3derivs = [-1, -2, 3]
         elif octant_number == 6:

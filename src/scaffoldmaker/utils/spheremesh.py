@@ -148,6 +148,7 @@ class SphereMesh:
                          sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxDerivatives=boxDerivatives)
             self.copy_octant_nodes_to_sphere_shield(octant, octantType)
 
+        self.modify_octant_common_nodes()
         self.sphere_to_spheroid()
 
         self.generateNodes(nodes, fieldModule, coordinates)
@@ -295,6 +296,35 @@ class SphereMesh:
                     self._shield3D.pd1[n3][n2][n1] = octant._shield3D.pd1[n3o][n2o][n1o]
                     self._shield3D.pd2[n3][n2][n1] = octant._shield3D.pd2[n3o][n2o][n1o]
                     self._shield3D.pd3[n3][n2][n1] = octant._shield3D.pd3[n3o][n2o][n1o]
+
+    def modify_octant_common_nodes(self):
+        """
+
+        :return:
+        """
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
+        n1z = self._elementsCount[1]
+        n1y = n1z - 1
+        n2z = self._elementsCount[0]
+        n3z = self._elementsCount[2]
+        n3y = n3z - 1
+
+        # modify pole on highest z.
+        if self._sphereShape == SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP:
+            btd1[n3z][n2z][0] = [-c for c in btd1[n3z][n2z][0]]
+            btd2[n3z][n2z][0] = [-c for c in btd2[n3z][n2z][0]]
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_AAP:
+            temp = btd1[n3z][n2z//2][n1z//2]
+            btd1[n3z][n2z//2][n1z//2] = btd2[n3z][n2z//2][n1z//2]
+            btd2[n3z][n2z//2][n1z//2] = [-c for c in temp]
+        elif self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
+            temp = btd1[n3z][n2z//2][n1z//2]
+            btd1[n3z][n2z//2][n1z//2] = btd2[n3z][n2z//2][n1z//2]
+            btd2[n3z][n2z//2][n1z//2] = [-c for c in temp]
 
     def sphere_to_spheroid(self):
         """
