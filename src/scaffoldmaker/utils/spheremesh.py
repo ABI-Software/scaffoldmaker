@@ -33,7 +33,7 @@ class SphereMesh:
 
     def __init__(self, fieldModule, coordinates, centre, axes, elementsCountAcross,
                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=None, meshGroups=[]):
+                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxDerivatives=None, meshGroups=[]):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -47,7 +47,7 @@ class SphereMesh:
         :param sphereShape: A value from enum SphereShape specifying the shape of sphere. Octant_PPP, for example is
          the octant in positive axis1, positive axis2 and positive axis3. SPHERE_SHAPE_HALF_AAP is a hemisphere on
           the positive side of axis3.
-        :param boxMapping: It is a list of [deriv1,deriv2,deriv3] and is used to change the derivatives names.
+        :param boxDerivatives: It is a list of [deriv1,deriv2,deriv3] and is used to change the derivatives names.
         Default is [1, 3, 2] and [3, 1, 2] means swap 1 and 3.
         """
 
@@ -71,7 +71,7 @@ class SphereMesh:
 
         self._centre = centre
 
-        self._boxMapping = boxMapping if boxMapping else [1, 3, 2]
+        self._boxDerivatives = boxDerivatives if boxDerivatives else [1, 3, 2]
         self._meshGroups = meshGroups
 
         for i in range(3):
@@ -119,7 +119,7 @@ class SphereMesh:
         elif self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
             shieldMode = ShieldShape3D.SHIELD_SHAPE_FULL
 
-        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode, box_derivatives=[1, 3, 2])
+        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode, box_derivatives=self._boxDerivatives)
 
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
@@ -142,10 +142,10 @@ class SphereMesh:
             OctantVariationsType = OctantVariationsAll
 
         for octantType in OctantVariationsType:
-            axes, elementsCountAcross, boxMapping = self.get_octant_axes_and_elements_count(octantType)
+            axes, elementsCountAcross, boxDerivatives = self.get_octant_axes_and_elements_count(octantType)
             octant = OctantMesh(self._centre, axes, elementsCountAcross,
                          elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=boxMapping)
+                         sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxDerivatives=boxDerivatives)
             self.copy_octant_nodes_to_sphere_shield(octant, octantType)
 
         self.sphere_to_spheroid()
@@ -157,10 +157,10 @@ class SphereMesh:
         """
         Get the octants axes, elements count across and box mapping for 8 octants in 8 different regions.
         :param octant_shape: A value from enum SphereShape specifying the shape of sphere
-        :return: axes, elementsCountAcross, boxMapping for the octant.
+        :return: axes, elementsCountAcross, boxDerivatives for the octant.
         """
-        boxMappingV1 = self._boxMapping
-        boxMappingV2 = [self._boxMapping[1], self._boxMapping[0], self._boxMapping[2]]
+        boxDerivativesV1 = self._boxDerivatives
+        boxDerivativesV2 = [self._boxDerivatives[1], self._boxDerivatives[0], self._boxDerivatives[2]]
         axesV1 = [self._axes[0], self._axes[1], self._axes[2]]
         axesV2 = [self._axes[1], self._axes[0], self._axes[2]]
         elementsCountAcrossV1 = [c for c in self._elementsCount]
@@ -190,11 +190,11 @@ class SphereMesh:
 
         signs = self._shield3D.get_octant_signs(octant_number)
         if octant_number in [2, 4, 5, 7]:
-            boxMapping = [boxMappingV2[c] * signs[c] for c in range(3)]
+            boxDerivatives = [boxDerivativesV2[c] * signs[c] for c in range(3)]
             elementsCountAcross = elementsCountAcrossV2
             axes = [vector.scaleVector(axesV2[c], axesSignsV2[c]) for c in range(3)]
         else:
-            boxMapping = [boxMappingV1[c] * signs[c] for c in range(3)]
+            boxDerivatives = [boxDerivativesV1[c] * signs[c] for c in range(3)]
             elementsCountAcross = elementsCountAcrossV1
             axes = [vector.scaleVector(axesV1[c], axesSignsV1[c]) for c in range(3)]
 
@@ -207,7 +207,7 @@ class SphereMesh:
             elementsCountAcross[2] = elementsCountAcross[2] // 2
 
         axes = [vector.normalise(v) for v in axes]
-        return axes, elementsCountAcross, boxMapping
+        return axes, elementsCountAcross, boxDerivatives
 
     def copy_octant_nodes_to_sphere_shield(self, octant, octant_shape):
         """
@@ -347,7 +347,7 @@ class OctantMesh:
 
     def __init__(self, centre, axes, elementsCountAcross,
                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxMapping=None):
+                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxDerivatives=None):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -377,7 +377,7 @@ class OctantMesh:
 
         self._centre = centre
 
-        self._boxMapping = boxMapping if boxMapping else [1, 3, 2]
+        self._boxDerivatives = boxDerivatives if boxDerivatives else [1, 3, 2]
 
         for i in range(3):
             elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - shellProportion)
@@ -397,7 +397,7 @@ class OctantMesh:
 
         self.create_boundary_ellipses_nodes()
         self.create_surface_and_interior_nodes()
-        self._shield3D.set_derivatives(self._boxMapping)
+        self._shield3D.set_derivatives(self._boxDerivatives)
 
     def create_boundary_ellipses_nodes(self):
         """

@@ -700,6 +700,11 @@ class ShieldMesh3D:
         # self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
         self._shieldMode = shieldMode
         self._boxDerivatives = box_derivatives
+        self._element_needs_scale_factor = False
+        self._xi_mapping = None
+        self._xi_signs = None
+        self._box_deriv_mapping = None
+        self._box_deriv_signs = None
 
         self.px  = [ [] for _ in range(elementsCountAcross[2] + 1) ]
         self.pd1 = [ [] for _ in range(elementsCountAcross[2] + 1) ]
@@ -905,23 +910,23 @@ class ShieldMesh3D:
 
         return corner1derivs, corner2derivs, corner3derivs, boundary12leftderivs, boundary12rightderivs, triple12leftderivs, triple12rightderivs
 
-    def get_box_mapping_for_other_octants(self, octant_number, octant1_mapping=None):
+    def get_box_mapping_for_other_octants(self, octant_number, octant1_box_derivatives=None):
         """
         Find mapping for box nodes derivatives to make each octant similar to octant1.
-        :param octant1_mapping:
+        :param octant1_box_derivatives: default is [1, 3, 2] for octant 1 box derivatives.
         :return: boxMapping
         """
-        if not octant1_mapping:
-            octant1_mapping = [1, 3, 2]
+        if not octant1_box_derivatives:
+            octant1_box_derivatives = [1, 3, 2]
 
-        swap12 = [octant1_mapping[1], octant1_mapping[0], octant1_mapping[2]]
+        swap12 = [octant1_box_derivatives[1], octant1_box_derivatives[0], octant1_box_derivatives[2]]
 
         signs = self.get_octant_signs(octant_number)
 
         if octant_number in [2, 4, 5, 7]:
             boxMapping = [swap12[c] * signs[c] for c in range(3)]
         else:
-            boxMapping = [octant1_mapping[c] * signs[c] for c in range(3)]
+            boxMapping = [octant1_box_derivatives[c] * signs[c] for c in range(3)]
 
         return boxMapping
 
@@ -959,6 +964,27 @@ class ShieldMesh3D:
 
         return signs
 
+    def get_element_node_identifiers(self, octant_number, e3, e2, e1, e3zo, e1zo):
+        """
+        Find node identifiers for given element represented by its indexes (e3,e2,e1). It uses default order of nodes for
+        [1,3,2] default element axes and finds the mapping between octant default local node numbers and the sphere.
+        :param octant_number:
+        :return: nids, node s for given element represented by its indexes (e3,e2,e1).
+        """
+        nids_default = [self.getNodeId(octant_number, e3, e2, e1, e3zo, e1zo), self.getNodeId(octant_number, e3, e2+1, e1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3+1, e2, e1, e3zo, e1zo), self.getNodeId(octant_number, e3+1, e2+1, e1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3, e2, e1+1, e3zo, e1zo), self.getNodeId(octant_number, e3, e2+1, e1+1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3+1, e2, e1+1, e3zo, e1zo), self.getNodeId(octant_number, e3+1, e2+1, e1+1, e3zo, e1zo)]
+
+        # change the order of nodes according to the box derivatives.
+        boxMappingOctant1 = self.get_box_mapping_for_other_octants(1, octant1_box_derivatives=self._boxDerivatives)
+        lnm_octant1 = self.local_node_mapping(boxMappingOctant1)
+        nids = [1] * 8
+        for ln in range(1, 9):
+            nids[lnm_octant1[ln] - 1] = nids_default[ln - 1]
+
+        return nids
+
     def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
         """
         Create shield elements from nodes.
@@ -984,18 +1010,18 @@ class ShieldMesh3D:
         for e3 in range(self.elementsCountAcross[2]):
             for e2 in range(self.elementsCountAcross[0]):
                 for e1 in range(self.elementsCountAcross[1]):
-                    eft1 = eft
                     scalefactors = None
+                    self._element_needs_scale_factor = False
 
                     octant_number, element_type, e3zo, e2zo, e1zo = self.get_element_type(e3, e2, e1)
                     e3o, e2o, e1o = self.get_local_element_index(octant_number, e3, e2, e1)
                     e3yo, e2bo, e1yo = e3zo - 1, 1, e1zo - 1
-                    nids = [self.getNodeId(octant_number, e3, e2, e1, e3zo, e1zo), self.getNodeId(octant_number, e3, e2+1, e1, e3zo, e1zo),
-                            self.getNodeId(octant_number, e3+1, e2, e1, e3zo, e1zo), self.getNodeId(octant_number, e3+1, e2+1, e1, e3zo, e1zo),
-                            self.getNodeId(octant_number, e3, e2, e1+1, e3zo, e1zo), self.getNodeId(octant_number, e3, e2+1, e1+1, e3zo, e1zo),
-                            self.getNodeId(octant_number, e3+1, e2, e1+1, e3zo, e1zo), self.getNodeId(octant_number, e3+1, e2+1, e1+1, e3zo, e1zo)]
 
-                    boxMapping = self.get_box_mapping_for_other_octants(octant_number)
+                    eft1 = eft if element_type == self.ELEMENT_REGULAR else tricubichermite.createEftNoCrossDerivatives()
+
+                    nids = self.get_element_node_identifiers(octant_number, e3, e2, e1, e3zo, e1zo)
+
+                    boxMapping = self.get_box_mapping_for_other_octants(octant_number, octant1_box_derivatives=self._boxDerivatives)
                     lnm = self.local_node_mapping(boxMapping)
                     corner1derivs, corner2derivs, corner3derivs, boundary12leftderivs, boundary12rightderivs, triple12leftderivs,\
                     triple12rightderivs = self.set_derivatives_for_irregualr_nodes(octant_number)
@@ -1003,10 +1029,6 @@ class ShieldMesh3D:
                     if element_type == self.ELEMENT_REGULAR:
                         pass
                     elif element_type == self.ELEMENT_QUADRUPLE_DOWN_LEFT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [-1.0]
-
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.QUADRUPLE_DOWN_LEFT)
                         self.remap_eft_node_value_label(eft1, [lnm[8]], self.QUADRUPLE0_DOWN_LEFT)
                         if e3o == 0:
@@ -1031,10 +1053,6 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_DOWN_LEFT)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_DOWN:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [-1.0]
-
                         self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_13_DOWN)
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_2_DOWN)
                         self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE0_2_DOWN)
@@ -1055,11 +1073,6 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[1], lnm[5]], self.SURFACE_REGULAR_DOWN_LEFT)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_DOWN_RIGHT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        if e2o == e2bo or octant_number != 1:
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [-1.0]
-
                         if e2o == e2bo:
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.QUADRUPLE0_RIGHT)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.QUADRUPLE_RIGHT)
@@ -1105,10 +1118,6 @@ class ShieldMesh3D:
                             self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.TRIPLE_CURVE_1_DOWN)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_UP_LEFT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [-1.0]
-
                         if e2o == e2bo:
                             self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_2_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.QUADRUPLE0_UP)
@@ -1132,7 +1141,6 @@ class ShieldMesh3D:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_UP)
                         elif e2o == e2zo:
-
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_23_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE0_1_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_23_UP)
@@ -1154,10 +1162,7 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.TRIPLE_CURVE_1_UP)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_UP:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
                         if e2o == e2bo:
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [-1.0]
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_13_Up)
                             else:
@@ -1182,9 +1187,6 @@ class ShieldMesh3D:
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.SURFACE_REGULAR_UP)
                         elif e2o == e2zo:
-                            if octant_number != 2 or e1o == 0:
-                                setEftScaleFactorIds(eft1, [1], [])
-                                scalefactors = [-1.0]
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.BOUNDARY_13_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[4]], self.CORNER_3, derivatives=corner3derivs)
@@ -1194,9 +1196,6 @@ class ShieldMesh3D:
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.BOUNDARY_23_UP)
                         else:
-                            if octant_number != 2 or e1o == 0:
-                                setEftScaleFactorIds(eft1, [1], [])
-                                scalefactors = [-1.0]
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.BOUNDARY_13_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.SURFACE_REGULAR_UP)
@@ -1204,11 +1203,6 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4], lnm[7], lnm[8]], self.SURFACE_REGULAR_UP)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_LEFT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        if octant_number != 4:
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [-1.0]
-
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_3_LEFT)
                         self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE0_3_LEFT)
                         if e3o == 0:
@@ -1231,10 +1225,6 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_DOWN_LEFT)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_RIGHT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        setEftScaleFactorIds(eft1, [1], [])
-                        scalefactors = [-1.0]
-
                         self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE0_3_RIGHT)
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_3_RIGHT)
                         if e3o == 0:
@@ -1257,10 +1247,6 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.SURFACE_REGULAR_DOWN_RIGHT)
 
                     elif element_type == self.ELEMENT_DOWN_RIGHT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        if octant_number != 1:
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [-1.0]
                         if e3o == 0:
                             if e2o == e2zo:
                                 self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_DOWN_RIGHT)
@@ -1281,10 +1267,6 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[6], lnm[8]], self.SURFACE_REGULAR_DOWN_RIGHT)
 
                     elif element_type == self.ELEMENT_DOWN_LEFT:
-                        eft1 = tricubichermite.createEftNoCrossDerivatives()
-                        if octant_number != 4:
-                            setEftScaleFactorIds(eft1, [1], [])
-                            scalefactors = [-1.0]
                         if e3o == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.BOUNDARY_12_LEFT, derivatives=boundary12rightderivs)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_DOWN_LEFT)
@@ -1303,6 +1285,9 @@ class ShieldMesh3D:
 
                     else:
                         continue
+
+                    if self._element_needs_scale_factor:
+                        scalefactors = [-1.0]
 
                     if eft1 is not eft:
                         elementtemplate1.defineField(coordinates, -1, eft1)
@@ -1326,14 +1311,13 @@ class ShieldMesh3D:
                         for meshGroup in meshGroups[1:2]:
                             meshGroup.addElement(element)
 
-
         return elementIdentifier
 
     def local_node_mapping(self, boxMapping):
         """
-        Find local node mapping between local node number of octant and local node number of sphere. Obtain, xi mapping
-        and box irregular derivatives mapping that are used for elements in octant that locally might have different
-         xi directions from their global sphere xi directions. Then they are used in remap_eft_node_value_label.
+        Find local node mapping between default local node number of octant and global local node number of sphere.
+         Obtain xi mapping and box irregular derivatives mapping. they are used for elements in octant that locally might have
+          different xi directions from their global sphere xi directions. Then they are used in remap_eft_node_value_label.
         :return: lnm, local node mapping between local node number of octant and local node number of sphere.
         """
         boxMapping_default = [1, 3, 2]
@@ -1343,15 +1327,27 @@ class ShieldMesh3D:
         node_xi_map = {1: (0, 0, 0), 2: (1, 0, 0), 3: (0, 1, 0), 4: (1, 1, 0),
                        5: (0, 0, 1), 6: (1, 0, 1), 7: (0, 1, 1), 8: (1, 1, 1)}
 
-        xi_map = {'xi1': abs(boxMapping[0]), 'xi3': abs(boxMapping[1]), 'xi2': abs(boxMapping[2])}
+        xi_dm = {1: 'xi1', 2: 'xi2', 3: 'xi3'}
+        xi_default_to_global_map = {xi_dm[abs(boxMapping_default[0])]: abs(boxMapping[0]),
+                                    xi_dm[abs(boxMapping_default[1])]: abs(boxMapping[1]),
+                                    xi_dm[abs(boxMapping_default[2])]: abs(boxMapping[2])}
+        xi_global_to_default_map = {xi_dm[abs(boxMapping[0])]: abs(boxMapping_default[0]),
+                                    xi_dm[abs(boxMapping[1])]: abs(boxMapping_default[1]),
+                                    xi_dm[abs(boxMapping[2])]: abs(boxMapping_default[2])}
         signs = [1 if boxMapping[c]*boxMapping_default[c] > 0 else -1 for c in range(3)]
-        xi_sign_change = [signs[0], signs[2], signs[1]]
+        xi_sign_change = [signs[abs(boxMapping_default[0])-1], signs[abs(boxMapping_default[1])-1], signs[abs(boxMapping_default[2])-1]]
 
         lnm = {}
+        signs = [xi_sign_change[xi_global_to_default_map['xi1'] - 1],
+                 xi_sign_change[xi_global_to_default_map['xi2'] - 1],
+                 xi_sign_change[xi_global_to_default_map['xi3'] - 1]]
         for ln in range(1, 9):
             xi_l = []
-            xi = [node_xi_map[ln][xi_map['xi1'] - 1], node_xi_map[ln][xi_map['xi2'] - 1], node_xi_map[ln][xi_map['xi3'] - 1]]
-            signs = [xi_sign_change[xi_map['xi1'] - 1], xi_sign_change[xi_map['xi2'] - 1], xi_sign_change[xi_map['xi3'] - 1]]
+            xi_default = node_xi_map[ln]
+            xi = [xi_default[xi_global_to_default_map['xi1'] - 1],
+                  xi_default[xi_global_to_default_map['xi2'] - 1],
+                  xi_default[xi_global_to_default_map['xi3'] - 1]]
+
             for i in range(3):
                 if signs[i] > 0:
                     xi_l.append(xi[i])
@@ -1359,13 +1355,17 @@ class ShieldMesh3D:
                     xi_l.append(1 - xi[i])
             lnm[ln] = xi_node_map[tuple(xi_l)]
 
-        deriv_map = {'xi1': abs(boxMapping[0]), 'xi3': abs(boxMapping[1]), 'xi2': abs(boxMapping[2])}
+        deriv_default_to_global_map = {xi_dm[abs(boxMapping_default[0])]: abs(boxMapping[0]),
+                                    xi_dm[abs(boxMapping_default[1])]: abs(boxMapping[1]),
+                                    xi_dm[abs(boxMapping_default[2])]: abs(boxMapping[2])}
         signs = [1 if boxMapping[c]*boxMapping_default[c] > 0 else -1 for c in range(3)]
-        deriv_sign_change = [signs[0], signs[2], signs[1]]
+        deriv_sign_change = [signs[abs(boxMapping_default[0])-1], signs[abs(boxMapping_default[1])-1], signs[abs(boxMapping_default[2])-1]]
 
-        self._xi_mapping = {1: xi_map['xi1'], 2: xi_map['xi2'], 3: xi_map['xi3']}
+        self._xi_mapping = {1: xi_default_to_global_map['xi1'], 2: xi_default_to_global_map['xi2'], 3: xi_default_to_global_map['xi3']}
         self._xi_signs = {1: xi_sign_change[0], 2: xi_sign_change[1], 3: xi_sign_change[2]}
-        self._box_deriv_mapping = {1: deriv_map['xi1'], 2: deriv_map['xi2'], 3: deriv_map['xi3']}
+        self._box_deriv_mapping = {1: deriv_default_to_global_map['xi1'],
+                                   2: deriv_default_to_global_map['xi2'],
+                                   3: deriv_default_to_global_map['xi3']}
         self._box_deriv_signs = {1: deriv_sign_change[0], 2: deriv_sign_change[1], 3: deriv_sign_change[2]}
 
         return lnm
@@ -1612,8 +1612,10 @@ class ShieldMesh3D:
 
     def remap_eft_node_value_label(self, eft, localNodeIndexes, node_type, derivatives=None):
         """
-        Remaps derivatives for common types of nodes. It assumes the directions of derivatives in a certain way. If
-        directions are different, then we can use the 'derivatives' argument to fix this. This part is done for irregular nodes,
+        Remaps derivatives for common types of nodes. It also checks if each node needs scale factors. If one of the nodes
+         of an element needs it, then flags it. It assumes the directions of derivatives in a certain way (based on
+         default [1, 3, 2] xi directions).
+          If directions are different, then we can use the 'derivatives' argument to fix this. This part is done for irregular nodes,
          in the box and for other nodes, derivatives should be given.
         :param node_type: e.g. corner 1 represents an end node on the axis1.
         :param derivatives: derivatives to be changed to.
@@ -1639,118 +1641,218 @@ class ShieldMesh3D:
         remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
 
         if node_type == self.CORNER_1:
+            if any(c != 1 for c in [-1 * xis[1] * ds[3], 1 * xis[2] * ds[2], 1 * xis[3] * ds[1]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[3]], sf[-1 * xis[1] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[1]], sf[1 * xis[3] * ds[1]])])
         elif node_type == self.CORNER_2:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.CORNER_3:
-            remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[1]], sf[-1 * xis[3] * ds[1]])])
+            if any(c != 1 for c in [-1 * xis[3] * ds[1], -1 * xis[1] * ds[2], 1 * xis[2] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[2]], sf[-1 * xis[1] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[3]], sf[1 * xis[2] * ds[3]])])
+            remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[1]], sf[-1 * xis[3] * ds[1]])])
 
         elif node_type == self.QUADRUPLE_DOWN_LEFT:
+            if any(c != 1 for c in [-1 * xis[1], 1 * xis[2], 1 * xis[2], -1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS3, sf[-1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[2]]), (Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
         elif node_type == self.QUADRUPLE_RIGHT:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[3], 1 * xis[2], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[2]]), (Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
         elif node_type == self.QUADRUPLE_UP:
+            if any(c != 1 for c in [1 * xis[1], -1 * xis[3], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
         elif node_type == self.QUADRUPLE0_DOWN_LEFT:
+            if any(c != 1 for c in [1 * xis[3] * ds[3], 1 * xis[2] * ds[2], 1 * xis[1] * ds[1], -1 * xis[1] * ds[2], -1 * xis[1] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]],
                                    [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]]), (expressionLabel[dm[2]], sf[-1 * xis[1] * ds[2]]), (expressionLabel[dm[3]], sf[-1 * xis[1] * ds[3]])])
         elif node_type == self.QUADRUPLE0_RIGHT:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], -1 * xis[3] * ds[1], 1 * xis[3] * ds[2], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]],
                                    [(expressionLabel[dm[1]], sf[-1 * xis[3] * ds[1]]), (expressionLabel[dm[2]], sf[1 * xis[3] * ds[2]]), (expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.QUADRUPLE0_UP:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[3] * ds[3], -1 * xis[2] * ds[1], 1 * xis[2] * ds[2], 1 * xis[2] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(expressionLabel[dm[1]], sf[-1 * xis[2] * ds[1]]), (expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]]), (expressionLabel[dm[3]], sf[1 * xis[2] * ds[3]])])
 
         elif node_type == self.TRIPLE_12_LEFT:
+            if any(c != 1 for c in [1 * xis[2] * ds[2], -1 * xis[1] * ds[3], 1 * xis[3] * ds[1]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[3]], sf[-1 * xis[1] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[1]], sf[1 * xis[3] * ds[1]])])
         elif node_type == self.TRIPLE_12_RIGHT:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.TRIPLE_13_DOWN:
+            if any(c != 1 for c in [-1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS3, sf[-1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[3]])])
         elif node_type == self.TRIPLE_13_UP:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[1]])])
             # remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[3]])])
             # remapEftNodeValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D2_DS2DS3, [(Node.VALUE_LABEL_D_DS2, [])])  # finish swap
         elif node_type == self.TRIPLE_23_DOWN:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
         elif node_type == self.TRIPLE_23_UP:
+            if any(c != 1 for c in [1 * xis[1], -1 * xis[3], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
         elif node_type == self.TRIPLE0_12_LEFT:
+            if any(c != 1 for c in [1 * xis[3] * ds[3], 1 * xis[2] * ds[2], 1 * xis[1] * ds[1], -1 * xis[1] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]],
                                    [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]]), (expressionLabel[dm[3]], sf[-1 * xis[1] * ds[3]])])
         elif node_type == self.TRIPLE0_12_RIGHT:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], -1 * xis[3] * ds[1], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]],
                                    [(expressionLabel[dm[1]], sf[-1 * xis[3] * ds[1]]), (expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.TRIPLE0_13_DOWN:
+            if any(c != 1 for c in [1 * xis[3] * ds[3], 1 * xis[2] * ds[2], 1 * xis[1] * ds[1], -1 * xis[1] * ds[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]],
                                    [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]]), (expressionLabel[dm[2]], sf[-1 * xis[1] * ds[2]])])
         elif node_type == self.TRIPLE0_13_Up:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[3] * ds[3], -1 * xis[2] * ds[1], 1 * xis[2] * ds[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(expressionLabel[dm[1]], sf[-1 * xis[2] * ds[1]]), (expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
         elif node_type == self.TRIPLE0_23_DOWN:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], 1 * xis[3] * ds[2], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]],
                                    [(expressionLabel[dm[2]], sf[1 * xis[3] * ds[2]]), (expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.TRIPLE0_23_UP:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[3] * ds[3], 1 * xis[2] * ds[2], 1 * xis[2] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]]), (expressionLabel[dm[3]], sf[1 * xis[2] * ds[3]])])
 
         elif node_type == self.BOUNDARY_12_LEFT:
+            if any(c != 1 for c in [1 * xis[2] * ds[2], -1 * xis[1] * ds[3], 1 * xis[3] * ds[1]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[3]], sf[-1 * xis[1] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[1]], sf[1 * xis[3] * ds[1]])])
         elif node_type == self.BOUNDARY_12_RIGHT:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.BOUNDARY_13_DOWN:
+            if any(c != 1 for c in [-1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS3, sf[-1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[3]])])
         elif node_type == self.BOUNDARY_13_UP:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[1]])])
             # remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D2_DS2DS3, [])])  # temporary to enable swap
             # remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, [])])
@@ -1758,78 +1860,146 @@ class ShieldMesh3D:
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[3]])])
         elif node_type == self.BOUNDARY_23_DOWN:
+            if any(c != 1 for c in [1 * xis[3], 1 * xis[1], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
         elif node_type == self.BOUNDARY_23_UP:
+            if any(c != 1 for c in [1 * xis[1], -1 * xis[3], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
 
         elif node_type == self.TRIPLE_CURVE_1_DOWN:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
         elif node_type == self.TRIPLE_CURVE_1_UP:
+            if any(c != 1 for c in [1 * xis[1], -1 * xis[3], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
         elif node_type == self.TRIPLE_CURVE_2_DOWN:
+            if any(c != 1 for c in [-1 * xis[1], 1 * xis[2], -1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS3, sf[-1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
         elif node_type == self.TRIPLE_CURVE_2_UP:
+            if any(c != 1 for c in [1 * xis[1], -1 * xis[3], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
         elif node_type == self.TRIPLE_CURVE_3_LEFT:
+            if any(c != 1 for c in [1 * xis[2], -1 * xis[1], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS3, sf[-1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[3]])])
         elif node_type == self.TRIPLE_CURVE_3_RIGHT:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
         elif node_type == self.TRIPLE_CURVE0_1_UP:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[3] * ds[3], 1 * xis[2] * ds[2], 1 * xis[2] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]]), (expressionLabel[dm[3]], sf[1 * xis[2] * ds[3]])])
         elif node_type == self.TRIPLE_CURVE0_1_DOWN:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], 1 * xis[3] * ds[2], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]],
                                    [(expressionLabel[dm[2]], sf[1 * xis[3] * ds[2]]), (expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
         elif node_type == self.TRIPLE_CURVE0_2_DOWN:
+            if any(c != 1 for c in [1 * xis[2] * ds[2], 1 * xis[3] * ds[3], 1 * xis[1] * ds[1], -1 * xis[1] * ds[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]],
                                    [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]]), (expressionLabel[dm[2]], sf[-1 * xis[1] * ds[2]])])
         elif node_type == self.TRIPLE_CURVE0_2_UP:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[3] * ds[3], -1 * xis[2] * ds[1], 1 * xis[2] * ds[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]],
                                    [(expressionLabel[dm[1]], sf[-1 * xis[2] * ds[1]]), (expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
         elif node_type == self.TRIPLE_CURVE0_3_LEFT:
+            if any(c != 1 for c in [1 * xis[2] * ds[2], 1 * xis[3] * ds[3], 1 * xis[1] * ds[1], -1 * xis[1] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]],
                                    [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]]), (expressionLabel[dm[3]], sf[-1 * xis[1] * ds[3]])])
         elif node_type == self.TRIPLE_CURVE0_3_RIGHT:
+            if any(c != 1 for c in [1 * xis[1] * ds[1], 1 * xis[2] * ds[2], -1 * xis[3] * ds[1], 1 * xis[3] * ds[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(expressionLabel[dm[1]], sf[1 * xis[1] * ds[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(expressionLabel[dm[2]], sf[1 * xis[2] * ds[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]],
                                    [(expressionLabel[dm[1]], sf[-1 * xis[3] * ds[1]]), (expressionLabel[dm[3]], sf[1 * xis[3] * ds[3]])])
 
         elif node_type == self.SURFACE_REGULAR_DOWN_LEFT:
+            if any(c != 1 for c in [1 * xis[2], -1 * xis[1], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS3, sf[-1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[3]])])
         elif node_type == self.SURFACE_REGULAR_DOWN_RIGHT:
+            if any(c != 1 for c in [1 * xis[1], 1 * xis[2], 1 * xis[3]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS2, sf[1 * xis[2]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
         elif node_type == self.SURFACE_REGULAR_UP:
+            if any(c != 1 for c in [1 * xis[1], -1 * xis[3], 1 * xis[2]]):
+                if not self._element_needs_scale_factor:
+                    self._element_needs_scale_factor = True
+                    setEftScaleFactorIds(eft, [1], [])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[1]], [(Node.VALUE_LABEL_D_DS1, sf[1 * xis[1]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS2, sf[-1 * xis[3]])])
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[2]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[2]])])
@@ -1839,3 +2009,11 @@ class ShieldMesh3D:
             remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[3]], [(Node.VALUE_LABEL_D_DS3, sf[1 * xis[3]])])
         else:
             raise ValueError("Remapping for derivatives of this 'node type' is not implemented")
+
+        # for ci in range(1, 4):
+        #     expressionTerms = []
+        #     for di in range(1, 4):
+        #         if default_sign[ci][di-1]:
+        #             expressionTerms.append((expressionLabel[dm[di]], sf[default_sign[ci][di-1] * xis[ci] * ds[di]]))
+        #     remapEftNodeValueLabel(eft, localNodeIndexes, label[xim[ci]], expressionTerms)
+
