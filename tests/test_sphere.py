@@ -32,7 +32,7 @@ class SphereScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1.0, options.get("Radius2"))
         self.assertEqual(1.0, options.get("Radius3"))
         self.assertEqual(1.0, options.get("Shell element thickness proportion"))
-        self.assertEqual([-1, 2, 3], options.get("Box derivatives"))
+        self.assertEqual([1, 2, 3], options.get("Box derivatives"))
 
         context = Context("Test")
         region = context.getDefaultRegion()
