@@ -1,24 +1,43 @@
 '''
 Generates 3D lung surface mesh.
 '''
-
+import copy
+import math
+from sympy import symbols, nsolve, solve, Eq
+from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
+    smoothCubicHermiteDerivativesLine, interpolateSampleLinear
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelsVersion, setEftScaleFactorIds
+from scaffoldmaker.utils.cylindermesh import createEllipsePerimeter
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from opencmiss.utils.zinc.general import ChangeManager
+from scaffoldmaker.utils.geometry import createEllipsoidPoints, getEllipseRadiansToX, getEllipseArcLength, getApproximateEllipsePerimeter, \
+    updateEllipseAngleByArcLength
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode
+from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+from scaffoldmaker.utils.vector import magnitude, setMagnitude, crossproduct3, normalise
+from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+
+
 
 
 class MeshType_3d_lung1(Scaffold_base):
     '''
     3D lung scaffold.
     '''
+
+    """
+        Generates an ellipsoid with a tear-shaped base for the lung mathematically,
+         with x, y, z length and the position, angle of the oblique fissure. 
+         Regions and markers of the lung are annotated.
+    """
 
     @staticmethod
     def getName():
@@ -36,17 +55,19 @@ class MeshType_3d_lung1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = {}
         if parameterSetName == 'Default':
-            parameterSetName = 'Mouse 1'
+            parameterSetName = 'Human 1'
         options['Base parameter set'] = parameterSetName
         options['Refine'] = False
         options['Refine number of elements'] = 4
+        options['Discontinuity on the core boundary'] = True
         return options
 
     @staticmethod
     def getOrderedOptionNames():
         optionNames = [
             'Refine',
-            'Refine number of elements'
+            'Refine number of elements',
+            'Discontinuity on the core boundary'
             ]
         return optionNames
 
@@ -74,6 +95,8 @@ class MeshType_3d_lung1(Scaffold_base):
         isMouse = 'Mouse 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
+
+        discontinuity = options['Discontinuity on the core boundary']
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -185,7 +208,7 @@ class MeshType_3d_lung1(Scaffold_base):
         eftTetCollapseXi1Xi2_63 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(6, 3)
 
         # common parameters in species
-        generateParameters = False
+        generateParameters = True
         leftLung = 0
         rightLung = 1
 
@@ -362,7 +385,8 @@ class MeshType_3d_lung1(Scaffold_base):
             elementIdentifier = 1
 
             # Left lung elements
-            elementIdentifier = getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+            elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
+                getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 elementtemplateCustom, mesh, lungMeshGroup,
                 leftLungMeshGroup, lowerLeftLungMeshGroup, None, upperLeftLungMeshGroup,
                 lElementsCount1, lElementsCount2, lElementsCount3,
@@ -376,6 +400,136 @@ class MeshType_3d_lung1(Scaffold_base):
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
+
+            if discontinuity:
+                # create discontinuity in d3 on the core boundary
+                nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+                elementtemplate = mesh.createElementtemplate()
+                undefineNodetemplate = nodes.createNodetemplate()
+                undefineNodetemplate.undefineField(coordinates)
+                nodetemplate = nodes.createNodetemplate()
+                fieldcache = fm.createFieldcache()
+
+                with ChangeManager(fm):
+                    # localNodeIndexes = [1, 2, 5, 6]
+                    valueLabel = Node.VALUE_LABEL_D_DS2
+
+                    for e3 in range(len(leftUpperLobeElementID)):
+                        for e2 in range(len(leftUpperLobeElementID[e3])):
+                            for e1 in range(len(leftUpperLobeElementID[e3][e2])):
+
+                                # Oblique fissure upper lobe Element
+                                if ((e3 < 2) and (e2 == 2)) or ((e3 == 2) and (e2 < 3)):
+                                    elementIdentifier = leftUpperLobeElementID[e3][e2][e1]
+
+                                    if e3 < 2:
+                                        localNodeIndexes = [1, 2, 5, 6]
+                                        valueLabel = Node.VALUE_LABEL_D_DS2
+                                    elif (e3 > 1) and (e2 == 0):
+                                        localNodeIndexes = [1, 2, 3]
+                                        valueLabel = Node.VALUE_LABEL_D_DS3
+                                    elif (e3 > 1) and (e2 < 2):
+                                        localNodeIndexes = [1, 2]
+                                        valueLabel = Node.VALUE_LABEL_D_DS3
+                                    elif (e3 > 1) and (e2 < 3):
+                                        localNodeIndexes = [1, 2]
+                                        valueLabel = Node.VALUE_LABEL_D_DS3
+
+
+                                    element = mesh.findElementByIdentifier(elementIdentifier)
+                                    eft = element.getElementfieldtemplate(coordinates, -1)
+                                    nodeIds = get_element_node_identifiers(element, eft)
+
+                                    print('e3',e3,'e2',e2,'e1',e1,'||', elementIdentifier, nodeIds)
+
+                                    for localNodeIndex in localNodeIndexes:
+                                        node = element.getNode(eft, localNodeIndex)
+                                        nodetemplate.defineFieldFromNode(coordinates, node)
+                                        versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1,
+                                                                                              valueLabel)
+                                        if versionsCount == 1:
+                                            if e3 < 2:
+                                                fieldcache.setNode(node)
+                                                result0, x = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                           Node.VALUE_LABEL_VALUE, 1, 3)
+                                                result0, d1 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                            Node.VALUE_LABEL_D_DS1, 1, 3)
+                                                result0, d2 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                            valueLabel, 1, 3)
+                                                result0, d3 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1,
+                                                                                            3)
+                                                result1 = node.merge(undefineNodetemplate)
+                                                result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel,
+                                                                                                2)
+                                                result3 = node.merge(nodetemplate)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_VALUE, 1, x)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS1, 1, d1)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS3, 1, d3)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d2)
+                                                result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d2)
+                                            elif (e3 > 1) and (e2 < 2):
+                                                fieldcache.setNode(node)
+                                                result0, x = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                           Node.VALUE_LABEL_VALUE, 1, 3)
+                                                result0, d1 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                            Node.VALUE_LABEL_D_DS1, 1, 3)
+                                                result0, d2 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                            Node.VALUE_LABEL_D_DS2, 1, 3)
+                                                result0, d3 = coordinates.getNodeParameters(fieldcache, -1, valueLabel, 1,
+                                                                                            3)
+                                                result1 = node.merge(undefineNodetemplate)
+                                                result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel,
+                                                                                                2)
+                                                result3 = node.merge(nodetemplate)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_VALUE, 1, x)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS1, 1, d1)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS2, 1, d2)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
+                                                result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
+                                            elif (e3 > 1) and (e2 < 3):
+                                                fieldcache.setNode(node)
+                                                result0, x = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                           Node.VALUE_LABEL_VALUE, 1, 3)
+                                                result0, d1 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                            Node.VALUE_LABEL_D_DS1, 1, 3)
+                                                result0, d2 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                            Node.VALUE_LABEL_D_DS2, 1, 3)
+                                                result0, d3 = coordinates.getNodeParameters(fieldcache, -1, valueLabel, 1,
+                                                                                            3)
+                                                result1 = node.merge(undefineNodetemplate)
+                                                result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel,
+                                                                                                2)
+                                                result3 = node.merge(nodetemplate)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_VALUE, 1, x)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS1, 1, d1)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS2, 1, d2)
+                                                result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                        Node.VALUE_LABEL_D_DS2, 2, d2)
+                                                result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
+                                                result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
+                                            else:
+                                                continue
+
+                                    remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], 2)
+
+                                    result1 = elementtemplate.defineField(coordinates, -1, eft)
+                                    result2 = element.merge(elementtemplate)
+                                    result3 = element.setNodesByIdentifier(eft, nodeIds)
+
+                                    if (e3 == 2) and (e2 < 3):
+                                        element.setScaleFactors(eft, [-1.0])
+
+                                else:
+                                    fieldcache = fm.createFieldcache()
 
             # Marker points
             lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
@@ -767,7 +921,7 @@ class MeshType_3d_lung1(Scaffold_base):
                 ( 171, [ [-38.30971,35.65559,-76.04625], [-0.59359, 1.17190, 0.42562], [-2.29060, 0.19141,-2.20138], [-1.11098, 0.14031, 1.37798] ] ),
                 ( 172, [ [-40.44931,35.97948,-78.12884], [-0.02214, 0.94644, 0.08406], [-1.98489, 0.45552,-1.96014], [-0.20060, 0.07449, 3.45244] ] )
             ]
-                
+
             # The number of the elements in the left mouse lung
             elementsCount1 = 2
             elementsCount2 = 4
@@ -1041,82 +1195,617 @@ def getLungNodes(lungSide, cache, coordinates, generateParameters, nodes, nodete
         including indexing by [uElementsCount3 + 1][uElementsCount2 + 1][uElementsCount1 + 1]
     :return: nodeIndex, nodeIdentifier
     """
-    leftLung = 0
 
-    # Initialise parameters
-    d1 = [1.0, 0.0, 0.0]
-    d2 = [0.0, 1.0, 0.0]
-    d3 = [0.0, 0.0, 1.0]
+    if generateParameters is False:
+        # lower lobe
+        for n3 in range(lElementsCount3 + 1):
+            lowerNodeIds.append([])
+            for n2 in range(lElementsCount2 + 1):
+                lowerNodeIds[n3].append([])
+                for n1 in range(lElementsCount1 + 1):
+                    lowerNodeIds[n3][n2].append(None)
 
-    # Offset
-    xMirror = 0 if lungSide == leftLung else 150
+                    if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
+                        continue
+                    if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
+                        continue
 
-    # Lower lobe nodes
-    for n3 in range(lElementsCount3 + 1):
-        lowerNodeIds.append([])
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    nodeParameters = nodeFieldParameters[nodeIndex]
+                    nodeIndex += 1
+                    assert nodeIdentifier == nodeParameters[0]
+                    x, d1, d2, d3 = nodeParameters[1]
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    lowerNodeIds[n3][n2][n1] = nodeIdentifier
+                    nodeIdentifier += 1
+
+        for n3 in range(uElementsCount3 + 1):
+            upperNodeIds.append([])
+            for n2 in range(uElementsCount2 + 1):
+                upperNodeIds[n3].append([])
+                for n1 in range(uElementsCount1 + 1):
+                    upperNodeIds[n3][n2].append(None)
+
+                    if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
+                        continue
+                    if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
+                        continue
+                    if ((n2 == 0) or (n2 == uElementsCount2)) and (n3 == uElementsCount3):
+                        continue
+                    if ((n1 == 0) or (n1 == uElementsCount1)) and (n3 == uElementsCount3):
+                        continue
+
+                    # Oblique fissure nodes
+                    if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
+                        upperNodeIds[n3][n2][n1] = lowerNodeIds[n3][lElementsCount2][n1]
+                        continue
+                    elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
+                        upperNodeIds[n3][n2][n1] = lowerNodeIds[lElementsCount3][n2][n1]
+                        continue
+
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+
+                    nodeParameters = nodeFieldParameters[nodeIndex]
+                    nodeIndex += 1
+                    assert nodeIdentifier == nodeParameters[0]
+                    x, d1, d2, d3 = nodeParameters[1]
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    upperNodeIds[n3][n2][n1] = nodeIdentifier
+                    nodeIdentifier += 1
+    else:
+        # Initialise parameters
+        leftLung = 0
+        d1 = [1.0, 0.0, 0.0]
+        d2 = [0.0, 1.0, 0.0]
+        d3 = [0.0, 0.0, 1.0]
+
+        # Input
+        lengthUnit = 6
+        widthUnit = 3
+        heightUnit = 10
+        fissureAngle = 45 # degree
+        obliqueProportion = 0.8
+        centre = [0.0, 0.0, 0.0]
+        centreRight = [0.0, 25.0, 0.0]
+        xAxis = [1.0, 0.0, 0.0]
+        yAxis = [0.0, 1.0, 0.0]
+        zAxis = [0.0, 0.0, 1.0]
+
+        majorXAxis = [xAxis[i] * lengthUnit for i in range(3)]
+        minorYAxis = [yAxis[i] * widthUnit for i in range(3)]
+        minorZAxis = [zAxis[i] * heightUnit for i in range(3)]
+
+        fissureRadian = fissureAngle/180 * math.pi
+        tanFissureRadian = math.tan(fissureRadian)
+
+        # Create 5 points at the centre of 2D Ellipse base
+        p1 = [xAxis[i] * lengthUnit for i in range(3)]
+        p2 = [xAxis[i] * -lengthUnit for i in range(3)]
+        p3 = [[p1[i] - (p1[i] - p2[i]) * obliqueProportion for i in range(3)]] # point of oblique fissure on diaphragm
+
+        C = -tanFissureRadian * p3[0][0]
+        X = symbols('x')
+        Z = symbols('z')
+        eq1 = Eq((X / lengthUnit) ** 2 + (Z / heightUnit) ** 2, 1)
+        eq2 = Eq(Z - (tanFissureRadian * X), C)
+        result = solve([eq1, eq2], (X, Z))
+        p4 = [float(result[1][0]), 0.0, float(result[1][1])] # point of oblique fissure on the curve
+
+        # points on 2D Ellipse base (two on the curve and one centre)
+        x = p3[0][0]
+        y = math.sqrt(1 - (x/lengthUnit) ** 2) * widthUnit
+        p3.append([p3[0][0], y, p3[0][2]])
+        p3.insert(0, [p3[0][0], -y, p3[0][2]])
+
+        # points around on 2D Ellipse base
+        # --------------------------------------------------- Lower lobe -------------------------------------------------
+        lower_row1 = []
+        lower_row1_d2 = []
+        lower_row2 = []
+        lower_row2_d2 = []
+        obl = []
+        obl_d2 = []
+        lower_edge = []
+        lower_edge_d2 = []
+        lowerObl = []
+        lowerObl_d2 = []
+
         for n2 in range(lElementsCount2 + 1):
-            lowerNodeIds[n3].append([])
-            for n1 in range(lElementsCount1 + 1):
-                lowerNodeIds[n3][n2].append(None)
-                if ((n1 == 0) or (n1 == lElementsCount1)) and (n2 == 0):
-                    continue
-                if (n3 > (lElementsCount3 - 2)) and (n2 > (lElementsCount2 - 2)):
-                    continue
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                if generateParameters:
-                    x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
-                else:
-                    nodeParameters = nodeFieldParameters[nodeIndex]
-                    nodeIndex += 1
-                    assert nodeIdentifier == nodeParameters[0]
-                    x, d1, d2, d3 = nodeParameters[1]
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                lowerNodeIds[n3][n2][n1] = nodeIdentifier
-                nodeIdentifier += 1
+            if n2 == 0:
+                # row 1
+                dx = p3[2][0]
+                vec1 = majorXAxis
+                vec2 = minorYAxis
+                planeCentre = centre
+                elementsCountAround = 4
+                nodesCountAround = elementsCountAround + 1
+                x = lower_row1
+                nd2 = lower_row1_d2
+            elif n2 == 1:
+                # oblique
+                dx = 0.0
+                vec1 = ([(p4[i] - p3[1][i]) for i in range(3)])
+                vec2 = minorYAxis
+                elementsCountAround = 4
+                planeCentre = p3[1]
+                nodesCountAround = elementsCountAround + 1
+                x = obl
+                nd2 = obl_d2
+            elif n2 == 2:
+                # lower lobe
+                dx = obl[0][0]
+                elementsCountAround = 3
+                vec1 = majorXAxis
+                vec2 = [minorZAxis[i] * -1 for i in range(3)]
+                planeCentre = centre
+                nodesCountAround = elementsCountAround + 1
+                x = lower_edge
+                nd2 = lower_edge_d2
+            elif n2 == 3:
+                # 2nd oblique
+                row1_temp = [lower_row1[3][0], 0.0, lower_row1[3][2]]
+                vec1 = ([lower_edge[2][i] - row1_temp[i] for i in range(3)])
+                vec2 = minorYAxis
+                dx = 0.0
+                planeCentre = row1_temp
+                elementsCountAround = 4
+                nodesCountAround = elementsCountAround
+                x = lowerObl
+                nd2 = lowerObl_d2
+            elif n2 == 4:
+                # row 2
+                y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (lower_edge[1][2] / heightUnit) ** 2) * widthUnit
+                row1_centre = [lowerObl[3][0], 0.0, lowerObl[3][2]]
+                row1_temp = [0.0, 0.0, lower_edge[1][2]]
+                row1_ellipse = [0.0, y, lower_edge[1][2]]
+                vec1 = ([lower_edge[1][i] - row1_centre[i] for i in range(3)])
+                vec2 = ([row1_ellipse[i] - row1_temp[i] for i in range(3)])
+                dx = 0.0
+                planeCentre = row1_centre
+                elementsCountAround = 3
+                nodesCountAround = elementsCountAround + 1
+                x = lower_row2
+                nd2 = lower_row2_d2
 
-    # Upper lobe nodes
-    for n3 in range(uElementsCount3 + 1):
-        upperNodeIds.append([])
-        for n2 in range(uElementsCount2 + 1):
-            upperNodeIds[n3].append([])
-            for n1 in range(uElementsCount1 + 1):
-                upperNodeIds[n3][n2].append(None)
-                if ((n1 == 0) or (n1 == uElementsCount1)) and ((n2 == 0) or (n2 == uElementsCount2)):
-                    continue
-                if (n2 < (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                    continue
-                if ((n2 == 0) or (n2 == uElementsCount2)) and (n3 == uElementsCount3):
-                    continue
-                if ((n1 == 0) or (n1 == uElementsCount1)) and (n3 == uElementsCount3):
-                    continue
+            magMajorAxis = magnitude(vec1)
+            magMinorAxis = magnitude(vec2)
+            unitMajorAxis = normalise(vec1)
+            unitMinorAxis = normalise(vec2)
 
-                # Oblique fissure nodes
-                if (n2 == (uElementsCount2 - 2)) and (n3 < (uElementsCount3 - 2)):
-                    upperNodeIds[n3][n2][n1] = lowerNodeIds[n3][lElementsCount2][n1]
-                    continue
-                elif (n2 < (uElementsCount2 - 1)) and (n3 == (uElementsCount3 - 2)):
-                    upperNodeIds[n3][n2][n1] = lowerNodeIds[lElementsCount3][n2][n1]
-                    continue
+            radians = 0.0
+            totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, dx, 0.5 * math.pi)
+            arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
+            elementArcLength = arclengthAround / elementsCountAround
+            radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
 
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                if generateParameters:
-                    x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1) + 2.5, 1.0 * n3 + 2.0]
-                else:
-                    nodeParameters = nodeFieldParameters[nodeIndex]
-                    nodeIndex += 1
-                    assert nodeIdentifier == nodeParameters[0]
-                    x, d1, d2, d3 = nodeParameters[1]
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                upperNodeIds[n3][n2][n1] = nodeIdentifier
-                nodeIdentifier += 1
+            x_temp = []
+            nd2_temp = []
+            for n1 in range(nodesCountAround):
+                cosRadiansAround = math.cos(radians)
+                sinRadiansAround = math.sin(radians)
+
+                temp = ([(planeCentre[c] + cosRadiansAround * vec1[c] + sinRadiansAround * vec2[c]) for c in range(3)])
+                x_temp.append(temp)
+
+                ndab = setMagnitude([-sinRadiansAround * magMajorAxis, cosRadiansAround * magMinorAxis], -elementArcLength)
+                nd2_temp.append(
+                    [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
+                radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), radians, -elementArcLength)
+
+            # Gradual changes in node spacing
+            if n2 == 0:
+                # row 1
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 1:
+                # oblique
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 2:
+                # lower lobe
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 2, lengthFractionStart = 0.5, lengthFractionEnd = 0.5, arcLengthDerivatives = True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 3:
+                # 2nd oblique
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 2,  arcLengthDerivatives = True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 4:
+                # rows 2
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 2, arcLengthDerivatives = True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            else:
+                # even spacing
+                [x.append(x_temp[i]) for i in range(len(x_temp))]
+                [nd2.append(nd2_temp[i]) for i in range(len(nd2_temp))]
+
+        # complete lower_row2 and lowerObl list
+        lower_row2.append(obl[3])
+        lower_row2_d2.append(obl_d2[3])
+        lowerObl.append(lower_row1[3])
+        lowerObl_d2.append(lower_row1[3])
+
+        # smooth derivatives
+        tx_d2 = []
+        td2 = []
+        tx_d3 = []
+        td3 = []
+        md2 = []
+        md3 = []
+
+        for n3 in range(lElementsCount3 + 1):
+            tx_d2.append([])
+            td2.append([])
+            if n3 == 0:
+                x = lower_row1
+                d2 = lower_row1
+            elif n3 == 1:
+                x = lower_row2
+                d2 = lower_row2
+            elif n3 == 2:
+                x = lowerObl
+                d2 = lowerObl
+            elif n3 == 3:
+                x = obl
+                d2 = obl
+            for n2 in range(lElementsCount2 + 1):
+                tx_d2[n3].append(x[n2])
+                td2[n3].append(d2[n2])
+                if n3 == 0:
+                    if n2 == 4:
+                        reverse_obl = [obl[-i] for i in range(1, len(obl)+1)]
+                        tx_d3.append(reverse_obl)
+                        td3.append(reverse_obl)
+                    else:
+                        tx_d3.append([lower_row1[n2], lower_row2[n2], lowerObl[n2], obl[n2]])
+                        td3.append([lower_row1[n2], lower_row2[n2], lowerObl[n2], obl[n2]])
+                    md3.append(smoothCubicHermiteDerivativesLine(tx_d3[n2], td3[n2]))
+            md2.append(smoothCubicHermiteDerivativesLine(tx_d2[n3], td2[n3]))
+
+        # create nodes
+        for n3 in range(lElementsCount3 + 1):
+            lowerNodeIds.append([])
+            for n2 in range(lElementsCount2 + 1):
+                lowerNodeIds[n3].append([])
+                for n1 in range(lElementsCount1 + 1):
+                    lowerNodeIds[n3][n2].append(None)
+                    d2 = md2[n3][n2]
+                    d3 = md3[n2][n3]
+
+                    # each i row
+                    if n3 == 0:
+                        x = copy.deepcopy(lower_row1[n2])
+                        if n2 < 4:
+                            next_xd2 = copy.deepcopy(lower_row1[n2 + 1])
+                    elif n3 == 1:
+                        x = copy.deepcopy(lower_row2[n2])
+                        if n2 < 4:
+                            next_xd2 = copy.deepcopy(lower_row2[n2 + 1])
+                    elif (n3 == 2) and (n2 < 3):
+                        x = copy.deepcopy(lowerObl[n2])
+                        if n2 < 4:
+                            next_xd2 = copy.deepcopy(lowerObl[n2 + 1])
+                    elif (n3 == 3) and (n2 < 3):
+                        x = copy.deepcopy(obl[n2])
+                        if n2 < 2:
+                            next_xd2 = copy.deepcopy(obl[n2 + 1])
+                        else:
+                            # 3-way point
+                            d3 = [-md2[n3][n2][0], -md2[n3][n2][1], -md2[n3][n2][2]]
+                            d2 = [md3[n2][n3][0], md3[n2][n3][1], md3[n2][n3][2]]
+                    else:
+                        continue
+
+                    # skipping the first and last column and row - edge.
+                    if (n2 == 0) and (n1 != 1):
+                        continue
+
+                    # symmetry
+                    if n1 == 0:
+                        next_xd1 = [x[0], 0.0, x[2]]
+                        d1 = [next_xd1[i] - x[i] for i in range(3)]
+                    elif n1 == 1:
+                        x = [x[0], 0.0, x[2]]
+                        if n2 == 0:
+                            d1 = [-d2[i] for i in range(3)]
+                        # 3-way point
+                        if (n3 == 3) and (n2 == 2):
+                            d3 = [-md2[n3][n2][0], 0.0, -md2[n3][n2][2]]
+                        elif (n2 < 4):
+                            next_xd2[1] = 0.0
+                            d2 = [next_xd2[i] - x[i] for i in range(3)]
+                            previous_d2 = d2
+                        else:
+                            d2 = previous_d2
+                    else:
+                        x = [x[0], -x[1], x[2]]
+                        d2 = [d2[0], -d2[1], d2[2]]
+                        d3 = [d3[0], -d3[1], d3[2]]
+
+                    # translate right lung to the defined centre of the right lung
+                    if lungSide != leftLung:
+                        x = [x[i] + centreRight[i] for i in range(3)]
+
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    lowerNodeIds[n3][n2][n1] = nodeIdentifier
+                    nodeIdentifier += 1
+
+        # ------------------------------------------------------ Upper lobe ----------------------------------------------
+        upper_row1 = []
+        upper_row2 = []
+        upper_row3 = []
+        upper_row4 = []
+        upper_edge = []
+
+        for n2 in range(uElementsCount1):
+            if n2 == 0:
+                # Upper lobe along the edge
+                dx = 0.0
+                vec1 = [majorXAxis[i] * -1 for i in range(3)]
+                vec2 = minorZAxis
+                planeCentre = centre
+                elementsCountAround = 5
+                nodesCountAround = elementsCountAround + 1
+                x = upper_edge
+            else:
+                # Upper lobe along the edge on the lower lobe
+                dx = obl[0][2]
+                vec1 = minorZAxis
+                vec2 = majorXAxis
+                planeCentre = centre
+                elementsCountAround = 3
+                nodesCountAround = elementsCountAround + 1
+                x = upper_edge
+
+            radians = 0.0
+            totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, dx, 0.5 * math.pi)
+            arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
+            elementArcLength = arclengthAround / elementsCountAround
+            radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
+
+            for n1 in range(nodesCountAround):
+                cosRadians = math.cos(radians)
+                sinRadians = math.sin(radians)
+                x_temp = ([(planeCentre[c] + cosRadians * vec1[c] + sinRadians * vec2[c]) for c in range(3)])
+                radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), radians, elementArcLength)
+                if (n2 == 1) and (n1 == 0):
+                    continue
+                x.insert(0, x_temp)
+
+        # Interpolate the nodes between the upper lobe edge and fissures
+        for n2 in range(uElementsCount3):
+            if n2 == 0:
+                # row 1
+                dx = -p3[2][0]
+                vec2 = minorYAxis
+                vec1 = [majorXAxis[i] * -1 for i in range(3)]
+                planeCentre = centre
+                elementsCountAround = 2
+                nodesCountAround = elementsCountAround + 1
+                x = upper_row1
+            elif n2 == 1:
+                # row 2
+                y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (upper_edge[-2][2] / heightUnit) ** 2) * widthUnit
+                obl_temp = [0.0, 0.0, upper_edge[-2][2]]
+                obl_ellipse = [0.0, y, upper_edge[-2][2]]
+                dx = 0.0
+                vec1 = [upper_edge[-2][i] - obl_temp[i] for i in range(3)]
+                vec2 = [obl_ellipse[i] - obl_temp[i] for i in range(3)]
+                planeCentre = obl_temp
+                elementsCountAround = 2
+                nodesCountAround = elementsCountAround + 1
+                x = upper_row2
+            elif n2 == 2:
+                # row 3
+                y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (upper_edge[-3][2] / heightUnit) ** 2) * widthUnit
+                obl_temp = [0.0, 0.0, upper_edge[-3][2]]
+                obl_ellipse = [0.0, y, upper_edge[-3][2]]
+                dx = 0.0
+                vec1 = [upper_edge[-3][i] - obl_temp[i] for i in range(3)]
+                vec2 = [obl_ellipse[i] - obl_temp[i] for i in range(3)]
+                planeCentre = obl_temp
+                elementsCountAround = 2
+                nodesCountAround = elementsCountAround + 1
+                x = upper_row3
+            else:
+                # row 4
+                p6_1 = [(upper_edge[-4][i] + upper_edge[1][i]) / 2 for i in range(3)]
+                z = math.sqrt(1 - (p6_1[0] / lengthUnit) ** 2 - (p6_1[2] / heightUnit) ** 2) * widthUnit
+                p6_0 = [p6_1[0], z, p6_1[2]]
+                radius = [upper_edge[-4][i] - p6_1[i] for i in range(3)]
+                dx = -magnitude(radius)
+                vec1 = [(upper_edge[-4][i] - upper_edge[1][i]) / 2 for i in range(3)]
+                vec2 = [p6_0[i] - p6_1[i] for i in range(3)]
+                planeCentre = p6_1
+                elementsCountAround = 4
+                nodesCountAround = elementsCountAround + 1
+                x = upper_row4
+
+            radians = 0.0
+            totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, dx, 0.5 * math.pi)
+            arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
+            elementArcLength = arclengthAround / elementsCountAround
+            radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
+
+            x_temp = []
+            nd2_temp = []
+            for n1 in range(nodesCountAround):
+                cosRadians = math.cos(radians)
+                sinRadians = math.sin(radians)
+
+                temp = ([(planeCentre[c] + cosRadians * vec1[c] + sinRadians * vec2[c]) for c in range(3)])
+                x_temp.insert(0, temp)
+
+                ndab = setMagnitude([-sinRadiansAround * magMajorAxis, cosRadiansAround * magMinorAxis], -elementArcLength)
+                nd2_temp.append(
+                    [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
+
+                radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), radians, -elementArcLength)
+
+            # Gradual changes in node spacing
+            if n2 == 0:
+                # row 1
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
+                                                                 elementLengthStartEndRatio=1, arcLengthDerivatives=True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 1:
+                # row 2
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
+                                                                 elementLengthStartEndRatio=1.5, arcLengthDerivatives=True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 2:
+                # row 3
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
+                                                                 elementLengthStartEndRatio=2, lengthFractionStart=0.5,
+                                                                 lengthFractionEnd=1, arcLengthDerivatives=True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            elif n2 == 3:
+                # row 4
+                px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
+                                                                 elementLengthStartEndRatio= 0.75 , arcLengthDerivatives=True)
+                [x.append(px[i]) for i in range(len(px))]
+                [nd2.append(pd1[i]) for i in range(len(pd1))]
+            else:
+                # even spacing
+                [x.append(x_temp[i]) for i in range(len(x_temp))]
+                [nd2.append(nd2_temp[i]) for i in range(len(nd2_temp))]
+
+        # smooth derivatives
+        tx_d2 = []
+        tx_d3 = []
+        md2 = []
+        md3 = []
+        for n3 in range(uElementsCount3 + 1):
+            if n3 == 0:
+                tx_d2 = upper_row1
+                tx_d3 = [upper_edge[-i] for i in range(1,6)]
+            elif n3 == 1:
+                tx_d2 = upper_row2
+                tx_d3 = [upper_row1[-n3-1], upper_row2[-n3-1], upper_row3[-n3-1], upper_row4[-n3-1], upper_edge[-5]]
+            elif n3 == 2:
+                tx_d2 = upper_row3
+                tx_d3 = [upper_row4[n3], upper_edge[n3 + 1]]
+            elif n3 == 3:
+                tx_d2 = upper_row4
+                tx_d3 = [upper_row4[n3-2], upper_edge[n3 - 1]]
+            elif n3 == 4:
+                # Apex row
+                tx_d2 = [upper_edge[i] for i in range(1, 6)]
+                tx_d3 = [upper_edge[i] for i in range(1,3)]
+
+            md2.append(smoothCubicHermiteDerivativesLine(tx_d2, tx_d2))
+            md3.append(smoothCubicHermiteDerivativesLine(tx_d3, tx_d3))
+
+        # create nodes
+        for i in range(uElementsCount3 + 1):
+            upperNodeIds.append([])
+            for j in range(uElementsCount2 + 1):
+                upperNodeIds[i].append([])
+                for k in range(uElementsCount1 + 1):
+                    upperNodeIds[i][j].append(None)
+
+                    # Oblique fissure nodes
+                    if (i < 2) and (j == 2):
+                        upperNodeIds[i][j][k] = lowerNodeIds[i][-1][k]
+                    elif (i == 2) and (j < 4):
+                        upperNodeIds[i][j][k] = lowerNodeIds[-1][j][k]
+
+                    # each i row
+                    if (i == 0) and (j > 2):
+                        x = copy.deepcopy(upper_row1[j - 2])
+                        d2 = md2[i][j-2]
+                        idx = j-(j//2)*2
+                        d3 = md3[idx][i]
+                        if j < 4:
+                            next_xd2 = copy.deepcopy(upper_row1[j - 1])
+                    elif (i == 1) and (j > 2):
+                        x = copy.deepcopy(upper_row2[j - 2])
+                        d2 = md2[i][j-2]
+                        idx = j-(j//2)*2
+                        d3 = md3[idx][i]
+                        if j < 4:
+                            next_xd2 = copy.deepcopy(upper_row2[j - 1])
+                    elif (i == 2) and (j > 2):
+                        x = copy.deepcopy(upper_row3[j - 2])
+                        d2 = md2[i][j-2]
+                        idx = j-(j//2)*2
+                        d3 = md3[idx][i]
+                        if j < 4:
+                            next_xd2 = copy.deepcopy(upper_row3[j - 1])
+                    elif (i == 3):
+                        x = copy.deepcopy(upper_row4[j])
+                        d2 = md2[i][j]
+                        d3 = md3[-j-1][i] if j > 2 else md3[-j-1][i-3]
+                        # d3 = md3[i][j]
+                        if j < 4:
+                            next_xd2 = copy.deepcopy(upper_row4[j+1])
+                    elif (i == 4) and (j > 0) and (j < 4):
+                        x = copy.deepcopy(upper_edge[j+1])
+                        d2 = md2[i][j]
+                        d3 = md3[-j-1][i] if j == 3 else md3[-j-1][i-3]
+                        if j < 4:
+                            next_xd2 = copy.deepcopy(upper_edge[j+2])
+                    else:
+                        continue
+
+                    # skipping the first and last, k.
+                    if (((j == 0) or (j == 4)) and (k != 1)) or ((i == 4) and (k != 1)):
+                        continue
+
+                    # symmetry
+                    if k == 0:
+                        # d2 = md2[i][j]
+                        pass
+                    elif k == 1:
+                        if j == 4:
+                            # Ridges
+                            d2 = previous_d2
+                        elif i == 4:
+                            # Apex row
+                            d3 = [d3[0], 0.0, d3[2]]
+                        else:
+                            x = [x[0], 0.0, x[2]]
+                            next_xd2 = [next_xd2[0], 0.0, next_xd2[2]]
+                            d2 = [next_xd2[i] - x[i] for i in range(3)]
+                            previous_d2 = d2
+                            d3 = [d3[0], 0.0, d3[2]]
+                    else:
+                        x = [x[0], -x[1], x[2]]
+                        d2 = [d2[0], -d2[1], d2[2]]
+                        d3 = [d3[0], -d3[1], d3[2]]
+
+                    # translate right lung to the defined centre of the right lung
+                    if lungSide != leftLung:
+                        x = [x[i] + centreRight[i] for i in range(3)]
+
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    upperNodeIds[i][j][k] = nodeIdentifier
+                    nodeIdentifier += 1
 
     return nodeIndex, nodeIdentifier
 
@@ -1139,10 +1828,16 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
     eftTetCollapseXi1Xi2_71 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(7, 1)
     eftTetCollapseXi1Xi2_82 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(8, 2)
 
+    lowerLobeElementID = []
+    upperLobeElementID = []
     # Lower lobe elements
     for e3 in range(lElementsCount3):
+        lowerLobeElementID.append([])
         for e2 in range(lElementsCount2):
+            lowerLobeElementID[e3].append([])
             for e1 in range(lElementsCount1):
+                lowerLobeElementID[e3][e2].append(None)
+
                 eft = eftRegular
                 nodeIdentifiers = [
                     lowerNodeIds[e3][e2][e1], lowerNodeIds[e3][e2][e1 + 1], lowerNodeIds[e3][e2 + 1][e1],
@@ -1196,6 +1891,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 element.setNodesByIdentifier(eft, nodeIdentifiers)
                 if eft.getNumberOfLocalScaleFactors() == 1:
                     element.setScaleFactors(eft, [-1.0])
+                lowerLobeElementID[e3][e2][e1] = elementIdentifier
                 elementIdentifier += 1
 
                 # Annotation
@@ -1206,8 +1902,12 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
 
     # Upper lobe elements
     for e3 in range(uElementsCount3):
+        upperLobeElementID.append([])
         for e2 in range(uElementsCount2):
+            upperLobeElementID[e3].append([])
             for e1 in range(uElementsCount1):
+                upperLobeElementID[e3][e2].append(None)
+
                 eft = eftRegular
                 nodeIdentifiers = [
                     upperNodeIds[e3][e2][e1], upperNodeIds[e3][e2][e1 + 1], upperNodeIds[e3][e2 + 1][e1],
@@ -1342,6 +2042,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 element.setNodesByIdentifier(eft, nodeIdentifiers)
                 if eft.getNumberOfLocalScaleFactors() == 1:
                     element.setScaleFactors(eft, [-1.0])
+                upperLobeElementID[e3][e2][e1] = elementIdentifier
                 elementIdentifier += 1
                 lungMeshGroup.addElement(element)
                 lungSideMeshGroup.addElement(element)
@@ -1350,7 +2051,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 elif upperLobeMeshGroup:
                     upperLobeMeshGroup.addElement(element)
 
-    return elementIdentifier
+    return elementIdentifier, upperLobeElementID, lowerLobeElementID
 
 def getDiaphragmaticLungNodes(cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
                  elementsCount1, elementsCount2, elementsCount3,
