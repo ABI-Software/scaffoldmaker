@@ -65,7 +65,7 @@ with variable numbers of elements across axes and shell directions.
             'Octant': False,
             'Hemisphere': False,
             'Full': True,
-            'Box derivatives': [1, 3, 2],
+            'Box derivatives': [-1, 2, 3],
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements': 1,
@@ -251,5 +251,5 @@ with variable numbers of elements across axes and shell directions.
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshRefinement, MeshRefinement)
-        refineElementsCountAcross = options['Refine number of elements']
-        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcross, refineElementsCountAcross, refineElementsCountAcross)
+        refineElementsCount = options['Refine number of elements']
+        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
