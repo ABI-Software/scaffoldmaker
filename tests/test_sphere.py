@@ -22,7 +22,7 @@ class SphereScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(16, len(options))
+        self.assertEqual(19, len(options))
         self.assertEqual(4, options.get("Number of elements across axis 1"))
         self.assertEqual(4, options.get("Number of elements across axis 2"))
         self.assertEqual(4, options.get("Number of elements across axis 3"))
@@ -32,6 +32,9 @@ class SphereScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1.0, options.get("Radius2"))
         self.assertEqual(1.0, options.get("Radius3"))
         self.assertEqual(1.0, options.get("Shell element thickness proportion"))
+        self.assertEqual([0, 4], options.get("Range of elements required in direction 1"))
+        self.assertEqual([0, 4], options.get("Range of elements required in direction 2"))
+        self.assertEqual([0, 4], options.get("Range of elements required in direction 3"))
         self.assertEqual([1, 2, 3], options.get("Box derivatives"))
 
         context = Context("Test")
@@ -139,6 +142,9 @@ class SphereScaffoldTestCase(unittest.TestCase):
         options['Number of elements across axis 1'] = 4
         options['Number of elements across axis 2'] = 6
         options['Number of elements across axis 3'] = 8
+        options['Range of elements required in direction 1'] = [0, 4]
+        options['Range of elements required in direction 2'] = [0, 6]
+        options['Range of elements required in direction 3'] = [0, 8]
 
         options['Radius1'] = 0.5
         options['Radius2'] = 0.8
