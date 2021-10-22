@@ -6,7 +6,7 @@ Bicubic with linear through wall.
 
 from __future__ import division
 import math
-from opencmiss.utils.maths.vectorops import eulerToRotationMatrix3
+from opencmiss.maths.vectorops import eulerToRotationMatrix3
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.utils.zinc.general import ChangeManager

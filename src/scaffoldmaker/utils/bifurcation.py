@@ -3,7 +3,7 @@ Utilities for building bifurcating network meshes.
 """
 
 from __future__ import division
-from opencmiss.utils.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from opencmiss.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
