@@ -24,25 +24,6 @@ class MeshType_3d_solidsphere2(Scaffold_base):
 Generates a solid sphere using a ShieldMesh of all cube elements,
 with variable numbers of elements across axes and shell directions.
     """
-    # centralPathDefaultScaffoldPackages = {
-    #     'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
-    #         'scaffoldSettings': {
-    #             'Coordinate dimensions': 3,
-    #             'D2 derivatives': True,
-    #             'D3 derivatives': True,
-    #             'Length': 3.0,
-    #             'Number of elements': 3
-    #         },
-    #         'meshEdits': exnodeStringFromNodeValues(
-    #             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-    #              Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-    #                 [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-    #                 [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-    #                 [[0.0, 0.0, 2.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-    #                 [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
-    #             ])
-    #     })
-    # }
 
     @staticmethod
     def getName():
@@ -50,9 +31,7 @@ with variable numbers of elements across axes and shell directions.
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        # centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
         options = {
-            # 'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across axis 1': 4,
             'Number of elements across axis 2': 4,
             'Number of elements across axis 3': 4,
@@ -62,9 +41,6 @@ with variable numbers of elements across axes and shell directions.
             'Radius2': 1.0,
             'Radius3': 1.0,
             'Shell element thickness proportion': 1.0,
-            'Octant': False,
-            'Hemisphere': False,
-            'Full': True,
             'Range of elements required in direction 1': [0, 4],
             'Range of elements required in direction 2': [0, 4],
             'Range of elements required in direction 3': [0, 4],
@@ -78,7 +54,6 @@ with variable numbers of elements across axes and shell directions.
     @staticmethod
     def getOrderedOptionNames():
         return [
-            # 'Central path',
             'Number of elements across axis 1',
             'Number of elements across axis 2',
             'Number of elements across axis 3',
@@ -88,9 +63,6 @@ with variable numbers of elements across axes and shell directions.
             'Radius2',
             'Radius3',
             # 'Shell element thickness proportion',
-            'Octant',
-            'Hemisphere',
-            'Full',
             'Range of elements required in direction 1',
             'Range of elements required in direction 2',
             'Range of elements required in direction 3',
@@ -100,64 +72,11 @@ with variable numbers of elements across axes and shell directions.
         ]
 
     @classmethod
-    def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
-            return [MeshType_1d_path1]
-        return []
-
-    @classmethod
-    def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.centralPathDefaultScaffoldPackages.keys())
-        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
-            cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
-            'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
-        return scaffoldType.getParameterSetNames()
-
-    @classmethod
-    def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
-        '''
-        :param parameterSetName:  Name of valid parameter set for option Scaffold, or None for default.
-        :return: ScaffoldPackage.
-        '''
-        if parameterSetName:
-            assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
-                'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
-                ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
-            if not parameterSetName:
-                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
-        assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
-
-    @classmethod
     def checkOptions(cls, options):
-        # if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-        #     options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
 
-        if options['Octant']:
-            dependentChanges = True
-            options['Hemisphere'] = False
-            options['Full'] = False
-        else:
-            if options['Hemisphere']:
-                dependentChanges = True
-                options['Full'] = False
-            else:
-                options['Full'] = True
-
-        if options['Octant']:
-            min1, min2, min3 = 2, 2, 2
-            co1, co2, co3 = 0, 0, 0
-        elif options['Hemisphere']:
-            dependentChanges = True
-            min1, min2, min3 = 4, 4, 2
-            co1, co2, co3 = 1, 1, 0
-        else:
-            dependentChanges = True
-            min1, min2, min3 = 4, 4, 4
-            co1, co2, co3 = 1, 1, 1
+        min1, min2, min3 = 4, 4, 4
+        co1, co2, co3 = 1, 1, 1
 
         if options['Number of elements across axis 1'] < min1:
             options['Number of elements across axis 1'] = min1
@@ -187,12 +106,8 @@ with variable numbers of elements across axes and shell directions.
                     options['Number of elements across axis {}'.format(i)] - 1:
                 options['Range of elements required in direction {}'.format(i)][1] = \
                     options['Number of elements across axis {}'.format(i)]
-        if options['Octant']:
-            nm = 2
-        if options['Hemisphere']:
-            nm = 3
-        elif options['Full']:
-            nm = 4
+
+        nm = 4
         for i in range(1, nm):
             if options['Range of elements required in direction {}'.format(i)][0] == 1:
                 options['Range of elements required in direction {}'.format(i)][0] = 0
@@ -236,7 +151,6 @@ with variable numbers of elements across axes and shell directions.
         :return: None
         """
 
-        # centralPath = options['Central path']
         elementsCountAcrossAxis1 = options['Number of elements across axis 1']
         elementsCountAcrossAxis2 = options['Number of elements across axis 2']
         elementsCountAcrossAxis3 = options['Number of elements across axis 3']
@@ -254,13 +168,7 @@ with variable numbers of elements across axes and shell directions.
         # consistent with [back, right, up]
         # sphereBoxDerivatives = [1, 3, 2]  # consistent with default derivatives of cylinder mesh.
         # This is the default value that is used for base sphere.
-
-        if options['Octant']:
-            sphere_shape = SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP
-        elif options['Hemisphere']:
-            sphere_shape = SphereShape.SPHERE_SHAPE_HALF_AAP
-        else:
-            sphere_shape = SphereShape.SPHERE_SHAPE_FULL
+        sphere_shape = SphereShape.SPHERE_SHAPE_FULL
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)

@@ -22,7 +22,7 @@ class SphereScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(19, len(options))
+        self.assertEqual(16, len(options))
         self.assertEqual(4, options.get("Number of elements across axis 1"))
         self.assertEqual(4, options.get("Number of elements across axis 2"))
         self.assertEqual(4, options.get("Number of elements across axis 3"))

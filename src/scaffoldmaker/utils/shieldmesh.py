@@ -671,7 +671,7 @@ class ShieldMesh3D:
         Generates a 3D shield mesh.
     """
 
-    def __init__(self, elementsCountAcross, elementsCountRim, shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP, box_derivatives=None):
+    def __init__(self, elementsCountAcross, elementsCountRim, box_derivatives=None):
         """
         3D shield structure can be used for a sphere mesh. 3 hex mesh merges to one box in the corner located in the centre.
         The structure is a 3D version of the 2D shield structure. It has a 'quadruple point', a unique node on the
@@ -688,7 +688,9 @@ class ShieldMesh3D:
 
         :param elementsCountAcross: number of elements as a list [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
         :param elementsCountRim:
-        :param shieldMode: It can be full or just a section of the whole shield.
+        :param box_derivatives: It is a list of [deriv1,deriv2,deriv3]. It is used to set the derivative directions.
+        default is [1, 3, 2] which means it makes -d1, d3 and d2 in direction of axis1, axis2 and axis3. To make
+        d1, d2 and d3 directions in direction of axis1, axis2 and axis3 use [-1, 2, 3].
         """
         assert elementsCountRim >= 0
         # assert elementsCountAcross >= (elementsCountRim + 4)
@@ -698,7 +700,6 @@ class ShieldMesh3D:
         # self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
         # elementsCountAcrossNonRim = self.elementsCountAcross - 2*elementsCountRim
         # self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
-        self._shieldMode = shieldMode
         self._boxDerivatives = box_derivatives
         self._element_needs_scale_factor = False
         self._xi_mapping = None
@@ -717,6 +718,68 @@ class ShieldMesh3D:
                     p.append([ None ]*(elementsCountAcross[1] + 1))
 
         self.elementId = [ [[ None ]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])] for e3 in range(elementsCountAcross[2]) ]
+
+    # node types
+    CORNER_1 = 1
+    CORNER_2 = 2
+    CORNER_3 = 3
+
+    QUADRUPLE_DOWN_LEFT = 4
+    QUADRUPLE_RIGHT = 5
+    QUADRUPLE_UP = 6
+    QUADRUPLE0_DOWN_LEFT = 7
+    QUADRUPLE0_RIGHT = 8
+    QUADRUPLE0_UP = 9
+
+    TRIPLE_12_LEFT = 10
+    TRIPLE_12_RIGHT = 11
+    TRIPLE_13_DOWN = 12
+    TRIPLE_13_UP = 13
+    TRIPLE_23_UP = 14
+    TRIPLE_23_DOWN = 15
+    TRIPLE0_12_LEFT = 16
+    TRIPLE0_12_RIGHT = 17
+    TRIPLE0_13_DOWN = 18
+    TRIPLE0_13_Up = 19
+    TRIPLE0_23_DOWN = 20
+    TRIPLE0_23_UP = 21
+
+    BOUNDARY_12_LEFT = 22
+    BOUNDARY_12_RIGHT = 23
+    BOUNDARY_13_DOWN = 24
+    BOUNDARY_13_UP = 25
+    BOUNDARY_23_UP = 26
+    BOUNDARY_23_DOWN = 27
+
+    TRIPLE_CURVE_1_DOWN = 28
+    TRIPLE_CURVE_1_UP = 29
+    TRIPLE_CURVE_2_DOWN = 30
+    TRIPLE_CURVE_2_UP = 31
+    TRIPLE_CURVE_3_LEFT = 32
+    TRIPLE_CURVE_3_RIGHT = 33
+    TRIPLE_CURVE0_1_UP = 34
+    TRIPLE_CURVE0_1_DOWN = 35
+    TRIPLE_CURVE0_2_DOWN = 36
+    TRIPLE_CURVE0_2_UP = 37
+    TRIPLE_CURVE0_3_LEFT = 38
+    TRIPLE_CURVE0_3_RIGHT = 39
+
+    SURFACE_REGULAR_DOWN_LEFT = 40
+    SURFACE_REGULAR_DOWN_RIGHT = 41
+    SURFACE_REGULAR_UP = 42
+    REGULAR = 43
+
+    # element types
+    ELEMENT_REGULAR = 1
+    ELEMENT_QUADRUPLE_DOWN_LEFT = 2
+    ELEMENT_QUADRUPLE_DOWN_RIGHT = 3
+    ELEMENT_QUADRUPLE_UP_LEFT = 4
+    ELEMENT_QUADRUPLE_DOWN = 5
+    ELEMENT_QUADRUPLE_UP = 6
+    ELEMENT_QUADRUPLE_LEFT = 7
+    ELEMENT_QUADRUPLE_RIGHT = 8
+    ELEMENT_DOWN_RIGHT = 9
+    ELEMENT_DOWN_LEFT = 10
 
     def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, rangeOfRequiredElements):
         """
@@ -801,68 +864,6 @@ class ShieldMesh3D:
 
         return n3 <= n3y and n2 >= 1 and n1 <= n1y
 
-    # node types
-    CORNER_1 = 1
-    CORNER_2 = 2
-    CORNER_3 = 3
-
-    QUADRUPLE_DOWN_LEFT = 4
-    QUADRUPLE_RIGHT = 5
-    QUADRUPLE_UP = 6
-    QUADRUPLE0_DOWN_LEFT = 7
-    QUADRUPLE0_RIGHT = 8
-    QUADRUPLE0_UP = 9
-
-    TRIPLE_12_LEFT = 10
-    TRIPLE_12_RIGHT = 11
-    TRIPLE_13_DOWN = 12
-    TRIPLE_13_UP = 13
-    TRIPLE_23_UP = 14
-    TRIPLE_23_DOWN = 15
-    TRIPLE0_12_LEFT = 16
-    TRIPLE0_12_RIGHT = 17
-    TRIPLE0_13_DOWN = 18
-    TRIPLE0_13_Up = 19
-    TRIPLE0_23_DOWN = 20
-    TRIPLE0_23_UP = 21
-
-    BOUNDARY_12_LEFT = 22
-    BOUNDARY_12_RIGHT = 23
-    BOUNDARY_13_DOWN = 24
-    BOUNDARY_13_UP = 25
-    BOUNDARY_23_UP = 26
-    BOUNDARY_23_DOWN = 27
-
-    TRIPLE_CURVE_1_DOWN = 28
-    TRIPLE_CURVE_1_UP = 29
-    TRIPLE_CURVE_2_DOWN = 30
-    TRIPLE_CURVE_2_UP = 31
-    TRIPLE_CURVE_3_LEFT = 32
-    TRIPLE_CURVE_3_RIGHT = 33
-    TRIPLE_CURVE0_1_UP = 34
-    TRIPLE_CURVE0_1_DOWN = 35
-    TRIPLE_CURVE0_2_DOWN = 36
-    TRIPLE_CURVE0_2_UP = 37
-    TRIPLE_CURVE0_3_LEFT = 38
-    TRIPLE_CURVE0_3_RIGHT = 39
-
-    SURFACE_REGULAR_DOWN_LEFT = 40
-    SURFACE_REGULAR_DOWN_RIGHT = 41
-    SURFACE_REGULAR_UP = 42
-    REGULAR = 43
-
-    # element types
-    ELEMENT_REGULAR = 1
-    ELEMENT_QUADRUPLE_DOWN_LEFT = 2
-    ELEMENT_QUADRUPLE_DOWN_RIGHT = 3
-    ELEMENT_QUADRUPLE_UP_LEFT = 4
-    ELEMENT_QUADRUPLE_DOWN = 5
-    ELEMENT_QUADRUPLE_UP = 6
-    ELEMENT_QUADRUPLE_LEFT = 7
-    ELEMENT_QUADRUPLE_RIGHT = 8
-    ELEMENT_DOWN_RIGHT = 9
-    ELEMENT_DOWN_LEFT = 10
-
     def set_derivatives_for_irregualr_nodes(self, octant_number):
         """
         For irregular nodes such as corners that are common between octants, change local derivatives to be the same
@@ -883,10 +884,7 @@ class ShieldMesh3D:
         triple12rightderivs = default
 
         if octant_number == 1:
-            if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-                corner3derivs = [-2, 1, 3]
-            else:
-                corner3derivs = [-2, 1, 3]
+            corner3derivs = [-2, 1, 3]
         elif octant_number == 2:
             corner3derivs = [-1, -2, 3]
         elif octant_number == 3:
@@ -1384,65 +1382,37 @@ class ShieldMesh3D:
         Find element type.
         :return:octant number, element type and extends for the octant.
         """
-        if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-            octant_number = 1
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_HALF_AAP:
-            if e2 < self.elementsCountAcross[0]//2:
-                if e1 >= self.elementsCountAcross[1]//2:
+        if e3 >= self.elementsCountAcross[2] // 2:
+            if e2 < self.elementsCountAcross[0] // 2:
+                if e1 >= self.elementsCountAcross[1] // 2:
                     octant_number = 1
                 else:
                     octant_number = 2
             else:
-                if e1 < self.elementsCountAcross[1]//2:
+                if e1 < self.elementsCountAcross[1] // 2:
                     octant_number = 3
                 else:
                     octant_number = 4
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_FULL:
-            if e3 >= self.elementsCountAcross[2] // 2:
-                if e2 < self.elementsCountAcross[0] // 2:
-                    if e1 >= self.elementsCountAcross[1] // 2:
-                        octant_number = 1
-                    else:
-                        octant_number = 2
+        else:
+            if e2 < self.elementsCountAcross[0] // 2:
+                if e1 >= self.elementsCountAcross[1] // 2:
+                    octant_number = 5
                 else:
-                    if e1 < self.elementsCountAcross[1] // 2:
-                        octant_number = 3
-                    else:
-                        octant_number = 4
+                    octant_number = 6
             else:
-                if e2 < self.elementsCountAcross[0] // 2:
-                    if e1 >= self.elementsCountAcross[1] // 2:
-                        octant_number = 5
-                    else:
-                        octant_number = 6
+                if e1 < self.elementsCountAcross[1] // 2:
+                    octant_number = 7
                 else:
-                    if e1 < self.elementsCountAcross[1] // 2:
-                        octant_number = 7
-                    else:
-                        octant_number = 8
+                    octant_number = 8
 
-        if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-            e3zo = self.elementsCountAcross[2] - 1
-            e2zo = self.elementsCountAcross[0] - 1
-            e1zo = self.elementsCountAcross[1] - 1
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_HALF_AAP:
-            if octant_number in [1, 3]:
-                e3zo = self.elementsCountAcross[2] - 1
-                e2zo = self.elementsCountAcross[0] // 2 - 1
-                e1zo = self.elementsCountAcross[1] // 2 - 1
-            else:
-                e3zo = self.elementsCountAcross[2] - 1
-                e2zo = self.elementsCountAcross[1] // 2 - 1
-                e1zo = self.elementsCountAcross[0] // 2 - 1
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_FULL:
-            if octant_number in [2, 4, 5, 7]:
-                e3zo = self.elementsCountAcross[2] // 2 - 1
-                e2zo = self.elementsCountAcross[1] // 2 - 1
-                e1zo = self.elementsCountAcross[0] // 2 - 1
-            else:
-                e3zo = self.elementsCountAcross[2] // 2 - 1
-                e2zo = self.elementsCountAcross[0] // 2 - 1
-                e1zo = self.elementsCountAcross[1] // 2 - 1
+        if octant_number in [2, 4, 5, 7]:
+            e3zo = self.elementsCountAcross[2] // 2 - 1
+            e2zo = self.elementsCountAcross[1] // 2 - 1
+            e1zo = self.elementsCountAcross[0] // 2 - 1
+        else:
+            e3zo = self.elementsCountAcross[2] // 2 - 1
+            e2zo = self.elementsCountAcross[0] // 2 - 1
+            e1zo = self.elementsCountAcross[1] // 2 - 1
 
         e3yo, e2bo, e1yo = e3zo - 1, 1, e1zo - 1
         e3o, e2o, e1o = self.get_local_element_index(octant_number, e3, e2, e1)
@@ -1477,37 +1447,22 @@ class ShieldMesh3D:
         Get octant element index from sphere element index.
         :return:e3o, e2o, e1o, local octant element indexes.
         """
-        if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-            e3o, e2o, e1o = e3, e2, e1
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_HALF_AAP:
-            if octant_number == 1:
-                e3o, e2o, e1o = e3, e2, e1 - self.elementsCountAcross[1]//2
-            elif octant_number == 2:
-                e3o, e2o, e1o = e3, e1, self.elementsCountAcross[0]//2 - 1 - e2
-            elif octant_number == 3:
-                e3o, e2o, e1o = e3, self.elementsCountAcross[0] - 1 - e2, self.elementsCountAcross[1]//2 - 1 - e1
-            elif octant_number == 4:
-                e3o, e2o, e1o = e3, self.elementsCountAcross[1] - 1 - e1, e2 - self.elementsCountAcross[0]//2
-
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_FULL:
-            if octant_number == 1:
-                e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, e2, e1 - self.elementsCountAcross[1] // 2
-            elif octant_number == 2:
-                e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, e1, self.elementsCountAcross[0] // 2 - 1 - e2
-            elif octant_number == 3:
-                e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - 1 - e2, self.elementsCountAcross[1] // 2 - 1 - e1
-            elif octant_number == 4:
-                e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - 1 - e1, e2 - self.elementsCountAcross[0] // 2
-            elif octant_number == 5:
-                e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, self.elementsCountAcross[1] - 1 - e1, self.elementsCountAcross[0]//2 - 1 - e2
-            elif octant_number == 6:
-                e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, e2, self.elementsCountAcross[1] // 2 - 1 - e1
-            elif octant_number == 7:
-                e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, e1, e2 - self.elementsCountAcross[0]//2
-            elif octant_number == 8:
-                e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, self.elementsCountAcross[0] - 1 - e2, e1 - self.elementsCountAcross[1]//2
-        else:
-            raise ValueError("Not implemented.")
+        if octant_number == 1:
+            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, e2, e1 - self.elementsCountAcross[1] // 2
+        elif octant_number == 2:
+            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, e1, self.elementsCountAcross[0] // 2 - 1 - e2
+        elif octant_number == 3:
+            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - 1 - e2, self.elementsCountAcross[1] // 2 - 1 - e1
+        elif octant_number == 4:
+            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - 1 - e1, e2 - self.elementsCountAcross[0] // 2
+        elif octant_number == 5:
+            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, self.elementsCountAcross[1] - 1 - e1, self.elementsCountAcross[0]//2 - 1 - e2
+        elif octant_number == 6:
+            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, e2, self.elementsCountAcross[1] // 2 - 1 - e1
+        elif octant_number == 7:
+            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, e1, e2 - self.elementsCountAcross[0]//2
+        elif octant_number == 8:
+            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, self.elementsCountAcross[0] - 1 - e2, e1 - self.elementsCountAcross[1]//2
 
         return e3o, e2o, e1o
 
@@ -1516,34 +1471,22 @@ class ShieldMesh3D:
         Get octant element index from sphere element index.
         :return: n3, n2, n1, sphere element indexes.
         """
-        if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-            n3, n2, n1 = n3o, n2o, n1o
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_HALF_AAP:
-            if octant_number == 1:
-                n3, n2, n1 = n3o, n2o, n1o + self.elementsCountAcross[1] // 2
-            elif octant_number == 2:
-                n3, n2, n1 = n3o, self.elementsCountAcross[0] // 2 - n1o, n2o
-            elif octant_number == 3:
-                n3, n2, n1 = n3o, self.elementsCountAcross[0] - n2o, self.elementsCountAcross[1] // 2 - n1o
-            elif octant_number == 4:
-                n3, n2, n1 = n3o, self.elementsCountAcross[0] // 2 + n1o, self.elementsCountAcross[1] - n2o
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_FULL:
-            if octant_number == 1:
-                n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, n2o, n1o + self.elementsCountAcross[1] // 2
-            elif octant_number == 2:
-                n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] // 2 - n1o, n2o
-            elif octant_number == 3:
-                n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] - n2o, self.elementsCountAcross[1] // 2 - n1o
-            elif octant_number == 4:
-                n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] // 2 + n1o, self.elementsCountAcross[1] - n2o
-            elif octant_number == 5:
-                n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0]//2 - n1o, self.elementsCountAcross[1] - n2o
-            elif octant_number == 6:
-                n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n2o, self.elementsCountAcross[1]//2 - n1o
-            elif octant_number == 7:
-                n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n1o + self.elementsCountAcross[0]//2, n2o
-            elif octant_number == 8:
-                n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0] - n2o, self.elementsCountAcross[1]//2 + n1o
+        if octant_number == 1:
+            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, n2o, n1o + self.elementsCountAcross[1] // 2
+        elif octant_number == 2:
+            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] // 2 - n1o, n2o
+        elif octant_number == 3:
+            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] - n2o, self.elementsCountAcross[1] // 2 - n1o
+        elif octant_number == 4:
+            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] // 2 + n1o, self.elementsCountAcross[1] - n2o
+        elif octant_number == 5:
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0]//2 - n1o, self.elementsCountAcross[1] - n2o
+        elif octant_number == 6:
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n2o, self.elementsCountAcross[1]//2 - n1o
+        elif octant_number == 7:
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n1o + self.elementsCountAcross[0]//2, n2o
+        elif octant_number == 8:
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0] - n2o, self.elementsCountAcross[1]//2 + n1o
 
         return n3, n2, n1
 
@@ -1552,34 +1495,22 @@ class ShieldMesh3D:
         Get local octant node index from sphere node index.
         :return: n3o, n2o, n1o, local octant node indexes.
         """
-        if self._shieldMode == ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP:
-            n3o, n2o, n1o = n3, n2, n1
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_HALF_AAP:
-            if octant_number == 1:
-                n3o, n2o, n1o = n3, n2, n1 - self.elementsCountAcross[1] // 2
-            elif octant_number == 2:
-                n3o, n2o, n1o = n3, n1, self.elementsCountAcross[0] // 2 - n2
-            elif octant_number == 3:
-                n3o, n2o, n1o = n3, self.elementsCountAcross[0] - n2, self.elementsCountAcross[1] // 2 - n1
-            elif octant_number == 4:
-                n3o, n2o, n1o = n3, self.elementsCountAcross[1] - n1, n2 - self.elementsCountAcross[0]//2
-        elif self._shieldMode == ShieldShape3D.SHIELD_SHAPE_FULL:
-            if octant_number == 1:
-                n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, n2, n1 - self.elementsCountAcross[1] // 2
-            elif octant_number == 2:
-                n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, n1, self.elementsCountAcross[0] // 2 - n2
-            elif octant_number == 3:
-                n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - n2, self.elementsCountAcross[1] // 2 - n1
-            elif octant_number == 4:
-                n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - n1, n2 - self.elementsCountAcross[0]//2
-            elif octant_number == 5:
-                n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[1] - n1, self.elementsCountAcross[0]//2 - n2
-            elif octant_number == 6:
-                n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n2, self.elementsCountAcross[1]//2 - n1
-            elif octant_number == 7:
-                n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n1, n2 - self.elementsCountAcross[0]//2
-            elif octant_number == 8:
-                n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[0] - n2, n1 - self.elementsCountAcross[1]//2
+        if octant_number == 1:
+            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, n2, n1 - self.elementsCountAcross[1] // 2
+        elif octant_number == 2:
+            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, n1, self.elementsCountAcross[0] // 2 - n2
+        elif octant_number == 3:
+            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - n2, self.elementsCountAcross[1] // 2 - n1
+        elif octant_number == 4:
+            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - n1, n2 - self.elementsCountAcross[0]//2
+        elif octant_number == 5:
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[1] - n1, self.elementsCountAcross[0]//2 - n2
+        elif octant_number == 6:
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n2, self.elementsCountAcross[1]//2 - n1
+        elif octant_number == 7:
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n1, n2 - self.elementsCountAcross[0]//2
+        elif octant_number == 8:
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[0] - n2, n1 - self.elementsCountAcross[1]//2
 
         return n3o, n2o, n1o
 

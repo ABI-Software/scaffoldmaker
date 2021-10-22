@@ -49,8 +49,9 @@ class SphereMesh:
           the positive side of axis3.
         :param rangeOfRequiredElements: Specifies the range of elements required to be created. It can be used to
          create the part of sphere required. If None or same as elementsCountAcross the whole part will be created.
-        :param boxDerivatives: It is a list of [deriv1,deriv2,deriv3] and is used to change the derivatives names.
-        Default is [1, 3, 2] and [3, 1, 2] means swap 1 and 3.
+        :param boxDerivatives: It is a list of [deriv1,deriv2,deriv3]. It is used to set the derivative directions.
+        default is [1, 3, 2] which means it makes -d1, d3 and d2 in direction of axis1, axis2 and axis3. To make
+        d1, d2 and d3 directions in direction of axis1, axis2 and axis3 use [-1, 2, 3].
         """
 
         self._axes = axes
@@ -122,7 +123,7 @@ class SphereMesh:
         elif self._sphereShape == SphereShape.SPHERE_SHAPE_FULL:
             shieldMode = ShieldShape3D.SHIELD_SHAPE_FULL
 
-        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=shieldMode, box_derivatives=self._boxDerivatives)
+        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, box_derivatives=self._boxDerivatives)
 
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
@@ -426,7 +427,7 @@ class OctantMesh:
         """
         elementsCountRim = self._elementsCountAcrossRim
 
-        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim, shieldMode=ShieldShape3D.SHIELD_SHAPE_OCTANT_PPP)
+        self._shield3D = ShieldMesh3D(self._elementsCount, elementsCountRim)
 
         self.create_boundary_ellipses_nodes()
         self.create_surface_and_interior_nodes()
