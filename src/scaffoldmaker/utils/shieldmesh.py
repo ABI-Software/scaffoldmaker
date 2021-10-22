@@ -718,7 +718,7 @@ class ShieldMesh3D:
 
         self.elementId = [ [[ None ]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])] for e3 in range(elementsCountAcross[2]) ]
 
-    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier):
+    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, rangeOfRequiredElements):
         """
         Create shield nodes from coordinates.
         :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
@@ -743,6 +743,10 @@ class ShieldMesh3D:
         for n2 in range(self.elementsCountAcross[0] + 1):
             for n3 in range(self.elementsCountAcross[2] + 1):
                 for n1 in range(self.elementsCountAcross[1] + 1):
+                    if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0]\
+                            or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0]\
+                            or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
+                        continue
                     if self.px[n3][n2][n1]:
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         self.nodeId[n3][n2][n1] = nodeIdentifier
@@ -985,7 +989,7 @@ class ShieldMesh3D:
 
         return nids
 
-    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier , rangeOfRequiredElements, meshGroups=[]):
         """
         Create shield elements from nodes.
         :param fieldmodule: Zinc fieldmodule to create elements in.
@@ -1010,6 +1014,11 @@ class ShieldMesh3D:
         for e3 in range(self.elementsCountAcross[2]):
             for e2 in range(self.elementsCountAcross[0]):
                 for e1 in range(self.elementsCountAcross[1]):
+                    if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or\
+                            e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0]\
+                            or e1 >= rangeOfRequiredElements[1][1] or e1 < rangeOfRequiredElements[1][0]:
+                        continue
+
                     scalefactors = None
                     self._element_needs_scale_factor = False
 

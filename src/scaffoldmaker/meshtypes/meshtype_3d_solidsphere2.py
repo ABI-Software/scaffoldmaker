@@ -65,6 +65,9 @@ with variable numbers of elements across axes and shell directions.
             'Octant': False,
             'Hemisphere': False,
             'Full': True,
+            'Range of elements required in direction 1': [0, 4],
+            'Range of elements required in direction 2': [0, 4],
+            'Range of elements required in direction 3': [0, 4],
             'Box derivatives': [1, 2, 3],
             'Use cross derivatives': False,
             'Refine': False,
@@ -88,6 +91,9 @@ with variable numbers of elements across axes and shell directions.
             'Octant',
             'Hemisphere',
             'Full',
+            'Range of elements required in direction 1',
+            'Range of elements required in direction 2',
+            'Range of elements required in direction 3',
             'Box derivatives',
             'Refine',
             'Refine number of elements'
@@ -176,6 +182,38 @@ with variable numbers of elements across axes and shell directions.
         if len(options['Box derivatives']) > len(set(options['Box derivatives'])):
             options['Box derivatives'] = [1, 2, 3]
 
+        for i in range(1, 4):
+            if options['Range of elements required in direction {}'.format(i)][1] == \
+                    options['Number of elements across axis {}'.format(i)] - 1:
+                options['Range of elements required in direction {}'.format(i)][1] = \
+                    options['Number of elements across axis {}'.format(i)]
+        if options['Octant']:
+            nm = 2
+        if options['Hemisphere']:
+            nm = 3
+        elif options['Full']:
+            nm = 4
+        for i in range(1, nm):
+            if options['Range of elements required in direction {}'.format(i)][0] == 1:
+                options['Range of elements required in direction {}'.format(i)][0] = 0
+
+        maxelems = [options['Number of elements across axis 1'],
+                    options['Number of elements across axis 2'],
+                    options['Number of elements across axis 3']]
+        ranges = [options['Range of elements required in direction 1'],
+                  options['Range of elements required in direction 2'],
+                  options['Range of elements required in direction 3']]
+        for i in range(3):
+            if ranges[i][1] > maxelems[i] or ranges[i][1] <= max(1, ranges[i][0]):
+                ranges[i][1] = maxelems[i]
+        for i in range(3):
+            if ranges[i][0] >= min(maxelems[i] - 1, ranges[i][1]) or ranges[i][0] < 1:
+                ranges[i][0] = 0
+
+        options['Range of elements required in direction 1'] = ranges[0]
+        options['Range of elements required in direction 2'] = ranges[1]
+        options['Range of elements required in direction 3'] = ranges[2]
+
         # if options['Number of elements across transition'] < 1:
         #     options['Number of elements across transition'] = 1
         # Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
@@ -208,6 +246,9 @@ with variable numbers of elements across axes and shell directions.
         shellProportion = options['Shell element thickness proportion']
         radius = [options['Radius1'], options['Radius2'], options['Radius3']]
         useCrossDerivatives = options['Use cross derivatives']
+        rangeOfRequiredElements = [options['Range of elements required in direction 1'],
+                                   options['Range of elements required in direction 2'],
+                                   options['Range of elements required in direction 3']]
         sphereBoxDerivatives = [-options['Box derivatives'][0], options['Box derivatives'][1],
                                 options['Box derivatives'][2]]  # To make the values more intuitive for the user but
         # consistent with [back, right, up]
@@ -241,7 +282,8 @@ with variable numbers of elements across axes and shell directions.
 
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                      elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                     sphereShape=sphere_shape, useCrossDerivatives=False, boxDerivatives=sphereBoxDerivatives, meshGroups=meshGroups)
+                     sphereShape=sphere_shape, rangeOfRequiredElements=rangeOfRequiredElements, boxDerivatives=sphereBoxDerivatives,
+                             useCrossDerivatives=False,  meshGroups=meshGroups)
 
         return annotationGroups
 

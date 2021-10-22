@@ -33,7 +33,7 @@ class SphereMesh:
 
     def __init__(self, fieldModule, coordinates, centre, axes, elementsCountAcross,
                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
-                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, useCrossDerivatives=False, boxDerivatives=None, meshGroups=[]):
+                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, rangeOfRequiredElements=None, boxDerivatives=None, useCrossDerivatives=False,  meshGroups=[]):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -47,6 +47,8 @@ class SphereMesh:
         :param sphereShape: A value from enum SphereShape specifying the shape of sphere. Octant_PPP, for example is
          the octant in positive axis1, positive axis2 and positive axis3. SPHERE_SHAPE_HALF_AAP is a hemisphere on
           the positive side of axis3.
+        :param rangeOfRequiredElements: Specifies the range of elements required to be created. It can be used to
+         create the part of sphere required. If None or same as elementsCountAcross the whole part will be created.
         :param boxDerivatives: It is a list of [deriv1,deriv2,deriv3] and is used to change the derivatives names.
         Default is [1, 3, 2] and [3, 1, 2] means swap 1 and 3.
         """
@@ -66,6 +68,7 @@ class SphereMesh:
         self._endNodeIdentifier = 1
         self._endElementIdentifier = 1
         self._sphereShape = sphereShape
+        self._rangeOfRequiredElements = rangeOfRequiredElements
 
         self._useCrossDerivatives = useCrossDerivatives
 
@@ -354,7 +357,7 @@ class SphereMesh:
         """
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield3D.generateNodes(fieldModule, coordinates, nodeIdentifier)
+        nodeIdentifier = self._shield3D.generateNodes(fieldModule, coordinates, nodeIdentifier, self._rangeOfRequiredElements)
         self._endNodeIdentifier = nodeIdentifier
 
     def generateElements(self, mesh, fieldModule, coordinates):
@@ -366,7 +369,7 @@ class SphereMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier, self._meshGroups)
+        elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier, self._rangeOfRequiredElements, self._meshGroups)
         self._endElementIdentifier = elementIdentifier
 
 
