@@ -21,7 +21,7 @@ requires = [
     # minimal requirements listing
     "opencmiss.maths",
     "opencmiss.utils >= 0.3",
-    "opencmiss.zinc",
+    "opencmiss.zinc >= 3.5",
     "scipy",
     "numpy",
 ]
