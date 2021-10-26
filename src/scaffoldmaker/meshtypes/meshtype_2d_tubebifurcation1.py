@@ -4,7 +4,7 @@ Generates a 2-D tube bifurcation mesh.
 
 from __future__ import division
 import math
-from opencmiss.utils.maths.vectorops import cross, mult, normalize, sub
+from opencmiss.maths.vectorops import cross, mult, normalize, sub
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node

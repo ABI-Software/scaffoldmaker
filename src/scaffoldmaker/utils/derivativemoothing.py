@@ -3,7 +3,7 @@ Class for globally smoothing field derivatives.
 '''
 from __future__ import division
 import math
-from opencmiss.utils.maths.vectorops import add, magnitude
+from opencmiss.maths.vectorops import add, magnitude
 from opencmiss.utils.zinc.field import findOrCreateFieldGroup
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element, Elementbasis

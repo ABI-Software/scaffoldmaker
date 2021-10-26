@@ -1,5 +1,5 @@
 import unittest
-from opencmiss.utils.maths.vectorops import magnitude
+from opencmiss.maths.vectorops import magnitude
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
