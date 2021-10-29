@@ -582,10 +582,13 @@ class MeshType_3d_stomach1(Scaffold_base):
         submucosaGroup = AnnotationGroup(region, get_stomach_term("submucosa of stomach"))
         mucosaGroup = AnnotationGroup(region, get_stomach_term("mucosa of stomach"))
 
-        annotationGroupsThroughWall = [[mucosaGroup],
-                                       [submucosaGroup],
-                                       [circularMuscleGroup],
-                                       [longitudinalMuscleGroup]]
+        if elementsCountThroughWall == 1:
+            annotationGroupsThroughWall = [[]]
+        else:
+            annotationGroupsThroughWall = [[mucosaGroup],
+                                           [submucosaGroup],
+                                           [circularMuscleGroup],
+                                           [longitudinalMuscleGroup]]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -2755,8 +2758,6 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         serosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                          get_stomach_term("serosa of stomach"))
-        mucosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("mucosa of stomach"))
 
         outerSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                          get_stomach_term("serosa split margin"))
@@ -2792,11 +2793,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         is_stomach = stomachGroup.getGroup()
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_exterior_face_inner = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_serosa = fm.createFieldAnd(is_stomach, is_exterior_face_outer)
-        is_mucosa = fm.createFieldAnd(is_stomach, is_exterior_face_inner)
         serosaGroup.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
-        mucosaGroup.getMeshGroup(mesh2d).addElementsConditional(is_mucosa)
+
         is_dorsal = dorsalGroup.getGroup()
         is_ventral = ventralGroup.getGroup()
         is_dorsalSerosa = fm.createFieldAnd(is_dorsal, is_serosa)
