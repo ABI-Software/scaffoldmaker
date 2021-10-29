@@ -338,6 +338,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements across cardia': 1,
             'Number of elements through wall': 4,
             'Wall thickness': 5.0,
+            'Mucosa relative thickness': 0.65,
+            'Submucosa relative thickness': 0.12,
+            'Circular muscle layer relative thickness': 0.18,
+            'Longitudinal muscle layer relative thickness': 0.05,
             'Limiting ridge': False,
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
             'Gastro-esophagal junction position along factor': 0.35,
@@ -377,6 +381,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements across cardia',
             'Number of elements through wall',
             'Wall thickness',
+            'Mucosa relative thickness',
+            'Submucosa relative thickness',
+            'Circular muscle layer relative thickness',
+            'Longitudinal muscle layer relative thickness',
             'Limiting ridge',
             'Gastro-esophagal junction',
             'Gastro-esophagal junction position along factor',
@@ -480,6 +488,10 @@ class MeshType_3d_stomach1(Scaffold_base):
         elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
+        mucosaRelThickness = options['Mucosa relative thickness']
+        submucosaRelThickness = options['Submucosa relative thickness']
+        circularRelThickness = options['Circular muscle layer relative thickness']
+        longitudinalRelThickness = options['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = False
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
@@ -1895,10 +1907,19 @@ class MeshType_3d_stomach1(Scaffold_base):
         nodeIdx = stomachStartNode
         idxMat = []
 
+        if elementsCountThroughWall > 1:
+            thicknessProportions = [0.0, mucosaRelThickness, submucosaRelThickness, circularRelThickness,
+                                    longitudinalRelThickness, longitudinalRelThickness]
+            xi3List = []
+            xi3 = 0.0
+            for i in range(len(thicknessProportions) - 1):
+                xi3 += thicknessProportions[i]
+                xi3List.append(xi3)
+
         for n2 in range(elementsCountAlong + 1):
             idxThroughWall = []
             for n3 in range(elementsCountThroughWall + 1):
-                xi3 = 1 / elementsCountThroughWall * n3
+                xi3 = xi3List[n3] if elementsCountThroughWall > 1 else 1.0/elementsCountThroughWall * n3
                 idxAround = []
                 for n1 in range(len(xOuter[n2])):
                     # Coordinates
@@ -1920,7 +1941,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     d2List.append(d2)
 
                     # d3
-                    d3 = [c * wallThickness / elementsCountThroughWall for c in norm]
+                    d3 = [c * wallThickness * (thicknessProportions[n3+1] if elementsCountThroughWall > 1 else 1.0) for c in norm]
                     d3List.append(d3)
 
                     idxAround.append(nodeIdx)
