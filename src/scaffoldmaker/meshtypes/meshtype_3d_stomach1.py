@@ -28,7 +28,7 @@ from scaffoldmaker.utils.eft_utils import scaleEftNodeValueLabels, setEftScaleFa
     remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
@@ -336,6 +336,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements around duodenum': 12,
             'Number of elements between cardia and duodenum': 6,
             'Number of elements across cardia': 1,
+            'Number of elements through wall': 4,
             'Wall thickness': 5.0,
             'Limiting ridge': False,
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
@@ -374,6 +375,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements around duodenum',
             'Number of elements between cardia and duodenum',
             'Number of elements across cardia',
+            'Number of elements through wall',
             'Wall thickness',
             'Limiting ridge',
             'Gastro-esophagal junction',
@@ -441,6 +443,8 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] += 1
         if options['Number of elements between cardia and duodenum'] < 2:
             options['Number of elements between cardia and duodenum'] = 2
+        if options['Number of elements through wall'] != (1 or 4):
+            options['Number of elements through wall'] = 4
         if options['Cardia derivative factor'] <= 0.0:
             options['Cardia derivative factor'] = 0.1
         for key in [
@@ -474,7 +478,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         elementsCountAroundEso = options['Number of elements around esophagus']
         elementsCountAroundDuod = options['Number of elements around duodenum']
         elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
-        elementsCountThroughWall = 1
+        elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = False
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
@@ -572,6 +576,16 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 [stomachGroup, antrumGroup],
                                 [stomachGroup, pylorusGroup],
                                 [stomachGroup, duodenumGroup]]
+
+        longitudinalMuscleGroup = AnnotationGroup(region, get_stomach_term("longitudinal muscle layer of stomach"))
+        circularMuscleGroup = AnnotationGroup(region, get_stomach_term("circular muscle layer of stomach"))
+        submucosaGroup = AnnotationGroup(region, get_stomach_term("submucosa of stomach"))
+        mucosaGroup = AnnotationGroup(region, get_stomach_term("mucosa of stomach"))
+
+        annotationGroupsThroughWall = [[mucosaGroup],
+                                       [submucosaGroup],
+                                       [circularMuscleGroup],
+                                       [longitudinalMuscleGroup]]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -1941,6 +1955,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             nodeIdentifier += 1
 
         # Create element
+        fundusMucosaElementIdentifiers = []
         elementIdxMat = []
         n = 0
         for n2 in range(elementsAlongEsophagus):
@@ -2029,9 +2044,11 @@ class MeshType_3d_stomach1(Scaffold_base):
                             result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                             if scaleFactors:
                                 result3 = element.setScaleFactors(eft1, scaleFactors)
+                            if limitingRidge and elementsCountThroughWall > 1 and e3 == 0:
+                                fundusMucosaElementIdentifiers.append(elementIdentifier)
                             elementIdxAround.append(elementIdentifier)
                             elementIdentifier += 1
-                            annotationGroups = annotationGroupsAlong[e2]
+                            annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                             if annotationGroups:
                                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                                 for annotationGroup in annotationGroups:
@@ -2117,8 +2134,10 @@ class MeshType_3d_stomach1(Scaffold_base):
                             if scaleFactors:
                                 result3 = element.setScaleFactors(eft1, scaleFactors)
                             elementIdxAround.append(elementIdentifier)
+                            if limitingRidge and elementsCountThroughWall> 1 and e3 == 0:
+                                fundusMucosaElementIdentifiers.append(elementIdentifier)
                             elementIdentifier += 1
-                            annotationGroups = annotationGroupsAlong[e2]
+                            annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                             if annotationGroups:
                                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                                 for annotationGroup in annotationGroups:
@@ -2149,9 +2168,11 @@ class MeshType_3d_stomach1(Scaffold_base):
                             result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
                             if scaleFactors:
                                 result3 = element.setScaleFactors(eft1, scaleFactors)
+                            if limitingRidge and elementsCountThroughWall> 1 and e3 == 0:
+                                fundusMucosaElementIdentifiers.append(elementIdentifier)
                             elementIdxAround.append(elementIdentifier)
                             elementIdentifier += 1
-                            annotationGroups = annotationGroupsAlong[e2]
+                            annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                             if annotationGroups:
                                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                                 for annotationGroup in annotationGroups:
@@ -2212,7 +2233,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 fundusBodyJunctionElementIdentifier = elementIdentifier
                             elementIdxAround.append(elementIdentifier)
                             elementIdentifier += 1
-                            annotationGroups = annotationGroupsAlong[e2]
+                            annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                             if annotationGroups:
                                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                                 for annotationGroup in annotationGroups:
@@ -2280,7 +2301,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                             result3 = element.setScaleFactors(eft1, scaleFactors)
                         elementIdxAround.append(elementIdentifier)
                         elementIdentifier += 1
-                        annotationGroups = annotationGroupsAlong[e2]
+                        annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                         if annotationGroups:
                             allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                             for annotationGroup in annotationGroups:
@@ -2306,7 +2327,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         result = element.setNodesByIdentifier(eftStandard, nodeIdentifiers)
                         elementIdxAround.append(elementIdentifier)
                         elementIdentifier = elementIdentifier + 1
-                        annotationGroups = annotationGroupsAlong[e2]
+                        annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                         if annotationGroups:
                             allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                             for annotationGroup in annotationGroups:
@@ -2369,7 +2390,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                             result3 = element.setScaleFactors(eft1, scaleFactors)
                         elementIdxAround.append(elementIdentifier)
                         elementIdentifier += 1
-                        annotationGroups = annotationGroupsAlong[e2]
+                        annotationGroups = annotationGroupsAlong[e2] + annotationGroupsThroughWall[e3]
                         if annotationGroups:
                             allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                             for annotationGroup in annotationGroups:
@@ -2453,6 +2474,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         elementIdxMat.append(elementIdxThroughWall)
 
         nodeIdentifier = nextNodeIdentifier
+
+        # delete mucosa layer in fundus when there is a limiting ridge
+        mesh_destroy_elements_and_nodes_by_identifiers(mesh, fundusMucosaElementIdentifiers)
 
         # annotation fiducial points for embedding in whole body
         GEJLCGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("gastro-esophagal junction on lesser curvature"))
