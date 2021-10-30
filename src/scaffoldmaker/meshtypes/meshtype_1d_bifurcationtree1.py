@@ -3,7 +3,6 @@ Generates a 1-D tree of bifurcating curves with radius.
 """
 
 from __future__ import division
-
 from math import cos, radians, sin
 
 from opencmiss.maths.vectorops import add, cross, magnitude, mult, normalize, sub
