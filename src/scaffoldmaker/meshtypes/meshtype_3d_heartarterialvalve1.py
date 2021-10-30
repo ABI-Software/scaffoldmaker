@@ -24,10 +24,10 @@ from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
 class MeshType_3d_heartarterialvalve1(Scaffold_base):
-    '''
+    """
     Generates a 3-D heart arterial valve scaffold with semilunar valve,
     for attaching to a 6-element-around bicubic-linear orifice.
-    '''
+    """
 
     @staticmethod
     def getName():
@@ -88,9 +88,9 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
 
     @staticmethod
     def checkOptions(options):
-        '''
+        """
         :return:  True if dependent options changed, otherwise False.
-        '''
+        """
         dependentChanges = False
         for key in [
             'Unit scale',
