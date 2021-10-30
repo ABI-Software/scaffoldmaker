@@ -181,12 +181,28 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     pd2 = [[] for n3 in range(nodesCountWall)]
     pd3 = [[] for n3 in range(nodesCountWall)]
 
+    # Find total wall thickness
+    thicknessProportions = []
+    thicknesses = []
+    thicknesses.append([vector.magnitude([(startPointsx[nodesCountWall - 1][n1][c] - startPointsx[0][n1][c]) for c in range(3)]) for n1 in range(nodesCountAround)])
+    for n2 in range(1, elementsCountRadial):
+        thicknesses.append([None] * nodesCountAround)
+    thicknesses.append([vector.magnitude([(endPointsx[nodesCountWall - 1][n1][c] - endPointsx[0][n1][c]) for c in range(3)]) for n1 in range(nodesCountAround)])
+
     for n3 in range(nodesCountWall):
         px [n3] = [ startPointsx [n3], endPointsx [n3] ]
         pd1[n3] = [ startPointsd1[n3], endPointsd1[n3] ]
         pd2[n3] = [ startPointsd2[n3], endPointsd2[n3] ]
         pd3[n3] = [ startPointsd3[n3] if (startPointsd3 is not None) else None, \
                     endPointsd3[n3] if (endPointsd3 is not None) else None ]
+
+        startThicknessList = [vector.magnitude([(startPointsx[n3][n1][c] - startPointsx[n3 - (1 if n3 > 0 else 0)][n1][c]) for c in range(3)]) for n1 in range(len(startPointsx[n3]))]
+        endThicknessList = [vector.magnitude([(endPointsx[n3][n1][c] - endPointsx[n3 - (1 if n3 > 0 else 0)][n1][c]) for c in range(3)]) for n1 in range(len(endPointsx[n3]))]
+        thicknessList = [startThicknessList, endThicknessList]  # thickness of each layer
+
+        startThicknessProportions = [thicknessList[0][c] / thicknesses[0][c] for c in range(nodesCountAround)]
+        endThicknessProportions = [thicknessList[1][c] / thicknesses[-1][c] for c in range(nodesCountAround)]
+        thicknessProportions.append([startThicknessProportions, endThicknessProportions])
 
     if rescaleStartDerivatives:
         scaleFactorMapStart = [ [] for n3 in range(nodesCountWall) ]
@@ -200,15 +216,11 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             pd1[n3].insert(n2, [ None ]*nodesCountAround)
             pd2[n3].insert(n2, [ None ]*nodesCountAround)
             pd3[n3].insert(n2, None if midLinearXi3 else [ None ]*nodesCountAround)
-    # compute on outside / n3 = 1, then map to inside using thickness
-    thicknesses = []
-    thicknesses.append([ vector.magnitude([ (startPointsx[nodesCountWall - 1][n1][c] - startPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
+            thicknessProportions[n3].insert(n2, [None] * nodesCountAround)
+
     if maxStartThickness:
         for n1 in range(nodesCountAround):
             thicknesses[0][n1] = min(thicknesses[0][n1], maxStartThickness)
-    for n2 in range(1, elementsCountRadial):
-        thicknesses.append([ None ]*nodesCountAround)
-    thicknesses.append([ vector.magnitude([ (endPointsx[nodesCountWall - 1][n1][c] - endPointsx[0][n1][c]) for c in range(3) ]) for n1 in range(nodesCountAround) ])
     if maxEndThickness:
         for n1 in range(nodesCountAround):
             thicknesses[-1][n1] = min(thicknesses[-1][n1], maxEndThickness)
@@ -245,13 +257,23 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             arclengthInsideToOutside = sum(arcLengthInsideToRadialPoint)
             thi = []
             for n2 in range(elementsCountRadial + 1):
-                xi = arcLengthInsideToRadialPoint[n2 - 1]/arclengthInsideToOutside
-                thi.append(thicknesses[0][n1]*xi + thicknesses[-1][n1]*(1.0 - xi))
+                xi2 = arcLengthInsideToRadialPoint[n2 - 1] / arclengthInsideToOutside
+                thi.append(thicknesses[-1][n1] * xi2 + thicknesses[0][n1] * (1.0 - xi2))
+            thiProportion = []
+            for m3 in range(nodesCountWall):
+                thiProportionRadial = []
+                for n2 in range(elementsCountRadial + 1):
+                    xi2 = arcLengthInsideToRadialPoint[n2 - 1] / arclengthInsideToOutside
+                    thiProportionRadial.append(thicknessProportions[m3][-1][n1] * xi2 + thicknessProportions[m3][0][n1] * (1.0 - xi2))
+                thiProportion.append(thiProportionRadial)
         else:
             mx, md2, me, mxi = interp.sampleCubicHermiteCurvesSmooth([ ax, bx ], [ ad2Scaled, bd2Scaled ], elementsCountRadial,
                 derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:4]
             md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
             thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
+        thiProportion = []
+        for m3 in range(nodesCountWall):
+            thiProportion.append(interp.interpolateSampleLinear([thicknessProportions[m3][0][n1], thicknessProportions[m3][-1][n1]], me, mxi))
 
         # set scalefactors if rescaling, make same on inside for now
         if rescaleStartDerivatives:
@@ -266,6 +288,17 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             pd1[n3][n2][n1] = md1[n2]
             pd2[n3][n2][n1] = md2[n2]
             thicknesses[n2][n1] = thi[n2]
+            for m3 in range(nodesCountWall):
+                thicknessProportions[m3][n2][n1] = thiProportion[m3][n2]
+
+    xi3List = [[[[] for n1 in range(nodesCountAround)] for n2 in range(elementsCountRadial + 1)] for n3 in
+               range(nodesCountWall)]
+    for n1 in range(nodesCountAround):
+        for n2 in range(elementsCountRadial + 1):
+            xi3 = 0.0
+            for n3 in range(nodesCountWall):
+                xi3 += thicknessProportions[n3][n2][n1]
+                xi3List[n3][n2][n1] = xi3
 
     # now get inner positions from normal and thickness, derivatives from curvature
     for n2 in range(1, elementsCountRadial):
@@ -273,8 +306,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
         pd1[-1][n2] = interp.smoothCubicHermiteDerivativesLoop(px[-1][n2], pd1[-1][n2], magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
 
         for n3 in range(0, nodesCountWall - 1):
-            xi3 = 1 - 1 / (nodesCountWall - 1) * n3
             for n1 in range(nodesCountAround):
+                xi3 = 1 - xi3List[n3][n2][n1]
                 normal = vector.normalise(vector.crossproduct3(pd1[-1][n2][n1], pd2[-1][n2][n1]))
                 thickness = thicknesses[n2][n1] * xi3
                 d3 = [d * thickness for d in normal]
@@ -299,7 +332,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 if vector.dotproduct(vector.normalise(pd2[-1][n2][n1]), vector.normalise(d2Scaled)) == -1:
                     pd2[n3][n2][n1] = [-factor * d for d in pd2[-1][n2][n1]]
                 if not midLinearXi3:
-                    pd3[n3][n2][n1] = pd3[-1][n2][n1] = [d * thicknesses[n2][n1] / (nodesCountWall - 1) for d in normal]
+                    pd3[n3][n2][n1] = pd3[-1][n2][n1] = [d * thicknesses[n2][n1] * thicknessProportions[n3 + 1][n2][n1] for d in normal]
 
             # smooth derivative 1 around inner loop
             pd1[n3][n2] = interp.smoothCubicHermiteDerivativesLoop(px[n3][n2], pd1[n3][n2], magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
