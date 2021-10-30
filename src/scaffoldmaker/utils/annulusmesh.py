@@ -271,9 +271,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
                 derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:4]
             md1 = interp.interpolateSampleLinear([ ad1, bd1 ], me, mxi)
             thi = interp.interpolateSampleLinear([ thicknesses[0][n1], thicknesses[-1][n1] ], me, mxi)
-        thiProportion = []
-        for m3 in range(nodesCountWall):
-            thiProportion.append(interp.interpolateSampleLinear([thicknessProportions[m3][0][n1], thicknessProportions[m3][-1][n1]], me, mxi))
+            thiProportion = []
+            for m3 in range(nodesCountWall):
+                thiProportion.append(interp.interpolateSampleLinear([thicknessProportions[m3][0][n1], thicknessProportions[m3][-1][n1]], me, mxi))
 
         # set scalefactors if rescaling, make same on inside for now
         if rescaleStartDerivatives:

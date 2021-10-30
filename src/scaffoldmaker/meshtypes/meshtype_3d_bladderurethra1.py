@@ -220,10 +220,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Ostium diameter': 2.2,
                 'Ostium length': 0.5,
                 'Ostium wall thickness': 0.5,
+                'Ostium wall relative thickness proportions': [1.0],
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
                 'Vessel inner diameter': 0.8,
                 'Vessel wall thickness': 0.25,
+                'Vessel wall relative thickness proportions': [1.0],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -246,10 +248,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Ostium diameter': 3.0,
                 'Ostium length': 0.5,
                 'Ostium wall thickness': 0.5,
+                'Ostium wall relative thickness proportions': [1.0],
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
                 'Vessel inner diameter': 1.0,
                 'Vessel wall thickness': 0.1,
+                'Vessel wall relative thickness proportions': [1.0],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -272,10 +276,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Ostium diameter': 1.3,
                 'Ostium length': 0.25,
                 'Ostium wall thickness': 0.3,
+                'Ostium wall relative thickness proportions': [1.0],
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
                 'Vessel inner diameter': 0.45,
                 'Vessel wall thickness': 0.1,
+                'Vessel wall relative thickness proportions': [1.0],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -298,10 +304,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Ostium diameter': 2.0,
                 'Ostium length': 0.2,
                 'Ostium wall thickness': 0.4,
+                'Ostium wall relative thickness proportions': [1.0],
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
                 'Vessel inner diameter': 0.9,
                 'Vessel wall thickness': 0.2,
+                'Ostium wall relative thickness proportions': [1.0],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -324,10 +332,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Ostium diameter': 1.0,
                 'Ostium length': 0.25,
                 'Ostium wall thickness': 0.02,
+                'Ostium wall relative thickness proportions': [1.0],
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 2.0,
                 'Vessel inner diameter': 0.3,
                 'Vessel wall thickness': 0.1,
+                'Vessel wall relative thickness proportions': [1.0],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -1264,6 +1274,11 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCount
                     ureter2Position, ureterElementPositionDown, ureterElementPositionAround,
                     xBladder, d1Bladder, d2Bladder, nextNodeIdentifier, nextElementIdentifier,
                     elementsCountUreterRadial, ureterMeshGroup, bladderMeshGroup):
+
+    # Update ostium and vessel wall relative thickness with elementsCountThroughWall
+    # Set to uniform layer thicknesses now, can be changed to varying thickness later
+    ureterDefaultOptions['Ostium wall relative thickness proportions'] = [1.0 / elementsCountThroughWall] * elementsCountThroughWall
+    ureterDefaultOptions['Vessel wall relative thickness proportions'] = [1.0 / elementsCountThroughWall] * elementsCountThroughWall
 
     # Create ureters on the surface
     # Ureter 1
