@@ -546,9 +546,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 options[key] = 1
         if options['Number of elements around'] % 2 != 0:
             options['Number of elements around'] += 1
-        if options['Number of elements through wall'] > 1:
-            if options['Include ureter']:
-                options['Number of elements through wall'] = 1
         if options['Ureter position around'] < 0.5:
             options['Ureter position around'] = 0.5  # ureters are on the dorsal part of the bladder
         elif options['Ureter position around'] > 0.9:
@@ -564,9 +561,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         Update ostium sub-scaffold options which depend on parent options.
         '''
         bladderWallThickness = options['Wall thickness']
+        elementsCountThroughWall = options['Number of elements through wall']
         ureterOptions = options['Ureter']
         ureterDefaultOptions = ureterOptions.getScaffoldSettings()
         ureterDefaultOptions['Ostium wall thickness'] = bladderWallThickness
+        ureterDefaultOptions['Number of elements through wall'] = elementsCountThroughWall
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -917,9 +916,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         outerNodes_d2 = []
         for n2 in range(elementsCountAlongBladder + 1):
             for n1 in range(elementsCountAround):
-                outerNodes_x.append(xList[(2 * n2 + 1) * elementsCountAround + n1])
-                outerNodes_d1.append(d1List[(2 * n2 + 1) * elementsCountAround + n1])
-                outerNodes_d2.append(d2List[(2 * n2 + 1) * elementsCountAround + n1])
+                idx = n2 * (elementsCountThroughWall + 1) * elementsCountAround + \
+                      elementsCountThroughWall * elementsCountAround + n1
+                outerNodes_x.append(xList[idx])
+                outerNodes_d1.append(d1List[idx])
+                outerNodes_d2.append(d2List[idx])
 
         elementsCount1 = elementsCountAround // 2
         elementsCount2 = elementsCountAlongBladder
@@ -1005,7 +1006,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         ureterMeshGroup = ureterGroup. getMeshGroup(mesh)
 
         # Create nodes and elements
-        nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
+        nodeIdentifier, elementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
@@ -1051,11 +1052,15 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
         if includeUreter:
             bladderMeshGroup = [neckMeshGroup, urinaryBladderMeshGroup, dorsalBladderMeshGroup]
-            generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCountAround, elementsCountThroughWall,
-                            elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position, trackSurfaceUreter2,
-                            ureter2Position, ureterElementPositionDown, ureterElementPositionAround, xFinal, d1Final,
-                            d2Final, nextNodeIdentifier, nextElementIdentifier, elementsCountUreterRadial,
-                            ureterMeshGroup, bladderMeshGroup)
+            nodeIdentifier = generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCountAround,
+                                                  elementsCountThroughWall,
+                                                  elementsCountAroundUreter, trackSurfaceUreter1, ureter1Position,
+                                                  trackSurfaceUreter2,
+                                                  ureter2Position, ureterElementPositionDown,
+                                                  ureterElementPositionAround, xFinal, d1Final,
+                                                  d2Final, nodeIdentifier, elementIdentifier,
+                                                  elementsCountUreterRadial,
+                                                  ureterMeshGroup, bladderMeshGroup)
 
         # Define markers for apex, ureter and urethra junctions with bladder
         apexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("apex of urinary bladder"))
@@ -1069,10 +1074,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         markerList = []
         markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
         if includeUreter:
-            idx2 = elementsCountAlong * elementsCountAround + elementsCountAroundUreter
+            idx2 = elementsCountAlong * elementsCountAround * elementsCountThroughWall + elementsCountAroundUreter
             xi2 = [0.0, 1.0, 0.0]
             markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
-            idx3 = elementsCountAlong * elementsCountAround + 2 * elementsCountAroundUreter
+            idx3 = elementsCountAlong * elementsCountAround * elementsCountThroughWall + \
+                   elementsCountThroughWall * elementsCountAroundUreter + elementsCountAroundUreter
             xi3 = [0.0, 1.0, 0.0]
             markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
         else:
@@ -1089,7 +1095,6 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         xi5 = [0.0, 1.0, 0.0]
         markerList.append({"group": ventralUrethraGroup, "elementId": idx5, "xi": xi5})
 
-        nodeIdentifier = nextNodeIdentifier + elementsCountAroundUreter * 4 * 2 + elementsCountAroundUreter * 2 * 2 * elementsCountUreterRadial
         bladderNodesetGroup = bladderGroup.getNodesetGroup(nodes)
         for marker in markerList:
             annotationGroup = marker["group"]
@@ -1293,15 +1298,15 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCount
                            vesselMeshGroups=[[ureterMeshGroup]], ostiumMeshGroups=bladderMeshGroup)
 
     # Create annulus mesh around ureters
-    endPoints1_x = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endPoints1_d1 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endPoints1_d2 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endNode1_Id = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endDerivativesMap = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endPoints2_x = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endPoints2_d1 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endPoints2_d2 = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
-    endNode2_Id = [[None] * elementsCountAroundUreter, [None] * elementsCountAroundUreter]
+    endPoints1_x = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endPoints1_d1 = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endPoints1_d2 = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endNode1_Id = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endDerivativesMap = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endPoints2_x = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endPoints2_d1 = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endPoints2_d2 = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
+    endNode2_Id = [[None] * elementsCountAroundUreter for n3 in range(elementsCountThroughWall + 1)]
 
     count = 0
     for n2 in range(3):
@@ -1310,23 +1315,21 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCount
         count += 1
     for n1 in range(2):
         endNode1_Id[0][count] = endNode1_Id[0][count - 1] + 1
-        endNode2_Id[0][count] = endNode2_Id[0][count - 1] + 1 - \
-                                (0 if (endNode2_Id[0][count - 1] - 2) % elementsCountAround > 0
-                                 else elementsCountAround)
+        endNode2_Id[0][count] = endNode2_Id[0][count - 1] + 1
         count += 1
     for n2 in range(2):
         endNode1_Id[0][count] = endNode1_Id[0][count - 1] - (elementsCountThroughWall + 1) * elementsCountAround
         endNode2_Id[0][count] = endNode2_Id[0][count - 1] - (elementsCountThroughWall + 1) * elementsCountAround
         count += 1
     endNode1_Id[0][count] = endNode1_Id[0][count - 1] - 1
-    endNode2_Id[0][count] = endNode2_Id[0][count - 1] - 1 + \
-                            (0 if (endNode2_Id[0][count - 1] - 3) % elementsCountAround > 0 else elementsCountAround)
+    endNode2_Id[0][count] = endNode2_Id[0][count - 1] - 1
 
-    for n in range(len(endNode1_Id[0])):
-        endNode1_Id[1][n] = endNode1_Id[0][n] + elementsCountAround
-        endNode2_Id[1][n] = endNode2_Id[0][n] + elementsCountAround
+    for n3 in range(1, elementsCountThroughWall + 1):
+        for n in range(len(endNode1_Id[0])):
+            endNode1_Id[n3][n] = endNode1_Id[0][n] + elementsCountAround * n3
+            endNode2_Id[n3][n] = endNode2_Id[0][n] + elementsCountAround * n3
 
-    for n3 in range(2):
+    for n3 in range(elementsCountThroughWall + 1):
         for n1 in range(elementsCountAroundUreter):
             nc1 = endNode1_Id[n3][n1] - 1
             endPoints1_x[n3][n1] = xBladder[nc1]
@@ -1337,31 +1340,24 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCount
             endPoints2_d1[n3][n1] = d1Bladder[nc2]
             endPoints2_d2[n3][n1] = d2Bladder[nc2]
 
-    for n1 in range(elementsCountAroundUreter):
-        if n1 == 0:
-            endDerivativesMap[0][n1] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
-            endDerivativesMap[1][n1] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
-        elif n1 == 1:
-            endDerivativesMap[0][n1] = ((0, 1, 0), (-1, 0, 0), None)
-            endDerivativesMap[1][n1] = ((0, 1, 0), (-1, 0, 0), None)
-        elif n1 == 2:
-            endDerivativesMap[0][n1] = ((0, 1, 0), (-1, 1, 0), None, (1, 0, 0))
-            endDerivativesMap[1][n1] = ((0, 1, 0), (-1, 1, 0), None, (1, 0, 0))
-        elif n1 == 3:
-            endDerivativesMap[0][n1] = ((1, 0, 0), (0, 1, 0), None)
-            endDerivativesMap[1][n1] = ((1, 0, 0), (0, 1, 0), None)
-        elif n1 == 4:
-            endDerivativesMap[0][n1] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
-            endDerivativesMap[1][n1] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
-        elif n1 == 5:
-            endDerivativesMap[0][n1] = ((0, -1, 0), (1, 0, 0), None)
-            endDerivativesMap[1][n1] = ((0, -1, 0), (1, 0, 0), None)
-        elif n1 == 6:
-            endDerivativesMap[0][n1] = ((0, -1, 0), (1, -1, 0), None, (-1, 0, 0))
-            endDerivativesMap[1][n1] = ((0, -1, 0), (1, -1, 0), None, (-1, 0, 0))
-        else:
-            endDerivativesMap[0][n1] = ((-1, 0, 0), (0, -1, 0), None)
-            endDerivativesMap[1][n1] = ((-1, 0, 0), (0, -1, 0), None)
+    for n3 in range(elementsCountThroughWall + 1):
+        for n1 in range(elementsCountAroundUreter):
+            if n1 == 0:
+                endDerivativesMap[n3][n1] = ((-1, 0, 0), (-1, -1, 0), None, (0, 1, 0))
+            elif n1 == 1:
+                endDerivativesMap[n3][n1] = ((0, 1, 0), (-1, 0, 0), None)
+            elif n1 == 2:
+                endDerivativesMap[n3][n1] = ((0, 1, 0), (-1, 1, 0), None, (1, 0, 0))
+            elif n1 == 3:
+                endDerivativesMap[n3][n1] = ((1, 0, 0), (0, 1, 0), None)
+            elif n1 == 4:
+                endDerivativesMap[n3][n1] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
+            elif n1 == 5:
+                endDerivativesMap[n3][n1] = ((0, -1, 0), (1, 0, 0), None)
+            elif n1 == 6:
+                endDerivativesMap[n3][n1] = ((0, -1, 0), (1, -1, 0), None, (-1, 0, 0))
+            else:
+                endDerivativesMap[n3][n1] = ((-1, 0, 0), (0, -1, 0), None)
 
     startProportions1 = []
     for n in range(len(o1_Positions)):
@@ -1428,11 +1424,14 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions,elementsCount
     elementToDeleteStartIdxList = [elementToDeleteStartIdx1, elementToDeleteStartIdx2]
     for i in range(2):
         elementToDeleteStart = elementToDeleteStartIdxList[i]
-        elementsToDelete = [elementToDeleteStart, elementToDeleteStart + 1,
-                            elementToDeleteStart + elementsCountAround,
-                            elementToDeleteStart + 1 + elementsCountAround]
-        element_identifiers += elementsToDelete
+        baseElementsToDelete = [elementToDeleteStart,
+                                elementToDeleteStart + 1,
+                                elementToDeleteStart + elementsCountAround * elementsCountThroughWall,
+                                elementToDeleteStart + 1 + elementsCountAround * elementsCountThroughWall]
+        for e3 in range(elementsCountThroughWall):
+            elementsToDelete = [c + elementsCountAround * e3 for c in baseElementsToDelete]
+            element_identifiers += elementsToDelete
 
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers)
 
-    return
+    return nodeIdentifier
