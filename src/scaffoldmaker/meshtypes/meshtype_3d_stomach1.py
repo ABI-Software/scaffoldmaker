@@ -757,10 +757,27 @@ class MeshType_3d_stomach1(Scaffold_base):
         stomachMeshGroup = stomachGroup.getMeshGroup(mesh)
         allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup]
 
+        ostiumWallAnnotationGroups = []
+        if elementsCountThroughWall == 4:
+            esophagusMucosaGroup = AnnotationGroup(region, get_stomach_term("esophagus mucosa"))
+            esophagusSubmucosaGroup = AnnotationGroup(region, get_stomach_term("submucosa of esophagus"))
+            esophagusCircularGroup = AnnotationGroup(region, get_stomach_term("esophagus smooth muscle circular layer"))
+            esophagusLongitudinalGroup = AnnotationGroup(region, get_stomach_term("esophagus smooth muscle longitudinal layer"))
+
+            ostiumWallAnnotationGroups = [[esophagusMucosaGroup, mucosaGroup],
+                                          [esophagusSubmucosaGroup, submucosaGroup],
+                                          [esophagusCircularGroup, circularMuscleGroup],
+                                          [esophagusLongitudinalGroup, longitudinalMuscleGroup]]
+
+            allAnnotationGroups += [esophagusMucosaGroup, esophagusSubmucosaGroup,
+                                    esophagusCircularGroup, esophagusLongitudinalGroup]
+
         nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
             generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
-                               nodeIdentifier, elementIdentifier, vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup]],
-                               ostiumMeshGroups=[stomachMeshGroup, esophagogastricJunctionMeshGroup])
+                               nodeIdentifier, elementIdentifier,
+                               vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup]],
+                               ostiumMeshGroups=[stomachMeshGroup, esophagogastricJunctionMeshGroup],
+                               wallAnnotationGroups= ostiumWallAnnotationGroups)
 
         stomachStartNode = nextNodeIdentifier
         stomachStartElement = nextElementIdentifier
@@ -2498,13 +2515,31 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         lastDuodenumElementIdentifier = elementIdentifier
 
+        stomachWallAnnotationGroups = []
+        if elementsCountThroughWall == 4:
+            stomachWallAnnotationGroups = [[mucosaGroup], [submucosaGroup], [circularMuscleGroup], [longitudinalMuscleGroup]]
+
+        # Remove mucosa layer from annulus
+        if elementsCountThroughWall == 4 and limitingRidge:
+            o1_x = o1_x[1:]
+            o1_d1 = o1_d1[1:]
+            o1_d2 = o1_d2[1:]
+            o1_NodeId = o1_NodeId[1:]
+            endPoints_x = endPoints_x[1:]
+            endPoints_d1 = endPoints_d1[1:]
+            endPoints_d2 = endPoints_d2[1:]
+            endNode_Id = endNode_Id[1:]
+            endDerivativesMap = endDerivativesMap[1:]
+            stomachWallAnnotationGroups = stomachWallAnnotationGroups[1:]
+
         nextNodeIdentifier, nextElementIdentifier = createAnnulusMesh3d(
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints_x, endPoints_d1, endPoints_d2, None, endNode_Id, endDerivativesMap,
             elementsCountRadial = elementsCountAcrossCardia, meshGroups= [stomachMeshGroup, cardiaMeshGroup],
-            tracksurface=trackSurfaceStomach, startProportions = startProportions, endProportions = endProportions,
-            rescaleStartDerivatives = True, rescaleEndDerivatives = True)
+            wallAnnotationGroups=stomachWallAnnotationGroups, tracksurface=trackSurfaceStomach,
+            startProportions=startProportions, endProportions=endProportions,
+            rescaleStartDerivatives=True, rescaleEndDerivatives=True)
 
         elementIdxThroughWall = []
         n = lastDuodenumElementIdentifier - 1
@@ -2816,14 +2851,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                                                          get_stomach_term("serosa of dorsal stomach"))
         serosaVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                          get_stomach_term("serosa of ventral stomach"))
+        esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                            get_stomach_term("serosa of esophagus"))
 
         stomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("stomach"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
-        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
         antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pylorus"))
-        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
         esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
         dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("dorsal stomach"))
         ventralGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("ventral stomach"))
@@ -2870,6 +2905,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         is_pylorusMargin = fm.createFieldAnd(is_marginOuter, is_pylorus)
         pylorusSplitMarginGroup.getMeshGroup(mesh1d).addElementsConditional(is_pylorusMargin)
 
+        is_esoSerosa = fm.createFieldAnd(is_exterior_face_outer, is_eso)
+        esoSerosaGroup.getMeshGroup(mesh2d).addElementsConditional(is_esoSerosa)
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):
     """

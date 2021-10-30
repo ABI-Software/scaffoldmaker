@@ -77,7 +77,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
     forceStartLinearXi3 = False, forceMidLinearXi3 = False, forceEndLinearXi3 = False,
     maxStartThickness = None, maxEndThickness = None, useCrossDerivatives = False,
-    elementsCountRadial = 1, meshGroups = None, tracksurface = None, startProportions = None, endProportions = None,
+    elementsCountRadial=1, meshGroups=None, wallAnnotationGroups=None, tracksurface=None,
+    startProportions=None, endProportions=None,
     rescaleStartDerivatives = False, rescaleEndDerivatives = False, sampleBlend = 0.0):
     """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
@@ -110,6 +111,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
     :param meshGroups:  Optional sequence of Zinc MeshGroup for adding all new elements to, or a sequence of
     length elementsCountRadial containing sequences of mesh groups to add rows of radial elements to
     from start to end.
+    :param wallAnnotationGroups: Annotation groups for adding all new elements to a sequence
+    of groups to add to elements through wall.
     :param tracksurface: Description for outer surface representation used for creating annulus mesh. Provides
     information for creating radial nodes on annulus that sit on tracksurface. Need startProportions and endProportions
     to work.
@@ -165,6 +168,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
             rowMeshGroups = [ meshGroups ]*elementsCountRadial
         else:
             assert len(meshGroups) == elementsCountRadial, 'createAnnulusMesh3d:  Length of meshGroups sequence does not equal elementsCountRadial'
+    if wallAnnotationGroups:
+        assert len(wallAnnotationGroups) == nodesCountWall - 1, 'createAnnulusMesh3d:  Length of wallAnnotationGroups sequence does not equal elementsCountThroughWall'
     if tracksurface:
         assert startProportions and endProportions, 'createAnnulusMesh3d: Missing start and/or end proportions for use with tracksurface'
         assert len(startProportions) == nodesCountAround, 'createAnnulusMesh3d: Length of startProportions does not equal nodesCountAround'
@@ -575,6 +580,11 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier,
 
                 if rowMeshGroups:
                     for meshGroup in rowMeshGroups[e2]:
+                        meshGroup.addElement(element)
+
+                if wallAnnotationGroups:
+                    for annotationGroup in wallAnnotationGroups[e3]:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
                         meshGroup.addElement(element)
 
     fm.endChange()

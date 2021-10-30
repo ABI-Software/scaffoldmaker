@@ -219,10 +219,11 @@ def getOstiumElementsCountsAroundVessels(elementsCountAroundOstium, elementsCoun
 
 
 def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, startNodeIdentifier = 1, startElementIdentifier = 1,
-        vesselMeshGroups = None, ostiumMeshGroups = None):
+        vesselMeshGroups = None, ostiumMeshGroups = None, wallAnnotationGroups = None):
     '''
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
     :param ostiumMeshGroups: List of mesh groups to add only row of elements at ostium end to.
+    :param wallAnnotationGroups: list of annotation groups to add to wall elements.
     :return: nextNodeIdentifier, nextElementIdentifier, Ostium points tuple
     (ox[n3][n1][c], od1[n3][n1][c], od2[n3][n1][c], od3[n3][n1][c], oNodeId[n3][n1], oPositions).
     '''
@@ -819,7 +820,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             maxStartThickness = vesselWallThickness,
             maxEndThickness = vesselWallThickness,
             elementsCountRadial = elementsCountAlong,
-            meshGroups = rowMeshGroups)
+            meshGroups = rowMeshGroups, wallAnnotationGroups = wallAnnotationGroups)
 
     fm.endChange()
     return nodeIdentifier, elementIdentifier, (ox, od1, od2, od3, oNodeId, oPositions)
