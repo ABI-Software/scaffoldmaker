@@ -223,18 +223,20 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
                 'Number of elements along': 2,
-                'Number of elements through wall': 1,  # not implemented for > 1
+                'Number of elements through wall': 4,
                 'Unit scale': 1.0,
                 'Outlet': False,
                 'Ostium diameter': 25.0,
                 'Ostium length': 15.0,
                 'Ostium wall thickness': 5.0,
+                'Ostium wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with human data
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 5.0,
                 'Vessel wall thickness': 5.0,
+                'Vessel wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with human data
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -252,18 +254,20 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 12,
                 'Number of elements along': 2,
-                'Number of elements through wall': 1,  # not implemented for > 1
+                'Number of elements through wall': 4,
                 'Unit scale': 1.0,
                 'Outlet': False,
                 'Ostium diameter': 1.5,
                 'Ostium length': 1.5,
                 'Ostium wall thickness': 0.25,
+                'Ostium wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with mouse data
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 0.5,
                 'Vessel wall thickness': 0.2,
+                'Vessel wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with mouse data
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -281,18 +285,20 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 12,
                 'Number of elements along': 2,
-                'Number of elements through wall': 1,  # not implemented for > 1
+                'Number of elements through wall': 4,
                 'Unit scale': 1.0,
                 'Outlet': False,
                 'Ostium diameter': 5.0,
                 'Ostium length': 5.0,
                 'Ostium wall thickness': 0.5,
+                'Ostium wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 2.0,
                 'Vessel wall thickness': 0.5,
+                'Vessel wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -472,6 +478,19 @@ class MeshType_3d_stomach1(Scaffold_base):
         ostiumOptions = options['Gastro-esophagal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         ostiumSettings['Ostium wall thickness'] = wallThickness
+        elementsCountThroughWall = options['Number of elements through wall']
+        ostiumSettings['Number of elements through wall'] = elementsCountThroughWall
+        if elementsCountThroughWall == 1:
+            ostiumSettings['Ostium wall relative thickness proportions'] = [1.0]
+            ostiumSettings['Vessel wall relative thickness proportions'] = [1.0]
+        else:
+            mucosaRelThickness = options['Mucosa relative thickness']
+            submucosaRelThickness = options['Submucosa relative thickness']
+            circularRelThickness = options['Circular muscle layer relative thickness']
+            longRelThickness = options['Longitudinal muscle layer relative thickness']
+            relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longRelThickness]
+            ostiumSettings['Ostium wall relative thickness proportions'] = relThicknesses
+            ostiumSettings['Vessel wall relative thickness proportions'] = relThicknesses
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -2425,24 +2444,23 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         # Annulus
         # Assemble endPoints for annulus
-        endPoints_x = [[None] * elementsCountAroundEso, [None] * elementsCountAroundEso]
-        endPoints_d1 = [[None] * elementsCountAroundEso, [None] * elementsCountAroundEso]
-        endPoints_d2 = [[None] * elementsCountAroundEso, [None] * elementsCountAroundEso]
-        endNode_Id = [[None] * elementsCountAroundEso, [None] * elementsCountAroundEso]
-        endDerivativesMap = [[None] * elementsCountAroundEso, [None] * elementsCountAroundEso]
+        endPoints_x = [[None] * elementsCountAroundEso for n3 in range(elementsCountThroughWall + 1)]
+        endPoints_d1 = [[None] * elementsCountAroundEso for n3 in range(elementsCountThroughWall + 1)]
+        endPoints_d2 = [[None] * elementsCountAroundEso for n3 in range(elementsCountThroughWall + 1)]
+        endNode_Id = [[None] * elementsCountAroundEso for n3 in range(elementsCountThroughWall + 1)]
+        endDerivativesMap = [[None] * elementsCountAroundEso for n3 in range(elementsCountThroughWall + 1)]
         endProportions = []
 
-        thicknessIdx = [0, -1]
         for nAround in range(elementsCountAroundEso):
-            for n3 in range(len(thicknessIdx)):
+            for n3 in range(elementsCountThroughWall + 1):
                 if nAround == 0:
-                    idx = idxMat[nAround][thicknessIdx[n3]][0]
+                    idx = idxMat[nAround][n3][0]
                 elif nAround <= elementsAroundQuarterEso:
-                    idx = idxMat[nAround][thicknessIdx[n3]][int((len(xOuter[nAround]) - 1) * 0.5)]
+                    idx = idxMat[nAround][n3][int((len(xOuter[nAround]) - 1) * 0.5)]
                 elif elementsAroundQuarterEso < nAround < elementsAroundHalfEso:
-                    idx = idxMat[nAround + 1][thicknessIdx[n3]][int((len(xOuter[nAround + 1]) - 1) * 0.5)]
+                    idx = idxMat[nAround + 1][n3][int((len(xOuter[nAround + 1]) - 1) * 0.5)]
                 elif nAround == elementsAroundHalfEso:
-                    idx = idxMat[nAround + 1][thicknessIdx[n3]][int(len(xOuter[nAround + 1]) * 0.5)]
+                    idx = idxMat[nAround + 1][n3][int(len(xOuter[nAround + 1]) * 0.5)]
                 elif nAround > elementsAroundHalfEso:
                     idx = endNode_Id[n3][elementsAroundHalfEso - (nAround - elementsAroundHalfEso)] + 1
 
@@ -2451,23 +2469,24 @@ class MeshType_3d_stomach1(Scaffold_base):
                 endPoints_d2[n3][nAround] = d2List[idx - stomachStartNode]
                 endNode_Id[n3][nAround] = idx
 
-                if n3 == len(thicknessIdx) - 1: # outer layer
+                if n3 == elementsCountThroughWall: # outer layer
                     endPosition = trackSurfaceStomach.findNearestPosition(endPoints_x[n3][nAround])
                     endProportions.append(trackSurfaceStomach.getProportion(endPosition))
 
-        for nAround in range(elementsCountAroundEso):
-            if nAround == 0:
-                endDerivativesMap[0][nAround] = endDerivativesMap[1][nAround] = ((0, -1, 0), (1, 0, 0), None)
-            elif nAround == elementsAroundQuarterEso:
-                endDerivativesMap[0][nAround] = endDerivativesMap[1][nAround] = ((0, 1, 0), (-1, 1, 0), None, (1, 0, 0))
-            elif 0 < nAround < elementsAroundHalfEso:
-                endDerivativesMap[0][nAround] = endDerivativesMap[1][nAround] = ((0, 1, 0), (-1, 0, 0), None)
-            elif nAround == elementsAroundHalfEso:
-                endDerivativesMap[0][nAround] = endDerivativesMap[1][nAround] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
-            elif nAround == int(elementsCountAroundEso * 0.75):
-                endDerivativesMap[0][nAround] = endDerivativesMap[1][nAround] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
-            elif elementsAroundHalfEso < nAround < elementsCountAroundEso:
-                endDerivativesMap[0][nAround] = endDerivativesMap[1][nAround] = ((0, -1, 0), (1, 0, 0), None)
+        for n3 in range(elementsCountThroughWall + 1):
+            for nAround in range(elementsCountAroundEso):
+                if nAround == 0:
+                    endDerivativesMap[n3][nAround] = ((0, -1, 0), (1, 0, 0), None)
+                elif nAround == elementsAroundQuarterEso:
+                    endDerivativesMap[n3][nAround] = ((0, 1, 0), (-1, 1, 0), None, (1, 0, 0))
+                elif 0 < nAround < elementsAroundHalfEso:
+                    endDerivativesMap[n3][nAround] = ((0, 1, 0), (-1, 0, 0), None)
+                elif nAround == elementsAroundHalfEso:
+                    endDerivativesMap[n3][nAround] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
+                elif nAround == int(elementsCountAroundEso * 0.75):
+                    endDerivativesMap[n3][nAround] = ((1, 0, 0), (1, 1, 0), None, (0, -1, 0))
+                elif elementsAroundHalfEso < nAround < elementsCountAroundEso:
+                    endDerivativesMap[n3][nAround] = ((0, -1, 0), (1, 0, 0), None)
 
         startProportions = []
         for n in range(elementsCountAroundEso):
