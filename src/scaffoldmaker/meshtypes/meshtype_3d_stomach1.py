@@ -2795,67 +2795,23 @@ class MeshType_3d_stomach1(Scaffold_base):
         '''
 
         limitingRidge = options['Limiting ridge']
+        elementsCountThroughWall = options['Number of elements through wall']
 
-        if limitingRidge:
-            fm = region.getFieldmodule()
-            fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
-            bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
-            cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
-            antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
+        serosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("serosa of stomach"))
+        outerSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("serosa split margin"))
+        esoSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("esophagus on serosa split margin"))
+        fundusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("fundus on serosa split margin"))
+        bodySplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("body on serosa split margin"))
+        antrumSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("antrum on serosa split margin"))
+        pylorusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("pylorus on serosa split margin"))
 
-            limitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction"))
-            innerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction on inner wall"))
-            outerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction on outer wall"))
-
-            mesh2d = fm.findMeshByDimension(2)
-            is_fundus = fundusGroup.getGroup()
-            is_body = bodyGroup.getGroup()
-            is_cardia = cardiaGroup.getGroup()
-            is_antrum = antrumGroup.getGroup()
-            is_limitingRidgeBody = fm.createFieldAnd(is_fundus, is_body)
-            is_limitingRidgeCardia = fm.createFieldAnd(is_body, is_cardia)
-            is_limitingRidgeAntrum = fm.createFieldAnd(is_antrum, is_cardia)
-            is_limitingRidgeBodyCardia = fm.createFieldOr(is_limitingRidgeBody, is_limitingRidgeCardia)
-            is_limitingRidgeAntrumCardia = fm.createFieldOr(is_limitingRidgeAntrum, is_limitingRidgeCardia)
-            is_limitingRidge = fm.createFieldOr(is_limitingRidgeBodyCardia, is_limitingRidgeAntrumCardia)
-            limitingRidgeGroup.getMeshGroup(mesh2d).addElementsConditional(is_limitingRidge)
-
-            mesh1d = fm.findMeshByDimension(1)
-            is_exterior = fm.createFieldIsExterior()
-            is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-            is_exterior_face_inner = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-
-            is_limitingRidgeInner = fm.createFieldAnd(is_limitingRidge, is_exterior_face_inner)
-            innerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeInner)
-
-            is_limitingRidgeOuter = fm.createFieldAnd(is_limitingRidge, is_exterior_face_outer)
-            outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
-
-        serosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa of stomach"))
-
-        outerSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa split margin"))
-        esoSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("esophagus on serosa split margin"))
-        fundusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("fundus on serosa split margin"))
-        bodySplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("body on serosa split margin"))
-        antrumSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                     get_stomach_term("antrum on serosa split margin"))
-        pylorusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("pylorus on serosa split margin"))
-
-        serosaDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa of dorsal stomach"))
-        serosaVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa of ventral stomach"))
-        esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_stomach_term("serosa of esophagus"))
+        serosaDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("serosa of dorsal stomach"))
+        serosaVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("serosa of ventral stomach"))
+        esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("serosa of esophagus"))
 
         stomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("stomach"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
+        cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
         antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pylorus"))
@@ -2907,6 +2863,53 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         is_esoSerosa = fm.createFieldAnd(is_exterior_face_outer, is_eso)
         esoSerosaGroup.getMeshGroup(mesh2d).addElementsConditional(is_esoSerosa)
+
+        if limitingRidge:
+            fm = region.getFieldmodule()
+            limitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction"))
+            innerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction on inner wall"))
+            outerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term("forestomach-glandular stomach junction on outer wall"))
+
+            mesh2d = fm.findMeshByDimension(2)
+            is_cardia = cardiaGroup.getGroup()
+            is_limitingRidgeBody = fm.createFieldAnd(is_fundus, is_body)
+            is_limitingRidgeCardia = fm.createFieldAnd(is_body, is_cardia)
+            is_limitingRidgeAntrum = fm.createFieldAnd(is_antrum, is_cardia)
+            is_limitingRidgeBodyCardia = fm.createFieldOr(is_limitingRidgeBody, is_limitingRidgeCardia)
+            is_limitingRidgeAntrumCardia = fm.createFieldOr(is_limitingRidgeAntrum, is_limitingRidgeCardia)
+            is_limitingRidge = fm.createFieldOr(is_limitingRidgeBodyCardia, is_limitingRidgeAntrumCardia)
+
+            if elementsCountThroughWall == 4:
+                mucosaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("mucosa of stomach"))
+                is_mucosa = mucosaGroup.getGroup()
+                is_bodyMucosa = fm.createFieldAnd(is_body, is_mucosa)
+                is_antrumMucosa = fm.createFieldAnd(is_antrum, is_mucosa)
+                is_bodyAntrumMucosa = fm.createFieldOr(is_bodyMucosa, is_antrumMucosa)
+
+                is_xi1Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1))
+                is_xi1All = fm.createFieldOr(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0), fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1))
+                is_xi1BodyAntrumMucosaAll = fm.createFieldAnd(is_bodyAntrumMucosa, is_xi1All)
+                is_limitingRidgeAroundCardia = fm.createFieldAnd(is_xi1BodyAntrumMucosaAll, fm.createFieldNot(is_xi1Interior))
+
+                is_xi2Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0), fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
+                is_xi2ZeroBodyMucosa = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0), is_bodyMucosa)
+                is_limitingRidgeBodyBoundary = fm.createFieldAnd(is_xi2ZeroBodyMucosa, fm.createFieldNot(is_xi2Interior))
+
+                is_limitingRidgeMucosa = fm.createFieldOr(is_limitingRidgeAroundCardia, is_limitingRidgeBodyBoundary)
+                is_limitingRidge = fm.createFieldOr(is_limitingRidge, is_limitingRidgeMucosa)
+
+            limitingRidgeGroup.getMeshGroup(mesh2d).addElementsConditional(is_limitingRidge)
+
+            mesh1d = fm.findMeshByDimension(1)
+            is_xi3Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0), fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            is_xi3ZeroLimitingRidge = fm.createFieldAnd(is_limitingRidge, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            is_xi3OneLimitingRidge = fm.createFieldAnd(is_limitingRidge, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+
+            is_limitingRidgeInner = fm.createFieldAnd(is_xi3ZeroLimitingRidge, fm.createFieldNot(is_xi3Interior))
+            innerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeInner)
+
+            is_limitingRidgeOuter = fm.createFieldAnd(is_xi3OneLimitingRidge, fm.createFieldNot(is_xi3Interior))
+            outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):
     """
