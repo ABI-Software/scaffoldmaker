@@ -229,14 +229,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Ostium diameter': 25.0,
                 'Ostium length': 15.0,
                 'Ostium wall thickness': 5.0,
-                'Ostium wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with human data
+                'Ostium wall relative thickness proportions': [0.55, 0.15, 0.25, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 5.0,
                 'Vessel wall thickness': 5.0,
-                'Vessel wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with human data
+                'Vessel wall relative thickness proportions': [0.55, 0.15, 0.25, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -259,15 +259,15 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Outlet': False,
                 'Ostium diameter': 1.5,
                 'Ostium length': 1.5,
-                'Ostium wall thickness': 0.25,
-                'Ostium wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with mouse data
+                'Ostium wall thickness': 0.45,
+                'Ostium wall relative thickness proportions': [0.75, 0.05, 0.15, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 0.5,
-                'Vessel wall thickness': 0.2,
-                'Vessel wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],  # update later with mouse data
+                'Vessel wall thickness': 0.45,
+                'Vessel wall relative thickness proportions': [0.75, 0.05, 0.15, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -344,9 +344,9 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements across cardia': 1,
             'Number of elements through wall': 4,
             'Wall thickness': 5.0,
-            'Mucosa relative thickness': 0.65,
-            'Submucosa relative thickness': 0.12,
-            'Circular muscle layer relative thickness': 0.18,
+            'Mucosa relative thickness': 0.55,
+            'Submucosa relative thickness': 0.15,
+            'Circular muscle layer relative thickness': 0.25,
             'Longitudinal muscle layer relative thickness': 0.05,
             'Limiting ridge': False,
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
@@ -361,7 +361,11 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around esophagus'] = 12
             options['Number of elements around duodenum'] = 14
             options['Number of elements between cardia and duodenum'] = 2
-            options['Wall thickness'] = 0.25
+            options['Wall thickness'] = 0.45
+            options['Mucosa relative thickness'] = 0.75
+            options['Submucosa relative thickness'] = 0.05
+            options['Circular muscle layer relative thickness'] = 0.15
+            options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Gastro-esophagal junction position along factor'] = 0.53
             options['Cardia derivative factor'] = 0.3
             options['Limiting ridge'] = True
@@ -370,6 +374,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 14
             options['Number of elements between cardia and duodenum'] = 2
             options['Wall thickness'] = 0.5
+            options['Mucosa relative thickness'] = 0.65
+            options['Submucosa relative thickness'] = 0.12
+            options['Circular muscle layer relative thickness'] = 0.18
+            options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Gastro-esophagal junction position along factor'] = 0.55
             options['Cardia derivative factor'] = 0.2
             options['Limiting ridge'] = True
