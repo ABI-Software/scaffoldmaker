@@ -1,14 +1,13 @@
 import unittest
-import copy
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
-from opencmiss.utils.zinc.general import ChangeManager
+from testutils import assertAlmostEqualList
+
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.result import RESULT_OK
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
-from testutils import assertAlmostEqualList
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
@@ -133,7 +132,6 @@ class SphereScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(volume, 4.132033912594377, delta=3.0E-1)
 
-
         # check ellipsoid.
         scaffold1 = MeshType_3d_solidsphere2
         parameterSetNames = scaffold1.getParameterSetNames()
@@ -193,6 +191,7 @@ class SphereScaffoldTestCase(unittest.TestCase):
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(volume, 1.6741674010981926, delta=1.0E-3)
+
 
 if __name__ == "__main__":
     unittest.main()
