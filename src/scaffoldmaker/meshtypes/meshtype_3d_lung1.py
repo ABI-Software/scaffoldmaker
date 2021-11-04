@@ -378,9 +378,10 @@ class MeshType_3d_lung1(Scaffold_base):
             upperLeftNodeIds = []
             lowerRightNodeIds = []
             upperRightNodeIds = []
+            spaceFromCentre = [5.0, 0.0, 0.0] #Space away from the centre for left and right lungs
 
             # Left lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(length, width, height, fissureAngle, obliqueProportion,
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
                 leftLung, cache, coordinates, generateParameters,
                 nodes, nodetemplate, nodeFieldParameters,
                 lElementsCount1, lElementsCount2, lElementsCount3,
@@ -388,7 +389,7 @@ class MeshType_3d_lung1(Scaffold_base):
                 lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
 
             # Right lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(length, width, height, fissureAngle, obliqueProportion,
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
                 rightLung, cache, coordinates, generateParameters,
                 nodes, nodetemplate, nodeFieldParameters,
                 lElementsCount1, lElementsCount2, lElementsCount3,
@@ -418,157 +419,8 @@ class MeshType_3d_lung1(Scaffold_base):
 
             if discontinuity:
                 # create discontinuity in d3 on the core boundary
-                nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-                nodetemplate = nodes.createNodetemplate()
-                fieldcache = fm.createFieldcache()
-
-                with ChangeManager(fm):
-                    # Replicating nodes at fissures
-                    for e4 in range(2):
-                        UpperLobeElementID = leftUpperLobeElementID if e4 == 0 else rightUpperLobeElementID
-                        upperNodeIds = []
-                        store_coordinate = []
-                        for e3 in range(len(UpperLobeElementID)):
-                            upperNodeIds.append([])
-                            for e2 in range(len(UpperLobeElementID[e3])):
-                                for e1 in range(len(UpperLobeElementID[e3][e2])):
-                                    # Fissures along the upper lobe
-                                    if ((e2 == 2) and (e3 < 2)) or ((e2 < 4) and (e3 == 2)):
-                                        elementIdentifier = UpperLobeElementID[e3][e2][e1]
-                                        element = mesh.findElementByIdentifier(elementIdentifier)
-                                        eft = element.getElementfieldtemplate(coordinates, -1)
-
-                                        # Exclude horizontal fissure in the left lobe
-                                        if (e4 == 0) and (e3 == 2) and (e2 > 1):
-                                            continue
-
-                                        if e3 < 2:
-                                            # Middle lobe
-                                            localNodeIndexes = [1, 2] if e1 == 0 else [2]
-                                            if e3 == 1:
-                                                if e1 == 0:
-                                                    localNodeIndexes.append(5)
-                                                localNodeIndexes.append(6)
-                                        else:
-                                            # Upper lobe
-                                            if e2 == 0:
-                                                # Dorsal wedge
-                                                localNodeIndexes = [1] if (e1 == 0) else []
-                                            elif e2 == 3:
-                                                # Ventral wedge
-                                                localNodeIndexes = [1, 2] if (e1 == 0) else [2, 3]
-                                            else:
-                                                # Regular element
-                                                localNodeIndexes = [1, 2] if (e1 == 0) else [2]
-
-                                        for localNodeIndex in localNodeIndexes:
-                                            node = element.getNode(eft, localNodeIndex)
-                                            nodetemplate.defineFieldFromNode(coordinates, node)
-                                            versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1,
-                                                                                                  Node.VALUE_LABEL_VALUE)
-
-                                            if versionsCount == 1:
-                                                fieldcache.setNode(node)
-                                                result0, x = coordinates.getNodeParameters(fieldcache, -1,
-                                                                                           Node.VALUE_LABEL_VALUE,
-                                                                                           1, 3)
-                                                result0, d1 = coordinates.getNodeParameters(fieldcache, -1,
-                                                                                            Node.VALUE_LABEL_D_DS1,
-                                                                                            1, 3)
-                                                result0, d2 = coordinates.getNodeParameters(fieldcache, -1,
-                                                                                            Node.VALUE_LABEL_D_DS2,
-                                                                                            1, 3)
-                                                result0, d3 = coordinates.getNodeParameters(fieldcache, -1,
-                                                                                            Node.VALUE_LABEL_D_DS3,
-                                                                                            1, 3)
-
-                                                if (localNodeIndex > 2) and (e3 == 1):
-                                                    # Store 3-way points in the middle lobe
-                                                    store_coordinate.append([x, d1, d2, d3])
-                                                    continue
-
-                                                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                                                fieldcache.setNode(node)
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1,
-                                                                              x)
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1,
-                                                                              d1)
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1,
-                                                                              d2)
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1,
-                                                                              d3)
-                                                upperNodeIds[e3].append(nodeIdentifier)
-                                                nodeIdentifier += 1
-
-                                        # Create 3-way points in the middle lobe
-                                        if (e3 == 1) and (e2 == 2) and (e1 == 1):
-                                            for i in range(len(store_coordinate)):
-                                                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                                                fieldcache.setNode(node)
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1,
-                                                                              store_coordinate[i][0])
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1,
-                                                                              store_coordinate[i][1])
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1,
-                                                                              store_coordinate[i][2])
-                                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1,
-                                                                              store_coordinate[i][3])
-                                                upperNodeIds[e3].append(nodeIdentifier)
-                                                nodeIdentifier += 1
-
-                        # Change node index in the element
-                        for e3 in range(len(UpperLobeElementID)):
-                            # middle lobe and upper lobe idx
-                            temp_idx = upperNodeIds[0] + upperNodeIds[1] if e3 < 2 else upperNodeIds[2]
-                            # print("temp_idx", temp_idx)
-                            for e2 in range(len(UpperLobeElementID[e3])):
-                                for e1 in range(len(UpperLobeElementID[e3][e2])):
-
-                                    # Fissures along the upper lobe
-                                    if ((e2 == 2) and (e3 < 2)) or ((e2 < 4) and (e3 == 2)):
-                                        elementIdentifier = UpperLobeElementID[e3][e2][e1]
-                                        element = mesh.findElementByIdentifier(elementIdentifier)
-                                        eft = element.getElementfieldtemplate(coordinates, -1)
-                                        nodeIds = get_element_node_identifiers(element, eft)
-
-                                        # Exclude horizontal fissure in the left lobe
-                                        if (e4 == 0) and (e3 == 2) and (e2 > 2):
-                                            continue
-
-                                        if (e3 == 2) and (e2 == 0):
-                                            # Dorsal wedge
-                                            nd2 = e1 + 1
-                                            nodeIds[0] = temp_idx[0]
-                                            nodeIds[1:3] = [temp_idx[nd2], temp_idx[nd2 + 1]]
-                                        elif (e3 == 2) and (e2 < 3):
-                                            # upper and lower lobes
-                                            if e4 == 1:
-                                                # Right lung
-                                                nd1 = (e2 * e2) + e1
-                                                nd2 = (e2 * 3) + e1 + 1
-                                                nodeIds[:2] = [temp_idx[nd1], temp_idx[nd1 + 1]]
-                                                nodeIds[2:4] = [temp_idx[nd2], temp_idx[nd2 + 1]]
-                                            else:
-                                                # LeftLung
-                                                nd1 = (e2 * e2) + e1
-                                                nd2 = (e2 * 2) + e1 + 1 if (e2 < 2) else e2 + e1 + 1
-                                                temp_idx_1 = upperNodeIds[1]
-                                                nodeIds[:2] = [temp_idx[nd1], temp_idx[nd1 + 1]] if (e2 < 2) else \
-                                                    [temp_idx_1[nd2], temp_idx_1[nd2 + 1]]
-                                                if (e2 < 2):
-                                                    nodeIds[2:4] = [temp_idx_1[nd2], temp_idx_1[nd2 + 1]]
-                                        elif (e3 == 2) and (e2 == 3):
-                                            # Ventral wedge
-                                            nd2 = (e3 * 3) + e1 + 1
-                                            nodeIds[2] = temp_idx[-1]
-                                            nodeIds[:2] = [temp_idx[nd2], temp_idx[nd2 + 1]]
-                                        else:
-                                            # Middle lobe
-                                            nd1 = (e3 * 3) + e1
-                                            nd2 = ((e3 + 1) * 3) + e1
-                                            nodeIds[:2] = [temp_idx[nd1], temp_idx[nd1 + 1]]
-                                            nodeIds[4:6] = [temp_idx[nd2], temp_idx[nd2 + 1]]
-                                        element.setNodesByIdentifier(eft, nodeIds)
+                nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, leftUpperLobeElementID,
+                                rightUpperLobeElementID, nodeIdentifier)
 
             # Marker points
             lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
@@ -577,7 +429,7 @@ class MeshType_3d_lung1(Scaffold_base):
             lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
 
             idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
-            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 0.0, 1.0] })
+            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 0.0, 1.0]})
 
             idx = 1
             markerList.append({"group": leftDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
@@ -975,128 +827,154 @@ class MeshType_3d_lung1(Scaffold_base):
             nodeIndex = 0
             nodeIdentifier = 1
             leftNodeIds = []
+            lowerLeftNodeIds = []
+            upperLeftNodeIds = []
             lowerRightNodeIds = []
             upperRightNodeIds = []
             diaphragmaticNodeIds = []
+            spaceFromCentre = [5.0, 0.0, 0.0] #Space away from the origin for left and right lungs
+            spaceBelowCentre = [0.0, 0.0, -2.5] #Space below the origin for accessory lobe
 
             # Left lung nodes
             d1 = [0.5, 0.0, 0.0]
             d2 = [0.0, 0.5, 0.0]
             d3 = [0.0, 0.0, 1.0]
-            for n3 in range(elementsCount3 + 1):
-                leftNodeIds.append([])
-                for n2 in range(elementsCount2 + 1):
-                    leftNodeIds[n3].append([])
-                    for n1 in range(elementsCount1 + 1):
-                        leftNodeIds[n3][n2].append(None)
-                        if n3 < elementsCount3:
-                            if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
-                                continue
-                        else:
-                            if (n2 == 0) or (n2 == elementsCount2) or (n1 == 0):
-                                continue
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        cache.setNode(node)
-                        if generateParameters:
-                            x = [0.5 * (n1 - 1), 0.5 * (n2 - 1), 1.0 * n3]
-                        else:
+
+            if generateParameters is False:
+                for n3 in range(elementsCount3 + 1):
+                    leftNodeIds.append([])
+                    for n2 in range(elementsCount2 + 1):
+                        leftNodeIds[n3].append([])
+                        for n1 in range(elementsCount1 + 1):
+                            leftNodeIds[n3][n2].append(None)
+                            if n3 < elementsCount3:
+                                if (n1 == 0) and ((n2 == 0) or (n2 == elementsCount2)):
+                                    continue
+                            else:
+                                if (n2 == 0) or (n2 == elementsCount2) or (n1 == 0):
+                                    continue
+                            node = nodes.createNode(nodeIdentifier, nodetemplate)
+                            cache.setNode(node)
+                            # if generateParameters:
+                            #     x = [0.5 * (n1 - 1), 0.5 * (n2 - 1), 1.0 * n3]
+                            # else:
                             nodeParameters = nodeFieldParameters[nodeIndex]
                             nodeIndex += 1
                             assert nodeIdentifier == nodeParameters[0]
                             x, d1, d2, d3 = nodeParameters[1]
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        leftNodeIds[n3][n2][n1] = nodeIdentifier
-                        nodeIdentifier += 1
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                            leftNodeIds[n3][n2][n1] = nodeIdentifier
+                            nodeIdentifier += 1
+            else:
+                nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
+                                                         leftLung, cache, coordinates, generateParameters,
+                                                         nodes, nodetemplate, nodeFieldParameters,
+                                                         lElementsCount1, lElementsCount2, lElementsCount3,
+                                                         uElementsCount1, uElementsCount2, uElementsCount3,
+                                                         lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
 
             # Right lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(rightLung, cache, coordinates, generateParameters,
-                 nodes, nodetemplate, nodeFieldParameters,
-                 lElementsCount1, lElementsCount2, lElementsCount3,
-                 uElementsCount1, uElementsCount2, uElementsCount3,
-                 lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
+                                                     rightLung, cache, coordinates, generateParameters,
+                                                     nodes, nodetemplate, nodeFieldParameters,
+                                                     lElementsCount1, lElementsCount2, lElementsCount3,
+                                                     uElementsCount1, uElementsCount2, uElementsCount3,
+                                                     lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
 
             # Diaphragm lung nodes
-            nodeIndex, nodeIdentifier = getDiaphragmaticLungNodes(cache, coordinates, generateParameters,
-                 nodes, nodetemplate, nodeFieldParameters,
+            nodeIndex, nodeIdentifier = getDiaphragmaticLungNodes(spaceBelowCentre, cache, coordinates,
+                 generateParameters, nodes, nodetemplate, nodeFieldParameters,
                  diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3,
                  diaphragmaticNodeIds, nodeIndex, nodeIdentifier)
 
             # Create elements
             elementIdentifier = 1
 
-            # Left lung elements
-            for e3 in range(elementsCount3):
-                for e2 in range(elementsCount2):
-                    for e1 in range(elementsCount1):
-                        eft = eftRegular
-                        nodeIdentifiers = [
-                            leftNodeIds[e3    ][e2][e1], leftNodeIds[e3    ][e2][e1 + 1], leftNodeIds[e3    ][e2 + 1][e1], leftNodeIds[e3    ][e2 + 1][e1 + 1],
-                            leftNodeIds[e3 + 1][e2][e1], leftNodeIds[e3 + 1][e2][e1 + 1], leftNodeIds[e3 + 1][e2 + 1][e1], leftNodeIds[e3 + 1][e2 + 1][e1 + 1]]
+            if generateParameters is False:
+                # Left lung elements
+                for e3 in range(elementsCount3):
+                    for e2 in range(elementsCount2):
+                        for e1 in range(elementsCount1):
+                            eft = eftRegular
+                            nodeIdentifiers = [
+                                leftNodeIds[e3    ][e2][e1], leftNodeIds[e3    ][e2][e1 + 1], leftNodeIds[e3    ][e2 + 1][e1], leftNodeIds[e3    ][e2 + 1][e1 + 1],
+                                leftNodeIds[e3 + 1][e2][e1], leftNodeIds[e3 + 1][e2][e1 + 1], leftNodeIds[e3 + 1][e2 + 1][e1], leftNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
-                        if (e3 < elementsCount3 - 1):
-                            if (e2 == 0) and (e1 == 0):
-                                # Back wedge elements
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(0)
-                                eft = eftWedgeCollapseXi1_15
-                            elif (e2 == elementsCount2 - 1) and (e1 == 0):
-                                # Front wedge elements
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(2)
-                                eft = eftWedgeCollapseXi1_37
-                        else:
-                            if (e2 == 0) and (e1 == 1):
-                                # Top back wedge elements
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(4)
-                                eft = eftWedgeCollapseXi2_56
-                            elif (e2 == elementsCount2 - 1) and (e1 == 1):
-                                # Top front wedge elements
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(6)
-                                eft = eftWedgeCollapseXi2_78
-                            elif ((0 < e2 < (elementsCount2 - 1))) and (e1 == 0):
-                                # Top middle back wedge element
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(4)
-                                eft = eftWedgeCollapseXi1_57
-                            elif (e2 == 0) and (e1 == 0):
-                                # Top back tetrahedron element
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(5)
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(0)
-                                eft = eftTetCollapseXi1Xi2_82
-                            elif (e2 == elementsCount2 - 1) and (e1 == 0):
-                                # Top front tetrahedron element
-                                nodeIdentifiers.pop(7)
-                                nodeIdentifiers.pop(6)
-                                nodeIdentifiers.pop(4)
-                                nodeIdentifiers.pop(2)
-                                eft = eftTetCollapseXi1Xi2_63
+                            if (e3 < elementsCount3 - 1):
+                                if (e2 == 0) and (e1 == 0):
+                                    # Back wedge elements
+                                    nodeIdentifiers.pop(4)
+                                    nodeIdentifiers.pop(0)
+                                    eft = eftWedgeCollapseXi1_15
+                                elif (e2 == elementsCount2 - 1) and (e1 == 0):
+                                    # Front wedge elements
+                                    nodeIdentifiers.pop(6)
+                                    nodeIdentifiers.pop(2)
+                                    eft = eftWedgeCollapseXi1_37
+                            else:
+                                if (e2 == 0) and (e1 == 1):
+                                    # Top back wedge elements
+                                    nodeIdentifiers.pop(5)
+                                    nodeIdentifiers.pop(4)
+                                    eft = eftWedgeCollapseXi2_56
+                                elif (e2 == elementsCount2 - 1) and (e1 == 1):
+                                    # Top front wedge elements
+                                    nodeIdentifiers.pop(7)
+                                    nodeIdentifiers.pop(6)
+                                    eft = eftWedgeCollapseXi2_78
+                                elif ((0 < e2 < (elementsCount2 - 1))) and (e1 == 0):
+                                    # Top middle back wedge element
+                                    nodeIdentifiers.pop(6)
+                                    nodeIdentifiers.pop(4)
+                                    eft = eftWedgeCollapseXi1_57
+                                elif (e2 == 0) and (e1 == 0):
+                                    # Top back tetrahedron element
+                                    nodeIdentifiers.pop(6)
+                                    nodeIdentifiers.pop(5)
+                                    nodeIdentifiers.pop(4)
+                                    nodeIdentifiers.pop(0)
+                                    eft = eftTetCollapseXi1Xi2_82
+                                elif (e2 == elementsCount2 - 1) and (e1 == 0):
+                                    # Top front tetrahedron element
+                                    nodeIdentifiers.pop(7)
+                                    nodeIdentifiers.pop(6)
+                                    nodeIdentifiers.pop(4)
+                                    nodeIdentifiers.pop(2)
+                                    eft = eftTetCollapseXi1Xi2_63
 
-                        if eft is eftRegular:
-                            element = mesh.createElement(elementIdentifier, elementtemplateRegular)
-                        else:
-                            elementtemplateCustom.defineField(coordinates, -1, eft)
-                            element = mesh.createElement(elementIdentifier, elementtemplateCustom)
-                        element.setNodesByIdentifier(eft, nodeIdentifiers)
-                        if eft.getNumberOfLocalScaleFactors() == 1:
-                            element.setScaleFactors(eft, [-1.0])
-                        elementIdentifier += 1
-                        leftLungMeshGroup.addElement(element)
-                        lungMeshGroup.addElement(element)
+                            if eft is eftRegular:
+                                element = mesh.createElement(elementIdentifier, elementtemplateRegular)
+                            else:
+                                elementtemplateCustom.defineField(coordinates, -1, eft)
+                                element = mesh.createElement(elementIdentifier, elementtemplateCustom)
+                            element.setNodesByIdentifier(eft, nodeIdentifiers)
+                            if eft.getNumberOfLocalScaleFactors() == 1:
+                                element.setScaleFactors(eft, [-1.0])
+                            elementIdentifier += 1
+                            leftLungMeshGroup.addElement(element)
+                            lungMeshGroup.addElement(element)
+            else:
+                # Left lung elements
+                elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
+                    getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                                    elementtemplateCustom, mesh, lungMeshGroup,
+                                    leftLungMeshGroup, None, None, None,
+                                    lElementsCount1, lElementsCount2, lElementsCount3,
+                                    uElementsCount1, uElementsCount2, uElementsCount3,
+                                    lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
 
             # Right lung elements
-            elementIdentifier = getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
-                elementtemplateCustom, mesh, lungMeshGroup,
-                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup, upperRightLungMeshGroup,
-                lElementsCount1, lElementsCount2, lElementsCount3,
-                uElementsCount1, uElementsCount2, uElementsCount3,
-                lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
+            elementIdentifier, rightUpperLobeElementID, rightLowerLobeElementID = \
+                getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                                elementtemplateCustom, mesh, lungMeshGroup,
+                                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
+                                upperRightLungMeshGroup,
+                                lElementsCount1, lElementsCount2, lElementsCount3,
+                                uElementsCount1, uElementsCount2, uElementsCount3,
+                                lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
 
             # Diaphragm lung elements
             getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
@@ -1104,6 +982,11 @@ class MeshType_3d_lung1(Scaffold_base):
                 rightLungMeshGroup, diaphragmaticLungMeshGroup,
                 diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3,
                 diaphragmaticNodeIds, elementIdentifier)
+
+            if discontinuity:
+                # create discontinuity in d3 on the core boundary
+                nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, None,
+                                rightUpperLobeElementID, nodeIdentifier)
 
             # Marker points
             lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
@@ -1204,6 +1087,7 @@ class MeshType_3d_lung1(Scaffold_base):
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
             obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
 
+
         if isHuman or isMouse or isRat:
             upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
             middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
@@ -1223,7 +1107,7 @@ class MeshType_3d_lung1(Scaffold_base):
             horizontalRightGroup.getMeshGroup(mesh2d).addElementsConditional(is_horizontalRightGroup)
 
 
-def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProportion,
+def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProportion,
                  lungSide, cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
                  lElementsCount1, lElementsCount2, lElementsCount3,
                  uElementsCount1, uElementsCount2, uElementsCount3,
@@ -1308,36 +1192,38 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
         d3 = [0.0, 0.0, 1.0]
 
         centre = [0.0, 0.0, 0.0]
-        centreRight = [0.0, 25.0, 0.0]
+        # spaceFromCentre = [0.0, 25.0, 0.0]
+        # centreRight =  [0.0, 25.0, 0.0]
+        # centreLeft =  [0.0, -25.0, 0.0]
         xAxis = [1.0, 0.0, 0.0]
         yAxis = [0.0, 1.0, 0.0]
         zAxis = [0.0, 0.0, 1.0]
 
-        majorXAxis = [xAxis[i] * lengthUnit for i in range(3)]
-        minorYAxis = [yAxis[i] * widthUnit for i in range(3)]
+        majorXAxis = [xAxis[i] * widthUnit for i in range(3)]
+        minorYAxis = [yAxis[i] * -lengthUnit for i in range(3)]
         minorZAxis = [zAxis[i] * heightUnit for i in range(3)]
 
         fissureRadian = fissureAngle/180 * math.pi
         tanFissureRadian = math.tan(fissureRadian)
 
         # Create 5 points at the centre of 2D Ellipse base
-        p1 = [xAxis[i] * lengthUnit for i in range(3)]
-        p2 = [xAxis[i] * -lengthUnit for i in range(3)]
+        p1 = [yAxis[i] * -lengthUnit for i in range(3)]
+        p2 = [yAxis[i] * lengthUnit for i in range(3)]
         p3 = [[p1[i] - (p1[i] - p2[i]) * obliqueProportion for i in range(3)]] # point of oblique fissure on diaphragm
 
-        C = -tanFissureRadian * p3[0][0]
+        C = tanFissureRadian * p3[0][1]
         X = symbols('x')
         Z = symbols('z')
         eq1 = Eq((X / lengthUnit) ** 2 + (Z / heightUnit) ** 2, 1)
         eq2 = Eq(Z - (tanFissureRadian * X), C)
         result = solve([eq1, eq2], (X, Z))
-        p4 = [float(result[1][0]), 0.0, float(result[1][1])] # point of oblique fissure on the curve
+        p4 = [0.0, -float(result[1][0]), float(result[1][1])] # point of oblique fissure on the curve
 
         # points on 2D Ellipse base (two on the curve and one centre)
-        x = p3[0][0]
+        x = p3[0][1]
         y = math.sqrt(1 - (x/lengthUnit) ** 2) * widthUnit
-        p3.append([p3[0][0], y, p3[0][2]])
-        p3.insert(0, [p3[0][0], -y, p3[0][2]])
+        p3.append([y, p3[0][1], p3[0][2]])
+        p3.insert(0, [-y, p3[0][1], p3[0][2]])
 
         # points around on 2D Ellipse base
         # -------------------------------------------------- Lower lobe ------------------------------------------------
@@ -1355,9 +1241,9 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
         for n2 in range(lElementsCount2 + 1):
             if n2 == 0:
                 # row 1
-                dx = p3[2][0]
-                vec1 = majorXAxis
-                vec2 = minorYAxis
+                dx = p3[2][1]
+                vec1 = minorYAxis
+                vec2 = majorXAxis
                 planeCentre = centre
                 elementsCountAround = 4
                 nodesCountAround = elementsCountAround + 1
@@ -1367,18 +1253,18 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
                 # oblique
                 vec1_1 = ([(p4[i] - p3[1][i]) / obliqueProportion for i in range(3)])
                 vec1 = [vec1_1[i]/2 for i in range(3)]
-                vec2 = minorYAxis
+                vec2 = majorXAxis
                 planeCentre = [p4[i] - vec1[i] for i in range(3)]
-                dx = magnitude([p3[1][i] - planeCentre[i] for i in range(3)]) * -1
+                dx = magnitude([p3[1][i] - planeCentre[i] for i in range(3)])
                 elementsCountAround = 4
                 nodesCountAround = elementsCountAround + 1
                 x = obl
                 nd2 = obl_d2
             elif n2 == 2:
                 # lower lobe
-                dx = obl[0][0]
+                dx = obl[0][1]
                 elementsCountAround = 3
-                vec1 = majorXAxis
+                vec1 = minorYAxis
                 vec2 = [minorZAxis[i] * -1 for i in range(3)]
                 planeCentre = centre
                 nodesCountAround = elementsCountAround + 1
@@ -1386,13 +1272,13 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
                 nd2 = lower_edge_d2
             elif n2 == 3:
                 # 2nd oblique
-                obliqueProportion_1 = (lengthUnit - lower_row1[3][0])/(lengthUnit*2)
-                row1_temp = [lower_row1[3][0], 0.0, lower_row1[3][2]]
+                obliqueProportion_1 = (lengthUnit + lower_row1[3][1])/(lengthUnit*2)
+                row1_temp = [0.0, lower_row1[3][1], lower_row1[3][2]]
                 vec1_1 = ([(lower_edge[2][i] - row1_temp[i]) / obliqueProportion_1 for i in range(3)])
                 vec1 = ([vec1_1[i]/2 for i in range(3)])
-                vec2 = minorYAxis
+                vec2 = majorXAxis
                 planeCentre = [lower_edge[2][i] - vec1[i] for i in range(3)]
-                dx = magnitude([planeCentre[i] - row1_temp[i] for i in range(3)]) * -1
+                dx = magnitude([planeCentre[i] - row1_temp[i] for i in range(3)])
                 elementsCountAround = 4
                 nodesCountAround = elementsCountAround
                 x = lowerObl
@@ -1401,11 +1287,11 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
                 # row 2
                 row1_temp = [0.0, 0.0, lowerObl[3][2]]
                 y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (lowerObl[3][2] / heightUnit) ** 2) * widthUnit
-                row1_ellipse = [0.0, -y, lowerObl[3][2]]
+                row1_ellipse = [-y, 0.0, lowerObl[3][2]]
                 vec1 = ([lower_edge[1][i] - row1_temp[i] for i in range(3)])
                 vec2 = [-row1_ellipse[i] + row1_temp[i] for i in range(3)]
                 planeCentre = row1_temp
-                dx = lowerObl[3][0]
+                dx = lowerObl[3][1]
                 elementsCountAround = 3
                 nodesCountAround = elementsCountAround + 1
                 x = lower_row2
@@ -1417,7 +1303,7 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
             unitMinorAxis = normalise(vec2)
 
             radians = 0.0
-            totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, dx, 0.5 * math.pi)
+            totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, -dx, 0.5 * math.pi)
             arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
             elementArcLength = arclengthAround / elementsCountAround
             radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
@@ -1551,29 +1437,31 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
 
                     # symmetry
                     if n1 == 0:
-                        next_xd1 = [x[0], 0.0, x[2]]
+                        next_xd1 = [0.0, x[1], x[2]]
                         d1 = [next_xd1[i] - x[i] for i in range(3)]
                     elif n1 == 1:
-                        x = [x[0], 0.0, x[2]]
+                        x = [0.0, x[1], x[2]]
                         if n2 == 0:
                             d1 = [-d2[i] for i in range(3)]
                         # 3-way point
                         if (n3 == 3) and (n2 == 2):
-                            d3 = [-md2[n3][n2][0], 0.0, -md2[n3][n2][2]]
+                            d3 = [0.0, -md2[n3][n2][1], -md2[n3][n2][2]]
                         elif (n2 < 4):
-                            next_xd2[1] = 0.0
+                            next_xd2[0] = 0.0
                             d2 = [next_xd2[i] - x[i] for i in range(3)]
                             previous_d2 = d2
                         else:
                             d2 = previous_d2
                     else:
-                        x = [x[0], -x[1], x[2]]
-                        d2 = [d2[0], -d2[1], d2[2]]
-                        d3 = [d3[0], -d3[1], d3[2]]
+                        x = [-x[0], x[1], x[2]]
+                        d2 = [-d2[0], d2[1], d2[2]]
+                        d3 = [-d3[0], d3[1], d3[2]]
 
                     # translate right lung to the defined centre of the right lung
                     if lungSide != leftLung:
-                        x = [x[i] + centreRight[i] for i in range(3)]
+                        x = [x[i] + spaceFromCentre[i] for i in range(3)]
+                    else:
+                        x = [x[i] - spaceFromCentre[i] for i in range(3)]
 
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     cache.setNode(node)
@@ -1595,7 +1483,7 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
             if n2 == 0:
                 # Upper lobe along the edge
                 dx = 0.0
-                vec1 = [majorXAxis[i] * -1 for i in range(3)]
+                vec1 = [minorYAxis[i] * -1 for i in range(3)]
                 vec2 = minorZAxis
                 planeCentre = centre
                 elementsCountAround = 5
@@ -1605,7 +1493,7 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
                 # Upper lobe along the edge on the lower lobe
                 dx = obl[0][2]
                 vec1 = minorZAxis
-                vec2 = majorXAxis
+                vec2 = minorYAxis
                 planeCentre = centre
                 elementsCountAround = 3
                 nodesCountAround = elementsCountAround + 1
@@ -1630,35 +1518,44 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
         for n2 in range(uElementsCount3):
             if n2 == 0:
                 # row 1
-                dx = -p3[2][0]
-                vec2 = minorYAxis
-                vec1 = [majorXAxis[i] * -1 for i in range(3)]
+                dx = p3[2][1]
+                vec1 = [minorYAxis[i] * -1 for i in range(3)]
+                vec2 = majorXAxis
                 planeCentre = centre
                 elementsCountAround = 2
                 nodesCountAround = elementsCountAround + 1
                 x = upper_row1
+
+                # dx = -p3[2][0]
+                # vec2 = minorYAxis
+                # vec1 = [majorXAxis[i] * -1 for i in range(3)]
+                # planeCentre = centre
+                # elementsCountAround = 2
+                # nodesCountAround = elementsCountAround + 1
+                # x = upper_row1
+
             elif n2 == 1:
                 # row 2
                 obl_temp = [0.0, 0.0, obl[-2][2]]
                 y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (obl[-2][2] / heightUnit) ** 2) * widthUnit
-                obl_ellipse = [0.0, -y, obl[-2][2]]
+                obl_ellipse = [-y, 0.0, obl[-2][2]]
                 vec1 = [upper_edge[-2][i] - obl_temp[i] for i in range(3)]
                 vec2 = [-obl_ellipse[i] + obl_temp[i] for i in range(3)]
                 planeCentre = obl_temp
-                dx = obl[-2][0] * -1
+                dx = obl[-2][1]
                 elementsCountAround = 2
                 nodesCountAround = elementsCountAround + 1
                 x = upper_row2
+
             elif n2 == 2:
                 # row 3
                 obl_temp = [0.0, 0.0, obl[-3][2]]
                 y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (obl[-3][2] / heightUnit) ** 2) * widthUnit
-                obl_ellipse = [0.0, -y, obl[-3][2]]
+                obl_ellipse = [-y, 0.0, obl[-3][2]]
                 vec1 = [upper_edge[-3][i] - obl_temp[i] for i in range(3)]
                 vec2 = [-obl_ellipse[i] + obl_temp[i] for i in range(3)]
                 planeCentre = obl_temp
-                dx = obl[-3][0] * -1
-
+                dx = obl[-3][1]
                 elementsCountAround = 2
                 nodesCountAround = elementsCountAround + 1
                 x = upper_row3
@@ -1666,7 +1563,7 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
                 # row 4
                 p6_1 = [(upper_edge[-4][i] + upper_edge[1][i]) / 2 for i in range(3)]
                 z = math.sqrt(1 - (p6_1[0] / lengthUnit) ** 2 - (p6_1[2] / heightUnit) ** 2) * widthUnit
-                p6_0 = [p6_1[0], z, p6_1[2]]
+                p6_0 = [z, p6_1[1], p6_1[2]]
                 radius = [upper_edge[-4][i] - p6_1[i] for i in range(3)]
                 dx = -magnitude(radius)
                 vec1 = [(upper_edge[-4][i] - upper_edge[1][i]) / 2 for i in range(3)]
@@ -1819,21 +1716,23 @@ def getLungNodes(lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProport
                             d2 = previous_d2
                         elif i == 4:
                             # Apex row
-                            d3 = [d3[0], 0.0, d3[2]]
+                            d3 = [0.0, d3[1], d3[2]]
                         else:
-                            x = [x[0], 0.0, x[2]]
-                            next_xd2 = [next_xd2[0], 0.0, next_xd2[2]]
+                            x = [0.0, x[1], x[2]]
+                            next_xd2 = [0.0, next_xd2[1], next_xd2[2]]
                             d2 = [next_xd2[i] - x[i] for i in range(3)]
                             previous_d2 = d2
-                            d3 = [d3[0], 0.0, d3[2]]
+                            d3 = [0.0, d3[1], d3[2]]
                     else:
-                        x = [x[0], -x[1], x[2]]
-                        d2 = [d2[0], -d2[1], d2[2]]
-                        d3 = [d3[0], -d3[1], d3[2]]
+                        x = [-x[0], x[1], x[2]]
+                        d2 = [-d2[0], d2[1], d2[2]]
+                        d3 = [-d3[0], d3[1], d3[2]]
 
                     # translate right lung to the defined centre of the right lung
                     if lungSide != leftLung:
-                        x = [x[i] + centreRight[i] for i in range(3)]
+                        x = [x[i] + spaceFromCentre[i] for i in range(3)]
+                    else:
+                        x = [x[i] - spaceFromCentre[i] for i in range(3)]
 
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     cache.setNode(node)
@@ -2090,9 +1989,9 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
 
     return elementIdentifier, upperLobeElementID, lowerLobeElementID
 
-def getDiaphragmaticLungNodes(cache, coordinates, generateParameters, nodes, nodetemplate, nodeFieldParameters,
-                 elementsCount1, elementsCount2, elementsCount3,
-                 nodeIds, nodeIndex, nodeIdentifier):
+def getDiaphragmaticLungNodes(spaceBelowCentre, cache, coordinates, generateParameters, nodes,
+                              nodetemplate, nodeFieldParameters, elementsCount1, elementsCount2, elementsCount3,
+                              nodeIds, nodeIndex, nodeIdentifier):
     """
     :parameter:
     :return: nodeIndex, nodeIdentifier
@@ -2102,9 +2001,6 @@ def getDiaphragmaticLungNodes(cache, coordinates, generateParameters, nodes, nod
     d1 = [1.0, 0.0, 0.0]
     d2 = [0.0, 1.0, 0.0]
     d3 = [0.0, 0.0, 1.0]
-
-    # Offset
-    xMirror = 75
 
     # Diaphragmatic lobe nodes
     for n3 in range(elementsCount3 + 1):
@@ -2122,12 +2018,13 @@ def getDiaphragmaticLungNodes(cache, coordinates, generateParameters, nodes, nod
                 if generateParameters:
                     if n1 == 0:
                         # The side boxes node
-                        x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3 + 0.5]
+                        x = [1.0 * (n1 - 1), 1.0 * (n2 - 1), 1.0 * n3 + 0.5]
                     elif n3 == (elementsCount3 - 1):
                         # Middle row
-                        x = [0.5 * (n1 - 1) + 0.5 + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
+                        x = [0.5 * (n1 - 1) + 0.5, 1.0 * (n2 - 1), 1.0 * n3]
                     else:
-                        x = [1.0 * (n1 - 1) + xMirror, 1.0 * (n2 - 1), 1.0 * n3]
+                        x = [1.0 * (n1 - 1), 1.0 * (n2 - 1), 1.0 * n3]
+                    x = [x[i] + spaceBelowCentre[i] for i in range(3)]
                 else:
                     nodeParameters = nodeFieldParameters[nodeIndex]
                     nodeIndex += 1
@@ -2241,3 +2138,157 @@ def getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtem
 
     return elementIdentifier
 
+def createDiscontinuity(coordinates, nodes, mesh, fieldcache, nodetemplate, leftUpperLobeElementID, rightUpperLobeElementID, nodeIdentifier):
+    """
+    """
+    # Replicating nodes at fissures
+    for e4 in range(2):
+        upperNodeIds = []
+        store_coordinate = []
+        UpperLobeElementID = leftUpperLobeElementID if e4 == 0 else rightUpperLobeElementID
+        if UpperLobeElementID == None:
+            continue
+
+        for e3 in range(len(UpperLobeElementID)):
+            upperNodeIds.append([])
+            for e2 in range(len(UpperLobeElementID[e3])):
+                for e1 in range(len(UpperLobeElementID[e3][e2])):
+                    # Fissures along the upper lobe
+                    if ((e2 == 2) and (e3 < 2)) or ((e2 < 4) and (e3 == 2)):
+                        elementIdentifier = UpperLobeElementID[e3][e2][e1]
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        eft = element.getElementfieldtemplate(coordinates, -1)
+
+                        # Exclude horizontal fissure in the left lobe
+                        if (e4 == 0) and (e3 == 2) and (e2 > 1):
+                            continue
+
+                        if e3 < 2:
+                            # Middle lobe
+                            localNodeIndexes = [1, 2] if e1 == 0 else [2]
+                            if e3 == 1:
+                                if e1 == 0:
+                                    localNodeIndexes.append(5)
+                                localNodeIndexes.append(6)
+                        else:
+                            # Upper lobe
+                            if e2 == 0:
+                                # Dorsal wedge
+                                localNodeIndexes = [1] if (e1 == 0) else []
+                            elif e2 == 3:
+                                # Ventral wedge
+                                localNodeIndexes = [1, 2] if (e1 == 0) else [2, 3]
+                            else:
+                                # Regular element
+                                localNodeIndexes = [1, 2] if (e1 == 0) else [2]
+
+                        for localNodeIndex in localNodeIndexes:
+                            node = element.getNode(eft, localNodeIndex)
+                            nodetemplate.defineFieldFromNode(coordinates, node)
+                            versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1,
+                                                                                  Node.VALUE_LABEL_VALUE)
+
+                            if versionsCount == 1:
+                                fieldcache.setNode(node)
+                                result0, x = coordinates.getNodeParameters(fieldcache, -1,
+                                                                           Node.VALUE_LABEL_VALUE,
+                                                                           1, 3)
+                                result0, d1 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                            Node.VALUE_LABEL_D_DS1,
+                                                                            1, 3)
+                                result0, d2 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                            Node.VALUE_LABEL_D_DS2,
+                                                                            1, 3)
+                                result0, d3 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                            Node.VALUE_LABEL_D_DS3,
+                                                                            1, 3)
+
+                                if (localNodeIndex > 2) and (e3 == 1):
+                                    # Store 3-way points in the middle lobe
+                                    store_coordinate.append([x, d1, d2, d3])
+                                    continue
+
+                                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                                fieldcache.setNode(node)
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1,
+                                                              x)
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1,
+                                                              d1)
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1,
+                                                              d2)
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1,
+                                                              d3)
+                                upperNodeIds[e3].append(nodeIdentifier)
+                                nodeIdentifier += 1
+
+                        # Create 3-way points in the middle lobe
+                        if (e3 == 1) and (e2 == 2) and (e1 == 1):
+                            for i in range(len(store_coordinate)):
+                                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                                fieldcache.setNode(node)
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1,
+                                                              store_coordinate[i][0])
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1,
+                                                              store_coordinate[i][1])
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1,
+                                                              store_coordinate[i][2])
+                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1,
+                                                              store_coordinate[i][3])
+                                upperNodeIds[e3].append(nodeIdentifier)
+                                nodeIdentifier += 1
+
+        # Change node index in the element
+        for e3 in range(len(UpperLobeElementID)):
+            # middle lobe and upper lobe idx
+            temp_idx = upperNodeIds[0] + upperNodeIds[1] if e3 < 2 else upperNodeIds[2]
+            # print("temp_idx", temp_idx)
+            for e2 in range(len(UpperLobeElementID[e3])):
+                for e1 in range(len(UpperLobeElementID[e3][e2])):
+
+                    # Fissures along the upper lobe
+                    if ((e2 == 2) and (e3 < 2)) or ((e2 < 4) and (e3 == 2)):
+                        elementIdentifier = UpperLobeElementID[e3][e2][e1]
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        eft = element.getElementfieldtemplate(coordinates, -1)
+                        nodeIds = get_element_node_identifiers(element, eft)
+
+                        # Exclude horizontal fissure in the left lobe
+                        if (e4 == 0) and (e3 == 2) and (e2 > 2):
+                            continue
+
+                        if (e3 == 2) and (e2 == 0):
+                            # Dorsal wedge
+                            nd2 = e1 + 1
+                            nodeIds[0] = temp_idx[0]
+                            nodeIds[1:3] = [temp_idx[nd2], temp_idx[nd2 + 1]]
+                        elif (e3 == 2) and (e2 < 3):
+                            # upper and lower lobes
+                            if e4 == 1:
+                                # Right lung
+                                nd1 = (e2 * e2) + e1
+                                nd2 = (e2 * 3) + e1 + 1
+                                nodeIds[:2] = [temp_idx[nd1], temp_idx[nd1 + 1]]
+                                nodeIds[2:4] = [temp_idx[nd2], temp_idx[nd2 + 1]]
+                            else:
+                                # LeftLung
+                                nd1 = (e2 * e2) + e1
+                                nd2 = (e2 * 2) + e1 + 1 if (e2 < 2) else e2 + e1 + 1
+                                temp_idx_1 = upperNodeIds[1]
+                                nodeIds[:2] = [temp_idx[nd1], temp_idx[nd1 + 1]] if (e2 < 2) else \
+                                    [temp_idx_1[nd2], temp_idx_1[nd2 + 1]]
+                                if (e2 < 2):
+                                    nodeIds[2:4] = [temp_idx_1[nd2], temp_idx_1[nd2 + 1]]
+                        elif (e3 == 2) and (e2 == 3):
+                            # Ventral wedge
+                            nd2 = (e3 * 3) + e1 + 1
+                            nodeIds[2] = temp_idx[-1]
+                            nodeIds[:2] = [temp_idx[nd2], temp_idx[nd2 + 1]]
+                        else:
+                            # Middle lobe
+                            nd1 = (e3 * 3) + e1
+                            nd2 = ((e3 + 1) * 3) + e1
+                            nodeIds[:2] = [temp_idx[nd1], temp_idx[nd1 + 1]]
+                            nodeIds[4:6] = [temp_idx[nd2], temp_idx[nd2 + 1]]
+                        element.setNodesByIdentifier(eft, nodeIds)
+
+    return nodeIdentifier
