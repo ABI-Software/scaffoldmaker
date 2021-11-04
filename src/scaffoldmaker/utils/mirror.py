@@ -3,7 +3,9 @@ Utilities for getting a mirror image of a scaffold.
 '''
 
 from __future__ import division
+
 from scaffoldmaker.utils import vector
+
 
 class Mirror:
     '''

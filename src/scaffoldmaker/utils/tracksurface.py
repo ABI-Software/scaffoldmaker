@@ -3,9 +3,11 @@ Utility class for representing surfaces on which features can be located.
 '''
 
 from __future__ import division
+
 import copy
-from enum import Enum
 import math
+from enum import Enum
+
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 

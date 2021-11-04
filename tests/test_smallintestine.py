@@ -1,5 +1,6 @@
 import copy
 import unittest
+
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
@@ -11,7 +12,9 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extract
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues
+
 from testutils import assertAlmostEqualList
+
 
 class SmallIntestineScaffoldTestCase(unittest.TestCase):
 

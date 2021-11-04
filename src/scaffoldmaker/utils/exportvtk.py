@@ -5,10 +5,12 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 import io
 import os
 from sys import version_info
+
 from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
+
 
 class ExportVtk:
     '''

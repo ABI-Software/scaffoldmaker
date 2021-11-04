@@ -2,13 +2,14 @@
 Describes subdomains of a scaffold with attached names and terms.
 """
 
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.result import RESULT_OK
-from opencmiss.utils.zinc.general import ChangeManager
 from scaffoldmaker.utils.zinc_utils import group_get_highest_dimension, \
     identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
     nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
+
 
 class AnnotationGroup(object):
     '''

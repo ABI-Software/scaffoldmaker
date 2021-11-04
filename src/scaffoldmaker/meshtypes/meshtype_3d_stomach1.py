@@ -5,23 +5,29 @@ wall, with variable radius and thickness along.
 """
 
 from __future__ import division
-import math
+
 import copy
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
-    getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
-from scaffoldmaker.annotation.stomach_terms import get_stomach_term
+import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
 from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
+    getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import matrix
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.bifurcation import get_bifurcation_triple_point
+from scaffoldmaker.utils.eft_utils import scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftNodeValueLabel
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eft_utils import scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftNodeValueLabel, \
@@ -29,9 +35,6 @@ from scaffoldmaker.utils.eft_utils import scaleEftNodeValueLabels, setEftScaleFa
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
-from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils import vector
 
 
 class MeshType_3d_stomach1(Scaffold_base):
@@ -98,7 +101,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'name': get_stomach_term('duodenum')[0],
                     'ontId': get_stomach_term('duodenum')[1]
                 }]
-            }),
+        }),
         'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -120,7 +123,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 [ [ -6.2,  3.2, 0.0 ], [ -0.4,  0.9, 0.0 ], [ -0.8, -0.3, 0.0 ], [  0.1, -0.0, 0.0 ], [ 0.0, 0.0, 0.9 ], [ 0.0, 0.0, -0.2 ] ], 
                 [ [ -6.8,  4.1, 0.0 ], [ -0.7,  0.9, 0.0 ], [ -1.1, -0.5, 0.0 ], [ -0.7, -0.4, 0.0 ], [ 0.0, 0.0, 1.1 ], [ 0.0, 0.0,  0.6 ] ] ] ),
 
-                'userAnnotationGroups': [
+            'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
@@ -341,7 +344,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
             'Gastro-esophagal junction position along factor': 0.35,
             'Cardia derivative factor': 1.0,
-            'Use linear through wall' : True,
+            'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements surface': 4,
             'Refine number of elements through wall': 1
@@ -430,7 +433,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         if not options['Gastro-esophagal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes(
                 'Gastro-esophagal junction'):
             options['Gastro-esophagal junction'] = cls.getOptionScaffoldPackage('Gastro-esophagal junction',
-                                                                                 MeshType_3d_ostium1)
+                                                                                MeshType_3d_ostium1)
         if options['Number of elements around esophagus'] < 8:
             options['Number of elements around esophagus'] = 8
         if options['Number of elements around esophagus'] % 4 > 0:
@@ -528,7 +531,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             centralPath.generate(tmpRegion)
             cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
                 extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                            Node.VALUE_LABEL_D_DS2,  Node.VALUE_LABEL_D_DS3,
+                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
                                                             Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
                                                 groupName=stomachTermsAlong[i])
 
@@ -554,10 +557,10 @@ class MeshType_3d_stomach1(Scaffold_base):
         # Create annotation groups for stomach sections
         allAnnotationGroups = []
         stomachCentralPathLength = sum(arcLengthOfGroupsAlong[1:])
-        fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1]/stomachCentralPathLength
+        fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1] / stomachCentralPathLength
         arcLengthRatioForGroupsFromFundusEnd = []
         for i in range(2, len(stomachTermsAlong)):
-            arcLengthRatio = (arcLengthOfGroupsAlong[i])/(stomachCentralPathLength - arcLengthOfGroupsAlong[1])
+            arcLengthRatio = (arcLengthOfGroupsAlong[i]) / (stomachCentralPathLength - arcLengthOfGroupsAlong[1])
             arcLengthRatioForGroupsFromFundusEnd.append(arcLengthRatio)
 
         stomachGroup = AnnotationGroup(region, get_stomach_term("stomach"))
@@ -729,7 +732,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         d2AlongDownFundus = []
         xAlongDownFundus.append(xFundusEnd)
         d2AlongDownFundus.append(d2FundusEnd)
-        startIdx = fundusEndPositionAlongFactor*elementsCountAlongTrackSurface
+        startIdx = fundusEndPositionAlongFactor * elementsCountAlongTrackSurface
         startIdx = math.ceil(startIdx) + (1 if startIdx - math.ceil(startIdx) == 0 else 0)
         for n2 in range(startIdx, len(xSampledAll)):
             xAlongDownFundus.append(xSampledAll[n2][0])
@@ -793,8 +796,8 @@ class MeshType_3d_stomach1(Scaffold_base):
             xAlongGCEsoToFundusEnd, d2AlongGCEsoToFundusEnd = \
                 interp.sampleCubicHermiteCurvesSmooth(xAlongUpFundus, d2AlongUpFundus,
                                                       elementsAlongGCFromEsoToFundusEnd,
-                                                      derivativeMagnitudeStart= vector.magnitude(d2AlongUpFundus[0]),
-                                                      derivativeMagnitudeEnd = vector.magnitude(d2AlongUpFundus[-1]))[0:2]
+                                                      derivativeMagnitudeStart=vector.magnitude(d2AlongUpFundus[0]),
+                                                      derivativeMagnitudeEnd=vector.magnitude(d2AlongUpFundus[-1]))[0:2]
 
         xEsoToDuodGC = xAlongGCEsoToFundusEnd[:-1] + xAlongGCFundusEndToDuod
         d2EsoToDuodGC = d2AlongGCEsoToFundusEnd[:-1] + d2AlongGCFundusEndToDuod
@@ -974,7 +977,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                                         startRadians=0.0)
 
             d1Around = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around,
-                                                                magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+                                                                magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
             xAroundEllipse.append(xAround)
             d1AroundEllipse.append(d1Around)
 
@@ -1002,7 +1005,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 p1d = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2] for j in range(3)]
                 p1d_6pt = [cardiaDerivativeFactor * c for c in p1d]
 
-                p2x_6pt = xAve[int(len(xAve)*0.5) + 1]
+                p2x_6pt = xAve[int(len(xAve) * 0.5) + 1]
                 p2d_6pt = findDerivativeBetweenPoints(p2x_6pt, xAve[int(len(xAve) * 0.5) + 2])
 
                 p3x_6pt = xAve[int(len(xAve) * 0.5) - 1]
@@ -1019,8 +1022,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         xAlongAround = []
         d1AlongAround = []
         for n2 in range(elementsAroundQuarterEso + 1, elementsAroundHalfEso):
-            xi = n/elementsAroundQuarterEso
-            derivativeMagnitude = xi * distBetween6ptJunctionOstium + (1-xi) * distAnnulusAtQuarterEso
+            xi = n / elementsAroundQuarterEso
+            derivativeMagnitude = xi * distBetween6ptJunctionOstium + (1 - xi) * distAnnulusAtQuarterEso
             ostiumIdx = n2
             GCIdx = elementsAroundHalfDuod - 1 + n2
             GCPosition, d1GC = findClosestPositionAndDerivativeOnTrackSurface(xEsoToDuodGC[GCIdx], ptsOnTrackSurfaceGC,
@@ -1201,7 +1204,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                                                   trackSurfaceStomach, 0.0,
                                                                   elementsCountAlongTrackSurface)[1]
             for nSide in range(2):
-                if nSide == 0: # Right side
+                if nSide == 0:  # Right side
                     xAroundRight.append(xEsoToDuodGC[GCIdx])
                     d1AroundRight.append(d1GC)
                     xOnLastLoopRight = xLoopsRight[-1][loopIdx]
@@ -1242,12 +1245,12 @@ class MeshType_3d_stomach1(Scaffold_base):
                         xAroundRight += xSampled[:2]
                         d1AroundRight += dSampled[:2]
 
-                    else: # connected to triple point
+                    else:  # connected to triple point
                         xAroundRight += [xLoopsRight[0][loopIdx]] + [xTriplePts[0]]
                         d1AroundRight += [findDerivativeBetweenPoints(xLoopsRight[0][loopIdx], xTriplePts[0])] + \
                                          [d1TriplePts[0]]
 
-                else: # left side
+                else:  # left side
                     if loopIdx < elementsAroundQuarterEso:  # additional elements upstream of triple point
                         xLoop = xLoopsLeft[0][loopIdx]
                         xLoopPosition = trackSurfaceStomach.findNearestPosition(xLoop)
@@ -1351,7 +1354,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
                 for n in range(1, len(xLoopsLeft)):
                     xRow2Left.append(xLoopsLeft[n][loopIdx])
-                    d1Row2Left.append(findDerivativeBetweenPoints(xLoopsLeft[n-1][loopIdx], xLoopsLeft[n][loopIdx]))
+                    d1Row2Left.append(findDerivativeBetweenPoints(xLoopsLeft[n - 1][loopIdx], xLoopsLeft[n][loopIdx]))
 
                 xRow2Left.append(xUp[0][-1])
                 d1Row2Left.append(findDerivativeBetweenPoints(xLoopsLeft[-1][1], xUp[0][-1]))
@@ -1367,13 +1370,13 @@ class MeshType_3d_stomach1(Scaffold_base):
             junctionIdx = n2 + 1
         xLoopTripleTo6Pt += xAlongAround[junctionIdx][int(len(xAlongAround[junctionIdx]) * 0.5):] + \
                             xAlongAround[junctionIdx][0: int(len(xAlongAround[junctionIdx]) * 0.5 + 1)]
-        for n2 in range(elementsAroundQuarterEso - 1): # Note order here - going upstream
+        for n2 in range(elementsAroundQuarterEso - 1):  # Note order here - going upstream
             idx = junctionIdx - 1 - n2
             xLoopTripleTo6Pt.append(xAlongAround[idx][int(len(xAlongAround[idx]) * 0.5) + 1])
         xLoopTripleTo6Pt += xBifurcationRings[0][int(len(xBifurcationRings[0]) * 0.5 + 1):]
 
         for n in range(len(xLoopTripleTo6Pt)):
-            d = findDerivativeBetweenPoints(xLoopTripleTo6Pt[n], xLoopTripleTo6Pt[(n+1) % len(xLoopTripleTo6Pt)])
+            d = findDerivativeBetweenPoints(xLoopTripleTo6Pt[n], xLoopTripleTo6Pt[(n + 1) % len(xLoopTripleTo6Pt)])
             dLoopTripleTo6Pt.append(d)
         dSmoothLoopTripleTo6Pt = interp.smoothCubicHermiteDerivativesLoop(xLoopTripleTo6Pt, dLoopTripleTo6Pt)
 
@@ -1396,7 +1399,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         xLoopGCTriplePt += xBifurcationRings[1][int(len(xBifurcationRings[1]) * 0.5) + 1:]
 
         for n in range(len(xLoopGCTriplePt)):
-            d = findDerivativeBetweenPoints(xLoopGCTriplePt[n], xLoopGCTriplePt[(n+1) % len(xLoopGCTriplePt)])
+            d = findDerivativeBetweenPoints(xLoopGCTriplePt[n], xLoopGCTriplePt[(n + 1) % len(xLoopGCTriplePt)])
             dLoopGCTriplePt.append(d)
         dSmoothLoopGCTriplePt = interp.smoothCubicHermiteDerivativesLoop(xLoopGCTriplePt, dLoopGCTriplePt)
 
@@ -1420,19 +1423,19 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             elif n2 > 1 and n2 < elementsAroundQuarterEso + 2:
                 xAround = xUp[countUp]
-                if n2 < elementsAroundQuarterEso: # upstream of triple pt
+                if n2 < elementsAroundQuarterEso:  # upstream of triple pt
                     d1Around = d1Up[countUp]
                     d1Around = smoothD1Around(xAround, d1Around)
 
-                elif n2 == elementsAroundQuarterEso: # upstream bifurcation
+                elif n2 == elementsAroundQuarterEso:  # upstream bifurcation
                     # take smoothed d1 from dSmoothTripleTo6Pt
                     d1Around = dSmoothLoopTripleTo6Pt[: int(len(xBifurcationRings[0]) * 0.5) + 1] + \
-                               dSmoothLoopTripleTo6Pt[-int(len(xBifurcationRings[0]) * 0.5) : ]
+                               dSmoothLoopTripleTo6Pt[-int(len(xBifurcationRings[0]) * 0.5):]
 
-                elif n2 > elementsAroundQuarterEso: # downstream bifurcation
+                elif n2 > elementsAroundQuarterEso:  # downstream bifurcation
                     # take smoothed d1 from dSmoothGCToTriplePt
                     d1Around = dSmoothLoopGCTriplePt[: int(len(xBifurcationRings[1]) * 0.5) + 1] + \
-                               dSmoothLoopGCTriplePt[-int(len(xBifurcationRings[1]) * 0.5) : ]
+                               dSmoothLoopGCTriplePt[-int(len(xBifurcationRings[1]) * 0.5):]
                 countUp += 1
 
             elif n2 > elementsAroundQuarterEso + 1:
@@ -1442,13 +1445,13 @@ class MeshType_3d_stomach1(Scaffold_base):
                 if n2 < elementsAroundHalfEso + 1:
                     d1Around = smoothD1Around(xAround, d1Around)
 
-                elif n2 == elementsAroundHalfEso + 1: # 6 point junction ring
+                elif n2 == elementsAroundHalfEso + 1:  # 6 point junction ring
                     # take smoothed d1 from dSmoothedTripleTo6Pt
                     startRightIdx = int(len(xBifurcationRings[0]) * 0.5 + elementsAroundQuarterEso + len(xAlongAround[junctionIdx]) * 0.5)
                     endRightIdx = startRightIdx + int(len(xAlongAround[junctionIdx]) * 0.5) + 1
                     startLeftIdx = startRightIdx - int(len(xAlongAround[junctionIdx]) * 0.5) + 1
                     d1Around = dSmoothLoopTripleTo6Pt[startRightIdx: endRightIdx] + \
-                               dSmoothLoopTripleTo6Pt[startLeftIdx : startRightIdx]
+                               dSmoothLoopTripleTo6Pt[startLeftIdx: startRightIdx]
                 countDown += 1
 
             xOuter.append(xAround)
@@ -1472,7 +1475,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 xRegularLoop.append(xOuter[n2 + 1][int(len(xOuter[n2 + 1]) * 0.5 + n1 + (1 if n2 >= elementsAroundHalfEso else 2))])
 
             for n in range(len(xRegularLoop) - 1):
-                d = findDerivativeBetweenPoints(xRegularLoop[n], xRegularLoop[n+1])
+                d = findDerivativeBetweenPoints(xRegularLoop[n], xRegularLoop[n + 1])
                 d2RegularLoop.append(d)
             d2RegularLoop.append(d)
 
@@ -1568,7 +1571,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     d2Around.append(d2RegularLoops[n1][int(len(xRegularLoops[n1]) * 0.5)])
                     nextIdx = n1 + 1
 
-            elif n2 == 1: # Row 2
+            elif n2 == 1:  # Row 2
                 d2Around.append(d2RegularLoops[nextIdx][int(len(xRegularLoops[nextIdx]) * 0.5)])
 
                 for n1 in range(nextIdx, -1, -1):
@@ -1599,14 +1602,14 @@ class MeshType_3d_stomach1(Scaffold_base):
 
                 # Annulus right
                 d2 = dSmoothLoopGCTriplePt[int(len(xLoopGCTriplePt) * 0.5) - n2 + (1 if n2 > elementsAroundQuarterEso else 0)]
-                if n2 <= elementsAroundQuarterEso: # Rotate to point towards duodenum
+                if n2 <= elementsAroundQuarterEso:  # Rotate to point towards duodenum
                     rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(d1Outer[n2][int(len(d1Outer[n2]) * 0.5)]),
-                                             vector.normalise(d2)))
+                                                                    vector.normalise(d2)))
                     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
                     d2Around.append(
                         [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)])
                 else:
-                    d2Around.append(d2) # just take d2 as-is cos we are going to remove this point later
+                    d2Around.append(d2)  # just take d2 as-is cos we are going to remove this point later
 
                 # Annulus left
                 d2Around.append(dSmoothLoopGCTriplePt[int(len(xLoopGCTriplePt) * 0.5) + n2 - (1 if n2 > elementsAroundQuarterEso else 0)])
@@ -1644,7 +1647,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         rotAxis = vector.normalise(
                             vector.crossproduct3(vector.normalise(d1Outer[n2][int(len(d1Outer[n2]) * 0.5 + 1)]),
                                                  vector.normalise(d2)))
-                    else: # use d2 on previous overlapping point to rotate
+                    else:  # use d2 on previous overlapping point to rotate
                         rotAxis = vector.normalise(
                             vector.crossproduct3(vector.normalise(d1), vector.normalise(d2)))
                     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
@@ -1759,14 +1762,14 @@ class MeshType_3d_stomach1(Scaffold_base):
         for n2 in range(elementsCountAlong + 1):
             d1CurvatureAround = []
             d2CurvatureAround = []
-            if n2 == 0: # GC
+            if n2 == 0:  # GC
                 for i in range(elementsAroundHalfDuod - 2):
                     d1CurvatureAround.append(curvatureAlongGC[i])
                 d2CurvatureAround.append(curvatureLoopGCTriplePt[int(len(curvatureLoopGCTriplePt) * 0.5)])
                 for n1 in range(len(xOuter[0]) - 1):
                     d2CurvatureAround.append(curvatureRegularLoops[n1][int(len(curvatureRegularLoops[n1]) * 0.5)])
                     nextIdx = n1 + 1
-            elif n2 == 1: #Row 2
+            elif n2 == 1:  # Row 2
                 d1CurvatureAround.append(curvatureAlongGC[i + n2])
                 for n in range(int(len(xOuter[1]) * 0.5) - 1, -1, -1):
                     d1CurvatureAround.append(curvatureAlong2Left[n])
@@ -1782,7 +1785,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 for n1 in range(nextIdx + 1):
                     d2CurvatureAround.append(curvatureRegularLoops[n1][int(len(curvatureRegularLoops[n1]) * 0.5) + n2])
 
-            elif n2 > 1 and n2 < elementsAroundQuarterEso + 2: # Before triple pt & triple point
+            elif n2 > 1 and n2 < elementsAroundQuarterEso + 2:  # Before triple pt & triple point
                 xAround = xOuter[n2]
                 if n2 < elementsAroundQuarterEso:  # upstream of triple pt
                     d1Around = d1Outer[n2]
@@ -1808,7 +1811,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     d2CurvatureAround.append(curvatureRegularLoops[n1][int(len(curvatureRegularLoops[n1]) * 0.5) - n2])
                 # Annulus right
                 d2CurvatureAround.append(curvatureLoopGCTriplePt[
-                    int(len(curvatureLoopGCTriplePt) * 0.5) - n2 + (1 if n2 > elementsAroundQuarterEso else 0)])
+                                             int(len(curvatureLoopGCTriplePt) * 0.5) - n2 + (1 if n2 > elementsAroundQuarterEso else 0)])
                 # Annulus left
                 d2CurvatureAround.append(curvatureLoopGCTriplePt[int(len(curvatureLoopGCTriplePt) * 0.5) + n2 - (
                     1 if n2 > elementsAroundQuarterEso else 0)])
@@ -1818,7 +1821,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 # Row 2 left
                 d2CurvatureAround.append(curvatureAlong2Left[len(xOuter[0]) + n2 - 1])
 
-            elif n2 > elementsAroundQuarterEso + 1: # Downstream of triple point
+            elif n2 > elementsAroundQuarterEso + 1:  # Downstream of triple point
                 xAround = xOuter[n2]
                 d1Around = d1Outer[n2]
                 normsAround = d3UnitOuter[n2]
@@ -1835,10 +1838,10 @@ class MeshType_3d_stomach1(Scaffold_base):
                     d1CurvatureAround = curvatureLoopTripleTo6Pt[startRightIdx: endRightIdx] + \
                                         curvatureLoopTripleTo6Pt[startLeftIdx: startRightIdx]
 
-                if n2 > elementsAroundHalfEso + 1: # closed rings beyond 6 point junction
+                if n2 > elementsAroundHalfEso + 1:  # closed rings beyond 6 point junction
                     xLoop = xAround[int(len(xAround) * 0.5 + 1):] + xAround[: int(len(xAround) * 0.5 + 1)]
                     d1Loop = d1Around[int(len(d1Around) * 0.5 + 1):] + d1Around[: int(len(d1Around) * 0.5 + 1)]
-                    normsLoop = normsAround[int(len(normsAround) * 0.5 + 1):] + normsAround[ : int(len(normsAround) * 0.5 + 1)]
+                    normsLoop = normsAround[int(len(normsAround) * 0.5 + 1):] + normsAround[: int(len(normsAround) * 0.5 + 1)]
                     curvature = findCurvatureAroundLoop(xLoop, d1Loop, normsLoop)
                     # Rearrange to correct order
                     d1CurvatureAround = curvature[int(len(xLoop) * 0.5) - 1:] + curvature[: int(len(xAround) * 0.5) - 1]
@@ -1859,7 +1862,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         d2CurvatureAround.append(curvatureLoopTripleTo6Pt[idx])
                     # Annulus left
                     d2CurvatureAround.append(curvatureLoopTripleTo6Pt[-idx])
-                elif n2 > elementsAroundHalfEso + 1: # Beyond 6 pt junction
+                elif n2 > elementsAroundHalfEso + 1:  # Beyond 6 pt junction
                     # LC
                     d2CurvatureAround.append(curvatureAlongLC[n2 - (elementsAroundHalfEso + 1) - 1])
                 # Regular down left
@@ -2066,7 +2069,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                     setEftScaleFactorIds(eft1, [1], [])
                                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-                                    remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, [1])])
+                                    remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
                                 elif e1 == 1:  # Bottom right wedge
                                     scaleFactors = [-1.0]
@@ -2270,7 +2273,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [ ])])
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
@@ -2342,7 +2345,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                             bni12 = startNode + e3 * elementsCountAround1 + (e1 + 1) % elementsCountAround1
                         bni21 = startNode + elementsAroundThroughWall + e1 + elementsCountAround2 * e3
                         bni22 = startNode + elementsAroundThroughWall + (
-                                    e1 + 1) % elementsCountAround2 + elementsCountAround2 * e3
+                                e1 + 1) % elementsCountAround2 + elementsCountAround2 * e3
                         nodeIdentifiers = [bni11, bni12, bni21, bni22,
                                            bni11 + elementsCountAround1, bni12 + elementsCountAround1,
                                            bni21 + elementsCountAround2, bni22 + elementsCountAround2]
@@ -2406,7 +2409,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 endPoints_d2[n3][nAround] = d2List[idx - stomachStartNode]
                 endNode_Id[n3][nAround] = idx
 
-                if n3 == len(thicknessIdx) - 1: # outer layer
+                if n3 == len(thicknessIdx) - 1:  # outer layer
                     endPosition = trackSurfaceStomach.findNearestPosition(endPoints_x[n3][nAround])
                     endProportions.append(trackSurfaceStomach.getProportion(endPosition))
 
@@ -2438,9 +2441,9 @@ class MeshType_3d_stomach1(Scaffold_base):
             nodes, mesh, nodeIdentifier, elementIdentifier,
             o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
             endPoints_x, endPoints_d1, endPoints_d2, None, endNode_Id, endDerivativesMap,
-            elementsCountRadial = elementsCountAcrossCardia, meshGroups= [stomachMeshGroup, cardiaMeshGroup],
-            tracksurface=trackSurfaceStomach, startProportions = startProportions, endProportions = endProportions,
-            rescaleStartDerivatives = True, rescaleEndDerivatives = True)
+            elementsCountRadial=elementsCountAcrossCardia, meshGroups=[stomachMeshGroup, cardiaMeshGroup],
+            tracksurface=trackSurfaceStomach, startProportions=startProportions, endProportions=endProportions,
+            rescaleStartDerivatives=True, rescaleEndDerivatives=True)
 
         elementIdxThroughWall = []
         n = lastDuodenumElementIdentifier - 1
@@ -2467,7 +2470,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         for group in [stomachGroup, GEJLCGroup]:
             group.getNodesetGroup(nodes).addNode(markerPoint)
 
-        fundusBodyJunctionGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature"))
+        fundusBodyJunctionGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term(
+            "limiting ridge on greater curvature" if limitingRidge else "junction between fundus and body on greater curvature"))
         fundusBodyJunctionElement = mesh.findElementByIdentifier(fundusBodyJunctionElementIdentifier)
         fundusBodyJunctionXi = [0.0, 0.0 if limitingRidge else 1.0, 1.0]
         cache.setMeshLocation(fundusBodyJunctionElement, fundusBodyJunctionXi)
@@ -2527,9 +2531,9 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         for n2 in range(elementsAlongEsophagus + 1):
             for n3 in range(elementsThroughEsophagusWall + 1):
-                nodeIdxOnGCMargin = 1 + n2 * (elementsThroughEsophagusWall + 1 ) * elementsCountAroundEso + n3 * elementsCountAroundEso
+                nodeIdxOnGCMargin = 1 + n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + n3 * elementsCountAroundEso
                 nodesOnSplitMargin.append(nodeIdxOnGCMargin)
-                nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + n2 * (elementsThroughEsophagusWall + 1 ) * elementsCountAroundEso + n3 * elementsCountAroundEso
+                nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + n3 * elementsCountAroundEso
                 nodesOnSplitMargin.append(nodeIdxOnLCMargin)
                 nodesOnLCMargin.append(nodeIdxOnLCMargin)
         nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
@@ -2609,9 +2613,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         closedLoopElementId = nextElementIdentifier - elementsCountAroundEso * elementsCountAcrossCardia - \
                               elementsCountAroundDuod * elementsCountThroughWall * (elementsAlongCardiaToDuod + 1)
 
-        allValueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                           Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3,
-                           Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+        allValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                          Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3,
+                          Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
 
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)
@@ -2735,22 +2739,22 @@ class MeshType_3d_stomach1(Scaffold_base):
                                                          get_stomach_term("mucosa of stomach"))
 
         outerSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa split margin"))
+                                                                   get_stomach_term("serosa split margin"))
         esoSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("esophagus on serosa split margin"))
+                                                                 get_stomach_term("esophagus on serosa split margin"))
         fundusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("fundus on serosa split margin"))
+                                                                    get_stomach_term("fundus on serosa split margin"))
         bodySplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("body on serosa split margin"))
+                                                                  get_stomach_term("body on serosa split margin"))
         antrumSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                     get_stomach_term("antrum on serosa split margin"))
+                                                                    get_stomach_term("antrum on serosa split margin"))
         pylorusSplitMarginGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_stomach_term("pylorus on serosa split margin"))
+                                                                     get_stomach_term("pylorus on serosa split margin"))
 
         serosaDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa of dorsal stomach"))
+                                                               get_stomach_term("serosa of dorsal stomach"))
         serosaVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_stomach_term("serosa of ventral stomach"))
+                                                                get_stomach_term("serosa of ventral stomach"))
 
         stomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("stomach"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
@@ -2827,10 +2831,11 @@ def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxPropor
 
     return xPosition, d
 
+
 def getSmoothedSampledPointsOnTrackSurface(trackSurface, startProportion1, startProportion2, endProportion1,
-                                           endProportion2, elementsOut, startDerivative = None, endDerivative = None,
-                                           startDerivativeMagnitude = None, endDerivativeMagnitude = None,
-                                           curveMode = 1):
+                                           endProportion2, elementsOut, startDerivative=None, endDerivative=None,
+                                           startDerivativeMagnitude=None, endDerivativeMagnitude=None,
+                                           curveMode=1):
     """
     Create smoothly spaced out hermite curve points between two points a and b on the surface,
     each defined by their proportions over the surface in directions 1 and 2.
@@ -2855,6 +2860,7 @@ def getSmoothedSampledPointsOnTrackSurface(trackSurface, startProportion1, start
                                                                        endDerivativeMagnitude)[0:2]
     return xSampled, dSampled
 
+
 def smoothD1Around(xAround, d1Around):
     """
     Rearrange points around so that the group of points starts from left side of the annulus to the greater curvature
@@ -2865,14 +2871,15 @@ def smoothD1Around(xAround, d1Around):
     :param d1Around: derivative of points.
     :return: smoothed derivatives in the original order.
     """
-    xLoop = xAround[int(len(xAround) * 0.5 + 1): ] + xAround[: int(len(xAround) * 0.5 + 1)]
-    d1Loop = d1Around[int(len(d1Around) * 0.5 + 1): ] + d1Around[: int(len(d1Around) * 0.5 + 1)]
+    xLoop = xAround[int(len(xAround) * 0.5 + 1):] + xAround[: int(len(xAround) * 0.5 + 1)]
+    d1Loop = d1Around[int(len(d1Around) * 0.5 + 1):] + d1Around[: int(len(d1Around) * 0.5 + 1)]
     d1LoopSmooth = interp.smoothCubicHermiteDerivativesLine(xLoop, d1Loop, fixStartDerivative=True,
-                                                                            fixEndDerivative=True)
+                                                            fixEndDerivative=True)
     # Rearrange to correct order
-    d1Around = d1LoopSmooth[int(len(xAround) * 0.5) : ] + d1LoopSmooth[: int(len(xAround) * 0.5) : ]
+    d1Around = d1LoopSmooth[int(len(xAround) * 0.5):] + d1LoopSmooth[: int(len(xAround) * 0.5):]
 
     return d1Around
+
 
 def findD1CurvatureAround(xAround, d1Around, normsAround):
     """
@@ -2894,6 +2901,7 @@ def findD1CurvatureAround(xAround, d1Around, normsAround):
 
     return d1CurvatureAround
 
+
 def findDerivativeBetweenPoints(v1, v2):
     """
     Find vector difference between two points and rescale vector difference using cubic hermite arclength
@@ -2907,6 +2915,7 @@ def findDerivativeBetweenPoints(v1, v2):
     d = [c * arcLengthAround for c in vector.normalise(d)]
 
     return d
+
 
 def findCurvatureAroundLoop(nx, nd, radialVectors):
     """
@@ -2926,6 +2935,7 @@ def findCurvatureAroundLoop(nx, nd, radialVectors):
 
     return curvature
 
+
 def findCurvatureAlongLine(nx, nd, radialVectors):
     """
     Calculate curvature for points lying along a line.
@@ -2942,7 +2952,7 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
             curvature.append(interp.getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0))
         else:
             curvature.append(0.5 * (
-                        interp.getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0) +
-                        interp.getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0)))
+                    interp.getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0) +
+                    interp.getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0)))
 
     return curvature

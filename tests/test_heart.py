@@ -1,15 +1,18 @@
-import unittest
 import copy
+import unittest
+
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+
 from testutils import assertAlmostEqualList
+
 
 class HeartScaffoldTestCase(unittest.TestCase):
 

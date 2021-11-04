@@ -1,5 +1,6 @@
 import copy
 import unittest
+
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
@@ -11,7 +12,9 @@ from scaffoldmaker.annotation.bladder_terms import get_bladder_term
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
+
 from testutils import assertAlmostEqualList
+
 
 class BladderScaffoldTestCase(unittest.TestCase):
 
