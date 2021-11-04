@@ -14,6 +14,7 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from opencmiss.zinc.node import Node
+from scaffoldmaker.utils.bifurcation3d import BifurcationMesh
 
 
 class MeshType_3d_solidbifurcation1(Scaffold_base):
@@ -165,18 +166,19 @@ with variable numbers of elements in major, minor, shell and axial directions.
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
-        cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
-
-        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
-
-        base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
-                            elementsCountAcrossTransition,
-                            shellProportion,
-                            [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
-                            cylinderCentralPath.minorRadii[0])
-        cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
-                                 cylinderShape=cylinderShape,
-                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+        # cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
+        #
+        # cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
+        #
+        # base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
+        #                     elementsCountAcrossTransition,
+        #                     shellProportion,
+        #                     [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+        #                     cylinderCentralPath.minorRadii[0])
+        # cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
+        #                          cylinderShape=cylinderShape,
+        #                          cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+        bifurcation1 = BifurcationMesh(fm, coordinates)
 
         annotationGroup = []
         return annotationGroup

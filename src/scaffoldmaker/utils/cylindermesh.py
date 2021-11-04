@@ -754,6 +754,7 @@ class Ellipse2D:
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
 
+<<<<<<< HEAD
     def calculateD2(self):
         """
         :return:
@@ -767,6 +768,8 @@ class Ellipse2D:
                 if btx[n2][n1]:
                     btd2[n2][n1] = nte
 
+=======
+>>>>>>> 33b365c (half of the right armpit)
     def getShield(self):
         return self.__shield
 
