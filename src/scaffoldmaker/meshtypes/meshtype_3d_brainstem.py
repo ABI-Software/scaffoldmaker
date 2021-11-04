@@ -3,25 +3,31 @@ Brainstem mesh using a tapered cylinder
 """
 
 from __future__ import division
+
 import copy
+
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.node import Node
-from opencmiss.zinc.field import Field, FieldFindMeshLocation
-from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+from opencmiss.zinc.field import FieldFindMeshLocation
+from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
+    findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.brainstem_terms import get_brainstem_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, Tapered, ConeBaseProgression, CylinderCentralPath
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
 
 class MeshType_3d_brainstem1(Scaffold_base):
     """
-    Generates a tapered cylinder for the brainstem based on solid cylinder mesh, with variable numbers of elements in major, minor and length directions. Regions of the brainstem are annotated.
+    Generates a tapered cylinder for the brainstem based on
+    solid cylinder mesh, with variable numbers of elements
+    in major, minor and length directions. Regions of the
+    brainstem are annotated.
     """
 
     centralPathDefaultScaffoldPackages = {
@@ -33,7 +39,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Length': 3.0,
                 'Number of elements': 6
             },
-            'meshEdits': exnodeStringFromNodeValues( # dimensional.
+            'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                     [ [0.0,0.0,0.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0] ],
@@ -77,7 +83,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Length': 3.0,
                 'Number of elements': 6
             },
-            'meshEdits': exnodeStringFromNodeValues( # dimensional.
+            'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                     # [ [0.0,1.0,-5.0], [0.0,0.0,4.5], [5.0,0.0,0.0], [1.0,0.0,0.0], [0.0,2.4,0.0], [0.0,2.2,0.0] ],
@@ -218,7 +224,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     [ [0.0,-1.1, 1.2], [0.0,-0.7,1.6], [2.7,0.0,0.0], [-0.2,0.0,0.0], [-0.0,1.8,0.8], [ 0.0, 0.1,-0.1] ],
                     [ [0.0,-1.5, 3.0], [0.0,-1.1,1.9], [2.2,0.0,0.0], [-0.1,0.0,0.0], [-0.0,1.7,1.0], [ 0.0,-0.4, 0.4] ],
                     [ [0.0,-3.3, 4.6], [0.0,-2.4,1.3], [2.7,0.0,0.0], [ 1.1,0.0,0.0], [-0.0,0.9,1.7], [ 0.0,-1.2, 1.0] ]
-                    ]),
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -403,21 +409,21 @@ class MeshType_3d_brainstem1(Scaffold_base):
         # foramenCaecum = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
         #                                                        get_brainstem_term('foramen caecum of medulla oblongata'))
         dorsalMidCaudalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('brainstem dorsal midline caudal point'))
+                                                                  get_brainstem_term('brainstem dorsal midline caudal point'))
         ventralMidCaudalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('brainstem ventral midline caudal point'))
+                                                                   get_brainstem_term('brainstem ventral midline caudal point'))
         dorsalMidCranGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('brainstem dorsal midline cranial point'))
+                                                                get_brainstem_term('brainstem dorsal midline cranial point'))
         ventralMidCranGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('brainstem ventral midline cranial point'))
+                                                                 get_brainstem_term('brainstem ventral midline cranial point'))
         dorsalMidMedullaPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term ('brainstem dorsal midline pons-medulla junction'))
+                                                                          get_brainstem_term('brainstem dorsal midline pons-medulla junction'))
         ventralMidMedullaPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_brainstem_term('brainstem ventral midline pons-medulla junction'))
+                                                                           get_brainstem_term('brainstem ventral midline pons-medulla junction'))
         dorsalMidMidbrainPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                      get_brainstem_term('brainstem dorsal midline midbrain-pons junction'))
+                                                                           get_brainstem_term('brainstem dorsal midline midbrain-pons junction'))
         ventralMidMidbrainPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                       get_brainstem_term('brainstem ventral midline midbrain-pons junction'))
+                                                                            get_brainstem_term('brainstem ventral midline midbrain-pons junction'))
 
         #######################
         # CREATE MAIN BODY MESH
@@ -490,7 +496,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         # point markers
         ################
         pointMarkers = [
-            {"group" : dorsalMidCaudalGroup, "marker_brainstem_coordinates" : [ 0.0, 1.0, 0.0 ]},
+            {"group": dorsalMidCaudalGroup, "marker_brainstem_coordinates": [0.0, 1.0, 0.0]},
             {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [0.0, -1.0, 0.0]},
             {"group": dorsalMidCranGroup, "marker_brainstem_coordinates": [0.0, 1.0, 8.0]},
             {"group": ventralMidCranGroup, "marker_brainstem_coordinates": [0.0, -1.0, 8.0]},
@@ -588,6 +594,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                                                               get_brainstem_term(groupName))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface_ext)
 
+
 def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
     # create marker points for locations the cranial nerves emerge from brainstem mesh, based on the USF cat brainstem data.
     # return element xi
@@ -609,9 +616,9 @@ def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
 
         rightDict = {}
         for key in nerveDict.keys():
-            nerveName = key.split('_')[0]+'_right'
-            xyz = [-1*nerveDict[key][0], nerveDict[key][1], nerveDict[key][2]]
-            rightDict.update({nerveName:xyz})
+            nerveName = key.split('_')[0] + '_right'
+            xyz = [-1 * nerveDict[key][0], nerveDict[key][1], nerveDict[key][2]]
+            rightDict.update({nerveName: xyz})
         nerveDict.update(rightDict)
 
         nerveNames = list(nerveDict.keys())
@@ -649,7 +656,7 @@ def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
             element, xi = found_mesh_location.evaluateMeshLocation(cache, 3)
             marker_name = dataNamesField.evaluateString(cache)
             if element.isValid():
-                addProjection = {marker_name:{"elementID": element.getIdentifier(), "xi": xi,"nodeID": node.getIdentifier()}}
+                addProjection = {marker_name: {"elementID": element.getIdentifier(), "xi": xi, "nodeID": node.getIdentifier()}}
                 xi_projected_data.update(addProjection)
             node = nodeIter.next()
 
@@ -659,4 +666,3 @@ def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
         xi_projected_data = {}
 
     return xi_projected_data
-

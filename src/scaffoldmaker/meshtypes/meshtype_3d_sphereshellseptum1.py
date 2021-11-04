@@ -8,7 +8,9 @@ Only one element throught the wall is currently implemented.
 """
 
 from __future__ import division
+
 import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from opencmiss.zinc.field import Field
@@ -16,6 +18,7 @@ from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.interpolation import interpolateCubicHermite, interpolateCubicHermiteDerivative
+
 
 class MeshType_3d_sphereshellseptum1(Scaffold_base):
     '''

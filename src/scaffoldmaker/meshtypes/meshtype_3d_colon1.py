@@ -5,18 +5,20 @@ variable radius and thickness along.
 """
 
 import copy
+
+from opencmiss.zinc.node import Node
 from opencmiss.zinc.element import Element
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints,\
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, ColonSegmentTubeMeshInnerPoints, \
     getTeniaColi, createFlatCoordinatesTeniaColi, createColonCoordinatesTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
-from opencmiss.zinc.node import Node
+
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
@@ -28,14 +30,14 @@ class MeshType_3d_colon1(Scaffold_base):
     '''
 
     centralPathDefaultScaffoldPackages = {
-        'Cattle 1' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
+        'Cattle 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
                 'D2 derivatives': True,
-                'Length' : 1.0,
-                'Number of elements' : 52
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
+                'Length': 1.0,
+                'Number of elements': 52
+            },
+            'meshEdits': exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
                 [ [ -245.3, 444.6, -49.1 ], [ -267.7,  -53.1, -20.2 ], [   0.0,   0.0,  15.0 ], [   0.0,   0.0,   0.5 ] ],
                 [ [ -380.3, 484.8, -45.0 ], [   24.5,  102.7,  15.7 ], [   0.0,   0.0,  15.0 ], [   0.0,   0.0,   0.5 ] ],
@@ -90,15 +92,15 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ -318.1, 641.9,  -8.5 ], [  166.7,   17.6,   5.5 ], [   3.0, -13.0, -39.4 ], [  -8.3,  -3.3,  -0.9 ] ],
                 [ [ -158.3, 634.7,  -1.9 ], [  176.5,  -14.0,  10.8 ], [  -4.3, -11.5, -34.6 ], [  -3.1,   2.7,   5.3 ] ],
                 [ [   32.7, 611.7,  13.6 ], [  205.5,  -32.2,  20.0 ], [  -2.4,  -7.3, -28.7 ], [   6.9,   5.6,   6.4 ] ] ] )
-            } ),
-        'Human 1' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
+        }),
+        'Human 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
                 'D2 derivatives': True,
-                'Length' : 1.0,
-                'Number of elements' : 8
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
+                'Length': 1.0,
+                'Number of elements': 8
+            },
+            'meshEdits': exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2  ], [
                 [ [   0.0,   0.0, 0.0 ], [ -50.7,  178.2, 0.0 ], [ -24.0,  -6.0, -12.0 ], [ -14.0,  -1.0, -12.0 ] ],
                 [ [ -47.4, 188.6, 0.0 ], [ -19.3,  177.1, 0.0 ], [ -22.0,  -4.0,  -8.0 ], [  -4.0,  19.0,  22.0 ] ],
@@ -109,15 +111,15 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ 475.2, 168.0, 0.0 ], [  -0.8, -112.4, 0.0 ], [  20.0,   0.0, -20.0 ], [  15.0,  -1.0, -10.0 ] ],
                 [ [ 432.6, -32.3, 0.0 ], [ -90.5,  -59.0, 0.0 ], [   6.0,  -9.0, -14.0 ], [   8.0, -11.0, -13.0 ] ],
                 [ [ 272.4,   7.5, 0.0 ], [ -79.0,   47.4, 0.0 ], [   1.0, -11.0, -18.0 ], [   4.0, -12.0, -12.0 ] ] ] )
-            } ),
-        'Human 2' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
+        }),
+        'Human 2': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
                 'D2 derivatives': True,
-                'Length' : 1.0,
-                'Number of elements' : 8
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
+                'Length': 1.0,
+                'Number of elements': 8
+            },
+            'meshEdits': exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   0.0,   0.0,    0.0 ], [ -34.7,  104.1, -18.1 ], [ -24.0,  -6.0, -12.0 ], [ -14.0,  -1.0, -12.0 ] ],
                 [ [ -34.5,  114.0, -18.1 ], [   1.2,   86.6,  -3.4 ], [ -22.0,  -4.0,  -8.0 ], [  -4.0,  19.0,  22.0 ] ],
@@ -128,15 +130,15 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ 354.0,  105.3, -24.4 ], [  -6.3, -143.7,  20.3 ], [  20.0,   0.0, -20.0 ], [  15.0,  -1.0, -10.0 ] ],
                 [ [ 296.5, -121.2,  -0.6 ], [ -90.5,  -59.0,   0.0 ], [   6.0,  -9.0, -14.0 ], [   8.0, -11.0, -13.0 ] ],
                 [ [ 169.8,  -73.4, -33.5 ], [ -72.2,   43.4, -27.4 ], [   1.0, -11.0, -18.0 ], [   4.0, -12.0, -12.0 ] ] ] )
-            } ),
-        'Mouse 1' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
+        }),
+        'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
                 'D2 derivatives': True,
-                'Length' : 1.0,
-                'Number of elements' : 7
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
+                'Length': 1.0,
+                'Number of elements': 7
+            },
+            'meshEdits': exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   0.0,   0.0,  0.0 ], [  6.0, 12.0,  -2.0 ], [ 2.0,  1.0,  2.0 ], [ 6.0, 0.0, 3.0 ] ],
                 [ [  -2.0,  11.0, -3.0 ], [ -8.0,  4.0,   9.0 ], [ 2.0,  2.0,  1.0 ], [ 0.0, 1.0, 2.0 ] ],
@@ -146,30 +148,30 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [  -7.0,  -8.0,  0.0 ], [  5.0, -1.0, -14.0 ], [ 0.0, -3.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -1.0,  -6.0, -1.0 ], [  2.0, -2.0,   9.0 ], [ 1.0, -3.0, -1.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -2.0, -14.0,  5.0 ], [ -2.0, -4.0,   2.0 ], [ 1.0, -2.0, -2.0 ], [ 0.0, 0.0, 0.5 ] ] ] )
-            } ),
-        'Mouse 2' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
+        }),
+        'Mouse 2': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
                 'D2 derivatives': True,
-                'Length' : 1.0,
-                'Number of elements' : 4
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
+                'Length': 1.0,
+                'Number of elements': 4
+            },
+            'meshEdits': exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   0.0,  0.0,   0.0 ], [  0.0,  0.0,  13.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [   0.0,  0.0,  13.0 ], [  0.0,  2.0,  28.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [ -14.0, -2.0,  13.0 ], [  0.0, -3.0, -19.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [ -14.0, -1.0, -10.0 ], [  1.0,  1.0, -17.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [ -14.0,  0.0, -28.0 ], [  0.0,  0.0, -11.0 ], [  0.0, -10.0,  0.0 ], [ 0.0, 0.0, 0.5 ] ] ] )
-            } ),
-        'Pig 1' : ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings' : {
-                'Coordinate dimensions' : 3,
+        }),
+        'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
                 'D2 derivatives': True,
-                'Length' : 1.0,
-                'Number of elements' : 39
-                },
-            'meshEdits' : exnodeStringFromNodeValues(
+                'Length': 1.0,
+                'Number of elements': 39
+            },
+            'meshEdits': exnodeStringFromNodeValues(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ], [
                 [ [   -7.2,   83.3,  -20.7 ], [  -65.2,   -8.1,   7.6 ], [   0.0,   0.0,  5.0 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -68.5,   52.8,   -9.6 ], [  -40.1,  -36.1,  10.7 ], [   0.0,   0.0,  5.0 ], [ 0.0, 0.0, 0.5 ] ],
@@ -211,7 +213,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [  -20.9,   15.3,  -77.9 ], [  -51.2,  -30.6,  21.1 ], [   7.1,  -7.7, 12.2 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [  -47.6,   33.9, -112.2 ], [   32.6,   30.7, -27.8 ], [ -12.8,  -0.5, -1.6 ], [ 0.0, 0.0, 0.5 ] ],
                 [ [   19.6,   96.0, -167.5 ], [   19.9,   19.1, -18.4 ], [ -12.6,   1.3, -8.1 ], [ 0.0, 0.0, 0.5 ] ] ] )
-            } ),
+        }),
         'Pig 2': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -225,8 +227,8 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ 30.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
                 [ [ 60.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
                 [ [ 90.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ] ] )
-            } ),
-        }
+        }),
+    }
 
     @staticmethod
     def getName():
@@ -261,16 +263,16 @@ class MeshType_3d_colon1(Scaffold_base):
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         if 'Cattle' in parameterSetName:
-            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Cattle 1')
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Cattle 1')
         elif 'Mouse' in parameterSetName:
-            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Mouse 1')
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Mouse 1')
         elif 'Pig' in parameterSetName:
-            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Pig 1')
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Pig 1')
         else:
-            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName = 'Human 1')
+            segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 1')
         options = {
-            'Central path' : copy.deepcopy(centralPathOption),
-            'Segment profile' : segmentProfileOption,
+            'Central path': copy.deepcopy(centralPathOption),
+            'Segment profile': segmentProfileOption,
             'Number of segments': 30,
             'Start phase': 0.0,
             'Proximal length': 420.0,
@@ -284,11 +286,11 @@ class MeshType_3d_colon1(Scaffold_base):
             'Transverse-distal tenia coli width': 10.0,
             'Distal inner radius': 31.5,
             'Distal tenia coli width': 10.0,
-            'Refine' : False,
-            'Refine number of elements around' : 1,
-            'Refine number of elements along' : 1,
-            'Refine number of elements through wall' : 1
-            }
+            'Refine': False,
+            'Refine number of elements around': 1,
+            'Refine number of elements along': 1,
+            'Refine number of elements through wall': 1
+        }
         if 'Cattle 1' in parameterSetName:
             options['Number of segments'] = 40
             options['Proximal length'] = 900.0
@@ -368,14 +370,14 @@ class MeshType_3d_colon1(Scaffold_base):
             'Refine',
             'Refine number of elements around',
             'Refine number of elements along',
-            'Refine number of elements through wall' ]
+            'Refine number of elements through wall']
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
-            return [ MeshType_1d_path1 ]
+            return [MeshType_1d_path1]
         if optionName == 'Segment profile':
-            return [ MeshType_3d_colonsegment1 ]
+            return [MeshType_3d_colonsegment1]
         return []
 
     @classmethod
@@ -404,7 +406,7 @@ class MeshType_3d_colon1(Scaffold_base):
         if optionName == 'Segment profile':
             if not parameterSetName:
                 parameterSetName = scaffoldType.getParameterSetNames()[0]
-            return ScaffoldPackage(scaffoldType, defaultParameterSetName = parameterSetName)
+            return ScaffoldPackage(scaffoldType, defaultParameterSetName=parameterSetName)
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
@@ -467,7 +469,7 @@ class MeshType_3d_colon1(Scaffold_base):
         segmentLengthMidDerivativeFactor = segmentSettings['Segment length mid derivative factor']
         tcCount = segmentSettings['Number of tenia coli']
         tcThickness = segmentSettings['Tenia coli thickness']
-        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum)*tcCount
+        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum) * tcCount
 
         elementsCountAlongSegment = segmentSettings['Number of elements along segment']
         elementsCountThroughWall = segmentSettings['Number of elements through wall']
@@ -477,14 +479,14 @@ class MeshType_3d_colon1(Scaffold_base):
         circularRelThickness = segmentSettings['Circular muscle layer relative thickness']
         longitudinalRelThickness = segmentSettings['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = segmentSettings['Use cross derivatives']
-        useCubicHermiteThroughWall = not(segmentSettings['Use linear through wall'])
-        elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
+        useCubicHermiteThroughWall = not (segmentSettings['Use linear through wall'])
+        elementsCountAlong = int(elementsCountAlongSegment * segmentCount)
 
         # Colon coordinates
         lengthToDiameterRatio = 24
         wallThicknessToDiameterRatio = 0.1
-        teniaColiThicknessToDiameterRatio = 0.25*wallThicknessToDiameterRatio
-        relativeThicknessListColonCoordinates = [1.0/elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
+        teniaColiThicknessToDiameterRatio = 0.25 * wallThicknessToDiameterRatio
+        relativeThicknessListColonCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -502,8 +504,8 @@ class MeshType_3d_colon1(Scaffold_base):
         # find arclength of colon
         length = 0.0
         elementsCountIn = len(cx) - 1
-        sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections = True,
-            magnitudeScalingMode = interp.DerivativeScalingMode.HARMONIC_MEAN)
+        sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True,
+                                                       magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
         for e in range(elementsCountIn):
             arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
             # print(e+1, arcLength)
@@ -531,16 +533,16 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Account for reduced haustrum appearance in transverse and distal pig colon
         if tcCount == 2:
-            haustrumInnerRadiusFactorList = [haustrumInnerRadiusFactor, haustrumInnerRadiusFactor*0.75,
-                                             haustrumInnerRadiusFactor*0.5, haustrumInnerRadiusFactor*0.2]
+            haustrumInnerRadiusFactorList = [haustrumInnerRadiusFactor, haustrumInnerRadiusFactor * 0.75,
+                                             haustrumInnerRadiusFactor * 0.5, haustrumInnerRadiusFactor * 0.2]
             haustrumInnerRadiusFactorAlongElementList = \
                 interp.sampleParameterAlongLine(lengthList, haustrumInnerRadiusFactorList, elementsCountAlong)[0]
         else:
-            haustrumInnerRadiusFactorAlongElementList = [haustrumInnerRadiusFactor]*(elementsCountAlong+1)
+            haustrumInnerRadiusFactorAlongElementList = [haustrumInnerRadiusFactor] * (elementsCountAlong + 1)
 
         # Create annotation groups for colon sections
-        elementsAlongInProximal = round(proximalLength/elementAlongLength)
-        elementsAlongInTransverse = round(transverseLength/elementAlongLength)
+        elementsAlongInProximal = round(proximalLength / elementAlongLength)
+        elementsAlongInTransverse = round(transverseLength / elementAlongLength)
         elementsAlongInDistal = elementsCountAlong - elementsAlongInProximal - elementsAlongInTransverse
         elementsCountAlongGroups = [elementsAlongInProximal, elementsAlongInTransverse, elementsAlongInDistal]
 
@@ -623,7 +625,7 @@ class MeshType_3d_colon1(Scaffold_base):
                 closedProximalEnd=False)
 
             # Store points along length
-            xExtrude +=  xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:]
+            xExtrude += xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:]
             d1Extrude += d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:]
             d2Extrude += d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:]
             d3UnitExtrude += d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:]
@@ -633,8 +635,8 @@ class MeshType_3d_colon1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
-            d2Extrude, d3UnitExtrude, contractedWallThicknessList, relativeThicknessList,
-            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
+                                                                                        d2Extrude, d3UnitExtrude, contractedWallThicknessList, relativeThicknessList,
+                                                                                        elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
 

@@ -4,8 +4,10 @@ Generates a 3-D heart atria model, suitable for attachment to the
 """
 
 from __future__ import division
+
 import copy
 import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
@@ -14,17 +16,19 @@ from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
-from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getCircleProjectionAxes, getEllipseAngleFromVector, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength, createCirclePoints
-from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
+from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getCircleProjectionAxes, getEllipseAngleFromVector, getEllipseArcLength, getEllipseRadiansToX, \
+    updateEllipseAngleByArcLength, createCirclePoints
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.tracksurface import TrackSurface, calculate_surface_axes
+
 
 class MeshType_3d_heartatria1(Scaffold_base):
     '''
