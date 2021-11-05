@@ -310,7 +310,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Vessel end length factor': 2.0,
                 'Vessel inner diameter': 0.9,
                 'Vessel wall thickness': 0.2,
-                'Ostium wall relative thicknesses': [1.0],
+                'Vessel wall relative thicknesses': [1.0],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
