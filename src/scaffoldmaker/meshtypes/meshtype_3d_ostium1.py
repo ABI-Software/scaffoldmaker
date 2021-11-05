@@ -38,14 +38,14 @@ class MeshType_3d_ostium1(Scaffold_base):
             'Ostium diameter' : 1.0,
             'Ostium length' : 0.4,
             'Ostium wall thickness' : 0.08,
-            'Ostium wall relative thickness proportions': [1.0],
+            'Ostium wall relative thicknesses': [1.0],
             'Ostium inter-vessel distance' : 0.8,
             'Ostium inter-vessel height' : 0.0,
             'Use linear through ostium wall' : False,
             'Vessel end length factor' : 1.0,
             'Vessel inner diameter' : 0.6,
             'Vessel wall thickness' : 0.04,
-            'Vessel wall relative thickness proportions': [1.0],
+            'Vessel wall relative thicknesses': [1.0],
             'Vessel angle 1 degrees' : 0.0,
             'Vessel angle 1 spread degrees' : 0.0,
             'Vessel angle 2 degrees' : 0.0,
@@ -70,14 +70,14 @@ class MeshType_3d_ostium1(Scaffold_base):
             'Ostium diameter',
             'Ostium length',
             'Ostium wall thickness',
-            'Ostium wall relative thickness proportions',
+            'Ostium wall relative thicknesses',
             'Ostium inter-vessel distance',
             'Ostium inter-vessel height',
             'Use linear through ostium wall',
             'Vessel end length factor',
             'Vessel inner diameter',
             'Vessel wall thickness',
-            'Vessel wall relative thickness proportions',
+            'Vessel wall relative thicknesses',
             'Vessel angle 1 degrees',
             'Vessel angle 1 spread degrees',
             'Vessel angle 2 degrees',
@@ -125,8 +125,8 @@ class MeshType_3d_ostium1(Scaffold_base):
         if options['Ostium diameter'] <= 0.0:
             options['Ostium diameter'] = 0.000001  # avoid division by zero
         elementsThroughWall = options['Number of elements through wall']
-        ostiumThicknessProportionsCountKey = 'Ostium wall relative thickness proportions'
-        vesselThicknessProportionsCountKey = 'Vessel wall relative thickness proportions'
+        ostiumThicknessProportionsCountKey = 'Ostium wall relative thicknesses'
+        vesselThicknessProportionsCountKey = 'Vessel wall relative thicknesses'
         ostiumWallCount = len(options[ostiumThicknessProportionsCountKey])
         vesselWallCount = len(options[vesselThicknessProportionsCountKey])
         if elementsThroughWall == 1:
@@ -242,7 +242,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     ostiumRadius = 0.5*unitScale*options['Ostium diameter']
     ostiumLength = unitScale*options['Ostium length']
     ostiumWallThickness = unitScale*options['Ostium wall thickness']
-    ostiumWallThicknessProportions = copy.deepcopy(options['Ostium wall relative thickness proportions'])
+    ostiumWallThicknessProportions = copy.deepcopy(options['Ostium wall relative thicknesses'])
     interVesselHeight = unitScale*options['Ostium inter-vessel height']
     interVesselDistance = unitScale*options['Ostium inter-vessel distance'] if (vesselsCount > 1) else 0.0
     halfInterVesselDistance = 0.5*interVesselDistance
@@ -250,7 +250,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     vesselEndDerivative = ostiumLength*options['Vessel end length factor']/elementsCountAlong
     vesselInnerRadius = 0.5*unitScale*options['Vessel inner diameter']
     vesselWallThickness = unitScale*options['Vessel wall thickness']
-    vesselWallThicknessProportions = copy.deepcopy(options['Vessel wall relative thickness proportions'])
+    vesselWallThicknessProportions = copy.deepcopy(options['Vessel wall relative thicknesses'])
     vesselOuterRadius = vesselInnerRadius + vesselWallThickness
     vesselAngle1Radians = math.radians(options['Vessel angle 1 degrees'])
     vesselAngle1SpreadRadians = math.radians(options['Vessel angle 1 spread degrees'])

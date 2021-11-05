@@ -229,14 +229,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Ostium diameter': 25.0,
                 'Ostium length': 15.0,
                 'Ostium wall thickness': 5.0,
-                'Ostium wall relative thickness proportions': [0.55, 0.15, 0.25, 0.05],
+                'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 5.0,
                 'Vessel wall thickness': 5.0,
-                'Vessel wall relative thickness proportions': [0.55, 0.15, 0.25, 0.05],
+                'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -260,14 +260,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Ostium diameter': 1.5,
                 'Ostium length': 1.5,
                 'Ostium wall thickness': 0.45,
-                'Ostium wall relative thickness proportions': [0.75, 0.05, 0.15, 0.05],
+                'Ostium wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 0.5,
                 'Vessel wall thickness': 0.45,
-                'Vessel wall relative thickness proportions': [0.75, 0.05, 0.15, 0.05],
+                'Vessel wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -291,14 +291,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Ostium diameter': 5.0,
                 'Ostium length': 5.0,
                 'Ostium wall thickness': 0.5,
-                'Ostium wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],
+                'Ostium wall relative thicknesses': [0.65, 0.12, 0.18, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 2.0,
                 'Vessel wall thickness': 0.5,
-                'Vessel wall relative thickness proportions': [0.65, 0.12, 0.18, 0.05],
+                'Vessel wall relative thicknesses': [0.65, 0.12, 0.18, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
@@ -489,16 +489,16 @@ class MeshType_3d_stomach1(Scaffold_base):
         elementsCountThroughWall = options['Number of elements through wall']
         ostiumSettings['Number of elements through wall'] = elementsCountThroughWall
         if elementsCountThroughWall == 1:
-            ostiumSettings['Ostium wall relative thickness proportions'] = [1.0]
-            ostiumSettings['Vessel wall relative thickness proportions'] = [1.0]
+            ostiumSettings['Ostium wall relative thicknesses'] = [1.0]
+            ostiumSettings['Vessel wall relative thicknesses'] = [1.0]
         else:
             mucosaRelThickness = options['Mucosa relative thickness']
             submucosaRelThickness = options['Submucosa relative thickness']
             circularRelThickness = options['Circular muscle layer relative thickness']
             longRelThickness = options['Longitudinal muscle layer relative thickness']
             relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longRelThickness]
-            ostiumSettings['Ostium wall relative thickness proportions'] = relThicknesses
-            ostiumSettings['Vessel wall relative thickness proportions'] = relThicknesses
+            ostiumSettings['Ostium wall relative thicknesses'] = relThicknesses
+            ostiumSettings['Vessel wall relative thicknesses'] = relThicknesses
 
     @classmethod
     def generateBaseMesh(cls, region, options):
