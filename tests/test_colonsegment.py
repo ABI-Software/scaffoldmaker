@@ -63,7 +63,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [397.2736607240895, 50.0, 3.2000000000000006], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [397.2736607240895, 50.0, 2.2], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -75,10 +75,10 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 21129.564192298032, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 21035.8818469729, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 40783.41115796618, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 39781.704358310606, delta=1.0E-6)
 
     def test_mousecolonsegment1(self):
         """

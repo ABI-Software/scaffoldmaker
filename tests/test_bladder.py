@@ -21,7 +21,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_bladderurethra1
         parameterSetNames = MeshType_3d_bladderurethra1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Cat 1", "Rat 1", "Human 1"])
+        self.assertEqual(parameterSetNames, ["Default", "Cat 1", "Human 1", "Mouse 1", "Pig 1", "Rat 1",])
         options = scaffold.getDefaultOptions("Cat 1")
         self.assertEqual(26, len(options))
         self.assertEqual(12, options.get("Number of elements along bladder"))
@@ -64,7 +64,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [-15.48570141314588, -12.992184072505665, -0.5], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [15.485696373577879, 13.837600783918127, 127.68599990411343], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [15.485696373577879, 13.837536258199144, 127.68631532717487], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -76,10 +76,10 @@ class BladderScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 5335.535739164492, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 5334.9516480055845, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 2555.81694845211, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 2555.560965374249, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
