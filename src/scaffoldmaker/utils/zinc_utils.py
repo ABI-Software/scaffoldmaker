@@ -8,7 +8,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import MeshGroup
 from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.fieldmodule import Fieldmodule
-from opencmiss.zinc.node import Node, Nodeset
+from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector

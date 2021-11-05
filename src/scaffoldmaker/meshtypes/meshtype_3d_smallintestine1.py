@@ -5,6 +5,8 @@ wall, with variable radius and thickness along.
 """
 
 import copy
+
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
@@ -12,10 +14,10 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshInnerPoints
 from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshInnerPoints
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
-from opencmiss.zinc.node import Node
+
 
 class MeshType_3d_smallintestine1(Scaffold_base):
     '''

@@ -2,16 +2,18 @@
 Utility functions for generating annulus mesh between start and end loops of points.
 '''
 from __future__ import division
-from collections.abc import Sequence
+
 import copy
+from collections.abc import Sequence
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.node import Node
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
+from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 
 
 def derivativeSignsToExpressionTerms(valueLabels, signs, scaleFactorIdx = None):

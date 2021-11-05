@@ -6,6 +6,9 @@ variable radius and thickness along.
 
 import copy
 import math
+
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
@@ -14,15 +17,13 @@ from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMe
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
+from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
 
 
 class MeshType_3d_cecum1(Scaffold_base):

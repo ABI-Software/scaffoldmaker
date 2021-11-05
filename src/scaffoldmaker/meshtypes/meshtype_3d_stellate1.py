@@ -3,22 +3,23 @@ Generates a 3-D planar stellate mesh with cross arms radiating from a central no
 """
 
 from __future__ import division
+
 import math
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
+    findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from opencmiss.zinc.context import Context
-from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.stellate_terms import get_stellate_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftLocalNodes
-from scaffoldmaker.utils.matrix import rotateAboutZAxis
-from scaffoldmaker.utils.vector import magnitude, setMagnitude
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.matrix import rotateAboutZAxis
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.vector import setMagnitude
 
 
 class MeshType_3d_stellate1(Scaffold_base):
