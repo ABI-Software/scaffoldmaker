@@ -12,8 +12,8 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, \
-    getAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
+    findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
@@ -26,7 +26,7 @@ from scaffoldmaker.utils.geometry import createCirclePoints
 
 
 class MeshType_3d_colonsegment1(Scaffold_base):
-    '''
+    """
     Generates a single 3-D colon segment mesh with variable
     numbers of tenia coli, elements around, along the central
     line, and through wall. The cross-section profile of the colon
@@ -37,7 +37,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
     Human (Default): Three tenia coli, triangular profile with
     rounded corners at the inter-haustral septa, and a clover
     profile in the intra-haustral region.
-    '''
+    """
 
     @staticmethod
     def getName():
@@ -344,10 +344,10 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                                            [circularMuscleGroup], [longitudinalMuscleGroup]]
 
         # Create coordinates and derivatives
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
-                                                                                        d2WarpedList, d3WarpedUnitList, contractedWallThicknessList, relativeThicknessList,
-                                                                                        elementsCountAround, elementsCountAlongSegment, elementsCountThroughWall,
-                                                                                        transitElementList)
+        xList, d1List, d2List, d3List, curvatureList = \
+            tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
+                                             contractedWallThicknessList, relativeThicknessList, elementsCountAround,
+                                             elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
 
         xColonSegment = d1ColonSegment = d2ColonSegment = []
 
@@ -406,14 +406,14 @@ class MeshType_3d_colonsegment1(Scaffold_base):
 
     @classmethod
     def defineFaceAnnotations(cls, region, options, annotationGroups):
-        '''
+        """
         Add face annotation groups from the highest dimension mesh.
         Must have defined faces and added subelements for highest dimension groups.
         :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
         :param annotationGroups: List of annotation groups for top-level elements.
         New face annotation groups are appended to this list.
-        '''
+        """
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
         mesh2d = fm.findMeshByDimension(2)
@@ -427,7 +427,8 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("serosa of colon"))
         serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
         is_mucosaInnerSurface = fm.createFieldAnd(is_colon, is_exterior_face_xi3_0)
-        mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_colon_term("luminal surface of the colonic mucosa"))
+        mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_colon_term("luminal surface of the colonic mucosa"))
         mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
 
 
@@ -477,8 +478,9 @@ class ColonSegmentTubeMeshInnerPoints:
         xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, contractedWallThicknessSegment, \
         segmentAxis, annotationGroupsAround = \
             getColonSegmentInnerPoints(self._region,
-                                       self._elementsCountAroundTC, self._elementsCountAroundHaustrum, self._elementsCountAlongSegment,
-                                       self._tcCount, self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
+                                       self._elementsCountAroundTC, self._elementsCountAroundHaustrum,
+                                       self._elementsCountAlongSegment, self._tcCount,
+                                       self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
                                        self._segmentLength, self._wallThickness,
                                        self._cornerInnerRadiusFactor, haustrumInnerRadiusFactorSegmentList,
                                        radiusSegmentList, dRadiusSegmentList, tcWidthSegmentList,
@@ -497,8 +499,7 @@ class ColonSegmentTubeMeshInnerPoints:
         contractedWallThickness = contractedWallThicknessSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._contractedWallThicknessList += contractedWallThickness
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, \
-               annotationGroupsAround
+        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround
 
     def getTubeTCWidthList(self):
         return self._tubeTCWidthList
@@ -510,13 +511,11 @@ class ColonSegmentTubeMeshInnerPoints:
         return self._contractedWallThicknessList
 
 
-def getColonSegmentInnerPoints(region, elementsCountAroundTC,
-                               elementsCountAroundHaustrum, elementsCountAlongSegment,
-                               tcCount, segmentLengthEndDerivativeFactor,
-                               segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
-                               cornerInnerRadiusFactor, haustrumInnerRadiusFactorSegmentList,
-                               radiusSegmentList, dRadiusSegmentList, tcWidthSegmentList,
-                               startPhase):
+def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
+                               tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
+                               segmentLength, wallThickness, cornerInnerRadiusFactor,
+                               haustrumInnerRadiusFactorSegmentList, radiusSegmentList, dRadiusSegmentList,
+                               tcWidthSegmentList, startPhase):
     """
     Generates a 3-D colon segment mesh with variable numbers of tenia coli,
     numbers of elements around, along the central path, and through wall.
@@ -572,9 +571,6 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
     transitElementList = transitElementListHaustrum * tcCount
 
     # create nodes
-    x = [0.0, 0.0, 0.0]
-    dx_ds1 = [0.0, 0.0, 0.0]
-    dx_ds2 = [0.0, 0.0, 0.0]
     sampleElementOut = 20
     segmentAxis = [0.0, 0.0, 1.0]
 
@@ -598,8 +594,9 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             radius = radiusSegmentList[n2]
             tcWidth = tcWidthSegmentList[n2]
 
-            xHalfSet, d1HalfSet = createHalfSetInterHaustralSegment(elementsCountAroundTC,
-                                                                    elementsCountAroundHaustrum, tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut)
+            xHalfSet, d1HalfSet = \
+                createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum, tcCount, tcWidth,
+                                                  radius, cornerInnerRadiusFactor, sampleElementOut)
 
             for i in range(len(xHalfSet)):
                 d2HalfSet.append([0.0, 0.0, 0.0])
@@ -780,7 +777,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
             dx_ds1InnerAroundList = []
             if startPhase == 0.0 and n2 == 0:
                 d1Corrected = d1Phase0FirstFace
-            elif startPhase == 0.0 and elementsCountAlongSegment % 2 == 0 and n2 == int(elementsCountAlongSegment * 0.5):
+            elif startPhase == 0.0 and elementsCountAlongSegment % 2 == 0 and \
+                    n2 == int(elementsCountAlongSegment * 0.5):
                 dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1Phase0MidFace
             elif startPhase == 0.0 and n2 > elementsCountAlongSegment - 1:
                 d1Corrected = d1Phase0LastFace
@@ -789,7 +787,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                 dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1180FirstFace
             elif startPhase == 180.0 and n2 > elementsCountAlongSegment - 1:
                 dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1180LastFace
-            elif startPhase == 180.0 and elementsCountAlongSegment % 2 == 0 and n2 == int(elementsCountAlongSegment * 0.5):
+            elif startPhase == 180.0 and elementsCountAlongSegment % 2 == 0 and \
+                    n2 == int(elementsCountAlongSegment * 0.5):
                 d1Corrected = d1180MidFace
 
             else:
@@ -824,9 +823,10 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC,
                                                                                   tcCount)
 
             # Calculate xiList for relaxed state
-            xHalfSetRelaxed, d1HalfSetRelaxed = createHalfSetIntraHaustralSegment(elementsCountAroundTC,
-                                                                                  elementsCountAroundHaustrum, tcCount, tcWidthSegmentList[n2], radiusSegmentList[n2],
-                                                                                  cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
+            xHalfSetRelaxed, d1HalfSetRelaxed = \
+                createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum, tcCount,
+                                                  tcWidthSegmentList[n2], radiusSegmentList[n2],
+                                                  cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
             xRelaxed, d1Relaxed, _ = getFullProfileFromHalfHaustrum(xHalfSetRelaxed, d1HalfSetRelaxed, d2Around,
                                                                     tcCount)
             xiFace, relaxedLengthAroundFace = getXiListFromOuterLengthProfile(xRelaxed, d1Relaxed, segmentAxis,
@@ -923,7 +923,8 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
 
     # Sample haustrum into equally sized elements
     xHaustrum, d1Haustrum, _, _ = sampleHaustrum(xLoop, d1Loop, xTC[-1], d1TC[-1],
-                                                 arcLength / numberOfHalves, arcDistanceTCEdge, elementsCountAroundHaustrum)
+                                                 arcLength / numberOfHalves, arcDistanceTCEdge,
+                                                 elementsCountAroundHaustrum)
 
     xHalfSetInterHaustra = xHalfSetInterHaustra + xTC + xHaustrum[1:]
     d1HalfSetInterHaustra = d1HalfSetInterHaustra + d1TC + d1Haustrum[1:]
@@ -932,7 +933,8 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
 
 
 def createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-                                      tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor):
+                                      tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut,
+                                      haustrumInnerRadiusFactor):
     """
     Find locations and derivative of nodes in half of an intra-haustral
     segment. Bow-tie profile for segment with two tenia coli and
@@ -1295,8 +1297,9 @@ def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
 
     arcLengthList = []
     for n1 in range(len(xOuter)):
-        arcLengthPerElement = interp.getCubicHermiteArcLength(xOuter[n1], d1Outer[n1],
-                                                              xOuter[(n1 + 1) % len(xOuter)], d1Outer[(n1 + 1) % len(xOuter)])
+        arcLengthPerElement = \
+            interp.getCubicHermiteArcLength(xOuter[n1], d1Outer[n1],
+                                            xOuter[(n1 + 1) % len(xOuter)], d1Outer[(n1 + 1) % len(xOuter)])
         arcLengthList.append(arcLengthPerElement)
 
     # Total arcLength
@@ -1361,8 +1364,9 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
         d3TCRaw = []
         tcWidth = tubeTCWidthList[n2]
         for N in range(tcCount):
-            idxTCMid = elementsCountThroughWall + 1 + (n2 - 1) * elementsCountAround * (elementsCountThroughWall + 1) \
-                       + elementsCountAround * elementsCountThroughWall + \
+            idxTCMid = elementsCountThroughWall + 1 + (n2 - 1) * \
+                       elementsCountAround * (elementsCountThroughWall + 1) + \
+                       elementsCountAround * elementsCountThroughWall + \
                        N * (elementsCountAroundTC + elementsCountAroundHaustrum) if closedProximalEnd \
                 else n2 * elementsCountAround * (elementsCountThroughWall + 1) + \
                      elementsCountAround * elementsCountThroughWall + \
@@ -1371,7 +1375,8 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
             xMid = [xList[idxTCMid][i] + unitNorm[i] * tcThickness for i in range(3)]
             d1Mid = d1List[idxTCMid]
             TCStartIdx = idxTCMid - int(elementsCountAroundTC * 0.5) if N > 0 else \
-                idxTCMid + tcCount * (elementsCountAroundTC + elementsCountAroundHaustrum) - int(elementsCountAroundTC * 0.5)
+                idxTCMid + tcCount * (elementsCountAroundTC + elementsCountAroundHaustrum) - \
+                int(elementsCountAroundTC * 0.5)
             TCEndIdx = idxTCMid + int(elementsCountAroundTC * 0.5)
             if closedProximalEnd:
                 tcWidth = vector.magnitude([xList[TCStartIdx][c] - xList[TCEndIdx][c] for c in range(3)])
@@ -1560,7 +1565,7 @@ def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
             nx = [v1, v2, v3]
             nd1 = [d1, d2, d3]
             sx, sd1, _, _, _ = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundTC)
-            if N > 0 and N < tcCount:
+            if 0 < N < tcCount:
                 w = sx[1:-1]
                 dw = sd1[1:-1] if elementsCountAroundTC > 2 else nd1[1:-1]
             elif N == 0:
@@ -1591,8 +1596,10 @@ def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
     d2FlatListTC = d2FlatListTC + d2FlatListTC[-((elementsCountAroundTC - 1) * tcCount + 1):]
 
     xFlat, d1Flat, d2Flat, _ = combineTeniaColiWithColon(xFlatColon, d1FlatColon, d2FlatColon, [],
-                                                         xFlatListTC, d1FlatListTC, d2FlatListTC, [], (elementsCountAroundTC - 1) * tcCount + 1,
-                                                         elementsCountAround + 1, elementsCountAlong, elementsCountThroughWall, closedProximalEnd)
+                                                         xFlatListTC, d1FlatListTC, d2FlatListTC, [],
+                                                         (elementsCountAroundTC - 1) * tcCount + 1,
+                                                         elementsCountAround + 1, elementsCountAlong,
+                                                         elementsCountThroughWall, closedProximalEnd)
 
     return xFlat, d1Flat, d2Flat
 
@@ -1638,7 +1645,6 @@ def createColonCoordinatesTeniaColi(xiList, relativeThicknessList, lengthToDiame
                        elementsCountAround * elementsCountThroughWall
         xTCRaw = []
         d1TCRaw = []
-        d2TCRaw = []
         for N in range(tcCount):
             TCMidIdx = faceStartIdx + N * (elementsCountAroundTC + elementsCountAroundHaustrum)
             TCStartIdx = TCMidIdx - int(elementsCountAroundTC * 0.5) if N > 0 else \
@@ -1685,7 +1691,7 @@ def createNodesAndElementsTeniaColi(region,
     Create nodes and elements for the coordinates and flat coordinates fields.
     Note that flat coordinates not implemented for closedProximalEnd yet.
     :param x, d1, d2, d3: coordinates and derivatives of coordinates field.
-    :param xFlat, d1Flat, d2Flat, d3Flat: coordinates and derivatives of
+    :param xFlat, d1Flat, d2Flat: coordinates and derivatives of
     flat coordinates field.
     :param xOrgan, d1Organ, d2Organ, d3Organ, organCoordinateFieldName: coordinates,
     derivatives and name of organ coordinates field.
@@ -1741,7 +1747,7 @@ def createNodesAndElementsTeniaColi(region,
 
     elementtemplate = mesh.createElementtemplate()
     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-    result = elementtemplate.defineField(coordinates, -1, eft)
+    elementtemplate.defineField(coordinates, -1, eft)
 
     # Tenia coli edge elements
     elementtemplate1 = mesh.createElementtemplate()
@@ -1864,9 +1870,12 @@ def createNodesAndElementsTeniaColi(region,
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                     if n1 == 0:
                         # print('NodeIdentifier', nodeIdentifier, 'version 2', xFlatList[i+elementsCountAround])
-                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xFlat[i + elementsCountAround])
-                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Flat[i + elementsCountAround])
-                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Flat[i + elementsCountAround])
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2,
+                                                          xFlat[i + elementsCountAround])
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2,
+                                                          d1Flat[i + elementsCountAround])
+                        flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2,
+                                                          d2Flat[i + elementsCountAround])
                         if useCrossDerivatives:
                             flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                     nodeIdentifier = nodeIdentifier + 1
@@ -1883,9 +1892,12 @@ def createNodesAndElementsTeniaColi(region,
                 if useCrossDerivatives:
                     flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 if nTC == 0:
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2, xFlat[j + (elementsCountAroundTC - 1) * tcCount])
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Flat[j + (elementsCountAroundTC - 1) * tcCount])
-                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2, d2Flat[j + (elementsCountAroundTC - 1) * tcCount])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 2,
+                                                      xFlat[j + (elementsCountAroundTC - 1) * tcCount])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2,
+                                                      d1Flat[j + (elementsCountAroundTC - 1) * tcCount])
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 2,
+                                                      d2Flat[j + (elementsCountAroundTC - 1) * tcCount])
                     if useCrossDerivatives:
                         flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 2, zero)
                 nodeIdentifier = nodeIdentifier + 1
@@ -1950,7 +1962,7 @@ def createNodesAndElementsTeniaColi(region,
                     math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
                     math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
                 ]
-                result = element.setScaleFactors(eft3, scalefactors)
+                element.setScaleFactors(eft3, scalefactors)
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[e1] + annotationGroupsAlong[0] + \
                                    annotationGroupsThroughWall[e3]
@@ -1986,7 +1998,8 @@ def createNodesAndElementsTeniaColi(region,
                 elementtemplate6.defineField(coordinates, -1, eft6)
                 nodeIdentifiers = [bni21, bni22, bni23, bni31, bni31 + 1]
 
-            element = mesh.createElement(elementIdentifier, elementtemplate4 if tetrahedralElement else elementtemplate6)
+            element = \
+                mesh.createElement(elementIdentifier, elementtemplate4 if tetrahedralElement else elementtemplate6)
             element.setNodesByIdentifier(eft4 if tetrahedralElement else eft6, nodeIdentifiers)
             element.setScaleFactors(eft4 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
@@ -2013,10 +2026,11 @@ def createNodesAndElementsTeniaColi(region,
 
                 bni21 = elementsCountThroughWall + 1
                 bni22 = bni21 + elementsCountAround * elementsCountThroughWall + int(elementsCountAroundTC * 0.5) + \
-                        elementsCountAroundHaustrum + N * (elementsCountAroundTC + elementsCountAroundHaustrum) + eTC + 1
+                        elementsCountAroundHaustrum + N * (elementsCountAroundTC + elementsCountAroundHaustrum) + \
+                        eTC + 1
                 bni23 = bni22 + 1
-                bni31 = bni21 + elementsCountAround * (elementsCountThroughWall + 1) + int(elementsCountAroundTC * 0.5) + \
-                        N * (elementsCountAroundTC - 1) + eTC + 1
+                bni31 = bni21 + elementsCountAround * (elementsCountThroughWall + 1) + \
+                        int(elementsCountAroundTC * 0.5) + N * (elementsCountAroundTC - 1) + eTC + 1
 
                 if eTC == 0:
                     eft5 = eftfactory.createEftTetrahedronXi1Zero(va * 10000, vb * 10000)
@@ -2026,7 +2040,7 @@ def createNodesAndElementsTeniaColi(region,
                     element.setNodesByIdentifier(eft5, nodeIdentifiers)
                     element.setScaleFactors(eft5, scalefactors)
 
-                elif eTC > 0 and eTC < elementsCountAroundTC - 1:
+                elif 0 < eTC < elementsCountAroundTC - 1:
                     eft6 = eftfactory.createEftPyramidBottomSimple(va * 10000, vb * 10000)
                     elementtemplate6.defineField(coordinates, -1, eft6)
                     nodeIdentifiers = [bni21, bni22, bni23, bni31 - 1, bni31]
@@ -2043,9 +2057,10 @@ def createNodesAndElementsTeniaColi(region,
                     element.setScaleFactors(eft4, scalefactors)
 
                 elementIdentifier = elementIdentifier + 1
-                annotationGroups = annotationGroupsAround[elementsCountAround + int(
-                    elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[0] + \
-                                   ([longitudinalMuscleGroup] if longitudinalMuscle else [])
+                annotationGroups = \
+                    annotationGroupsAround[elementsCountAround + int(elementsCountAroundTC * 0.5) +
+                                           N * elementsCountAroundTC + eTC] + annotationGroupsAlong[0] + \
+                    ([longitudinalMuscleGroup] if longitudinalMuscle else [])
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2088,7 +2103,8 @@ def createNodesAndElementsTeniaColi(region,
                 elementtemplate6.defineField(coordinates, -1, eft6)
                 nodeIdentifiers = [bni21, bni22, bni23, bni31, bni32]
 
-            element = mesh.createElement(elementIdentifier, elementtemplate5 if tetrahedralElement else elementtemplate6)
+            element = \
+                mesh.createElement(elementIdentifier, elementtemplate5 if tetrahedralElement else elementtemplate6)
             element.setNodesByIdentifier(eft5 if tetrahedralElement else eft6, nodeIdentifiers)
             element.setScaleFactors(eft5 if tetrahedralElement else eft6, scalefactors)
             elementIdentifier = elementIdentifier + 1
@@ -2144,10 +2160,10 @@ def createNodesAndElementsTeniaColi(region,
         # Add elements for tenia coli
         for eTC in range(int(elementsCountAroundTC * 0.5)):
             if closedProximalEnd:
-                bni21 = elementsCountThroughWall + 1 + (e2 - 1) * now + elementsCountThroughWall * elementsCountAround + \
-                        eTC + 1 + tcOffset1
-                bni22 = elementsCountThroughWall + 1 + (e2 - 1) * now + elementsCountThroughWall * elementsCountAround + \
-                        eTC + 2 + tcOffset1
+                bni21 = elementsCountThroughWall + 1 + (e2 - 1) * now + \
+                        elementsCountThroughWall * elementsCountAround + eTC + 1 + tcOffset1
+                bni22 = elementsCountThroughWall + 1 + (e2 - 1) * now + \
+                        elementsCountThroughWall * elementsCountAround + eTC + 2 + tcOffset1
                 bni31 = elementsCountThroughWall + 1 + e2 * now + eTC + 1 + tcOffset1
                 bni32 = elementsCountThroughWall + 1 + e2 * now + eTC + 2 + tcOffset1
             else:
@@ -2162,14 +2178,20 @@ def createNodesAndElementsTeniaColi(region,
             else:
                 nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset,
                                    bni22 + now + tcOffset, bni31, bni31 + now + tcOffset]
-            element = mesh.createElement(elementIdentifier, elementtemplate if eTC < int(elementsCountAroundTC * 0.5) - 1 else elementtemplate1)
+            element = \
+                mesh.createElement(elementIdentifier,
+                                   elementtemplate if eTC < int(elementsCountAroundTC * 0.5) - 1 else elementtemplate1)
             element.setNodesByIdentifier(eft if eTC < int(elementsCountAroundTC * 0.5) - 1 else eft1, nodeIdentifiers)
             if xFlat:
-                element.merge(flatElementtemplate1 if eTC < int(elementsCountAroundTC * 0.5) - 1 else flatElementtemplate3)
-                element.setNodesByIdentifier(eftFlat3 if eTC < int(elementsCountAroundTC * 0.5) - 1 else eftFlat5, nodeIdentifiers)
+                element.merge(flatElementtemplate1 if eTC < int(elementsCountAroundTC * 0.5) - 1 else
+                              flatElementtemplate3)
+                element.setNodesByIdentifier(eftFlat3 if eTC < int(elementsCountAroundTC * 0.5) - 1 else
+                                             eftFlat5, nodeIdentifiers)
             if xOrgan:
-                element.merge(organElementtemplate if eTC < int(elementsCountAroundTC * 0.5) - 1 else organElementtemplate1)
-                element.setNodesByIdentifier(eftOrgan if eTC < int(elementsCountAroundTC * 0.5) - 1 else eftOrgan1, nodeIdentifiers)
+                element.merge(organElementtemplate if eTC < int(elementsCountAroundTC * 0.5) - 1 else
+                              organElementtemplate1)
+                element.setNodesByIdentifier(eftOrgan if eTC < int(elementsCountAroundTC * 0.5) - 1 else
+                                             eftOrgan1, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
             annotationGroups = annotationGroupsAround[elementsCountAround + eTC] + annotationGroupsAlong[e2] + \
                                ([longitudinalMuscleGroup] if longitudinalMuscle else [])
@@ -2187,8 +2209,8 @@ def createNodesAndElementsTeniaColi(region,
                             + eTC + 1 + tcOffset1 + int(elementsCountAroundTC * 0.5) + \
                             (N + 1) * elementsCountAroundHaustrum + N * elementsCountAroundTC
                     bni22 = elementsCountThroughWall + 1 + (
-                            e2 - 1) * now + elementsCountThroughWall * elementsCountAround \
-                            + eTC + 2 + tcOffset1 + int(elementsCountAroundTC * 0.5) + \
+                            e2 - 1) * now + elementsCountThroughWall * elementsCountAround + \
+                            eTC + 2 + tcOffset1 + int(elementsCountAroundTC * 0.5) + \
                             (N + 1) * elementsCountAroundHaustrum + N * elementsCountAroundTC
                     bni31 = elementsCountThroughWall + 1 + e2 * now + eTC + 1 + tcOffset1 + \
                             int(elementsCountAroundTC * 0.5) - 1 + N * (elementsCountAroundTC - 1)
@@ -2199,8 +2221,8 @@ def createNodesAndElementsTeniaColi(region,
                             int(elementsCountAroundTC * 0.5) + (
                                     N + 1) * elementsCountAroundHaustrum + N * elementsCountAroundTC
                     bni22 = e2 * now + elementsCountThroughWall * elementsCountAround + eTC + 2 + tcOffset1 + \
-                            int(elementsCountAroundTC * 0.5) + (
-                                    N + 1) * elementsCountAroundHaustrum + N * elementsCountAroundTC
+                            int(elementsCountAroundTC * 0.5) + (N + 1) * elementsCountAroundHaustrum + \
+                            N * elementsCountAroundTC
                     bni31 = (e2 + 1) * now + eTC + 1 + tcOffset1 + int(elementsCountAroundTC * 0.5) - 1 + \
                             N * (elementsCountAroundTC - 1)
                     bni32 = (e2 + 1) * now + eTC + 2 + tcOffset1 + int(elementsCountAroundTC * 0.5) - 1 + \
@@ -2216,7 +2238,7 @@ def createNodesAndElementsTeniaColi(region,
                     if xOrgan:
                         element.merge(organElementtemplate2)
                         element.setNodesByIdentifier(eftOrgan2, nodeIdentifiers)
-                elif eTC > 0 and eTC < elementsCountAroundTC - 1:
+                elif 0 < eTC < elementsCountAroundTC - 1:
                     nodeIdentifiers = [bni21, bni22, bni21 + now + tcOffset, bni22 + now + tcOffset,
                                        bni31, bni32, bni31 + now + tcOffset, bni32 + now + tcOffset]
                     element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -2239,9 +2261,10 @@ def createNodesAndElementsTeniaColi(region,
                         element.merge(organElementtemplate1)
                         element.setNodesByIdentifier(eftOrgan1, nodeIdentifiers)
                 elementIdentifier = elementIdentifier + 1
-                annotationGroups = annotationGroupsAround[elementsCountAround + int(
-                    elementsCountAroundTC * 0.5) + N * elementsCountAroundTC + eTC] + annotationGroupsAlong[e2] + \
-                                   ([longitudinalMuscleGroup] if longitudinalMuscle else [])
+                annotationGroups = \
+                    annotationGroupsAround[elementsCountAround + int(elementsCountAroundTC * 0.5) +
+                                           N * elementsCountAroundTC + eTC] + annotationGroupsAlong[e2] + \
+                    ([longitudinalMuscleGroup] if longitudinalMuscle else [])
                 if annotationGroups:
                     allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                     for annotationGroup in annotationGroups:
@@ -2250,21 +2273,23 @@ def createNodesAndElementsTeniaColi(region,
 
         for eTC in range(int(elementsCountAroundTC * 0.5)):
             if closedProximalEnd:
-                bni21 = elementsCountThroughWall + 1 + (e2 - 1) * now + elementsCountThroughWall * elementsCountAround + \
-                        eTC + 1 + tcOffset1 + int(elementsCountAroundTC * 0.5) + tcCount * elementsCountAroundHaustrum + \
+                bni21 = elementsCountThroughWall + 1 + (e2 - 1) * now + \
+                        elementsCountThroughWall * elementsCountAround + eTC + 1 + tcOffset1 + \
+                        int(elementsCountAroundTC * 0.5) + tcCount * elementsCountAroundHaustrum + \
                         (tcCount - 1) * elementsCountAroundTC
-                bni22 = elementsCountThroughWall + 1 + (e2 - 1) * now + elementsCountThroughWall * elementsCountAround + \
-                        1 + tcOffset1 if eTC == int(elementsCountAroundTC * 0.5 - 1) else bni21 + 1
+                bni22 = elementsCountThroughWall + 1 + (e2 - 1) * now + \
+                        elementsCountThroughWall * elementsCountAround + 1 + \
+                        tcOffset1 if eTC == int(elementsCountAroundTC * 0.5 - 1) else bni21 + 1
                 bni31 = elementsCountThroughWall + 1 + e2 * now + eTC + 1 + tcOffset1 + \
                         int(elementsCountAroundTC * 0.5) - 1 + (tcCount - 1) * (elementsCountAroundTC - 1)
                 bni32 = elementsCountThroughWall + 1 + e2 * now + 1 + tcOffset1 if eTC == int(
                     elementsCountAroundTC * 0.5 - 1) \
                     else bni31 + 1
             else:
-                bni21 = e2 * now + (elementsCountThroughWall) * elementsCountAround + eTC + 1 + tcOffset1 + \
+                bni21 = e2 * now + elementsCountThroughWall * elementsCountAround + eTC + 1 + tcOffset1 + \
                         int(elementsCountAroundTC * 0.5) + tcCount * elementsCountAroundHaustrum + \
                         (tcCount - 1) * elementsCountAroundTC
-                bni22 = e2 * now + (elementsCountThroughWall) * elementsCountAround + 1 + tcOffset1 if eTC == int(
+                bni22 = e2 * now + elementsCountThroughWall * elementsCountAround + 1 + tcOffset1 if eTC == int(
                     elementsCountAroundTC * 0.5 - 1) else bni21 + 1
                 bni31 = (e2 + 1) * now + eTC + 1 + tcOffset1 + int(elementsCountAroundTC * 0.5) - 1 + \
                         (tcCount - 1) * (elementsCountAroundTC - 1)
@@ -2289,9 +2314,9 @@ def createNodesAndElementsTeniaColi(region,
                 element.merge(organElementtemplate if eTC > 0 else organElementtemplate2)
                 element.setNodesByIdentifier(eftOrgan if eTC > 0 else eftOrgan2, nodeIdentifiers)
             elementIdentifier = elementIdentifier + 1
-            annotationGroups = annotationGroupsAround[
-                                   elementsCountAround + int(elementsCountAroundTC * (tcCount - 0.5)) + eTC] + \
-                               annotationGroupsAlong[e2] + ([longitudinalMuscleGroup] if longitudinalMuscle else [])
+            annotationGroups = \
+                annotationGroupsAround[elementsCountAround + int(elementsCountAroundTC * (tcCount - 0.5)) + eTC] + \
+                annotationGroupsAlong[e2] + ([longitudinalMuscleGroup] if longitudinalMuscle else [])
             if annotationGroups:
                 allAnnotationGroups = mergeAnnotationGroups(allAnnotationGroups, annotationGroups)
                 for annotationGroup in annotationGroups:

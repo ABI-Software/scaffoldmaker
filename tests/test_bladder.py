@@ -24,7 +24,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_bladderurethra1
         parameterSetNames = MeshType_3d_bladderurethra1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Cat 1", "Human 1", "Mouse 1", "Pig 1", "Rat 1",])
+        self.assertEqual(parameterSetNames, ["Default", "Cat 1", "Human 1", "Mouse 1", "Pig 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Cat 1")
         self.assertEqual(26, len(options))
         self.assertEqual(12, options.get("Number of elements along bladder"))
@@ -111,7 +111,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
         self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [ 0.0, 0.0, 0.0 ], 1.0E-10)
+        assertAlmostEqualList(self, xi, [0.0, 0.0, 0.0], 1.0E-10)
         apexGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("apex of urinary bladder"))
         self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
 
@@ -119,7 +119,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         # first remove any surface annotation groups as they are re-added by defineFaceAnnotations
         removeAnnotationGroups = []
         for annotationGroup in annotationGroups:
-            if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
+            if (not annotationGroup.hasMeshGroup(mesh3d)) and \
+                    (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
                 removeAnnotationGroups.append(annotationGroup)
 
         for annotationGroup in removeAnnotationGroups:
@@ -179,7 +180,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
         self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [ 0.0, 0.0, 0.0 ], 1.0E-10)
+        assertAlmostEqualList(self, xi, [0.0, 0.0, 0.0], 1.0E-10)
+
 
 if __name__ == "__main__":
     unittest.main()

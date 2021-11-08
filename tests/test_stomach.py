@@ -24,7 +24,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_stomach1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Rat 1" ])
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Mouse 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Rat 1")
         self.assertEqual(19, len(options))
         self.assertEqual(12, options.get("Number of elements around esophagus"))
@@ -91,12 +91,12 @@ class StomachScaffoldTestCase(unittest.TestCase):
 
         # check some annotationGroups:
         expectedSizes3d = {
-            "body of stomach" : 112,
-            "cardia of stomach" : 36,
-            "duodenum" : 56,
-            "esophagus" : 96,
-            "fundus of stomach" : 114,
-            "pyloric antrum" : 112,
+            "body of stomach": 112,
+            "cardia of stomach": 36,
+            "duodenum": 56,
+            "esophagus": 96,
+            "fundus of stomach": 114,
+            "pyloric antrum": 112,
             "pyloric canal": 56,
             "stomach": 582
             }
@@ -109,7 +109,8 @@ class StomachScaffoldTestCase(unittest.TestCase):
         # first remove any surface annotation groups as they are re-added by defineFaceAnnotations
         removeAnnotationGroups = []
         for annotationGroup in annotationGroups:
-            if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
+            if (not annotationGroup.hasMeshGroup(mesh3d)) and \
+                    (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
                 removeAnnotationGroups.append(annotationGroup)
 
         for annotationGroup in removeAnnotationGroups:
@@ -161,12 +162,14 @@ class StomachScaffoldTestCase(unittest.TestCase):
         markerLocation = refineFieldmodule.findFieldByName("marker_location")
         self.assertTrue(markerLocation.isValid())
         cache = refineFieldmodule.createFieldcache()
-        node = findNodeWithName(markerNodes, markerName, "esophagogastric junction along the lesser curvature on serosa")
+        node = findNodeWithName(markerNodes, markerName,
+                                "esophagogastric junction along the lesser curvature on serosa")
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
         self.assertEqual(5821, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
+        assertAlmostEqualList(self, xi, [0.0, 1.0, 1.0], 1.0E-10)
+
 
 if __name__ == "__main__":
     unittest.main()

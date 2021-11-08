@@ -24,12 +24,13 @@ class ColonScaffoldTestCase(unittest.TestCase):
         Test creation of colon scaffold.
         """
         parameterSetNames = MeshType_3d_colon1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Mouse 1", "Mouse 2", "Pig 1", "Pig 2"])
+        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Mouse 1", "Mouse 2", "Pig 1",
+                                             "Pig 2"])
         centralPathDefaultScaffoldPackages = {
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {
                     'Coordinate dimensions': 3,
-                    'D2 derivatives':True,
+                    'D2 derivatives': True,
                     'Length': 1.0,
                     'Number of elements': 1
                 },
@@ -89,8 +90,8 @@ class ColonScaffoldTestCase(unittest.TestCase):
         centralPath.generate(tmpRegion)
         cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(2, len(cx))
-        assertAlmostEqualList(self, cx[0], [ 163.7, -25.2, 12.2 ], 1.0E-6)
-        assertAlmostEqualList(self, cx[1], [ 117.2, 32.8, -2.6 ], 1.0E-6)
+        assertAlmostEqualList(self, cx[0], [163.7, -25.2, 12.2], 1.0E-6)
+        assertAlmostEqualList(self, cx[1], [117.2, 32.8, -2.6], 1.0E-6)
         del tmpRegion
 
         annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
@@ -115,19 +116,19 @@ class ColonScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 108.02506479907721, -36.405037279268456, -25.89741158484918 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 185.46457506076914, 48.1011574894518, 34.05259862880112 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [108.02506479907721, -36.405037279268456, -25.89741158484918], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [185.46457506076914, 48.1011574894518, 34.05259862880112], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 186.72988844629867, 77.41781871321301, 2.2 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [0.0, 0.0, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [186.72988844629867, 77.41781871321301, 2.2], 1.0E-6)
 
         colonCoordinates = fieldmodule.findFieldByName("colon coordinates").castFiniteElement()
         minimums, maximums = evaluateFieldNodesetRange(colonCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [-0.6, 0.0, -0.6], 1.0E-4)
-        assertAlmostEqualList(self, maximums, [ 0.6, 24.0, 0.625], 1.0E-4)
+        assertAlmostEqualList(self, maximums, [0.6, 24.0, 0.625], 1.0E-4)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -185,6 +186,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         result, colonVolume = colonVolumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(colonVolume, 8.290058800222006, delta=1.0E-6)
+
 
 if __name__ == "__main__":
     unittest.main()

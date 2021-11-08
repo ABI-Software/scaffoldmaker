@@ -19,7 +19,7 @@ class CecumScaffoldTestCase(unittest.TestCase):
         Test creation of cecum scaffold.
         """
         parameterSetNames = MeshType_3d_cecum1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Pig 1" ])
+        self.assertEqual(parameterSetNames, ["Default", "Pig 1"])
         options = MeshType_3d_cecum1.getDefaultOptions("Pig 1")
         self.assertEqual(30, len(options))
         self.assertEqual(5, options.get("Number of segments"))
@@ -86,6 +86,7 @@ class CecumScaffoldTestCase(unittest.TestCase):
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(volume, 127905.28250502056, delta=1.0E-6)
+
 
 if __name__ == "__main__":
     unittest.main()
