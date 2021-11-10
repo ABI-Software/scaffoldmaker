@@ -2,7 +2,9 @@
 Class for refining a mesh from one region to another.
 '''
 from __future__ import division
+
 import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.zinc.element import Element, Elementbasis

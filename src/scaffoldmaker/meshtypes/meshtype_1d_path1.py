@@ -3,16 +3,15 @@ Generates a 1-D path mesh.
 """
 
 from __future__ import division
-import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode, smoothCubicHermiteDerivativesLine, smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils import vector
-from opencmiss.zinc.result import RESULT_OK
+from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
 
 
 class MeshType_1d_path1(Scaffold_base):

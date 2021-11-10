@@ -3,8 +3,10 @@ Generates a 3-D bladder mesh with variable numbers of elements around and up.
 """
 
 from __future__ import division
-import math
+
 import copy
+import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -14,11 +16,11 @@ from scaffoldmaker.annotation.bladder_terms import get_bladder_term
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils import interpolation as interp
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.interpolation import getCubicHermiteBasis, smoothCubicHermiteDerivativesLine
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 

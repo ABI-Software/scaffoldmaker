@@ -1,15 +1,18 @@
-import unittest
 import copy
+import unittest
+
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+
 from testutils import assertAlmostEqualList
+
 
 class LungScaffoldTestCase(unittest.TestCase):
 

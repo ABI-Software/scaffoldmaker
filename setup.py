@@ -1,18 +1,17 @@
-from setuptools import setup, find_packages
-from setuptools.command.install import install
-import os
 import io
+import os
+
+from setuptools import setup, find_packages
 
 SETUP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# List all of your Python package dependencies in the
-# requirements.txt file
 
 def readfile(filename, split=False):
     with io.open(filename, encoding="utf-8") as stream:
         if split:
             return stream.read().split("\n")
         return stream.read()
+
 
 readme = readfile("README.rst", split=True)[3:]  # skip title
 # For requirements not hosted on PyPi place listings
@@ -46,4 +45,4 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,
-    )
+)

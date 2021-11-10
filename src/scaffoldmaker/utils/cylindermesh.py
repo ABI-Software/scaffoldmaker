@@ -4,17 +4,18 @@ Utility functions for generating a generalised 3-D solid cylinder (extruded elli
 a solid truncated cone. It also can be used for transition from a 2D base to another base (e.g., ellipse to a circle).
 """
 
-from enum import Enum
-from scaffoldmaker.utils import vector, geometry
 import math
-from opencmiss.zinc.field import Field
+from enum import Enum
+
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
-from scaffoldmaker.utils.shieldmesh import ShieldMesh2D, ShieldShape2D, ShieldRimDerivativeMode
-from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
-    smoothCubicHermiteDerivativesLine, interpolateSampleLinear
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
-from scaffoldmaker.utils.mirror import Mirror
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
+from scaffoldmaker.utils import vector, geometry
+from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
+    smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.mirror import Mirror
+from scaffoldmaker.utils.shieldmesh import ShieldMesh2D, ShieldShape2D, ShieldRimDerivativeMode
 
 
 class CylinderShape(Enum):

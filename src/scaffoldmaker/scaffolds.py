@@ -3,6 +3,7 @@ Class for listing and accessing all mesh type scripts supported by scaffoldmaker
 """
 
 import json
+
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
@@ -10,7 +11,6 @@ from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from scaffoldmaker.meshtypes.meshtype_2d_tubebifurcation1 import MeshType_2d_tubebifurcation1
-from scaffoldmaker.meshtypes.meshtype_2d_tubebifurcationtree1 import MeshType_2d_tubebifurcationtree1
 from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
@@ -34,9 +34,9 @@ from scaffoldmaker.meshtypes.meshtype_3d_lens1 import MeshType_3d_lens1
 from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
+from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
-from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
