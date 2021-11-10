@@ -15,7 +15,7 @@ from scaffoldmaker.utils import vector, geometry
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.mirror import Mirror
-from scaffoldmaker.utils.shieldmesh import ShieldMesh, ShieldShape, ShieldRimDerivativeMode
+from scaffoldmaker.utils.shieldmesh import ShieldMesh2D, ShieldShape2D, ShieldRimDerivativeMode
 
 
 class CylinderShape(Enum):
@@ -214,11 +214,11 @@ class CylinderMesh:
 
         elementsCountRim = self._elementsCountAcrossRim
 
-        shieldMode = ShieldShape.SHIELD_SHAPE_FULL if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL \
-            else ShieldShape.SHIELD_SHAPE_LOWER_HALF
+        shieldMode = ShieldShape2D.SHIELD_SHAPE_FULL if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL \
+            else ShieldShape2D.SHIELD_SHAPE_LOWER_HALF
         ellipseShape = EllipseShape.Ellipse_SHAPE_FULL \
             if self._cylinderShape is self._cylinderShape.CYLINDER_SHAPE_FULL else EllipseShape.Ellipse_SHAPE_LOWER_HALF
-        self._shield = ShieldMesh(self._elementsCountAcrossMinor, self._elementsCountAcrossMajor, elementsCountRim,
+        self._shield = ShieldMesh2D(self._elementsCountAcrossMinor, self._elementsCountAcrossMajor, elementsCountRim,
                                   None, self._elementsCountAlong, shieldMode,
                                   shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
 
@@ -425,9 +425,9 @@ class Ellipse2D:
         self.coreMajorRadius = coreMajorRadius
         self.coreMinorRadius = coreMinorRadius
         elementsCountRim = elementsCountAcrossShell + elementsCountAcrossTransition - 1
-        shieldMode = ShieldShape.SHIELD_SHAPE_FULL if ellipseShape is EllipseShape.Ellipse_SHAPE_FULL\
-            else ShieldShape.SHIELD_SHAPE_LOWER_HALF
-        shield = ShieldMesh(elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountRim,
+        shieldMode = ShieldShape2D.SHIELD_SHAPE_FULL if ellipseShape is EllipseShape.Ellipse_SHAPE_FULL\
+            else ShieldShape2D.SHIELD_SHAPE_LOWER_HALF
+        shield = ShieldMesh2D(elementsCountAcrossMinor, elementsCountAcrossMajor, elementsCountRim,
                             None, 1, shieldMode,
                             shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND)
         self.elementsCountAcrossMajor = elementsCountAcrossMajor
@@ -464,6 +464,7 @@ class Ellipse2D:
         self.smoothTransitionRims()
         if self.ellipseShape == EllipseShape.Ellipse_SHAPE_FULL:
             self.generateNodesForUpperHalf()
+        self.calculateD2()
 
     def generateBase1DMesh(self, rx):
         """
@@ -749,6 +750,22 @@ class Ellipse2D:
                         self.pd1[n2][n1])
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
+
+    def calculateD2(self):
+        """
+        :return:
+        """
+        btx = self.px
+        btd2 = self.pd2
+
+        nte = normalToEllipse(self.majorAxis, self.minorAxis)
+        for n2 in range(self.elementsCountAcrossMajor + 1):
+            for n1 in range(self.elementsCountAcrossMinor + 1):
+                if btx[n2][n1]:
+                    btd2[n2][n1] = nte
+
+    def getShield(self):
+        return self.__shield
 
 
 def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, height):
