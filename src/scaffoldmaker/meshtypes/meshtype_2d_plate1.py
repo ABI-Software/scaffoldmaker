@@ -3,12 +3,13 @@ Generates a 2-D unit plate mesh with variable numbers of elements in 2 direction
 """
 
 from __future__ import division
-import math
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+
 
 class MeshType_2d_plate1(Scaffold_base):
     '''

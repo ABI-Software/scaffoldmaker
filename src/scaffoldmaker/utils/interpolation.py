@@ -3,10 +3,12 @@ Interpolation functions shared by mesh generators.
 '''
 
 from __future__ import division
-from collections.abc import Sequence
+
 import copy
-from enum import Enum
 import math
+from collections.abc import Sequence
+from enum import Enum
+
 from scaffoldmaker.utils import vector
 
 gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )

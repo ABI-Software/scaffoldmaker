@@ -3,9 +3,12 @@ Utility functions for geometry.
 '''
 
 from __future__ import division
+
 import copy
 import math
+
 from scaffoldmaker.utils import vector
+
 
 def getApproximateEllipsePerimeter(a, b):
     '''
