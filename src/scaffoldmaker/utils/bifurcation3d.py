@@ -33,11 +33,18 @@ class BifurcationMesh:
         elementsCount = [2, 2, 5]
         self._elementsCount = elementsCount
 
-        self.px = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.pd1 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.pd2 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.pd3 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.nodeId = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.px = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.pd1 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.pd2 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.pd3 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.nodeId = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+
+        self.px = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 2)]
+        self.pd1 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 2)]
+        self.pd2 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 2)]
+        self.pd3 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 2)]
+        self.nodeId = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 2)]
+
         self.elementId = [[[None] * (elementsCount[0]+1) for c in range(elementsCount[1])] for c in range(elementsCount[2])]
         self.createBifurcationMesh3d(fieldModule, coordinates)
 
@@ -72,18 +79,18 @@ class BifurcationMesh:
         baseleg1 = BaseLeg(self._elementsCount, nodeparams1)
         self.copyBaseLeg2Bifurcation(baseleg1, 1)
 
-        self.px[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 1.0, 2.2]
-        self.px[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.5, 2.2]
-        self.px[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 2.2]
-        self.pd1[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        self.pd1[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        self.pd1[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        self.pd2[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        self.pd2[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        self.pd2[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        self.pd3[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        self.pd3[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        self.pd3[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
+        self.px[self._elementsCount[2]//2+1][0][self._elementsCount[0]] = [0.0, 1.0, 2.2]
+        self.px[self._elementsCount[2]//2+1][1][self._elementsCount[0]] = [0.0, 0.5, 2.2]
+        self.px[self._elementsCount[2]//2+1][2][self._elementsCount[0]] = [0.0, 0.0, 2.2]
+        self.pd1[self._elementsCount[2]//2+1][0][self._elementsCount[0]] = [0.0, -0.5, 0.0]
+        self.pd1[self._elementsCount[2]//2+1][1][self._elementsCount[0]] = [0.0, -0.5, 0.0]
+        self.pd1[self._elementsCount[2]//2+1][2][self._elementsCount[0]] = [0.0, -0.5, 0.0]
+        self.pd2[self._elementsCount[2]//2+1][0][self._elementsCount[0]] = [0.5, 0.0, 0.0]
+        self.pd2[self._elementsCount[2]//2+1][1][self._elementsCount[0]] = [0.5, 0.0, 0.0]
+        self.pd2[self._elementsCount[2]//2+1][2][self._elementsCount[0]] = [0.5, 0.0, 0.0]
+        self.pd3[self._elementsCount[2]//2+1][0][self._elementsCount[0]] = [0.0, 0.0, 0.7]
+        self.pd3[self._elementsCount[2]//2+1][1][self._elementsCount[0]] = [0.0, 0.0, 0.7]
+        self.pd3[self._elementsCount[2]//2+1][2][self._elementsCount[0]] = [0.0, 0.0, 0.7]
 
         baseleg2 = BaseLeg(self._elementsCount, nodeparams2)
         self.copyBaseLeg2Bifurcation(baseleg2, 2)
@@ -94,43 +101,43 @@ class BifurcationMesh:
 
 
 
-        elementsCount = [2, 2, 5]
-        self.px = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.pd1 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.pd2 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.pd3 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.nodeId = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        self.elementId = [[[None] * (elementsCount[0]+1) for c in range(elementsCount[1])] for c in range(elementsCount[2])]
-
-        nodeparams1 = [[[0.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [[0.0, -1/self._elementsCount[1], 0.0], [0.0, -1/self._elementsCount[1], 0.0]],
-                       [[1/self._elementsCount[0], 0.0, 0.0], [1/self._elementsCount[0], 0.0, 0.0]]],
-                      [[0.0, 0.0, 1.4], [0.0, -1.0, 1.4], [1.2, 0.0, 1.0],[[0.0, -1/self._elementsCount[1], 0.0], [0.0, -1/self._elementsCount[1], 0.0]],
-                       [[1/self._elementsCount[0], 0.0, 0.0], [0.5*0.7071, 0.0, -0.5*0.7071]]]]
-
-        nodeparams2 = [[[0.5, 0.0, 2.2], [0.5, -1.0, 2.2], [1.2, 0.0, 1.0],[[0.0, -1 / self._elementsCount[1], 0.0], [0.0, -1 / self._elementsCount[1], 0.0]],
-                       [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]]],
-                       [[1.7, 0.0, 2.2], [1.7, -1.0, 2.2], [1.7, 0.0, 1.2], [[0.0, -1 / self._elementsCount[0], 0.0], [0.0, -1 / self._elementsCount[0], 0.0]],
-                        [[0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]],]]
-
-
-        baseleg1 = BaseLeg(self._elementsCount, nodeparams1)
-        self.copyBaseLeg2Bifurcation(baseleg1, 1)
-
-        # self.px[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 1.0, 2.2]
-        # self.px[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.5, 2.2]
-        # self.px[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 2.2]
-        # self.pd1[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        # self.pd1[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        # self.pd1[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        # self.pd2[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        # self.pd2[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        # self.pd2[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        # self.pd3[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        # self.pd3[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        # self.pd3[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-
-        baseleg2 = BaseLeg(self._elementsCount, nodeparams2)
-        self.copyBaseLeg2Bifurcation(baseleg2, 2)
+        # elementsCount = [2, 2, 5]
+        # self.px = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.pd1 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.pd2 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.pd3 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.nodeId = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        # self.elementId = [[[None] * (elementsCount[0]+1) for c in range(elementsCount[1])] for c in range(elementsCount[2])]
+        #
+        # nodeparams1 = [[[0.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [[0.0, -1/self._elementsCount[1], 0.0], [0.0, -1/self._elementsCount[1], 0.0]],
+        #                [[1/self._elementsCount[0], 0.0, 0.0], [1/self._elementsCount[0], 0.0, 0.0]]],
+        #               [[0.0, 0.0, 1.4], [0.0, -1.0, 1.4], [1.2, 0.0, 1.0],[[0.0, -1/self._elementsCount[1], 0.0], [0.0, -1/self._elementsCount[1], 0.0]],
+        #                [[1/self._elementsCount[0], 0.0, 0.0], [0.5*0.7071, 0.0, -0.5*0.7071]]]]
+        #
+        # nodeparams2 = [[[0.5, 0.0, 2.2], [0.5, -1.0, 2.2], [1.2, 0.0, 1.0],[[0.0, -1 / self._elementsCount[1], 0.0], [0.0, -1 / self._elementsCount[1], 0.0]],
+        #                [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]]],
+        #                [[1.7, 0.0, 2.2], [1.7, -1.0, 2.2], [1.7, 0.0, 1.2], [[0.0, -1 / self._elementsCount[0], 0.0], [0.0, -1 / self._elementsCount[0], 0.0]],
+        #                 [[0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]],]]
+        #
+        #
+        # baseleg1 = BaseLeg(self._elementsCount, nodeparams1)
+        # self.copyBaseLeg2Bifurcation(baseleg1, 1)
+        #
+        # # self.px[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 1.0, 2.2]
+        # # self.px[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.5, 2.2]
+        # # self.px[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 2.2]
+        # # self.pd1[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
+        # # self.pd1[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
+        # # self.pd1[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
+        # # self.pd2[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
+        # # self.pd2[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
+        # # self.pd2[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
+        # # self.pd3[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
+        # # self.pd3[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
+        # # self.pd3[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
+        #
+        # baseleg2 = BaseLeg(self._elementsCount, nodeparams2)
+        # self.copyBaseLeg2Bifurcation(baseleg2, 2)
 
         # self.generateBaseLeg(fieldModule, coordinates, mesh, nodes)
         # self.generateNodes(nodes, fieldmodule, coordinates)
@@ -147,7 +154,7 @@ class BifurcationMesh:
                     if idx == 1:
                         n3s = n3
                     elif idx == 2:
-                        n3s = self._elementsCount[2]//2 + 1 + n3
+                        n3s = self._elementsCount[2]//2 + 2 + n3
                     self.px[n3s][n2][n1] = baseleg.px[n3][n2][n1]
                     self.pd1[n3s][n2][n1] = baseleg.pd1[n3][n2][n1]
                     self.pd2[n3s][n2][n1] = baseleg.pd2[n3][n2][n1]
@@ -198,9 +205,9 @@ class BifurcationMesh:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
         cache = fieldmodule.createFieldcache()
 
-        for n3 in range(self._elementsCount[2] + 1):
+        for n3 in range(self._elementsCount[2] + 2):
             for n2 in range(self._elementsCount[1] + 1):
-                for n1 in range(self._elementsCount[0] + 2):
+                for n1 in range(self._elementsCount[0] + 1):
                     if self.px[n3][n2][n1]:
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         self.nodeId[n3][n2][n1] = nodeIdentifier
@@ -248,11 +255,15 @@ class BifurcationMesh:
         # e2x = e2z - 2
         for e3 in range(self._elementsCount[2]):
             for e2 in range(self._elementsCount[1]):
-                for e1 in range(self._elementsCount[0]+1):
+                for e1 in range(self._elementsCount[0]):
                     eft1 = eft
                     scalefactors = None
-                    nids = [ self.nodeId[e3][e2][e1], self.nodeId[e3][e2 + 1][e1], self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2 + 1][e1],
-                             self.nodeId[e3][e2][e1 + 1], self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3+1][e2][e1 + 1], self.nodeId[e3+1][e2 + 1][e1 + 1] ]
+                    if e3 >= 3:
+                        e3t = e3 + 1
+                    else:
+                        e3t = e3
+                    nids = [ self.nodeId[e3t][e2][e1], self.nodeId[e3t][e2 + 1][e1], self.nodeId[e3t+1][e2][e1], self.nodeId[e3t+1][e2 + 1][e1],
+                             self.nodeId[e3t][e2][e1 + 1], self.nodeId[e3t][e2 + 1][e1 + 1], self.nodeId[e3t+1][e2][e1 + 1], self.nodeId[e3t+1][e2 + 1][e1 + 1] ]
 
                     if (e2 < e2b) or (e2 > e2y):
                         if (e1 < e1b) or (e1 > e1y):
@@ -271,7 +282,7 @@ class BifurcationMesh:
                                 setEftScaleFactorIds(eft1, [1], [])
                                 scalefactors = [-1.0]
                                 if e3 == self._elementsCount[2] // 2 + 1 and e1 == e1b:
-                                    e3r = e3-1
+                                    e3r = e3t-1
                                     nids[0] = self.nodeId[e3r][e2][e1]
                                     nids[1] = self.nodeId[e3r][e2 + 1][e1]
 
@@ -440,6 +451,9 @@ class BifurcationMesh:
 
                             elif e2 == 1:
                                 nids = [17, 20, 24, 26, 18, 21, 25, 27]
+
+                    print(e3, e2, e1)
+                    print(nids)
 
                     if not all(nids):
                         continue
