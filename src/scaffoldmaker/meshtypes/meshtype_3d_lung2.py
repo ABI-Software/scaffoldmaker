@@ -59,6 +59,7 @@ class MeshType_3d_lung2(Scaffold_base):
         options['Distance from origin - Left/Right Lung'] = [3.5, 0.0, 0.0]
         options['Fissure angle - Left/Right Lung'] = 45.0
         options['Oblique proportion - Left/Right Lung'] = 0.8
+        options['Tilt apex/diaphragm surface'] = [0.0, 0.0]
         options['Open fissures - Left/Right Lung'] = False
         options['Length - Accessory lobe'] = 2.0
         options['Width - Accessory lobe'] = 2.0
@@ -77,14 +78,15 @@ class MeshType_3d_lung2(Scaffold_base):
             'Distance from origin - Left/Right Lung',
             'Fissure angle - Left/Right Lung',
             'Oblique proportion - Left/Right Lung',
+            'Tilt apex/diaphragm surface',
             'Open fissures - Left/Right Lung',
             'Length - Accessory lobe',
             'Width - Accessory lobe',
             'Height - Accessory lobe',
             'Distance from origin - Accessory lobe',
             'Refine',
-            'Refine number of elements'
-            ]
+            'Refine number of elements',
+        ]
         return optionNames
 
     @classmethod
@@ -128,6 +130,7 @@ class MeshType_3d_lung2(Scaffold_base):
         fissureAngle = options['Fissure angle - Left/Right Lung']
         obliqueProportion = options['Oblique proportion - Left/Right Lung']
         discontinuity = options['Open fissures - Left/Right Lung']
+        tiltDegree = options['Tilt apex/diaphragm surface']
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -463,6 +466,9 @@ class MeshType_3d_lung2(Scaffold_base):
             lungNodesetGroup.addNode(markerPoint)
             nodeIdentifier += 1
 
+        if tiltDegree != 0:
+            tiltLungs(tiltDegree, fm, coordinates, nodes)
+
         return annotationGroups
 
     @classmethod
@@ -771,8 +777,8 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                         next_xd2 = copy.deepcopy(obl[n2 + 1])
                     else:
                         # 3-way point
-                        d3 = [-md2[n3][n2][0], -md2[n3][n2][1], -md2[n3][n2][2]]
                         d2 = [md3[n2][n3][0], md3[n2][n3][1], md3[n2][n3][2]]
+                        d3 = [-md2[n3][n2][0], -md2[n3][n2][1], -md2[n3][n2][2]]
                 else:
                     continue
 
@@ -786,8 +792,10 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                     d1 = [next_xd1[i] - x[i] for i in range(3)]
                 elif n1 == 1:
                     x = [0.0, x[1], x[2]]
+                    next_x = [0.0, next_xd2[1], next_xd2[2]]
                     if n2 == 0:
-                        d1 = [-d2[i] for i in range(3)]
+                        d1 = [widthUnit * math.sin(0.5 * math.pi), 0.0, 0.0]
+                        d2 = [next_x[i] - x[i] for i in range(3)]
                     # 3-way point
                     if (n3 == 3) and (n2 == 2):
                         d3 = [0.0, -md2[n3][n2][1], -md2[n3][n2][2]]
@@ -956,20 +964,20 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
     for n3 in range(uElementsCount3 + 1):
         if n3 == 0:
             tx_d2 = upper_row1
-            tx_d3 = [upper_edge[-i] for i in range(1,6)]
+            tx_d3 = [upper_edge[-i] for i in range(1, 6)]
         elif n3 == 1:
             tx_d2 = upper_row2
             tx_d3 = [upper_row1[-n3-1], upper_row2[-n3-1], upper_row3[-n3-1], upper_row4[-n3-1], upper_edge[-5]]
         elif n3 == 2:
             tx_d2 = upper_row3
-            tx_d3 = [upper_row4[n3], upper_edge[n3 + 1]]
+            tx_d3 = [obl[n3], upper_row4[n3], upper_edge[n3 + 1]]
         elif n3 == 3:
             tx_d2 = upper_row4
-            tx_d3 = [upper_row4[n3-2], upper_edge[n3 - 1]]
+            tx_d3 = [obl[n3-2], upper_row4[n3-2], upper_edge[n3 - 1]]
         elif n3 == 4:
             # Apex row
             tx_d2 = [upper_edge[i] for i in range(1, 6)]
-            tx_d3 = [upper_edge[i] for i in range(1,3)]
+            tx_d3 = [upper_edge[i] for i in range(3)]
 
         md2.append(smoothCubicHermiteDerivativesLine(tx_d2, tx_d2))
         md3.append(smoothCubicHermiteDerivativesLine(tx_d3, tx_d3))
@@ -1013,7 +1021,7 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                 elif (i == 3):
                     x = copy.deepcopy(upper_row4[j])
                     d2 = md2[i][j]
-                    d3 = md3[-j-1][i] if j > 2 else md3[-j-1][i-3]
+                    d3 = md3[-j-1][i] if j > 2 else md3[-j-1][i-2]
                     if j < 4:
                         next_xd2 = copy.deepcopy(upper_row4[j+1])
                 elif (i == 4) and (j > 0) and (j < 4):
@@ -1591,3 +1599,22 @@ def createDiscontinuity(coordinates, nodes, mesh, fieldcache, nodetemplate, left
                         element.setNodesByIdentifier(eft, nodeIds)
 
     return nodeIdentifier
+
+def tiltLungs(tiltDegree, fm, coordinates,nodes):
+    """
+    :param tiltDegree: [tilted degree for apex, for diaphragm]
+    :param fm:
+    :param coordinates:
+    :param nodes:
+    :return: transformed lungs
+    """
+    # FieldConstant - Matrix = [x1, x4, x7,
+    #                           x2, x5, x8,
+    #                           x3, x6, x9]
+    sh_yz = tiltDegree[0] / 180 * math.pi
+    sh_zy = tiltDegree[1] / 180 * math.pi
+    shearMatrix = fm.createFieldConstant([1.0, 0.0, 0.0, 0.0, 1.0, sh_yz, 0.0, sh_zy, 1.0])
+    newCoordinates = fm.createFieldMatrixMultiply(3, shearMatrix, coordinates)
+    fieldassignment = coordinates.createFieldassignment(newCoordinates)
+    fieldassignment.setNodeset(nodes)
+    fieldassignment.assign()
