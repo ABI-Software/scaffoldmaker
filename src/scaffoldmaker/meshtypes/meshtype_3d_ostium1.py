@@ -256,7 +256,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     ostiumRadius = 0.5 * unitScale * options['Ostium diameter']
     ostiumLength = unitScale * options['Ostium length']
     ostiumWallThickness = unitScale * options['Ostium wall thickness']
-    ostiumWallThicknessProportions = copy.deepcopy(options['Ostium wall relative thicknesses'])
+    ostiumWallThicknessProportionsUI = copy.deepcopy(options['Ostium wall relative thicknesses'])
     interVesselHeight = unitScale * options['Ostium inter-vessel height']
     interVesselDistance = unitScale * options['Ostium inter-vessel distance'] if (vesselsCount > 1) else 0.0
     halfInterVesselDistance = 0.5 * interVesselDistance
@@ -264,7 +264,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     vesselEndDerivative = ostiumLength * options['Vessel end length factor'] / elementsCountAlong
     vesselInnerRadius = 0.5 * unitScale * options['Vessel inner diameter']
     vesselWallThickness = unitScale * options['Vessel wall thickness']
-    vesselWallThicknessProportions = copy.deepcopy(options['Vessel wall relative thicknesses'])
+    vesselWallThicknessProportionsUI = copy.deepcopy(options['Vessel wall relative thicknesses'])
     vesselOuterRadius = vesselInnerRadius + vesselWallThickness
     vesselAngle1Radians = math.radians(options['Vessel angle 1 degrees'])
     vesselAngle1SpreadRadians = math.radians(options['Vessel angle 1 spread degrees'])
@@ -341,6 +341,11 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
     od2 = [[] for n3 in range(elementsCountThroughWall + 1)]
     od3 = [[] for n3 in range(elementsCountThroughWall + 1)]
     oPositions = []
+    ostiumWallThicknessProportions = [ostiumWallThicknessProportion / sum(ostiumWallThicknessProportionsUI)
+                                      for ostiumWallThicknessProportion in ostiumWallThicknessProportionsUI]
+    vesselWallThicknessProportions = [vesselWallThicknessProportion / sum(vesselWallThicknessProportionsUI)
+                                      for vesselWallThicknessProportion in vesselWallThicknessProportionsUI]
+
     ostiumWallThicknessProportions.append(ostiumWallThicknessProportions[-1])
     vesselWallThicknessProportions.append(vesselWallThicknessProportions[-1])
 
