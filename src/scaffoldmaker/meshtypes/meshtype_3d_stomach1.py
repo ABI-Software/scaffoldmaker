@@ -1992,8 +1992,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         if elementsCountThroughWall > 1:
             thicknessProportionsUI = [0.0, mucosaRelThickness, submucosaRelThickness, circularRelThickness,
                                       longitudinalRelThickness, longitudinalRelThickness]
-            thicknessProportions = [thicknessProportion / sum(thicknessProportionsUI)
+            thicknessProportions = [thicknessProportion / sum(thicknessProportionsUI[:-1])
                                     for thicknessProportion in thicknessProportionsUI]
+
             xi3List = []
             xi3 = 0.0
             for i in range(len(thicknessProportions) - 1):
