@@ -44,7 +44,8 @@ bladder_terms = [
     ("urethra junction of ventral bladder neck", "ILX:0738410")
 ]
 
-def get_bladder_term(name : str):
+
+def get_bladder_term(name: str):
     """
     Find term by matching name to any identifier held for a term.
     Raise exception if name not found.
@@ -52,5 +53,5 @@ def get_bladder_term(name : str):
     """
     for term in bladder_terms:
         if name in term:
-            return ( term[0], term[1] )
+            return (term[0], term[1])
     raise NameError("Bladder annotation term '" + name + "' not found.")

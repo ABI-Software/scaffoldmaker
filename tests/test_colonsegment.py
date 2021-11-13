@@ -19,7 +19,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         Test creation of human colon segment scaffold.
         """
         parameterSetNames = MeshType_3d_colonsegment1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Cattle 1", "Human 1", "Mouse 1", "Pig 1" ])
+        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Mouse 1", "Pig 1"])
         options = MeshType_3d_colonsegment1.getDefaultOptions("Human 1")
         self.assertEqual(31, len(options))
         self.assertEqual(0.0, options.get("Start phase"))
@@ -59,14 +59,14 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ -2.172286248499807e-15, -58.95670186936737, -55.54662267827035 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 50.0, 50.52621132610023, 55.54662267827035 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-2.172286248499807e-15, -58.95670186936737, -55.54662267827035], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [50.0, 50.52621132610023, 55.54662267827035], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ 0.0, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [397.2736607240895, 50.0, 3.2000000000000006], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [0.0, 0.0, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [397.2736607240895, 50.0, 2.2], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -78,10 +78,10 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 21129.564192298032, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 21035.8818469729, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 40783.41115796618, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 39781.704358310606, delta=1.0E-6)
 
     def test_mousecolonsegment1(self):
         """
@@ -118,6 +118,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(flatSurfaceArea, surfaceArea, delta=1.0E-3)
+
 
 if __name__ == "__main__":
     unittest.main()
