@@ -53,13 +53,16 @@ class MeshType_3d_lung2(Scaffold_base):
         if parameterSetName == 'Default':
             parameterSetName = 'Human 1'
         options['Base parameter set'] = parameterSetName
-        options['Length - Left/Right Lung'] = 6.0
-        options['Width - Left/Right Lung'] = 2.5
-        options['Height - Left/Right Lung'] = 10.0
-        options['Distance from origin - Left/Right Lung'] = [3.5, 0.0, 0.0]
-        options['Fissure angle - Left/Right Lung'] = 45.0
-        options['Oblique proportion - Left/Right Lung'] = 0.8
-        options['Tilt apex/diaphragm surface'] = [0.0, 0.0]
+        options['Length - Left/Right Lung'] = [6.0, 6.0]
+        options['Width - Left/Right Lung'] = [2.5, 2.5]
+        options['Height - Left/Right Lung'] = [10.0, 10.0]
+        options['Distance from origin - Left/Right Lung'] = [     3.5, 0.0, 0.0]
+        options['Fissure angle - Left/Right Lung'] = [45.0, 45.0]
+        options['Oblique proportion - Left/Right Lung'] = [0.8, 0.8]
+        options['Tilt apex - Left/Right Lung'] = [0.0, 0.0]
+        options['Tilt diaphragm surface - Left/Right Lung'] = [0.0, 0.0]
+        options['Bulge radius around y-axis - Left/Right Lung'] = [20.0, -20.0]
+        options['Bulge radius around z-axis - Left/Right Lung'] = [10.0, -10.0]
         options['Open fissures - Left/Right Lung'] = False
         options['Length - Accessory lobe'] = 2.0
         options['Width - Accessory lobe'] = 2.0
@@ -78,7 +81,10 @@ class MeshType_3d_lung2(Scaffold_base):
             'Distance from origin - Left/Right Lung',
             'Fissure angle - Left/Right Lung',
             'Oblique proportion - Left/Right Lung',
-            'Tilt apex/diaphragm surface',
+            'Tilt apex - Left/Right Lung',
+            'Tilt diaphragm surface - Left/Right Lung',
+            'Bulge radius around y-axis - Left/Right Lung',
+            'Bulge radius around z-axis - Left/Right Lung',
             'Open fissures - Left/Right Lung',
             'Length - Accessory lobe',
             'Width - Accessory lobe',
@@ -96,9 +102,10 @@ class MeshType_3d_lung2(Scaffold_base):
         '''
         dependentChanges = False
 
-        if (options['Oblique proportion - Left/Right Lung'] < 0.7) or \
-                (options['Oblique proportion - Left/Right Lung'] > 0.99):
-            options['Oblique proportion - Left/Right Lung'] = 0.8
+        for i in range(2):
+            if (options['Oblique proportion - Left/Right Lung'][i] < 0.7) or \
+                    (options['Oblique proportion - Left/Right Lung'][i] > 0.99):
+                options['Oblique proportion - Left/Right Lung'][i] = 0.8
 
         if options['Refine number of elements'] < 1:
             options['Refine number of elements'] = 1
@@ -130,7 +137,10 @@ class MeshType_3d_lung2(Scaffold_base):
         fissureAngle = options['Fissure angle - Left/Right Lung']
         obliqueProportion = options['Oblique proportion - Left/Right Lung']
         discontinuity = options['Open fissures - Left/Right Lung']
-        tiltDegree = options['Tilt apex/diaphragm surface']
+        tiltApex = options['Tilt apex - Left/Right Lung']
+        tiltDiap = options['Tilt diaphragm surface - Left/Right Lung']
+        bulgeRadiusY = options['Bulge radius around y-axis - Left/Right Lung']
+        bulgeRadiusZ = options['Bulge radius around z-axis - Left/Right Lung']
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -159,11 +169,12 @@ class MeshType_3d_lung2(Scaffold_base):
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
         leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
         annotationGroups = [leftLungGroup, lungGroup]
-
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
+        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
         rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
         rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
+        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
         annotationGroups.append(rightLungGroup)
         lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
         lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
@@ -255,17 +266,17 @@ class MeshType_3d_lung2(Scaffold_base):
             upperRightNodeIds = []
 
             # Left lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
-                leftLung, cache, coordinates,
-                nodes, nodetemplate,
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre,
+                length[0], width[0], height[0], fissureAngle[0], obliqueProportion[0],
+                leftLung, cache, coordinates, nodes, nodetemplate, leftLungNodesetGroup,
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
 
             # Right lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
-                rightLung, cache, coordinates,
-                nodes, nodetemplate,
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre,
+                length[1], width[1], height[1], fissureAngle[1], obliqueProportion[1],
+                rightLung, cache, coordinates, nodes, nodetemplate, rightLungNodesetGroup,
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
@@ -350,7 +361,8 @@ class MeshType_3d_lung2(Scaffold_base):
             diaphragmaticNodeIds = []
 
             # Left lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre,
+                                                     length[0], width[0], height[0], fissureAngle[0], obliqueProportion[0],
                                                      leftLung, cache, coordinates,
                                                      nodes, nodetemplate,
                                                      lElementsCount1, lElementsCount2, lElementsCount3,
@@ -358,7 +370,8 @@ class MeshType_3d_lung2(Scaffold_base):
                                                      lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
 
             # Right lung nodes
-            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre, length, width, height, fissureAngle, obliqueProportion,
+            nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre,
+                                                     length[1], width[1], height[1], fissureAngle[1], obliqueProportion[1],
                                                      rightLung, cache, coordinates,
                                                      nodes, nodetemplate,
                                                      lElementsCount1, lElementsCount2, lElementsCount3,
@@ -466,8 +479,25 @@ class MeshType_3d_lung2(Scaffold_base):
             lungNodesetGroup.addNode(markerPoint)
             nodeIdentifier += 1
 
-        if tiltDegree != 0:
-            tiltLungs(tiltDegree, fm, coordinates, nodes)
+        # Transformation to the left and right lungs
+        for i in range(2):
+            if bulgeRadiusY[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
+                bendingAroundHeartYAxis(bulgeRadiusY[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
+
+            if bulgeRadiusZ[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
+                bendingAroundHeartZAxis(bulgeRadiusZ[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
+
+            if tiltApex[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                tiltLungs(tiltApex[i], 0, fm, coordinates, LungNodeset)
+
+            if tiltDiap[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                tiltLungs(0, tiltDiap[i], fm, coordinates, LungNodeset)
 
         return annotationGroups
 
@@ -533,7 +563,7 @@ class MeshType_3d_lung2(Scaffold_base):
 
 
 def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProportion,
-                 lungSide, cache, coordinates, nodes, nodetemplate,
+                 lungSide, cache, coordinates, nodes, nodetemplate, lungSideNodeGroup,
                  lElementsCount1, lElementsCount2, lElementsCount3,
                  uElementsCount1, uElementsCount2, uElementsCount3,
                  lowerNodeIds, upperNodeIds, nodeIndex, nodeIdentifier):
@@ -825,6 +855,8 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                 lowerNodeIds[n3][n2][n1] = nodeIdentifier
                 nodeIdentifier += 1
 
+                # Annotation
+                lungSideNodeGroup.addNode(node)
     # ---------------------------------------------------- Upper lobe --------------------------------------------
     upper_row1 = []
     upper_row2 = []
@@ -1073,6 +1105,9 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                 upperNodeIds[i][j][k] = nodeIdentifier
                 nodeIdentifier += 1
+
+                # Annotation
+                lungSideNodeGroup.addNode(node)
 
     return nodeIndex, nodeIdentifier
 
@@ -1600,7 +1635,7 @@ def createDiscontinuity(coordinates, nodes, mesh, fieldcache, nodetemplate, left
 
     return nodeIdentifier
 
-def tiltLungs(tiltDegree, fm, coordinates,nodes):
+def tiltLungs(tiltApex, tiltDiap, fm, coordinates, lungNodesetGroup):
     """
     :param tiltDegree: [tilted degree for apex, for diaphragm]
     :param fm:
@@ -1611,10 +1646,64 @@ def tiltLungs(tiltDegree, fm, coordinates,nodes):
     # FieldConstant - Matrix = [x1, x4, x7,
     #                           x2, x5, x8,
     #                           x3, x6, x9]
-    sh_yz = tiltDegree[0] / 180 * math.pi
-    sh_zy = tiltDegree[1] / 180 * math.pi
+    sh_yz = tiltApex / 180 * math.pi
+    sh_zy = tiltDiap / 180 * math.pi
     shearMatrix = fm.createFieldConstant([1.0, 0.0, 0.0, 0.0, 1.0, sh_yz, 0.0, sh_zy, 1.0])
     newCoordinates = fm.createFieldMatrixMultiply(3, shearMatrix, coordinates)
     fieldassignment = coordinates.createFieldassignment(newCoordinates)
-    fieldassignment.setNodeset(nodes)
+    fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
+
+def bendingAroundHeartYAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
+    """
+    :param bulgeRadius: the radius and the centre of curvature to transfrom the scaffold
+    :param fm:
+    :param coordinates:
+    :param nodes:
+    :return:
+    """
+    # cylindrical polar coordinates (x = r*cos(theta), y = r*sin(theta), z = z):
+    # r = y - bulgeRadius
+    # theta = -x / bulgeRadius
+    # z = z
+    xzyCoordinates = fm.createFieldComponent(coordinates, [1, 3, 2])
+    scale = fm.createFieldConstant([1.0, -1.0 / bulgeRadius, 1.0])
+    scaleCoordinates = fm.createFieldMultiply(xzyCoordinates, scale)
+    offset_temp = [-bulgeRadius + spaceFromCentre[0], spaceFromCentre[1], spaceFromCentre[2]]
+    offset = fm.createFieldConstant(offset_temp)
+    polarCoordinates = fm.createFieldAdd(scaleCoordinates, offset)
+    polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
+    rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
+    rcCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+    newxzyCoordinates = fm.createFieldSubtract(rcCoordinates, offset)
+    newCoordinates = fm.createFieldComponent(newxzyCoordinates, [1, 3, 2])
+    fieldassignment = coordinates.createFieldassignment(newCoordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
+def bendingAroundHeartZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
+    """
+    :param bulgeRadius: the radius and the centre of curvature to transfrom the scaffold
+    :param fm:
+    :param coordinates:
+    :param nodes:
+    :return:
+    """
+    # cylindrical polar coordinates (x = r*cos(theta), y = r*sin(theta), z = z):
+    # r = y - bulgeRadius
+    # theta = -x / bulgeRadius
+    # z = z
+    scale = fm.createFieldConstant([1.0, -1.0 / bulgeRadius, 1.0])
+    scaleCoordinates = fm.createFieldMultiply(coordinates, scale)
+    offset_temp = [-bulgeRadius + spaceFromCentre[0], spaceFromCentre[1], spaceFromCentre[2]]
+    offset = fm.createFieldConstant(offset_temp)
+    polarCoordinates = fm.createFieldAdd(scaleCoordinates, offset)
+    polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
+    rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
+    rcCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+    newxyzCoordinates = fm.createFieldSubtract(rcCoordinates, offset)
+    newCoordinates = fm.createFieldComponent(newxyzCoordinates, [1, 2, 3])
+    fieldassignment = coordinates.createFieldassignment(newCoordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
