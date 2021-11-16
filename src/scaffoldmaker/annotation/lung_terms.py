@@ -4,6 +4,8 @@ Common resource for lungs annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 lung_terms = [
+    ("anterior border of left lung", "ILX:0793130"),
+    ("anterior border of right lung", "ILX:0793129"),
     ("apex of right lung accessory lobe", "ILX:0778119"),
     ("apex of left lung", "ILX:0778112"),
     ("apex of right lung", "ILX:0778113"),
@@ -19,6 +21,8 @@ lung_terms = [
     ("middle lobe of right lung", "UBERON:0002174", "ILX:0733737"),
     ("medial base of left lung", "ILX:0778120"),
     ("medial base of right lung", "ILX:0778121"),
+    ("anterior mediastinum of left lung", "UBERON:0008820", "ILX:0725455"),
+    ("anterior mediastinum of right lung", "UBERON:0008820", "ILX:0725455"),
     ("oblique fissure of left lung", "ILX:0778115"),
     ("oblique fissure of right lung", "ILX:0778114"),
     ("right lung", "UBERON:0002167", "ILX:0729582"),

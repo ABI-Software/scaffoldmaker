@@ -171,10 +171,8 @@ class MeshType_3d_lung2(Scaffold_base):
         annotationGroups = [leftLungGroup, lungGroup]
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
-        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
         rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
         rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
-        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
         annotationGroups.append(rightLungGroup)
         lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
         lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
@@ -185,6 +183,16 @@ class MeshType_3d_lung2(Scaffold_base):
         middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
         middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
         annotationGroups.append(middleRightLungGroup)
+        mediastinumLeftGroup = AnnotationGroup(region, get_lung_term("anterior mediastinum of left lung"))
+        mediastinumLeftGroupMeshGroup = mediastinumLeftGroup.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumLeftGroup)
+        mediastinumRightGroup = AnnotationGroup(region, get_lung_term("anterior mediastinum of right lung"))
+        mediastinumRightGroupMeshGroup = mediastinumRightGroup.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumRightGroup)
+
+        # Nodeset group
+        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
+        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
 
         # Marker points/groups
         leftApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -288,7 +296,8 @@ class MeshType_3d_lung2(Scaffold_base):
             elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
                 getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 elementtemplateCustom, mesh, lungMeshGroup,
-                leftLungMeshGroup, lowerLeftLungMeshGroup, None, upperLeftLungMeshGroup,
+                leftLungMeshGroup, lowerLeftLungMeshGroup, None,
+                upperLeftLungMeshGroup, mediastinumLeftGroupMeshGroup,
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
@@ -297,7 +306,8 @@ class MeshType_3d_lung2(Scaffold_base):
             elementIdentifier, rightUpperLobeElementID, rightLowerLobeElementID = \
                 getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 elementtemplateCustom, mesh, lungMeshGroup,
-                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup, upperRightLungMeshGroup,
+                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
+                upperRightLungMeshGroup, mediastinumRightGroupMeshGroup,
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
@@ -364,7 +374,7 @@ class MeshType_3d_lung2(Scaffold_base):
             nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre,
                                                      length[0], width[0], height[0], fissureAngle[0], obliqueProportion[0],
                                                      leftLung, cache, coordinates,
-                                                     nodes, nodetemplate,
+                                                     nodes, nodetemplate, leftLungNodesetGroup,
                                                      lElementsCount1, lElementsCount2, lElementsCount3,
                                                      uElementsCount1, uElementsCount2, uElementsCount3,
                                                      lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
@@ -373,7 +383,7 @@ class MeshType_3d_lung2(Scaffold_base):
             nodeIndex, nodeIdentifier = getLungNodes(spaceFromCentre,
                                                      length[1], width[1], height[1], fissureAngle[1], obliqueProportion[1],
                                                      rightLung, cache, coordinates,
-                                                     nodes, nodetemplate,
+                                                     nodes, nodetemplate, rightLungNodesetGroup,
                                                      lElementsCount1, lElementsCount2, lElementsCount3,
                                                      uElementsCount1, uElementsCount2, uElementsCount3,
                                                      lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
@@ -390,7 +400,7 @@ class MeshType_3d_lung2(Scaffold_base):
             elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
                 getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                                 elementtemplateCustom, mesh, lungMeshGroup,
-                                leftLungMeshGroup, None, None, None,
+                                leftLungMeshGroup, None, None, None, mediastinumLeftGroupMeshGroup,
                                 lElementsCount1, lElementsCount2, lElementsCount3,
                                 uElementsCount1, uElementsCount2, uElementsCount3,
                                 lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
@@ -400,7 +410,7 @@ class MeshType_3d_lung2(Scaffold_base):
                 getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                                 elementtemplateCustom, mesh, lungMeshGroup,
                                 rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
-                                upperRightLungMeshGroup,
+                                upperRightLungMeshGroup, mediastinumRightGroupMeshGroup,
                                 lElementsCount1, lElementsCount2, lElementsCount3,
                                 uElementsCount1, uElementsCount2, uElementsCount3,
                                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
@@ -529,7 +539,46 @@ class MeshType_3d_lung2(Scaffold_base):
 
         # create fissure groups
         fm = region.getFieldmodule()
+        mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
+
+        # 1D Annotation
+        is_exterior = fm.createFieldIsExterior()
+        is_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
+        is_xi1_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)
+        is_xi3_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)
+
+        mediastanumLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("anterior mediastinum of left lung"))
+        is_anteriorBorderLeftGroup = mediastanumLeftGroup.getFieldElementGroup(mesh1d)
+
+        is_mediastanumLeftGroup_exterior = fm.createFieldAnd(is_anteriorBorderLeftGroup, is_exterior)
+        is_mediastanumLeftGroup_exterior_xi1_0 = fm.createFieldAnd(is_mediastanumLeftGroup_exterior, is_xi1_0)
+        is_mediastanumLeftGroup_exterior_xi1_01 = fm.createFieldAnd(is_mediastanumLeftGroup_exterior_xi1_0, is_xi1_1)
+        is_mediastanumLeftGroup_exterior_xi3_0 = fm.createFieldAnd(is_mediastanumLeftGroup_exterior, is_xi3_0)
+
+        is_upperLeftGroup_Diaphragm = fm.createFieldAnd(is_mediastanumLeftGroup_exterior_xi3_0, is_mediastanumLeftGroup_exterior_xi1_01)
+
+        is_ridge = fm.createFieldAnd(is_mediastanumLeftGroup_exterior_xi1_01, fm.createFieldNot(is_upperLeftGroup_Diaphragm))
+        anteriorBorderLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("anterior border of left lung"))
+
+        anteriorBorderLeftGroup.getMeshGroup(mesh1d).addElementsConditional(is_ridge)
+
+        mediastanumRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("anterior mediastinum of right lung"))
+        is_anteriorBorderRightGroup = mediastanumRightGroup.getFieldElementGroup(mesh1d)
+
+        is_anteriorBorderRightGroup_exterior = fm.createFieldAnd(is_anteriorBorderRightGroup, is_exterior)
+        is_anteriorBorderRightGroup_exterior_xi1_0 = fm.createFieldAnd(is_anteriorBorderRightGroup_exterior, is_xi1_0)
+        is_anteriorBorderRightGroup_exterior_xi1_01 = fm.createFieldAnd(is_anteriorBorderRightGroup_exterior_xi1_0, is_xi1_1)
+        is_anteriorBorderRightGroup_exterior_xi3_0 = fm.createFieldAnd(is_anteriorBorderRightGroup_exterior, is_xi3_0)
+
+        is_upperRightGroup_Diaphragm = fm.createFieldAnd(is_anteriorBorderRightGroup_exterior_xi3_0, is_anteriorBorderRightGroup_exterior_xi1_01)
+
+        is_ridge = fm.createFieldAnd(is_anteriorBorderRightGroup_exterior_xi1_01, fm.createFieldNot(is_upperRightGroup_Diaphragm))
+        anteriorBorderRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("anterior border of right lung"))
+
+        anteriorBorderRightGroup.getMeshGroup(mesh1d).addElementsConditional(is_ridge)
 
         if isHuman:
             upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
@@ -541,7 +590,6 @@ class MeshType_3d_lung2(Scaffold_base):
             is_obliqueLeftGroup = fm.createFieldAnd(is_upperLeftGroup, is_lowerLeftGroup)
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
             obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
-
 
         if isHuman or isMouse or isRat:
             upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
@@ -563,7 +611,7 @@ class MeshType_3d_lung2(Scaffold_base):
 
 
 def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProportion,
-                 lungSide, cache, coordinates, nodes, nodetemplate, lungSideNodeGroup,
+                 lungSide, cache, coordinates, nodes, nodetemplate, lungSideNodesetGroup,
                  lElementsCount1, lElementsCount2, lElementsCount3,
                  uElementsCount1, uElementsCount2, uElementsCount3,
                  lowerNodeIds, upperNodeIds, nodeIndex, nodeIdentifier):
@@ -856,7 +904,7 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                 nodeIdentifier += 1
 
                 # Annotation
-                lungSideNodeGroup.addNode(node)
+                lungSideNodesetGroup.addNode(node)
     # ---------------------------------------------------- Upper lobe --------------------------------------------
     upper_row1 = []
     upper_row2 = []
@@ -1107,12 +1155,13 @@ def getLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngl
                 nodeIdentifier += 1
 
                 # Annotation
-                lungSideNodeGroup.addNode(node)
+                lungSideNodesetGroup.addNode(node)
 
     return nodeIndex, nodeIdentifier
 
 def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular, elementtemplateCustom, mesh,
-                    lungMeshGroup, lungSideMeshGroup, lowerLobeMeshGroup, middleLobeMeshGroup, upperLobeMeshGroup,
+                    lungMeshGroup, lungSideMeshGroup, lowerLobeMeshGroup, middleLobeMeshGroup,
+                    upperLobeMeshGroup, mediastinumGroupMeshGroup,
                     lElementsCount1, lElementsCount2, lElementsCount3,
                     uElementsCount1, uElementsCount2, uElementsCount3,
                     lowerNodeIds, upperNodeIds, elementIdentifier):
@@ -1209,6 +1258,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
             upperLobeElementID[e3].append([])
             for e1 in range(uElementsCount1):
                 upperLobeElementID[e3][e2].append(None)
+                is_mediastanum = False
 
                 eft = eftRegular
                 nodeIdentifiers = [
@@ -1218,6 +1268,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                     upperNodeIds[e3 + 1][e2 + 1][e1], upperNodeIds[e3 + 1][e2 + 1][e1 + 1]]
 
                 if (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
+                    is_mediastanum = True
                     # Distal-front wedge elements
                     nodeIdentifiers.pop(6)
                     nodeIdentifiers.pop(2)
@@ -1232,6 +1283,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
 
                 elif (e3 < (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (
                         e1 == (uElementsCount1 - 1)):
+                    is_mediastanum = True
                     # Distal-back wedge elements
                     nodeIdentifiers.pop(7)
                     nodeIdentifiers.pop(3)
@@ -1281,6 +1333,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                     nodeIdentifiers.pop(1)
                     eft = eftTetCollapseXi1Xi2_71
                 elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (e1 == 0):
+                    is_mediastanum = True
                     # Top-front-distal tetrahedron wedge elements
                     nodeIdentifiers.pop(7)
                     nodeIdentifiers.pop(6)
@@ -1302,6 +1355,7 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
 
                 elif (e3 == (uElementsCount3 - 1)) and (e2 == (uElementsCount2 - 1)) and (
                         e1 == (uElementsCount1 - 1)):
+                    is_mediastanum = True
                     # Top-front-distal tetrahedron wedge elements
                     nodeIdentifiers.pop(7)
                     nodeIdentifiers.pop(6)
@@ -1346,12 +1400,16 @@ def getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                     element.setScaleFactors(eft, [-1.0])
                 upperLobeElementID[e3][e2][e1] = elementIdentifier
                 elementIdentifier += 1
+
+                # Annotation
                 lungMeshGroup.addElement(element)
                 lungSideMeshGroup.addElement(element)
                 if middleLobeMeshGroup and (e3 < (uElementsCount3 - 2)):
                     middleLobeMeshGroup.addElement(element)
                 elif upperLobeMeshGroup:
                     upperLobeMeshGroup.addElement(element)
+                if is_mediastanum is True:
+                    mediastinumGroupMeshGroup.addElement(element)
 
     return elementIdentifier, upperLobeElementID, lowerLobeElementID
 
