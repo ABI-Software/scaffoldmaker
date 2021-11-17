@@ -56,13 +56,14 @@ class MeshType_3d_lung2(Scaffold_base):
         options['Length - Left/Right Lung'] = [6.0, 6.0]
         options['Width - Left/Right Lung'] = [2.5, 2.5]
         options['Height - Left/Right Lung'] = [10.0, 10.0]
-        options['Distance from origin - Left/Right Lung'] = [     3.5, 0.0, 0.0]
+        options['Distance from origin - Left/Right Lung'] = [3.5, 0.0, 0.0]
         options['Fissure angle - Left/Right Lung'] = [45.0, 45.0]
         options['Oblique proportion - Left/Right Lung'] = [0.8, 0.8]
         options['Tilt apex - Left/Right Lung'] = [0.0, 0.0]
         options['Tilt diaphragm surface - Left/Right Lung'] = [0.0, 0.0]
         options['Bulge radius around y-axis - Left/Right Lung'] = [20.0, -20.0]
-        options['Bulge radius around z-axis - Left/Right Lung'] = [10.0, -10.0]
+        options['Bulge radius around z-axis - Left/Right Lung'] = [5.0, -5.0]
+        options['Sharpening edge - Left/Right Lung'] = [0.1, 0.1]
         options['Open fissures - Left/Right Lung'] = False
         options['Length - Accessory lobe'] = 2.0
         options['Width - Accessory lobe'] = 2.0
@@ -85,6 +86,7 @@ class MeshType_3d_lung2(Scaffold_base):
             'Tilt diaphragm surface - Left/Right Lung',
             'Bulge radius around y-axis - Left/Right Lung',
             'Bulge radius around z-axis - Left/Right Lung',
+            'Sharpening edge - Left/Right Lung',
             'Open fissures - Left/Right Lung',
             'Length - Accessory lobe',
             'Width - Accessory lobe',
@@ -141,6 +143,7 @@ class MeshType_3d_lung2(Scaffold_base):
         tiltDiap = options['Tilt diaphragm surface - Left/Right Lung']
         bulgeRadiusY = options['Bulge radius around y-axis - Left/Right Lung']
         bulgeRadiusZ = options['Bulge radius around z-axis - Left/Right Lung']
+        sharpeningFactor = options['Sharpening edge - Left/Right Lung']
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -312,11 +315,6 @@ class MeshType_3d_lung2(Scaffold_base):
                 uElementsCount1, uElementsCount2, uElementsCount3,
                 lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
 
-            if discontinuity:
-                # create discontinuity in d3 on the core boundary
-                nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, leftUpperLobeElementID,
-                                rightUpperLobeElementID, nodeIdentifier)
-
             # Marker points
             lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
             markerList = []
@@ -422,11 +420,6 @@ class MeshType_3d_lung2(Scaffold_base):
                 diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3,
                 diaphragmaticNodeIds, elementIdentifier)
 
-            if discontinuity:
-                # create discontinuity in d3 on the core boundary
-                nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, None,
-                                rightUpperLobeElementID, nodeIdentifier)
-
             # Marker points
             lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
             markerList = []
@@ -491,6 +484,11 @@ class MeshType_3d_lung2(Scaffold_base):
 
         # Transformation to the left and right lungs
         for i in range(2):
+            if sharpeningFactor[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
+                sharpeningRidge(sharpeningFactor[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
+
             if bulgeRadiusY[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
@@ -508,6 +506,11 @@ class MeshType_3d_lung2(Scaffold_base):
             if tiltDiap[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 tiltLungs(0, tiltDiap[i], fm, coordinates, LungNodeset)
+
+        if discontinuity:
+            # create discontinuity in d3 on the core boundary
+            nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, leftUpperLobeElementID,
+                            rightUpperLobeElementID, nodeIdentifier)
 
         return annotationGroups
 
@@ -1764,4 +1767,31 @@ def bendingAroundHeartZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spac
     fieldassignment = coordinates.createFieldassignment(newCoordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
+
+def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFromCentre):
+    """
+    :param sharpRadius:
+    :param fm:
+    :param coordinates:
+    :param lungNodesetGroup:
+    :param spaceFromCentre:
+    :return:
+    """
+    # Transformation matrix = [k1 * x[2], 0.0, 0.0]
+    #                         [      0.0, 1.0, 0.0]
+    #                         [      0.0, 0.0, 1.0]
+    offset = fm.createFieldConstant(spaceFromCentre)
+    origin = fm.createFieldAdd(coordinates, offset)
+    k1 = -sharpeningFactor # tempering factor < abs(0.18)
+    scale = fm.createFieldConstant([0.0, k1, 0.0])
+    scaleFunction = fm.createFieldMultiply(coordinates, scale)
+    constant = fm.createFieldConstant([0.0, 1.0, 1.0])
+    constantFunction = fm.createFieldAdd(scaleFunction, constant)
+    transformation_matrix = fm.createFieldComponent(constantFunction, [2, 3, 3])
+    taper_coordinates = fm.createFieldMultiply(origin, transformation_matrix)
+    translate_coordinates = fm.createFieldSubtract(taper_coordinates, offset)
+    fieldassignment = coordinates.createFieldassignment(translate_coordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
 
