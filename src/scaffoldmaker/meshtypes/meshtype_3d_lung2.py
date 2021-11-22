@@ -59,8 +59,11 @@ class MeshType_3d_lung2(Scaffold_base):
         options['Distance from origin - Left/Right Lung'] = [3.5, 0.0, 0.0]
         options['Fissure angle - Left/Right Lung'] = [45.0, 45.0]
         options['Oblique proportion - Left/Right Lung'] = [0.8, 0.8]
-        options['Tilt apex - Left/Right Lung'] = [0.0, 0.0]
-        options['Tilt diaphragm surface - Left/Right Lung'] = [0.0, 0.0]
+        options['Tilt apex along x-axis - Left/Right Lung'] = [0.0, 0.0]
+        options['Tilt apex along y-axis - Left/Right Lung'] = [0.0, 0.0]
+        options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [0.0, 0.0]
+        options['Tilt diaphragm surface along y-axis - Left/Right Lung'] = [0.0, 0.0]
+        options['Diaphragmatic curve radius - Left/Right Lung'] = [0.03, 0.03]
         options['Bulge radius around y-axis - Left/Right Lung'] = [20.0, -20.0]
         options['Bulge radius around z-axis - Left/Right Lung'] = [5.0, -5.0]
         options['Sharpening edge - Left/Right Lung'] = [0.1, 0.1]
@@ -82,8 +85,11 @@ class MeshType_3d_lung2(Scaffold_base):
             'Distance from origin - Left/Right Lung',
             'Fissure angle - Left/Right Lung',
             'Oblique proportion - Left/Right Lung',
-            'Tilt apex - Left/Right Lung',
-            'Tilt diaphragm surface - Left/Right Lung',
+            'Tilt apex along x-axis - Left/Right Lung',
+            'Tilt apex along y-axis - Left/Right Lung',
+            'Tilt diaphragm surface along x-axis - Left/Right Lung',
+            'Tilt diaphragm surface along y-axis - Left/Right Lung',
+            'Diaphragmatic curve radius - Left/Right Lung',
             'Bulge radius around y-axis - Left/Right Lung',
             'Bulge radius around z-axis - Left/Right Lung',
             'Sharpening edge - Left/Right Lung',
@@ -139,8 +145,11 @@ class MeshType_3d_lung2(Scaffold_base):
         fissureAngle = options['Fissure angle - Left/Right Lung']
         obliqueProportion = options['Oblique proportion - Left/Right Lung']
         discontinuity = options['Open fissures - Left/Right Lung']
-        tiltApex = options['Tilt apex - Left/Right Lung']
-        tiltDiap = options['Tilt diaphragm surface - Left/Right Lung']
+        tiltApex_xAxis = options['Tilt apex along x-axis - Left/Right Lung']
+        tiltApex_yAxis = options['Tilt apex along y-axis - Left/Right Lung']
+        tiltDiap_xAxis = options['Tilt diaphragm surface along x-axis - Left/Right Lung']
+        tiltDiap_yAxis = options['Tilt diaphragm surface along y-axis - Left/Right Lung']
+        DiaphramaticCurveRadius = options['Diaphragmatic curve radius - Left/Right Lung']
         bulgeRadiusY = options['Bulge radius around y-axis - Left/Right Lung']
         bulgeRadiusZ = options['Bulge radius around z-axis - Left/Right Lung']
         sharpeningFactor = options['Sharpening edge - Left/Right Lung']
@@ -484,6 +493,12 @@ class MeshType_3d_lung2(Scaffold_base):
 
         # Transformation to the left and right lungs
         for i in range(2):
+            if DiaphramaticCurveRadius[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
+                concavingDiaphragmaticSurface(DiaphramaticCurveRadius[i], fm, coordinates, LungNodeset,
+                                              spaceFromCentre_temp, height[i])
+
             if sharpeningFactor[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
@@ -492,20 +507,28 @@ class MeshType_3d_lung2(Scaffold_base):
             if bulgeRadiusY[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
-                bendingAroundHeartYAxis(bulgeRadiusY[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
+                bendingAroundYAxis(bulgeRadiusY[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
 
             if bulgeRadiusZ[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
-                bendingAroundHeartZAxis(bulgeRadiusZ[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
+                bendingAroundZAxis(bulgeRadiusZ[i], fm, coordinates, LungNodeset, spaceFromCentre_temp)
 
-            if tiltApex[i] != 0:
+            if tiltApex_xAxis[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
-                tiltLungs(tiltApex[i], 0, fm, coordinates, LungNodeset)
+                tiltLungs(tiltApex_xAxis[i], 0, 0, 0, fm, coordinates, LungNodeset)
 
-            if tiltDiap[i] != 0:
+            if tiltApex_yAxis[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
-                tiltLungs(0, tiltDiap[i], fm, coordinates, LungNodeset)
+                tiltLungs(0, tiltApex_yAxis[i], 0, 0, fm, coordinates, LungNodeset)
+
+            if tiltDiap_xAxis[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                tiltLungs(0, 0, 0, tiltDiap_xAxis[i], fm, coordinates, LungNodeset)
+
+            if tiltDiap_yAxis[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                tiltLungs(0, 0, tiltDiap_yAxis[i], 0, fm, coordinates, LungNodeset)
 
         if discontinuity:
             # create discontinuity in d3 on the core boundary
@@ -1696,7 +1719,7 @@ def createDiscontinuity(coordinates, nodes, mesh, fieldcache, nodetemplate, left
 
     return nodeIdentifier
 
-def tiltLungs(tiltApex, tiltDiap, fm, coordinates, lungNodesetGroup):
+def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm, coordinates, lungNodesetGroup):
     """
     :param tiltDegree: [tilted degree for apex, for diaphragm]
     :param fm:
@@ -1704,18 +1727,67 @@ def tiltLungs(tiltApex, tiltDiap, fm, coordinates, lungNodesetGroup):
     :param nodes:
     :return: transformed lungs
     """
-    # FieldConstant - Matrix = [x1, x4, x7,
-    #                           x2, x5, x8,
-    #                           x3, x6, x9]
-    sh_yz = tiltApex / 180 * math.pi
-    sh_zy = tiltDiap / 180 * math.pi
-    shearMatrix = fm.createFieldConstant([1.0, 0.0, 0.0, 0.0, 1.0, sh_yz, 0.0, sh_zy, 1.0])
+    # FieldConstant - Matrix = [   x1,    x4, sh_zx,
+    #                              x2,    x5, sh_zy,
+    #                           sh_xz, sh_yz,    x9]
+    sh_xz = tiltApex_xAxis / 180 * math.pi
+    sh_yz = tiltApex_yAxis / 180 * math.pi
+    sh_zy = tiltDiap_yAxis / 180 * math.pi
+    sh_zx = tiltDiap_xAxis / 180 * math.pi
+    shearMatrix = fm.createFieldConstant([1.0, 0.0, sh_xz, 0.0, 1.0, sh_yz, sh_zx, sh_zy, 1.0])
     newCoordinates = fm.createFieldMatrixMultiply(3, shearMatrix, coordinates)
     fieldassignment = coordinates.createFieldassignment(newCoordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-def bendingAroundHeartYAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
+def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre, height):
+    """
+    Quadratic transformation
+    :param sharpRadius:
+    :param fm:
+    :param coordinates:
+    :param lungNodesetGroup:
+    :param spaceFromCentre:
+    :return:
+    """
+    # Transformation matrix = [       1,        |  [x,
+    #                                 1,        |   y,
+    #                         ,k1x + k1y + 1]   |   z]
+
+    offset = fm.createFieldConstant([spaceFromCentre[0], spaceFromCentre[1], spaceFromCentre[2] - height])
+    origin = fm.createFieldAdd(coordinates, offset)
+    absCoordinate = fm.createFieldAbs(origin)
+    sqauredCoordinate = fm.createFieldMultiply(absCoordinate, absCoordinate)
+
+    k1 = 0.5 * bulgeRadius  # quadratic coefficient for x
+    k2 = 0.1 * bulgeRadius  # quadratic coefficient for y
+    k3 = -0.3 * bulgeRadius # quadratic coefficient for z
+
+    scale = fm.createFieldConstant([k1, 0.0, 0.0])
+    scaleFunction = fm.createFieldMultiply(sqauredCoordinate, scale)
+
+    scale_1 = fm.createFieldConstant([0.0, k2, 0.0])
+    scaleFunction_1 = fm.createFieldMultiply(sqauredCoordinate, scale_1)
+    transformation_matrix_1 = fm.createFieldComponent(scaleFunction_1, [2, 1, 1])
+
+    scale_2 = fm.createFieldConstant([0.0, 0.0, k3])
+    scaleFunction_2 = fm.createFieldMultiply(absCoordinate, scale_2)
+    transformation_matrix_2 = fm.createFieldComponent(scaleFunction_2, [3, 1, 1])
+
+    twoVariablesFunction = fm.createFieldAdd(scaleFunction, transformation_matrix_1)
+    threeVariablesFunction = fm.createFieldAdd(transformation_matrix_2, twoVariablesFunction)
+
+    constant = fm.createFieldConstant([1.0, 1.0, 0.0])
+    constantFunction = fm.createFieldAdd(threeVariablesFunction, constant)
+
+    transformation_matrix = fm.createFieldComponent(constantFunction, [2, 2, 1])
+    curve_coordinates = fm.createFieldMultiply(transformation_matrix, origin)
+    translate_coordinates = fm.createFieldSubtract(curve_coordinates, offset)
+    fieldassignment = coordinates.createFieldassignment(translate_coordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
+def bendingAroundYAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
     """
     :param bulgeRadius: the radius and the centre of curvature to transfrom the scaffold
     :param fm:
@@ -1725,8 +1797,8 @@ def bendingAroundHeartYAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spac
     """
     # cylindrical polar coordinates (x = r*cos(theta), y = r*sin(theta), z = z):
     # r = y - bulgeRadius
-    # theta = -x / bulgeRadius
-    # z = z
+    # theta = -z / bulgeRadius
+    # z = y
     xzyCoordinates = fm.createFieldComponent(coordinates, [1, 3, 2])
     scale = fm.createFieldConstant([1.0, -1.0 / bulgeRadius, 1.0])
     scaleCoordinates = fm.createFieldMultiply(xzyCoordinates, scale)
@@ -1742,7 +1814,7 @@ def bendingAroundHeartYAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spac
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-def bendingAroundHeartZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
+def bendingAroundZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
     """
     :param bulgeRadius: the radius and the centre of curvature to transfrom the scaffold
     :param fm:
@@ -1756,8 +1828,7 @@ def bendingAroundHeartZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spac
     # z = z
     scale = fm.createFieldConstant([1.0, -1.0 / bulgeRadius, 1.0])
     scaleCoordinates = fm.createFieldMultiply(coordinates, scale)
-    offset_temp = [-bulgeRadius + spaceFromCentre[0], spaceFromCentre[1], spaceFromCentre[2]]
-    offset = fm.createFieldConstant(offset_temp)
+    offset = fm.createFieldConstant([-bulgeRadius + spaceFromCentre[0], spaceFromCentre[1], spaceFromCentre[2]])
     polarCoordinates = fm.createFieldAdd(scaleCoordinates, offset)
     polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
     rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
@@ -1770,6 +1841,7 @@ def bendingAroundHeartZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spac
 
 def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFromCentre):
     """
+    Linear transformation
     :param sharpRadius:
     :param fm:
     :param coordinates:
@@ -1777,9 +1849,9 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFr
     :param spaceFromCentre:
     :return:
     """
-    # Transformation matrix = [k1 * x[2], 0.0, 0.0]
-    #                         [      0.0, 1.0, 0.0]
-    #                         [      0.0, 0.0, 1.0]
+    # Transformation matrix = [     1, | [x,
+    #                         k1y + 1, |  y,
+    #                               1] |  z]
     offset = fm.createFieldConstant(spaceFromCentre)
     origin = fm.createFieldAdd(coordinates, offset)
     k1 = -sharpeningFactor # tempering factor < abs(0.18)
@@ -1793,5 +1865,3 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFr
     fieldassignment = coordinates.createFieldassignment(translate_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
-
-
