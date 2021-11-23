@@ -28,7 +28,7 @@ source_license = readfile("LICENSE")
 
 setup(
     name="scaffoldmaker",
-    version="0.2.0",
+    version="0.3.0",
     description="Python client for generating anatomical scaffolds using OpenCMISS-Zinc",
     long_description="\n".join(readme) + source_license,
     classifiers=[
