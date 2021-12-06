@@ -405,11 +405,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
         rightUreterJunctionWithBladder = bladder_terms.get_bladder_term('right ureter junction with bladder')
         urethraJunctionWithBladderDorsal = bladder_terms.get_bladder_term('urethra junction of dorsal bladder neck')
         urethraJunctionWithBladderVentral = bladder_terms.get_bladder_term('urethra junction of ventral bladder neck')
-        gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term('gastro-esophagal junction on lesser curvature')
-        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge on greater curvature')
-        pylorusOnGreaterCurvature = stomach_terms.get_stomach_term('pylorus on greater curvature')
-        duodenumOnGreaterCurvature = stomach_terms.get_stomach_term('duodenum on greater curvature')
-        junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("junction between fundus and body on greater curvature")
+        gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term('esophagogastric junction along the lesser curvature on serosa')
+        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge along the greater curvature on serosa')
+        pylorusOnGreaterCurvature = stomach_terms.get_stomach_term('gastroduodenal junction along the greater curvature on serosa')
+        junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("fundus-body junction along the greater curvature on serosa")
         apexOfLeftLung = lung_terms.get_lung_term('apex of left lung')
         ventralBaseOfLeftLung = lung_terms.get_lung_term('ventral base of left lung')
         dorsalBaseOfLeftLung = lung_terms.get_lung_term('dorsal base of left lung')
@@ -463,7 +462,6 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 {"group": gastroesophagalJunctionOnLesserCurvature, "x": [0.12, 0.009, 1.446]},
                 {"group": limitingRidgeOnGreaterCurvature, "x": [0.318, 0.097, 1.406]},
                 {"group": pylorusOnGreaterCurvature, "x": [0.08, -0.111, 1.443]},
-                {"group": duodenumOnGreaterCurvature, "x": [0.029, -0.138, 1.481]},
             ]
         elif isHuman:
             bodyMarkerPoints = [
@@ -490,7 +488,6 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 {"group": dorsalBaseOfRightLung, "x": [0.0369, -0.2524, 0.912]},
                 {"group": gastroesophagalJunctionOnLesserCurvature, "x": [-0.0062, -0.3259, 0.8586]},
                 {"group": pylorusOnGreaterCurvature, "x": [-0.0761, -0.3189, 0.8663]},
-                {"group": duodenumOnGreaterCurvature, "x": [-0.1599, 0.1601, 1.1939]},
                 {"group": junctionBetweenFundusAndBodyOnGreaterCurvature, "x": [0.1884, -0.1839, 0.9639]},
             ]
 
