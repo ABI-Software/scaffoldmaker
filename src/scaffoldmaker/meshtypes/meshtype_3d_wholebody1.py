@@ -406,7 +406,11 @@ Generates body coordinates using a solid cylinder of all cube elements,
         urethraJunctionWithBladderDorsal = bladder_terms.get_bladder_term('urethra junction of dorsal bladder neck')
         urethraJunctionWithBladderVentral = bladder_terms.get_bladder_term('urethra junction of ventral bladder neck')
         gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term('esophagogastric junction along the lesser curvature on serosa')
+<<<<<<< HEAD
         limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge at the greater curvature on serosa')
+=======
+        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge along the greater curvature on serosa')
+>>>>>>> cd0dea4 (Update annotation terms for the stomach)
         pylorusOnGreaterCurvature = stomach_terms.get_stomach_term('gastroduodenal junction along the greater curvature on serosa')
         junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("fundus-body junction along the greater curvature on serosa")
         apexOfLeftLung = lung_terms.get_lung_term('apex of left lung')
