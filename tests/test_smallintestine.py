@@ -68,8 +68,8 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         centralPath.generate(tmpRegion)
         cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(4, len(cx))
-        assertAlmostEqualList(self, cx[0], [  -2.3, 18.5, -4.4 ], 1.0E-6)
-        assertAlmostEqualList(self, cx[2], [ -18.3, 12.6, -1.5 ], 1.0E-6)
+        assertAlmostEqualList(self, cx[0], [-2.3, 18.5, -4.4], 1.0E-6)
+        assertAlmostEqualList(self, cx[2], [-18.3, 12.6, -1.5], 1.0E-6)
         del tmpRegion
 
         annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)
@@ -91,14 +91,14 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ -20.06978981419564, 11.406595205949705, -7.1653294859433965 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ -1.8300388314851923, 19.193885338090105, 0.9772071374844936 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-20.06978981419564, 11.406595205949705, -7.1653294859433965], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [-1.8300388314851923, 19.193885338090105, 0.9772071374844936], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ -1.39038154442654, 0.0, 0.0 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 4.891237158967401, 25.293706698841913, 0.1 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-1.39038154442654, 0.0, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [4.891237158967401, 25.293706698841913, 0.1], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -120,6 +120,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(flatSurfaceArea, 171.37026123844635, delta=1.0E-3)
+
 
 if __name__ == "__main__":
     unittest.main()
