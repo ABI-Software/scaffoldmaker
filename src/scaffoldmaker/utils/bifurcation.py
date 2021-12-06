@@ -3,14 +3,20 @@ Utilities for building bifurcating network meshes.
 """
 
 from __future__ import division
-
 from opencmiss.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
+from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
     interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
+from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters
+from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import BifurcationTree, TreeNode
 
 
 def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
@@ -39,14 +45,14 @@ def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, 
         dmagFinal = dmag*(1.0 - dot(radialVector, curvatureVector))
         # add curvature and radius change components:
         d2.append(add(mult(cxd, dmagFinal/mag_cxd), mult(radialVector, dmagFinal*radialGrowth)))
-    return x, d1, d2
+    return cx, cxd, cxd2, x, d1, d2
 
 
 def track_curve_side_axis(x1, d1, x2, d2, sideStart, xiStart, xiEnd):
     '''
     Get side vector normal to curve at xiEnd for smoothest transition from
     sideStart at xiStart.
-    :param xi, d1, x2, d2: 
+    :param xi, d1, x2, d2:
     :param sideStart: Unit vector normal to curve
     '''
     pass
@@ -179,7 +185,10 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     starting at hex2 and between hex1 and hex2, respectively.
     :return next elementIdentifier.
     '''
-    paCount = len(paNodeId)
+    if paNodeId == []:
+        paCount = len(roNodeId)
+    else:
+        paCount = len(paNodeId)
     c1Count = len(c1NodeId)
     c2Count = len(c2NodeId)
     pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
@@ -198,39 +207,42 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     elementtemplateMod = mesh.createElementtemplate()
     elementtemplateMod.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
 
-    for e1 in range(paCount):
-        eft = eftStd
-        elementtemplate = elementtemplateStd
-        np = e1 + paStartIndex
-        nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
-        scalefactors = None
-        meshGroups = [ ]
+    if paNodeId == []:
+        pass
+    else:
+        for e1 in range(paCount):
+            eft = eftStd
+            elementtemplate = elementtemplateStd
+            np = e1 + paStartIndex
+            nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
+            scalefactors = None
+            meshGroups = [ ]
 
-        if e1 in (0, pac1Count - 1, pac1Count, paCount - 1):
-            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-            if not useCrossDerivatives:
-                for n in range(4):
-                    eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-            if e1 in (0, pac1Count):
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-            elif e1 in (pac1Count - 1, paCount - 1):
-                remapEftNodeValueLabel(eft, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
+            if e1 in (0, pac1Count - 1, pac1Count, paCount - 1):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 in (0, pac1Count):
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                elif e1 in (pac1Count - 1, paCount - 1):
+                    remapEftNodeValueLabel(eft, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
 
-        element = mesh.createElement(elementIdentifier, elementtemplate)
-        result2 = element.setNodesByIdentifier(eft, nids)
-        if scalefactors:
-            result3 = element.setScaleFactors(eft, scalefactors)
-        else:
-            result3 = '-'
-        #print('create element tube bifurcation pa', element.isValid(), elementIdentifier, result2, result3, nids)
-        elementIdentifier += 1
-        for meshGroup in meshGroups:
-            meshGroup.addElement(element)
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            result2 = element.setNodesByIdentifier(eft, nids)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft, scalefactors)
+            else:
+                result3 = '-'
+            #print('create element tube bifurcation pa', element.isValid(), elementIdentifier, result2, result3, nids)
+            elementIdentifier += 1
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
 
     for e1 in range(c1Count):
         eft = eftStd
@@ -246,25 +258,40 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         scalefactors = None
         meshGroups = [ ]
 
-        if e1 in (0, pac1Count, c1Count - 1):
-            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-            if not useCrossDerivatives:
-                for n in range(4):
-                    eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-            if e1 == 0:
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-            elif e1 == pac1Count:
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-            elif e1 == (c1Count - 1):
-                scalefactors = [ -1.0 ]
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
+        if paNodeId == []:
+            if e1 in (0, pac1Count, c1Count - 1):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 == pac1Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                elif e1 == (c1Count - 1):
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
+        else:
+            if e1 in (0, pac1Count, c1Count - 1):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 == 0:
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elif e1 == pac1Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                elif e1 == (c1Count - 1):
+                    scalefactors = [ -1.0 ]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
 
         element = mesh.createElement(elementIdentifier, elementtemplate)
         result2 = element.setNodesByIdentifier(eft, nids)
@@ -290,27 +317,51 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         scalefactors = None
         meshGroups = [ ]
 
-        if e1 <= c1c2Count:
-            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-            if not useCrossDerivatives:
-                for n in range(4):
-                    eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-            scalefactors = [ -1.0 ]
-            setEftScaleFactorIds(eft, [1], [])
-            if e1 == 0:
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-                scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-            elif e1 < (c1c2Count - 1):
-                scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-            elif e1 == (c1c2Count - 1):
-                scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
-            elif e1 == c1c2Count:
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-                remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
+        if paNodeId == []:
+            if e1 <= c1c2Count:
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                if e1 == 0:
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [  ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                    scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 < (c1c2Count - 1):
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 == (c1c2Count - 1):
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [  ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
+        else:
+            if e1 <= c1c2Count:
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if not useCrossDerivatives:
+                    for n in range(4):
+                        eft.setFunctionNumberOfTerms(n*4 + 4, 0)
+                scalefactors = [ -1.0 ]
+                setEftScaleFactorIds(eft, [1], [])
+                if e1 == 0:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
+                    scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 < (c1c2Count - 1):
+                    scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                elif e1 == (c1c2Count - 1):
+                    scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
+                elif e1 == c1c2Count:
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
+                    remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
 
         element = mesh.createElement(elementIdentifier, elementtemplate)
         result2 = element.setNodesByIdentifier(eft, nids)
@@ -324,3 +375,126 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
             meshGroup.addElement(element)
 
     return elementIdentifier
+
+def move_1D_central_path(region, bifurcationTreeScaffold):
+    """
+    Extract the central path from MeshType_1d_bifurcationtree1.
+    :param region: Zinc region to define model in. Must be empty
+    :param bifurcationTreeScaffold: MeshType_1d_bifurcationtree1
+    :return fieldParameters: coordinates and first derivatives at each node
+    """
+    # Central path extraction
+    tmpRegion = region.createRegion()
+    bifurcationTreeScaffold.generate(tmpRegion)
+    fieldmodule = tmpRegion.getFieldmodule()
+    nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    tmpCoordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    valueLabels, fieldParameters = extract_node_field_parameters(nodeset, tmpCoordinates)
+
+    return fieldParameters
+
+def readRegionFromFile(filename):
+    """
+    Read a 1D bifurcation tree ex file
+    :param filename: File directory
+    :return nodes: Node identifier, coordinates and d1[x1, x2, x2]
+    :return element: Element identifier and node identifiers [n1, n2]
+    """
+
+    context = Context("importedScaffold")
+    region = context.getDefaultRegion()
+    result = region.readFile(filename)  # if uploaded successfully, return 0
+    assert result != 0, 'File cannot be found in the directory - Please try again'
+
+    # Node extraction
+    fieldModule = region.getFieldmodule()
+    coordinates = findOrCreateFieldCoordinates(fieldModule)
+    nodeset = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
+
+    # Radius extraction
+    radiusField = fieldModule.findFieldByName('radius')
+    componentsCount = radiusField.getNumberOfComponents()
+    fieldcache = fieldModule.createFieldcache()
+    nodeIter = nodeset.createNodeiterator()
+    node = nodeIter.next()
+    treeRadius = []
+    while node.isValid():
+        identifier = node.getIdentifier()
+        fieldcache.setNode(node)
+        result, radius = radiusField.evaluateReal(fieldcache, componentsCount)
+        assert result != 0, 'Cannot extract 1D Tree radius'
+        treeRadius.append([identifier, radius])
+        node = nodeIter.next()
+
+    # Element extraction
+    mesh = fieldModule.findMeshByDimension(1)
+    elementIter = mesh.createElementiterator()
+    element = elementIter.next()
+
+    node_identifiers = []
+    while element.isValid():
+        eft = element.getElementfieldtemplate(coordinates, -1)
+        node_identifiers_temp = getElementNodeIdentifiers(element, eft)
+        identifier = element.getIdentifier()
+        node_identifiers.append(node_identifiers_temp)
+        element = elementIter.next()
+
+    # Build a bifurcation tree
+    nodeTree = BifurcationTree
+    nodeIndex = [n[0] for n in fieldParameters]
+    nodeTreeIndex = [None] * max(nodeIndex)
+
+    generationCount = 0
+    nodeIdentifiers = node_identifiers.copy()
+
+    while nodeIdentifiers != []:
+        countTemp = 1
+        idx = 0
+        for i in range(len(nodeIdentifiers)):
+            if (nodeIdentifiers[idx][1] in nodeIdentifiers[i]) and (i != idx):
+                countTemp += 1
+                idx = i
+            if generationCount < countTemp:
+                generationCount = countTemp
+        nodeIdentifiers.pop(idx)
+
+    while node_identifiers != []:
+        # initialise variables
+        idx = []
+        idx_1 = []
+
+        # First node identifier
+        for i in range(len(fieldParameters)):
+            if node_identifiers[0][0] == fieldParameters[i][0]:
+                idx = i
+                break
+            elif i == (len(fieldParameters) - 1):
+                assert idx != [], 'Missing 1st node in elements'
+
+        x = fieldParameters[idx][1][0][0]
+        d1 = fieldParameters[idx][1][1][0]
+        r = treeRadius[idx][1]
+        if nodeTreeIndex[idx] == None:
+            nodeTreeIndex[idx] = TreeNode(x, d1, r)
+
+        # Second node identifier
+        for i in range(len(fieldParameters)):
+            if node_identifiers[0][1] == fieldParameters[i][0]:
+                idx_1 = i
+                break
+            elif i == (len(fieldParameters) - 1):
+                assert idx_1 != [], 'Missing 2nd node in elements'
+
+        x = fieldParameters[idx_1][1][0][0]
+        d1 = fieldParameters[idx_1][1][1][0]
+        r = treeRadius[idx_1][1]
+
+        nodeTreeIndex[idx].addChild(TreeNode(x, d1, r))
+        childIndex = len(nodeTreeIndex[idx]._children) - 1
+        nodeTreeIndex[idx_1] = nodeTreeIndex[idx].getChild(childIndex)
+        node_identifiers.pop(0)
+
+    nodeTree._rootNode = nodeTreeIndex[0]
+
+    return generationCount, nodeTree
