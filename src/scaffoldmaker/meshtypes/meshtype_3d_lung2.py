@@ -49,33 +49,76 @@ class MeshType_3d_lung2(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        options = {}
         if parameterSetName == 'Default':
             parameterSetName = 'Human 1'
-        options['Base parameter set'] = parameterSetName
-        options['Length - Left/Right Lung'] = [6.0, 6.0]
-        options['Width - Left/Right Lung'] = [2, 2]
-        options['Height - Left/Right Lung'] = [10.0, 10.0]
-        options['Distance from origin - Left/Right Lung'] = [4, 0.0, 0.0]
-        options['Fissure angle - Left/Right Lung'] = [45.0, 45.0]
-        options['Oblique proportion - Left/Right Lung'] = [0.8, 0.8]
-        options['Tilt apex along x-axis - Left/Right Lung'] = [0.0, 0.0]
-        options['Tilt apex along y-axis - Left/Right Lung'] = [0.0, 0.0]
-        options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [0.0, 0.0]
-        options['Tilt diaphragm surface along y-axis - Left/Right Lung'] = [0.0, 0.0]
-        options['Diaphragmatic curve radius - Left/Right Lung'] = [0.03, 0.03]
-        options['Bulge radius around y-axis - Left/Right Lung'] = [20.0, 20.0]
-        options['Bulge radius around z-axis - Left/Right Lung'] = [5.0, 5.0]
-        options['Medial curve radius - Left/Right Lung'] = [0.007, 0.007]
-        options['Sharpening edge - Left/Right Lung'] = [0.1, 0.1]
-        options['Tapering along z-axis - Left/Right Lung'] = [0.1, 0.1]
-        options['Open fissures - Left/Right Lung'] = False
-        options['Length - Accessory lobe'] = 2.0
-        options['Width - Accessory lobe'] = 2.0
-        options['Height - Accessory lobe'] = 2.0
-        options['Distance from origin - Accessory lobe'] = [0.0, 0.0, 5.0]
-        options['Refine'] = False
-        options['Refine number of elements'] = 4
+
+        options = {
+            'Base parameter set': parameterSetName,
+            'Length - Left/Right Lung': [0.5, 0.5],
+            'Width - Left/Right Lung':  [0.25, 0.25],
+            'Height - Left/Right Lung': [1.0, 1.0],
+            'Distance from origin - Left/Right Lung': [0.5, 0.0, 0.0],
+            'Fissure angle - Left/Right Lung': [45.0, 45.0],
+            'Oblique proportion - Left/Right Lung': [0.8, 0.8],
+            'Tilt apex along x-axis - Left/Right Lung': [0.0, 0.0],
+            'Tilt apex along y-axis - Left/Right Lung': [0.0, 0.0],
+            'Rotate around z-axis - Left/Right Lung': [0.0, 0.0],
+            'Tilt diaphragm surface along x-axis - Left/Right Lung': [0.0, 0.0],
+            'Tilt diaphragm surface along y-axis - Left/Right Lung': [0.0, 0.0],
+            'Diaphragmatic curve radius - Left/Right Lung': [0.0, 0.0],
+            'Bulge radius around y-axis - Left/Right Lung': [0.0, 0.0],
+            'Bulge radius around z-axis - Left/Right Lung': [0.0, 0.0],
+            'Medial curve radius - Left/Right Lung': [0.0, 0.0],
+            'Sharpening edge - Left/Right Lung': [0.0, 0.0],
+            'Tapering along z-axis - Left/Right Lung': [0.0, 0.0],
+            'Open fissures - Left/Right Lung': False,
+            'Length - Accessory lobe': 0.1,
+            'Width - Accessory lobe': 0.25,
+            'Height - Accessory lobe': 0.25,
+            'Distance from origin - Accessory lobe': [0.0, -0.2, 0.0],
+            'Refine': False,
+            'Refine number of elements': 4
+        }
+
+        if 'Human 1' in parameterSetName:
+            options['Distance from origin - Left/Right Lung'] = [0.35, 0.0, 0.0]
+            options['Tilt apex along x-axis - Left/Right Lung'] = [5.0, 5.0]
+            options['Tilt apex along y-axis - Left/Right Lung'] = [5.0, 5.0]
+            options['Rotate around z-axis - Left/Right Lung'] = [20.0, -10.0]
+            options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [15.0, 15.0]
+            options['Diaphragmatic curve radius - Left/Right Lung'] = [0.05, 0.05]
+            options['Bulge radius around z-axis - Left/Right Lung'] = [0.8, 0.8]
+            options['Medial curve radius - Left/Right Lung'] = [2, 1.0]
+            options['Sharpening edge - Left/Right Lung'] = [0.5, 0.0]
+            options['Tapering along z-axis - Left/Right Lung'] = [0.2, 0.2]
+
+        elif 'Mouse 1' in parameterSetName:
+            options['Height - Left/Right Lung'] = [0.8, 0.8]
+            options['Distance from origin - Left/Right Lung'] = [0.4, 0.0, 0.0]
+            options['Tilt apex along x-axis - Left/Right Lung'] = [10, 10.0]
+            options['Tilt apex along y-axis - Left/Right Lung'] = [5.0, 10.0]
+            options['Rotate around z-axis - Left/Right Lung'] = [10.0, 20.0]
+            options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [20.0, 20.0]
+            options['Tilt diaphragm surface along y-axis - Left/Right Lung'] = [20.0, 10.0]
+            options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1]
+            options['Medial curve radius - Left/Right Lung'] = [0.0, 2.0]
+            options['Sharpening edge - Left/Right Lung'] = [1.8, 0.8]
+            options['Tapering along z-axis - Left/Right Lung'] = [0.1, -0.2]
+            options['Distance from origin - Accessory lobe'] = [0.0, -0.2, 0.5]
+
+        elif 'Rat 1' in parameterSetName:
+            options['Height - Left/Right Lung'] = [0.8, 0.8]
+            options['Distance from origin - Left/Right Lung'] = [0.33, 0.0, 0.0]
+            options['Tilt apex along x-axis - Left/Right Lung'] = [10, 10.0]
+            options['Tilt apex along y-axis - Left/Right Lung'] = [15.0, 15.0]
+            options['Rotate around z-axis - Left/Right Lung'] = [15.0, 15.0]
+            options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [10.0, 10.0]
+            options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1]
+            options['Medial curve radius - Left/Right Lung'] = [0.0, 2.0]
+            options['Sharpening edge - Left/Right Lung'] = [1.6, 0.8]
+            options['Tapering along z-axis - Left/Right Lung'] = [0.5, 0.5]
+            options['Distance from origin - Accessory lobe'] = [0.0, -0.2, 0.5]
+
         return options
 
     @staticmethod
@@ -89,6 +132,7 @@ class MeshType_3d_lung2(Scaffold_base):
             'Oblique proportion - Left/Right Lung',
             'Tilt apex along x-axis - Left/Right Lung',
             'Tilt apex along y-axis - Left/Right Lung',
+            'Rotate around z-axis - Left/Right Lung',
             'Tilt diaphragm surface along x-axis - Left/Right Lung',
             'Tilt diaphragm surface along y-axis - Left/Right Lung',
             'Diaphragmatic curve radius - Left/Right Lung',
@@ -103,7 +147,7 @@ class MeshType_3d_lung2(Scaffold_base):
             'Height - Accessory lobe',
             'Distance from origin - Accessory lobe',
             'Refine',
-            'Refine number of elements',
+            'Refine number of elements'
         ]
         return optionNames
 
@@ -151,6 +195,7 @@ class MeshType_3d_lung2(Scaffold_base):
         discontinuity = options['Open fissures - Left/Right Lung']
         tiltApex_xAxis = options['Tilt apex along x-axis - Left/Right Lung']
         tiltApex_yAxis = options['Tilt apex along y-axis - Left/Right Lung']
+        rotate_ZAxis = options['Rotate around z-axis - Left/Right Lung']
         tiltDiap_xAxis = options['Tilt diaphragm surface along x-axis - Left/Right Lung']
         tiltDiap_yAxis = options['Tilt diaphragm surface along y-axis - Left/Right Lung']
         DiaphramaticCurveRadius = options['Diaphragmatic curve radius - Left/Right Lung']
@@ -403,7 +448,7 @@ class MeshType_3d_lung2(Scaffold_base):
 
             # Diaphragm lung nodes
             nodeIndex, nodeIdentifier = getDiaphragmaticLungNodes(spaceBelowCentre, cache, coordinates, nodes, nodetemplate,
-                 diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3, length_1, width_1, height_1,
+                 diaphragmaticElementsCount1, diaphragmaticElementsCount2, diaphragmaticElementsCount3, width_1, length_1, height_1,
                  diaphragmaticNodeIds, nodeIndex, nodeIdentifier)
 
             # Create elements
@@ -538,15 +583,22 @@ class MeshType_3d_lung2(Scaffold_base):
 
             if tiltApex_xAxis[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
-                tiltLungs(tiltApex_xAxis[i], 0, 0, 0, fm, coordinates, LungNodeset)
+                tiltApex_xAxis_temp = tiltApex_xAxis[i] if i == 0 else -tiltApex_xAxis[i]
+                tiltLungs(tiltApex_xAxis_temp, 0, 0, 0, fm, coordinates, LungNodeset)
 
             if tiltApex_yAxis[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 tiltLungs(0, tiltApex_yAxis[i], 0, 0, fm, coordinates, LungNodeset)
 
+            if rotate_ZAxis[i] != 0:
+                LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                rotate_ZAxis_temp = rotate_ZAxis[i] if i == 0 else -rotate_ZAxis[i]
+                rotateLungs(rotate_ZAxis_temp, rotate_ZAxis_temp, rotate_ZAxis_temp, rotate_ZAxis_temp, fm, coordinates, LungNodeset)
+
             if tiltDiap_xAxis[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
-                tiltLungs(0, 0, 0, tiltDiap_xAxis[i], fm, coordinates, LungNodeset)
+                tiltDiap_xAxis_temp = tiltDiap_xAxis[i] if i == 0 else -tiltDiap_xAxis[i]
+                tiltLungs(0, 0, 0, tiltDiap_xAxis_temp, fm, coordinates, LungNodeset)
 
             if tiltDiap_yAxis[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
@@ -1762,6 +1814,29 @@ def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
+def rotateLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm, coordinates, lungNodesetGroup):
+    """
+    :param tiltDegree: [tilted degree for apex, for diaphragm]
+    :param fm:
+    :param coordinates:
+    :param nodes:
+    :return: transformed lungs
+    """
+    # FieldConstant - Matrix = [   x1,    x4, sh_zx,
+    #                              x2,    x5, sh_zy,
+    #                           sh_xz, sh_yz,    x9]
+    sh_xx = tiltApex_xAxis / 180 * math.pi
+    sh_xy = tiltApex_yAxis / 180 * math.pi
+    sh_yx = tiltDiap_yAxis / 180 * math.pi
+    sh_yy = tiltDiap_xAxis / 180 * math.pi
+    shearMatrix = fm.createFieldConstant([math.cos(sh_xx), math.sin(sh_xy), 0.0,
+                                          -math.sin(sh_yx), math.cos(sh_yy), 0.0,
+                                          0.0, 0.0, 1.0])
+    newCoordinates = fm.createFieldMatrixMultiply(3, shearMatrix, coordinates)
+    fieldassignment = coordinates.createFieldassignment(newCoordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
 def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre, height):
     """
     Quadratic transformation
@@ -1960,3 +2035,4 @@ def taperingZAxis(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFrom
     fieldassignment = coordinates.createFieldassignment(translate_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
+
