@@ -86,7 +86,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Tilt apex along y-axis - Left/Right Lung'] = [5.0, 5.0]
             options['Rotate around z-axis - Left/Right Lung'] = [20.0, -10.0]
             options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [15.0, 15.0]
-            options['Diaphragmatic curve radius - Left/Right Lung'] = [0.05, 0.05]
+            options['Diaphragmatic curve radius - Left/Right Lung'] = [1.0, 1.0]
             options['Bulge radius around z-axis - Left/Right Lung'] = [0.8, 0.8]
             options['Medial curve radius - Left/Right Lung'] = [2, 1.0]
             options['Sharpening edge - Left/Right Lung'] = [0.5, 0.0]
@@ -100,6 +100,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Rotate around z-axis - Left/Right Lung'] = [10.0, 20.0]
             options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [20.0, 20.0]
             options['Tilt diaphragm surface along y-axis - Left/Right Lung'] = [20.0, 10.0]
+            options['Diaphragmatic curve radius - Left/Right Lung'] = [1.0, 1.0]
             options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1]
             options['Medial curve radius - Left/Right Lung'] = [0.0, 2.0]
             options['Sharpening edge - Left/Right Lung'] = [1.8, 0.8]
@@ -113,6 +114,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Tilt apex along y-axis - Left/Right Lung'] = [15.0, 15.0]
             options['Rotate around z-axis - Left/Right Lung'] = [15.0, 15.0]
             options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [10.0, 10.0]
+            options['Diaphragmatic curve radius - Left/Right Lung'] = [1.0, 1.0]
             options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1]
             options['Medial curve radius - Left/Right Lung'] = [0.0, 2.0]
             options['Sharpening edge - Left/Right Lung'] = [1.6, 0.8]
@@ -558,7 +560,7 @@ class MeshType_3d_lung2(Scaffold_base):
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
                 spaceFromCentre_temp = spaceFromCentre if i == 0 else [-spaceFromCentre[j] for j in range(3)]
                 concavingDiaphragmaticSurface(DiaphramaticCurveRadius[i], fm, coordinates, LungNodeset,
-                                              spaceFromCentre_temp, height[i])
+                                              spaceFromCentre_temp, length[i], width[i], height[i])
 
             if medialCurveRadius[i] != 0:
                 LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
@@ -1837,7 +1839,7 @@ def rotateLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, 
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre, height):
+def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre, length, width, height):
     """
     Quadratic transformation
     :param sharpRadius:
@@ -1856,9 +1858,9 @@ def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup
     absCoordinate = fm.createFieldAbs(origin)
     sqauredCoordinate = fm.createFieldMultiply(absCoordinate, absCoordinate)
 
-    k1 = 0.5 * bulgeRadius  # quadratic coefficient for x
-    k2 = 0.1 * bulgeRadius  # quadratic coefficient for y
-    k3 = -0.3 * bulgeRadius # quadratic coefficient for z
+    k1 = length/width * bulgeRadius  # quadratic coefficient for x
+    k2 = width/length * bulgeRadius  # quadratic coefficient for y
+    k3 = 0.0 * bulgeRadius  # quadratic coefficient for z
 
     scale = fm.createFieldConstant([k1, 0.0, 0.0])
     scaleFunction = fm.createFieldMultiply(sqauredCoordinate, scale)
@@ -1879,7 +1881,13 @@ def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup
 
     transformation_matrix = fm.createFieldComponent(constantFunction, [2, 2, 1])
     curve_coordinates = fm.createFieldMultiply(transformation_matrix, origin)
-    translate_coordinates = fm.createFieldSubtract(curve_coordinates, offset)
+
+    ratio = (width ** 2) * bulgeRadius * (length/width) + 1
+
+    reduceSize = fm.createFieldConstant([1.0, 1.0, 1.0/ratio])
+    reduce_coordinates = fm.createFieldMultiply(curve_coordinates, reduceSize)
+
+    translate_coordinates = fm.createFieldSubtract(reduce_coordinates, offset)
     fieldassignment = coordinates.createFieldassignment(translate_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
