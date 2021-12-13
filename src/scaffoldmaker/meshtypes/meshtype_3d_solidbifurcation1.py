@@ -178,7 +178,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         # cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
         #                          cylinderShape=cylinderShape,
         #                          cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
-        bifurcation1 = BifurcationMesh(fm, coordinates)
+        bifurcation1 = BifurcationMesh(fm, coordinates, region)
 
         annotationGroup = []
         return annotationGroup
