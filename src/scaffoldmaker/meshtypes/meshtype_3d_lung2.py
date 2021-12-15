@@ -88,7 +88,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [15.0, 15.0]
             options['Diaphragmatic curve radius - Left/Right Lung'] = [1.0, 1.0]
             options['Bulge radius around z-axis - Left/Right Lung'] = [0.8, 0.8]
-            options['Medial curve radius - Left/Right Lung'] = [2, 1.0]
+            options['Medial curve radius - Left/Right Lung'] = [2.0, 1.0]
             options['Sharpening edge - Left/Right Lung'] = [0.5, 0.0]
             options['Tapering along z-axis - Left/Right Lung'] = [0.2, 0.2]
 
@@ -101,7 +101,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [20.0, 20.0]
             options['Tilt diaphragm surface along y-axis - Left/Right Lung'] = [20.0, 10.0]
             options['Diaphragmatic curve radius - Left/Right Lung'] = [1.0, 1.0]
-            options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1]
+            options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1.0]
             options['Medial curve radius - Left/Right Lung'] = [0.0, 2.0]
             options['Sharpening edge - Left/Right Lung'] = [1.8, 0.8]
             options['Tapering along z-axis - Left/Right Lung'] = [0.1, -0.2]
@@ -115,7 +115,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Rotate around z-axis - Left/Right Lung'] = [15.0, 15.0]
             options['Tilt diaphragm surface along x-axis - Left/Right Lung'] = [10.0, 10.0]
             options['Diaphragmatic curve radius - Left/Right Lung'] = [1.0, 1.0]
-            options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1]
+            options['Bulge radius around z-axis - Left/Right Lung'] = [0.6, 1.0]
             options['Medial curve radius - Left/Right Lung'] = [0.0, 2.0]
             options['Sharpening edge - Left/Right Lung'] = [1.6, 0.8]
             options['Tapering along z-axis - Left/Right Lung'] = [0.5, 0.5]
@@ -383,8 +383,8 @@ class MeshType_3d_lung2(Scaffold_base):
 
             lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
 
-            idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
-            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 0.0, 1.0]})
+            idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
+            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 1.0, 1.0]})
 
             idx = 1
             markerList.append({"group": leftDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
@@ -403,8 +403,8 @@ class MeshType_3d_lung2(Scaffold_base):
             markerList.append({"group": rightDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
 
             idx = leftLungElementCount + lowerRightElementCount + \
-                  (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount1//2)
-            markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+                  (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
+            markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
 
             idx = leftLungElementCount + lElementsCount1 + 1
             markerList.append({"group": rightMedialGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
@@ -415,7 +415,7 @@ class MeshType_3d_lung2(Scaffold_base):
             idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
             markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
 
-        elif isMouse or isRat:
+        elif isMouse or isRat or test:
             # The number of the elements in the diaphragmatic animal lung
             diaphragmaticElementsCount1 = 2
             diaphragmaticElementsCount2 = 5
@@ -1849,9 +1849,9 @@ def concavingDiaphragmaticSurface(bulgeRadius, fm, coordinates, lungNodesetGroup
     :param spaceFromCentre:
     :return:
     """
-    # Transformation matrix = [       1,        |  [x,
-    #                                 1,        |   y,
-    #                         ,k1x + k1y + 1]   |   z]
+    # Transformation matrix = [       1,                   |  [x,
+    #                                 1,                   |   y,
+    #                         ,k1x^2 + k2y^2 + (0)k3z^2]   |   z]
 
     offset = fm.createFieldConstant([spaceFromCentre[0], spaceFromCentre[1], spaceFromCentre[2] - height])
     origin = fm.createFieldAdd(coordinates, offset)
@@ -1902,11 +1902,11 @@ def concavingMedialSurface(bulgeRadius, fm, coordinates, lungNodesetGroup, space
     :param spaceFromCentre:
     :return:
     """
-    # Transformation matrix = [       1,        |  [x,
-    #                                 1,        |   y,
-    #                         ,k1x + k1y + 1]   |   z]
+    # Transformation matrix = [       1,                   |  [x,
+    #                                 1,                   |   y,
+    #                         ,k1x^2 + k2y^2 + (0)k3z^2]   |   z]
     # the centre of the curve depends on the offset
-    offset = fm.createFieldConstant([spaceFromCentre[0] + width, spaceFromCentre[1] - length/2, spaceFromCentre[2] - height/4])
+    offset = fm.createFieldConstant([spaceFromCentre[0] + width, spaceFromCentre[1], spaceFromCentre[2] - height/2])
     origin = fm.createFieldAdd(coordinates, offset)
     absCoordinate = fm.createFieldAbs(origin)
     sqauredCoordinate = fm.createFieldMultiply(absCoordinate, absCoordinate)
