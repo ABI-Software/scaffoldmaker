@@ -45,7 +45,9 @@ class MeshType_3d_lung2(Scaffold_base):
             'Default',
             'Human 1',
             'Mouse 1',
-            'Rat 1']
+            'Rat 1',
+            'Material'
+        ]
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -183,6 +185,7 @@ class MeshType_3d_lung2(Scaffold_base):
         isMouse = 'Mouse 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
+        isMaterial = 'Material' in parameterSetName
 
         length = options['Length - Left/Right Lung']
         width = options['Width - Left/Right Lung']
@@ -288,7 +291,7 @@ class MeshType_3d_lung2(Scaffold_base):
             upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
             annotationGroups.append(upperLeftLungGroup)
 
-        elif isMouse or isRat:
+        elif isMouse or isRat or isMaterial:
             # Annotation groups
             diaphragmaticLungGroup = AnnotationGroup(region, get_lung_term("right lung accessory lobe"))
             diaphragmaticLungMeshGroup = diaphragmaticLungGroup.getMeshGroup(mesh)
@@ -415,7 +418,7 @@ class MeshType_3d_lung2(Scaffold_base):
             idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
             markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
 
-        elif isMouse or isRat or test:
+        elif isMouse or isRat or isMaterial:
             # The number of the elements in the diaphragmatic animal lung
             diaphragmaticElementsCount1 = 2
             diaphragmaticElementsCount2 = 5
@@ -638,6 +641,8 @@ class MeshType_3d_lung2(Scaffold_base):
         isMouse = 'Mouse 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
+        isMaterial = 'Material' in parameterSetName
+
 
         # create fissure groups
         fm = region.getFieldmodule()
@@ -693,7 +698,7 @@ class MeshType_3d_lung2(Scaffold_base):
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
             obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
 
-        if isHuman or isMouse or isRat:
+        if isHuman or isMouse or isRat or isMaterial:
             upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
             middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
             lowerRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of right lung"))
