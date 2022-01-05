@@ -38,6 +38,11 @@ from scaffoldmaker.meshtypes.meshtype_3d_musclefusiform1 import MeshType_3d_musc
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+from scaffoldmaker.meshtypes.meshtype_3d_solidbifurcation1 import MeshType_3d_solidbifurcation1
+from scaffoldmaker.meshtypes.meshtype_3d_solidbifurcation2 import MeshType_3d_solidbifurcation2
+>>>>>>> cfec53f (copied to 2nd one)
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
@@ -96,6 +101,11 @@ class Scaffolds(object):
             MeshType_3d_ostium1,
             MeshType_3d_smallintestine1,
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            MeshType_3d_solidbifurcation1,
+            MeshType_3d_solidbifurcation2,
+>>>>>>> cfec53f (copied to 2nd one)
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,
             MeshType_3d_solidsphere2,
