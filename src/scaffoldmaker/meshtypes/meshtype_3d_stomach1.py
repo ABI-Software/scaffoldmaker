@@ -2645,7 +2645,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         "gastroduodenal junction along the greater curvature on luminal surface",
                         "gastroduodenal junction along the lesser curvature on luminal surface",
                         "body-antrum junction along the greater curvature on luminal surface",
-                        "limiting ridge along the greater curvature on luminal surface" if limitingRidge else
+                        "limiting ridge at the greater curvature on the luminal surface" if limitingRidge else
                         "fundus-body junction along the greater curvature on luminal surface"]]
         if elementsCountThroughWall == 4:
             markerNames.append(
@@ -2654,14 +2654,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                  "gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface",
                  "gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface",
                  "body-antrum junction along the greater curvature on circular-longitudinal muscle interface",
-                 "limiting ridge along the greater curvature on circular-longitudinal muscle interface" if limitingRidge
+                 "limiting ridge at the greater curvature on the circular-longitudinal muscle interface" if limitingRidge
                  else "fundus-body junction along the greater curvature on circular-longitudinal muscle interface"])
         markerNames.append(["esophagogastric junction along the greater curvature on serosa",
                             "esophagogastric junction along the lesser curvature on serosa",
                             "gastroduodenal junction along the greater curvature on serosa",
                             "gastroduodenal junction along the lesser curvature on serosa",
                             "body-antrum junction along the greater curvature on serosa",
-                            "limiting ridge along the greater curvature on serosa" if limitingRidge else
+                            "limiting ridge at the greater curvature on serosa" if limitingRidge else
                             "fundus-body junction along the greater curvature on serosa"])
 
         markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
@@ -2990,19 +2990,20 @@ class MeshType_3d_stomach1(Scaffold_base):
                     "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
             duodenumCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of duodenum along the gastric-omentum attachment"))
+                    "circular-longitudinal muscle interface of first segment of the duodenum along the "
+                    "gastric-omentum attachment"))
             esoCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of esophagus along the cut margin"))
             fundusCurvaturesCMLMGroup =\
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of fundus of stomach along the gastric-omentum attachment"))
+                    "circular-longitudinal muscle interface of fundus of stomach along the greater curvature"))
             antrumCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of pyloric antrum along the gastric-omentum attachment"))
+                    "circular-longitudinal muscle interface of pyloric antrum along the greater and lesser curvatures"))
             pylorusCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of pyloric canal along the gastric-omentum attachment"))
+                    "circular-longitudinal muscle interface of pyloric canal along the greater and lesser curvatures"))
 
             sectionCurvaturesCMLMGroups = [None, bodyCurvaturesCMLMGroup, None, duodenumCurvaturesCMLMGroup,
                                            esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup, antrumCurvaturesCMLMGroup,
