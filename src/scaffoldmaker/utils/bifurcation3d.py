@@ -57,15 +57,7 @@ class BifurcationMesh:
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldmodule.findMeshByDimension(3)
 
-        nodeparams1 = [[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [[1/self._elementsCount[0], 0.0, 0.0], [1/self._elementsCount[0], 0.0, 0.0]],
-                       [[0.0, 1/self._elementsCount[1], 0.0], [0.0, 1/self._elementsCount[1], 0.0]]],
-                      [[0.0, 0.0, 1.4], [1.2, 0.0, 1.0], [0.0, 1.0, 1.4], [[1/self._elementsCount[0], 0.0, 0.0], [0.5*0.7071, 0.0, -0.5*0.7071]],
-                       [[0.0, 1/self._elementsCount[1], 0.0], [0.0, 1/self._elementsCount[1], 0.0]]]]
-
-        nodeparams2 = [[[0.5, 0.0, 2.2], [1.2, 0.0, 1.0], [0.5, 1.0, 2.2], [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]],
-                        [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]],
-                       [[1.7, 0.0, 2.2], [1.7, 0.0, 1.2], [1.7, 1.0, 2.2], [[0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]],
-                        [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]]]
+        nodeparams1, nodeparams2 = self._get_node_params()
 
         bottom_part = BaseLeg(self._elementsCount, nodeparams1)
         # self.copyBaseLeg2Bifurcation(baseleg1, 1)
@@ -88,65 +80,115 @@ class BifurcationMesh:
         self.join_box_to_bottom_and_shoulder(joining_box, bottom_part, shoulder_part)
         self.generateElements(mesh, fieldmodule, coordinates, joining_box)
 
-        shoulder_connecting_to_box = CylinderConnectingToBox(shoulder_part, [0, 0], -1)
-        self.generateNodes(nodes, fieldmodule, coordinates, shoulder_connecting_to_box)
-        self.joint_shoulder_joint_to_cylinder_and_box(shoulder_connecting_to_box, joining_box, shoulder_part, [1, 0], 0)
-        self.generateElements(mesh, fieldmodule, coordinates, shoulder_connecting_to_box)
+        x_shoulder_base_centre = [-0.5, 0.0, 2.2]
+        x_shoulder_base_curve2 = [-1.2, 0.0, 1.0]
+        x_shoulder_base_curve1 = [-0.5, 1.0, 2.2]
+        d1_shoulder_base_curve2 = [[-0.0, 0.0, -1 / self._elementsCount[1]], [-0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
+        d1_shoulder_base_curve1 = [[-0.0, 1 / self._elementsCount[0], 0.0], [-0.0, 1 / self._elementsCount[0], 0.0]]
+        x_shoulder_end_centre = [-1.7, 0.0, 2.2]
+        x_shoulder_end_curve2 = [-1.7, 0.0, 1.2]
+        x_shoulder_end_curve1 = [-1.7, 1.0, 2.2]
+        d1_shoulder_end_curve2 = [[-0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]]
+        d1_shoulder_end_curve1 = [[-0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
 
-        bottom_connecting_to_box = CylinderConnectingToBox(bottom_part, [1, 2], 1)
-        self.generateNodes(nodes, fieldmodule, coordinates, bottom_connecting_to_box)
-        self.joint_shoulder_joint_to_cylinder_and_box(bottom_connecting_to_box, joining_box, bottom_part, [0, 2], 1)
-        self.generateElements(mesh, fieldmodule, coordinates, bottom_connecting_to_box)
+        nodeparams3 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
+                       d1_shoulder_base_curve2],
+                      [x_shoulder_end_centre, x_shoulder_end_curve1, x_shoulder_end_curve2, d1_shoulder_end_curve1,
+                       d1_shoulder_end_curve2]]
 
-        centre = [-6.580413981734434e-01, 5.756093176338770e-02, 2.797218065767146e+00]
-        outer_point = [4.417e-01, 4.174e-02, 3.897e+00]
+        shoulder_part = BaseLeg(self._elementsCount, nodeparams3)
+        shoulder_part._shoulder = True
 
-        p1 = [-1.12e+00, 9.29e-02, 3.22e+00]
-        p2 =  [-1.62e+00, 1.061e-01, 3.72e+00]
-        p3 = [-2.12e+00, 1.14e-01, 4.26e+00]
-        p4 = [-2.605e+00, 1.22e-01, 4.76e+00]
-        d11 = vector.addVectors([p1, centre], [1, -1])
-        d21 = vector.addVectors([outer_point, centre], [1, -1])
-        d31 = vector.setMagnitude(vector.crossproduct3(d11, d21), -1.0)
-
-
-        centralPath = ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 3.0,
-                'Number of elements': 4
-            },
-            'meshEdits': exnodeStringFromNodeValues(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[-6.58e-01, 5.75e-02, 2.797e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
-                    [[-1.12e+00, 9.29e-02, 3.22e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
-                    [[-1.62e+00, 1.061e-01, 3.72e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
-                    [[-2.12e+00, 1.14e-01, 4.26e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
-                    [[-2.605e+00, 1.22e-01, 4.76e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]]
-                ])
-        })
-
-        cylinderCentralPath = CylinderCentralPath(self._region, centralPath, 5)
-
-        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
-
-        base = CylinderEnds(4, 4, 0, 1, 1.0,
-                            centre, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
-                            cylinderCentralPath.minorRadii[0])
-        torso_cylinder = CylinderMesh(fieldmodule, coordinates, 5, base,
-                                 cylinderShape=cylinderShape,
-                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
-
-        joining_torso = JoiningTorso([4, 4, 1])
-        self.join_to_torso(joining_torso, torso_cylinder._shield, shoulder_connecting_to_box, bottom_connecting_to_box)
-        print(joining_torso.nodeId)
-        self.generateElements(mesh, fieldmodule, coordinates, joining_torso)
+        self.remove_duplicate_nodes_from_shoulder(shoulder_part, 1)
+        self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part)
+        self.join_shoulder_to_bottom_part(shoulder_part, bottom_part, 1)
+        self.generateElements(mesh, fieldmodule, coordinates, shoulder_part)
 
 
-        torso_part = torso_cylinder._shield
+
+        x_neck_base_centre = [0.0, 0.0, 2.62]
+        x_neck_base_curve2 = [0.0, 1.0, 2.62]
+        x_neck_base_curve1 = [1.2, 0.0, 3.4]
+        d1_neck_base_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
+        d1_neck_base_curve1 = [[1 / self._elementsCount[0], 0.0, 0.0], [0.5, 0.0, 0.5]]
+        x_neck_end_centre = [0.0, 0.0, 3.6]
+        x_neck_end_curve2 = [0.0, 0.8, 3.6]
+        x_neck_end_curve1 = [0.8, 0.0, 3.6]
+        d1_neck_end_curve2 = [[0.0, 0.8 / self._elementsCount[1], 0.0], [0.0, 0.8 / self._elementsCount[1], 0.0]]
+        d1_neck_end_curve1 = [[1 / self._elementsCount[0], 0.0, 0.0], [1 / self._elementsCount[0], 0.0, 0.0]]
+
+        nodeparams3 = [[x_neck_base_centre, x_neck_base_curve1, x_neck_base_curve2, d1_neck_base_curve1,
+                       d1_neck_base_curve2],
+                      [x_neck_end_centre, x_neck_end_curve1, x_neck_end_curve2, d1_neck_end_curve1,
+                       d1_neck_end_curve2]]
+
+        neck_part = BaseLeg(self._elementsCount, nodeparams3)
+        neck_part._shoulder = True
+
+        # self.remove_duplicate_nodes_from_shoulder(neck_part, 1)
+        self.generateNodes(nodes, fieldmodule, coordinates, neck_part)
+        # self.join_shoulder_to_bottom_part(neck_part, bottom_part, 1)
+        self.generateElements(mesh, fieldmodule, coordinates, neck_part)
+
+        # shoulder_connecting_to_box = CylinderConnectingToBox(shoulder_part, [0, 0], -1)
+        # self.generateNodes(nodes, fieldmodule, coordinates, shoulder_connecting_to_box)
+        # self.joint_shoulder_joint_to_cylinder_and_box(shoulder_connecting_to_box, joining_box, shoulder_part, [1, 0], 0)
+        # self.generateElements(mesh, fieldmodule, coordinates, shoulder_connecting_to_box)
+        #
+        # bottom_connecting_to_box = CylinderConnectingToBox(bottom_part, [1, 2], 1)
+        # self.generateNodes(nodes, fieldmodule, coordinates, bottom_connecting_to_box)
+        # self.joint_shoulder_joint_to_cylinder_and_box(bottom_connecting_to_box, joining_box, bottom_part, [0, 2], 1)
+        # self.generateElements(mesh, fieldmodule, coordinates, bottom_connecting_to_box)
+        #
+        # centre = [-6.580413981734434e-01, 5.756093176338770e-02, 2.797218065767146e+00]
+        # outer_point = [4.417e-01, 4.174e-02, 3.897e+00]
+        #
+        # p1 = [-1.12e+00, 9.29e-02, 3.22e+00]
+        # p2 =  [-1.62e+00, 1.061e-01, 3.72e+00]
+        # p3 = [-2.12e+00, 1.14e-01, 4.26e+00]
+        # p4 = [-2.605e+00, 1.22e-01, 4.76e+00]
+        # d11 = vector.addVectors([p1, centre], [1, -1])
+        # d21 = vector.addVectors([outer_point, centre], [1, -1])
+        # d31 = vector.setMagnitude(vector.crossproduct3(d11, d21), -1.0)
+
+
+        # centralPath = ScaffoldPackage(MeshType_1d_path1, {
+        #     'scaffoldSettings': {
+        #         'Coordinate dimensions': 3,
+        #         'D2 derivatives': True,
+        #         'D3 derivatives': True,
+        #         'Length': 3.0,
+        #         'Number of elements': 4
+        #     },
+        #     'meshEdits': exnodeStringFromNodeValues(
+        #         [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+        #          Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+        #             [[-6.58e-01, 5.75e-02, 2.797e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
+        #             [[-1.12e+00, 9.29e-02, 3.22e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
+        #             [[-1.62e+00, 1.061e-01, 3.72e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
+        #             [[-2.12e+00, 1.14e-01, 4.26e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]],
+        #             [[-2.605e+00, 1.22e-01, 4.76e+00], d11, d31, [0.0, 0.0, 0.0], d21, [0.0, 0.0, 0.0]]
+        #         ])
+        # })
+        #
+        # cylinderCentralPath = CylinderCentralPath(self._region, centralPath, 5)
+        #
+        # cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
+        #
+        # base = CylinderEnds(4, 4, 0, 1, 1.0,
+        #                     centre, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+        #                     cylinderCentralPath.minorRadii[0])
+        # torso_cylinder = CylinderMesh(fieldmodule, coordinates, 5, base,
+        #                          cylinderShape=cylinderShape,
+        #                          cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
+
+        # joining_torso = JoiningTorso([4, 4, 1])
+        # self.join_to_torso(joining_torso, torso_cylinder._shield, shoulder_connecting_to_box, bottom_connecting_to_box)
+        # print(joining_torso.nodeId)
+        # self.generateElements(mesh, fieldmodule, coordinates, joining_torso)
+        #
+        #
+        # torso_part = torso_cylinder._shield
 
 
 #         -4.990e+00, -7.830e-01, 5.4884e+00
@@ -164,32 +206,32 @@ class BifurcationMesh:
 
         # -6.031e+00, 9.325e-02, 3.393e+00
 
-        nodeparams1 = [[torso_part.px[5][2][2], torso_part.px[5][2][0], torso_part.px[5][0][2], [[-c for c in torso_part.pd3[5][2][2]], torso_part.pd3[5][2][0]],
-                       [[-c for c in torso_part.pd1[5][2][2]], torso_part.pd3[5][0][2]]],
-                      [[-3.70e+00, 1.4e-01, 5.84e+00], [-4.762e+00, 1.11e-01, 3.95e+00], [-3.76e+00, -8.37e-01, 5.86e+00], [[-6.1e-01, 2.78e-02, -6.01e-01], [-1.35e-01, 2.04e-01, -8.587e-01]],
-                       [[-3.475e-02, -5.527e-01, 1.865e-02], [-2.697799339817220e-02, -6.167974824227329e-01, -9.214256788918185e-03]]]]
+        # nodeparams1 = [[torso_part.px[5][2][2], torso_part.px[5][2][0], torso_part.px[5][0][2], [[-c for c in torso_part.pd3[5][2][2]], torso_part.pd3[5][2][0]],
+        #                [[-c for c in torso_part.pd1[5][2][2]], torso_part.pd3[5][0][2]]],
+        #               [[-3.70e+00, 1.4e-01, 5.84e+00], [-4.762e+00, 1.11e-01, 3.95e+00], [-3.76e+00, -8.37e-01, 5.86e+00], [[-6.1e-01, 2.78e-02, -6.01e-01], [-1.35e-01, 2.04e-01, -8.587e-01]],
+        #                [[-3.475e-02, -5.527e-01, 1.865e-02], [-2.697799339817220e-02, -6.167974824227329e-01, -9.214256788918185e-03]]]]
 
-        bottom_part2 = BaseLeg(self._elementsCount, nodeparams1)
-
-        self.generateNodes(nodes, fieldmodule, coordinates, bottom_part2)
-        self.generateElements(mesh, fieldmodule, coordinates, bottom_part2)
-
-        # nodeparams2 = [[[-4.990e+00, -7.830e-01, 5.4884e+00], bottom_part2.px[2][2][0], [-4.947e+00, 1.216e-01, 5.4829e+00], [[-7.288e-03, 4.34e-01, 1.23e-03], bottom_part2.pd3[2][2][0]],
-        #                 [[6.23e-01, 1.96e-03, -5.323e-01], [6.23e-01, 1.96e-03, -5.323e-01]]],
-        #                [[-6.480e+00, 1.118e-01, 3.8448e+00], [-6.031e+00, 9.325e-02, 3.393e+00], [-6.496e+00, -5.925e-01, 3.8599e+00], [[3.627e-01, 1.095e-02, -3.904e-01], [3.627e-01, 1.095e-02, -3.904e-01]],
-        #                 [[2.557e-02, -5.3e-01, -1.8599e-02], [2.557e-02, -5.3e-01, -1.8599e-02]]]]
-
-        nodeparams2 = [[[-4.7641e+00, 1.113e-01, 3.946e+00], bottom_part2.px[2][2][0], [-4.995e+00, -7.875e-01, 5.487e+0], [[1.353e-01, -2.048e-01, 8.587e-01], bottom_part2.pd3[2][2][0]],
-                        [[5.204e-03, 7.672e-01, -1.017e-03], [5.204e-03, 7.672e-01, -1.017e-03]]],
-                       [[-6.496e+00, -5.925e-01, 3.859e+00], [-6.031e+00, 9.325e-02, 3.393e+00], [-6.476e+00, 1.073e-01, 3.835e+00], [[-1.6976e-02, 3.5188e-01, 1.2348e-02], [-1.6976e-02, 3.5188e-01, 1.2348e-02]],
-                        [[3.589e-01, 1.082e-02, -3.863e-01], [3.589e-01, 1.082e-02, -3.863e-01]]]]
-
-        shoulder_part2 = BaseLeg(self._elementsCount, nodeparams2)
-        shoulder_part2._shoulder = True
-
-        self.remove_duplicate_nodes_from_shoulder(shoulder_part2)
-        self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part2)
-        self.join_shoulder_to_bottom_part(shoulder_part2, bottom_part2)
+        # bottom_part2 = BaseLeg(self._elementsCount, nodeparams1)
+        #
+        # self.generateNodes(nodes, fieldmodule, coordinates, bottom_part2)
+        # self.generateElements(mesh, fieldmodule, coordinates, bottom_part2)
+        #
+        # # nodeparams2 = [[[-4.990e+00, -7.830e-01, 5.4884e+00], bottom_part2.px[2][2][0], [-4.947e+00, 1.216e-01, 5.4829e+00], [[-7.288e-03, 4.34e-01, 1.23e-03], bottom_part2.pd3[2][2][0]],
+        # #                 [[6.23e-01, 1.96e-03, -5.323e-01], [6.23e-01, 1.96e-03, -5.323e-01]]],
+        # #                [[-6.480e+00, 1.118e-01, 3.8448e+00], [-6.031e+00, 9.325e-02, 3.393e+00], [-6.496e+00, -5.925e-01, 3.8599e+00], [[3.627e-01, 1.095e-02, -3.904e-01], [3.627e-01, 1.095e-02, -3.904e-01]],
+        # #                 [[2.557e-02, -5.3e-01, -1.8599e-02], [2.557e-02, -5.3e-01, -1.8599e-02]]]]
+        #
+        # nodeparams2 = [[[-4.7641e+00, 1.113e-01, 3.946e+00], bottom_part2.px[2][2][0], [-4.995e+00, -7.875e-01, 5.487e+0], [[1.353e-01, -2.048e-01, 8.587e-01], bottom_part2.pd3[2][2][0]],
+        #                 [[5.204e-03, 7.672e-01, -1.017e-03], [5.204e-03, 7.672e-01, -1.017e-03]]],
+        #                [[-6.496e+00, -5.925e-01, 3.859e+00], [-6.031e+00, 9.325e-02, 3.393e+00], [-6.476e+00, 1.073e-01, 3.835e+00], [[-1.6976e-02, 3.5188e-01, 1.2348e-02], [-1.6976e-02, 3.5188e-01, 1.2348e-02]],
+        #                 [[3.589e-01, 1.082e-02, -3.863e-01], [3.589e-01, 1.082e-02, -3.863e-01]]]]
+        #
+        # shoulder_part2 = BaseLeg(self._elementsCount, nodeparams2)
+        # shoulder_part2._shoulder = True
+        #
+        # self.remove_duplicate_nodes_from_shoulder(shoulder_part2)
+        # self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part2)
+        # self.join_shoulder_to_bottom_part(shoulder_part2, bottom_part2)
         # self.generateElements(mesh, fieldmodule, coordinates, shoulder_part2)
         #
         # joining_box = JoiningBox([1, 4, 1])
@@ -241,6 +283,50 @@ class BifurcationMesh:
         # self.generateBaseLeg(fieldModule, coordinates, mesh, nodes)
         # self.generateNodes(nodes, fieldmodule, coordinates)
         # self.generateElements(mesh, fieldmodule, coordinates)
+
+
+    def _get_node_params(self):
+        """
+
+        :return:
+        """
+        x_bottom_base_centre = [0.0, 0.0, 0.0]
+        x_bottom_base_curve1 = [1.0, 0.0, 0.0]
+        x_bottom_base_curve2 = [0.0, 1.0, 0.0]
+        d1_bottom_base_curve1 = [[1/self._elementsCount[0], 0.0, 0.0],
+                                 [1/self._elementsCount[0], 0.0, 0.0]]
+        d1_bottom_base_curve2 = [[0.0, 1/self._elementsCount[1], 0.0],
+                                 [0.0, 1/self._elementsCount[1], 0.0]]
+        x_bottom_end_centre = [0.0, 0.0, 1.4]
+        x_bottom_end_curve1 = [1.2, 0.0, 1.0]
+        x_bottom_end_curve2 = [0.0, 1.0, 1.4]
+        d1_bottom_end_curve1 = [[1/self._elementsCount[0], 0.0, 0.0],
+                                [0.5*0.7071, 0.0, -0.5*0.7071]]
+        d1_bottom_end_curve2 = [[0.0, 1/self._elementsCount[1], 0.0],
+                                [0.0, 1/self._elementsCount[1], 0.0]]
+
+        nodeparams1 = [[x_bottom_base_centre, x_bottom_base_curve1, x_bottom_base_curve2, d1_bottom_base_curve1,
+                       d1_bottom_base_curve2],
+                      [x_bottom_end_centre, x_bottom_end_curve1, x_bottom_end_curve2, d1_bottom_end_curve1,
+                       d1_bottom_end_curve2]]
+
+        x_shoulder_base_centre = [0.5, 0.0, 2.2]
+        x_shoulder_base_curve1 = [1.2, 0.0, 1.0]
+        x_shoulder_base_curve2 = [0.5, 1.0, 2.2]
+        d1_shoulder_base_curve1 = [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
+        d1_shoulder_base_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
+        x_shoulder_end_centre = [1.7, 0.0, 2.2]
+        x_shoulder_end_curve1 = [1.7, 0.0, 1.2]
+        x_shoulder_end_curve2 = [1.7, 1.0, 2.2]
+        d1_shoulder_end_curve1 = [[0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]]
+        d1_shoulder_end_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
+
+        nodeparams2 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
+                       d1_shoulder_base_curve2],
+                      [x_shoulder_end_centre, x_shoulder_end_curve1, x_shoulder_end_curve2, d1_shoulder_end_curve1,
+                       d1_shoulder_end_curve2]]
+
+        return nodeparams1, nodeparams2
 
     def join_to_torso(self, joining_torso, torso, shoulder_joint, bottom_joint):
         """
@@ -318,41 +404,68 @@ class BifurcationMesh:
             joining_box.pd2[1][n2][0] = shoulder_part.pd2[0][n2][2]
             joining_box.pd3[1][n2][0] = shoulder_part.pd3[0][n2][2]
 
-    def remove_duplicate_nodes_from_shoulder(self, shoulder_part):
+    def remove_duplicate_nodes_from_shoulder(self, shoulder_part, c=0):
         """
 
         :param shoulder_part:
         :param bottom_part:
         :return:
         """
+        def condition(n2, n1):
+            if c:
+                return n2 == 0 or n2 == 1
+            else:
+                return n1 == 0 or n1 == 1
+
         for n3 in range(1):
             for n2 in range(shoulder_part._elementsCount[0] + 1):
                 for n1 in range(shoulder_part._elementsCount[1] + 1):
-                    if (n2 == 0 and n1 == 1) or (n2 == 1 and n1 == 1) or (n2 == 2 and n1 == 0) or\
-                            (n2 == 2 and n1 == 1) or (n2 == 3 and n1 == 1) or (n2 == 4 and n1 == 1):
+                    if condition(n2, n1):
                         shoulder_part.px[n3][n2][n1] = None
                         shoulder_part.pd1[n3][n2][n1] = None
                         shoulder_part.pd2[n3][n2][n1] = None
                         shoulder_part.pd3[n3][n2][n1] = None
 
-    def join_shoulder_to_bottom_part(self, shoulder_part, bottom_part):
+
+    def join_shoulder_to_bottom_part(self, shoulder_part, bottom_part, c=0):
         """
 
         :param shoulder_part:
         :param bottom_part:
         :return:
         """
+        def condition(n2, n1):
+            # if c:
+            #     n2, n1 = n1, n2
+            # return (n2 == 0 and n1 == 1) or (n2 == 1 and n1 == 1) or (n2 == 2 and n1 == 0) or\
+            #                 (n2 == 2 and n1 == 1) or (n2 == 3 and n1 == 1) or (n2 == 4 and n1 == 1)
+            if c:
+                return n2 == 0 or n2 == 1
+            else:
+                return n1 == 0 or n1 == 1
+
+        def index(n2, n1):
+            if c:
+                if n2 == 0 and n1 == 1:
+                    return n1 - 1, 4 - n2 - 1
+                if n2 == 0 and n1 == 3:
+                    return n1 + 1, 4 - n2 - 1
+                else:
+                    return n1, 4 - n2
+            else:
+                return n2, n1
+
         for n3 in range(1):
             for n2 in range(shoulder_part._elementsCount[0] + 1):
                 for n1 in range(shoulder_part._elementsCount[1] + 1):
-                    if (n2 == 0 and n1 == 1) or (n2 == 1 and n1 == 1) or (n2 == 2 and n1 == 0) or\
-                            (n2 == 2 and n1 == 1) or (n2 == 3 and n1 == 1) or (n2 == 4 and n1 == 1):
+                    if condition(n2, n1):
+                        n2b, n1b = index(n2, n1)
                         n3b = bottom_part._elementsCount[2]
-                        shoulder_part.nodeId[n3][n2][n1] = bottom_part.nodeId[n3b][n2][n1]
-                        shoulder_part.px[n3][n2][n1] = bottom_part.px[n3b][n2][n1]
-                        shoulder_part.pd1[n3][n2][n1] = bottom_part.pd1[n3b][n2][n1]
-                        shoulder_part.pd2[n3][n2][n1] = bottom_part.pd2[n3b][n2][n1]
-                        shoulder_part.pd3[n3][n2][n1] = bottom_part.pd3[n3b][n2][n1]
+                        shoulder_part.nodeId[n3][n2][n1] = bottom_part.nodeId[n3b][n2b][n1b]
+                        shoulder_part.px[n3][n2][n1] = bottom_part.px[n3b][n2b][n1b]
+                        shoulder_part.pd1[n3][n2][n1] = bottom_part.pd1[n3b][n2b][n1b]
+                        shoulder_part.pd2[n3][n2][n1] = bottom_part.pd2[n3b][n2b][n1b]
+                        shoulder_part.pd3[n3][n2][n1] = bottom_part.pd3[n3b][n2b][n1b]
 
     def copyBaseLeg2Bifurcation(self, baseleg, idx):
         """
@@ -963,12 +1076,18 @@ class BaseLeg:
             xi = n/elementsCountAround
             # ellipse.px[n2][n1][2] = (1 - xi) * ellipse.px[self._elementsCount[1]][0][2] + xi * \
             #                         ellipse.px[0][self._elementsCount[0]][2]
-            delta = [ellipse.px[0][self._elementsCount[0]][c] - ellipse.px[self._elementsCount[1]][0][c] for c in range(3)]
+            x_p = vector.addVectors([vector.scaleVector(ellipse.px[self._elementsCount[1]][0], 1 - xi),
+                                     vector.scaleVector(ellipse.px[0][self._elementsCount[0]], xi)], [1, 1])
+            delta = [-ellipse.px[0][self._elementsCount[0]][c] + ellipse.px[self._elementsCount[1]][0][c] for c in range(3)]
             normal = vector.normalise(vector.crossproduct3(td1c1[0], td1c2[0]))
+            delta_p = vector.addVectors([x_p, ellipse.px[self._elementsCount[1]][self._elementsCount[0]]], [1, -1])
+            delta_p_normalmag = vector.dotproduct(delta_p, normal)
+            delta_p_normal = vector.scaleVector(normal, delta_p_normalmag)
             delnormag = vector.dotproduct(delta, normal)
-            delnor = [delnormag*c for c in normal]
+            delnor = vector.scaleVector(normal, delnormag)
             if 0<n<elementsCountAround:
-                ellipse.px[n2][n1] = [ellipse.px[n2][n1][c] -(1-xi) * delnor[c] for c in range(3)]
+                # ellipse.px[n2][n1] = [ellipse.px[n2][n1][c] +(1-xi) * delnor[c] for c in range(3)]
+                ellipse.px[n2][n1] = vector.addVectors([ellipse.px[n2][n1], delta_p_normal], [1, 1])
             nx.append(ellipse.px[n2][n1])
             nd1.append(ellipse.pd1[n2][n1])
         td1 = smoothCubicHermiteDerivativesLine(nx, nd1)
@@ -1078,3 +1197,45 @@ class JoiningTorso:
         self.nodeId = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
         self.elementId = [[[None] * elementsCount[0] for c in range(elementsCount[1])] for c in range(elementsCount[2])]
 
+
+class BifurcationMeshCrotch:
+    """
+    Bifurction mesh generator.
+    """
+
+    def __init__(self, fieldModule, coordinates, region):
+        """
+        :param fieldModule: Zinc fieldModule to create elements in.
+        :param coordinates: Coordinate field to define.
+        """
+        # generate the mesh
+        elementsCount = [2, 2, 5]
+        self._elementsCount = elementsCount
+        self._region = region
+
+        self.createBifurcationMesh3d(fieldModule, coordinates)
+
+    def createBifurcationMesh3d(self, fieldmodule, coordinates):
+        """
+        Create a bifurcation.
+        :param fieldModule: Zinc fieldModule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :return: Final values of nextNodeIdentifier, nextElementIdentifier.
+        """
+        # assert (self._elementsCountAlong > 0), 'createCylinderMesh3d:  Invalid number of along elements'
+        # assert (self._elementsCountAcrossMinor > 3), 'createCylinderMesh3d: Invalid number of across elements'
+        # assert (self._elementsCountAcrossMinor % 2 == 0), 'createCylinderMesh3d: number of across elements' \
+        #                                                   ' is not an even number'
+        # assert (self._elementsCountAcrossMajor > 1), 'createCylinderMesh3d: Invalid number of up elements'
+        # assert (self._cylinderShape in [self._cylinderShape.CYLINDER_SHAPE_FULL,
+        #                                 self._cylinderShape.CYLINDER_SHAPE_LOWER_HALF]), \
+        #     'createCylinderMesh3d: Invalid cylinder mode.'
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        mesh = fieldmodule.findMeshByDimension(3)
+
+
+class CrotchEllipses:
+    def __init__(self):
+        """
+
+        """
