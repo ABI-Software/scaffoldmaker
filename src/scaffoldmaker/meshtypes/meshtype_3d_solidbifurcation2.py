@@ -15,7 +15,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from opencmiss.zinc.node import Node
-from scaffoldmaker.utils.bifurcation3d import BifurcationMesh
+from scaffoldmaker.utils.bifurcation3d2 import BifurcationMesh
 
 
 class MeshType_3d_solidbifurcation2(Scaffold_base):
@@ -64,6 +64,14 @@ with variable numbers of elements in major, minor, shell and axial directions.
         centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
+            'Torso radius': 1.0,
+            'Left arm radius': 1.0,
+            'Right arm radius': 1.0,
+            'Neck radius': 0.8,
+            'Shoulder height': 2.2,
+            'Neck height': 3.6,
+            'Right arm angle': 0.0,
+            'Right arm length': 1.7,
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
@@ -82,6 +90,14 @@ with variable numbers of elements in major, minor, shell and axial directions.
     def getOrderedOptionNames():
         return [
             'Central path',
+            'Torso radius',
+            'Left arm radius',
+            'Right arm radius',
+            'Neck radius',
+            'Shoulder height',
+            'Neck height',
+            'Right arm angle',
+            'Right arm length',
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
@@ -191,7 +207,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
         # cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
         #                          cylinderShape=cylinderShape,
         #                          cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
-        bifurcation1 = BifurcationMesh(fm, coordinates, region)
+        torso_radius = options['Torso radius']
+        left_arm_radius = options['Left arm radius']
+        right_arm_radius = options['Right arm radius']
+        neck_radius = options['Neck radius']
+        shoulder_height = options['Shoulder height']
+        neck_height = options['Neck height']
+        right_arm_angle = options['Right arm angle']
+        right_arm_length = options['Right arm length']
+        bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
+                                       neck_radius, shoulder_height, neck_height, right_arm_angle, right_arm_length)
 
         annotationGroup = []
         return annotationGroup
