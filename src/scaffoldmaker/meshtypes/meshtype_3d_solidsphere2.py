@@ -8,9 +8,9 @@ from __future__ import division
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
-from scaffoldmaker.utils import vector
 
 
 class MeshType_3d_solidsphere2(Scaffold_base):
@@ -30,11 +30,11 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 2': 4,
             'Number of elements across axis 3': 4,
             'Number of elements across shell': 0,
+            'Shell element thickness proportion': 1.0,
             'Number of elements across transition': 1,
             'Radius1': 1.0,
             'Radius2': 1.0,
             'Radius3': 1.0,
-            'Shell element thickness proportion': 1.0,
             'Range of elements required in direction 1': [0, 4],
             'Range of elements required in direction 2': [0, 4],
             'Range of elements required in direction 3': [0, 4],
@@ -51,12 +51,12 @@ with variable numbers of elements across axes and shell directions.
             'Number of elements across axis 1',
             'Number of elements across axis 2',
             'Number of elements across axis 3',
-            # 'Number of elements across shell',
+            'Number of elements across shell',
+            'Shell element thickness proportion',
             # 'Number of elements across transition',
             'Radius1',
             'Radius2',
             'Radius3',
-            # 'Shell element thickness proportion',
             'Range of elements required in direction 1',
             'Range of elements required in direction 2',
             'Range of elements required in direction 3',
@@ -96,14 +96,16 @@ with variable numbers of elements across axes and shell directions.
             options['Box derivatives'] = [1, 2, 3]
 
         for i in range(1, 4):
-            if options['Range of elements required in direction {}'.format(i)][1] == \
-                    options['Number of elements across axis {}'.format(i)] - 1:
+            if options['Range of elements required in direction {}'.format(i)][1] >= \
+                    options['Number of elements across axis {}'.format(i)] - 1\
+                    - options['Number of elements across shell']:
                 options['Range of elements required in direction {}'.format(i)][1] = \
                     options['Number of elements across axis {}'.format(i)]
 
         nm = 4
         for i in range(1, nm):
-            if options['Range of elements required in direction {}'.format(i)][0] == 1:
+            if options['Range of elements required in direction {}'.format(i)][0] <= 1 + \
+                    options['Number of elements across shell']:
                 options['Range of elements required in direction {}'.format(i)][0] = 0
 
         maxelems = [options['Number of elements across axis 1'],
@@ -114,25 +116,29 @@ with variable numbers of elements across axes and shell directions.
                   options['Range of elements required in direction 3']]
         for i in range(3):
             if ranges[i][1] > maxelems[i] or ranges[i][1] <= max(1, ranges[i][0]):
+                dependentChanges = True
                 ranges[i][1] = maxelems[i]
         for i in range(3):
             if ranges[i][0] >= min(maxelems[i] - 1, ranges[i][1]) or ranges[i][0] < 1:
+                dependentChanges = True
                 ranges[i][0] = 0
 
         options['Range of elements required in direction 1'] = ranges[0]
         options['Range of elements required in direction 2'] = ranges[1]
         options['Range of elements required in direction 3'] = ranges[2]
 
-        # if options['Number of elements across transition'] < 1:
-        #     options['Number of elements across transition'] = 1
-        # Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
-        # if options['Number of elements across shell'] + options['Number of elements across transition'] - 1 > Rcrit:
-        #     dependentChanges = True
-        #     options['Number of elements across shell'] = Rcrit
-        #     options['Number of elements across transition'] = 1
-        #
-        # if options['Shell element thickness proportion'] < 0.15:
-        #     options['Shell element thickness proportion'] = 1.0
+        elementsCount_min = min(options['Number of elements across axis 1'],
+                                options['Number of elements across axis 2'],
+                                options['Number of elements across axis 3'],)
+
+        max_shell_elements = elementsCount_min//2 - 2
+
+        if options['Number of elements across shell'] > max_shell_elements:
+            dependentChanges = True
+            options['Number of elements across shell'] = max_shell_elements
+
+        if options['Shell element thickness proportion'] < 0.15:
+            options['Shell element thickness proportion'] = 1.0
 
         return dependentChanges
 
