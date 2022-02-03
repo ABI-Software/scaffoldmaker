@@ -2718,10 +2718,6 @@ class MeshType_3d_stomach1(Scaffold_base):
         allAnnotationGroups.append(dorsalGroup)
         allAnnotationGroups.append(ventralGroup)
 
-        # Create annotation group for elements adjacent to lesser curvature
-        nearLCGroup = AnnotationGroup(region, get_stomach_term("elements adjacent to lesser curvature"))
-        nearLCMeshGroup = nearLCGroup.getMeshGroup(mesh)
-
         # Create split coordinate field
         nodesOnSplitMargin = []
         nodesOnLCMargin = []
@@ -2804,6 +2800,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             node = nodeIter.next()
 
+        nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
+        
         elementIter = mesh.createElementiterator()
         element = elementIter.next()
         splitElementtemplate1 = mesh.createElementtemplate()
@@ -2917,7 +2915,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
         esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
         nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                get_stomach_term("elements adjacent to lesser curvature"))
+                                                ("elements adjacent to lesser curvature", "None"))
 
         # Create new groups
         stomachLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -3140,6 +3138,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     "limiting ridge on circular-longitudinal muscle interface"))
                 is_limitingRidgeCMLM = fm.createFieldAnd(is_CMLMInterface, is_limitingRidge)
                 limitingRidge_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeCMLM)
+
+        annotationGroups.remove(nearLCGroup)
 
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):

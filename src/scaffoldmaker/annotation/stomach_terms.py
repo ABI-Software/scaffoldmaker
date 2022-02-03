@@ -24,7 +24,6 @@ stomach_terms = [
     ("circular-longitudinal muscle interface of ventral stomach", "ILX:0793097"),
     ("dorsal stomach", "ILX:0793086"),
     ("duodenum", "UBERON:0002114", " FMA:7206", "ILX:0726125"),
-    ("elements adjacent to lesser curvature", "None"),
     ("esophagogastric junction", "UBERON:0007650", "FMA: 9434", "ILX:0733910"),
     ("esophagogastric junction along the greater curvature on circular-longitudinal muscle interface", "ILX:0793098"),
     ("esophagogastric junction along the greater curvature on luminal surface", "ILX:0793099"),
