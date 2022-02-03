@@ -2718,6 +2718,10 @@ class MeshType_3d_stomach1(Scaffold_base):
         allAnnotationGroups.append(dorsalGroup)
         allAnnotationGroups.append(ventralGroup)
 
+        # Create annotation group for elements adjacent to lesser curvature
+        nearLCGroup = AnnotationGroup(region, get_stomach_term("elements adjacent to lesser curvature"))
+        nearLCMeshGroup = nearLCGroup.getMeshGroup(mesh)
+
         # Create split coordinate field
         nodesOnSplitMargin = []
         nodesOnLCMargin = []
@@ -2733,6 +2737,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 nodesOnSplitMargin.append(nodeIdxOnLCMargin)
                 nodesOnLCMargin.append(nodeIdxOnLCMargin)
         nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
+        allNodesOnLC = nodesOnLCMargin + nodeIdxLC
 
         splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
         splitNodetemplate1 = nodes.createNodetemplate()
@@ -2816,6 +2821,10 @@ class MeshType_3d_stomach1(Scaffold_base):
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)
             nodeIdentifiers = get_element_node_identifiers(element, eft)
+            for n in range(len(nodeIdentifiers)):
+                if nodeIdentifiers[n] in allNodesOnLC:
+                    nearLCGroup.getMeshGroup(mesh).addElement(element)
+                    break
             elementId = element.getIdentifier()
             marginDorsal = False
             for n in range(len(nodeIdentifiers)):
@@ -2862,6 +2871,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             element = elementIter.next()
 
+        allAnnotationGroups.append(nearLCGroup)
+
         fm.endChange()
 
         return allAnnotationGroups
@@ -2905,6 +2916,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
         esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
+                                                get_stomach_term("elements adjacent to lesser curvature"))
 
         # Create new groups
         stomachLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -2955,10 +2968,23 @@ class MeshType_3d_stomach1(Scaffold_base):
         is_gastroduod = fm.createFieldAnd(duodenumGroup.getGroup(), pylorusGroup.getGroup())
         gastroduodenalJunctionGroup.getMeshGroup(mesh2d).addElementsConditional(is_gastroduod)
 
+        is_dorsal = dorsalStomachGroup.getGroup()
+        is_ventral = ventralStomachGroup.getGroup()
+        is_curvatures = fm.createFieldAnd(is_dorsal, is_ventral)
+
+        is_nearLC = nearLCGroup.getGroup()
+        is_lesserCurvature = fm.createFieldAnd(is_curvatures, is_nearLC)
+        lesserCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_stomach_term("lesser curvature of stomach"))
+        lesserCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_lesserCurvature)
+
+        is_nearGC = fm.createFieldNot(is_nearLC)
+        is_greaterCurvature = fm.createFieldAnd(is_curvatures, is_nearGC)
+        greaterCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_stomach_term("greater curvature of stomach"))
+        greaterCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_greaterCurvature)
+
         if elementsCountThroughWall == 4:
-            is_dorsal = dorsalStomachGroup.getGroup()
-            is_ventral = ventralStomachGroup.getGroup()
-            is_curvatures = fm.createFieldAnd(is_dorsal, is_ventral)
             CMLMInterfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                 "circular-longitudinal muscle interface of stomach"))
             circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
@@ -2969,6 +2995,9 @@ class MeshType_3d_stomach1(Scaffold_base):
             is_LM = longitudinalMuscleGroup.getGroup()
             is_CMLMInterface = fm.createFieldAnd(is_CM, is_LM)
             CMLMInterfaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_CMLMInterface)
+            is_curvatures_CMLM = fm.createFieldAnd(is_curvatures, is_CMLMInterface)
+            is_greaterCurvature_CMLM = fm.createFieldAnd(is_greaterCurvature, is_CMLMInterface)
+            is_lesserCurvature_CMLM = fm.createFieldAnd(is_lesserCurvature, is_CMLMInterface)
 
             dorsalStomach_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                 "circular-longitudinal muscle interface of dorsal stomach"))
@@ -2984,7 +3013,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             is_gastroduod_CMLM = fm.createFieldAnd(is_gastroduod, is_CMLMInterface)
             gastroduod_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_gastroduod_CMLM)
 
-            is_curvatures_CMLM = fm.createFieldAnd(is_curvatures, is_CMLMInterface)
             bodyCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
@@ -2998,16 +3026,23 @@ class MeshType_3d_stomach1(Scaffold_base):
             fundusCurvaturesCMLMGroup =\
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of fundus of stomach along the greater curvature"))
-            antrumCurvaturesCMLMGroup = \
+            antrumGreaterCurvatureCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of pyloric antrum along the greater and lesser curvatures"))
-            pylorusCurvaturesCMLMGroup = \
+                    "circular-longitudinal muscle interface of pyloric antrum along the greater curvature"))
+            antrumLesserCurvatureCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of pyloric canal along the greater and lesser curvatures"))
+                    "circular-longitudinal muscle interface of pyloric antrum along the lesser curvature"))
+            pylorusGreaterCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric canal along the greater curvature"))
+            pylorusLesserCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric canal along the lesser curvature"))
 
             sectionCurvaturesCMLMGroups = [None, bodyCurvaturesCMLMGroup, None, duodenumCurvaturesCMLMGroup,
-                                           esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup, antrumCurvaturesCMLMGroup,
-                                           pylorusCurvaturesCMLMGroup]
+                                           esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup,
+                                           antrumGreaterCurvatureCMLMGroup, pylorusGreaterCurvatureCMLMGroup,
+                                           antrumLesserCurvatureCMLMGroup, pylorusLesserCurvatureCMLMGroup]
 
         sectionGroups = [stomachGroup, bodyGroup, cardiaGroup, duodenumGroup, esoGroup, fundusGroup, antrumGroup,
                          pylorusGroup]
@@ -3026,9 +3061,19 @@ class MeshType_3d_stomach1(Scaffold_base):
             sectionLuminalGroups[i].getMeshGroup(mesh2d).addElementsConditional(is_sectionLuminal)
 
             if elementsCountThroughWall == 4:
-                is_sectionCurvaturesCMLM = fm.createFieldAnd(is_section, is_curvatures_CMLM)
-                if sectionCurvaturesCMLMGroups[i]:
-                    sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d).addElementsConditional(is_sectionCurvaturesCMLM)
+                if sectionGroups[i] is antrumGroup or sectionGroups[i] is pylorusGroup:
+                    is_sectionGreaterCurvatureCMLM = fm.createFieldAnd(is_section, is_greaterCurvature_CMLM)
+                    is_sectionLesserCurvatureCMLM = fm.createFieldAnd(is_section, is_lesserCurvature_CMLM)
+                    if sectionCurvaturesCMLMGroups[i]:
+                        sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionGreaterCurvatureCMLM)
+                        sectionCurvaturesCMLMGroups[i+2].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionLesserCurvatureCMLM)
+                else:
+                    is_sectionCurvaturesCMLM = fm.createFieldAnd(is_section, is_curvatures_CMLM)
+                    if sectionCurvaturesCMLMGroups[i]:
+                        sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionCurvaturesCMLM)
 
         if limitingRidge:
             limitingRidgeGroup = \
