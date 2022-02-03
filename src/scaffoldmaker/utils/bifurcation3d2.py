@@ -68,19 +68,14 @@ class BifurcationMesh:
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldmodule.findMeshByDimension(3)
 
-        nodeparams1, nodeparams2 = self._get_node_params()
+        nodeparams1, nodeparams2, nodeparams3, nodeparams4 = self._get_node_params()
 
         bottom_part = BaseLeg(self._elementsCount, nodeparams1)
-        # self.copyBaseLeg2Bifurcation(baseleg1, 1)
-
-        shoulder_part = BaseLeg(self._elementsCount, nodeparams2)
-        shoulder_part._shoulder = True
-        # self.copyBaseLeg2Bifurcation(baseleg2, 2)
-
-        # self.generateBaseLeg(fieldModule, coordinates, mesh, nodes)
         self.generateNodes(nodes, fieldmodule, coordinates, bottom_part)
         self.generateElements(mesh, fieldmodule, coordinates, bottom_part)
 
+        shoulder_part = BaseLeg(self._elementsCount, nodeparams2)
+        shoulder_part._shoulder = True
         self.remove_duplicate_nodes_from_shoulder(shoulder_part)
         self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part)
         self.join_shoulder_to_bottom_part(shoulder_part, bottom_part)
@@ -91,55 +86,30 @@ class BifurcationMesh:
         self.join_box_to_bottom_and_shoulder(joining_box, bottom_part, shoulder_part)
         self.generateElements(mesh, fieldmodule, coordinates, joining_box)
 
-        x_shoulder_base_centre = [-0.5, 0.0, self.shoulder_height]
-        x_shoulder_base_curve2 = [-1.2, 0.0, 1.0]
-        x_shoulder_base_curve1 = [-0.5, 1.0, self.shoulder_height]
-        d1_shoulder_base_curve2 = [[-0.0, 0.0, -1 / self._elementsCount[1]], [-0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
-        d1_shoulder_base_curve1 = [[-0.0, 1 / self._elementsCount[0], 0.0], [-0.0, 1 / self._elementsCount[0], 0.0]]
-        x_shoulder_end_centre = [-1.7, 0.0, self.shoulder_height]
-        x_shoulder_end_curve2 = [-1.7, 0.0, self.shoulder_height - self.right_arm_radius]
-        x_shoulder_end_curve1 = [-1.7, self.right_arm_radius, self.shoulder_height]
-        d1_shoulder_end_curve2 = [[-0.0, 0.0, -self.right_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.right_arm_radius / self._elementsCount[1]]]
-        d1_shoulder_end_curve1 = [[-0.0, self.right_arm_radius / self._elementsCount[0], 0.0], [0.0, self.right_arm_radius / self._elementsCount[0], 0.0]]
+        shoulder_part_left = BaseLeg(self._elementsCount, nodeparams3)
+        shoulder_part_left._shoulder_left = True
+        self.remove_duplicate_nodes_from_shoulder(shoulder_part_left, 1)
+        self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part_left)
+        self.join_shoulder_to_bottom_part(shoulder_part_left, bottom_part, 1)
+        self.generateElements(mesh, fieldmodule, coordinates, shoulder_part_left)
 
-        nodeparams3 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
-                       d1_shoulder_base_curve2],
-                      [x_shoulder_end_centre, x_shoulder_end_curve1, x_shoulder_end_curve2, d1_shoulder_end_curve1,
-                       d1_shoulder_end_curve2]]
-
-        shoulder_part = BaseLeg(self._elementsCount, nodeparams3)
-        shoulder_part._shoulder = True
-
-        self.remove_duplicate_nodes_from_shoulder(shoulder_part, 1)
-        self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part)
-        self.join_shoulder_to_bottom_part(shoulder_part, bottom_part, 1)
-        self.generateElements(mesh, fieldmodule, coordinates, shoulder_part)
-
-
-
-        x_neck_base_centre = [0.0, 0.0, 2 * self.shoulder_height - 1.0 - self.right_arm_radius/2]
-        x_neck_base_curve2 = [0.0, 1.0, 2 * self.shoulder_height - 1.0 - self.right_arm_radius/2]
-        x_neck_base_curve1 = [1.2, 0.0, 2 * self.shoulder_height - 1.0]
-        d1_neck_base_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
-        d1_neck_base_curve1 = [[1 / self._elementsCount[0], 0.0, 0.0], [0.5, 0.0, 0.5]]
-        x_neck_end_centre = [0.0, 0.0, self.neck_height]
-        x_neck_end_curve2 = [0.0, self.neck_radius, self.neck_height]
-        x_neck_end_curve1 = [self.neck_radius, 0.0, self.neck_height]
-        d1_neck_end_curve2 = [[0.0, self.neck_radius / self._elementsCount[1], 0.0], [0.0, self.neck_radius / self._elementsCount[1], 0.0]]
-        d1_neck_end_curve1 = [[self.neck_radius / self._elementsCount[0], 0.0, 0.0], [self.neck_radius / self._elementsCount[0], 0.0, 0.0]]
-
-        nodeparams3 = [[x_neck_base_centre, x_neck_base_curve1, x_neck_base_curve2, d1_neck_base_curve1,
-                       d1_neck_base_curve2],
-                      [x_neck_end_centre, x_neck_end_curve1, x_neck_end_curve2, d1_neck_end_curve1,
-                       d1_neck_end_curve2]]
-
-        neck_part = BaseLeg(self._elementsCount, nodeparams3)
-        neck_part._shoulder = True
-
-        # self.remove_duplicate_nodes_from_shoulder(neck_part, 1)
+        neck_part = BaseLeg(self._elementsCount, nodeparams4)
+        neck_part._neck = True
+        self.remove_duplicate_nodes_from_neck(neck_part)
         self.generateNodes(nodes, fieldmodule, coordinates, neck_part)
-        # self.join_shoulder_to_bottom_part(neck_part, bottom_part, 1)
+        self.join_neck_to_torso(neck_part, shoulder_part, shoulder_part_left)
         self.generateElements(mesh, fieldmodule, coordinates, neck_part)
+
+
+        joining_box_right = JoiningBoxRight([1, 4, 1], bottom_part, shoulder_part_left, joining_box)
+        self.generateElements(mesh, fieldmodule, coordinates, joining_box_right)
+
+        joining_box_3 = JoiningBox3([1, 4, 1], joining_box, neck_part)
+        self.generateElements(mesh, fieldmodule, coordinates, joining_box_3)
+
+        joining_box_4 = JoiningBox4([1, 4, 1], joining_box_3, neck_part, joining_box_right)
+        self.generateElements(mesh, fieldmodule, coordinates, joining_box_4)
+
 
         # shoulder_connecting_to_box = CylinderConnectingToBox(shoulder_part, [0, 0], -1)
         # self.generateNodes(nodes, fieldmodule, coordinates, shoulder_connecting_to_box)
@@ -201,101 +171,6 @@ class BifurcationMesh:
         #
         # torso_part = torso_cylinder._shield
 
-
-#         -4.990e+00, -7.830e-01, 5.4884e+00
-#
-#
-#
-# -6.480e+00, 1.118e-01, 3.8448e+00
-#
-# -4.947e+00, 1.216e-01, 5.4829e+00
-#
-# -6.004e+00, -6.005e-01, 3.3709e+00
-#-6.031e+00, 9.325e-02, 3.393e+00
-
-# -6.496e+00, -5.925e-01, 3.8599e+00
-
-        # -6.031e+00, 9.325e-02, 3.393e+00
-
-        # nodeparams1 = [[torso_part.px[5][2][2], torso_part.px[5][2][0], torso_part.px[5][0][2], [[-c for c in torso_part.pd3[5][2][2]], torso_part.pd3[5][2][0]],
-        #                [[-c for c in torso_part.pd1[5][2][2]], torso_part.pd3[5][0][2]]],
-        #               [[-3.70e+00, 1.4e-01, 5.84e+00], [-4.762e+00, 1.11e-01, 3.95e+00], [-3.76e+00, -8.37e-01, 5.86e+00], [[-6.1e-01, 2.78e-02, -6.01e-01], [-1.35e-01, 2.04e-01, -8.587e-01]],
-        #                [[-3.475e-02, -5.527e-01, 1.865e-02], [-2.697799339817220e-02, -6.167974824227329e-01, -9.214256788918185e-03]]]]
-
-        # bottom_part2 = BaseLeg(self._elementsCount, nodeparams1)
-        #
-        # self.generateNodes(nodes, fieldmodule, coordinates, bottom_part2)
-        # self.generateElements(mesh, fieldmodule, coordinates, bottom_part2)
-        #
-        # # nodeparams2 = [[[-4.990e+00, -7.830e-01, 5.4884e+00], bottom_part2.px[2][2][0], [-4.947e+00, 1.216e-01, 5.4829e+00], [[-7.288e-03, 4.34e-01, 1.23e-03], bottom_part2.pd3[2][2][0]],
-        # #                 [[6.23e-01, 1.96e-03, -5.323e-01], [6.23e-01, 1.96e-03, -5.323e-01]]],
-        # #                [[-6.480e+00, 1.118e-01, 3.8448e+00], [-6.031e+00, 9.325e-02, 3.393e+00], [-6.496e+00, -5.925e-01, 3.8599e+00], [[3.627e-01, 1.095e-02, -3.904e-01], [3.627e-01, 1.095e-02, -3.904e-01]],
-        # #                 [[2.557e-02, -5.3e-01, -1.8599e-02], [2.557e-02, -5.3e-01, -1.8599e-02]]]]
-        #
-        # nodeparams2 = [[[-4.7641e+00, 1.113e-01, 3.946e+00], bottom_part2.px[2][2][0], [-4.995e+00, -7.875e-01, 5.487e+0], [[1.353e-01, -2.048e-01, 8.587e-01], bottom_part2.pd3[2][2][0]],
-        #                 [[5.204e-03, 7.672e-01, -1.017e-03], [5.204e-03, 7.672e-01, -1.017e-03]]],
-        #                [[-6.496e+00, -5.925e-01, 3.859e+00], [-6.031e+00, 9.325e-02, 3.393e+00], [-6.476e+00, 1.073e-01, 3.835e+00], [[-1.6976e-02, 3.5188e-01, 1.2348e-02], [-1.6976e-02, 3.5188e-01, 1.2348e-02]],
-        #                 [[3.589e-01, 1.082e-02, -3.863e-01], [3.589e-01, 1.082e-02, -3.863e-01]]]]
-        #
-        # shoulder_part2 = BaseLeg(self._elementsCount, nodeparams2)
-        # shoulder_part2._shoulder = True
-        #
-        # self.remove_duplicate_nodes_from_shoulder(shoulder_part2)
-        # self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part2)
-        # self.join_shoulder_to_bottom_part(shoulder_part2, bottom_part2)
-        # self.generateElements(mesh, fieldmodule, coordinates, shoulder_part2)
-        #
-        # joining_box = JoiningBox([1, 4, 1])
-        # self.generateNodes(nodes, fieldmodule, coordinates, joining_box)
-        # self.join_box_to_bottom_and_shoulder(joining_box, bottom_part, shoulder_part)
-        # self.generateElements(mesh, fieldmodule, coordinates, joining_box)
-
-
-
-
-        # elementsCount = [2, 2, 5]
-        # self.px = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        # self.pd1 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        # self.pd2 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        # self.pd3 = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        # self.nodeId = [[[None] * (elementsCount[0] + 2) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
-        # self.elementId = [[[None] * (elementsCount[0]+1) for c in range(elementsCount[1])] for c in range(elementsCount[2])]
-        #
-        # nodeparams1 = [[[0.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [[0.0, -1/self._elementsCount[1], 0.0], [0.0, -1/self._elementsCount[1], 0.0]],
-        #                [[1/self._elementsCount[0], 0.0, 0.0], [1/self._elementsCount[0], 0.0, 0.0]]],
-        #               [[0.0, 0.0, 1.4], [0.0, -1.0, 1.4], [1.2, 0.0, 1.0],[[0.0, -1/self._elementsCount[1], 0.0], [0.0, -1/self._elementsCount[1], 0.0]],
-        #                [[1/self._elementsCount[0], 0.0, 0.0], [0.5*0.7071, 0.0, -0.5*0.7071]]]]
-        #
-        # nodeparams2 = [[[0.5, 0.0, 2.2], [0.5, -1.0, 2.2], [1.2, 0.0, 1.0],[[0.0, -1 / self._elementsCount[1], 0.0], [0.0, -1 / self._elementsCount[1], 0.0]],
-        #                [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]]],
-        #                [[1.7, 0.0, 2.2], [1.7, -1.0, 2.2], [1.7, 0.0, 1.2], [[0.0, -1 / self._elementsCount[0], 0.0], [0.0, -1 / self._elementsCount[0], 0.0]],
-        #                 [[0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]],]]
-        #
-        #
-        # baseleg1 = BaseLeg(self._elementsCount, nodeparams1)
-        # self.copyBaseLeg2Bifurcation(baseleg1, 1)
-        #
-        # # self.px[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 1.0, 2.2]
-        # # self.px[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.5, 2.2]
-        # # self.px[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 2.2]
-        # # self.pd1[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        # # self.pd1[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        # # self.pd1[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, -0.5, 0.0]
-        # # self.pd2[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        # # self.pd2[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        # # self.pd2[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.5, 0.0, 0.0]
-        # # self.pd3[self._elementsCount[2]//2+1][0][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        # # self.pd3[self._elementsCount[2]//2+1][1][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        # # self.pd3[self._elementsCount[2]//2+1][2][self._elementsCount[0] + 1] = [0.0, 0.0, 0.7]
-        #
-        # baseleg2 = BaseLeg(self._elementsCount, nodeparams2)
-        # self.copyBaseLeg2Bifurcation(baseleg2, 2)
-
-        # self.generateBaseLeg(fieldModule, coordinates, mesh, nodes)
-        # self.generateNodes(nodes, fieldmodule, coordinates)
-        # self.generateElements(mesh, fieldmodule, coordinates)
-
-
     def _get_node_params(self):
         """
 
@@ -343,7 +218,39 @@ class BifurcationMesh:
                       [x_shoulder_end_centre, x_shoulder_end_curve1, x_shoulder_end_curve2, d1_shoulder_end_curve1,
                        d1_shoulder_end_curve2]]
 
-        return nodeparams1, nodeparams2
+        x_shoulder_base_centre = [-0.5, 0.0, self.shoulder_height]
+        x_shoulder_base_curve2 = [-1.2, 0.0, 1.0]
+        x_shoulder_base_curve1 = [-0.5, 1.0, self.shoulder_height]
+        d1_shoulder_base_curve2 = [[-0.0, 0.0, -1 / self._elementsCount[1]], [-0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
+        d1_shoulder_base_curve1 = [[-0.0, 1 / self._elementsCount[0], 0.0], [-0.0, 1 / self._elementsCount[0], 0.0]]
+        x_shoulder_end_centre = [-1.7, 0.0, self.shoulder_height]
+        x_shoulder_end_curve2 = [-1.7, 0.0, self.shoulder_height - self.right_arm_radius]
+        x_shoulder_end_curve1 = [-1.7, self.right_arm_radius, self.shoulder_height]
+        d1_shoulder_end_curve2 = [[-0.0, 0.0, -self.right_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.right_arm_radius / self._elementsCount[1]]]
+        d1_shoulder_end_curve1 = [[-0.0, self.right_arm_radius / self._elementsCount[0], 0.0], [0.0, self.right_arm_radius / self._elementsCount[0], 0.0]]
+
+        nodeparams3 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
+                       d1_shoulder_base_curve2],
+                      [x_shoulder_end_centre, x_shoulder_end_curve1, x_shoulder_end_curve2, d1_shoulder_end_curve1,
+                       d1_shoulder_end_curve2]]
+
+        x_neck_base_centre = [0.0, 0.0, 2 * self.shoulder_height - 1.0 - self.right_arm_radius/2]
+        x_neck_base_curve2 = [0.0, 1.0, 2 * self.shoulder_height - 1.0 - self.right_arm_radius/2]
+        x_neck_base_curve1 = [1.2, 0.0, 2 * self.shoulder_height - 1.0]
+        d1_neck_base_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
+        d1_neck_base_curve1 = [[1 / self._elementsCount[0], 0.0, 0.0], [0.5, 0.0, 0.5]]
+        x_neck_end_centre = [0.0, 0.0, self.neck_height]
+        x_neck_end_curve2 = [0.0, self.neck_radius, self.neck_height]
+        x_neck_end_curve1 = [self.neck_radius, 0.0, self.neck_height]
+        d1_neck_end_curve2 = [[0.0, self.neck_radius / self._elementsCount[1], 0.0], [0.0, self.neck_radius / self._elementsCount[1], 0.0]]
+        d1_neck_end_curve1 = [[self.neck_radius / self._elementsCount[0], 0.0, 0.0], [self.neck_radius / self._elementsCount[0], 0.0, 0.0]]
+
+        nodeparams4 = [[x_neck_base_centre, x_neck_base_curve1, x_neck_base_curve2, d1_neck_base_curve1,
+                       d1_neck_base_curve2],
+                      [x_neck_end_centre, x_neck_end_curve1, x_neck_end_curve2, d1_neck_end_curve1,
+                       d1_neck_end_curve2]]
+
+        return nodeparams1, nodeparams2, nodeparams3, nodeparams4
 
     def join_to_torso(self, joining_torso, torso, shoulder_joint, bottom_joint):
         """
@@ -373,10 +280,6 @@ class BifurcationMesh:
                     joining_torso.pd1[0][n2][n1] = bottom_joint.pd1[1][n2][n1]
                     joining_torso.pd2[0][n2][n1] = bottom_joint.pd2[1][n2][n1]
                     joining_torso.pd3[0][n2][n1] = bottom_joint.pd3[1][n2][n1]
-
-
-
-
 
     def joint_shoulder_joint_to_cylinder_and_box(self, shoulder_connecting_to_box, joining_box, cylinder_part, cidxs, bidx):
         """
@@ -443,7 +346,6 @@ class BifurcationMesh:
                         shoulder_part.pd2[n3][n2][n1] = None
                         shoulder_part.pd3[n3][n2][n1] = None
 
-
     def join_shoulder_to_bottom_part(self, shoulder_part, bottom_part, c=0):
         """
 
@@ -506,6 +408,58 @@ class BifurcationMesh:
                             self.pd1[n3s][n2][n1] = None
                             self.pd2[n3s][n2][n1] = None
                             self.pd3[n3s][n2][n1] = None
+
+
+    def remove_duplicate_nodes_from_neck(self, neck_part):
+        """
+
+        :param shoulder_part:
+        :param bottom_part:
+        :return:
+        """
+        for n2 in range(neck_part._elementsCount[1] + 1):
+            for n1 in range(neck_part._elementsCount[0] + 1):
+                if n1 != 2:
+                    neck_part.px[0][n2][n1] = None
+                    neck_part.pd1[0][n2][n1] = None
+                    neck_part.pd2[0][n2][n1] = None
+                    neck_part.pd3[0][n2][n1] = None
+
+    def join_neck_to_torso(self, neck_part, shoulder_part, shoulder_part_left):
+        """
+
+        :param shoulder_part:
+        :param bottom_part:
+        :return:
+        """
+        for n2 in range(neck_part._elementsCount[1] + 1):
+            for n1 in range(neck_part._elementsCount[0] + 1):
+                if n1 < 2:
+                    n1s = 4 - n1
+                    neck_part.nodeId[0][n2][n1] = shoulder_part.nodeId[0][n2][n1s]
+                    neck_part.px[0][n2][n1] = shoulder_part.px[0][n2][n1s]
+                    neck_part.pd1[0][n2][n1] = shoulder_part.pd1[0][n2][n1s]
+                    neck_part.pd2[0][n2][n1] = shoulder_part.pd2[0][n2][n1s]
+                    neck_part.pd3[0][n2][n1] = shoulder_part.pd3[0][n2][n1s]
+                elif n1 > 2:
+                    if n2 == 0 or n2 == 4:
+                        if n1 == 3:
+                            n2s = n1+1
+                            if n2 == 0:
+                                n1s = n2 + 1
+                            if n2 == 4:
+                                n1s = n2 - 1
+                    else:
+                        n2s = n1
+                        n1s = n2
+                    if n1 == 4:
+                        if n2 !=2:
+                            continue
+                    neck_part.nodeId[0][n2][n1] = shoulder_part_left.nodeId[0][n2s][n1s]
+                    neck_part.px[0][n2][n1] = shoulder_part_left.px[0][n2s][n1s]
+                    neck_part.pd1[0][n2][n1] = shoulder_part_left.pd1[0][n2s][n1s]
+                    neck_part.pd2[0][n2][n1] = shoulder_part_left.pd2[0][n2s][n1s]
+                    neck_part.pd3[0][n2][n1] = shoulder_part_left.pd3[0][n2s][n1s]
 
     def generateNodes(self, nodes, fieldModule, coordinates, part_structure):
         """
@@ -599,14 +553,6 @@ class BifurcationMesh:
                 for e1 in range(part_structure._elementsCount[0]):
                     eft1 = eft
                     scalefactors = None
-                    # if e3 >= 3:
-                    #     e3t = e3 + 1
-                    # else:
-                    #     e3t = e3
-                    # nids = [ part_structure.nodeId[e3t][e2][e1], part_structure.nodeId[e3t][e2 + 1][e1],
-                    #          part_structure.nodeId[e3t+1][e2][e1], part_structure.nodeId[e3t+1][e2 + 1][e1],
-                    #          part_structure.nodeId[e3t][e2][e1 + 1], part_structure.nodeId[e3t][e2 + 1][e1 + 1],
-                    #          part_structure.nodeId[e3t+1][e2][e1 + 1], part_structure.nodeId[e3t+1][e2 + 1][e1 + 1] ]
                     nids = [ part_structure.nodeId[e3][e2][e1], part_structure.nodeId[e3][e2 + 1][e1],
                              part_structure.nodeId[e3+1][e2][e1], part_structure.nodeId[e3+1][e2 + 1][e1],
                              part_structure.nodeId[e3][e2][e1 + 1], part_structure.nodeId[e3][e2 + 1][e1 + 1],
@@ -623,6 +569,7 @@ class BifurcationMesh:
                                 remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
                                 remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                                 remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                 remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
                                 remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
                                 remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
@@ -631,8 +578,10 @@ class BifurcationMesh:
                                 remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
                                 remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
                             elif e2 == e2z:
-                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
                                 remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
                                 remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                                 remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
                                 remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
@@ -643,6 +592,321 @@ class BifurcationMesh:
                         else:
                             remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                    elif isinstance(part_structure, JoiningBoxRight):
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+                        if e2 == e2a:
+                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [])])
+                        elif e2 == e2z:
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [])])
+
+                        else:
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [])])
+
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+                    elif isinstance(part_structure, JoiningBox3):
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+                        if e2 == e2a:
+                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
+
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                        elif e2 == e2z:
+                            remapEftNodeValueLabel(eft1, [1, 3, 5, 6], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 3, 5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                        else:
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS3,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+
+                    elif isinstance(part_structure, JoiningBox4):
+                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                        setEftScaleFactorIds(eft1, [1], [])
+                        scalefactors = [-1.0]
+                        if e2 == e2a:
+                            remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                        elif e2 == e2z:
+                            remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, []), (Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                        else:
+                            remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D2_DS1DS2, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [])])
+
+                    elif part_structure._neck and e3 == 0:
+                        if (e2 < e2b) or (e2 > e2y):
+                            if (e1 < e1b) or (e1 > e1y):
+                                continue  # no element due to triple point closure
+                        if (e2 == e2a) or (e2 == e2z):
+                            # bottom and top row elements
+                            if e2 == e2a:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                if e1 == e1a:
+                                    remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                elif e1 == e1y:
+
+                                    remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                                    remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                    remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, []), (Node.VALUE_LABEL_D_DS1, [1])])
+                                    remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                    remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                    remapEftNodeValueLabel(eft1, [1, 3, 7], Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS3, [1])])
+                                    remapEftNodeValueLabel(eft1, [1, 3, 7], Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, [])])
+                                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1]), (Node.VALUE_LABEL_D_DS1, [])])
+
+                                else:
+                                    remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+                                                           [(Node.VALUE_LABEL_D_DS3, [1])])
+                                    remapEftNodeValueLabel(eft1, [3, 5, 7], Node.VALUE_LABEL_D_DS3,
+                                                           [(Node.VALUE_LABEL_D_DS1, [])])
+                                    remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
+                                    if (e1 == e1b) or (e1 == e1y):
+                                        # map bottom triple point element
+                                        if e1 == e1b:
+                                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                            remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                            remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        else:
+                                            remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                            elif e2 == e2z:
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [-1.0]
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS3,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS3, [])])
+                                if (e1 == e1b) or (e1 == e1y):
+                                    # map top triple point element
+                                    if e1 == e1b:
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                    elif e1 == e1y:
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                        elif (e2 == e2b) or (e2 == e2y):
+                            if (e1 <= e1a) or (e1 >= e1z):
+                                if e1 == e1a:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
+                                    if e2 == e2b:
+                                        if e3 == part_structure._elementsCount[2] // 2 + 1:
+                                            e3r = e3-1  # to join upper leg with the lower leg.
+                                            nids[0] = part_structure.nodeId[e3r][e2a][e1b]
+                                            nids[2] = part_structure.nodeId[e3+1][e2a][e1b]
+                                            nids[1] = part_structure.nodeId[e3r][e2 + 1][e1]
+                                            nids[4] = part_structure.nodeId[e3r][e2][e1 + 1]
+                                            nids[5] = part_structure.nodeId[e3r][e2 + 1][e1 + 1]
+                                        else:
+                                            nids[0] = part_structure.nodeId[e3][e2a][e1b]
+                                            nids[2] = part_structure.nodeId[e3+1][e2a][e1b]
+
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS3, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                    elif e2 == e2y:
+                                        nids[1] = part_structure.nodeId[e3][e2z+1][e1b]
+                                        nids[3] = part_structure.nodeId[e3+1][e2z+1][e1b]
+                                        remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
+                                    remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2,
+                                                           [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    remapEftNodeValueLabel(eft1, [3, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
+                                    remapEftNodeValueLabel(eft1, [ 1, 2, 3, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS3, [1] ) ])
+                                elif e1 == e1z:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    if e2 == e2b:
+                                        nids[4] = part_structure.nodeId[e3][e2a][e1z]
+                                        nids[6] = part_structure.nodeId[e3+1][e2a][e1z]
+                                        setEftScaleFactorIds(eft1, [1], [])
+                                        scalefactors = [ -1.0 ]
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS1, [])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                    elif e2 == e2y:
+                                        nids[5] = part_structure.nodeId[e3][e2z+1][e1z]
+                                        nids[7] = part_structure.nodeId[e3+1][e2z+1][e1z]
+                                        setEftScaleFactorIds(eft1, [1], [])
+                                        scalefactors = [-1.0]
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                        remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            elif e1 == e1b:
+                                if e2 == e2b:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
+                                    remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                    remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+                                    remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                if e2 == e2y:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
+                                    remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                    remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
+                            elif e1 == e1y:
+                                if e2 == e2b:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
+
+                                    remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                    remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                    remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                                if e2 == e2y:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    setEftScaleFactorIds(eft1, [1], [])
+                                    scalefactors = [-1.0]
+                                    remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                    remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                    remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+
+                        else:
+                            if e1 < e1a:
+                                nids = [ part_structure.nodeId[e3][e2 + 1][e1 + 1], part_structure.nodeId[e3][e2][e1 + 1], part_structure.nodeId[e3+1][e2 + 1][e1 + 1], part_structure.nodeId[e3+1][e2][e1 + 1],
+                                         part_structure.nodeId[e3][e2 + 1][e1], part_structure.nodeId[e3][e2][e1], part_structure.nodeId[e3+1][e2 + 1][e1], part_structure.nodeId[e3+1][e2][e1]]
+                            elif e1 == e1a:
+                                # map left column elements
+                                eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                scalefactors = [ -1.0 ]
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS3, [1])])
 
                     else:
                         if (e2 < e2b) or (e2 > e2y):
@@ -661,49 +925,55 @@ class BifurcationMesh:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                                     setEftScaleFactorIds(eft1, [1], [])
                                     scalefactors = [-1.0]
-                                    # if e3 == part_structure._elementsCount[2] // 2 + 1 and e1 == e1b:
-                                    #     e3r = e3t-1
-                                    #     nids[0] = part_structure.nodeId[e3r][e2][e1]
-                                    #     nids[1] = part_structure.nodeId[e3r][e2 + 1][e1]
-
-                                    # if e3 == 2:
-                                    #     remapEftNodeValueLabel(eft1, [3, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                                    #     remapEftNodeValueLabel(eft1, [1, 3, 5], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, [])])
-                                    #     remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2,
-                                    #                            [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [])])
-                                    # elif e3 == 3:
-                                    #     if e1 == e1b:
-                                    #         remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
-                                    #                                [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [])])
-                                    if isinstance(part_structure, BaseLeg):
-                                        if part_structure._shoulder:
-                                            if e3 == 0 and e1 == e1b:
-                                                remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
-                                                                       [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [])])
-                                    #     else:
-                                    #         remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
-                                    #                                [(Node.VALUE_LABEL_D_DS1, [])])
-                                    #     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-                                    #                            [(Node.VALUE_LABEL_D_DS3, [1])])
-                                    #     remapEftNodeValueLabel(eft1, [3, 5, 7], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, [])])
-
-                                    # else:
-                                    #     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-                                    #                            [(Node.VALUE_LABEL_D_DS3, [1])])
-                                    #     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, [])])
-                                    remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-                                                           [(Node.VALUE_LABEL_D_DS3, [1])])
-                                    remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3,
-                                                           [(Node.VALUE_LABEL_D_DS1, [])])
+                                    if not part_structure._shoulder_left:
+                                        if isinstance(part_structure, BaseLeg):
+                                            if part_structure._shoulder:
+                                                if e3 == 0 and e1 == e1b:
+                                                    remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3,
+                                                                           [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS1, [])])
+                                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
+                                    else:
+                                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+                                                               [(Node.VALUE_LABEL_D_DS3, [1])])
+                                        remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS3,
+                                                               [(Node.VALUE_LABEL_D_DS1, [])])
                                     if (e1 == e1b) or (e1 == e1y):
                                         # map bottom triple point element
                                         if e1 == e1b:
                                             # if e3 != 2:
                                             #     remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                                            remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS1,
-                                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                            if part_structure._shoulder_left:
+                                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                                remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                                                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                            else:
+                                                if part_structure._shoulder:
+                                                    if e3 == 0:
+                                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+                                                        remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                                        remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                                    else:
+                                                        remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                                else:
+                                                    remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS1,
+                                                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                         else:
-                                            remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                            if part_structure._shoulder_left:
+                                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                                                remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
+                                                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                            else:
+                                                remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1,
+                                                                       [(Node.VALUE_LABEL_D_DS1, []),
+                                                                        (Node.VALUE_LABEL_D_DS3, [1])])
                                 elif e2 == e2z:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                                     setEftScaleFactorIds(eft1, [1], [])
@@ -719,6 +989,8 @@ class BifurcationMesh:
                                         # map top triple point element
                                         if e1 == e1b:
                                             remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS1,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                            if part_structure._shoulder:
+                                                remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
                                         else:
                                             remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1,[(Node.VALUE_LABEL_D_DS1, []),(Node.VALUE_LABEL_D_DS3, [])])
 
@@ -748,8 +1020,16 @@ class BifurcationMesh:
                                         else:
                                             nids[0] = part_structure.nodeId[e3][e2a][e1b]
                                             nids[2] = part_structure.nodeId[e3+1][e2a][e1b]
-                                        tripleN = [5, 7]
-                                        remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+
+                                        if part_structure._shoulder_left:
+                                            if e3 == 0:
+                                                remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                            remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [1])])
+                                            remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                        else:
+                                            tripleN = [5, 7]
+                                            remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                     elif e2 == e2y:
                                         nids[1] = part_structure.nodeId[e3][e2z+1][e1b]
                                         nids[3] = part_structure.nodeId[e3+1][e2z+1][e1b]
@@ -761,12 +1041,18 @@ class BifurcationMesh:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                                     if e2 == e2b:
                                         setEftScaleFactorIds(eft1, [1], [])
-                                        scalefactors = [-1.0]
                                         nids[4] = part_structure.nodeId[e3][e2a][e1z]
                                         nids[6] = part_structure.nodeId[e3+1][e2a][e1z]
                                         setEftScaleFactorIds(eft1, [1], [])
                                         scalefactors = [ -1.0 ]
-                                        remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
+                                        if part_structure._shoulder_left:
+                                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+                                            remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                            if e3 == 0:
+                                                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                            remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                                        else:
+                                            remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                                     elif e2 == e2y:
                                         nids[5] = part_structure.nodeId[e3][e2z+1][e1z]
                                         nids[7] = part_structure.nodeId[e3+1][e2z+1][e1z]
@@ -785,24 +1071,24 @@ class BifurcationMesh:
                             elif e1 == e1b:
                                 if e2 == e2b:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
-                                    # if e3 == part_structure._elementsCount[2] // 2 + 1:
-                                    #     e3r = e3 - 1
-                                    #     nids[0] = part_structure.nodeId[e3r][e2][e1]
-                                    #     nids[1] = part_structure.nodeId[e3r][e2 + 1][e1]
-                                    #     remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS3,
-                                    #                            [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                                    # if e3 == 2:
-                                    #     setEftScaleFactorIds(eft1, [1], [])
-                                    #     scalefactors = [-1.0]
-                                    #     remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS2,
-                                    #                            [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                                    #     remapEftNodeValueLabel(eft1, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                    #     remapEftNodeValueLabel(eft1, [3, 4, 7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                                    #     # remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                                    if part_structure._shoulder_left:
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                    if part_structure._shoulder:
+                                        remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
+                                if e2 == e2y:
+                                    if part_structure._shoulder:
+                                        eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                        remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [])])
 
-
-
-
+                            elif e1 == e1y:
+                                if e2 == e2b:
+                                    eft1 = tricubichermite.createEftNoCrossDerivatives()
+                                    if part_structure._shoulder_left:
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                                        remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [])])
 
                         else:
                             if e1 < e1a:
@@ -815,37 +1101,6 @@ class BifurcationMesh:
                                 scalefactors = [ -1.0 ]
                                 remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
                                 remapEftNodeValueLabel(eft1, [1, 2, 3, 4], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS3, [1])])
-
-                    # if e3 == 2:
-                    #     if e1 == e1b:
-                    #         # joining elements
-                    #         if e2 == 0:
-                    #             nids = [15, 17, 22, 24, 16, 18, 23, 25]
-                    #             remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-                    #             remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS1,
-                    #                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
-                    #             remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2,
-                    #                                    [(Node.VALUE_LABEL_D_DS2, []), (Node.VALUE_LABEL_D_DS3, [])])
-                    #             remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3,
-                    #                                    [(Node.VALUE_LABEL_D_DS2, [1])])
-                    #             remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                    #             remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
-                    #
-                    #             remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [])])
-                    #             remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
-                    #                                    [(Node.VALUE_LABEL_D_DS2, [1])])
-                    #             remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                    #
-                    #             remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                    #             remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                    #             remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D2_DS1DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-
-
-
-
-
-                            # elif e2 == 1:
-                            #     nids = [17, 20, 24, 26, 18, 21, 25, 27]
 
                     if not all(nids):
                         continue
@@ -886,6 +1141,8 @@ class BaseLeg:
         self._elementsCount = [elementsCount[0]//2, elementsCount[1]//2, elementsCount[2]]
         self.nodeparams = nodeparams
         self._shoulder = False
+        self._shoulder_left = False
+        self._neck = False
 
         self.px = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
         self.pd1 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
@@ -941,21 +1198,6 @@ class BaseLeg:
         self.generateTopSurface(topnodeparams)
         self.generateMiddleLevels()
         self.smoothd2()
-
-        # self.generateNodes(nodes, fieldmodule, coordinates)
-        # self.generateElements(mesh, fieldmodule, coordinates)
-
-        # self.genetateBottomSurface([1.7, 0.0, 2.2], [1.7, 0.0, 1.2], [1.7, 1.0, 2.2],
-        #                            [[0.0, 0.0, -1 / self._elementsCount[1]], [0.0, 0.0, -1 / self._elementsCount[1]]],
-        #                            [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]])
-        # self.generateTopSurface([0.5, 0.0, 2.2], [1.2, 0.0, 1.0], [0.5, 1.0, 2.2],
-        #                         [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]],
-        #                         [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]])
-        # self.generateMiddleLevels()
-        # self.smoothd2()
-
-        # self.generateNodes(nodes, fieldmodule, coordinates)
-        # self.generateElements(mesh, fieldmodule, coordinates)
 
     def genetateBottomSurface(self, bottomnodeparams):
         """
@@ -1256,3 +1498,124 @@ class CrotchEllipses:
         """
 
         """
+
+
+class JoiningBoxRight:
+    def __init__(self, elementsCount, bottom_part, shoulder_part_left, joining_box):
+        self._elementsCount = elementsCount
+        self._joining_box = True
+
+        self.px = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd1 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd2 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd3 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.nodeId = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.elementId = [[[None] * elementsCount[0] for c in range(elementsCount[1])] for c in range(elementsCount[2])]
+
+        for n2 in range(elementsCount[1]+1):
+            self.nodeId[1][n2][0] = joining_box.nodeId[1][n2][1]
+            self.px[1][n2][0] = joining_box.px[1][n2][1]
+            self.pd1[1][n2][0] = joining_box.pd1[1][n2][1]
+            self.pd2[1][n2][0] = joining_box.pd2[1][n2][1]
+            self.pd3[1][n2][0] = joining_box.pd3[1][n2][1]
+
+            self.nodeId[0][n2][0] = joining_box.nodeId[0][n2][1]
+            self.px[0][n2][0] = joining_box.px[0][n2][1]
+            self.pd1[0][n2][0] = joining_box.pd1[0][n2][1]
+            self.pd2[0][n2][0] = joining_box.pd2[0][n2][1]
+            self.pd3[0][n2][0] = joining_box.pd3[0][n2][1]
+
+            self.nodeId[0][n2][1] = bottom_part.nodeId[2][n2][3]
+            self.px[0][n2][1] = bottom_part.px[2][n2][3]
+            self.pd1[0][n2][1] = bottom_part.pd1[2][n2][3]
+            self.pd2[0][n2][1] = bottom_part.pd2[2][n2][3]
+            self.pd3[0][n2][1] = bottom_part.pd3[2][n2][3]
+
+            n2s = 2
+            n1s = n2
+            self.nodeId[1][n2][1] = shoulder_part_left.nodeId[0][n2s][n1s]
+            self.px[1][n2][1] = shoulder_part_left.px[0][n2s][n1s]
+            self.pd1[1][n2][1] = shoulder_part_left.pd1[0][n2s][n1s]
+            self.pd2[1][n2][1] = shoulder_part_left.pd2[0][n2s][n1s]
+            self.pd3[1][n2][1] = shoulder_part_left.pd3[0][n2s][n1s]
+
+
+class JoiningBox3:
+    def __init__(self, elementsCount, joining_box, neck_part):
+        self._elementsCount = elementsCount
+        self._joining_box = True
+
+        self.px = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd1 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd2 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd3 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.nodeId = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.elementId = [[[None] * elementsCount[0] for c in range(elementsCount[1])] for c in range(elementsCount[2])]
+
+        for n2 in range(elementsCount[1]+1):
+            self.nodeId[0][n2][0] = joining_box.nodeId[1][n2][0]
+            self.px[0][n2][0] = joining_box.px[1][n2][0]
+            self.pd1[0][n2][0] = joining_box.pd1[1][n2][0]
+            self.pd2[0][n2][0] = joining_box.pd2[1][n2][0]
+            self.pd3[0][n2][0] = joining_box.pd3[1][n2][0]
+            self.nodeId[0][n2][1] = joining_box.nodeId[1][n2][1]
+            self.px[0][n2][1] = joining_box.px[1][n2][1]
+            self.pd1[0][n2][1] = joining_box.pd1[1][n2][1]
+            self.pd2[0][n2][1] = joining_box.pd2[1][n2][1]
+            self.pd3[0][n2][1] = joining_box.pd3[1][n2][1]
+
+            self.nodeId[1][n2][0] = neck_part.nodeId[0][n2][1]
+            self.px[1][n2][0] = neck_part.px[0][n2][1]
+            self.pd1[1][n2][0] = neck_part.pd1[0][n2][1]
+            self.pd2[1][n2][0] = neck_part.pd2[0][n2][1]
+            self.pd3[1][n2][0] = neck_part.pd3[0][n2][1]
+
+            self.nodeId[1][n2][1] = neck_part.nodeId[0][n2][2]
+            self.px[1][n2][1] = neck_part.px[0][n2][2]
+            self.pd1[1][n2][1] = neck_part.pd1[0][n2][2]
+            self.pd2[1][n2][1] = neck_part.pd2[0][n2][2]
+            self.pd3[1][n2][1] = neck_part.pd3[0][n2][2]
+
+
+class JoiningBox4:
+    def __init__(self, elementsCount, joining_box_3, neck_part, joining_box_right):
+        self._elementsCount = elementsCount
+        self._joining_box = True
+        self._neck_part = False
+
+        self.px = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd1 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd2 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.pd3 = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.nodeId = [[[None] * (elementsCount[0] + 1) for c in range(elementsCount[1] + 1)] for c in range(elementsCount[2] + 1)]
+        self.elementId = [[[None] * elementsCount[0] for c in range(elementsCount[1])] for c in range(elementsCount[2])]
+
+        for n2 in range(elementsCount[1]+1):
+            self.nodeId[0][n2][0] = joining_box_3.nodeId[0][n2][1]
+            self.px[0][n2][0] = joining_box_3.px[0][n2][1]
+            self.pd1[0][n2][0] = joining_box_3.pd1[0][n2][1]
+            self.pd2[0][n2][0] = joining_box_3.pd2[0][n2][1]
+            self.pd3[0][n2][0] = joining_box_3.pd3[0][n2][1]
+
+            self.nodeId[1][n2][0] = joining_box_3.nodeId[1][n2][1]
+            self.px[1][n2][0] = joining_box_3.px[1][n2][1]
+            self.pd1[1][n2][0] = joining_box_3.pd1[1][n2][1]
+            self.pd2[1][n2][0] = joining_box_3.pd2[1][n2][1]
+            self.pd3[1][n2][0] = joining_box_3.pd3[1][n2][1]
+
+            self.nodeId[0][n2][1] = joining_box_right.nodeId[1][n2][1]
+            self.px[0][n2][1] = joining_box_right.px[1][n2][1]
+            self.pd1[0][n2][1] = joining_box_right.pd1[1][n2][1]
+            self.pd2[0][n2][1] = joining_box_right.pd2[1][n2][1]
+            self.pd3[0][n2][1] = joining_box_right.pd3[1][n2][1]
+
+            self.nodeId[1][n2][1] = neck_part.nodeId[0][n2][3]
+            self.px[1][n2][1] = neck_part.px[0][n2][3]
+            self.pd1[1][n2][1] = neck_part.pd1[0][n2][3]
+            self.pd2[1][n2][1] = neck_part.pd2[0][n2][3]
+            self.pd3[1][n2][1] = neck_part.pd3[0][n2][3]
+
+
+
+
+
