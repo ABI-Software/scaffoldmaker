@@ -20,7 +20,7 @@ class MeshRefinement:
     Class for refining a mesh from one region to another.
     '''
 
-    def __init__(self, sourceRegion, targetRegion, sourceAnnotationGroups = []):
+    def __init__(self, sourceRegion, targetRegion, sourceAnnotationGroups = [], sourceCoordinateName = None):
         '''
         Assumes targetRegion is empty.
         :param sourceAnnotationGroups: List of AnnotationGroup for source mesh in sourceRegion.
@@ -29,7 +29,7 @@ class MeshRefinement:
         self._sourceRegion = sourceRegion
         self._sourceFm = sourceRegion.getFieldmodule()
         self._sourceCache = self._sourceFm.createFieldcache()
-        self._sourceCoordinates = findOrCreateFieldCoordinates(self._sourceFm)
+        self._sourceCoordinates = findOrCreateFieldCoordinates(self._sourceFm, name=sourceCoordinateName)
         # get range of source coordinates for octree range
         self._sourceFm.beginChange()
         sourceNodes = self._sourceFm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
