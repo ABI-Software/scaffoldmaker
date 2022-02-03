@@ -64,11 +64,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
         centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
+            'Armpit': [1.3, 0.0, 1.4],
             'Torso radius': 1.0,
             'Left arm radius': 1.0,
             'Right arm radius': 1.0,
             'Neck radius': 0.8,
+            'Neck shoulder point': [0.7, 0.0, 2.8],
             'Shoulder height': 2.2,
+            'Shoulder joint': [1.1, 0.0, 2.4],
+            'Shoulder point': [1.0, 0.0, 2.8],
+            'Shoulder start': [0.5, 0.0, 2.2],
             'Neck height': 3.6,
             'Right arm angle': 0.0,
             'Right arm length': 1.7,
@@ -90,11 +95,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
     def getOrderedOptionNames():
         return [
             'Central path',
+            'Armpit',
             'Torso radius',
             'Left arm radius',
             'Right arm radius',
             'Neck radius',
+            'Neck shoulder point',
+            'Shoulder joint',
             'Shoulder height',
+            'Shoulder point',
+            'Shoulder start',
             'Neck height',
             'Right arm angle',
             'Right arm length',
@@ -215,6 +225,14 @@ with variable numbers of elements in major, minor, shell and axial directions.
         neck_height = options['Neck height']
         right_arm_angle = options['Right arm angle']
         right_arm_length = options['Right arm length']
+        shoulder_joint = options['Shoulder joint']
+        armpit = options['Armpit']
+        neck_shoulder = options['Neck shoulder point']
+        shoulder_point = options['Shoulder point']
+        shoulder_start = options['Shoulder start']
+        # bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
+        #                                neck_radius, shoulder_height, neck_height, right_arm_angle, right_arm_length,
+        #                                shoulder_joint, armpit, neck_shoulder, shoulder_point, shoulder_start)
         bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
                                        neck_radius, shoulder_height, neck_height, right_arm_angle, right_arm_length)
 
