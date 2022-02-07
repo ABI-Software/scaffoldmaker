@@ -53,7 +53,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateBaseMesh(region, options)
-        self.assertEqual(37, len(annotationGroups))
+        self.assertEqual(38, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -115,7 +115,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
 
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(37, len(annotationGroups))
+        self.assertEqual(38, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -133,7 +133,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(68, len(annotationGroups))
+        self.assertEqual(72, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(37248, mesh3d.getSize())
