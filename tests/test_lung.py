@@ -22,7 +22,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_lung1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Rat 1" ])
+        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1" ])
         options = scaffold.getDefaultOptions(["Human 1"])
         self.assertEqual(3, len(options))
         self.assertFalse(scaffold.checkOptions(options))
