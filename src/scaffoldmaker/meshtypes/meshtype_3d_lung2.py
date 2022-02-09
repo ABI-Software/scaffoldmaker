@@ -1895,7 +1895,7 @@ def concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, 
         s_x = fm.createFieldMultiply(offset_coordinates, only_x)
         z_x = fm.createFieldMultiply(coordinates, only_z)
         z_x = fm.createFieldComponent(z_x, [3, 1, 1])
-        s_zx = fm.createFieldAdd(z_x, r_x) # if no bulge s_zx = r_x
+        s_zx = r_x # if no bulge s_zx = r_x
         theta_x = fm.createFieldMultiply(kappa_x, s_x)
         x_new = fm.createFieldMultiply(s_zx, fm.createFieldSin(theta_x))
         delta_zx = fm.createFieldMultiply(s_zx, fm.createFieldSubtract(fm.createFieldCos(theta_x),
@@ -1909,7 +1909,7 @@ def concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, 
         s_y = fm.createFieldMultiply(offset_coordinates, only_y)
         z_y = fm.createFieldMultiply(coordinates, only_z)
         z_y = fm.createFieldComponent(z_y, [1, 3, 1])
-        s_zy = fm.createFieldAdd(z_y, r_y) # if no bulge s_zx = r_y
+        s_zy = r_y # if no bulge s_zx = r_y
         theta_y = fm.createFieldMultiply(kappa_y, s_y)
         y_new = fm.createFieldMultiply(s_zy, fm.createFieldSin(theta_y))
         delta_zy = fm.createFieldMultiply(s_zy, fm.createFieldSubtract(fm.createFieldCos(theta_y),
