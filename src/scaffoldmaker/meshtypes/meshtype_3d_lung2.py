@@ -61,16 +61,16 @@ class MeshType_3d_lung2(Scaffold_base):
             'Left lung width': 0.25,
             'Left lung depth': 0.5,
             'Left lung height': 1.0,
-            'Left lung ventral edge angle degrees': 0.0,
-            'Left lung curvature of dorsal-ventral centre line': 0.0,
+            'Left lung ventral edge sharpness factor': 0.0,
+            'Left lung medial curvature': 0.0,
             'Right lung width': 0.25,
             'Right lung depth': 0.5,
             'Right lung height': 1.0,
-            'Right lung ventral edge angle degrees': 0.0,
-            'Right lung curvature of dorsal-ventral centre line': 0.0,
+            'Right lung ventral edge sharpness factor': 0.0,
+            'Right lung medial curvature': 0.0,
             'Open fissures': False,
             'Accessory lobe': True,
-            'Accessory lobe angle degrees around z axis': 0.0,
+            'Accessory lobe medial curvature': 0.0,
             'Accessory lobe length': 0.5,
             'Accessory lobe dorsal centre [x,y]': [0.0, 0.0],
             'Accessory lobe dorsal height': 0.5,
@@ -87,40 +87,39 @@ class MeshType_3d_lung2(Scaffold_base):
 
         if 'Human 1' in parameterSetName:
             options['Left-right lung spacing'] = 0.7
-            options['Left lung ventral edge angle degrees'] = 0.5
-            options['Left lung curvature of dorsal-ventral centre line'] = 0.3
-            options['Right lung ventral edge angle degrees'] = 0.8
-            options['Right lung curvature of dorsal-ventral centre line'] = -0.4
+            options['Left lung ventral edge sharpness factor'] = 0.5
+            options['Left lung medial curvature'] = 3.33
+            options['Right lung ventral edge sharpness factor'] = 0.8
+            options['Right lung medial curvature'] = 2.5
             options['Accessory lobe'] = False
             options['Diaphragm curvature x'] = -0.4
 
         elif 'Mouse 1' in parameterSetName:
             options['Number of left lung lobes = 2 (check) or 1 (uncheck)'] = False
             options['Left lung height'] = 0.8
-            options['Left lung ventral edge angle degrees'] = 0.6
-            options['Left lung curvature of dorsal-ventral centre line'] = 0.5
+            options['Left lung ventral edge sharpness factor'] = 0.6
+            options['Left lung medial curvature'] = 2.0
             options['Right lung height'] = 0.8
-            options['Right lung ventral edge angle degrees'] = 0.6
-            options['Right lung curvature of dorsal-ventral centre line'] = -0.5
+            options['Right lung ventral edge sharpness factor'] = 0.6
+            options['Right lung medial curvature'] = 2.0
             options['Accessory lobe ventral width'] = 0.2
             options['Accessory lobe ventral height'] = 0.2
-            options['Accessory lobe angle degrees around z axis'] = 0.6
+            options['Accessory lobe medial curvature'] = 1.67
             options['Diaphragm curvature y'] = 1.0
 
         elif 'Rat 1' in parameterSetName:
             options['Left-right lung spacing'] = 0.9
-            options['Left lung ventral edge angle degrees'] = 0.5
-            options['Left lung curvature of dorsal-ventral centre line'] = 0.3
-            options['Right lung ventral edge angle degrees'] = 0.8
-            options['Right lung curvature of dorsal-ventral centre line'] = -0.4
-
+            options['Left lung ventral edge sharpness factor'] = 0.5
+            options['Left lung medial curvature'] = 3.33
+            options['Right lung ventral edge sharpness factor'] = 0.8
+            options['Right lung medial curvature'] = 2.5
             options['Accessory lobe'] = True
             options['Accessory lobe dorsal centre [x,y]'] = [0.0, 0.2]
             options['Accessory lobe dorsal height'] = 0.4
             options['Accessory lobe dorsal width'] = 0.4
             options['Accessory lobe ventral width'] = 0.2
             options['Accessory lobe ventral height'] = 0.2
-            options['Accessory lobe angle degrees around z axis'] = 0.9
+            options['Accessory lobe medial curvature'] = 1.11
             options['Diaphragm curvature x'] = -0.4
 
         return options
@@ -133,13 +132,13 @@ class MeshType_3d_lung2(Scaffold_base):
             'Left lung width',
             'Left lung depth',
             'Left lung height',
-            'Left lung ventral edge angle degrees',
-            'Left lung curvature of dorsal-ventral centre line',
+            'Left lung ventral edge sharpness factor',
+            'Left lung medial curvature',
             'Right lung width',
             'Right lung depth',
             'Right lung height',
-            'Right lung ventral edge angle degrees',
-            'Right lung curvature of dorsal-ventral centre line',
+            'Right lung ventral edge sharpness factor',
+            'Right lung medial curvature',
             'Open fissures',
             'Accessory lobe',
             'Accessory lobe dorsal centre [x,y]',
@@ -148,7 +147,7 @@ class MeshType_3d_lung2(Scaffold_base):
             'Accessory lobe dorsal width',
             'Accessory lobe ventral height',
             'Accessory lobe ventral width',
-            'Accessory lobe angle degrees around z axis',
+            'Accessory lobe medial curvature',
             'Diaphragm centre x',
             'Diaphragm centre y',
             'Diaphragm curvature x',
@@ -178,368 +177,409 @@ class MeshType_3d_lung2(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: annotationGroups
         '''
+        # Generate two meshes: geometric[0] and lung[1] coordinates
+        for coordinate in range(2):
+            isTwoLeftLobe = options['Number of left lung lobes = 2 (check) or 1 (uncheck)'] if coordinate == 0 else True
+            spacingBetweenLeftRight = options['Left-right lung spacing']/2.0 if coordinate == 0 else 0.5
+            leftWidth = options['Left lung width'] if coordinate == 0 else 0.25
+            leftDepth = options['Left lung depth'] if coordinate == 0 else 0.5
+            leftHeight = options['Left lung height'] if coordinate == 0 else 1.0
+            leftEdgeSharpFactor = options['Left lung ventral edge sharpness factor'] if coordinate == 0 else 0.0
+            leftLungMedialCurvature = options['Left lung medial curvature'] if coordinate == 0 else 0.0
+            rightWidth = options['Right lung width'] if coordinate == 0 else 0.25
+            rightDepth = options['Right lung depth'] if coordinate == 0 else 0.5
+            rightHeight = options['Right lung height'] if coordinate == 0 else 1.0
+            rightEdgeSharpFactor = options['Right lung ventral edge sharpness factor'] if coordinate == 0 else 0.0
+            rightLungMedialCurvature = options['Right lung medial curvature'] if coordinate == 0 else 0.0
+            isOpenfissure = options['Open fissures']
+            hasAccessoryLobe = options['Accessory lobe']
+            accessoryLobeDorsalCentre = options['Accessory lobe dorsal centre [x,y]'] if coordinate == 0 else [0.0, 0.0]
+            accessoryLobeLength = options['Accessory lobe length'] if coordinate == 0 else 0.5
+            accessoryLobeDorsalHeight = options['Accessory lobe dorsal height'] if coordinate == 0 else 0.5
+            accessoryLobeDorsalWidth = options['Accessory lobe dorsal width'] if coordinate == 0 else 0.5
+            accessoryLobeVentralHeight = options['Accessory lobe ventral height'] if coordinate == 0 else 0.5
+            accessoryLobeVentralWidth = options['Accessory lobe ventral width'] if coordinate == 0 else 0.5
+            accessoryLobeMedialCurve = options['Accessory lobe medial curvature'] if coordinate == 0 else 0.0
+            diaphragmCentreX = options['Diaphragm centre x'] if coordinate == 0 else 0.0
+            diaphragmCentreY = options['Diaphragm centre y'] if coordinate == 0 else 0.0
+            diaphragmCurvatureX = options['Diaphragm curvature x'] if coordinate == 0 else 0.0
+            diaphragmCurvatureY = options['Diaphragm curvature y'] if coordinate == 0 else 0.0
 
-        isTwoLeftLobe = options['Number of left lung lobes = 2 (check) or 1 (uncheck)']
-        spacingBetweenLeftRight = options['Left-right lung spacing']/2.0
-        leftWidth = options['Left lung width']
-        leftDepth = options['Left lung depth']
-        leftHeight = options['Left lung height']
-        leftEdgeAngle = options['Left lung ventral edge angle degrees']
-        LeftDorsalVentralCentreLine = options['Left lung curvature of dorsal-ventral centre line']
-        rightWidth = options['Right lung width']
-        rightDepth = options['Right lung depth']
-        rightHeight = options['Right lung height']
-        rightEdgeAngle = options['Right lung ventral edge angle degrees']
-        rightDorsalVentralCentreLine = options['Right lung curvature of dorsal-ventral centre line']
-        isOpenfissure = options['Open fissures']
-        hasAccessoryLobe = options['Accessory lobe']
-        accessoryLobeDorsalCentre = options['Accessory lobe dorsal centre [x,y]']
-        accessoryLobeLength = options['Accessory lobe length']
-        accessoryLobeDorsalHeight = options['Accessory lobe dorsal height']
-        accessoryLobeDorsalWidth = options['Accessory lobe dorsal width']
-        accessoryLobeVentralHeight = options['Accessory lobe ventral height']
-        accessoryLobeVentralWidth = options['Accessory lobe ventral width']
-        accessoryLobeAngle = options['Accessory lobe angle degrees around z axis']
-        diaphragmCentreX = options['Diaphragm centre x']
-        diaphragmCentreY = options['Diaphragm centre y']
-        diaphragmCurvatureX = options['Diaphragm curvature x']
-        diaphragmCurvatureY = options['Diaphragm curvature y']
+            if coordinate == 0:
+                fm_n0 = region.getFieldmodule()
+                coordinates_n0 = findOrCreateFieldCoordinates(fm_n0)
+                # point reference
+                fm = fm_n0
+                coordinates = coordinates_n0
+            else:
+                region_n1 = region.createRegion()
+                fm_n1 = region_n1.getFieldmodule()
+                coordinates_n1 = findOrCreateFieldCoordinates(fm_n1, name="lung coordinates")
+                # point reference
+                fm = fm_n1
+                coordinates = coordinates_n1
 
-        fm = region.getFieldmodule()
-        coordinates = findOrCreateFieldCoordinates(fm)
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            nodetemplate = nodes.createNodetemplate()
+            nodetemplate.defineField(coordinates)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+            mesh = fm.findMeshByDimension(3)
 
-        mesh = fm.findMeshByDimension(3)
+            eftfactory = eftfactory_tricubichermite(mesh, None)
+            eftRegular = eftfactory.createEftBasic()
 
-        eftfactory = eftfactory_tricubichermite(mesh, None)
-        eftRegular = eftfactory.createEftBasic()
+            elementtemplateRegular = mesh.createElementtemplate()
+            elementtemplateRegular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            elementtemplateRegular.defineField(coordinates, -1, eftRegular)
 
-        elementtemplateRegular = mesh.createElementtemplate()
-        elementtemplateRegular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        elementtemplateRegular.defineField(coordinates, -1, eftRegular)
+            elementtemplateCustom = mesh.createElementtemplate()
+            elementtemplateCustom.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-        elementtemplateCustom = mesh.createElementtemplate()
-        elementtemplateCustom.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-
-        # Annotation groups
-        lungGroup = AnnotationGroup(region, get_lung_term("lung"))
-        leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-        annotationGroups = [leftLungGroup, lungGroup]
-        lungMeshGroup = lungGroup.getMeshGroup(mesh)
-        leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
-        rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
-        rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(rightLungGroup)
-        lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
-        lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(lowerRightLungGroup)
-        upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
-        upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(upperRightLungGroup)
-        middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
-        middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(middleRightLungGroup)
-        mediastinumLeftGroup = AnnotationGroup(region, get_lung_term("anterior mediastinum of left lung"))
-        mediastinumLeftGroupMeshGroup = mediastinumLeftGroup.getMeshGroup(mesh)
-        annotationGroups.append(mediastinumLeftGroup)
-        mediastinumRightGroup = AnnotationGroup(region, get_lung_term("anterior mediastinum of right lung"))
-        mediastinumRightGroupMeshGroup = mediastinumRightGroup.getMeshGroup(mesh)
-        annotationGroups.append(mediastinumRightGroup)
-
-        # Marker points/groups
-        leftApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_lung_term("apex of left lung"))
-        rightApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_lung_term("apex of right lung"))
-        leftDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                             get_lung_term("dorsal base of left lung"))
-        rightDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_lung_term("dorsal base of right lung"))
-        leftVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_lung_term("ventral base of left lung"))
-        rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_lung_term("ventral base of right lung"))
-        rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_lung_term("laterodorsal tip of middle lobe of right lung"))
-        leftMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                             get_lung_term("medial base of left lung"))
-        rightMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_lung_term("medial base of right lung"))
-
-        if isTwoLeftLobe:
+            ####################
             # Annotation groups
-            lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
-            lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(lowerLeftLungGroup)
-            upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
-            upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(upperLeftLungGroup)
+            ####################
+            lungGroup = AnnotationGroup(region, get_lung_term("lung"))
+            leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
+            annotationGroups = [leftLungGroup, lungGroup]
+            lungMeshGroup = lungGroup.getMeshGroup(mesh)
+            leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
+            rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
+            rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(rightLungGroup)
+            lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
+            lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(lowerRightLungGroup)
+            upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
+            upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(upperRightLungGroup)
+            middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
+            middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(middleRightLungGroup)
+            mediastinumLeftGroup = AnnotationGroup(region, get_lung_term("anterior mediastinum of left lung"))
+            mediastinumLeftGroupMeshGroup = mediastinumLeftGroup.getMeshGroup(mesh)
+            annotationGroups.append(mediastinumLeftGroup)
+            mediastinumRightGroup = AnnotationGroup(region, get_lung_term("anterior mediastinum of right lung"))
+            mediastinumRightGroupMeshGroup = mediastinumRightGroup.getMeshGroup(mesh)
+            annotationGroups.append(mediastinumRightGroup)
 
-        if hasAccessoryLobe:
-            # Annotation groups
-            rightLungAccessoryLobeGroup = AnnotationGroup(region, get_lung_term("right lung accessory lobe"))
-            rightLungAccessoryLobeMeshGroup = rightLungAccessoryLobeGroup.getMeshGroup(mesh)
-            annotationGroups.append(rightLungAccessoryLobeGroup)
-            rightLungAccessoryLobeNodesetGroup = rightLungAccessoryLobeGroup.getNodesetGroup(nodes)
+            # Marker points/groups
+            leftApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_lung_term("apex of left lung"))
+            rightApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_lung_term("apex of right lung"))
+            leftDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_lung_term("dorsal base of left lung"))
+            rightDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("dorsal base of right lung"))
+            leftVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("ventral base of left lung"))
+            rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_lung_term("ventral base of right lung"))
+            rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_lung_term("laterodorsal tip of middle lobe of right lung"))
+            leftMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_lung_term("medial base of left lung"))
+            rightMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("medial base of right lung"))
 
-            # Marker points
-            accessoryApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                    get_lung_term("apex of right lung accessory lobe"))
-            accessoryVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                       get_lung_term("ventral base of right lung accessory lobe"))
-            accessoryDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                      get_lung_term("dorsal base of right lung accessory lobe"))
+            if isTwoLeftLobe:
+                # Annotation groups
+                lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
+                lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
+                annotationGroups.append(lowerLeftLungGroup)
+                upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
+                upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
+                annotationGroups.append(upperLeftLungGroup)
 
-        # Nodeset group
-        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
-        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
-        lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
+            if hasAccessoryLobe:
+                # Annotation groups
+                rightLungAccessoryLobeGroup = AnnotationGroup(region, get_lung_term("right lung accessory lobe"))
+                rightLungAccessoryLobeMeshGroup = rightLungAccessoryLobeGroup.getMeshGroup(mesh)
+                annotationGroups.append(rightLungAccessoryLobeGroup)
+                rightLungAccessoryLobeNodesetGroup = rightLungAccessoryLobeGroup.getNodesetGroup(nodes)
 
-        # Annotation fiducial point
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+                # Marker points
+                accessoryApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                        get_lung_term("apex of right lung accessory lobe"))
+                accessoryVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                           get_lung_term("ventral base of right lung accessory lobe"))
+                accessoryDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                          get_lung_term("dorsal base of right lung accessory lobe"))
 
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
+            # Nodeset group
+            leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
+            rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
+            lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
 
-        cache = fm.createFieldcache()
+            # Annotation fiducial point
+            markerGroup = findOrCreateFieldGroup(fm, "marker")
+            markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+            markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-        # common parameters in species
-        leftLung = 0
-        rightLung = 1
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+            markerTemplateInternal = nodes.createNodetemplate()
+            markerTemplateInternal.defineField(markerName)
+            markerTemplateInternal.defineField(markerLocation)
 
-        # Set internal parameters
-        # The number of the elements in the generic lungs
-        # These counts are only values that work for nodeFieldParameters (KEEP THEM FIXED)
-        lElementsCount1 = 2
-        lElementsCount2 = 4
-        lElementsCount3 = 3
+            cache = fm.createFieldcache()
 
-        uElementsCount1 = 2
-        uElementsCount2 = 4
-        uElementsCount3 = 4
+            # common parameters in species
+            leftLung = 0
+            rightLung = 1
 
-        leftFissureAngle = 45
-        leftObliqueProportion = 0.8
-        rightFissureAngle = 45
-        rightObliqueProportion = 0.8
+            # Set internal parameters
+            # The number of the elements in the generic lungs
+            # These counts are only values that work for nodeFieldParameters (KEEP THEM FIXED)
+            lElementsCount1 = 2
+            lElementsCount2 = 4
+            lElementsCount3 = 3
 
-        # Create nodes
-        nodeIndex = 0
-        nodeIdentifier = 1
-        lowerLeftNodeIds = []
-        upperLeftNodeIds = []
-        lowerRightNodeIds = []
-        upperRightNodeIds = []
+            uElementsCount1 = 2
+            uElementsCount2 = 4
+            uElementsCount3 = 4
 
-        # Left lung nodes
-        nodeIndex, nodeIdentifier = getLungNodes(spacingBetweenLeftRight,
-            leftDepth, leftWidth, leftHeight, leftFissureAngle, leftObliqueProportion,
-            leftLung, cache, coordinates, nodes, nodetemplate, leftLungNodesetGroup, lungNodesetGroup,
-            lElementsCount1, lElementsCount2, lElementsCount3,
-            uElementsCount1, uElementsCount2, uElementsCount3,
-            lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
+            leftFissureAngle = 45
+            leftObliqueProportion = 0.8
+            rightFissureAngle = 45
+            rightObliqueProportion = 0.8
 
-        # Right lung nodes
-        nodeIndex, nodeIdentifier = getLungNodes(spacingBetweenLeftRight,
-            rightDepth, rightWidth, rightHeight, rightFissureAngle, rightObliqueProportion,
-            rightLung, cache, coordinates, nodes, nodetemplate, rightLungNodesetGroup, lungNodesetGroup,
-            lElementsCount1, lElementsCount2, lElementsCount3,
-            uElementsCount1, uElementsCount2, uElementsCount3,
-            lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
+            ###############
+            # Create nodes
+            ###############
+            nodeIndex = 0
+            nodeIdentifier = 1
+            lowerLeftNodeIds = []
+            upperLeftNodeIds = []
+            lowerRightNodeIds = []
+            upperRightNodeIds = []
 
-        if hasAccessoryLobe:
-            # The number of the elements in the diaphragmatic animal lung
-            accesssoryElementsCount1 = 2
-            accesssoryElementsCount2 = 5
-            accesssoryElementsCount3 = 2
-            diaphragmaticNodeIds = []
-
-            # Diaphragm lung nodes
-            nodeIndex, nodeIdentifier = getDiaphragmaticLungNodes(accessoryLobeDorsalCentre, cache, coordinates, nodes, nodetemplate,
-                rightLungAccessoryLobeNodesetGroup, lungNodesetGroup,
-                accesssoryElementsCount1, accesssoryElementsCount2, accesssoryElementsCount3,
-                accessoryLobeLength, accessoryLobeDorsalWidth, accessoryLobeDorsalHeight, accessoryLobeVentralWidth,
-                accessoryLobeVentralHeight, diaphragmaticNodeIds, nodeIndex, nodeIdentifier)
-
-        # Create elements
-        elementIdentifier = 1
-
-        if isTwoLeftLobe:
-            # Left lung elements
-            elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
-                getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
-                elementtemplateCustom, mesh, lungMeshGroup,
-                leftLungMeshGroup, lowerLeftLungMeshGroup, None,
-                upperLeftLungMeshGroup, mediastinumLeftGroupMeshGroup,
+            # Left lung nodes
+            nodeIndex, nodeIdentifier = getLungNodes(spacingBetweenLeftRight,
+                leftDepth, leftWidth, leftHeight, leftFissureAngle, leftObliqueProportion,
+                leftLung, cache, coordinates, nodes, nodetemplate, leftLungNodesetGroup, lungNodesetGroup,
                 lElementsCount1, lElementsCount2, lElementsCount3,
                 uElementsCount1, uElementsCount2, uElementsCount3,
-                lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
-        else:
-            elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
+                lowerLeftNodeIds, upperLeftNodeIds, nodeIndex, nodeIdentifier)
+
+            # Right lung nodes
+            nodeIndex, nodeIdentifier = getLungNodes(spacingBetweenLeftRight,
+                rightDepth, rightWidth, rightHeight, rightFissureAngle, rightObliqueProportion,
+                rightLung, cache, coordinates, nodes, nodetemplate, rightLungNodesetGroup, lungNodesetGroup,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerRightNodeIds, upperRightNodeIds, nodeIndex, nodeIdentifier)
+
+            if hasAccessoryLobe:
+                # The number of the elements in the diaphragmatic animal lung
+                accesssoryElementsCount1 = 2
+                accesssoryElementsCount2 = 5
+                accesssoryElementsCount3 = 2
+                diaphragmaticNodeIds = []
+
+                # Diaphragm lung nodes
+                nodeIndex, nodeIdentifier = getDiaphragmaticLungNodes(accessoryLobeDorsalCentre, cache, coordinates, nodes, nodetemplate,
+                    rightLungAccessoryLobeNodesetGroup, lungNodesetGroup,
+                    accesssoryElementsCount1, accesssoryElementsCount2, accesssoryElementsCount3,
+                    accessoryLobeLength, accessoryLobeDorsalWidth, accessoryLobeDorsalHeight, accessoryLobeVentralWidth,
+                    accessoryLobeVentralHeight, diaphragmaticNodeIds, nodeIndex, nodeIdentifier)
+
+            ##################
+            # Create elements
+            ##################
+            elementIdentifier = 1
+
+            if isTwoLeftLobe:
+                # Left lung elements
+                elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
+                    getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                    elementtemplateCustom, mesh, lungMeshGroup,
+                    leftLungMeshGroup, lowerLeftLungMeshGroup, None,
+                    upperLeftLungMeshGroup, mediastinumLeftGroupMeshGroup,
+                    lElementsCount1, lElementsCount2, lElementsCount3,
+                    uElementsCount1, uElementsCount2, uElementsCount3,
+                    lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
+            else:
+                elementIdentifier, leftUpperLobeElementID, leftLowerLobeElementID = \
+                    getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                                    elementtemplateCustom, mesh, lungMeshGroup,
+                                    leftLungMeshGroup, None, None, None, mediastinumLeftGroupMeshGroup,
+                                    lElementsCount1, lElementsCount2, lElementsCount3,
+                                    uElementsCount1, uElementsCount2, uElementsCount3,
+                                    lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
+
+            # Right lung elements
+            elementIdentifier, rightUpperLobeElementID, rightLowerLobeElementID = \
                 getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
-                                elementtemplateCustom, mesh, lungMeshGroup,
-                                leftLungMeshGroup, None, None, None, mediastinumLeftGroupMeshGroup,
-                                lElementsCount1, lElementsCount2, lElementsCount3,
-                                uElementsCount1, uElementsCount2, uElementsCount3,
-                                lowerLeftNodeIds, upperLeftNodeIds, elementIdentifier)
-
-        # Right lung elements
-        elementIdentifier, rightUpperLobeElementID, rightLowerLobeElementID = \
-            getLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
-            elementtemplateCustom, mesh, lungMeshGroup,
-            rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
-            upperRightLungMeshGroup, mediastinumRightGroupMeshGroup,
-            lElementsCount1, lElementsCount2, lElementsCount3,
-            uElementsCount1, uElementsCount2, uElementsCount3,
-            lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
-
-        if hasAccessoryLobe:
-            # Diaphragm lung elements
-            getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
                 elementtemplateCustom, mesh, lungMeshGroup,
-                rightLungMeshGroup, rightLungAccessoryLobeMeshGroup,
-                accesssoryElementsCount1, accesssoryElementsCount2, accesssoryElementsCount3,
-                diaphragmaticNodeIds, elementIdentifier)
+                rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
+                upperRightLungMeshGroup, mediastinumRightGroupMeshGroup,
+                lElementsCount1, lElementsCount2, lElementsCount3,
+                uElementsCount1, uElementsCount2, uElementsCount3,
+                lowerRightNodeIds, upperRightNodeIds, elementIdentifier)
 
-        # Marker points
-        markerList = []
+            if hasAccessoryLobe:
+                # Diaphragm lung elements
+                getDiaphragmaticLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular,
+                    elementtemplateCustom, mesh, lungMeshGroup,
+                    rightLungMeshGroup, rightLungAccessoryLobeMeshGroup,
+                    accesssoryElementsCount1, accesssoryElementsCount2, accesssoryElementsCount3,
+                    diaphragmaticNodeIds, elementIdentifier)
 
-        lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
+            ########################
+            # Write two coordinates
+            ########################
+            if coordinate == 1:
+                sir = region_n1.createStreaminformationRegion()
+                srm = sir.createStreamresourceMemory()
+                region_n1.write(sir)
+                result, buffer = srm.getBuffer()
 
-        idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
-        markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 1.0, 1.0]})
+                sir = region.createStreaminformationRegion()
+                srm = sir.createStreamresourceMemoryBuffer(buffer)
+                region.read(sir)
 
-        idx = 1
-        markerList.append({"group": leftDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+                del srm
+                del sir
+                del fm_n1
+                del coordinates_n1
+                del region_n1
 
-        idx = lElementsCount1 * (lElementsCount2 // 2)
-        markerList.append({"group": leftMedialGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
+            ####################################################################
+            # Transformation and translation to the left (0) and right lungs (1)
+            ####################################################################
+            for i in range(2):
+                lungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                edgeSharpFactor = leftEdgeSharpFactor if i == 0 else rightEdgeSharpFactor
+                length = leftDepth if i == 0 else rightDepth
+                width = leftWidth if i == 0 else rightWidth
+                height = leftHeight if i == 0 else rightHeight
+                spacing = spacingBetweenLeftRight if i == 0 else -spacingBetweenLeftRight
+                lungMedialcurvature = -leftLungMedialCurvature if i == 0 else rightLungMedialCurvature
 
-        idx = lElementsCount1 * (lElementsCount2 - 1) + 1
-        markerList.append({"group": leftVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+                # Internal parameters
+                tapering = 0.0 if i == 0 else 0.0
+                medialCurve = 0.0 if i == 0 else 0.0
+                bulgeRadiusAroundY = 0.0 if i == 0 else 0.0
+                tiltApex_xAxis = 0.0 if i == 0 else 0.0
+                tiltApex_yAxis = 0.0 if i == 0 else 0.0
+                rotate_ZAxis = 0.0 if i == 0 else 0
+                tiltDiap_xAxis = 0.0 if i == 0 else 0
+                tiltDiap_yAxis = 0.0 if i == 0 else 0
 
-        upperLeftElementCount = (uElementsCount1 * uElementsCount2 * (uElementsCount3-1))
-        leftLungElementCount = lowerLeftElementCount + upperLeftElementCount
-        lowerRightElementCount = lowerLeftElementCount
+                # Transformation of the left and right lungs
+                if edgeSharpFactor != 0.0:
+                    sharpeningRidge(edgeSharpFactor, fm, coordinates, lungNodeset, spacing, length)
 
-        idx = leftLungElementCount + 1
-        markerList.append({"group": rightDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+                if tapering != 0.0:
+                    taperingZAxis(tapering, fm, coordinates, lungNodeset, spacing)
 
-        idx = leftLungElementCount + lowerRightElementCount + \
-              (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
-        markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
+                if medialCurve != 0.0:
+                    concavingMedialSurface(medialCurve, fm, coordinates, lungNodeset, spacing, length, width, height)
 
-        idx = leftLungElementCount + lElementsCount1 + 1
-        markerList.append({"group": rightMedialGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+                if bulgeRadiusAroundY != 0.0:
+                    bendingAroundYAxis(bulgeRadiusAroundY, fm, coordinates, lungNodeset, spacing)
 
-        idx = leftLungElementCount + lElementsCount1 * lElementsCount2
-        markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
+                if lungMedialcurvature != 0.0:
+                    bendingAroundZAxis(lungMedialcurvature, fm, coordinates, lungNodeset, spacing)
 
-        idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
-        markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
+                # Translation of the left and right lungs
+                if tiltApex_xAxis != 0.0:
+                    tiltLungs(tiltApex_xAxis, 0, 0, 0, fm, coordinates, lungNodeset, spacing)
 
-        if hasAccessoryLobe:
-            rightLungElementCount = leftLungElementCount
+                if tiltApex_yAxis != 0.0:
+                    tiltLungs(0, tiltApex_yAxis, 0, 0, fm, coordinates, lungNodeset, spacing)
 
-            idx_temp = accesssoryElementsCount1 * accesssoryElementsCount2 * (accesssoryElementsCount3 - 1) + 1
-            idx = rightLungElementCount + leftLungElementCount + idx_temp
-            markerList.append({"group": accessoryApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+                if rotate_ZAxis != 0.0:
+                    rotateLungs(rotate_ZAxis, rotate_ZAxis, rotate_ZAxis, rotate_ZAxis, fm, coordinates, lungNodeset)
 
-            idx_temp = accesssoryElementsCount1 * accesssoryElementsCount2 * (accesssoryElementsCount3 - 1) - 1
-            idx = rightLungElementCount + leftLungElementCount + idx_temp
-            markerList.append({"group": accessoryVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+                # Transformation of the diaphragm
+                if tiltDiap_xAxis != 0.0:
+                    tiltLungs(0, 0, 0, tiltDiap_xAxis, fm, coordinates, lungNodeset, spacing)
 
-            idx = rightLungElementCount + leftLungElementCount + 1
-            markerList.append({"group": accessoryDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+                if tiltDiap_yAxis != 0.0:
+                    tiltLungs(0, 0, tiltDiap_yAxis, 0, fm, coordinates, lungNodeset, spacing)
 
-        for marker in markerList:
-            annotationGroup = marker["group"]
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerPoint)
-            markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]),
-                                              marker["xi"])
-            markerName.assignString(cache, annotationGroup.getName())
-            annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
-            lungNodesetGroup.addNode(markerPoint)
-            nodeIdentifier += 1
+            if accessoryLobeMedialCurve != 0.0:
+                spacing = accessoryLobeDorsalCentre
+                bendingAroundZAxis(-accessoryLobeMedialCurve, fm, coordinates, rightLungAccessoryLobeNodesetGroup, spacing)
 
-        # Transformation and translation to the left (0) and right lungs (1)
-        for i in range(2):
-            LungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
-            edgeAngle = leftEdgeAngle if i == 0 else rightEdgeAngle
-            length = leftDepth if i == 0 else rightDepth
-            width = leftWidth if i == 0 else rightWidth
-            height = leftHeight if i == 0 else rightHeight
-            spacing = spacingBetweenLeftRight if i == 0 else -spacingBetweenLeftRight
-            bulgeRadiusAroundZ = LeftDorsalVentralCentreLine if i == 0 else rightDorsalVentralCentreLine
+            if (diaphragmCurvatureX != 0.0) or (diaphragmCurvatureY != 0.0):
+                concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, coordinates, diaphragmCentreX,
+                                              diaphragmCentreY, lungNodesetGroup)
 
-            # Internal parameters
-            tapering = 0.0 if i == 0 else 0.0
-            medialCurve = 0.0 if i == 0 else 0.0
-            bulgeRadiusAroundY = 0.0 if i == 0 else 0.0
-            tiltApex_xAxis = 0.0 if i == 0 else 0.0
-            tiltApex_yAxis = 0.0 if i == 0 else 0.0
-            rotate_ZAxis = 0.0 if i == 0 else 0
-            tiltDiap_xAxis = 0.0 if i == 0 else 0
-            tiltDiap_yAxis = 0.0 if i == 0 else 0
+            if isOpenfissure:
+                # create discontinuity in d3 on the core boundary
+                nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, leftUpperLobeElementID,
+                                rightUpperLobeElementID, nodeIdentifier)
 
-            # Transformation of the left and right lungs
-            if edgeAngle != 0.0:
-                sharpeningRidge(edgeAngle, fm, coordinates, LungNodeset, spacing, length)
+            ###############
+            # Marker points
+            ###############
+            markerList = []
 
-            if tapering != 0.0:
-                taperingZAxis(tapering, fm, coordinates, LungNodeset, spacing)
+            lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
 
-            if medialCurve != 0.0:
-                concavingMedialSurface(medialCurve, fm, coordinates, LungNodeset, spacing, length, width, height)
+            idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
+            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 1.0, 1.0]})
 
-            if bulgeRadiusAroundY != 0.0:
-                bendingAroundYAxis(bulgeRadiusAroundY, fm, coordinates, LungNodeset, spacing)
+            idx = 1
+            markerList.append({"group": leftDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
 
-            if bulgeRadiusAroundZ != 0.0:
-                bendingAroundZAxis(-bulgeRadiusAroundZ, fm, coordinates, LungNodeset, spacing)
+            idx = lElementsCount1 * (lElementsCount2 // 2)
+            markerList.append({"group": leftMedialGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
 
-            # Translation of the left and right lungs
-            if tiltApex_xAxis != 0.0:
-                tiltLungs(tiltApex_xAxis, 0, 0, 0, fm, coordinates, LungNodeset, spacing)
+            idx = lElementsCount1 * (lElementsCount2 - 1) + 1
+            markerList.append({"group": leftVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
-            if tiltApex_yAxis != 0.0:
-                tiltLungs(0, tiltApex_yAxis, 0, 0, fm, coordinates, LungNodeset, spacing)
+            upperLeftElementCount = (uElementsCount1 * uElementsCount2 * (uElementsCount3-1))
+            leftLungElementCount = lowerLeftElementCount + upperLeftElementCount
+            lowerRightElementCount = lowerLeftElementCount
 
-            if rotate_ZAxis != 0.0:
-                rotateLungs(rotate_ZAxis, rotate_ZAxis, rotate_ZAxis, rotate_ZAxis, fm, coordinates, LungNodeset)
+            idx = leftLungElementCount + 1
+            markerList.append({"group": rightDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
 
-            # Transformation of the diaphragm
-            if tiltDiap_xAxis != 0.0:
-                tiltLungs(0, 0, 0, tiltDiap_xAxis, fm, coordinates, LungNodeset, spacing)
+            idx = leftLungElementCount + lowerRightElementCount + \
+                  (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
+            markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
 
-            if tiltDiap_yAxis != 0.0:
-                tiltLungs(0, 0, tiltDiap_yAxis, 0, fm, coordinates, LungNodeset, spacing)
+            idx = leftLungElementCount + lElementsCount1 + 1
+            markerList.append({"group": rightMedialGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
-        if accessoryLobeAngle != 0.0:
-            spacing = accessoryLobeDorsalCentre
-            bendingAroundZAxis(-accessoryLobeAngle, fm, coordinates, rightLungAccessoryLobeNodesetGroup, spacing)
+            idx = leftLungElementCount + lElementsCount1 * lElementsCount2
+            markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
 
-        if (diaphragmCurvatureX != 0.0) or (diaphragmCurvatureY != 0.0):
-            concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, coordinates, diaphragmCentreX,
-                                          diaphragmCentreY, lungNodesetGroup)
+            idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
+            markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
 
-        if isOpenfissure:
-            # create discontinuity in d3 on the core boundary
-            nodeIdentifier = createDiscontinuity(coordinates, nodes, mesh, cache, nodetemplate, leftUpperLobeElementID,
-                            rightUpperLobeElementID, nodeIdentifier)
+            if hasAccessoryLobe:
+                rightLungElementCount = leftLungElementCount
+
+                idx_temp = accesssoryElementsCount1 * accesssoryElementsCount2 * (accesssoryElementsCount3 - 1) + 1
+                idx = rightLungElementCount + leftLungElementCount + idx_temp
+                markerList.append({"group": accessoryApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+
+                idx_temp = accesssoryElementsCount1 * accesssoryElementsCount2 * (accesssoryElementsCount3 - 1) - 1
+                idx = rightLungElementCount + leftLungElementCount + idx_temp
+                markerList.append({"group": accessoryVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+
+                idx = rightLungElementCount + leftLungElementCount + 1
+                markerList.append({"group": accessoryDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+
+            for marker in markerList:
+                annotationGroup = marker["group"]
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                cache.setNode(markerPoint)
+                markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]),
+                                                  marker["xi"])
+                markerName.assignString(cache, annotationGroup.getName())
+                annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
+                lungNodesetGroup.addNode(markerPoint)
+                nodeIdentifier += 1
 
         return annotationGroups
 
@@ -569,7 +609,6 @@ class MeshType_3d_lung2(Scaffold_base):
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
         isMaterial = 'Material' in parameterSetName
-
 
         # create fissure groups
         fm = region.getFieldmodule()
@@ -1826,7 +1865,7 @@ def concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, 
     # ----------------------------------------------------------------------------------------
     # x_new = s_zx * sin(theta_x)
     # y_new = s_zy * sin(theta_y)
-    # z_new = deta_zx + deta_zy
+    # z_new = z + deta_zx + deta_zy
 
     :param diaphragmCurvatureX:
     :param diaphragmCurvatureY:
@@ -1856,7 +1895,7 @@ def concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, 
         s_x = fm.createFieldMultiply(offset_coordinates, only_x)
         z_x = fm.createFieldMultiply(coordinates, only_z)
         z_x = fm.createFieldComponent(z_x, [3, 1, 1])
-        s_zx = fm.createFieldAdd(z_x, r_x)
+        s_zx = fm.createFieldAdd(z_x, r_x) # if no bulge s_zx = r_x
         theta_x = fm.createFieldMultiply(kappa_x, s_x)
         x_new = fm.createFieldMultiply(s_zx, fm.createFieldSin(theta_x))
         delta_zx = fm.createFieldMultiply(s_zx, fm.createFieldSubtract(fm.createFieldCos(theta_x),
@@ -1870,7 +1909,7 @@ def concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, 
         s_y = fm.createFieldMultiply(offset_coordinates, only_y)
         z_y = fm.createFieldMultiply(coordinates, only_z)
         z_y = fm.createFieldComponent(z_y, [1, 3, 1])
-        s_zy = fm.createFieldAdd(z_y, r_y)
+        s_zy = fm.createFieldAdd(z_y, r_y) # if no bulge s_zx = r_y
         theta_y = fm.createFieldMultiply(kappa_y, s_y)
         y_new = fm.createFieldMultiply(s_zy, fm.createFieldSin(theta_y))
         delta_zy = fm.createFieldMultiply(s_zy, fm.createFieldSubtract(fm.createFieldCos(theta_y),
@@ -1963,7 +2002,7 @@ def bendingAroundYAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFrom
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-def bendingAroundZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFromCentre):
+def bendingAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, spaceFromCentre):
     """
     :param bulgeRadius: the radius and the centre of curvature to transfrom the scaffold
     :param fm:
@@ -1976,12 +2015,13 @@ def bendingAroundZAxis(bulgeRadius, fm, coordinates, lungNodesetGroup, spaceFrom
     # theta = y / bulgeRadius
     # z = z
 
-    scale = fm.createFieldConstant([1.0, 1.0 / bulgeRadius, 1.0])
+    radius = 1/curvature
+    scale = fm.createFieldConstant([1.0, curvature, 1.0])
     scaleCoordinates = fm.createFieldMultiply(coordinates, scale)
     if isinstance(spaceFromCentre, list):
-        offset = fm.createFieldConstant([bulgeRadius + spaceFromCentre[0], spaceFromCentre[1], 0.0])
+        offset = fm.createFieldConstant([radius + spaceFromCentre[0], spaceFromCentre[1], 0.0])
     else:
-        offset = fm.createFieldConstant([bulgeRadius + spaceFromCentre, 0.0, 0.0])
+        offset = fm.createFieldConstant([radius + spaceFromCentre, 0.0, 0.0])
     polarCoordinates = fm.createFieldAdd(scaleCoordinates, offset)
     polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
     rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
@@ -2006,7 +2046,7 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFr
     #                                 1] |  z]
     offset = fm.createFieldConstant([spaceFromCentre, 0.75 * length, 0.0])
     origin = fm.createFieldAdd(coordinates, offset)
-    k1 = -sharpeningFactor # tempering factor < abs(0.18)
+    k1 = -sharpeningFactor * 1.14 # 1.14 is the maximum value but the input range 0-1
     scale = fm.createFieldConstant([0.0, k1, 0.0])
     scaleFunction = fm.createFieldMultiply(origin, scale)
     constant = fm.createFieldConstant([0.0, 1.0, 1.0])
