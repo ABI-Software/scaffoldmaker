@@ -160,6 +160,62 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'ontId': get_stomach_term('duodenum')[1]
                 }]
         }),
+        'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 7
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                [ [  73.1,  50.2, 0.0 ], [ -18.5, -35.4, 0.0 ], [  18.5, -10.9, 0.0 ], [  18.6, -8.2, 0.0 ], [ 0.0, 0.0, 27.8 ], [ 0.0, 0.0,  8.6 ] ],
+                [ [  57.3,  20.3, 0.0 ], [ -13.1, -24.4, 0.0 ], [  30.1, -17.0, 0.0 ], [   4.6, -4.0, 0.0 ], [ 0.0, 0.0, 33.3 ], [ 0.0, 0.0,  2.4 ] ],
+                [ [  47.0,   1.4, 0.0 ], [ -12.6, -19.8, 0.0 ], [  30.2, -19.7, 0.0 ], [  -4.3, -4.5, 0.0 ], [ 0.0, 0.0, 33.7 ], [ 0.0, 0.0, -0.7 ] ],
+                [ [  32.0, -18.9, 0.0 ], [ -19.5, -14.4, 0.0 ], [  20.7, -26.4, 0.0 ], [ -13.7, -4.9, 0.0 ], [ 0.0, 0.0, 31.6 ], [ 0.0, 0.0, -3.7 ] ],
+                [ [  10.7, -26.3, 0.0 ], [ -24.3,   1.9, 0.0 ], [   3.1, -29.7, 0.0 ], [ -16.7,  4.8, 0.0 ], [ 0.0, 0.0, 26.5 ], [ 0.0, 0.0, -8.8 ] ],
+                [ [ -11.3, -14.4, 0.0 ], [ -14.4,  19.6, 0.0 ], [ -12.7, -15.9, 0.0 ], [  -4.1, 13.5, 0.0 ], [ 0.0, 0.0, 13.5 ], [ 0.0, 0.0, -7.8 ] ],
+                [ [ -15.8,   7.8, 0.0 ], [  -8.3,  18.3, 0.0 ], [  -6.4,  -2.7, 0.0 ], [   2.8,  4.4, 0.0 ], [ 0.0, 0.0, 10.4 ], [ 0.0, 0.0, -1.7 ] ],
+                [ [ -26.2,  21.4, 0.0 ], [ -11.8,   8.4, 0.0 ], [  -6.3,  -4.9, 0.0 ], [  -2.6, -8.8, 0.0 ], [ 0.0, 0.0,  9.8 ], [ 0.0, 0.0,  0.5 ] ] ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1',
+                    'name': get_stomach_term('fundus of stomach')[0],
+                    'ontId': get_stomach_term('fundus of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '2-4',
+                    'name': get_stomach_term('body of stomach')[0],
+                    'ontId': get_stomach_term('body of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5',
+                    'name': get_stomach_term('pyloric antrum')[0],
+                    'ontId': get_stomach_term('pyloric antrum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
+                    'name': get_stomach_term('pyloric canal')[0],
+                    'ontId': get_stomach_term('pyloric canal')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '7',
+                    'name': get_stomach_term('duodenum')[0],
+                    'ontId': get_stomach_term('duodenum')[1]
+                }]
+        }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -282,6 +338,37 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
+        'Pig 1': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,
+                'Number of elements along': 2,
+                'Number of elements through wall': 4,
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium diameter': 20.0,
+                'Ostium length': 10.0,
+                'Ostium wall thickness': 5.0,
+                'Ostium wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
+                'Ostium inter-vessel distance': 0.0,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 3.0,
+                'Vessel wall thickness': 5.0,
+                'Vessel wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
+                'Vessel angle 1 degrees': 0.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        }),
         'Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
@@ -325,6 +412,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Default',
             'Human 1',
             'Mouse 1',
+            'Pig 1',
             'Rat 1']
 
     @classmethod
@@ -332,6 +420,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         if 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
+        elif 'Pig 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
         elif 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']
@@ -372,6 +463,18 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Gastro-esophagal junction position along factor'] = 0.53
             options['Cardia derivative factor'] = 0.3
             options['Limiting ridge'] = True
+        elif 'Pig 1' in parameterSetName:
+            options['Number of elements around esophagus'] = 8
+            options['Number of elements around duodenum'] = 12
+            options['Number of elements between cardia and duodenum'] = 6
+            options['Wall thickness'] = 5.0
+            options['Mucosa relative thickness'] = 0.47
+            options['Submucosa relative thickness'] = 0.1
+            options['Circular muscle layer relative thickness'] = 0.33
+            options['Longitudinal muscle layer relative thickness'] = 0.1
+            options['Gastro-esophagal junction position along factor'] = 0.45
+            options['Cardia derivative factor'] = 1.0
+            options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
             options['Number of elements around esophagus'] = 12
             options['Number of elements around duodenum'] = 14
