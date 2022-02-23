@@ -176,6 +176,7 @@ class BifurcationMesh:
 
         :return:
         """
+        armpit = [1.2, 0.0, 1.0]
         x_bottom_base_centre = [0.0, 0.0, 0.0]
         x_bottom_base_curve1 = [self.torso_radius, 0.0, 0.0]
         x_bottom_base_curve2 = [0.0, self.torso_radius, 0.0]
@@ -184,7 +185,7 @@ class BifurcationMesh:
         d1_bottom_base_curve2 = [[0.0, 1/self._elementsCount[1], 0.0],
                                  [0.0, 1/self._elementsCount[1], 0.0]]
         x_bottom_end_centre = [0.0, 0.0, 1.4]
-        x_bottom_end_curve1 = [1.2, 0.0, 1.0]
+        x_bottom_end_curve1 = armpit
         x_bottom_end_curve2 = [0.0, 1.0, 1.4]
         d1_bottom_end_curve1 = [[1/self._elementsCount[0], 0.0, 0.0],
                                 [0.5*0.7071, 0.0, -0.5*0.7071]]
@@ -197,7 +198,7 @@ class BifurcationMesh:
                        d1_bottom_end_curve2]]
 
         x_shoulder_base_centre = [0.75, 0.0, self.shoulder_height]
-        x_shoulder_base_curve1 = [1.2, 0.0, 1.0]
+        x_shoulder_base_curve1 = armpit
         x_shoulder_base_curve2 = [0.75, 1.0, self.shoulder_height]
         d1_shoulder_base_curve1 = [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
         d1_shoulder_base_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
@@ -218,9 +219,9 @@ class BifurcationMesh:
                       [x_shoulder_end_centre, x_shoulder_end_curve1, x_shoulder_end_curve2, d1_shoulder_end_curve1,
                        d1_shoulder_end_curve2]]
 
-        x_shoulder_base_centre = [-0.5, 0.0, self.shoulder_height]
-        x_shoulder_base_curve2 = [-1.2, 0.0, 1.0]
-        x_shoulder_base_curve1 = [-0.5, 1.0, self.shoulder_height]
+        x_shoulder_base_centre = [-0.75, 0.0, self.shoulder_height]
+        x_shoulder_base_curve2 = [-armpit[0], armpit[1], armpit[2]]
+        x_shoulder_base_curve1 = [-0.75, 1.0, self.shoulder_height]
         d1_shoulder_base_curve2 = [[-0.0, 0.0, -1 / self._elementsCount[1]], [-0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
         d1_shoulder_base_curve1 = [[-0.0, 1 / self._elementsCount[0], 0.0], [-0.0, 1 / self._elementsCount[0], 0.0]]
         x_shoulder_end_centre = [-1.7, 0.0, self.shoulder_height]
