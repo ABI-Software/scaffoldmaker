@@ -24,7 +24,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_stomach1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Mouse 1", "Rat 1"])
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Rat 1")
         self.assertEqual(19, len(options))
         self.assertEqual(12, options.get("Number of elements around esophagus"))
