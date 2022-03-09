@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.element import Element
@@ -40,7 +40,7 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateBaseMesh(region, options)
-        self.assertEqual(8, len(annotationGroups))
+        self.assertEqual(12, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -51,7 +51,7 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(1416, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(520, nodes.getSize())
+        self.assertEqual(524, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -102,7 +102,7 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
 
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(8, len(annotationGroups))
+        self.assertEqual(12, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -121,7 +121,7 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(9, len(annotationGroups))
+        self.assertEqual(13, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(24576, mesh3d.getSize())
@@ -130,7 +130,7 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
         mesh1d = refineFieldmodule.findMeshByDimension(1)
         self.assertEqual(77856, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(26656, nodes.getSize())
+        self.assertEqual(26660, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -140,6 +140,23 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
             size = group.getMeshGroup(mesh3d).getSize()
             self.assertEqual(expectedSizes3d[name]*64, size, name)
 
+        # test finding a marker in refined scaffold
+        markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
+        refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
+        self.assertEqual(4, markerNodes.getSize())
+        markerName = refineFieldmodule.findFieldByName("marker_name")
+        self.assertTrue(markerName.isValid())
+        markerLocation = refineFieldmodule.findFieldByName("marker_location")
+        self.assertTrue(markerLocation.isValid())
+        cache = refineFieldmodule.createFieldcache()
+        node = findNodeWithName(markerNodes, markerName,
+                                "lower esophageal sphincter along the lesser curvature on serosa")
+        self.assertTrue(node.isValid())
+        cache.setNode(node)
+        element, xi = markerLocation.evaluateMeshLocation(cache, 3)
+        self.assertEqual(24381, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [0.0, 1.0, 1.0], 1.0E-10)
 
 if __name__ == "__main__":
     unittest.main()
