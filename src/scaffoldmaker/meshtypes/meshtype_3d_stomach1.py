@@ -2766,8 +2766,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                             "body-antrum junction along the greater curvature on serosa",
                             "limiting ridge at the greater curvature on serosa" if limitingRidge else
                             "fundus-body junction along the greater curvature on serosa",
-                            "lower esophageal sphincter along the greater curvature on serosa",
-                            "lower esophageal sphincter along the lesser curvature on serosa"])
+                            "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
+                            "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"])
 
         markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
                                          stomachStartElement - (elementsCountThroughWall - 1) * elementsCountAroundEso -

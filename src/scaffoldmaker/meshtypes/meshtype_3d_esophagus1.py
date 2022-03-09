@@ -438,10 +438,10 @@ class MeshType_3d_esophagus1(Scaffold_base):
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
 
-        markerNames = ["dorsal midpoint on serosa of upper esophageal sphincter",
-                       "ventral midpoint on serosa of upper esophageal sphincter",
-                       "lower esophageal sphincter along the greater curvature on serosa",
-                       "lower esophageal sphincter along the lesser curvature on serosa"]
+        markerNames = ["proximodorsal midpoint on serosa of upper esophageal sphincter",
+                       "proximoventral midpoint on serosa of upper esophageal sphincter",
+                       "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
+                       "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"]
 
         totalElements = elementIdentifier
         radPerElementAround = math.pi * 2.0 / elementsCountAround

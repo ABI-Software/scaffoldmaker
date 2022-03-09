@@ -6,17 +6,17 @@ Common resource for esophagus annotation terms.
 esophagus_terms = [
     ("abdominal part of esophagus", "UBERON:0035177", "FMA:9397", "ILX:0735274"),
     ("cervical part of esophagus", "UBERON:0035450", "FMA:9395", "ILX:0734725"),
-    ("dorsal midpoint on serosa of upper esophageal sphincter", "None"),
+    ("distal point of lower esophageal sphincter serosa on the greater curvature of stomach", "None"),
+    ("distal point of lower esophageal sphincter serosa on the lesser curvature of stomach", "None"),
     ("esophagus", "UBERON:0001043", "FMA:7131", "ILX:0735017"),
     ("esophagus mucosa", "UBERON:0002469", "FMA:62996", "ILX:0725079"),
     ("esophagus smooth muscle circular layer", "UBERON:0009960", "FMA:67605", "ILX:0727608"),
     ("esophagus smooth muscle longitudinal layer", "UBERON:0009961", "FMA:63573", "ILX:0735992"),
-    ("lower esophageal sphincter along the greater curvature on serosa", "None"),
-    ("lower esophageal sphincter along the lesser curvature on serosa", "None"),
+    ("proximodorsal midpoint on serosa of upper esophageal sphincter", "None"),
+    ("proximoventral midpoint on serosa of upper esophageal sphincter", "None"),
     ("serosa of esophagus", "UBERON:0001975", "FMA:63057", "ILX:0725745"),
     ("submucosa of esophagus", "UBERON:0001972", "FMA:62997", "ILX:0728662"),
     ("thoracic part of esophagus", "UBERON:0035216", "FMA:9396", "ILX:0732442"),
-    ("ventral midpoint on serosa of upper esophageal sphincter", "None"),
     ]
 
 def get_esophagus_term(name : str):

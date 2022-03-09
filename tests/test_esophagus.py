@@ -151,11 +151,11 @@ class EsophagusScaffoldTestCase(unittest.TestCase):
         self.assertTrue(markerLocation.isValid())
         cache = refineFieldmodule.createFieldcache()
         node = findNodeWithName(markerNodes, markerName,
-                                "lower esophageal sphincter along the lesser curvature on serosa")
+                                "distal point of lower esophageal sphincter serosa on the greater curvature of stomach")
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(24381, element.getIdentifier())
+        self.assertEqual(24125, element.getIdentifier())
         assertAlmostEqualList(self, xi, [0.0, 1.0, 1.0], 1.0E-10)
 
 if __name__ == "__main__":
