@@ -6,7 +6,10 @@ wall, with variable radius and thickness along.
 
 import copy
 import math
+from opencmiss.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
 from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
     findOrCreateAnnotationGroupForTerm
@@ -412,12 +415,66 @@ class MeshType_3d_esophagus1(Scaffold_base):
         xOrgan = []
         d1Organ = []
         d2Organ = []
-        nextNodeIdentifier, nextElementIdentifier, annotationGroups = \
+        nodeIdentifier, elementIdentifier, annotationGroups = \
             tubemesh.createNodesAndElements(region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
                                             xOrgan, d1Organ, d2Organ, None, elementsCountAround, elementsCountAlong,
                                             elementsCountThroughWall, annotationGroupsAround, annotationGroupsAlong,
                                             annotationGroupsThroughWall, firstNodeIdentifier, firstElementIdentifier,
                                             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
+
+        # annotation fiducial points
+        fm = region.getFieldmodule()
+        fm.beginChange()
+        mesh = fm.findMeshByDimension(3)
+        cache = fm.createFieldcache()
+
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+
+        markerNames = ["dorsal midpoint on serosa of upper esophageal sphincter",
+                       "ventral midpoint on serosa of upper esophageal sphincter",
+                       "lower esophageal sphincter along the greater curvature on serosa",
+                       "lower esophageal sphincter along the lesser curvature on serosa"]
+
+        totalElements = elementIdentifier
+        radPerElementAround = math.pi * 2.0 / elementsCountAround
+        elementAroundHalfPi = int(0.25 * elementsCountAround)
+        xi1HalfPi = (math.pi * 0.5 - radPerElementAround * elementAroundHalfPi)/radPerElementAround
+        elementAroundPi = int(0.5 * elementsCountAround)
+        xi1Pi = (math.pi - radPerElementAround * elementAroundPi)/radPerElementAround
+
+        markerElementIdentifiers = [elementsCountAround * elementsCountThroughWall - elementAroundHalfPi,
+                                    elementAroundHalfPi + 1 + elementsCountAround * (elementsCountThroughWall - 1),
+                                    totalElements - elementsCountAround,
+                                    totalElements - elementsCountAround + elementAroundPi]
+
+        markerXis = [[1.0 - xi1HalfPi, 0.0, 1.0],
+                     [xi1HalfPi, 0.0, 1.0],
+                     [0.0, 1.0, 1.0],
+                     [xi1Pi, 1.0, 1.0]]
+
+        for n in range(len(markerNames)):
+            markerGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                             get_esophagus_term(markerNames[n]))
+            markerElement = mesh.findElementByIdentifier(markerElementIdentifiers[n])
+            markerXi = markerXis[n]
+            cache.setMeshLocation(markerElement, markerXi)
+            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+            nodeIdentifier += 1
+            cache.setNode(markerPoint)
+            markerName.assignString(cache, markerGroup.getName())
+            markerLocation.assignMeshLocation(cache, markerElement, markerXi)
+            for group in [esophagusGroup, markerGroup]:
+                group.getNodesetGroup(nodes).addNode(markerPoint)
+
+        fm.endChange()
 
         return annotationGroups
 
