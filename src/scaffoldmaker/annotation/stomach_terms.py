@@ -56,6 +56,8 @@ stomach_terms = [
     ("limiting ridge on luminal surface", "ILX:0793117"),
     ("limiting ridge on serosa", "ILX:0793118"),
     ("longitudinal muscle layer of stomach", "ILX:0772619"),
+    ("lower esophageal sphincter along the greater curvature on serosa", "None"),
+    ("lower esophageal sphincter along the lesser curvature on serosa", "None"),
     ("luminal surface of body of stomach", "ILX:0793119"),
     ("luminal surface of cardia of stomach", "ILX:0793120"),
     ("luminal surface of duodenum", "ILX:0793121"),
