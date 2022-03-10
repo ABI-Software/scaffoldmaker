@@ -42,6 +42,7 @@ with variable numbers of elements across axes and shell directions.
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements': 1,
+            'Current number of elements': [4, 4, 4]
         }
         return options
 
@@ -140,6 +141,12 @@ with variable numbers of elements across axes and shell directions.
         if options['Shell element thickness proportion'] < 0.15:
             options['Shell element thickness proportion'] = 1.0
 
+        for i in range(1, nm):
+            if options['Number of elements across axis {}'.format(i)] != options['Current number of elements'][i - 1]:
+                dependentChanges = True
+                options['Range of elements required in direction {}'.format(i)][1] = \
+                    options['Number of elements across axis {}'.format(i)]
+                options['Current number of elements'][i - 1] = options['Number of elements across axis {}'.format(i)]
         return dependentChanges
 
     @staticmethod
