@@ -2765,7 +2765,9 @@ class MeshType_3d_stomach1(Scaffold_base):
                             "gastroduodenal junction along the lesser curvature on serosa",
                             "body-antrum junction along the greater curvature on serosa",
                             "limiting ridge at the greater curvature on serosa" if limitingRidge else
-                            "fundus-body junction along the greater curvature on serosa"])
+                            "fundus-body junction along the greater curvature on serosa",
+                            "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
+                            "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"])
 
         markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
                                          stomachStartElement - (elementsCountThroughWall - 1) * elementsCountAroundEso -
@@ -2777,7 +2779,9 @@ class MeshType_3d_stomach1(Scaffold_base):
                                          elementsAroundHalfDuod,
                                          lastDuodenumElementIdentifier - elementsCountThroughWall *
                                          elementsCountAroundDuod * (sum(elementsCountAlongGroups[-3:]) + 1),
-                                         fundusBodyJunctionInnerElementIdentifier]
+                                         fundusBodyJunctionInnerElementIdentifier,
+                                         elementsCountAroundEso * (elementsCountThroughWall - 1) + 1,
+                                         elementsCountAroundEso * elementsCountThroughWall - elementsAroundHalfEso + 1]
 
         elementsCountAroundLayer = [elementsCountAroundEso, elementsCountAroundEso,
                                     elementsCountAroundDuod, elementsCountAroundDuod,
@@ -2787,13 +2791,18 @@ class MeshType_3d_stomach1(Scaffold_base):
             for n in range(len(markerNames[n3])):
                 markerGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region,
                                                                  get_stomach_term(markerNames[n3][n]))
-                markerElementIdentifier = \
-                    markerInnerElementIdentifiers[n] + \
-                    (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
-                                                                        (elementsCountThroughWall - 1))
+                if n < 6:
+                    markerElementIdentifier = \
+                        markerInnerElementIdentifiers[n] + \
+                        (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
+                                                                            (elementsCountThroughWall - 1))
+                    markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 \
+                        else [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
+                else:
+                    markerElementIdentifier = markerInnerElementIdentifiers[n]
+                    markerXi = [0.0, 0.0, 1.0]
                 markerElement = mesh.findElementByIdentifier(markerElementIdentifier)
-                markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 else \
-                    [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
+
                 cache.setMeshLocation(markerElement, markerXi)
                 markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
                 nodeIdentifier += 1
