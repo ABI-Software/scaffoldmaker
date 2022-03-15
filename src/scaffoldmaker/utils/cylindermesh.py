@@ -136,7 +136,7 @@ class CylinderMesh:
 
     def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
-                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False):
+                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False , meshGroupsElementsAlong=[], meshGroups=[]):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -177,6 +177,8 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
+        self._meshGroups = meshGroups
+        self._meshGroupsElementsAlong = meshGroupsElementsAlong
         self._cylinderCentralPath = cylinderCentralPath
         if cylinderCentralPath:
             self.calculateEllipseParams(cylinderCentralPath=self._cylinderCentralPath)
@@ -390,7 +392,8 @@ class CylinderMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier,
+                                                          self._meshGroupsElementsAlong, self._meshGroups)
         self._endElementIdentifier = elementIdentifier
 
     def getElementsCountAround(self):

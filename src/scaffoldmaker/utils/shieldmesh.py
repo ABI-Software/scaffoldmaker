@@ -477,15 +477,18 @@ class ShieldMesh2D:
 
         return nodeIdentifier
 
-    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[]):
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroupsElementsAlong=[], meshGroups=[]):
         """
         Create shield elements from nodes.
         :param fieldmodule: Zinc fieldmodule to create elements in.
         :param coordinates: Coordinate field to define.
         :param startElementIdentifier: First element identifier to use.
-        :param meshGroups: Zinc mesh groups to add elements to.
+        :param meshGroups, meshGroupsElementsAlong: Zinc mesh groups to add elements to. meshGroupsElementsAlong is a
+        list that specifies number of elements along the cylinder to be added to the same meshGroup.
         :return: next elementIdentifier.
          """
+        assert len(meshGroupsElementsAlong) == len(meshGroups), 'meshGroups and meshGroupsElementsAlong should have' \
+                                                                'the same length'
         elementIdentifier = startElementIdentifier
         useCrossDerivatives = False
         mesh = fieldmodule.findMeshByDimension(3)
@@ -498,6 +501,12 @@ class ShieldMesh2D:
 
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        elementEnd = []
+        count = 0
+        for c in meshGroupsElementsAlong:
+            count += c
+            elementEnd.append(count)
 
         isEven = (self.elementsCountAcross % 2) == 0
         e1a = self.elementsCountRim
@@ -747,8 +756,11 @@ class ShieldMesh2D:
                         self.elementId[e2][e1] = elementIdentifier
                     elementIdentifier += 1
 
-                    for meshGroup in meshGroups:
-                        meshGroup.addElement(element)
+                    for c, meshGroup in enumerate(meshGroups):
+                        if e3 < elementEnd[c]:
+                            meshGroup.addElement(element)
+                            break
+
 
         return elementIdentifier
 
