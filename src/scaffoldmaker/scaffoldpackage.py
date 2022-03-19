@@ -8,7 +8,9 @@ import math
 
 from opencmiss.maths.vectorops import euler_to_rotation_matrix
 from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
+from opencmiss.utils.zinc.finiteelement import get_maximum_node_identifier
 from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
@@ -51,7 +53,7 @@ class ScaffoldPackage:
                 meshEdits = copy.deepcopy(meshEdits)
         self._meshEdits = meshEdits
         self._autoAnnotationGroups = []
-        # read user AnnotationGroups dict:
+        # read user AnnotationGroups list in dict form:
         userAnnotationGroupsDict = dct.get('userAnnotationGroups')
         # serialised form of user annotation groups, read from serialisation before generate(), updated before writing
         self._userAnnotationGroupsDict = copy.deepcopy(userAnnotationGroupsDict) if userAnnotationGroupsDict else []
@@ -59,6 +61,7 @@ class ScaffoldPackage:
         self._userAnnotationGroups = []
         # region is set in generate(); can only instantiate user AnnotationGroups then
         self._region = None
+        self._nextNodeIdentifier = 1
 
     def __eq__(self, other):
         '''
@@ -232,6 +235,9 @@ class ScaffoldPackage:
         self._region = region
         with ChangeManager(region.getFieldmodule()):
             self._autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+            # need next node identifier for creating user-defined marker points
+            nodes = region.getFieldmodule().findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            self._nextNodeIdentifier = get_maximum_node_identifier(nodes) + 1
             if self._meshEdits:
                 # apply mesh edits, a Zinc-readable model file containing node edits
                 # Note: these are untransformed coordinates
@@ -242,6 +248,12 @@ class ScaffoldPackage:
             self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
             if applyTransformation:
                 self.applyTransformation()
+
+    def getNextNodeIdentifier(self):
+        """
+        :return: First node identifier to try using after generating. Used for user-defined marker points.
+        """
+        return self._nextNodeIdentifier
 
     def getAnnotationGroups(self):
         '''
@@ -261,14 +273,19 @@ class ScaffoldPackage:
         '''
         Create a new, empty user annotation group.
         Only call after generate().
-        :param term: Identifier for anatomical term, currently a tuple of name, id.
-        e.g. ('heart', 'FMA:7088'). Or None to generate a unique name. Name must be
-        unique if supplied; id should be unique but may be None.
+        :param term: Identifier for anatomical term, a tuple of (name, id), or None
+        to generate a unique name 'group#' with ID "None".
+        If a term is supplied, both its name and id must be strings, the name
+        must be unique i.e. unused in the list of annotation groups.
+        The id should be a unique string, or use "None" if unknown.
+        e.g. ('heart', 'FMA:7088') or None.
         :return: New AnnotationGroup.
         '''
         assert self._region
-        if term:
-            assert not self.findAnnotationGroupByName(term[0])
+        if term is not None:
+            assert isinstance(term, tuple) and (len(term) == 2) and all(isinstance(s, str) for s in term),\
+                "Invalid annotation term " + str(term)
+            assert not self.findAnnotationGroupByName(term[0]), "Annotation term " + str(term) + " name is in use"
             useTerm = term
         else:
             number = 1
@@ -277,7 +294,7 @@ class ScaffoldPackage:
                 if not self.findAnnotationGroupByName(name):
                     break
                 number += 1
-            useTerm = (name, None)
+            useTerm = (name, "None")
         annotationGroup = AnnotationGroup(self._region, useTerm)
         self._userAnnotationGroups.append(annotationGroup)
         return annotationGroup
@@ -288,6 +305,7 @@ class ScaffoldPackage:
         :return: True on success, otherwise False
         '''
         if annotationGroup and self.isUserAnnotationGroup(annotationGroup):
+            annotationGroup.clear()
             self._userAnnotationGroups.remove(annotationGroup)
             return True
         return False

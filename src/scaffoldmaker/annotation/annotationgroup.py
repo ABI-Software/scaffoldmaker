@@ -1,12 +1,17 @@
 """
 Describes subdomains of a scaffold with attached names and terms.
 """
+import sys
 
 from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field, FieldGroup
+from opencmiss.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group, \
+    find_or_create_field_stored_mesh_location, find_or_create_field_stored_string
+from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field, FieldFiniteElement, FieldGroup
+from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
-from scaffoldmaker.utils.zinc_utils import group_get_highest_dimension, \
-    identifier_ranges_from_string, identifier_ranges_to_string, \
+from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh, get_next_unused_node_identifier, \
+    group_get_highest_dimension, identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
     nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 
@@ -34,6 +39,24 @@ class AnnotationGroup(object):
                 self._group = fieldmodule.createFieldGroup()
                 self._group.setName(self._name)
                 self._group.setManaged(True)
+        self._isMarker = False
+        self._markerMaterialCoordinatesField = None
+
+    def clear(self):
+        """
+        Manual clean up of user defined annotation group. See use in ScaffoldPackage.
+        If this is a marker, destroys the marker node.
+        Finally clears group
+        """
+        fieldmodule = self._group.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            if self._isMarker:
+                nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+                markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+                nodes.destroyNode(markerNode)
+                self._isMarker = False
+                self._markerMaterialCoordinatesField = None
+            self._group.clear()
 
     def toDict(self):
         '''
@@ -62,7 +85,27 @@ class AnnotationGroup(object):
             'dimension' : dimension,
             'identifierRanges' : identifier_ranges_to_string(identifierRanges)
             }
+        if self._isMarker:
+            dct['marker'] = self._markerToDict()
         return dct
+
+    def _markerToDict(self):
+        """
+        If the node is in the marker group, return a dict mapping "marker_location" to [elementId, xi] and if another
+        entry is present it is a map from the materialCoordinatesField name to the coordinates value. Eg.
+        {
+            "heart coordinates": [11.5, 16.2, 7.6],
+            "marker_location": [5, [0.0, 0.0, 1.0]]
+        }
+        :return: A python dict as above or None if not a marker point.
+        """
+        assert self._isMarker
+        markerDct = {}
+        if self._markerMaterialCoordinatesField:
+            markerDct[self._markerMaterialCoordinatesField.getName()] = self.getMarkerMaterialCoordinates()[1]
+        element, xi = self.getMarkerLocation()
+        markerDct['marker_location'] = [element.getIdentifier(), xi]
+        return markerDct
 
     @classmethod
     def fromDict(cls, dct, region):
@@ -76,6 +119,7 @@ class AnnotationGroup(object):
         ontId = dct['ontId']
         dimension = dct['dimension']
         identifierRangesString = dct['identifierRanges']
+        markerDct = dct.get('marker')
         identifierRanges = identifier_ranges_from_string(identifierRangesString)
         fieldmodule = region.getFieldmodule()
         with ChangeManager(fieldmodule):
@@ -85,9 +129,244 @@ class AnnotationGroup(object):
                 meshGroup = annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(dimension))
                 mesh_group_add_identifier_ranges(meshGroup, identifierRanges)
             else:
-                nodesetGroup = annotationGroup.getNodesetGroup(fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES))
+                if markerDct:
+                    nodeIdentifier = int(identifierRanges[0][0])
+                    annotationGroup._markerFromDict(nodeIdentifier, markerDct)
+                nodesetGroup = annotationGroup.getNodesetGroup(
+                    fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES))
                 nodeset_group_add_identifier_ranges(nodesetGroup, identifierRanges)
         return annotationGroup
+
+    def _markerFromDict(self, nodeIdentifier, markerDct: dict):
+        """
+        Define a new marker point node with nodeIdentifier and fields defined as in markerDct.
+        Warn but do nothing if node with that identifier exists.
+        :param nodeIdentifier:
+        :param markerDct: A dict mapping names of fields to values, e.g.
+        {
+            "heart coordinates": [11.5, 16.2, 7.6],
+            "marker_location": [5, [0.0, 0.0, 1.0]]
+        }
+        """
+        assert not self._isMarker
+        fieldmodule = self._group.getFieldmodule()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        node = nodes.findNodeByIdentifier(nodeIdentifier)
+        if node.isValid():
+            print("Error: Read annotation group " + self._name + ".  "\
+                  "Marker point node " + str(nodeIdentifier) + " already exists", file=sys.stderr)
+            return
+        mesh = get_highest_dimension_mesh(fieldmodule)
+        if not mesh:
+            print("Error: Read annotation group " + self._name + ".  Marker cannot be made for empty mesh",
+                  file=sys.stderr)
+            return
+        with ChangeManager(fieldmodule):
+            materialCoordinatesField = None
+            materialCoordinates = None
+            element = None
+            xi = None
+            for key in markerDct.keys():
+                if key != "marker_location":
+                    fieldName = key
+                    materialCoordinatesField = fieldmodule.findFieldByName(fieldName).castFiniteElement()
+                    materialCoordinates = markerDct[fieldName]
+                    if materialCoordinatesField.isValid() and isinstance(materialCoordinates, list):
+                        break;
+                    print("Error: Read annotation group " + self._name + ".  " \
+                          "Invalid marker material coordinates field " + fieldName + " or value.", file=sys.stderr)
+                    materialCoordinatesField = None
+                    materialCoordinates = None
+                    break
+            if not materialCoordinatesField:
+                element_xi = markerDct.get("marker_location")
+                if not element_xi:
+                    print("Error: Read annotation group " + self._name + ".  " \
+                          "Marker missing marker_location entry", file=sys.stderr)
+                    return
+                elementIdentifier, xi = element_xi
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                if not element.isValid():
+                    print("Error: Read annotation group " + self._name + ".  " \
+                          "Marker element " + str(elementIdentifier) + " not found", file=sys.stderr)
+                    return
+            self.createMarkerNode(nodeIdentifier, materialCoordinatesField, materialCoordinates, element, xi)
+
+    def isMarker(self):
+        """
+        Query if this annotation group is a created marker node.
+        """
+        return self._isMarker
+
+    def createMarkerNode(self, startNodeIdentifier=1,
+                         materialCoordinatesField: FieldFiniteElement=None, materialCoordinates=None,
+                         element=None, xi=[0.0, 0.0, 0.0]):
+        """
+        Convert annotation group into a marker point annotation.
+        Important: annotation group must currently be empty, and elements must exist.
+        The marker node is added to the marker group in addition to this group.
+        Raises an exception if marker creation cannot be achieved.
+        :param startNodeIdentifier: First unused node identifier >= this is uses for marker node.
+        :param materialCoordinatesField: Material coordinates field to define location of marker point in.
+        Must be a finite element type field for which isTypeCoordinates() is True, with up to 3 components,
+        and at least as many components as the highest mesh dimension.
+        Only one of materialCoordinatesField or element may be specified.
+        :param materialCoordinates: The coordinates to assign to the materialCoordinatesField, if field supplied.
+        The element:xi coordinates are computed from it.
+        :param element: Optional element to set initial location from; must be in highest dimension mesh.
+        Only one of materialCoordinatesField or element may be specified.
+        If neither is specified the first element in the highest dimension mesh is used.
+        :param xi: If element is supplied or first is assumed, the xi coordinates to embed at.
+        :return: Zinc Node representing marker point, with either default location in first element or that supplied.
+        """
+        assert not self._isMarker
+        assert self._group.isEmpty(), "Can only create marker in empty annotation group"
+        fieldmodule = self._group.getFieldmodule()
+        mesh = get_highest_dimension_mesh(fieldmodule)
+        assert mesh, "Can only create marker point if there is a mesh with elements"
+        assert not (element and materialCoordinatesField)
+        if materialCoordinatesField:
+            coordinatesCount = materialCoordinatesField.getNumberOfComponents()
+            assert materialCoordinates and (len(materialCoordinates) >= coordinatesCount) and \
+                   materialCoordinatesField.castFiniteElement().isValid() and \
+                   materialCoordinatesField.isTypeCoordinate() and (mesh.getDimension() <= coordinatesCount <= 3)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = get_next_unused_node_identifier(nodes, startNodeIdentifier)
+        with ChangeManager(fieldmodule):
+            markerGroup = find_or_create_field_group(fieldmodule, "marker")
+            markerNodeGroup = markerGroup.getFieldNodeGroup(nodes)
+            if not markerNodeGroup.isValid():
+                markerNodeGroup = markerGroup.createFieldNodeGroup(nodes)
+            markerNodesetGroup = markerNodeGroup.getNodesetGroup()
+            markerLocation = find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location")
+            markerName = find_or_create_field_stored_string(fieldmodule, name="marker_name")
+            nodetemplate = nodes.createNodetemplate()
+            if materialCoordinatesField:
+                assert RESULT_OK == nodetemplate.defineField(materialCoordinatesField)
+            assert RESULT_OK == nodetemplate.defineField(markerLocation)
+            assert RESULT_OK == nodetemplate.defineField(markerName)
+            markerNode = nodes.createNode(nodeIdentifier, nodetemplate)
+            assert RESULT_OK == self.getNodesetGroup(nodes).addNode(markerNode)
+            assert RESULT_OK == markerNodesetGroup.addNode(markerNode)
+            self._isMarker = True
+            # assign marker name to be same as this group's name. This needs to be maintained. See setName()
+            fieldcache = fieldmodule.createFieldcache()
+            fieldcache.setNode(markerNode)
+            markerName.assignString(fieldcache, self._name)
+            if materialCoordinatesField:
+                self.setMarkerMaterialCoordinates(materialCoordinatesField, materialCoordinates)
+            else:
+                if not element:
+                    element = mesh.createElementiterator().next()
+                self.setMarkerLocation(element, xi)
+        return markerNode
+
+    def getMarkerLocation(self):
+        """
+        If the annotation is a created marker point, get its element:xi location.
+        :return: Zinc Element, xi (list of float)
+        """
+        assert self._isMarker
+        fieldmodule = self._group.getFieldmodule()
+        mesh = get_highest_dimension_mesh(fieldmodule)
+        markerLocation = find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location")
+        fieldcache = fieldmodule.createFieldcache()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+        fieldcache.setNode(markerNode)
+        element, xi = markerLocation.evaluateMeshLocation(fieldcache, mesh.getDimension())
+        return element, xi
+
+    def setMarkerLocation(self, element: Element, xi: list):
+        """
+        If the annotation group is a created marker point, set its element:xi location.
+        If the marker also has a materialCoordinatesField, it is updated to the value
+        at the supplied element:xi location.
+        :param element: Element to set location in
+        :param xi: xi coordinates (list of float)
+        """
+        assert self._isMarker
+        fieldmodule = self._group.getFieldmodule()
+        mesh = get_highest_dimension_mesh(fieldmodule)
+        assert mesh.containsElement(element), "Invalid element, not in highest dimension mesh"
+        assert len(xi) >= mesh.getDimension()
+        with ChangeManager(fieldmodule):
+            markerLocation = find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location")
+            fieldcache = fieldmodule.createFieldcache()
+            nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+            fieldcache.setNode(markerNode)
+            markerLocation.assignMeshLocation(fieldcache, element, xi)
+            if self._markerMaterialCoordinatesField:
+                fieldcache.setMeshLocation(element, xi)
+                result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
+                    fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
+                fieldcache.setNode(markerNode)
+                self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
+
+    def getMarkerMaterialCoordinates(self):
+        """
+        If the annotation is a created marker point, get its material coordinates field and location, if set.
+        :return: materialCoordinatesField, materialCoordinates or None, None
+        """
+        assert self._isMarker
+        if not self._markerMaterialCoordinatesField:
+            return None, None
+        fieldmodule = self._group.getFieldmodule()
+        fieldcache = fieldmodule.createFieldcache()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+        fieldcache.setNode(markerNode)
+        result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
+            fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
+        return self._markerMaterialCoordinatesField, materialCoordinates
+
+    def setMarkerMaterialCoordinates(self, materialCoordinatesField, materialCoordinates=None):
+        """
+        Also updates the marker location when this is assigned, forcing it to be within the mesh.
+        The material coordinates are then recalculated to be in the mesh.
+        Some approximations may occur if the point is outside the mesh - user beware.
+        :param materialCoordinatesField: Material coordinates field to set or change to, or None to remove
+        material coordinates field so marker point only has an element:xi location. Must be defined on elements
+        of highest dimension mesh.
+        :param materialCoordinates: If None, evaluate materialCoordinatesField at current marker location.
+        """
+        assert self._isMarker
+        if not (self._markerMaterialCoordinatesField or materialCoordinatesField):
+            return
+        fieldmodule = self._group.getFieldmodule()
+        mesh = get_highest_dimension_mesh(fieldmodule)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+        with ChangeManager(fieldmodule):
+            oldMaterialCoordinatesField = self._markerMaterialCoordinatesField
+            if materialCoordinatesField != oldMaterialCoordinatesField:
+                nodetemplate = nodes.createNodetemplate()
+                if self._markerMaterialCoordinatesField:
+                    assert RESULT_OK == nodetemplate.undefineField(self._markerMaterialCoordinatesField)
+                if materialCoordinatesField:
+                    assert RESULT_OK == nodetemplate.defineField(materialCoordinatesField)
+                assert RESULT_OK == markerNode.merge(nodetemplate)
+                self._markerMaterialCoordinatesField = materialCoordinatesField
+            if materialCoordinatesField:
+                if materialCoordinates is not None:
+                    # find nearest location in mesh
+                    constCoordinates = fieldmodule.createFieldConstant(materialCoordinates)
+                    findMeshLocation = fieldmodule.createFieldFindMeshLocation(
+                        constCoordinates, materialCoordinatesField, mesh)
+                    fieldcache = fieldmodule.createFieldcache()
+                    fieldcache.setNode(markerNode)
+                    element, xi = findMeshLocation.evaluateMeshLocation(fieldcache, mesh.getDimension())
+                    if not element.isValid():
+                        self.setMarkerMaterialCoordinates(oldMaterialCoordinatesField)
+                        print("AnnotationGroup setMarkerMaterialCoordinates.  Field is not defined on mesh. Reverting.")
+                        return
+                    del findMeshLocation
+                    del constCoordinates
+                else:
+                    element, xi = self.getMarkerLocation()
+                # use this function to reassign material coordinates to be within mesh
+                self.setMarkerLocation(element, xi)
 
     def getName(self):
         return self._name
@@ -99,6 +378,8 @@ class AnnotationGroup(object):
         as the name is already in use.
         :return:  True on success, otherwise False
         '''
+        if self._name == name:
+            return True
         fieldmodule = self._group.getFieldmodule()
         # use ChangeManager so multiple name changes are atomic
         with ChangeManager(fieldmodule):
@@ -114,6 +395,13 @@ class AnnotationGroup(object):
                 if nodeGroup.isValid():
                     nodeGroup.setName(name + '.' + nodes.getName())
                 self._name = name
+                if self._isMarker:
+                    # assign marker name to be same as this group's name. This needs to be maintained
+                    markerName = find_or_create_field_stored_string(fieldmodule, name="marker_name")
+                    fieldcache = fieldmodule.createFieldcache()
+                    markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+                    fieldcache.setNode(markerNode)
+                    markerName.assignString(fieldcache, self._name)
                 return True
         return False
 
@@ -239,7 +527,8 @@ def findOrCreateAnnotationGroupForTerm(annotationGroups: list, region, term) -> 
     name = term[0]
     annotationGroup = findAnnotationGroupByName(annotationGroups, name)
     if annotationGroup:
-        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1] + "' does not match existing id '" + annotationGroup._id + "'"
+        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1]\
+                                               + "' does not match existing id '" + annotationGroup._id + "'"
     else:
         annotationGroup = AnnotationGroup(region, term)
         annotationGroups.append(annotationGroup)
@@ -256,7 +545,8 @@ def getAnnotationGroupForTerm(annotationGroups: list, term) -> AnnotationGroup:
     name = term[0]
     annotationGroup = findAnnotationGroupByName(annotationGroups, name)
     if annotationGroup:
-        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1] + "' does not match existing id '" + annotationGroup._id + "'"
+        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1]\
+                                               + "' does not match existing id '" + annotationGroup._id + "'"
         return annotationGroup
     raise NameError("Annotation group '" + name + "' not found.")
 

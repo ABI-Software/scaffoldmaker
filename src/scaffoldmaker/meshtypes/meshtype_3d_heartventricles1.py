@@ -255,16 +255,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
         annotationGroups = [ heartGroup, apexGroup, lvGroup, rvGroup, vSeptumGroup ]
 
-        # annotation fiducial points
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
 
         #################
         # Create nodes
@@ -1025,13 +1016,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
 
         # apex annotation point
         element1 = mesh.findElementByIdentifier(1)
-        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        nodeIdentifier += 1
-        cache.setNode(markerPoint)
-        markerName.assignString(cache, apexGroup.getName())
-        markerLocation.assignMeshLocation(cache, element1, [ 0.0, 0.0, 1.0 ])
-        for group in [ heartGroup, lvGroup, apexGroup ]:
-            group.getNodesetGroup(nodes).addNode(markerPoint)
+        markerNode = apexGroup.createMarkerNode(nodeIdentifier, element=element1, xi=[0.0, 0.0, 1.0])
+        nodeIdentifier = markerNode.getIdentifier() + 1
+        for group in [ heartGroup, lvGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerNode)
 
         return annotationGroups
 

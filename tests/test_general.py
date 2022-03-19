@@ -8,6 +8,7 @@ from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
+from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
@@ -115,7 +116,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         annotationGroup1 = scaffoldPackage.createUserAnnotationGroup()
         self.assertEqual('group1', annotationGroup1.getName())  # default name
-        self.assertIsNone(annotationGroup1.getId())
+        self.assertEqual('None', annotationGroup1.getId())
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(annotationGroup1))
         self.assertEqual(-1, annotationGroup1.getDimension())  # -1 = empty
         group = annotationGroup1.getGroup()
@@ -192,6 +193,163 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(5, nodesetGroup.getSize())
         identifier_ranges_string = identifier_ranges_to_string(nodeset_group_to_identifier_ranges(nodesetGroup2))
         self.assertEqual('1,3-5,7', identifier_ranges_string)
+
+    def test_user_marker_points(self):
+        """
+        Test user marker point on brainstem1 scaffold which defined "brainstem coordinates".
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_brainstem1)
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        fieldmodule = region.getFieldmodule()
+        mesh = fieldmodule.findMeshByDimension(3)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        scaffoldPackage.generate(region)
+        # 1 higher than last node in scaffold. Make marker nodes from this number
+        nextNodeIdentifier = scaffoldPackage.getNextNodeIdentifier()
+
+        brainstemCoordinatesField = fieldmodule.findFieldByName("brainstem coordinates")
+        self.assertTrue(brainstemCoordinatesField.isValid())
+
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(18, len(annotationGroups))
+        TOL = 1.0E-6  # coarse to handle find xi tolerances
+
+        # check a built-in non-marker annotation group
+        ponsGroup = scaffoldPackage.findAnnotationGroupByName('pons')
+        self.assertFalse(ponsGroup.isMarker())
+        self.assertRaises(AssertionError, lambda: ponsGroup.getMarkerMaterialCoordinates())
+        self.assertRaises(AssertionError, lambda: ponsGroup.getMarkerLocation())
+        self.assertRaises(AssertionError, lambda: ponsGroup.createMarkerNode(nextNodeIdentifier))
+
+        # check a built-in marker annotation group
+        brainstemVentralCranialPointGroup = \
+            scaffoldPackage.findAnnotationGroupByName('brainstem ventral midline cranial point')
+        self.assertIsNotNone(brainstemVentralCranialPointGroup)
+        self.assertTrue(brainstemVentralCranialPointGroup.isMarker())
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = \
+            brainstemVentralCranialPointGroup.getMarkerMaterialCoordinates()
+        self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
+        assertAlmostEqualList(self, [0.0, -1.0, 8.0], brainstemCoordinatesValueOut, delta=TOL)
+        elementOut, xiOut = brainstemVentralCranialPointGroup.getMarkerLocation()
+        self.assertEqual(235, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [1.0, 1.0, 0.0], xiOut, delta=TOL)
+        self.assertRaises(AssertionError, lambda: brainstemVentralCranialPointGroup.createMarkerNode(nextNodeIdentifier))
+
+        # check a non-existant annotation group
+        bobGroup = scaffoldPackage.findAnnotationGroupByName("bob")
+        self.assertIsNone(bobGroup)
+
+        # now make a marker annotation named "bob" at the default location
+        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
+        self.assertFalse(bobGroup.isMarker())
+        node = bobGroup.createMarkerNode(nextNodeIdentifier)
+        bobNodeIdentifier = node.getIdentifier()
+        self.assertEqual(nextNodeIdentifier, bobNodeIdentifier)
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
+        self.assertIsNone(brainstemCoordinatesFieldOut)
+        self.assertIsNone(brainstemCoordinatesValueOut)
+        elementOut, xiOut = bobGroup.getMarkerLocation()
+        self.assertEqual(1, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [0.0, 0.0, 0.0], xiOut, delta=TOL)
+        # now request brainstem coordinates and let the annotation group determine its values from element:xi
+        bobGroup.setMarkerMaterialCoordinates(brainstemCoordinatesField)
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
+        self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
+        # these should be precisely cos(45) but are not due to ellipse approximations
+        assertAlmostEqualList(self, [0.707016, -0.707198, 0], brainstemCoordinatesValueOut, delta=TOL)
+        # set element:xi location and check brainstem coordinates change
+        bobGroup.setMarkerLocation(mesh.findElementByIdentifier(33), [0.0, 0.5, 0.0])
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
+        self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
+        assertAlmostEqualList(self, [0.707016, -0.707198, 1.5], brainstemCoordinatesValueOut, delta=TOL)
+        # assign brainstem coordinates and check element:xi has moved
+        bobGroup.setMarkerMaterialCoordinates(brainstemCoordinatesField, [-0.1, -0.5, 2.2])
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
+        self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
+        assertAlmostEqualList(self, [-0.1, -0.5, 2.2], brainstemCoordinatesValueOut, delta=TOL)
+        elementOut, xiOut = bobGroup.getMarkerLocation()
+        self.assertEqual(82, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [0.305595, 0.2, 0.485941], xiOut, delta=TOL)
+
+        # now make a marker annotation named "fred" with brainstem coordinates from the start
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        # AnnotationGroup.createMarkerNode increments nextNodeIdentifier to one not used by existing node
+        node = fredGroup.createMarkerNode(nextNodeIdentifier, brainstemCoordinatesField, [0.5, 0.5, 4])
+        fredNodeIdentifier = node.getIdentifier()
+        self.assertEqual(nextNodeIdentifier + 1, fredNodeIdentifier)
+        del node
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = fredGroup.getMarkerMaterialCoordinates()
+        self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
+        assertAlmostEqualList(self, [0.5, 0.5, 4], brainstemCoordinatesValueOut, delta=TOL)
+        elementOut, xiOut = fredGroup.getMarkerLocation()
+        self.assertEqual(105, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
+
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(20, len(annotationGroups))
+
+        # test deleting a marker annotation group
+        scaffoldPackage.deleteAnnotationGroup(fredGroup)
+
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(19, len(annotationGroups))
+
+        # check node fred has gone
+        node = nodes.findNodeByIdentifier(fredNodeIdentifier)
+        self.assertFalse(node.isValid())
+
+        # re-recreate fred with just element:xi location
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        element = mesh.findElementByIdentifier(105)
+        node = fredGroup.createMarkerNode(nextNodeIdentifier, element=element, xi=[0.346095, 1, 0.66399])
+        self.assertEqual(fredNodeIdentifier, node.getIdentifier())
+        del node
+        elementOut, xiOut = fredGroup.getMarkerLocation()
+        self.assertEqual(105, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
+
+        # check the total number of groups
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(20, len(annotationGroups))
+
+        # test serialisation
+        dct = scaffoldPackage.toDict()
+        scaffoldType = Scaffolds().findScaffoldTypeByName(dct['scaffoldTypeName'])
+
+        scaffoldPackage2 = ScaffoldPackage(scaffoldType, dct)
+        region2 = context.createRegion()
+        fieldmodule2 = region2.getFieldmodule()
+
+        scaffoldPackage2.generate(region2)
+
+        brainstemCoordinatesField2 = fieldmodule2.findFieldByName("brainstem coordinates")
+        self.assertTrue(brainstemCoordinatesField2.isValid())
+
+        annotationGroups2 = scaffoldPackage2.getAnnotationGroups()
+        self.assertEqual(20, len(annotationGroups2))
+
+        # check user markers have been defined correctly for scaffoldPackage2
+
+        bobGroup2 = scaffoldPackage2.findAnnotationGroupByName('bob')
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup2.getMarkerMaterialCoordinates()
+        self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField2)
+        assertAlmostEqualList(self, [-0.1, -0.5, 2.2], brainstemCoordinatesValueOut, delta=TOL)
+        elementOut, xiOut = bobGroup2.getMarkerLocation()
+        self.assertEqual(82, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [0.305595, 0.2, 0.485941], xiOut, delta=TOL)
+
+        fredGroup2 = scaffoldPackage2.findAnnotationGroupByName('fred')
+        brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = fredGroup2.getMarkerMaterialCoordinates()
+        self.assertIsNone(brainstemCoordinatesFieldOut)
+        self.assertIsNone(brainstemCoordinatesValueOut)
+        elementOut, xiOut = fredGroup2.getMarkerLocation()
+        self.assertEqual(105, elementOut.getIdentifier())
+        assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
 
 
 if __name__ == "__main__":
