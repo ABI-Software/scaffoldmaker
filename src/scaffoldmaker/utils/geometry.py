@@ -64,7 +64,7 @@ def getEllipseArcLength(a, b, angle1Radians, angle2Radians):
     else:
         return -length
 
-def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
+def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength, tol=1.0E-4):
     '''
     Update angle around ellipse to subtend arcLength around the perimeter.
     Iterates using Newton's method.
@@ -72,11 +72,12 @@ def updateEllipseAngleByArcLength(a, b, inAngleRadians, arcLength):
     :param arcLength: Arc length to traverse. Positive=anticlockwise, negative=clockwise.
     :param a: Major axis length (On x, 0 / PI).
     :param b: Minor axis length.(On y, PI/2, 3PI/2).
+    :param tol: Tolerance used for length tolerance.
     :return: New angle, in radians.
     '''
     angle = inAngleRadians
     lengthMoved = 0.0
-    lengthTol = (a + b)*1.0E-4  # broader tolerance due to reliance on inexact getEllipseArcLength()
+    lengthTol = (a + b)*tol  # broader tolerance due to reliance on inexact getEllipseArcLength()
     counter=0
     #print('updateEllipseAngleByArcLength', a, b, 'inAngleRadians', inAngleRadians, ', arcLength', arcLength)
     while math.fabs(arcLength - lengthMoved) > lengthTol:

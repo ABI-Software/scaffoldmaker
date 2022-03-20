@@ -789,13 +789,25 @@ def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, he
     unitMajorAxis = vector.normalise(majorAxis)
     unitMinorAxis = vector.normalise(minorAxis)
     useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
-    totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
-                                                 initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
+    # check if it is a circle
+    circle = abs(magMajorAxis / magMinorAxis - 1.0) < 0.0001
+    if circle:
+        totalRadians = math.pi / 2
+    else:
+        totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
+                                                    initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
     radians = 0.0
-    arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
+    if circle:
+        arcLengthUp = magMajorAxis * totalRadians
+    else:
+        arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
     elementsCountUp = elementsCountAround // 2
     elementArcLength = arcLengthUp / elementsCountUp
-    radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
+    if circle:
+        radians = -math.pi / 2
+        radians_per_element = 2 * totalRadians / elementsCountAround
+    else:
+        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
     for n1 in range(2 * elementsCountUp + 1):
         cosRadians = math.cos(radians)
         sinRadians = math.sin(radians)
@@ -805,7 +817,10 @@ def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, he
         ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
         nd1.append(
             [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
-        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
+        if circle:
+            radians += radians_per_element
+        else:
+            radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
     return nx, nd1
 
 
