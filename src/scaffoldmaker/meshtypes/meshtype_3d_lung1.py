@@ -1260,12 +1260,13 @@ class MeshType_3d_lung1(Scaffold_base):
         isMouse = 'Mouse 1' in parameterSetName
         isHuman = 'Human 1' in parameterSetName
         isRat = 'Rat 1' in parameterSetName
+        isPig = 'Pig 1' in parameterSetName
 
         # create fissure groups
         fm = region.getFieldmodule()
         mesh2d = fm.findMeshByDimension(2)
 
-        if isHuman:
+        if isHuman or isPig:
             upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
             lowerLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of left lung"))
 
@@ -1276,7 +1277,7 @@ class MeshType_3d_lung1(Scaffold_base):
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
             obliqueLeftGroup.getMeshGroup(mesh2d).addElementsConditional(is_obliqueLeftGroup)
 
-        if isHuman or isMouse or isRat:
+        if isHuman or isMouse or isRat or isPig:
             upperRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of right lung"))
             middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
             lowerRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of right lung"))
