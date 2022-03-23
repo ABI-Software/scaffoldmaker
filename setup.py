@@ -13,7 +13,14 @@ def readfile(filename, split=False):
         return stream.read()
 
 
-readme = readfile("README.rst", split=True)[3:]  # skip title
+readme = readfile("README.rst", split=True)
+readme.append('License')
+readme.append('=======')
+readme.append('')
+readme.append('::')
+readme.append('')
+readme.append('')
+
 # For requirements not hosted on PyPi place listings
 # into the 'requirements.txt' file.
 requires = [
