@@ -52,6 +52,8 @@ class ScaffoldPackage:
             else:
                 meshEdits = copy.deepcopy(meshEdits)
         self._meshEdits = meshEdits
+        self._isGenerated = False  # set to True when generate() is called
+        # annotation groups automatically created by scaffold script = set in generate()
         self._autoAnnotationGroups = []
         # read user AnnotationGroups list in dict form:
         userAnnotationGroupsDict = dct.get('userAnnotationGroups')
@@ -99,8 +101,7 @@ class ScaffoldPackage:
             }
         if self._meshEdits:
             dct['meshEdits'] = self._meshEdits
-        if self._userAnnotationGroups:
-            self.updateUserAnnotationGroups()
+        self.updateUserAnnotationGroups()
         if self._userAnnotationGroupsDict:
             dct['userAnnotationGroups'] = self._userAnnotationGroupsDict
         return dct
@@ -108,8 +109,10 @@ class ScaffoldPackage:
     def updateUserAnnotationGroups(self):
         '''
         Ensure user annotation groups are present in serialised form (dict).
+        Only done if scaffold has been generated.
+        :param force: If not True,
         '''
-        if self._userAnnotationGroups:
+        if self._isGenerated:
             self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
 
     def getMeshEdits(self):
@@ -246,6 +249,7 @@ class ScaffoldPackage:
                 region.read(sir)
             # define user AnnotationGroups from serialised Dict
             self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
+            self._isGenerated = True
             if applyTransformation:
                 self.applyTransformation()
 

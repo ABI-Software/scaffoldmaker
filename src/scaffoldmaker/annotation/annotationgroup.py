@@ -6,8 +6,9 @@ import sys
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group, \
     find_or_create_field_stored_mesh_location, find_or_create_field_stored_string
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field, FieldFiniteElement, FieldGroup
+from opencmiss.zinc.element import Element, Mesh
+from opencmiss.zinc.field import Field, FieldFiniteElement, FieldGroup, FieldStoredMeshLocation, FieldStoredString
+from opencmiss.zinc.fieldmodule import Fieldmodule
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh, get_next_unused_node_identifier, \
@@ -29,17 +30,11 @@ class AnnotationGroup(object):
         '''
         self._name = term[0]
         self._id = term[1]
-        fieldmodule = region.getFieldmodule()
-        field = fieldmodule.findFieldByName(self._name)
-        if field.isValid():
-            self._group = field.castGroup()
-            assert self._group.isValid(), 'AnnotationGroup found existing non-group field called ' + self._name
-        else:
-            with ChangeManager(fieldmodule):
-                self._group = fieldmodule.createFieldGroup()
-                self._group.setName(self._name)
-                self._group.setManaged(True)
+        self._group = find_or_create_field_group(region.getFieldmodule(), self._name, managed=False)
+        assert self._group.getName() == self._name, \
+            'AnnotationGroup found existing non-group field called ' + self._name
         self._isMarker = False
+        self._markerGroup = None  # held while marker point exists
         self._markerMaterialCoordinatesField = None
 
     def clear(self):
@@ -55,6 +50,7 @@ class AnnotationGroup(object):
                 markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
                 nodes.destroyNode(markerNode)
                 self._isMarker = False
+                self._markerGroup = None
                 self._markerMaterialCoordinatesField = None
             self._group.clear()
 
@@ -206,7 +202,8 @@ class AnnotationGroup(object):
         Important: annotation group must currently be empty, and elements must exist.
         The marker node is added to the marker group in addition to this group.
         Raises an exception if marker creation cannot be achieved.
-        :param startNodeIdentifier: First unused node identifier >= this is uses for marker node.
+        :param startNodeIdentifier: First unused node identifier >= this may use for marker node. Incremented until
+        an unused node identifier is found for the marker node.
         :param materialCoordinatesField: Material coordinates field to define location of marker point in.
         Must be a finite element type field for which isTypeCoordinates() is True, with up to 3 components,
         and at least as many components as the highest mesh dimension.
@@ -233,13 +230,13 @@ class AnnotationGroup(object):
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeIdentifier = get_next_unused_node_identifier(nodes, startNodeIdentifier)
         with ChangeManager(fieldmodule):
-            markerGroup = find_or_create_field_group(fieldmodule, "marker")
+            markerGroup = getAnnotationMarkerGroup(fieldmodule)
             markerNodeGroup = markerGroup.getFieldNodeGroup(nodes)
             if not markerNodeGroup.isValid():
                 markerNodeGroup = markerGroup.createFieldNodeGroup(nodes)
             markerNodesetGroup = markerNodeGroup.getNodesetGroup()
-            markerLocation = find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location")
-            markerName = find_or_create_field_stored_string(fieldmodule, name="marker_name")
+            markerLocation = getAnnotationMarkerLocationField(fieldmodule, mesh)
+            markerName = getAnnotationMarkerNameField(fieldmodule)
             nodetemplate = nodes.createNodetemplate()
             if materialCoordinatesField:
                 assert RESULT_OK == nodetemplate.defineField(materialCoordinatesField)
@@ -249,6 +246,7 @@ class AnnotationGroup(object):
             assert RESULT_OK == self.getNodesetGroup(nodes).addNode(markerNode)
             assert RESULT_OK == markerNodesetGroup.addNode(markerNode)
             self._isMarker = True
+            self._markerGroup = markerGroup  # maintain reference so group is not destroyed
             # assign marker name to be same as this group's name. This needs to be maintained. See setName()
             fieldcache = fieldmodule.createFieldcache()
             fieldcache.setNode(markerNode)
@@ -269,12 +267,14 @@ class AnnotationGroup(object):
         assert self._isMarker
         fieldmodule = self._group.getFieldmodule()
         mesh = get_highest_dimension_mesh(fieldmodule)
-        markerLocation = find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location")
+        markerLocation = getAnnotationMarkerLocationField(fieldmodule, mesh)
         fieldcache = fieldmodule.createFieldcache()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
         fieldcache.setNode(markerNode)
         element, xi = markerLocation.evaluateMeshLocation(fieldcache, mesh.getDimension())
+        if not isinstance(xi, list):
+            xi = [xi]  # workaround for Zinc 1-D xi being a plain float
         return element, xi
 
     def setMarkerLocation(self, element: Element, xi: list):
@@ -289,9 +289,9 @@ class AnnotationGroup(object):
         fieldmodule = self._group.getFieldmodule()
         mesh = get_highest_dimension_mesh(fieldmodule)
         assert mesh.containsElement(element), "Invalid element, not in highest dimension mesh"
-        assert len(xi) >= mesh.getDimension()
+        assert isinstance(xi, list) and (len(xi) >= mesh.getDimension())
         with ChangeManager(fieldmodule):
-            markerLocation = find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location")
+            markerLocation = getAnnotationMarkerLocationField(fieldmodule, mesh)
             fieldcache = fieldmodule.createFieldcache()
             nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
             markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
@@ -361,6 +361,8 @@ class AnnotationGroup(object):
                         self.setMarkerMaterialCoordinates(oldMaterialCoordinatesField)
                         print("AnnotationGroup setMarkerMaterialCoordinates.  Field is not defined on mesh. Reverting.")
                         return
+                    if not isinstance(xi, list):
+                        xi = [xi]  # workaround for Zinc 1-D xi being a plain float
                     del findMeshLocation
                     del constCoordinates
                 else:
@@ -397,7 +399,7 @@ class AnnotationGroup(object):
                 self._name = name
                 if self._isMarker:
                     # assign marker name to be same as this group's name. This needs to be maintained
-                    markerName = find_or_create_field_stored_string(fieldmodule, name="marker_name")
+                    markerName = getAnnotationMarkerNameField(fieldmodule)
                     fieldcache = fieldmodule.createFieldcache()
                     markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
                     fieldcache.setNode(markerNode)
@@ -565,3 +567,33 @@ def mergeAnnotationGroups(*annotationGroupsIn):
             if not findAnnotationGroupByName(annotationGroups, agroup._name):
                 annotationGroups.append(agroup)
     return annotationGroups
+
+def getAnnotationMarkerGroup(fieldmodule: Fieldmodule) -> FieldGroup:
+    """
+    Find or create the standard Zinc Group which marker points are created in.
+    Clients should use this method rather than finding by standard name "marker".
+    :param fieldmodule: Zinc Fieldmodule to find/create group in.
+    :return: FieldGroup
+    """
+    return find_or_create_field_group(fieldmodule, "marker", managed=False)
+
+def getAnnotationMarkerLocationField(fieldmodule: Fieldmodule, mesh: Mesh) -> FieldStoredMeshLocation:
+    """
+    Find or create the standard Zinc Field used to store marker mesh locations in the highest dimension mesh.
+    Clients should use this method rather than finding by standard name "marker_location".
+    :param fieldmodule: Zinc Fieldmodule to find/create field in.
+    :param mesh: The highest dimension mesh in region.
+    :return: FieldStoredMeshLocation
+    """
+    return find_or_create_field_stored_mesh_location(fieldmodule, mesh, name="marker_location", managed=False)
+
+def getAnnotationMarkerNameField(fieldmodule: Fieldmodule) -> FieldStoredString:
+    """
+    Find or create the standard Zinc Field used to store marker names.
+    Clients should use this method rather than finding by standard name "marker_name".
+    :param fieldmodule: Zinc Fieldmodule to find/create group in.
+    :return: FieldStoredString
+    """
+    return find_or_create_field_stored_string(fieldmodule, name="marker_name", managed=False)
+
+
