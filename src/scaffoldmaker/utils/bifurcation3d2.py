@@ -211,7 +211,9 @@ class BifurcationMesh:
         x_shoulder_end_curve1 = vector.addVectors([ce, vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius)], [1, 1])
         # x_shoulder_end_curve2 = [1.7, self.left_arm_radius, self.shoulder_height]
         x_shoulder_end_curve2 = vector.addVectors([ce, vector.setMagnitude(kv, self.right_arm_radius)], [1, 1])
-        d1_shoulder_end_curve1 = [[0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]]]
+        # d1_shoulder_end_curve1 = [[0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]]]
+        d1_shoulder_end_curve1 = [vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius/self._elementsCount[1]),
+                                  vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius/self._elementsCount[1])]
         d1_shoulder_end_curve2 = [[0.0, self.left_arm_radius / self._elementsCount[0], 0.0], [0.0, self.left_arm_radius / self._elementsCount[0], 0.0]]
 
         nodeparams2 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
