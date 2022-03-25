@@ -11,6 +11,7 @@ from opencmiss.zinc.node import Node
 from opencmiss.zinc.field import FieldFindMeshLocation
 from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
     findOrCreateFieldStoredString
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.brainstem_terms import get_brainstem_term
@@ -37,7 +38,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 3.0,
-                'Number of elements': 6
+                'Number of elements': 8
             },
             'meshEdits': exnodeStringFromNodeValues(  # dimensional.
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
@@ -56,21 +57,21 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1',
+                    'identifierRanges': '1-3',
                     'name': get_brainstem_term('medulla oblongata')[0],
                     'ontId': get_brainstem_term('medulla oblongata')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '2',
+                    'identifierRanges': '4-6',
                     'name': get_brainstem_term('pons')[0],
                     'ontId': get_brainstem_term('pons')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '3',
+                    'identifierRanges': '7-8',
                     'name': get_brainstem_term('midbrain')[0],
                     'ontId': get_brainstem_term('midbrain')[1]
                 }]
@@ -103,21 +104,21 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1',
+                    'identifierRanges': '1-2',
                     'name': get_brainstem_term('medulla oblongata')[0],
                     'ontId': get_brainstem_term('medulla oblongata')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '2',
+                    'identifierRanges': '3-4',
                     'name': get_brainstem_term('pons')[0],
                     'ontId': get_brainstem_term('pons')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '3',
+                    'identifierRanges': '5-6',
                     'name': get_brainstem_term('midbrain')[0],
                     'ontId': get_brainstem_term('midbrain')[1]
                 }]
@@ -501,37 +502,18 @@ class MeshType_3d_brainstem1(Scaffold_base):
         annotationGroupAlong = [[brainstemGroup, midbrainGroup],
                                 [brainstemGroup, ponsGroup],
                                 [brainstemGroup, medullaGroup]]
-
-        # point markers
         # centralCanal = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
         #                                                        get_brainstem_term('central canal of spinal cord'))
         # cerebralAqueduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
         #                                                        get_brainstem_term('cerebral aqueduct'))
         # foramenCaecum = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-        #                                                        get_brainstem_term('foramen caecum of medulla oblongata'))
-        dorsalMidCaudalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_brainstem_term('brainstem dorsal midline caudal point'))
-        ventralMidCaudalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_brainstem_term('brainstem ventral midline caudal point'))
-        dorsalMidCranGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                get_brainstem_term('brainstem dorsal midline cranial point'))
-        ventralMidCranGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 get_brainstem_term('brainstem ventral midline cranial point'))
-        dorsalMidMedullaPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                          get_brainstem_term('brainstem dorsal midline pons-medulla junction'))
-        ventralMidMedullaPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                           get_brainstem_term('brainstem ventral midline pons-medulla junction'))
-        dorsalMidMidbrainPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                           get_brainstem_term('brainstem dorsal midline midbrain-pons junction'))
-        ventralMidMidbrainPonsJunction = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                            get_brainstem_term('brainstem ventral midline midbrain-pons junction'))
 
         #######################
         # CREATE MAIN BODY MESH
         #######################
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if not halfBrainStem else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
 
-        # Body coordinates
+        # brainstem coordinates
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
                             centre=[0.0, 0.0, 0.0],
@@ -544,40 +526,43 @@ class MeshType_3d_brainstem1(Scaffold_base):
                                  cylinderCentralPath=cylinderCentralPath,
                                  useCrossDerivatives=False)
 
+        #  workaround for old Zinc field wrapper bug: must create brainstem coordinates field before reading file
         brainstem_coordinates = findOrCreateFieldCoordinates(fm, name="brainstem coordinates")
 
-        # Brain coordinates
+        # generate brainstem coordinates field in temporary region
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
-        tmp_brainstem_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="brainstem coordinates")
+        with ChangeManager(tmp_fm):
+            tmp_brainstem_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="brainstem coordinates")
 
-        cylinderCentralPath1 = CylinderCentralPath(tmp_region, brainstemPath, elementsCountAlong)
+            cylinderCentralPath1 = CylinderCentralPath(tmp_region, brainstemPath, elementsCountAlong)
 
-        base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
-                             centre=[0.0, 0.0, 0.0],
-                             alongAxis=cylinderCentralPath1.alongAxis[0],
-                             majorAxis=cylinderCentralPath1.majorAxis[0],
-                             minorRadius=cylinderCentralPath1.minorRadii[0])
+            base1 = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor,
+                                 centre=[0.0, 0.0, 0.0],
+                                 alongAxis=cylinderCentralPath1.alongAxis[0],
+                                 majorAxis=cylinderCentralPath1.majorAxis[0],
+                                 minorRadius=cylinderCentralPath1.minorRadii[0])
 
-        cylinder2 = CylinderMesh(tmp_fm, tmp_brainstem_coordinates, elementsCountAlong, base1,
-                                 cylinderShape=cylinderShape,
-                                 cylinderCentralPath=cylinderCentralPath1,
-                                 useCrossDerivatives=False)
+            cylinder2 = CylinderMesh(tmp_fm, tmp_brainstem_coordinates, elementsCountAlong, base1,
+                                     cylinderShape=cylinderShape,
+                                     cylinderCentralPath=cylinderCentralPath1,
+                                     useCrossDerivatives=False)
 
-        # Write two coordinates
-        sir = tmp_region.createStreaminformationRegion()
-        srm = sir.createStreamresourceMemory()
-        tmp_region.write(sir)
-        result, buffer = srm.getBuffer()
+            # write to memory buffer
+            sir = tmp_region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemory()
+            tmp_region.write(sir)
+            result, buffer = srm.getBuffer()
 
-        sir = region.createStreaminformationRegion()
-        srm = sir.createStreamresourceMemoryBuffer(buffer)
-        region.read(sir)
+            # read into main region
+            sir = region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemoryBuffer(buffer)
+            region.read(sir)
 
-        del srm
-        del sir
+            del srm
+            del sir
+            del tmp_brainstem_coordinates
         del tmp_fm
-        del tmp_brainstem_coordinates
         del tmp_region
 
         # Annotating groups
@@ -596,49 +581,22 @@ class MeshType_3d_brainstem1(Scaffold_base):
         ################
         # point markers
         ################
-        pointMarkers = [
-            {"group": dorsalMidCaudalGroup, "marker_brainstem_coordinates": [0.0, 1.0, 0.0]},
-            {"group": ventralMidCaudalGroup, "marker_brainstem_coordinates": [0.0, -1.0, 0.0]},
-            {"group": dorsalMidCranGroup, "marker_brainstem_coordinates": [0.0, 1.0, 8.0]},
-            {"group": ventralMidCranGroup, "marker_brainstem_coordinates": [0.0, -1.0, 8.0]},
-            {"group": dorsalMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, 3.0]},
-            {"group": ventralMidMedullaPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, 3.0]},
-            {"group": dorsalMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, 1.0, 6.0]},
-            {"group": ventralMidMidbrainPonsJunction, "marker_brainstem_coordinates": [0.0, -1.0, 6.0]},
-        ]
 
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
+        markerTermNameBrainstemCoordinatesMap = {
+            'brainstem dorsal midline caudal point': [0.0, 1.0, 0.0],
+            'brainstem ventral midline caudal point': [0.0, -1.0, 0.0],
+            'brainstem dorsal midline cranial point': [0.0, 1.0, 8.0],
+            'brainstem ventral midline cranial point': [0.0, -1.0, 8.0],
+            'brainstem dorsal midline pons-medulla junction': [0.0, 1.0, 3.0],
+            'brainstem ventral midline pons-medulla junction': [0.0, -1.0, 3.0],
+            'brainstem dorsal midline midbrain-pons junction': [0.0, 1.0, 6.0],
+            'brainstem ventral midline midbrain-pons junction': [0.0, -1.0, 6.0]
+        }
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerBrainstemCoordinates = findOrCreateFieldCoordinates(fm, name="marker_body_coordinates")
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
-        markerTemplateInternal.defineField(markerBrainstemCoordinates)
-
-        cache = fm.createFieldcache()
-
-        brainstemNodesetGroup = brainstemGroup.getNodesetGroup(nodes)
-
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        findMarkerLocation = fm.createFieldFindMeshLocation(markerBrainstemCoordinates, brainstem_coordinates, mesh)
-        findMarkerLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
-
-        for pointMarker in pointMarkers:
-            group = pointMarker["group"]
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerPoint)
-
-            markerBrainstemCoordinates.assignReal(cache, pointMarker["marker_brainstem_coordinates"])
-            markerName.assignString(cache, group.getName())
-
-            element, xi = findMarkerLocation.evaluateMeshLocation(cache, 3)
-            markerLocation.assignMeshLocation(cache, element, xi)
-            group.getNodesetGroup(nodes).addNode(markerPoint)
-            brainstemNodesetGroup.addNode(markerPoint)
+        for termName, brainstemCoordinatesValues in markerTermNameBrainstemCoordinatesMap.items():
+            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(termName))
+            annotationGroup.createMarkerNode(nodeIdentifier, brainstem_coordinates, brainstemCoordinatesValues)
             nodeIdentifier += 1
 
         return annotationGroups
@@ -701,7 +659,7 @@ def createCranialNerveEmergentMarkers(region, mesh, coordinatesName):
     # return element xi
     # use findMeshLocation to find the elementxi in an arbitrary mesh of given number of elements.
 
-    if coordinatesName == "bodyCoordinates":
+    if coordinatesName == "brainstem coordinates":
         # brainstem_coordinates: the left-side nerves
         nerveDict = {'OCULOMOTOR_left': [-0.13912257342955267, -0.5345161733750351, -0.7374762051676923],
                      'TROCHLEAR_left': [-0.13148279719950992, 0.4218745504359067, -0.7375838988856348],
