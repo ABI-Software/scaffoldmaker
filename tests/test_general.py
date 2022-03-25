@@ -107,7 +107,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         scaffoldPackage.generate(region)
 
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(22, len(annotationGroups))
+        self.assertEqual(24, len(annotationGroups))
 
         endocardium_of_la = scaffoldPackage.findAnnotationGroupByName('endocardium of left atrium')
         self.assertTrue(isinstance(endocardium_of_la, AnnotationGroup))
@@ -146,7 +146,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual('group2', annotationGroup3.getName())  # default name
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(annotationGroup3))
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(25, len(annotationGroups))
+        self.assertEqual(27, len(annotationGroups))
 
         # rename group1 to fred
         self.assertTrue(annotationGroup1.setName('fred'))
@@ -156,7 +156,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         self.assertTrue(scaffoldPackage.deleteAnnotationGroup(annotationGroup3))
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(24, len(annotationGroups))
+        self.assertEqual(26, len(annotationGroups))
 
         # test serialisation
         dct = scaffoldPackage.toDict()
@@ -170,7 +170,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         scaffoldPackage2.generate(region2)
 
         annotationGroups2 = scaffoldPackage2.getAnnotationGroups()
-        self.assertEqual(24, len(annotationGroups2))
+        self.assertEqual(26, len(annotationGroups2))
 
         annotationGroup1 = scaffoldPackage2.findAnnotationGroupByName('fred')
         self.assertEqual('fred', annotationGroup1.getName())
