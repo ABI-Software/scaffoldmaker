@@ -59,6 +59,7 @@ class MeshType_3d_lung2(Scaffold_base):
             'Base parameter set': parameterSetName,
             'Number of left lung lobes': 2,
             'Left-right lung spacing': 1.0,
+            'Left-right apex closing space': 0.0,
             'Left lung width': 0.25,
             'Left lung depth': 0.5,
             'Left lung height': 1.0,
@@ -149,6 +150,7 @@ class MeshType_3d_lung2(Scaffold_base):
         optionNames = [
             'Number of left lung lobes',
             'Left-right lung spacing',
+            'Left-right apex closing space',
             'Left lung width',
             'Left lung depth',
             'Left lung height',
@@ -204,6 +206,7 @@ class MeshType_3d_lung2(Scaffold_base):
         for coordinate in range(2):
             numberOfLeftLung = options['Number of left lung lobes']
             spacingBetweenLeftRight = options['Left-right lung spacing']/2.0 if coordinate == 0 else 0.5
+            closingSpaceLeftRightApex = options['Left-right apex closing space']/2.0 if coordinate == 0 else 0.0
             leftWidth = options['Left lung width'] if coordinate == 0 else 0.25
             leftDepth = options['Left lung depth'] if coordinate == 0 else 0.5
             leftHeight = options['Left lung height'] if coordinate == 0 else 1.0
@@ -488,6 +491,7 @@ class MeshType_3d_lung2(Scaffold_base):
                 edgeSharpFactor = leftEdgeSharpFactor if i == 0 else rightEdgeSharpFactor
                 length = leftDepth if i == 0 else rightDepth
                 spacing = spacingBetweenLeftRight if i == 0 else -spacingBetweenLeftRight
+                apexClosingspace = closingSpaceLeftRightApex if i == 0 else -closingSpaceLeftRightApex
                 lungMedialcurvature = -leftLungMedialCurvature if i == 0 else rightLungMedialCurvature
 
                 # Transformation of the left and right lungs
@@ -496,6 +500,9 @@ class MeshType_3d_lung2(Scaffold_base):
 
                 if lungMedialcurvature != 0.0:
                     bendingAroundZAxis(lungMedialcurvature, fm, coordinates, lungNodeset, spacing)
+
+                if apexClosingspace != 0.0:
+                    tiltLungs(apexClosingspace, 0, 0, 0, fm, coordinates, lungNodeset)
 
             if accessoryLobeMedialCurve != 0.0:
                 spacing = accessoryLobeDorsalCentre
@@ -1927,3 +1934,23 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFr
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
+def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm, coordinates, lungNodesetGroup):
+    """
+    :param tiltDegree: [tilted degree for apex, for diaphragm]
+    :param fm:
+    :param coordinates:
+    :param nodes:
+    :return: transformed lungs
+    """
+    # FieldConstant - Matrix = [   x1,    x4, sh_zx,
+    #                              x2,    x5, sh_zy,
+    #                           sh_xz, sh_yz,    x9]
+    sh_xz = tiltApex_xAxis / 180 * math.pi
+    sh_yz = tiltApex_yAxis / 180 * math.pi
+    sh_zy = tiltDiap_yAxis / 180 * math.pi
+    sh_zx = tiltDiap_xAxis / 180 * math.pi
+    shearMatrix = fm.createFieldConstant([1.0, 0.0, sh_xz, 0.0, 1.0, sh_yz, sh_zx, sh_zy, 1.0])
+    newCoordinates = fm.createFieldMatrixMultiply(3, shearMatrix, coordinates)
+    fieldassignment = coordinates.createFieldassignment(newCoordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
