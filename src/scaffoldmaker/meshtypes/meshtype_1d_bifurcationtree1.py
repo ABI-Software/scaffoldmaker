@@ -4,8 +4,7 @@ Generates a 1-D tree of bifurcating curves with radius.
 
 from __future__ import division
 from math import cos, radians, sin
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
-from scaffoldmaker.annotation.lung_terms import get_lung_term
+
 from opencmiss.maths.vectorops import add, cross, magnitude, mult, normalize, sub
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFiniteElement
 from opencmiss.utils.zinc.general import ChangeManager
@@ -100,8 +99,8 @@ class MeshType_1d_bifurcationtree1(Scaffold_base):
         """
         generationCount = options['Number of generations']
         bifurcationTree = cls.generateBifurcationTree(options)
-        _, _, annotationGroups = bifurcationTree.generateZincModel(region)
-        return annotationGroups
+        bifurcationTree.generateZincModel(region)
+        return []
 
 
 class TreeNode:
@@ -221,8 +220,6 @@ class BifurcationTree:
         Generate Zinc nodes and elements in region to represent tree.
         :return: Final nextNodeIdentifier, nextElementIdentifier.
         '''
-
-
         self._fieldmodule = region.getFieldmodule()
         self._nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self._mesh1d = self._fieldmodule.findMeshByDimension(1)
@@ -230,19 +227,13 @@ class BifurcationTree:
         self._linearBasis = self._fieldmodule.createElementbasis(1, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
         self._nodetemplates = {}  # indexed by (d1VersionsCount, rVersionsCount)
         self._elementtemplates = {}  # indexed by start (d1Version, rVersion)
-
-        # Annotation
-        airwayGroup = AnnotationGroup(region, get_lung_term("airway"))
-        annotationGroups = [airwayGroup]
-        self._airwayMeshGroup = airwayGroup.getMeshGroup(self._mesh1d)
-
         with ChangeManager(self._fieldmodule):
             self._coordinates = findOrCreateFieldCoordinates(self._fieldmodule)
             self._radius = findOrCreateFieldFiniteElement(self._fieldmodule, "radius", components_count=1, managed=True)
             self._fieldcache = self._fieldmodule.createFieldcache()
             parentNode = None
-            nextNodeIdentifier, nextElementIdentifier, annotationGroups = self._generateZincModelTree(self._rootNode, parentNode, nextNodeIdentifier, nextElementIdentifier, annotationGroups)
-        return nextNodeIdentifier, nextElementIdentifier, annotationGroups
+            nextNodeIdentifier, nextElementIdentifier = self._generateZincModelTree(self._rootNode, parentNode, nextNodeIdentifier, nextElementIdentifier)
+        return nextNodeIdentifier, nextElementIdentifier
 
     def _getZincNodetemplate(self, d1VersionsCount, rVersionsCount):
         '''
@@ -281,7 +272,7 @@ class BifurcationTree:
             self._elementtemplates[templateId] = elementtemplate
         return elementtemplate
 
-    def _generateZincModelTree(self, treeNode, parentNode, nextNodeIdentifier, nextElementIdentifier, annotationGroups):
+    def _generateZincModelTree(self, treeNode, parentNode, nextNodeIdentifier, nextElementIdentifier):
         '''
         :return: Final nextNodeIdentifier, nextElementIdentifier.
         '''
@@ -301,8 +292,6 @@ class BifurcationTree:
             elementtemplate = self._getZincElementtemplate(treeNode._parent_d1_index + 1, treeNode._parent_r_index + 1)
             element = self._mesh1d.createElement(nextElementIdentifier, elementtemplate)
             nextElementIdentifier += 1
-            self._airwayMeshGroup.addElement(element)
-
             eftCoordinates = element.getElementfieldtemplate(self._coordinates, -1)
             eftRadius = element.getElementfieldtemplate(self._radius, -1)
             # must set node for both efts
@@ -311,6 +300,6 @@ class BifurcationTree:
                 element.setNode(eft, 2, node)
 
         for childTreeNode in treeNode._children:
-            nextNodeIdentifier, nextElementIdentifier, annotationGroups = self._generateZincModelTree(childTreeNode, node, nextNodeIdentifier, nextElementIdentifier, annotationGroups)
+            nextNodeIdentifier, nextElementIdentifier = self._generateZincModelTree(childTreeNode, node, nextNodeIdentifier, nextElementIdentifier)
 
-        return nextNodeIdentifier, nextElementIdentifier, annotationGroups
+        return nextNodeIdentifier, nextElementIdentifier

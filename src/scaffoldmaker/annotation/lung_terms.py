@@ -27,8 +27,7 @@ lung_terms = [
     ("upper lobe of right lung", "UBERON:0002170", "ILX:0728821"),
     ("ventral base of right lung accessory lobe", "ILX:0778123"),
     ("ventral base of left lung", "ILX:0778118"),
-    ("ventral base of right lung", "ILX:0778122"),
-    ("airway", "ILX:0778122")
+    ("ventral base of right lung", "ILX:0778122")
 ]
 
 def get_lung_term(name : str):
