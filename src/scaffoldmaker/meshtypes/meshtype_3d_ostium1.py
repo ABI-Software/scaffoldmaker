@@ -230,7 +230,7 @@ def getOstiumElementsCountsAroundVessels(elementsCountAroundOstium, elementsCoun
 
 def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, startNodeIdentifier=1,
                        startElementIdentifier=1, vesselMeshGroups=None, ostiumMeshGroups=None,
-                       wallAnnotationGroups=None):
+                       wallAnnotationGroups=None, coordinates=None):
     """
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
     :param ostiumMeshGroups: List of mesh groups to add only row of elements at ostium end to.
@@ -274,8 +274,9 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
 
     fm = region.getFieldmodule()
     fm.beginChange()
-    coordinates = findOrCreateFieldCoordinates(fm)
     cache = fm.createFieldcache()
+    if not coordinates:
+        coordinates = findOrCreateFieldCoordinates(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodeIdentifier = startNodeIdentifier
@@ -863,7 +864,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap,
             forceMidLinearXi3=not useCubicHermiteThroughVesselWall,
             maxStartThickness=vesselWallThickness, maxEndThickness=vesselWallThickness,
-            elementsCountRadial=elementsCountAlong, meshGroups=rowMeshGroups, wallAnnotationGroups=wallAnnotationGroups)
+            elementsCountRadial=elementsCountAlong, meshGroups=rowMeshGroups, wallAnnotationGroups=wallAnnotationGroups,
+            coordinates=coordinates)
 
     fm.endChange()
     return nodeIdentifier, elementIdentifier, (ox, od1, od2, od3, oNodeId, oPositions)
