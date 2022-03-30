@@ -76,7 +76,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Shoulder start': [0.5, 0.0, 2.2],
             'Neck height': 3.6,
             'Right arm angle': 0.0,
-            'Right arm length': 1.7,
+            'Right arm length': 0.95,
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,

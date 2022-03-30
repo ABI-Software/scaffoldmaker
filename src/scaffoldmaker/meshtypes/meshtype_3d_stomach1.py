@@ -160,6 +160,62 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'ontId': get_stomach_term('duodenum')[1]
                 }]
         }),
+        'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 7
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                [ [  73.1,  50.2, 0.0 ], [ -18.5, -35.4, 0.0 ], [  18.5, -10.9, 0.0 ], [  18.6, -8.2, 0.0 ], [ 0.0, 0.0, 27.8 ], [ 0.0, 0.0,  8.6 ] ],
+                [ [  57.3,  20.3, 0.0 ], [ -13.1, -24.4, 0.0 ], [  30.1, -17.0, 0.0 ], [   4.6, -4.0, 0.0 ], [ 0.0, 0.0, 33.3 ], [ 0.0, 0.0,  2.4 ] ],
+                [ [  47.0,   1.4, 0.0 ], [ -12.6, -19.8, 0.0 ], [  30.2, -19.7, 0.0 ], [  -4.3, -4.5, 0.0 ], [ 0.0, 0.0, 33.7 ], [ 0.0, 0.0, -0.7 ] ],
+                [ [  32.0, -18.9, 0.0 ], [ -19.5, -14.4, 0.0 ], [  20.7, -26.4, 0.0 ], [ -13.7, -4.9, 0.0 ], [ 0.0, 0.0, 31.6 ], [ 0.0, 0.0, -3.7 ] ],
+                [ [  10.7, -26.3, 0.0 ], [ -24.3,   1.9, 0.0 ], [   3.1, -29.7, 0.0 ], [ -16.7,  4.8, 0.0 ], [ 0.0, 0.0, 26.5 ], [ 0.0, 0.0, -8.8 ] ],
+                [ [ -11.3, -14.4, 0.0 ], [ -14.4,  19.6, 0.0 ], [ -12.7, -15.9, 0.0 ], [  -4.1, 13.5, 0.0 ], [ 0.0, 0.0, 13.5 ], [ 0.0, 0.0, -7.8 ] ],
+                [ [ -15.8,   7.8, 0.0 ], [  -8.3,  18.3, 0.0 ], [  -6.4,  -2.7, 0.0 ], [   2.8,  4.4, 0.0 ], [ 0.0, 0.0, 10.4 ], [ 0.0, 0.0, -1.7 ] ],
+                [ [ -26.2,  21.4, 0.0 ], [ -11.8,   8.4, 0.0 ], [  -6.3,  -4.9, 0.0 ], [  -2.6, -8.8, 0.0 ], [ 0.0, 0.0,  9.8 ], [ 0.0, 0.0,  0.5 ] ] ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1',
+                    'name': get_stomach_term('fundus of stomach')[0],
+                    'ontId': get_stomach_term('fundus of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '2-4',
+                    'name': get_stomach_term('body of stomach')[0],
+                    'ontId': get_stomach_term('body of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5',
+                    'name': get_stomach_term('pyloric antrum')[0],
+                    'ontId': get_stomach_term('pyloric antrum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
+                    'name': get_stomach_term('pyloric canal')[0],
+                    'ontId': get_stomach_term('pyloric canal')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '7',
+                    'name': get_stomach_term('duodenum')[0],
+                    'ontId': get_stomach_term('duodenum')[1]
+                }]
+        }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -282,6 +338,37 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
+        'Pig 1': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,
+                'Number of elements along': 2,
+                'Number of elements through wall': 4,
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium diameter': 20.0,
+                'Ostium length': 10.0,
+                'Ostium wall thickness': 5.0,
+                'Ostium wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
+                'Ostium inter-vessel distance': 0.0,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 3.0,
+                'Vessel wall thickness': 5.0,
+                'Vessel wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
+                'Vessel angle 1 degrees': 0.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        }),
         'Rat 1': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
@@ -325,6 +412,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Default',
             'Human 1',
             'Mouse 1',
+            'Pig 1',
             'Rat 1']
 
     @classmethod
@@ -332,6 +420,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         if 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
+        elif 'Pig 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
         elif 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']
@@ -372,6 +463,18 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Gastro-esophagal junction position along factor'] = 0.53
             options['Cardia derivative factor'] = 0.3
             options['Limiting ridge'] = True
+        elif 'Pig 1' in parameterSetName:
+            options['Number of elements around esophagus'] = 8
+            options['Number of elements around duodenum'] = 12
+            options['Number of elements between cardia and duodenum'] = 6
+            options['Wall thickness'] = 5.0
+            options['Mucosa relative thickness'] = 0.47
+            options['Submucosa relative thickness'] = 0.1
+            options['Circular muscle layer relative thickness'] = 0.33
+            options['Longitudinal muscle layer relative thickness'] = 0.1
+            options['Gastro-esophagal junction position along factor'] = 0.45
+            options['Cardia derivative factor'] = 1.0
+            options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
             options['Number of elements around esophagus'] = 12
             options['Number of elements around duodenum'] = 14
@@ -2645,7 +2748,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                         "gastroduodenal junction along the greater curvature on luminal surface",
                         "gastroduodenal junction along the lesser curvature on luminal surface",
                         "body-antrum junction along the greater curvature on luminal surface",
-                        "limiting ridge along the greater curvature on luminal surface" if limitingRidge else
+                        "limiting ridge at the greater curvature on the luminal surface" if limitingRidge else
                         "fundus-body junction along the greater curvature on luminal surface"]]
         if elementsCountThroughWall == 4:
             markerNames.append(
@@ -2654,15 +2757,17 @@ class MeshType_3d_stomach1(Scaffold_base):
                  "gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface",
                  "gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface",
                  "body-antrum junction along the greater curvature on circular-longitudinal muscle interface",
-                 "limiting ridge along the greater curvature on circular-longitudinal muscle interface" if limitingRidge
+                 "limiting ridge at the greater curvature on the circular-longitudinal muscle interface" if limitingRidge
                  else "fundus-body junction along the greater curvature on circular-longitudinal muscle interface"])
         markerNames.append(["esophagogastric junction along the greater curvature on serosa",
                             "esophagogastric junction along the lesser curvature on serosa",
                             "gastroduodenal junction along the greater curvature on serosa",
                             "gastroduodenal junction along the lesser curvature on serosa",
                             "body-antrum junction along the greater curvature on serosa",
-                            "limiting ridge along the greater curvature on serosa" if limitingRidge else
-                            "fundus-body junction along the greater curvature on serosa"])
+                            "limiting ridge at the greater curvature on serosa" if limitingRidge else
+                            "fundus-body junction along the greater curvature on serosa",
+                            "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
+                            "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"])
 
         markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
                                          stomachStartElement - (elementsCountThroughWall - 1) * elementsCountAroundEso -
@@ -2674,7 +2779,9 @@ class MeshType_3d_stomach1(Scaffold_base):
                                          elementsAroundHalfDuod,
                                          lastDuodenumElementIdentifier - elementsCountThroughWall *
                                          elementsCountAroundDuod * (sum(elementsCountAlongGroups[-3:]) + 1),
-                                         fundusBodyJunctionInnerElementIdentifier]
+                                         fundusBodyJunctionInnerElementIdentifier,
+                                         elementsCountAroundEso * (elementsCountThroughWall - 1) + 1,
+                                         elementsCountAroundEso * elementsCountThroughWall - elementsAroundHalfEso + 1]
 
         elementsCountAroundLayer = [elementsCountAroundEso, elementsCountAroundEso,
                                     elementsCountAroundDuod, elementsCountAroundDuod,
@@ -2684,13 +2791,18 @@ class MeshType_3d_stomach1(Scaffold_base):
             for n in range(len(markerNames[n3])):
                 markerGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region,
                                                                  get_stomach_term(markerNames[n3][n]))
-                markerElementIdentifier = \
-                    markerInnerElementIdentifiers[n] + \
-                    (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
-                                                                        (elementsCountThroughWall - 1))
+                if n < 6:
+                    markerElementIdentifier = \
+                        markerInnerElementIdentifiers[n] + \
+                        (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
+                                                                            (elementsCountThroughWall - 1))
+                    markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 \
+                        else [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
+                else:
+                    markerElementIdentifier = markerInnerElementIdentifiers[n]
+                    markerXi = [0.0, 0.0, 1.0]
                 markerElement = mesh.findElementByIdentifier(markerElementIdentifier)
-                markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 else \
-                    [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
+
                 cache.setMeshLocation(markerElement, markerXi)
                 markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
                 nodeIdentifier += 1
@@ -2733,6 +2845,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 nodesOnSplitMargin.append(nodeIdxOnLCMargin)
                 nodesOnLCMargin.append(nodeIdxOnLCMargin)
         nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
+        allNodesOnLC = nodesOnLCMargin + nodeIdxLC
 
         splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
         splitNodetemplate1 = nodes.createNodetemplate()
@@ -2799,6 +2912,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             node = nodeIter.next()
 
+        nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
+        
         elementIter = mesh.createElementiterator()
         element = elementIter.next()
         splitElementtemplate1 = mesh.createElementtemplate()
@@ -2816,6 +2931,10 @@ class MeshType_3d_stomach1(Scaffold_base):
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)
             nodeIdentifiers = get_element_node_identifiers(element, eft)
+            for n in range(len(nodeIdentifiers)):
+                if nodeIdentifiers[n] in allNodesOnLC:
+                    nearLCGroup.getMeshGroup(mesh).addElement(element)
+                    break
             elementId = element.getIdentifier()
             marginDorsal = False
             for n in range(len(nodeIdentifiers)):
@@ -2862,6 +2981,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             element = elementIter.next()
 
+        allAnnotationGroups.append(nearLCGroup)
+
         fm.endChange()
 
         return allAnnotationGroups
@@ -2905,6 +3026,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
         esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
+                                                ("elements adjacent to lesser curvature", "None"))
 
         # Create new groups
         stomachLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -2955,10 +3078,23 @@ class MeshType_3d_stomach1(Scaffold_base):
         is_gastroduod = fm.createFieldAnd(duodenumGroup.getGroup(), pylorusGroup.getGroup())
         gastroduodenalJunctionGroup.getMeshGroup(mesh2d).addElementsConditional(is_gastroduod)
 
+        is_dorsal = dorsalStomachGroup.getGroup()
+        is_ventral = ventralStomachGroup.getGroup()
+        is_curvatures = fm.createFieldAnd(is_dorsal, is_ventral)
+
+        is_nearLC = nearLCGroup.getGroup()
+        is_lesserCurvature = fm.createFieldAnd(is_curvatures, is_nearLC)
+        lesserCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_stomach_term("lesser curvature of stomach"))
+        lesserCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_lesserCurvature)
+
+        is_nearGC = fm.createFieldNot(is_nearLC)
+        is_greaterCurvature = fm.createFieldAnd(is_curvatures, is_nearGC)
+        greaterCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_stomach_term("greater curvature of stomach"))
+        greaterCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_greaterCurvature)
+
         if elementsCountThroughWall == 4:
-            is_dorsal = dorsalStomachGroup.getGroup()
-            is_ventral = ventralStomachGroup.getGroup()
-            is_curvatures = fm.createFieldAnd(is_dorsal, is_ventral)
             CMLMInterfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                 "circular-longitudinal muscle interface of stomach"))
             circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
@@ -2969,6 +3105,9 @@ class MeshType_3d_stomach1(Scaffold_base):
             is_LM = longitudinalMuscleGroup.getGroup()
             is_CMLMInterface = fm.createFieldAnd(is_CM, is_LM)
             CMLMInterfaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_CMLMInterface)
+            is_curvatures_CMLM = fm.createFieldAnd(is_curvatures, is_CMLMInterface)
+            is_greaterCurvature_CMLM = fm.createFieldAnd(is_greaterCurvature, is_CMLMInterface)
+            is_lesserCurvature_CMLM = fm.createFieldAnd(is_lesserCurvature, is_CMLMInterface)
 
             dorsalStomach_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                 "circular-longitudinal muscle interface of dorsal stomach"))
@@ -2984,29 +3123,36 @@ class MeshType_3d_stomach1(Scaffold_base):
             is_gastroduod_CMLM = fm.createFieldAnd(is_gastroduod, is_CMLMInterface)
             gastroduod_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_gastroduod_CMLM)
 
-            is_curvatures_CMLM = fm.createFieldAnd(is_curvatures, is_CMLMInterface)
             bodyCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
             duodenumCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of duodenum along the gastric-omentum attachment"))
+                    "circular-longitudinal muscle interface of first segment of the duodenum along the "
+                    "gastric-omentum attachment"))
             esoCurvaturesCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of esophagus along the cut margin"))
             fundusCurvaturesCMLMGroup =\
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of fundus of stomach along the gastric-omentum attachment"))
-            antrumCurvaturesCMLMGroup = \
+                    "circular-longitudinal muscle interface of fundus of stomach along the greater curvature"))
+            antrumGreaterCurvatureCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of pyloric antrum along the gastric-omentum attachment"))
-            pylorusCurvaturesCMLMGroup = \
+                    "circular-longitudinal muscle interface of pyloric antrum along the greater curvature"))
+            antrumLesserCurvatureCMLMGroup = \
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of pyloric canal along the gastric-omentum attachment"))
+                    "circular-longitudinal muscle interface of pyloric antrum along the lesser curvature"))
+            pylorusGreaterCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric canal along the greater curvature"))
+            pylorusLesserCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric canal along the lesser curvature"))
 
             sectionCurvaturesCMLMGroups = [None, bodyCurvaturesCMLMGroup, None, duodenumCurvaturesCMLMGroup,
-                                           esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup, antrumCurvaturesCMLMGroup,
-                                           pylorusCurvaturesCMLMGroup]
+                                           esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup,
+                                           antrumGreaterCurvatureCMLMGroup, pylorusGreaterCurvatureCMLMGroup,
+                                           antrumLesserCurvatureCMLMGroup, pylorusLesserCurvatureCMLMGroup]
 
         sectionGroups = [stomachGroup, bodyGroup, cardiaGroup, duodenumGroup, esoGroup, fundusGroup, antrumGroup,
                          pylorusGroup]
@@ -3025,9 +3171,19 @@ class MeshType_3d_stomach1(Scaffold_base):
             sectionLuminalGroups[i].getMeshGroup(mesh2d).addElementsConditional(is_sectionLuminal)
 
             if elementsCountThroughWall == 4:
-                is_sectionCurvaturesCMLM = fm.createFieldAnd(is_section, is_curvatures_CMLM)
-                if sectionCurvaturesCMLMGroups[i]:
-                    sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d).addElementsConditional(is_sectionCurvaturesCMLM)
+                if sectionGroups[i] is antrumGroup or sectionGroups[i] is pylorusGroup:
+                    is_sectionGreaterCurvatureCMLM = fm.createFieldAnd(is_section, is_greaterCurvature_CMLM)
+                    is_sectionLesserCurvatureCMLM = fm.createFieldAnd(is_section, is_lesserCurvature_CMLM)
+                    if sectionCurvaturesCMLMGroups[i]:
+                        sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionGreaterCurvatureCMLM)
+                        sectionCurvaturesCMLMGroups[i+2].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionLesserCurvatureCMLM)
+                else:
+                    is_sectionCurvaturesCMLM = fm.createFieldAnd(is_section, is_curvatures_CMLM)
+                    if sectionCurvaturesCMLMGroups[i]:
+                        sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionCurvaturesCMLM)
 
         if limitingRidge:
             limitingRidgeGroup = \
@@ -3094,6 +3250,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     "limiting ridge on circular-longitudinal muscle interface"))
                 is_limitingRidgeCMLM = fm.createFieldAnd(is_CMLMInterface, is_limitingRidge)
                 limitingRidge_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeCMLM)
+
+        annotationGroups.remove(nearLCGroup)
 
 
 def findClosestPositionAndDerivativeOnTrackSurface(x, nx, trackSurface, nxProportion1, elementsCountAlongTrackSurface):

@@ -74,7 +74,7 @@ class BifurcationMesh:
         self.generateNodes(nodes, fieldmodule, coordinates, bottom_part)
         self.generateElements(mesh, fieldmodule, coordinates, bottom_part)
 
-        shoulder_part = BaseLeg(self._elementsCount, nodeparams2)
+        shoulder_part = BaseLeg(self._elementsCount, nodeparams2, shoulder=True)
         shoulder_part._shoulder = True
         self.remove_duplicate_nodes_from_shoulder(shoulder_part)
         self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part)
@@ -205,7 +205,7 @@ class BifurcationMesh:
         kv = [0.0, 1.0, 0.0]
         cv = [self.right_arm_length, 0.0, 0.0]
         cev = vector.rotateVectorAroundVector(cv, kv, self.right_arm_angle)
-        ce = vector.addVectors([cev, [0.0, 0.0, self.shoulder_height]], [1, 1])
+        ce = vector.addVectors([cev, x_shoulder_base_centre], [1, 1])
         x_shoulder_end_centre = ce
         # x_shoulder_end_curve1 = [1.7, 0.0, self.shoulder_height - self.left_arm_radius]
         x_shoulder_end_curve1 = vector.addVectors([ce, vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius)], [1, 1])
@@ -214,6 +214,13 @@ class BifurcationMesh:
         # d1_shoulder_end_curve1 = [[0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]]]
         d1_shoulder_end_curve1 = [vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius/self._elementsCount[1]),
                                   vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius/self._elementsCount[1])]
+        print(vector.addVectors([x_shoulder_end_curve1, x_shoulder_end_centre], [1, -1]),
+              cev, vector.dotproduct(vector.addVectors([x_shoulder_end_curve1, x_shoulder_end_centre], [1, -1]), cev))
+        print(vector.addVectors([x_shoulder_end_curve1, x_shoulder_end_centre], [1, -1]),
+              vector.addVectors([x_shoulder_end_centre, x_shoulder_base_centre], [1, -1]),
+              vector.dotproduct(vector.addVectors([x_shoulder_end_curve1, x_shoulder_end_centre], [1, -1]),
+                                vector.addVectors([x_shoulder_end_centre, x_shoulder_base_centre], [1, -1])))
+        print(vector.dotproduct([0.1888589, 0.0, 0.98200], cev))
         d1_shoulder_end_curve2 = [[0.0, self.left_arm_radius / self._elementsCount[0], 0.0], [0.0, self.left_arm_radius / self._elementsCount[0], 0.0]]
 
         nodeparams2 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
@@ -1132,7 +1139,7 @@ class BaseLeg:
     """
     Base case for creating a child
     """
-    def __init__(self, elementsCount, nodeparams):
+    def __init__(self, elementsCount, nodeparams, shoulder=False):
         """
 
         :param fieldmodule:
@@ -1172,9 +1179,15 @@ class BaseLeg:
 
         n, d = geometry.get_plane_normal_vector_and_distance(nodeparams[0][0], nodeparams[0][2], nodeparams[1][0])
         plane = [n[0], n[1], n[2], d]
-        mirror = Mirror(plane)
+        mirrore = Mirror(plane)
+        if shoulder:
+            mirror0 = Mirror([0.0, 0.0, -1.0, -2.2])
         for n2 in range(elementsCount[1]+1):
             for n3 in range(elementsCount[2]+1):
+                if shoulder and n3 == 0:
+                    mirror = mirror0
+                else:
+                    mirror = mirrore
                 for n1 in range(elementsCount[0]//2+1, elementsCount[0]+1):
                     n3q = n3
                     n2q = n2
@@ -1188,6 +1201,46 @@ class BaseLeg:
                             self.pd1[n3][n2][n1] = mirror.mirrorVector(self.pd1[n3q][n2q][n1q])
                             self.pd3[n3][n2][n1] = mirror.reverseMirrorVector(self.pd3[n3q][n2q][n1q])
                         self.pd2[n3][n2][n1] = mirror.mirrorVector(self.pd2[n3q][n2q][n1q])
+
+        # sample in between ellipses
+        sample_ellipse = True
+        btx = self.px
+        btd1 = self.pd1
+        btd2 = self.pd2
+        btd3 = self.pd3
+        elementsCountOut = 2
+        if sample_ellipse:
+            for n2 in range(elementsCount[1] + 1):
+                for n1 in range(elementsCount[0] + 1):
+                    if btx[0][n2][n1]:
+                        tx, td2, pe, pxi, psf = sampleCubicHermiteCurves(
+                            [btx[0][n2][n1], btx[self._elementsCount[2]][n2][n1]],
+                            [btd2[0][n2][n1], btd2[self._elementsCount[2]][n2][n1]],
+                            elementsCountOut)
+                        td1 = interpolateSampleCubicHermite(
+                            [btd1[0][n2][n1], btd1[self._elementsCount[2]][n2][n1]],
+                            [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
+                        td3 = interpolateSampleCubicHermite(
+                            [btd3[0][n2][n1], btd3[self._elementsCount[2]][n2][n1]],
+                            [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
+
+                        for n3 in range(1, self._elementsCount[2]):
+                            n3i = n3
+                            self.px[n3][n2][n1] = tx[n3i]
+                            self.pd1[n3][n2][n1] = td1[n3i]
+                            self.pd2[n3][n2][n1] = td2[n3i]
+                            self.pd3[n3][n2][n1] = td3[n3i]
+
+        else:
+            for n3 in range(1, self._elementsCount[2]):
+                centre = txcc1[n3]
+                txc1, td1c1 = self.generate1DPath([centre, txec1[n3]], [[-c for c in tdlcc1[n3]], tdlec1[n3]],
+                                                  self._elementsCount[0])
+                txc2, td1c2 = self.generate1DPath([centre, txec2[n3]], [[-c for c in tdlcc2[n3]], tdlec2[n3]],
+                                                  self._elementsCount[1])
+                ellipse = self.generateSurfaceUsingTwoCurves(centre, txc1, td1c1, txc2, td1c2)
+
+                self.copyEllipseNodesToBifurcation(ellipse, n3)
         self._elementsCount = elementsCount
 
     def generateBaseLeg(self, nodeparams):
@@ -1233,6 +1286,8 @@ class BaseLeg:
         btd1 = self.pd1
         btd2 = self.pd2
         btd3 = self.pd3
+
+        sample_ellipse = True
         # generate the armpit curves.
         elementsCountOut = 2
         txcc1, td1cc1, pec, pxic, psfc = sampleCubicHermiteCurves([btx[0][self._elementsCount[1]][self._elementsCount[0]],
@@ -1260,12 +1315,41 @@ class BaseLeg:
                                                 btd3[self._elementsCount[2]][0][self._elementsCount[0]]],
                                                [[0.0, 0.0, 0.0]] * 2, pec2, pxic2, psfc2)[0]
 
-        for n3 in range(1, self._elementsCount[2]):
-            centre = txcc1[n3]
-            txc1, td1c1 = self.generate1DPath([centre, txec1[n3]], [[-c for c in tdlcc1[n3]], tdlec1[n3]], self._elementsCount[0])
-            txc2, td1c2 = self.generate1DPath([centre, txec2[n3]], [[-c for c in tdlcc2[n3]], tdlec2[n3]], self._elementsCount[1])
-            ellipse = self.generateSurfaceUsingTwoCurves(centre, txc1, td1c1, txc2, td1c2)
-            self.copyEllipseNodesToBifurcation(ellipse, n3)
+
+        # sample in between ellipses
+        if sample_ellipse:
+            for n2 in range(self._elementsCount[1] + 1):
+                for n1 in range(self._elementsCount[0] + 1):
+                    if btx[0][n2][n1]:
+                        tx, td2, pe, pxi, psf = sampleCubicHermiteCurves(
+                            [btx[0][n2][n1], btx[self._elementsCount[2]][n2][n1]],
+                            [btd2[0][n2][n1], btd2[self._elementsCount[2]][n2][n1]],
+                            elementsCountOut)
+                        td1 = interpolateSampleCubicHermite(
+                            [btd1[0][n2][n1], btd1[self._elementsCount[2]][n2][n1]],
+                            [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
+                        td3 = interpolateSampleCubicHermite(
+                            [btd3[0][n2][n1], btd3[self._elementsCount[2]][n2][n1]],
+                            [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
+
+                        for n3 in range(1, self._elementsCount[2]):
+                            n3i = n3
+                            self.px[n3][n2][n1] = tx[n3i]
+                            self.pd1[n3][n2][n1] = td1[n3i]
+                            self.pd2[n3][n2][n1] = td2[n3i]
+                            self.pd3[n3][n2][n1] = td3[n3i]
+
+        else:
+            for n3 in range(1, self._elementsCount[2]):
+                centre = txcc1[n3]
+                txc1, td1c1 = self.generate1DPath([centre, txec1[n3]], [[-c for c in tdlcc1[n3]], tdlec1[n3]],
+                                                  self._elementsCount[0])
+                txc2, td1c2 = self.generate1DPath([centre, txec2[n3]], [[-c for c in tdlcc2[n3]], tdlec2[n3]],
+                                                  self._elementsCount[1])
+                ellipse = self.generateSurfaceUsingTwoCurves(centre, txc1, td1c1, txc2, td1c2)
+
+                self.copyEllipseNodesToBifurcation(ellipse, n3)
+
 
     def smoothd2(self):
         """
@@ -1286,7 +1370,9 @@ class BaseLeg:
                         nx.append(btx[n3][n2][n1])
                         nd1.append(btd2[n3][n2][n1])
                     td2 = smoothCubicHermiteDerivativesLine(nx, nd1)
-                    for n3 in range(self._elementsCount[2] + 1):
+                    # if we modify d2 here then it would not be exactly orthogonal to d1 and d3. This makes d2 not
+                    # be normal to plane
+                    for n3 in range(self._elementsCount[2]+1):
                         btd2[n3][n2][n1] = td2[n3]
 
     def generate1DPath(self, nx, nd1, elementsCountOut):
@@ -1362,6 +1448,7 @@ class BaseLeg:
         rscx, rscd1, rscd2, rscd3 = ellipse.createMirrorCurve()
         ellipse.createRegularRowCurves(ellipse.px[:self._elementsCount[1]+1][self._elementsCount[0]], rscd1, rscd3)
         ellipse.createRegularColumnCurves()
+        ellipse.px[self._elementsCount[1]][self._elementsCount[0]] = txc1[0]
         shield.getTriplePoints(0)
         ellipse.smoothTriplePointsCurves()
         ellipse.smoothTransitionRims()

@@ -60,7 +60,8 @@ class SphereMesh:
         self._radius = [vector.magnitude(axis) for axis in axes]
         self._coreRadius = []
         self._shield = None
-        self._elementsCount = elementsCountAcross
+        self._elementsCount = [ec - 2 * elementsCountAcrossShell for ec in elementsCountAcross]
+        self._elementsCount_total = elementsCountAcross
         self._elementsCountAcrossShell = elementsCountAcrossShell
         self._elementsCountAcrossTransition = elementsCountAcrossTransition
         self._elementsCountAcrossRim = self._elementsCountAcrossShell + self._elementsCountAcrossTransition - 1
@@ -82,9 +83,10 @@ class SphereMesh:
         self._shield3D = None
 
         for i in range(3):
-            elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - shellProportion)
+            # Make a sphere of radius 1 first, then add the shell layers on top of it and resize it back to R=1.0
+            elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - 1.0)
             self._coreRadius.append(
-                (1 - shellProportion * elementsCountAcrossShell / elementsAxis) * self._radius[i])
+                (1 - 1.0 * elementsCountAcrossShell / elementsAxis) * self._radius[i])
 
         # generate the mesh
         self.createSphereMesh3d(fieldModule, coordinates)
@@ -125,9 +127,7 @@ class SphereMesh:
         nodes = fieldModule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldModule.findMeshByDimension(3)
 
-        elementsCountAcrossShell = self._elementsCountAcrossShell
         elementsCountAcrossTransition = self._elementsCountAcrossTransition
-        shellProportion = self._shellProportion
 
         # order of octants is important because common nodes will overwrite
         OctantVariationsAll = [SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPN, SphereShape.SPHERESHIELD_SHAPE_OCTANT_PNN,
@@ -142,15 +142,18 @@ class SphereMesh:
         else:
             OctantVariationsType = OctantVariationsAll
 
+        # Make a sphere of radius 1 first, then add the shell layers on top of it and resize it back to R=1.0
         for octantType in OctantVariationsType:
             axes, elementsCountAcross, boxDerivatives = self.get_octant_axes_and_elements_count(octantType)
             octant = OctantMesh(self._centre, axes, elementsCountAcross,
-                                elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
+                                0, elementsCountAcrossTransition, 1.0,
                                 sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP,
                                 useCrossDerivatives=False, boxDerivatives=boxDerivatives)
             self.copy_octant_nodes_to_sphere_shield(octant, octantType)
 
         self.modify_octant_common_nodes()
+        if self._elementsCountAcrossShell > 0:
+            self.add_shell_layers()
         self.sphere_to_spheroid()
 
         self.generateNodes(nodes, fieldModule, coordinates)
@@ -329,6 +332,80 @@ class SphereMesh:
             btd1[n3z][n2z//2][n1z//2] = btd2[n3z][n2z//2][n1z//2]
             btd2[n3z][n2z//2][n1z//2] = [-c for c in temp]
 
+    def add_shell_layers(self):
+        """
+        Add shell layers on top of the sphere. Calculates shell element thickness using shell proportion and adds
+        shell elements. Note that Radius without the shell elements is 1.0. R= 1.0 + thickness X number of shell layers.
+        :return:
+        """
+
+        def on_sphere(n3, n2, n1):
+            """
+            Check if the given point is on the sphere.
+            :param n3, n2, n1: node indexes in data structure [n3][n2][n1]
+            :return: True, if it is on the sphere.
+            """
+            n3z = self._elementsCount[2]
+            n2z = self._elementsCount[0]
+            n1z = self._elementsCount[1]
+
+            x = self._shield3D.px
+
+            return (n3 == n3z or n3 == 0 or n2 == 0 or n2 == n2z or n1 == 0 or n1 == n1z) and x[n3][n2][n1]
+
+        shield3D_with_shell = ShieldMesh3D(self._elementsCount_total, self._elementsCountAcrossShell,
+                                           box_derivatives=self._boxDerivatives)
+
+        btx = self._shield3D.px
+        btd1 = self._shield3D.pd1
+        btd2 = self._shield3D.pd2
+        btd3 = self._shield3D.pd3
+
+        shell_proportion = self._shellProportion
+        thickness = [2*1.0/ne * shell_proportion for ne in self._elementsCount]
+        elementsCountShell = self._elementsCountAcrossShell
+
+        for n3 in range(self._elementsCount[2] + 1):
+            for n2 in range(self._elementsCount[0] + 1):
+                for n1 in range(self._elementsCount[1] + 1):
+                    # new numbering due to introducing shell layers
+                    n3n, n2n, n1n = n3 + elementsCountShell, n2 + elementsCountShell, n1 + elementsCountShell
+                    # generate rim/shell nodes. Note, sphere radius without shell is 1.0. To keep it 1.0 after adding
+                    # shell elements, we need to shrink it back. See ratio in sphere_to_spheroid.
+                    if on_sphere(n3, n2, n1):
+                        for n in range(elementsCountShell):
+                            n3s, n2s, n1s = n3n, n2n, n1n
+                            nl = n + 1
+                            if n3 == 0:
+                                n3s = elementsCountShell - nl
+                            if n2 == 0:
+                                n2s = elementsCountShell - nl
+                            if n1 == 0:
+                                n1s = elementsCountShell - nl
+                            if n3 == self._elementsCount[2]:
+                                n3s = n3n + nl
+                            if n2 == self._elementsCount[0]:
+                                n2s = n2n + nl
+                            if n1 == self._elementsCount[1]:
+                                n1s = n1n + nl
+
+                            shield3D_with_shell.px[n3s][n2s][n1s] =\
+                                [(1 + nl * thickness[c]) * btx[n3][n2][n1][c] for c in range(3)]
+                            shield3D_with_shell.pd1[n3s][n2s][n1s] = \
+                                [(1 + nl * thickness[c]) * btd1[n3][n2][n1][c] for c in range(3)]
+                            shield3D_with_shell.pd2[n3s][n2s][n1s] =\
+                                [(1 + nl * thickness[c]) * btd2[n3][n2][n1][c] for c in range(3)]
+                            shield3D_with_shell.pd3[n3s][n2s][n1s] =\
+                                [shell_proportion * btd3[n3][n2][n1][c] for c in range(3)]
+                    # Add the rest of the nodes.
+                    if btx[n3][n2][n1]:
+                        shield3D_with_shell.px[n3n][n2n][n1n] = btx[n3][n2][n1]
+                        shield3D_with_shell.pd1[n3n][n2n][n1n] = btd1[n3][n2][n1]
+                        shield3D_with_shell.pd2[n3n][n2n][n1n] = btd2[n3][n2][n1]
+                        shield3D_with_shell.pd3[n3n][n2n][n1n] = btd3[n3][n2][n1]
+
+        self._shield3D = shield3D_with_shell
+
     def sphere_to_spheroid(self):
         """
         Using the radius in each direction,transform the sphere to ellipsoid.
@@ -339,14 +416,16 @@ class SphereMesh:
         btd2 = self._shield3D.pd2
         btd3 = self._shield3D.pd3
 
-        for n3 in range(self._elementsCount[2] + 1):
-            for n2 in range(self._elementsCount[0] + 1):
-                for n1 in range(self._elementsCount[1] + 1):
+        ratio = [1/(1 + 2/ne * self._shellProportion * self._elementsCountAcrossShell) for ne in self._elementsCount]
+
+        for n3 in range(self._elementsCount_total[2] + 1):
+            for n2 in range(self._elementsCount_total[0] + 1):
+                for n1 in range(self._elementsCount_total[1] + 1):
                     if btx[n3][n2][n1]:
-                        btx[n3][n2][n1] = [self._radius[c] * btx[n3][n2][n1][c] for c in range(3)]
-                        btd1[n3][n2][n1] = [self._radius[c] * btd1[n3][n2][n1][c] for c in range(3)]
-                        btd2[n3][n2][n1] = [self._radius[c] * btd2[n3][n2][n1][c] for c in range(3)]
-                        btd3[n3][n2][n1] = [self._radius[c] * btd3[n3][n2][n1][c] for c in range(3)]
+                        btx[n3][n2][n1] = [ratio[c] * self._radius[c] * btx[n3][n2][n1][c] for c in range(3)]
+                        btd1[n3][n2][n1] = [ratio[c] * self._radius[c] * btd1[n3][n2][n1][c] for c in range(3)]
+                        btd2[n3][n2][n1] = [ratio[c] * self._radius[c] * btd2[n3][n2][n1][c] for c in range(3)]
+                        btd3[n3][n2][n1] = [ratio[c] * self._radius[c] * btd3[n3][n2][n1][c] for c in range(3)]
 
     def generateNodes(self, nodes, fieldModule, coordinates):
         """
@@ -414,9 +493,9 @@ class OctantMesh:
         self._shield3D = None
 
         for i in range(3):
-            elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - shellProportion)
+            elementsAxis = elementsCountAcross[i] - elementsCountAcrossShell * (1 - 1.0)
             self._coreRadius.append(
-                (1 - shellProportion * elementsCountAcrossShell / elementsAxis) * self._radius[i])
+                (1 - 1.0 * elementsCountAcrossShell / elementsAxis) * self._radius[i])
 
         # generate the mesh
         self.createOctantMesh3d()
