@@ -37,7 +37,7 @@ from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
 
 
-class MeshType_3d_stomach1(Scaffold_base):
+class MeshType_3d_stomach2(Scaffold_base):
     """
     Generates a 3-D stomach mesh with variable numbers of elements around the esophagus and duodenum,
     along the central line, and through wall. The stomach is created using a central path as the longitudinal axis
@@ -404,7 +404,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '3D Stomach 1'
+        return '3D Stomach 2'
 
     @staticmethod
     def getParameterSetNames():
