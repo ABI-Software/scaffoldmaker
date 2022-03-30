@@ -72,10 +72,10 @@ class HeartScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 36508.985114306226, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 36497.828754581264, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 221285.56778831664, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 221275.23964745103, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {

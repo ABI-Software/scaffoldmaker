@@ -13,7 +13,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
+from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
@@ -307,10 +307,10 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
         conusArteriosusGroup = AnnotationGroup(region, get_heart_term("conus arteriosus"))
-        annotationGroups += [ conusArteriosusGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
+        annotationGroups += [conusArteriosusGroup, lFibrousRingGroup, rFibrousRingGroup]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -1405,3 +1405,61 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         New face annotation groups are appended to this list.
         """
         MeshType_3d_heartventricles1.defineFaceAnnotations(region, options, annotationGroups)
+
+        fm = region.getFieldmodule()
+        lFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right fibrous ring"))
+        if (lFibrousRingGroup.getDimension() == 0) or (lFibrousRingGroup.getDimension() == 0):
+            # not already added by full heart scaffold
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            lFibrousRingNodeGroup = lFibrousRingGroup.getNodesetGroup(nodes)
+            rFibrousRingNodeGroup = rFibrousRingGroup.getNodesetGroup(nodes)
+            # make temp group containing all elements, faces etc. if have any nodes in fibrous ring groups
+            tmpGroup = fm.createFieldGroup()
+            tmpGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+            mesh3d = fm.findMeshByDimension(3)
+            tmp3dMeshGroup = tmpGroup.createFieldElementGroup(mesh3d).getMeshGroup()
+            coordinates = fm.findFieldByName("coordinates").castFiniteElement()
+            elementIter = mesh3d.createElementiterator()
+            element = elementIter.next()
+            while element.isValid():
+                eft = element.getElementfieldtemplate(coordinates, -1)
+                if eft.isValid():
+                    for n in range(eft.getNumberOfLocalNodes()):
+                        node = element.getNode(eft, n + 1)
+                        if lFibrousRingNodeGroup.containsNode(node) or rFibrousRingNodeGroup.containsNode(node):
+                            tmp3dMeshGroup.addElement(element)
+                            break
+                element = elementIter.next()
+            mesh2d = fm.findMeshByDimension(2)
+            tmp2dElementGroup = tmpGroup.getFieldElementGroup(mesh2d)
+            if tmp2dElementGroup.isValid():
+                lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
+                rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
+                is_lv = lvGroup.getFieldElementGroup(mesh2d)
+                is_rv = rvGroup.getFieldElementGroup(mesh2d)
+                is_exterior = fm.createFieldIsExterior()
+                is_face_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
+                is_face_xi2_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0)
+                is_face_xi2_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1)
+                is_face_xi1_0_or_xi2_1 = fm.createFieldOr(is_face_xi1_0, is_face_xi2_1)
+                is_exterior_face_xi1_0_or_xi2_1 = fm.createFieldAnd(is_exterior, is_face_xi1_0_or_xi2_1)
+                is_face_xi2_0_or_xi2_1 = fm.createFieldOr(is_face_xi2_0, is_face_xi2_1)
+                is_exterior_face_xi2_0_or_xi2_1 = fm.createFieldAnd(is_exterior, is_face_xi2_0_or_xi2_1)
+                is_left_fibrous_ring = fm.createFieldAnd(
+                    is_lv, fm.createFieldAnd(tmp2dElementGroup, is_exterior_face_xi2_0_or_xi2_1))
+                lFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_left_fibrous_ring)
+                is_right_fibrous_ring = fm.createFieldAnd(
+                    is_rv, fm.createFieldAnd(tmp2dElementGroup, is_exterior_face_xi1_0_or_xi2_1))
+                rFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_right_fibrous_ring)
+                # hacky correction around LV outflow
+                size = tmp3dMeshGroup.getSize()
+                elementIter = tmp3dMeshGroup.createElementiterator()
+                identifiers = []
+                for i in range(size - 8):
+                    element = elementIter.next()
+                    identifiers.append(element.getIdentifier())
+                for identifier in identifiers:
+                    tmp3dMeshGroup.removeElement(mesh3d.findElementByIdentifier(identifier))
+                is_lv_outflow = fm.createFieldAnd(tmp2dElementGroup, is_face_xi2_1)
+                lFibrousRingGroup.getMeshGroup(mesh2d).removeElementsConditional(is_lv_outflow)
