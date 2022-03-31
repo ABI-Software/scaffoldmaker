@@ -19,7 +19,11 @@ from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFac
 from opencmiss.zinc.element import Element
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
+from scaffoldmaker.utils.shieldmesh import ShieldMesh3D
+
 
 
 class BifurcationMesh:
@@ -28,7 +32,10 @@ class BifurcationMesh:
     """
 
     def __init__(self, fieldModule, coordinates, region, torso_radius, left_arm_radius, right_arm_radius, neck_radius,
-                 shoulder_height, neck_height, right_arm_angle, right_arm_length):
+                 shoulder_height, neck_height, right_arm_angle, left_arm_angle, right_shoulder_length,
+                 right_arm_length, rightArmNumberOfElements, righ_wrist_radius, neck_radius2, neck_length,
+                 neck_number_of_elements, head_length, head_number_of_elements, head_radius, armpit,
+                 lower_torso_length, lower_torso_number_of_elements, lower_torso_radii):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -42,10 +49,24 @@ class BifurcationMesh:
         self.left_arm_radius = left_arm_radius
         self.right_arm_radius = right_arm_radius
         self.neck_radius = neck_radius
+        self.neck_radius2 = neck_radius2
+        self.neck_length = neck_length
+        self.head_length = head_length
+        self.head_number_of_elements = head_number_of_elements
+        self.head_radius = head_radius
+        self.neck_number_of_elements = neck_number_of_elements
         self.shoulder_height = shoulder_height
         self.neck_height = neck_height
         self.right_arm_angle = right_arm_angle
+        self.left_arm_angle = left_arm_angle
+        self.right_shoulder_length = right_shoulder_length
         self.right_arm_length = right_arm_length
+        self.rightArmNumberOfElements = rightArmNumberOfElements
+        self.righ_wrist_radius = righ_wrist_radius
+        self.armpit = armpit
+        self.lower_torso_length = lower_torso_length
+        self.lower_torso_number_of_elements = lower_torso_number_of_elements
+        self.lower_torso_radii = lower_torso_radii
 
 
         self.createBifurcationMesh3d(fieldModule, coordinates)
@@ -70,27 +91,31 @@ class BifurcationMesh:
 
         nodeparams1, nodeparams2, nodeparams3, nodeparams4 = self._get_node_params()
 
-        bottom_part = BaseLeg(self._elementsCount, nodeparams1)
-        self.generateNodes(nodes, fieldmodule, coordinates, bottom_part)
-        self.generateElements(mesh, fieldmodule, coordinates, bottom_part)
+        torso_upper_part = BaseLeg(self._elementsCount, nodeparams1)
+        self.generateNodes(nodes, fieldmodule, coordinates, torso_upper_part)
+        self.generateElements(mesh, fieldmodule, coordinates, torso_upper_part)
 
+<<<<<<< HEAD
         shoulder_part = BaseLeg(self._elementsCount, nodeparams2)
+=======
+        shoulder_part = BaseLeg(self._elementsCount, nodeparams2, shoulder_right=True)
+>>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
         shoulder_part._shoulder = True
         self.remove_duplicate_nodes_from_shoulder(shoulder_part)
         self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part)
-        self.join_shoulder_to_bottom_part(shoulder_part, bottom_part)
+        self.join_shoulder_to_bottom_part(shoulder_part, torso_upper_part)
         self.generateElements(mesh, fieldmodule, coordinates, shoulder_part)
 
         joining_box = JoiningBox([1, 4, 1], self.shoulder_height)
         self.generateNodes(nodes, fieldmodule, coordinates, joining_box)
-        self.join_box_to_bottom_and_shoulder(joining_box, bottom_part, shoulder_part)
+        self.join_box_to_bottom_and_shoulder(joining_box, torso_upper_part, shoulder_part)
         self.generateElements(mesh, fieldmodule, coordinates, joining_box)
 
-        shoulder_part_left = BaseLeg(self._elementsCount, nodeparams3)
+        shoulder_part_left = BaseLeg(self._elementsCount, nodeparams3, shoulder_left=True)
         shoulder_part_left._shoulder_left = True
         self.remove_duplicate_nodes_from_shoulder(shoulder_part_left, 1)
         self.generateNodes(nodes, fieldmodule, coordinates, shoulder_part_left)
-        self.join_shoulder_to_bottom_part(shoulder_part_left, bottom_part, 1)
+        self.join_shoulder_to_bottom_part(shoulder_part_left, torso_upper_part, 1)
         self.generateElements(mesh, fieldmodule, coordinates, shoulder_part_left)
 
         neck_part = BaseLeg(self._elementsCount, nodeparams4)
@@ -101,7 +126,7 @@ class BifurcationMesh:
         self.generateElements(mesh, fieldmodule, coordinates, neck_part)
 
 
-        joining_box_right = JoiningBoxRight([1, 4, 1], bottom_part, shoulder_part_left, joining_box)
+        joining_box_right = JoiningBoxRight([1, 4, 1], torso_upper_part, shoulder_part_left, joining_box)
         self.generateElements(mesh, fieldmodule, coordinates, joining_box_right)
 
         joining_box_3 = JoiningBox3([1, 4, 1], joining_box, neck_part)
@@ -109,6 +134,362 @@ class BifurcationMesh:
 
         joining_box_4 = JoiningBox4([1, 4, 1], joining_box_3, neck_part, joining_box_right)
         self.generateElements(mesh, fieldmodule, coordinates, joining_box_4)
+
+        csh = shoulder_part.px[-1][shoulder_part._elementsCount[1]//2][shoulder_part._elementsCount[0]//2]
+        d1sh = shoulder_part.pd2[-1][shoulder_part._elementsCount[1] // 2][shoulder_part._elementsCount[0] // 2]
+        d2sh = shoulder_part.pd1[-1][shoulder_part._elementsCount[1] // 2][shoulder_part._elementsCount[0] // 2]
+        d3sh = shoulder_part.pd3[-1][shoulder_part._elementsCount[1] // 2][shoulder_part._elementsCount[0] // 2]
+        d2sh = vector.setMagnitude(d2sh, -self.right_arm_radius)
+        d3sh = vector.setMagnitude(d3sh, self.right_arm_radius)
+        cw = vector.addVectors([csh, vector.setMagnitude(d1sh, self.right_arm_length)], [1, 1])
+        d1w = vector.setMagnitude(d1sh, self.right_arm_length/self.rightArmNumberOfElements)
+        d2w = vector.setMagnitude(d2sh, self.righ_wrist_radius)
+        d3w = vector.setMagnitude(d3sh, self.righ_wrist_radius)
+
+        centralPath = ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 1
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    [csh, d1sh, d2sh, [0.0, 0.0, 0.0], d3sh, [0.0, 0.0, 0.0]],
+                    [cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]],
+                ])
+        })
+
+        cylinderCentralPath = CylinderCentralPath(self._region, centralPath, self.rightArmNumberOfElements)
+
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
+
+        base = CylinderEnds(shoulder_part._elementsCount[1], shoulder_part._elementsCount[0], 0, 1, 1.0,
+                            csh, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+                            cylinderCentralPath.minorRadii[0])
+        right_arm_cylinder = CylinderMesh(fieldmodule, coordinates, self.rightArmNumberOfElements, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
+                                          rangeOfRequiredElementsAlong=[-1, -1])
+
+        right_arm_cylinder.generateNodes(nodes, fieldmodule, coordinates, [1, self.rightArmNumberOfElements + 1])
+
+        cylinder_shield = right_arm_cylinder._shield
+        for n2 in range(shoulder_part._elementsCount[1] + 1):
+            for n1 in range(shoulder_part._elementsCount[0] + 1):
+                cylinder_shield.nodeId[0][n2][n1] = shoulder_part.nodeId[-1][n2][n1]
+                cylinder_shield.px[0][n2][n1] = shoulder_part.px[-1][n2][n1]
+                cylinder_shield.pd1[0][n2][n1] = shoulder_part.pd1[-1][n2][n1]
+                cylinder_shield.pd2[0][n2][n1] = shoulder_part.pd2[-1][n2][n1]
+                cylinder_shield.pd3[0][n2][n1] = shoulder_part.pd3[-1][n2][n1]
+
+        right_arm_cylinder.generateElements(mesh, fieldmodule, coordinates)
+
+
+
+        csh = shoulder_part_left.px[-1][shoulder_part_left._elementsCount[1]//2][shoulder_part_left._elementsCount[0]//2]
+        d1sh = shoulder_part_left.pd2[-1][shoulder_part_left._elementsCount[1] // 2][shoulder_part_left._elementsCount[0] // 2]
+        d2sh = shoulder_part_left.pd1[-1][shoulder_part_left._elementsCount[1] // 2][shoulder_part_left._elementsCount[0] // 2]
+        d3sh = shoulder_part_left.pd3[-1][shoulder_part_left._elementsCount[1] // 2][shoulder_part_left._elementsCount[0] // 2]
+        d2sh = vector.setMagnitude(d2sh, -self.right_arm_radius)
+        d3sh = vector.setMagnitude(d3sh, self.right_arm_radius)
+        cw = vector.addVectors([csh, vector.setMagnitude(d1sh, self.right_arm_length)], [1, 1])
+        d1w = vector.setMagnitude(d1sh, self.right_arm_length/self.rightArmNumberOfElements)
+        d2w = vector.setMagnitude(d2sh, self.righ_wrist_radius)
+        d3w = vector.setMagnitude(d3sh, self.righ_wrist_radius)
+
+        centralPath = ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 1
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    [csh, d1sh, d2sh, [0.0, 0.0, 0.0], d3sh, [0.0, 0.0, 0.0]],
+                    [cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]],
+                ])
+        })
+
+        cylinderCentralPath = CylinderCentralPath(self._region, centralPath, self.rightArmNumberOfElements)
+
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
+
+        base = CylinderEnds(shoulder_part_left._elementsCount[1], shoulder_part_left._elementsCount[0], 0, 1, 1.0,
+                            csh, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+                            cylinderCentralPath.minorRadii[0])
+        left_arm_cylinder = CylinderMesh(fieldmodule, coordinates, self.rightArmNumberOfElements, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
+                                          rangeOfRequiredElementsAlong=[-1, -1])
+
+        left_arm_cylinder.generateNodes(nodes, fieldmodule, coordinates, [1, self.rightArmNumberOfElements + 1])
+
+        cylinder_shield = left_arm_cylinder._shield
+        for n2 in range(shoulder_part_left._elementsCount[1] + 1):
+            for n1 in range(shoulder_part_left._elementsCount[0] + 1):
+                cylinder_shield.nodeId[0][n2][n1] = shoulder_part_left.nodeId[-1][n2][n1]
+                cylinder_shield.px[0][n2][n1] = shoulder_part_left.px[-1][n2][n1]
+                cylinder_shield.pd1[0][n2][n1] = shoulder_part_left.pd1[-1][n2][n1]
+                cylinder_shield.pd2[0][n2][n1] = shoulder_part_left.pd2[-1][n2][n1]
+                cylinder_shield.pd3[0][n2][n1] = shoulder_part_left.pd3[-1][n2][n1]
+
+        left_arm_cylinder.generateElements(mesh, fieldmodule, coordinates)
+
+
+
+
+
+
+        csh = neck_part.px[-1][neck_part._elementsCount[1]//2][neck_part._elementsCount[0]//2]
+        d1sh = neck_part.pd2[-1][neck_part._elementsCount[1] // 2][neck_part._elementsCount[0] // 2]
+        d2sh = neck_part.pd1[-1][neck_part._elementsCount[1] // 2][neck_part._elementsCount[0] // 2]
+        d3sh = neck_part.pd3[-1][neck_part._elementsCount[1] // 2][neck_part._elementsCount[0] // 2]
+        d2sh = vector.setMagnitude(d2sh, -self.neck_radius2)
+        d3sh = vector.setMagnitude(d3sh, self.neck_radius2)
+        cw = vector.addVectors([csh, vector.setMagnitude(d1sh, self.neck_length)], [1, 1])
+        d1w = vector.setMagnitude(d1sh, self.neck_length/self.neck_number_of_elements)
+        d2w = vector.setMagnitude(d2sh, self.neck_radius2)
+        d3w = vector.setMagnitude(d3sh, self.neck_radius2)
+
+        centralPath = ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 1
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    [csh, d1sh, d2sh, [0.0, 0.0, 0.0], d3sh, [0.0, 0.0, 0.0]],
+                    [cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]],
+                ])
+        })
+
+        cylinderCentralPath = CylinderCentralPath(self._region, centralPath, self.neck_number_of_elements)
+
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
+
+        base = CylinderEnds(neck_part._elementsCount[1], neck_part._elementsCount[0], 0, 1, 1.0,
+                            csh, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+                            cylinderCentralPath.minorRadii[0])
+        neck_cylinder = CylinderMesh(fieldmodule, coordinates, self.neck_number_of_elements, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
+                                          rangeOfRequiredElementsAlong=[-1, -1])
+
+        neck_cylinder.generateNodes(nodes, fieldmodule, coordinates, [1, self.neck_number_of_elements + 1])
+
+        cylinder_shield = neck_cylinder._shield
+        for n2 in range(neck_part._elementsCount[1] + 1):
+            for n1 in range(neck_part._elementsCount[0] + 1):
+                cylinder_shield.nodeId[0][n2][n1] = neck_part.nodeId[-1][n2][n1]
+                cylinder_shield.px[0][n2][n1] = neck_part.px[-1][n2][n1]
+                cylinder_shield.pd1[0][n2][n1] = neck_part.pd1[-1][n2][n1]
+                cylinder_shield.pd2[0][n2][n1] = neck_part.pd2[-1][n2][n1]
+                cylinder_shield.pd3[0][n2][n1] = neck_part.pd3[-1][n2][n1]
+
+        neck_cylinder.generateElements(mesh, fieldmodule, coordinates)
+
+
+        neck_cyliner_shield = neck_cylinder._shield
+        csh = neck_cyliner_shield.px[-1][neck_cylinder._elementsCountAcrossMajor//2][neck_cylinder._elementsCountAcrossMinor//2]
+        d1sh = neck_cyliner_shield.pd2[-1][neck_cylinder._elementsCountAcrossMajor // 2][neck_cylinder._elementsCountAcrossMinor // 2]
+        d2sh = neck_cyliner_shield.pd1[-1][neck_cylinder._elementsCountAcrossMajor // 2][neck_cylinder._elementsCountAcrossMinor // 2]
+        d3sh = neck_cyliner_shield.pd3[-1][neck_cylinder._elementsCountAcrossMajor // 2][neck_cylinder._elementsCountAcrossMinor // 2]
+        d2sh = vector.setMagnitude(d2sh, -self.neck_radius2)
+        d3sh = vector.setMagnitude(d3sh, self.neck_radius2)
+        cw = vector.addVectors([csh, vector.setMagnitude(d1sh, self.head_length/self.head_number_of_elements)], [1, 1])
+        cw = vector.addVectors([cw, vector.setMagnitude([0.0, 1.0, 0.0], self.head_length/self.head_number_of_elements)], [1, 1])
+        d1w = vector.setMagnitude(d1sh, self.head_length/self.head_number_of_elements)
+        d2w = vector.setMagnitude(d2sh, self.head_radius)
+        d3w = vector.setMagnitude(d3sh, self.neck_radius2)
+        path_list = []
+        path_list.append([csh, d1sh, d2sh, [0.0, 0.0, 0.0], d3sh, [0.0, 0.0, 0.0]])
+        path_list.append([cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]])
+        for ni in range(2, self.head_number_of_elements + 1):
+            cw = vector.addVectors([cw, vector.setMagnitude(d1w, self.head_length/self.head_number_of_elements)], [1, 1])
+            if ni == 3:
+                path_list.append([cw, d1w, vector.scaleVector(d2w, 1.1), [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]])
+            else:
+                path_list.append([cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]])
+
+
+        centralPath = ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 5
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], path_list)
+        })
+
+        cylinderCentralPath = CylinderCentralPath(self._region, centralPath, self.head_number_of_elements)
+
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
+
+        base = CylinderEnds(neck_cylinder._elementsCountAcrossMajor,neck_cylinder._elementsCountAcrossMinor, 0, 1, 1.0,
+                            csh, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+                            cylinderCentralPath.minorRadii[0])
+        head_cylinder = CylinderMesh(fieldmodule, coordinates, self.head_number_of_elements, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
+                                          rangeOfRequiredElementsAlong=[-1, -1])
+
+        head_cylinder.generateNodes(nodes, fieldmodule, coordinates, [1, self.head_number_of_elements + 1])
+
+        cylinder_shield = head_cylinder._shield
+        for n2 in range(neck_cylinder._elementsCountAcrossMajor + 1):
+            for n1 in range(neck_cylinder._elementsCountAcrossMinor + 1):
+                cylinder_shield.nodeId[0][n2][n1] = neck_cyliner_shield.nodeId[-1][n2][n1]
+                cylinder_shield.px[0][n2][n1] = neck_cyliner_shield.px[-1][n2][n1]
+                cylinder_shield.pd1[0][n2][n1] = neck_cyliner_shield.pd1[-1][n2][n1]
+                cylinder_shield.pd2[0][n2][n1] = neck_cyliner_shield.pd2[-1][n2][n1]
+                cylinder_shield.pd3[0][n2][n1] = neck_cyliner_shield.pd3[-1][n2][n1]
+
+        head_cylinder.generateElements(mesh, fieldmodule, coordinates)
+
+
+        sphere_shape = SphereShape.SPHERE_SHAPE_FULL
+        sphere_base = head_cylinder._ellipses[-1]
+        sphere_centre = sphere_base.centre
+        sphere_radius_3 = self.head_radius
+        axes = [sphere_base.majorAxis, sphere_base.minorAxis,
+                vector.setMagnitude(vector.crossproduct3(sphere_base.majorAxis, sphere_base.minorAxis), sphere_radius_3)]
+        elementsCountAcross = [head_cylinder._elementsCountAcrossMajor, head_cylinder._elementsCountAcrossMinor, 4]
+        rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]], [0, -1]]
+        sphereBoxDerivatives = [1, 3, 2]
+
+        sphere1 = SphereMesh(fieldmodule, coordinates, sphere_centre, axes, elementsCountAcross,
+                             0, 1, 1.0,
+                             sphereShape=sphere_shape, rangeOfRequiredElements=rangeOfRequiredElements,
+                             boxDerivatives=sphereBoxDerivatives, useCrossDerivatives=False)
+
+        hemisphere = ShieldMesh3D(elementsCountAcross, 0)
+
+
+
+        # get hemisphere nodes from both cylinder end and top of the sphere and mix them
+        btx = hemisphere.px
+        btd1 = hemisphere.pd1
+        btd2 = hemisphere.pd2
+        btd3 = hemisphere.pd3
+
+        hemisphere._boxDerivatives = sphere1._shield3D._boxDerivatives
+        hemisphere._boxMapping = sphere1._shield3D._boxMapping
+        hemisphere._box_deriv_mapping = sphere1._shield3D._box_deriv_mapping
+        hemisphere._element_needs_scale_factor = sphere1._shield3D._element_needs_scale_factor
+        hemisphere._xi_mapping = sphere1._shield3D._xi_mapping
+        hemisphere._xi_signs = sphere1._shield3D._xi_signs
+
+        for n3 in range(elementsCountAcross[2] + 1):
+            for n2 in range(elementsCountAcross[0] + 1):
+                for n1 in range(elementsCountAcross[1] + 1):
+                    if n3 > elementsCountAcross[2]//2:
+                        if sphere1._shield3D.px[n3][n2][n1]:
+                            # hemisphere.nodeId[n3][n2][n1] = sphere1._shield3D.nodeId[n3][n2][n1]
+                            btx[n3][n2][n1] = sphere1._shield3D.px[n3][n2][n1]
+                            btd1[n3][n2][n1] = sphere1._shield3D.pd1[n3][n2][n1]
+                            btd2[n3][n2][n1] = sphere1._shield3D.pd2[n3][n2][n1]
+                            btd3[n3][n2][n1] = sphere1._shield3D.pd3[n3][n2][n1]
+
+                    # cylinder end
+                    elif n3 == elementsCountAcross[2]//2:
+                        # find nodes on the triple line. Note that cylinder and sphere have a little bit different
+                        # numbering for nodes on the triple line
+                        n2c, n1c = n2, n1
+                        if n2 < 1 and n1 == n2:
+                            n1c = 1
+                        elif n2 < 1 and n1 == elementsCountAcross[1] - n2:
+                            n1c = elementsCountAcross[1] - 1
+                        elif n2 > 3:
+                            if n1 == elementsCountAcross[1] - n2:
+                                n1c = 1
+                            elif n1 == n2:
+                                n1c = elementsCountAcross[1] - 1
+                        hemisphere.nodeId[n3][n2][n1] = head_cylinder._shield.nodeId[-1][n2c][n1c]
+
+        # generate hemisphere extra nodes.
+        rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]], [3, 4]]
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = hemisphere.generateNodes(fieldmodule, coordinates, nodeIdentifier,
+                                                      rangeOfRequiredElements)
+
+        # generate himsphere elements.
+        rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]], [2, 4]]
+        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = hemisphere.generateElements(fieldmodule, coordinates, elementIdentifier,
+                                                            rangeOfRequiredElements)
+
+
+
+        csh = torso_upper_part.px[0][torso_upper_part._elementsCount[1]//2][torso_upper_part._elementsCount[0]//2]
+        d1sh = torso_upper_part.pd2[0][torso_upper_part._elementsCount[1] // 2][torso_upper_part._elementsCount[0] // 2]
+        d2sh = torso_upper_part.pd1[0][torso_upper_part._elementsCount[1] // 2][torso_upper_part._elementsCount[0] // 2]
+        d3sh = torso_upper_part.pd3[0][torso_upper_part._elementsCount[1] // 2][torso_upper_part._elementsCount[0] // 2]
+        d2sh = vector.setMagnitude(d2sh, -self.torso_radius)
+        d3sh = vector.setMagnitude(d3sh, self.torso_radius)
+        cw = vector.addVectors([csh, vector.setMagnitude(d1sh, -self.lower_torso_length)], [1, 1])
+        d1w = vector.setMagnitude(d1sh, self.lower_torso_length/self.lower_torso_number_of_elements)
+        d2w = vector.setMagnitude(d2sh, self.lower_torso_radii[0])
+        d3w = vector.setMagnitude(d3sh, self.lower_torso_radii[1])
+
+        centralPath = ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 1
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    [cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]],
+                    [csh, d1sh, d2sh, [0.0, 0.0, 0.0], d3sh, [0.0, 0.0, 0.0]],
+                ])
+        })
+
+        cylinderCentralPath = CylinderCentralPath(self._region, centralPath, self.lower_torso_number_of_elements)
+
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
+
+        base = CylinderEnds(torso_upper_part._elementsCount[1], torso_upper_part._elementsCount[0], 0, 1, 1.0,
+                            csh, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
+                            cylinderCentralPath.minorRadii[0])
+        lower_torso_cylinder = CylinderMesh(fieldmodule, coordinates, self.lower_torso_number_of_elements, base,
+                                 cylinderShape=cylinderShape,
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
+                                          rangeOfRequiredElementsAlong=[-1, -1])
+
+        lower_torso_cylinder.generateNodes(nodes, fieldmodule, coordinates, [0, self.lower_torso_number_of_elements])
+
+        cylinder_shield = lower_torso_cylinder._shield
+        for n2 in range(torso_upper_part._elementsCount[1] + 1):
+            for n1 in range(torso_upper_part._elementsCount[0] + 1):
+                cylinder_shield.nodeId[-1][n2][n1] = torso_upper_part.nodeId[0][n2][n1]
+                cylinder_shield.px[-1][n2][n1] = torso_upper_part.px[0][n2][n1]
+                cylinder_shield.pd1[-1][n2][n1] = torso_upper_part.pd1[0][n2][n1]
+                cylinder_shield.pd2[-1][n2][n1] = torso_upper_part.pd2[0][n2][n1]
+                cylinder_shield.pd3[-1][n2][n1] = torso_upper_part.pd3[0][n2][n1]
+
+        lower_torso_cylinder.generateElements(mesh, fieldmodule, coordinates)
+
+
+        smoothing = DerivativeSmoothing(self._region, coordinates)
+        smoothing.smooth(True)
+        del smoothing
 
 
         # shoulder_connecting_to_box = CylinderConnectingToBox(shoulder_part, [0, 0], -1)
@@ -176,7 +557,7 @@ class BifurcationMesh:
 
         :return:
         """
-        armpit = [1.2, 0.0, 1.0]
+        armpit = self.armpit
         x_bottom_base_centre = [0.0, 0.0, 0.0]
         x_bottom_base_curve1 = [self.torso_radius, 0.0, 0.0]
         x_bottom_base_curve2 = [0.0, self.torso_radius, 0.0]
@@ -203,9 +584,14 @@ class BifurcationMesh:
         d1_shoulder_base_curve1 = [[0.0, 0.0, -1 / self._elementsCount[1]], [0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
         d1_shoulder_base_curve2 = [[0.0, 1 / self._elementsCount[0], 0.0], [0.0, 1 / self._elementsCount[0], 0.0]]
         kv = [0.0, 1.0, 0.0]
-        cv = [self.right_arm_length, 0.0, 0.0]
+        cv = [self.right_shoulder_length, 0.0, 0.0]
         cev = vector.rotateVectorAroundVector(cv, kv, self.right_arm_angle)
+<<<<<<< HEAD
         ce = vector.addVectors([cev, [0.0, 0.0, self.shoulder_height]], [1, 1])
+=======
+        cevunit = vector.normalise(cev)
+        ce = vector.addVectors([cev, x_shoulder_base_centre], [1, 1])
+>>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
         x_shoulder_end_centre = ce
         # x_shoulder_end_curve1 = [1.7, 0.0, self.shoulder_height - self.left_arm_radius]
         x_shoulder_end_curve1 = vector.addVectors([ce, vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius)], [1, 1])
@@ -214,6 +600,10 @@ class BifurcationMesh:
         # d1_shoulder_end_curve1 = [[0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]]]
         d1_shoulder_end_curve1 = [vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius/self._elementsCount[1]),
                                   vector.setMagnitude(vector.crossproduct3(kv, cev), self.right_arm_radius/self._elementsCount[1])]
+<<<<<<< HEAD
+=======
+
+>>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
         d1_shoulder_end_curve2 = [[0.0, self.left_arm_radius / self._elementsCount[0], 0.0], [0.0, self.left_arm_radius / self._elementsCount[0], 0.0]]
 
         nodeparams2 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
@@ -226,11 +616,20 @@ class BifurcationMesh:
         x_shoulder_base_curve1 = [-0.75, 1.0, self.shoulder_height]
         d1_shoulder_base_curve2 = [[-0.0, 0.0, -1 / self._elementsCount[1]], [-0.5 * 0.7071, 0.0, -0.5 * 0.7071]]
         d1_shoulder_base_curve1 = [[-0.0, 1 / self._elementsCount[0], 0.0], [-0.0, 1 / self._elementsCount[0], 0.0]]
-        x_shoulder_end_centre = [-1.7, 0.0, self.shoulder_height]
-        x_shoulder_end_curve2 = [-1.7, 0.0, self.shoulder_height - self.right_arm_radius]
-        x_shoulder_end_curve1 = [-1.7, self.right_arm_radius, self.shoulder_height]
-        d1_shoulder_end_curve2 = [[-0.0, 0.0, -self.right_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.right_arm_radius / self._elementsCount[1]]]
-        d1_shoulder_end_curve1 = [[-0.0, self.right_arm_radius / self._elementsCount[0], 0.0], [0.0, self.right_arm_radius / self._elementsCount[0], 0.0]]
+        kv = [0.0, 1.0, 0.0]
+        cv = [-self.right_shoulder_length, 0.0, 0.0]
+        cev = vector.rotateVectorAroundVector(cv, kv, -self.left_arm_angle)
+        ce = vector.addVectors([cev, x_shoulder_base_centre], [1, 1])
+        x_shoulder_end_centre = ce
+        # x_shoulder_end_centre = [-1.7, 0.0, self.shoulder_height]
+        x_shoulder_end_curve2 = vector.addVectors([ce, vector.setMagnitude(vector.crossproduct3(cev, kv), self.left_arm_radius)], [1, 1])
+        # x_shoulder_end_curve2 = [-1.7, 0.0, self.shoulder_height - self.left_arm_radius]
+        x_shoulder_end_curve1 = vector.addVectors([ce, vector.setMagnitude(kv, self.left_arm_radius)], [1, 1])
+        # x_shoulder_end_curve1 = [-1.7, self.left_arm_radius, self.shoulder_height]
+        d1_shoulder_end_curve2 = [vector.setMagnitude(vector.crossproduct3(cev, kv), self.left_arm_radius/self._elementsCount[1]),
+                                  vector.setMagnitude(vector.crossproduct3(cev, kv), self.left_arm_radius/self._elementsCount[1])]
+        # d1_shoulder_end_curve2 = [[-0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]], [0.0, 0.0, -self.left_arm_radius / self._elementsCount[1]]]
+        d1_shoulder_end_curve1 = [[-0.0, self.left_arm_radius / self._elementsCount[0], 0.0], [0.0, self.left_arm_radius / self._elementsCount[0], 0.0]]
 
         nodeparams3 = [[x_shoulder_base_centre, x_shoulder_base_curve1, x_shoulder_base_curve2, d1_shoulder_base_curve1,
                        d1_shoulder_base_curve2],
@@ -1132,7 +1531,11 @@ class BaseLeg:
     """
     Base case for creating a child
     """
+<<<<<<< HEAD
     def __init__(self, elementsCount, nodeparams):
+=======
+    def __init__(self, elementsCount, nodeparams, shoulder_right=False, shoulder_left=False):
+>>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
         """
 
         :param fieldmodule:
@@ -1157,9 +1560,15 @@ class BaseLeg:
 
         n, d = geometry.get_plane_normal_vector_and_distance(nodeparams[0][0], nodeparams[0][1], nodeparams[1][0])
         plane = [n[0], n[1], n[2], d]
-        mirror = Mirror(plane)
+        mirrore = Mirror(plane)
+        if shoulder_left:
+            mirror0 = Mirror([0.0, 0.0, 1.0, nodeparams[0][0][2]])
         for n2 in range(elementsCount[1]//2+1, elementsCount[1]+1):
             for n3 in range(elementsCount[2]+1):
+                if shoulder_left and n3 == 0:
+                    mirror = mirror0
+                else:
+                    mirror = mirrore
                 for n1 in range(elementsCount[0]//2+1):
                     n3q = n3
                     n2q = elementsCount[1] - n2
@@ -1172,9 +1581,21 @@ class BaseLeg:
 
         n, d = geometry.get_plane_normal_vector_and_distance(nodeparams[0][0], nodeparams[0][2], nodeparams[1][0])
         plane = [n[0], n[1], n[2], d]
+<<<<<<< HEAD
         mirror = Mirror(plane)
         for n2 in range(elementsCount[1]+1):
             for n3 in range(elementsCount[2]+1):
+=======
+        mirrore = Mirror(plane)
+        if shoulder_right:
+            mirror0 = Mirror([0.0, 0.0, 1.0, nodeparams[0][0][2]])
+        for n2 in range(elementsCount[1]+1):
+            for n3 in range(elementsCount[2]+1):
+                if shoulder_right and n3 == 0:
+                    mirror = mirror0
+                else:
+                    mirror = mirrore
+>>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
                 for n1 in range(elementsCount[0]//2+1, elementsCount[0]+1):
                     n3q = n3
                     n2q = n2

@@ -64,19 +64,36 @@ with variable numbers of elements in major, minor, shell and axial directions.
         centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Armpit': [1.3, 0.0, 1.4],
+            'Armpit': [1.2, 0.0, 1.0],
             'Torso radius': 1.0,
             'Left arm radius': 1.0,
             'Right arm radius': 1.0,
             'Neck radius': 0.8,
+            'Neck radius 2': 0.8,
+            'Neck length': 0.4,
+            'Neck number of elements': 2,
             'Neck shoulder point': [0.7, 0.0, 2.8],
+            'Head length': 1.0,
+            'Head number of elements': 5,
+            'Head radius': 1.0,
             'Shoulder height': 2.2,
             'Shoulder joint': [1.1, 0.0, 2.4],
             'Shoulder point': [1.0, 0.0, 2.8],
             'Shoulder start': [0.5, 0.0, 2.2],
             'Neck height': 3.6,
             'Right arm angle': 0.0,
+<<<<<<< HEAD
             'Right arm length': 1.7,
+=======
+            'Left arm angle': 0.0,
+            'Right shoulder length': 0.95,
+            'Right arm length': 2.0,
+            'Right arm number of elements': 5,
+            'Right wrist radius': 0.8,
+            'Lower torso length': 5.5,
+            'Lower torso number of elements': 4,
+            'Lower torso radii': [1.3, 1.0],
+>>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
@@ -100,14 +117,27 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Left arm radius',
             'Right arm radius',
             'Neck radius',
+            'Neck radius 2',
+            'Neck length',
+            'Neck number of elements',
             'Neck shoulder point',
+            'Head length',
+            'Head number of elements',
+            'Head radius',
             'Shoulder joint',
             'Shoulder height',
             'Shoulder point',
             'Shoulder start',
             'Neck height',
             'Right arm angle',
+            'Left arm angle',
+            'Right shoulder length',
             'Right arm length',
+            'Right arm number of elements',
+            'Right wrist radius',
+            'Lower torso length',
+            'Lower torso number of elements',
+            'Lower torso radii',
             'Number of elements across major',
             'Number of elements across minor',
             'Number of elements across shell',
@@ -221,20 +251,37 @@ with variable numbers of elements in major, minor, shell and axial directions.
         left_arm_radius = options['Left arm radius']
         right_arm_radius = options['Right arm radius']
         neck_radius = options['Neck radius']
+        neck_radius2 = options['Neck radius 2']
+        neck_length = options['Neck length']
+        neck_number_of_elements = options['Neck number of elements']
         shoulder_height = options['Shoulder height']
         neck_height = options['Neck height']
         right_arm_angle = options['Right arm angle']
+        left_arm_angle = options['Left arm angle']
+        right_shoulder_length = options['Right shoulder length']
         right_arm_length = options['Right arm length']
+        rightArmNumberOfElements = options['Right arm number of elements']
+        righ_wrist_radius = options['Right wrist radius']
         shoulder_joint = options['Shoulder joint']
         armpit = options['Armpit']
         neck_shoulder = options['Neck shoulder point']
         shoulder_point = options['Shoulder point']
         shoulder_start = options['Shoulder start']
+        head_length = options['Head length']
+        head_number_of_elements = options['Head number of elements']
+        head_radius = options['Head radius']
+        lower_torso_length = options['Lower torso length']
+        lower_torso_number_of_elements = options['Lower torso number of elements']
+        lower_torso_radii = options['Lower torso radii']
         # bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
         #                                neck_radius, shoulder_height, neck_height, right_arm_angle, right_arm_length,
         #                                shoulder_joint, armpit, neck_shoulder, shoulder_point, shoulder_start)
         bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
-                                       neck_radius, shoulder_height, neck_height, right_arm_angle, right_arm_length)
+                                       neck_radius, shoulder_height, neck_height, right_arm_angle,left_arm_angle,
+                                       right_shoulder_length, right_arm_length, rightArmNumberOfElements,
+                                       righ_wrist_radius, neck_radius2, neck_length, neck_number_of_elements,
+                                       head_length, head_number_of_elements, head_radius, armpit, lower_torso_length,
+                                       lower_torso_number_of_elements, lower_torso_radii)
 
         annotationGroup = []
         return annotationGroup
