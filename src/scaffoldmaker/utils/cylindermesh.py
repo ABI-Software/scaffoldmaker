@@ -136,7 +136,7 @@ class CylinderMesh:
 
     def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
-                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False):
+                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False, rangeOfRequiredElementsAlong=None):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -173,6 +173,7 @@ class CylinderMesh:
         self._endElementIdentifier = 1
         self._cylinderShape = cylinderShape
         self._cylinderType = CylinderType.CYLINDER_STRAIGHT
+        self._rangeOfRequiredElementsAlong = rangeOfRequiredElementsAlong
         if (tapered is not None) or cylinderCentralPath:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
@@ -254,8 +255,8 @@ class CylinderMesh:
                             self._shield.pd2[n3][n2][n1] = self._shield.pd2[0][n2][n1]
                             self._shield.pd3[n3][n2][n1] = self._shield.pd3[0][n2][n1]
 
-        self.generateNodes(nodes, fieldModule, coordinates)
-        self.generateElements(mesh, fieldModule, coordinates)
+        self.generateNodes(nodes, fieldModule, coordinates, self._rangeOfRequiredElementsAlong)
+        self.generateElements(mesh, fieldModule, coordinates, self._rangeOfRequiredElementsAlong)
 
         if self._end is None:
             self._end = CylinderEnds(self._elementsCountAcrossMajor, self._elementsCountAcrossMinor,
@@ -369,7 +370,7 @@ class CylinderMesh:
         self._shield.pd2[n3] = self._ellipses[n3].pd2
         self._shield.pd3[n3] = self._ellipses[n3].pd3
 
-    def generateNodes(self, nodes, fieldModule, coordinates):
+    def generateNodes(self, nodes, fieldModule, coordinates, rangeOfRequiredElementsAlong=None):
         """
         Create cylinder nodes from coordinates.
         :param nodes: nodes from coordinates.
@@ -378,10 +379,11 @@ class CylinderMesh:
         """
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier)
+        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier,
+                                                    rangeOfRequiredElementsAlong=rangeOfRequiredElementsAlong)
         self._endNodeIdentifier = nodeIdentifier
 
-    def generateElements(self, mesh, fieldModule, coordinates):
+    def generateElements(self, mesh, fieldModule, coordinates, rangeOfRequiredElementsAlong=None):
         """
         Create cylinder elements from nodes.
         :param mesh:
@@ -390,7 +392,8 @@ class CylinderMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [],
+                                                          rangeOfRequiredElementsAlong=rangeOfRequiredElementsAlong)
         self._endElementIdentifier = elementIdentifier
 
     def getElementsCountAround(self):
