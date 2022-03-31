@@ -2,8 +2,8 @@
 
 # -- Project information
 
-project = 'XXXXXXXX'
-copyright = 'YYYY, University of Auckland'
+project = 'Scaffold Maker'
+copyright = '2022, University of Auckland'
 author = 'University of Auckland'
 
 release = '0.1'
