@@ -303,3 +303,43 @@ class BifurcationTree:
             nextNodeIdentifier, nextElementIdentifier = self._generateZincModelTree(childTreeNode, node, nextNodeIdentifier, nextElementIdentifier)
 
         return nextNodeIdentifier, nextElementIdentifier
+
+
+def extractPathParametersFromRegion(region, valueLabels, groupName=None):
+    '''
+    Returns parameters of all nodes in region in identifier order.
+    Assumes nodes in region have field coordinates (1 to 3 components).
+    Currently limited to nodes with exactly value, d_ds1, d_ds2, d2_ds12,
+    same as path 1 scaffold.
+    :param valueLabels: List of parameters required as list of node value labels. e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
+    :param groupName: Optional name of Zinc group to get parameters from.
+    :return: cx, cd1, cd2, cd12 (all padded with zeroes to 3 components)
+    '''
+    fieldmodule = region.getFieldmodule()
+    coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    componentsCount = coordinates.getNumberOfComponents()
+    assert componentsCount in [ 1, 2, 3 ], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
+    cache = fieldmodule.createFieldcache()
+
+    valueLabelsCount = len(valueLabels)
+    returnValues = [[] for i in range(valueLabelsCount)]
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    if groupName:
+        group = fieldmodule.findFieldByName(groupName).castGroup()
+        nodeGroup = group.getFieldNodeGroup(nodes)
+        if nodeGroup.isValid():
+            nodes = nodeGroup.getNodesetGroup()
+        else:
+            print('extractPathParametersFromRegion: missing group "' + groupName + '"')
+    nodeIter = nodes.createNodeiterator()
+    node = nodeIter.next()
+    while node.isValid():
+        cache.setNode(node)
+        for i in range(valueLabelsCount):
+            result, values = coordinates.getNodeParameters(cache, -1, valueLabels[i], 1, componentsCount)
+            for c in range(componentsCount, 3):
+                values.append(0.0)
+            returnValues[i].append(values)
+        node = nodeIter.next()
+
+    return returnValues
