@@ -16,6 +16,8 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.bifurcation3d2 import BifurcationMesh
+from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import extractPathParametersFromRegion
+from scaffoldmaker.utils import vector
 
 
 class MeshType_3d_solidbifurcation2(Scaffold_base):
@@ -269,6 +271,28 @@ with variable numbers of elements in major, minor, shell and axial directions.
         lower_torso_length = options['Lower torso length']
         lower_torso_number_of_elements = options['Lower torso number of elements']
         lower_torso_radii = options['Lower torso radii']
+
+
+
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
+                                                                        [Node.VALUE_LABEL_VALUE,
+                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                                                                         Node.VALUE_LABEL_D_DS3,
+                                                                         Node.VALUE_LABEL_D2_DS1DS2,
+                                                                         Node.VALUE_LABEL_D2_DS1DS3])
+
+        deltacx = vector.vectorRejection(vector.addVectors([cx[2], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
+        right_arm_angle = vector.angleBetweenVectors([1.0, 0.0, 0.0], deltacx)
+        if cx[2][2] > cx[1][2]:
+            right_arm_angle = -right_arm_angle
+
+        deltacx = vector.vectorRejection(vector.addVectors([cx[3], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
+        left_arm_angle = vector.angleBetweenVectors([-1.0, 0.0, 0.0], deltacx)
+        if cx[3][2] > cx[1][2]:
+            left_arm_angle = -left_arm_angle
+
         # bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
         #                                neck_radius, shoulder_height, neck_height, right_arm_angle, right_arm_length,
         #                                shoulder_joint, armpit, neck_shoulder, shoulder_point, shoulder_start)
