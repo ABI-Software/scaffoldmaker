@@ -4,6 +4,7 @@ Class for listing and accessing all mesh type scripts supported by scaffoldmaker
 
 import json
 
+from scaffoldmaker.meshtypes.meshtype_1d_airway1 import MeshType_1d_airway1
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
@@ -53,6 +54,7 @@ class Scaffolds(object):
 
     def __init__(self):
         self._allScaffoldTypes = [
+            MeshType_1d_airway1,
             MeshType_1d_bifurcationtree1,
             MeshType_1d_path1,
             MeshType_2d_plate1,
