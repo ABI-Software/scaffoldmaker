@@ -228,7 +228,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ventriclesbaseOptions['LV outlet wall thickness'] = 0.022
         options = {}
         options['Number of elements along atrial appendages'] = 2
-        options['Number of elements along vena cava inlet'] = 2
+        options['Number of elements along vena cava inlet'] = 3
         options['Number of elements around atrial septum'] = 3
         options['Number of elements around left atrium free wall'] = 8
         options['Number of elements around right atrium free wall'] = 6
@@ -1595,8 +1595,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             ractd3[n3][-1] = ravtd3[n3][ran1Ctp]
 
         # get points on right atrium ridge midway between inferior and superior vena cavae from crista terminalis to interatrial groove
-        # minimum of 2 points over top of venous component
-        elementsCountOverSideRightAtriumVC = max(elementsCountAroundRightAtriumPosteriorVenous, 2)
+        # minimum of 3 points over top of venous component
+        elementsCountOverSideRightAtriumVC = max(elementsCountAroundRightAtriumPosteriorVenous, 3)
         ravmx, ravmd1, ravmd2, ravmd3 = raTrackSurface.createHermiteCurvePoints(
             ractProportions[elementsCountOverCristaTerminalisAnterior][0], ractProportions[elementsCountOverCristaTerminalisAnterior][1],
             1.0 - aVenousMidpointOver, 0.0,
@@ -2845,7 +2845,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 vcax, vcad1, vcad2, vcad3, vcaNodeId, vcaDerivativesMap,
                 maxEndThickness = 1.5*raVenousFreeWallThickness,
                 elementsCountRadial = elementsCountAlongVCInlet,
-                meshGroups = rowMeshGroups)
+                meshGroups = rowMeshGroups, rescaleEndDerivatives=True)
 
             if v == 0:  # ivc
                 # right atrium epicardium venous midpoint marker point

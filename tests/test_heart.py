@@ -25,7 +25,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1",
             "Unit Human 1", "Unit Mouse 1", "Unit Pig 1", "Unit Rat 1" ]);
         options = scaffold.getDefaultOptions("Human 1")
-        self.assertEqual(119, len(options))
+        self.assertEqual(120, len(options))
         self.assertEqual(0.9, options.get("LV outer height"))
         self.assertEqual(80.0, options.get("Unit scale"))
         self.assertEqual(7, options.get("Number of elements around LV free wall"))
@@ -43,13 +43,13 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertEqual(32, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(289, mesh3d.getSize())
+        self.assertEqual(309, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(1117, mesh2d.getSize())
+        self.assertEqual(1198, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1356, mesh1d.getSize())
+        self.assertEqual(1459, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(530, nodes.getSize())
+        self.assertEqual(572, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -57,8 +57,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [ -50.7876375290527, -57.76496144495844, -91.6 ], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 43.810947610743156, 39.03925080604259, 40.717553621061704 ], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-50.7876375290527, -57.74727184261748, -91.6], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [43.810947610743156, 39.03925080604259, 41.13241236955093], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             epicardiumGroup = fieldmodule.findFieldByName('epicardium').castGroup()
@@ -72,10 +72,10 @@ class HeartScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 36497.828754581264, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 36816.42266159511, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 221275.23964745103, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 221608.24392424847, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -83,7 +83,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
             "right ventricle myocardium" : 79,
             "interventricular septum" : 30,
             "left atrium myocardium" : 88,
-            "right atrium myocardium" : 62,
+            "right atrium myocardium" : 80,
             "interatrial septum" : 17
             }
         for name in expectedSizes3d:
@@ -94,8 +94,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
             "endocardium of left ventricle" : 74,
             "endocardium of right ventricle" : 59,
             "endocardium of left atrium" : 82,
-            "endocardium of right atrium" : 56,
-            "epicardium" : 197
+            "endocardium of right atrium" : 74,
+            "epicardium" : 215
             }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_heart_term(name))
@@ -151,13 +151,13 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertEqual(32, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(2236, mesh3d.getSize())
+        self.assertEqual(2396, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(7676, mesh2d.getSize())
+        self.assertEqual(8240, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(8623, mesh1d.getSize())
+        self.assertEqual(9273, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(3185, nodes.getSize())
+        self.assertEqual(3431, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
