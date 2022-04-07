@@ -41,7 +41,9 @@ bladder_terms = [
     ("left ureter junction with bladder", "ILX:0778142"),
     ("right ureter junction with bladder", "ILX:0778143"),
     ("urethra junction of dorsal bladder neck", "ILX:0778154"),
-    ("urethra junction of ventral bladder neck", "ILX:0738410")
+    ("urethra junction of ventral bladder neck", "ILX:0738410"),
+    ("left hemi-bladder", "None"),
+    ("right hemi-bladder", "None")
 ]
 
 
