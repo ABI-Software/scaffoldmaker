@@ -22,6 +22,8 @@ stomach_terms = [
     ("circular-longitudinal muscle interface of pyloric canal along the lesser curvature", "ILX:0793138"),
     ("circular-longitudinal muscle interface of stomach", "ILX:0793096"),
     ("circular-longitudinal muscle interface of ventral stomach", "ILX:0793097"),
+    ("distal point of lower esophageal sphincter serosa on the greater curvature of stomach", "ILX:0793179"),
+    ("distal point of lower esophageal sphincter serosa on the lesser curvature of stomach", "ILX:0793180"),
     ("dorsal stomach", "ILX:0793086"),
     ("duodenum", "UBERON:0002114", " FMA:7206", "ILX:0726125"),
     ("esophagogastric junction", "UBERON:0007650", "FMA: 9434", "ILX:0733910"),

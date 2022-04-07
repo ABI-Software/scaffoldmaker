@@ -788,7 +788,7 @@ class ShieldMesh3D:
         self.elementsCountAcross = elementsCountAcross
         self.elementsCountRim = elementsCountRim
         # self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
-        # elementsCountAcrossNonRim = self.elementsCountAcross - 2*elementsCountRim
+        self.elementsCountAcrossNonRim = [ne - 2*elementsCountRim for ne in elementsCountAcross]
         # self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
         self._boxDerivatives = box_derivatives
         self._boxMapping = None
@@ -879,7 +879,7 @@ class ShieldMesh3D:
         :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
         :param startNodeIdentifier: First node identifier to use.
-        :param rangeOfRequiredElements: Only the elements and nodes for the given ragne is generated.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
         :return: next nodeIdentifier.
          """
         nodeIdentifier = startNodeIdentifier
@@ -1123,9 +1123,13 @@ class ShieldMesh3D:
                     scalefactors = None
                     self._element_needs_scale_factor = False
 
+                    def shell_element(e3o, e2o, e1o, e3zo, e1zo):
+                        return e3o > e3zo or e2o < self.elementsCountRim or e1o > e1zo
+
                     octant_number, element_type, e3zo, e2zo, e1zo = self.get_element_type(e3, e2, e1)
                     e3o, e2o, e1o = self.get_local_element_index(octant_number, e3, e2, e1)
-                    e3yo, e2bo, e1yo = e3zo - 1, 1, e1zo - 1
+                    element_shell = shell_element(e3o, e2o, e1o, e3zo, e1zo)
+                    e3yo, e2bo, e1yo = e3zo - 1, 1 + self.elementsCountRim, e1zo - 1
 
                     eft1 = eft if element_type == self.ELEMENT_REGULAR else\
                         tricubichermite.createEftNoCrossDerivatives()
@@ -1143,87 +1147,168 @@ class ShieldMesh3D:
                         pass
                     elif element_type == self.ELEMENT_QUADRUPLE_DOWN_LEFT:
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.QUADRUPLE_DOWN_LEFT)
-                        self.remap_eft_node_value_label(eft1, [lnm[8]], self.QUADRUPLE0_DOWN_LEFT)
+                        if element_shell:
+                            self.remap_eft_node_value_label(eft1, [lnm[8]], self.QUADRUPLE_DOWN_LEFT)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [lnm[8]], self.QUADRUPLE0_DOWN_LEFT)
                         if e3o == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_12_LEFT,
                                                             derivatives=triple12leftderivs)
-                            self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_12_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_12_LEFT,
+                                                                derivatives=triple12leftderivs)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_12_LEFT)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE_3_LEFT)
-                            self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE0_3_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE_3_LEFT)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE0_3_LEFT)
                         if e1yo == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_13_DOWN)
-                            self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_13_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_13_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_13_DOWN)
+
                             if e3yo == 0:
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_1,
+                                                                    derivatives=corner1derivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.CORNER_1,
                                                                 derivatives=corner1derivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_13_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_13_DOWN)
                         else:
-                            self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE0_2_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE_2_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE0_2_DOWN)
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_DOWN)
                             if e3o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_LEFT,
                                                                 derivatives=boundary12leftderivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_LEFT,
+                                                                    derivatives=boundary12leftderivs)
                             else:
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.SURFACE_REGULAR_DOWN_LEFT)
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_DOWN_LEFT)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_DOWN:
-                        self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_13_DOWN)
+                        if not element_shell:
+                            self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_13_DOWN)
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_2_DOWN)
-                        self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE0_2_DOWN)
+                        if element_shell:
+                            self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE_2_DOWN)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE0_2_DOWN)
                         if e1o == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_13_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_13_DOWN)
                             if e3yo == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.CORNER_1,
                                                                 derivatives=corner1derivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.BOUNDARY_12_LEFT,
                                                                 derivatives=boundary12leftderivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_1,
+                                                                    derivatives=corner1derivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_12_LEFT,
+                                                                    derivatives=boundary12leftderivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_13_DOWN)
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.SURFACE_REGULAR_DOWN_LEFT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_13_DOWN)
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.SURFACE_REGULAR_DOWN_LEFT)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE_2_DOWN)
                             if e3yo == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_LEFT,
                                                                 derivatives=boundary12leftderivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.BOUNDARY_12_LEFT,
                                                                 derivatives=boundary12leftderivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_LEFT,
+                                                                    derivatives=boundary12leftderivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_12_LEFT,
+                                                                    derivatives=boundary12leftderivs)
                             else:
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2], lnm[6]],
+                                                                    self.SURFACE_REGULAR_DOWN_LEFT)
                                 self.remap_eft_node_value_label(eft1, [lnm[1], lnm[5]], self.SURFACE_REGULAR_DOWN_LEFT)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_DOWN_RIGHT:
                         if e2o == e2bo:
-                            self.remap_eft_node_value_label(eft1, [lnm[3]], self.QUADRUPLE0_RIGHT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[3]], self.QUADRUPLE_RIGHT)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[3]], self.QUADRUPLE0_RIGHT)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.QUADRUPLE_RIGHT)
                             if e3o == 0:
-                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_12_RIGHT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_12_RIGHT,
+                                                                    derivatives=triple12rightderivs)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_12_RIGHT)
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_12_RIGHT,
                                                                 derivatives=triple12rightderivs)
                             else:
-                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_3_RIGHT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE_3_RIGHT)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_3_RIGHT)
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE_3_RIGHT)
 
                             if e2bo == e2zo:
-                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_23_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_23_DOWN)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_23_DOWN)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_23_DOWN)
                                 if e3yo == 0:
                                     self.remap_eft_node_value_label(eft1, [lnm[6]], self.CORNER_2,
                                                                     derivatives=corner2derivs)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_2,
+                                                                        derivatives=corner2derivs)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_23_DOWN)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_DOWN)
                             else:
-                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE0_1_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE_1_DOWN)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_CURVE0_1_DOWN)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE_1_DOWN)
                                 if e3yo == 0:
                                     self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_12_RIGHT,
                                                                     derivatives=boundary12rightderivs)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_RIGHT,
+                                                                        derivatives=boundary12rightderivs)
                                 else:
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.SURFACE_REGULAR_DOWN_RIGHT)
                                     self.remap_eft_node_value_label(eft1, [lnm[6]], self.SURFACE_REGULAR_DOWN_RIGHT)
 
                         elif e2o == e2zo:
-                            self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE0_1_DOWN)
-                            self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_23_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_1_DOWN)
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE_23_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE0_1_DOWN)
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.TRIPLE0_23_DOWN)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_1_DOWN)
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_23_DOWN)
                             if e3yo == 0:
@@ -1231,157 +1316,301 @@ class ShieldMesh3D:
                                                                 derivatives=boundary12rightderivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.CORNER_2,
                                                                 derivatives=corner2derivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_RIGHT,
+                                                                    derivatives=boundary12rightderivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_2,
+                                                                    derivatives=corner2derivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.SURFACE_REGULAR_DOWN_RIGHT)
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_23_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_DOWN)
                         else:
-                            self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.TRIPLE_CURVE0_1_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.TRIPLE_CURVE_1_DOWN)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.TRIPLE_CURVE0_1_DOWN)
                             if e3yo == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.BOUNDARY_12_RIGHT,
                                                                 derivatives=boundary12rightderivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1], lnm[2]], self.BOUNDARY_12_RIGHT,
+                                                                    derivatives=boundary12rightderivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1], lnm[2]],
+                                                                    self.SURFACE_REGULAR_DOWN_RIGHT)
                             self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.TRIPLE_CURVE_1_DOWN)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_UP_LEFT:
                         if e2o == e2bo:
-                            self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_2_UP)
-                            self.remap_eft_node_value_label(eft1, [lnm[5]], self.QUADRUPLE0_UP)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.QUADRUPLE_UP)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_2_UP)
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.QUADRUPLE0_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.QUADRUPLE_UP)
                             if e2bo == e2zo:
-                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_23_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_23_UP)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_23_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_23_UP)
                                 if e1yo == 0:
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.CORNER_3,
                                                                     derivatives=corner3derivs)
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_13_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_3,
+                                                                        derivatives=corner3derivs)
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_13_UP)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_23_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE_2_UP)
                             else:
-                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE0_1_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE_1_UP)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE0_1_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE_1_UP)
                                 if e1yo == 0:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_13_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_13_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_13_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_13_UP)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE_2_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.SURFACE_REGULAR_UP)
                         elif e2o == e2zo:
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_23_UP)
-                            self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE0_1_UP)
-                            self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_23_UP)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE_1_UP)
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_23_UP)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE0_1_UP)
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_23_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_1_UP)
                             if e1yo == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[4]], self.CORNER_3,
                                                                 derivatives=corner3derivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.BOUNDARY_13_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_3,
+                                                                    derivatives=corner3derivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_13_UP)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_23_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_UP)
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_UP)
                         else:
                             if e1yo == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.BOUNDARY_13_UP)
-                                self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.TRIPLE_CURVE0_1_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1], lnm[2]], self.BOUNDARY_13_UP)
+                                    self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.TRIPLE_CURVE_1_UP)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.TRIPLE_CURVE0_1_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.TRIPLE_CURVE_1_UP)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.SURFACE_REGULAR_UP)
-                                self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.TRIPLE_CURVE0_1_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1], lnm[2]], self.SURFACE_REGULAR_UP)
+                                    self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.TRIPLE_CURVE_1_UP)
+                                else:
+                                    self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.TRIPLE_CURVE0_1_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.TRIPLE_CURVE_1_UP)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_UP:
                         if e2o == e2bo:
                             if e1o == 0:
-                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_13_Up)
+                                if not element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_13_Up)
                             else:
-                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_2_UP)
-                            self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE0_2_UP)
+                                if not element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_2_UP)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE_2_UP)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE0_2_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_2_UP)
                             if e2bo == e2zo:
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.BOUNDARY_23_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_23_UP)
                                 if e1o == 0:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_13_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.CORNER_3,
                                                                     derivatives=corner3derivs)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_13_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_3,
+                                                                        derivatives=corner3derivs)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_23_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE_2_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_UP)
 
                             else:
                                 if e1o == 0:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_13_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_13_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_13_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_13_UP)
                                 else:
                                     self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_2_UP)
                                     self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_UP)
+                                    if element_shell:
+                                        self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE_2_UP)
+                                        self.remap_eft_node_value_label(eft1, [lnm[2]], self.SURFACE_REGULAR_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.SURFACE_REGULAR_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[6]], self.SURFACE_REGULAR_UP)
                         elif e2o == e2zo:
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.BOUNDARY_13_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[4]], self.CORNER_3,
                                                                 derivatives=corner3derivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_13_UP)
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_3,
+                                                                    derivatives=corner3derivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_23_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_UP)
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_UP)
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.BOUNDARY_23_UP)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[5]], self.SURFACE_REGULAR_UP)
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_23_UP)
                         else:
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4]], self.BOUNDARY_13_UP)
                                 self.remap_eft_node_value_label(eft1, [lnm[7], lnm[8]], self.SURFACE_REGULAR_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1], lnm[2]], self.BOUNDARY_13_UP)
+                                    self.remap_eft_node_value_label(eft1, [lnm[5], lnm[6]], self.SURFACE_REGULAR_UP)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[3], lnm[4], lnm[7], lnm[8]],
                                                                 self.SURFACE_REGULAR_UP)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[1], lnm[2], lnm[5], lnm[6]],
+                                                                    self.SURFACE_REGULAR_UP)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_LEFT:
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_3_LEFT)
-                        self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE0_3_LEFT)
+                        if element_shell:
+                            self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE_3_LEFT)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [lnm[8]], self.TRIPLE_CURVE0_3_LEFT)
                         if e3o == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_12_LEFT,
                                                             derivatives=triple12leftderivs)
-                            self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_12_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_12_LEFT,
+                                                                derivatives=triple12leftderivs)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE0_12_LEFT)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE_3_LEFT)
-                            self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE0_3_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE_3_LEFT)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.TRIPLE_CURVE0_3_LEFT)
                         if e1yo == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.BOUNDARY_13_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_13_DOWN)
                             if e3o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.CORNER_1,
                                                                 derivatives=corner1derivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_1,
+                                                                    derivatives=corner1derivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_13_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_13_DOWN)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_DOWN_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_DOWN_LEFT)
                             if e3o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_LEFT,
                                                                 derivatives=boundary12leftderivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_LEFT,
+                                                                    derivatives=boundary12leftderivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_DOWN_LEFT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.SURFACE_REGULAR_DOWN_LEFT)
 
                     elif element_type == self.ELEMENT_QUADRUPLE_RIGHT:
-                        self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE0_3_RIGHT)
+                        if element_shell:
+                            self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE_3_RIGHT)
+                        else:
+                            self.remap_eft_node_value_label(eft1, [lnm[3]], self.TRIPLE_CURVE0_3_RIGHT)
                         self.remap_eft_node_value_label(eft1, [lnm[7]], self.TRIPLE_CURVE_3_RIGHT)
                         if e3o == 0:
-                            self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_12_RIGHT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_12_RIGHT,
+                                                                derivatives=triple12rightderivs)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE0_12_RIGHT)
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_12_RIGHT,
                                                             derivatives=triple12rightderivs)
                         else:
-                            self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_3_RIGHT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE_3_RIGHT)
+                            else:
+                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.TRIPLE_CURVE0_3_RIGHT)
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.TRIPLE_CURVE_3_RIGHT)
                         if e2bo == e2zo:
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.BOUNDARY_23_DOWN)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_23_DOWN)
                             if e3o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.CORNER_2,
                                                                 derivatives=corner2derivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_2,
+                                                                    derivatives=corner2derivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_23_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_23_DOWN)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[8]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_DOWN_RIGHT)
                             if e3o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_12_RIGHT,
                                                                 derivatives=boundary12rightderivs)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_RIGHT,
+                                                                    derivatives=boundary12rightderivs)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.SURFACE_REGULAR_DOWN_RIGHT)
 
                     elif element_type == self.ELEMENT_DOWN_RIGHT:
                         if e3o == 0:
@@ -1392,6 +1621,13 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.CORNER_2,
                                                                 derivatives=corner2derivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.BOUNDARY_23_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_RIGHT,
+                                                                    derivatives=boundary12rightderivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_2,
+                                                                    derivatives=corner2derivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_23_DOWN)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_DOWN_RIGHT)
                                 self.remap_eft_node_value_label(eft1, [lnm[5]], self.BOUNDARY_12_RIGHT,
@@ -1399,33 +1635,67 @@ class ShieldMesh3D:
                                 self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_12_RIGHT,
                                                                 derivatives=boundary12rightderivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[8]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                    self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_RIGHT,
+                                                                    derivatives=boundary12rightderivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_RIGHT,
+                                                                    derivatives=boundary12rightderivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_DOWN_RIGHT)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_DOWN_RIGHT)
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                self.remap_eft_node_value_label(eft1, [lnm[1]], self.SURFACE_REGULAR_DOWN_RIGHT)
                             if e2o == e2zo:
                                 self.remap_eft_node_value_label(eft1, [lnm[6], lnm[8]], self.BOUNDARY_23_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2], lnm[4]], self.BOUNDARY_23_DOWN)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[6], lnm[8]], self.SURFACE_REGULAR_DOWN_RIGHT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2], lnm[4]],
+                                                                    self.SURFACE_REGULAR_DOWN_RIGHT)
 
                     elif element_type == self.ELEMENT_DOWN_LEFT:
                         if e3o == 0:
                             self.remap_eft_node_value_label(eft1, [lnm[5]], self.BOUNDARY_12_LEFT,
                                                             derivatives=boundary12rightderivs)
                             self.remap_eft_node_value_label(eft1, [lnm[7]], self.SURFACE_REGULAR_DOWN_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[6]], self.BOUNDARY_12_LEFT,
+                                                                derivatives=boundary12rightderivs)
+                                self.remap_eft_node_value_label(eft1, [lnm[8]], self.SURFACE_REGULAR_DOWN_LEFT)
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.CORNER_1,
                                                                 derivatives=corner1derivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.BOUNDARY_13_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.CORNER_1,
+                                                                    derivatives=corner1derivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.BOUNDARY_13_DOWN)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[1]], self.BOUNDARY_12_LEFT,
                                                                 derivatives=boundary12rightderivs)
                                 self.remap_eft_node_value_label(eft1, [lnm[3]], self.SURFACE_REGULAR_DOWN_LEFT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2]], self.BOUNDARY_12_LEFT,
+                                                                    derivatives=boundary12rightderivs)
+                                    self.remap_eft_node_value_label(eft1, [lnm[4]], self.SURFACE_REGULAR_DOWN_LEFT)
                         else:
                             self.remap_eft_node_value_label(eft1, [lnm[5], lnm[7]], self.SURFACE_REGULAR_DOWN_LEFT)
+                            if element_shell:
+                                self.remap_eft_node_value_label(eft1, [lnm[6], lnm[8]], self.SURFACE_REGULAR_DOWN_LEFT)
                             if e1o == 0:
                                 self.remap_eft_node_value_label(eft1, [lnm[1], lnm[3]], self.BOUNDARY_13_DOWN)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2], lnm[4]], self.BOUNDARY_13_DOWN)
                             else:
                                 self.remap_eft_node_value_label(eft1, [lnm[1], lnm[3]], self.SURFACE_REGULAR_DOWN_LEFT)
+                                if element_shell:
+                                    self.remap_eft_node_value_label(eft1, [lnm[2], lnm[4]],
+                                                                    self.SURFACE_REGULAR_DOWN_LEFT)
 
                     else:
                         continue
@@ -1547,36 +1817,36 @@ class ShieldMesh3D:
                     octant_number = 8
 
         if octant_number in [2, 4, 5, 7]:
-            e3zo = self.elementsCountAcross[2] // 2 - 1
+            e3zo = self.elementsCountAcross[2] // 2 - 1 - self.elementsCountRim
             e2zo = self.elementsCountAcross[1] // 2 - 1
-            e1zo = self.elementsCountAcross[0] // 2 - 1
+            e1zo = self.elementsCountAcross[0] // 2 - 1 - self.elementsCountRim
         else:
-            e3zo = self.elementsCountAcross[2] // 2 - 1
+            e3zo = self.elementsCountAcross[2] // 2 - 1 - self.elementsCountRim
             e2zo = self.elementsCountAcross[0] // 2 - 1
-            e1zo = self.elementsCountAcross[1] // 2 - 1
+            e1zo = self.elementsCountAcross[1] // 2 - 1 - self.elementsCountRim
 
-        e3yo, e2bo, e1yo = e3zo - 1, 1, e1zo - 1
+        e3yo, e2bo, e1yo = e3zo - 1, 1 + self.elementsCountRim, e1zo - 1
         e3o, e2o, e1o = self.get_local_element_index(octant_number, e3, e2, e1)
 
         if e3o <= e3yo and e2o >= e2bo and e1o <= e1yo:
             element_type = self.ELEMENT_REGULAR
-        elif e3o == e3yo and e2o == 0 and e1o == e1yo:
+        elif e3o == e3yo and e2o <= self.elementsCountRim and e1o == e1yo:
             element_type = self.ELEMENT_QUADRUPLE_DOWN_LEFT
-        elif e3o == e3yo and e2o >= e2bo and e1o == e1zo:
+        elif e3o == e3yo and e2o >= e2bo and e1o >= e1zo:
             element_type = self.ELEMENT_QUADRUPLE_DOWN_RIGHT
-        elif e3o == e3zo and e2o >= e2bo and e1o == e1yo:
+        elif e3o >= e3zo and e2o >= e2bo and e1o == e1yo:
             element_type = self.ELEMENT_QUADRUPLE_UP_LEFT
-        elif e3o == e3yo and e2o == 0 and e1o < e1yo:
+        elif e3o == e3yo and e2o <= self.elementsCountRim and e1o < e1yo:
             element_type = self.ELEMENT_QUADRUPLE_DOWN
-        elif e3o == e3zo and e2o >= e2bo and e1o < e1yo:
+        elif e3o >= e3zo and e2o >= e2bo and e1o < e1yo:
             element_type = self.ELEMENT_QUADRUPLE_UP
-        elif e3o < e3yo and e2o == 0 and e1o == e1yo:
+        elif e3o < e3yo and e2o <= self.elementsCountRim and e1o == e1yo:
             element_type = self.ELEMENT_QUADRUPLE_LEFT
-        elif e3o < e3yo and e2o == e2bo and e1o == e1zo:
+        elif e3o < e3yo and e2o == e2bo and e1o >= e1zo:
             element_type = self.ELEMENT_QUADRUPLE_RIGHT
-        elif e3o < e3yo and e2o > e2bo and e1o == e1zo:
+        elif e3o < e3yo and e2o > e2bo and e1o >= e1zo:
             element_type = self.ELEMENT_DOWN_RIGHT
-        elif e3o < e3yo and e2o == 0 and e1o < e1yo:
+        elif e3o < e3yo and e2o <= self.elementsCountRim and e1o < e1yo:
             element_type = self.ELEMENT_DOWN_LEFT
         else:
             element_type = 0
@@ -1676,30 +1946,28 @@ class ShieldMesh3D:
         n1zo = n1yo + 1
         n3zo = n3yo + 1
         n3o, n2o, n1o = self.get_octant_node_index(octant_number, n3, n2, n1)
-        if n2o == 0 and n1o == n1yo:
-            if n3o == n3yo:
-                n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o+1, n2o, n1o+1)
-            elif n3o == n3yo:
-                n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o-1, n1o + 1)
-            else:
-                n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o, n1o + 1)
-        elif n2o == 1 and n1o == n1zo:
-            if n3o == n3yo:
-                n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o+1, n2o-1, n1o)
-            elif n3o == n3yo:
-                n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o-1, n1o+1)
-            else:
-                n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o-1, n1o)
-        elif n3o == n3yo and (n2o == 0 or n1o == n1zo):
-            n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o+1, n2o, n1o)
-        elif n3o == n3zo and n2o == 1 and n1o == n1yo:
-            n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o-1, n1o+1)
-        elif n3o == n3zo and n2o == 1:
-            n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o - 1, n1o)
-        elif n3o == n3zo and n2o > 1 and n1o == n1yo:
-            n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o, n2o, n1o+1)
-        else:
-            n3r, n2r, n1r = n3, n2, n1
+
+        n3_skip, n2_skip, n1_skip = 0, 0, 0
+
+        if n1o == n1yo:
+            if n2o <= self.elementsCountRim:
+                n1_skip = 1 + self.elementsCountRim - n2o
+            elif n3o >= n3zo:
+                n1_skip = 1 + n3o - n3zo
+
+        if n2o == self.elementsCountRim + 1:
+            if n1o >= n1zo:
+                n2_skip = -(1 + n1o - n1zo)
+            elif n3o >= n3zo:
+                n2_skip = -(1 + n3o - n3zo)
+
+        if n3o == n3yo:
+            if n2o <= self.elementsCountRim:
+                n3_skip = 1 + self.elementsCountRim - n2o
+            elif n1o >= n1zo:
+                n3_skip = 1 + n1o - n1zo
+
+        n3r, n2r, n1r = self.get_global_node_index(octant_number, n3o + n3_skip, n2o + n2_skip, n1o + n1_skip)
 
         return self.nodeId[n3r][n2r][n1r]
 
