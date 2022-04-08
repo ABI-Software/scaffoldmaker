@@ -1608,10 +1608,10 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
                 theta = math.pi - n1 * angleAroundUnit
             t = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2))
             xScale = maxCircumference / 2
-            zScale = minorarcLength / 2
+            yScale = minorarcLength / 2
             x = [xScale * math.cos(phi) * math.sin(theta / 2) / t,
-                 0.0,
-                 zScale * (math.sin(phi) / t + 1)]
+                 yScale * (math.sin(phi) / t + 1),
+                 0.0]
             xfnList.append(x)
 
     # Rearrange the nodes
@@ -1630,7 +1630,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
         for n1 in range(elementsCountAround + 1):
             if n1 == elementsCountAround:
                 id = (elementsCountAround + 1) * n2
-                d1 = [d1fnListRearranged[id][0], d1fnListRearranged[id][1], -d1fnListRearranged[id][2]]
+                d1 = [d1fnListRearranged[id][0], -d1fnListRearranged[id][1], d1fnListRearranged[id][2]]
             else:
                 v1 = xfnListRearranged[(elementsCountAround + 1) * n2 + n1]
                 v2 = xfnListRearranged[(elementsCountAround + 1) * n2 + n1 + 1]
@@ -1658,7 +1658,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
         xNodesToDown += x
         for n1 in range(1, elementsCountAlongBladder + 1):
             if n1 == elementsCountAlongBladder:
-                d2 = [0.0, 0.0, minorarcLength / elementsCountAlongBladder]
+                d2 = [0.0, minorarcLength / elementsCountAlongBladder, 0.0]
             else:
                 v1 = xNodesToDown[elementsCountAlongBladder * n2 + n1 - 1]
                 v2 = xNodesToDown[elementsCountAlongBladder * n2 + n1]
@@ -1689,7 +1689,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     d2flatList = []
     for n2 in range(elementsCountThroughWall + 1):
         for n1 in range(len(xfnListRearranged)):
-            x = [xfnListRearranged[n1][0], n2 * bladderWallThickness / elementsCountThroughWall, xfnListRearranged[n1][2]]
+            x = [xfnListRearranged[n1][0], xfnListRearranged[n1][1], n2 * bladderWallThickness / elementsCountThroughWall]
             d1 = smoothed_d1[n1]
             d2 = d2fnListRearranged[n1]
             xflatList.append(x)
@@ -1710,10 +1710,10 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     d1Flat = []
     d2Flat = []
     for n1 in range(elementsCountThroughWall + 1):
-        xApex = [xApexInner[0], xApexInner[1] + n1 * bladderWallThickness / elementsCountThroughWall, xApexInner[2]]
+        xApex = [xApexInner[0], xApexInner[1], xApexInner[2] + n1 * bladderWallThickness / elementsCountThroughWall]
         xFlat.append(xApex)
         d1Flat.append([-d1Mag, 0.0, 0.0])
-        d2Flat.append([0.0, 0.0, d2Mag])
+        d2Flat.append([0.0, d2Mag, 0.0])
 
     # Re-arrange the nodes
     for n3 in range(1, elementsCountAlongBladder + 1):
