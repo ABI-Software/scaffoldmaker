@@ -73,7 +73,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [-37.166408946939285, 0.0, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [43.162112471562814, 0.5, 67.96829871181363], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [43.162112471562814, 67.96829871181363, 0.5], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
