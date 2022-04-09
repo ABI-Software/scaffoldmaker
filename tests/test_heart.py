@@ -25,7 +25,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1",
             "Unit Human 1", "Unit Mouse 1", "Unit Pig 1", "Unit Rat 1" ]);
         options = scaffold.getDefaultOptions("Human 1")
-        self.assertEqual(120, len(options))
+        self.assertEqual(123, len(options))
         self.assertEqual(0.9, options.get("LV outer height"))
         self.assertEqual(80.0, options.get("Unit scale"))
         self.assertEqual(7, options.get("Number of elements around LV free wall"))
@@ -72,10 +72,10 @@ class HeartScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 36816.42266159511, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 36854.25295430545, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 221608.24392424847, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 221614.11043609766, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -84,7 +84,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
             "interventricular septum" : 30,
             "left atrium myocardium" : 88,
             "right atrium myocardium" : 80,
-            "interatrial septum" : 17
+            "interatrial septum" : 23
             }
         for name in expectedSizes3d:
             group = getAnnotationGroupForTerm(annotationGroups, get_heart_term(name))

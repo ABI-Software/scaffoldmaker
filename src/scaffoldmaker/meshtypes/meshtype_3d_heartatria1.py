@@ -318,6 +318,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Refine'] = False
         options['Refine number of elements surface'] = 4
         options['Refine number of elements through wall'] = 1
+        options['Refine number of elements through epicardial fat layer'] = 1
         options['Use cross derivatives'] = False
 
         if isHuman:
@@ -519,6 +520,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through wall',
+            'Refine number of elements through epicardial fat layer'
             #,'Use cross derivatives'
         ]
 
@@ -3419,6 +3421,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elementsCountAroundRightAtriumFreeWall = options['Number of elements around right atrium free wall']
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
+        refineElementsCountThroughEpicardialFatLayer =\
+            options['Refine number of elements through epicardial fat layer']
+        defineEpicardialFatLayer = options['Define epicardial fat layer']
 
         sourceFm = meshrefinement._sourceFm
         annotationGroups = meshrefinement._sourceAnnotationGroups
@@ -3427,11 +3432,18 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
         raElementGroupField = raGroup.getFieldElementGroup(meshrefinement._sourceMesh)
         aSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interatrial septum"))
-        aSeptumElementGroupField = aSeptumGroup.getFieldElementGroup(meshrefinement._sourceMesh)
-        isSeptumEdgeWedge = sourceFm.createFieldXor(sourceFm.createFieldAnd(laElementGroupField, raElementGroupField), aSeptumElementGroupField)
+        aSeptumMeshGroup = aSeptumGroup.getMeshGroup(meshrefinement._sourceMesh)
+        epicardialFatGroup = None
+        epicardialFatMeshGroup = None
+        if defineEpicardialFatLayer:
+            epicardialFatGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardial fat"))
+            epicardialFatMeshGroup = epicardialFatGroup.getMeshGroup(meshrefinement._sourceMesh)
+        coordinates = findOrCreateFieldCoordinates(meshrefinement._sourceFm)
 
         # last atria element is last element in following group:
-        lastGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right auricle"))
+        lastGroup = epicardialFatGroup
+        if not lastGroup:
+            lastGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right auricle"))
         lastMeshGroup = lastGroup.getMeshGroup(meshrefinement._sourceMesh)
         lastElementIdentifier = -1
         elementIter = lastMeshGroup.createElementiterator()
@@ -3441,22 +3453,25 @@ class MeshType_3d_heartatria1(Scaffold_base):
             element = elementIter.next()
 
         cache = sourceFm.createFieldcache()
-        refineElements3 = refineElementsCountThroughWall
         element = meshrefinement._sourceElementiterator.next()
         wedgeElementCount = 0
         while element.isValid():
             elementIdentifier = element.getIdentifier()
             refineElements1 = refineElementsCountSurface
             refineElements2 = refineElementsCountSurface
+            refineElements3 = refineElementsCountThroughWall
             cache.setElement(element)
-            result, isWedge = isSeptumEdgeWedge.evaluateReal(cache, 1)
-            if isWedge:
-                wedgeElementCount += 1
-                # the first two around the base are collapsed on 1-3, remainder on 2-3 
-                if wedgeElementCount <= 2:
-                    refineElements1 = refineElementsCountThroughWall
-                else:
-                    refineElements2 = refineElementsCountThroughWall
+            if aSeptumMeshGroup.containsElement(element):
+                eft = element.getElementfieldtemplate(coordinates, 1)
+                if eft.getNumberOfLocalNodes() == 6:
+                    wedgeElementCount += 1
+                    # the first two around the base are collapsed on 1-3, remainder on 2-3
+                    if wedgeElementCount <= 2:
+                        refineElements1 = refineElementsCountThroughWall
+                    else:
+                        refineElements2 = refineElementsCountThroughWall
+            elif epicardialFatGroup and epicardialFatMeshGroup.containsElement(element):
+                refineElements3 = refineElementsCountThroughEpicardialFatLayer
             meshrefinement.refineElementCubeStandard3d(element, refineElements1, refineElements2, refineElements3)
             if elementIdentifier == lastElementIdentifier:
                 return  # finish on last so can continue elsewhere
