@@ -371,6 +371,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, coordinates), ventriclesOffset)
         fieldassignment = coordinates.createFieldassignment(newCoordinates)
         fieldassignment.setNodeset(nodes)
+        # marker points are not rotated
+        fieldassignment.setConditionalField(fm.createFieldNot(markerGroup.getFieldNodeGroup(nodes)))
         fieldassignment.assign()
 
         # discover ventricles top LV inner, RV inner, V Outer nodes, coordinates and derivatives

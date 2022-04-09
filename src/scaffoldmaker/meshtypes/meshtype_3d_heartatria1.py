@@ -8,13 +8,16 @@ from __future__ import division
 import copy
 import math
 
+from opencmiss.maths.vectorops import add, mult
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element, Elementbasis
 from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from opencmiss.zinc.result import RESULT_OK
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -22,10 +25,13 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import createEftElementSurfaceLayer, remapEftLocalNodes, remapEftNodeValueLabel, \
+    scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getCircleProjectionAxes, getEllipseAngleFromVector, getEllipseArcLength, getEllipseRadiansToX, \
-    updateEllipseAngleByArcLength, createCirclePoints
+from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getCircleProjectionAxes, \
+    getEllipseAngleFromVector, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength, \
+    createCirclePoints
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tracksurface import TrackSurface, calculate_surface_axes
 
@@ -307,6 +313,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Superior vena cava inlet length'] = 0.1
         options['Superior vena cava inlet inner diameter'] = 0.18
         options['Superior vena cava inlet wall thickness'] = 0.015
+        options['Define epicardial fat layer'] = False
+        options['Epicardial fat minimum thickness'] = 0.01
         options['Refine'] = False
         options['Refine number of elements surface'] = 4
         options['Refine number of elements through wall'] = 1
@@ -506,6 +514,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Superior vena cava inlet length',
             'Superior vena cava inlet inner diameter',
             'Superior vena cava inlet wall thickness',
+            'Define epicardial fat layer',
+            'Epicardial fat minimum thickness',
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through wall',
@@ -605,7 +615,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Superior vena cava inlet derivative factor',
             'Superior vena cava inlet length',
             'Superior vena cava inlet inner diameter',
-            'Superior vena cava inlet wall thickness']:
+            'Superior vena cava inlet wall thickness',
+            'Epicardial fat minimum thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
         for key in [
@@ -788,6 +799,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         svcLength = unitScale*options['Superior vena cava inlet length']
         svcInnerRadius = unitScale*0.5*options['Superior vena cava inlet inner diameter']
         svcWallThickness = unitScale*options['Superior vena cava inlet wall thickness']
+        defineEpicardialFatLayer = options['Define epicardial fat layer']
+        epicardialFatMinimumThickness = unitScale*options['Epicardial fat minimum thickness']
         useCrossDerivatives = options['Use cross derivatives']
 
         fm = region.getFieldmodule()
@@ -803,7 +816,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         fossaGroup = AnnotationGroup(region, get_heart_term("fossa ovalis"))
         laaGroup = AnnotationGroup(region, get_heart_term("left auricle"))
         raaGroup = AnnotationGroup(region, get_heart_term("right auricle"))
-        annotationGroups = [ heartGroup, laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup ]
+        annotationGroups = [heartGroup, laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup]
+        if defineEpicardialFatLayer:
+            epicardialFatGroup = AnnotationGroup(region, get_heart_term("epicardial fat"))
+            annotationGroups.append(epicardialFatGroup)
 
         lpvOstiumSettings = lpvOstium.getScaffoldSettings()
         lpvCount = lpvOstiumSettings['Number of vessels']
@@ -2001,6 +2017,64 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, ltBaseOuterd2[n1])
                 nodeIdentifier += 1
 
+        if defineEpicardialFatLayer:
+            # epicardial fat pad in RAGP region -- track surface bridging interatrial groove
+            fpx = []
+            fpd1 = []
+            fpd2 = []
+            fpd3 = []
+            for i in range(5):
+                if i < 2:
+                    proportionAcross = 0.35 if i == 0 else 0.2
+                    nx, nd2, nd1, nd3 = laTrackSurface.createHermiteCurvePoints(
+                        0.0, proportionAcross, 1.0, proportionAcross, elementsCountAcrossTrackSurface)[0:4]
+                elif i == 2:
+                    nx, nd1, nd2, nd3 = [], [], [], []
+                else:  # i > 2
+                    proportionAcross = 0.35 if i == 4 else 0.2
+                    nx, nd2, nd1, nd3 = raTrackSurface.createHermiteCurvePoints(
+                        1.0, proportionAcross, 0.0, proportionAcross, elementsCountAcrossTrackSurface)[0:4]
+                if nx:
+                    nx = [add(nx[i], mult(nd3[i], epicardialFatMinimumThickness)) for i in range(len(nx))]
+                    nd1 = [[-c for c in d] for d in nd1]
+                fpx.append(nx)
+                fpd1.append(nd1)
+                fpd2.append(nd2)
+                fpd3.append(nd3)
+
+            # sample centre curve above interatrial groove
+            for n in range(elementsCountAcrossTrackSurface + 1):
+                x1 = fpx[1][n]
+                d1 = fpd1[1][n]
+                x2 = fpx[3][n]
+                d2 = fpd1[3][n]
+                arcLength = interp.computeCubicHermiteArcLength(x1, d1, x2, d2, rescaleDerivatives=False)
+                d1 = vector.setMagnitude(d1, arcLength)
+                d2 = vector.setMagnitude(d2, arcLength)
+                tx, td1 = interp.sampleCubicHermiteCurves([x1, x2], [d1, d2], 2)[0:2]
+                fpx[2].append(tx[1])
+                fpd1[2].append(td1[1])
+                fpd2[2].append([0.0, 0.0, 0.0])
+            fpd2[2] = interp.smoothCubicHermiteDerivativesLine(fpx[2], fpd2[2])
+            for n in range(elementsCountAcrossTrackSurface + 1):
+                fpd3[2].append(vector.normalise(vector.crossproduct3(fpd1[2][n], fpd2[2][n])))
+
+            # put into single arrays cycling left to right fastest, smoothing each d1 row
+            nx = []
+            nd1 = []
+            nd2 = []
+            for n in range(elementsCountAcrossTrackSurface + 1):
+                tx = []
+                td1 = []
+                for i in range(5):
+                    tx.append(fpx[i][n])
+                    td1.append(fpd1[i][n])
+                    nd2.append(fpd2[i][n])
+                nx += tx
+                nd1 += interp.smoothCubicHermiteDerivativesLine(tx, td1, fixAllDirections=True)
+
+            fpTrackSurface = TrackSurface(4, elementsCountAcrossTrackSurface,  nx, nd1, nd2)
+
         drawLaTrackSurface = False
         if drawLaTrackSurface:
             # create track surface nodes:
@@ -2023,13 +2097,24 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, raTrackSurface.nd1[n])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, raTrackSurface.nd2[n])
                 nodeIdentifier += 1
+        drawFpTrackSurface = False  # True if defineEpicardialFatLayer else False
+        if drawFpTrackSurface:
+            # create track surface nodes:
+            fpTrackSurfaceFirstNodeIdentifier = nodeIdentifier
+            for n in range((fpTrackSurface.elementsCount2 + 1)*(fpTrackSurface.elementsCount1 + 1)):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, fpTrackSurface.nx[n] )
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, fpTrackSurface.nd1[n])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, fpTrackSurface.nd2[n])
+                nodeIdentifier += 1
 
         #################
         # Create elements
         #################
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        tricubicHermiteBasis = fm.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
 
         eft = tricubichermite.createEftBasic()
         elementtemplate = mesh.createElementtemplate()
@@ -2102,6 +2187,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             elementIdentifier += 1
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
+            if len(nids) == 6:
+                aSeptumMeshGroup.addElement(element)
 
         # right atrium free wall elements to vestibule top, starting at crux / posterior interatrial sulcus
         for e1 in range(-1, elementsCountAroundRightAtriumFreeWall):
@@ -2152,6 +2239,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             elementIdentifier += 1
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
+            if len(nids) == 6:
+                aSeptumMeshGroup.addElement(element)
 
         if commonLeftRightPvOstium:
             # left atrium row above vestibule beside aorta 
@@ -2377,7 +2466,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         remapEftNodeValueLabel(eftAGroove, [ 1, 2, 3, 4, 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
         ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
         remapEftLocalNodes(eftAGroove, 6, ln_map)
-        meshGroups = [ heartMeshGroup, laMeshGroup, raMeshGroup ]
+        meshGroups = [ heartMeshGroup, laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
         elementsCountOverArch = elementsCountOverAtria - 2
         elementtemplateX.defineField(coordinates, -1, eftAGroove)
         scalefactors = [ -1.0 ]
@@ -2845,7 +2934,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 vcax, vcad1, vcad2, vcad3, vcaNodeId, vcaDerivativesMap,
                 maxEndThickness = 1.5*raVenousFreeWallThickness,
                 elementsCountRadial = elementsCountAlongVCInlet,
-                meshGroups = rowMeshGroups, rescaleEndDerivatives=True)
+                meshGroups = rowMeshGroups, rescaleEndDerivatives=False)
 
             if v == 0:  # ivc
                 # right atrium epicardium venous midpoint marker point
@@ -3169,6 +3258,102 @@ class MeshType_3d_heartatria1(Scaffold_base):
             elementsCountRadial = elementsCountAlongAtrialAppendages,
             meshGroups = [ heartMeshGroup, raMeshGroup, raaMeshGroup ])
 
+        if defineEpicardialFatLayer:
+            # project epicardial points over atria to build fat pad
+            epiGroup = fm.createFieldGroup()
+            epiMesh = epiGroup.createFieldElementGroup(mesh).getMeshGroup()
+            is_a = fm.createFieldOr(laGroup.getFieldElementGroup(mesh), raGroup.getFieldElementGroup(mesh))
+            is_aa = fm.createFieldOr(laaGroup.getFieldElementGroup(mesh), raaGroup.getFieldElementGroup(mesh))
+            is_not_epi = fm.createFieldNot(fm.createFieldOr(is_aa, aSeptumGroup.getFieldElementGroup(mesh)))
+            is_a_epi = fm.createFieldAnd(is_a, is_not_epi)
+            epiMesh.addElementsConditional(is_a_epi)
+            # print("epiMesh.getSize()", epiMesh.getSize())
+            epiNodes = epiGroup.createFieldNodeGroup(nodes).getNodesetGroup()
+            # add nodes on xi3=1 of epiMesh to epiNodes
+            epiElementIdentifiers = []
+            elementIterator = epiMesh.createElementiterator()
+            epiElement = elementIterator.next()
+            while epiElement.isValid():
+                epiElementIdentifier = epiElement.getIdentifier()
+                epiEft = epiElement.getElementfieldtemplate(coordinates, -1)
+                # only implemented for regular cube elements
+                nodeCount = epiEft.getNumberOfLocalNodes()
+                if nodeCount == 8:
+                    for ln in range(5, nodeCount + 1):
+                        epiNode = epiElement.getNode(epiEft, ln)
+                        epiNodes.addNode(epiNode)
+                    epiElementIdentifiers.append(epiElementIdentifier)
+                else:
+                    print("Non-cube element ID on epicardium", epiElementIdentifier, "#nodes", nodeCount)
+                epiElement = elementIterator.next()
+            # print("epiNodes.getSize()", epiNodes.getSize())
+            # project nodes above epicardial surface or nearest point on fatpad tracksurface if further away
+            epiFatPadNodeIdentifiersMap = {}
+            # make blank map first since can't iterate over nodes while creating them
+            nodeIterator = epiNodes.createNodeiterator()
+            epiNode = nodeIterator.next()
+            while epiNode.isValid():
+                epiNodeIdentifier = epiNode.getIdentifier()
+                epiFatPadNodeIdentifiersMap[epiNodeIdentifier] = epiNodeIdentifier
+                epiNode = nodeIterator.next()
+            for epiNodeIdentifier in epiFatPadNodeIdentifiersMap.keys():
+                epiNode = nodes.findNodeByIdentifier(epiNodeIdentifier)
+                cache.setNode(epiNode)
+                result, epix = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                result, epid1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                result, epid2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                result, epid3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+                if result != RESULT_OK:
+                    epid3 = vector.crossproduct3(epid1, epid2)
+                fatx = add(epix, vector.setMagnitude(epid3, epicardialFatMinimumThickness))
+                node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, fatx)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, epid1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, epid2)
+                epiFatPadNodeIdentifiersMap[epiNodeIdentifier] = nodeIdentifier
+                nodeIdentifier += 1
+
+            # create fatpad elements
+            fatEft = bicubichermitelinear.createEftNoCrossDerivatives()
+            fatElementtemplate = mesh.createElementtemplate()
+            fatElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            fatElementtemplate.defineField(coordinates, -1, fatEft)
+            elementtemplateX = mesh.createElementtemplate()
+            elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+            epicardialFatMeshGroup = epicardialFatGroup.getMeshGroup(mesh)
+            meshGroups = [heartMeshGroup, epicardialFatMeshGroup]
+            elementtemplate = mesh.createElementtemplate()
+            # iterate over list of identifiers since can't iterate over mesh while modifying it
+            for epiElementIdentifier in epiElementIdentifiers:
+                epiElement = mesh.findElementByIdentifier(epiElementIdentifier)
+                epiEft = epiElement.getElementfieldtemplate(coordinates, -1)
+                elementtemplate1 = fatElementtemplate
+                eft1, scalefactors = createEftElementSurfaceLayer(epiElement, epiEft, bicubichermitelinear, fatEft)
+                nids = []
+                for ln in range(5, nodeCount + 1):
+                    epiNode = epiElement.getNode(epiEft, ln)
+                    nids.append(epiNode.getIdentifier())
+                nids += [epiFatPadNodeIdentifiersMap[nid] for nid in nids]
+                if eft1 is not fatEft:
+                    elementtemplateX.defineField(coordinates, -1, eft1)
+                    elementtemplate1 = elementtemplateX
+                element = mesh.createElement(elementIdentifier, elementtemplate1)
+                result2 = element.setNodesByIdentifier(eft1, nids)
+                if scalefactors:
+                    result3 = element.setScaleFactors(eft1, scalefactors)
+                else:
+                    result3 = '-'
+                # print('create element fat', element.isValid(), elementIdentifier, result2, result3, nids)
+                elementIdentifier += 1
+
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+                for meshGroup in [laMeshGroup, raMeshGroup]:
+                    if meshGroup.containsElement(epiElement):
+                        meshGroup.addElement(element)
+
         if drawLaTrackSurface:
             mesh2d = fm.findMeshByDimension(2)
             bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
@@ -3201,6 +3386,22 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     element = mesh2d.createElement(-1, elementtemplate2d)  # since on 2-D mesh
                     nid1 = raTrackSurfaceFirstNodeIdentifier + e2*nodesCount1 + e1
                     element.setNodesByIdentifier(eft2d, [ nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1 ])
+        if drawFpTrackSurface:
+            mesh2d = fm.findMeshByDimension(2)
+            bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+            eft2d = mesh2d.createElementfieldtemplate(bicubicHermiteBasis)
+            # remove cross derivative 12
+            for n in range(4):
+                r = eft2d.setFunctionNumberOfTerms(n * 4 + 4, 0)
+            elementtemplate2d = mesh2d.createElementtemplate()
+            elementtemplate2d.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+            elementtemplate2d.defineField(coordinates, -1, eft2d)
+            nodesCount1 = fpTrackSurface.elementsCount1 + 1
+            for e2 in range(fpTrackSurface.elementsCount2):
+                for e1 in range(fpTrackSurface.elementsCount1):
+                    element = mesh2d.createElement(-1, elementtemplate2d)  # since on 2-D mesh
+                    nid1 = fpTrackSurfaceFirstNodeIdentifier + e2 * nodesCount1 + e1
+                    element.setNodesByIdentifier(eft2d, [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1])
 
         return annotationGroups
 

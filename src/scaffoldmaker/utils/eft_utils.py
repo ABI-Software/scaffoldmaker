@@ -2,6 +2,8 @@
 Utility functions for element field templates shared by mesh generators.
 '''
 from opencmiss.zinc.element import Elementfieldtemplate
+from opencmiss.zinc.node import Node
+
 
 def getEftTermScaling(eft, functionIndex, termIndex):
     '''
@@ -23,6 +25,7 @@ def getEftTermScaling(eft, functionIndex, termIndex):
     scaleFactorCount, scaleFactorIndexes = eft.getTermScaling(functionIndex, termIndex, scaleFactorCount)
     return scaleFactorIndexes
 
+
 def mapEftFunction1Node1Term(eft, function, localNode, valueLabel, version, scaleFactors):
     '''
     Set function of eft to map valueLabel, version from localNode with scaleFactors
@@ -30,6 +33,7 @@ def mapEftFunction1Node1Term(eft, function, localNode, valueLabel, version, scal
     eft.setFunctionNumberOfTerms(function, 1)
     eft.setTermNodeParameter(function, 1, localNode, valueLabel, version)
     eft.setTermScaling(function, 1, scaleFactors)
+
 
 def mapEftFunction1Node2Terms(eft, function, localNode, valueLabel1, version1, scaleFactors1, valueLabel2, version2, scaleFactors2):
     '''
@@ -40,6 +44,7 @@ def mapEftFunction1Node2Terms(eft, function, localNode, valueLabel1, version1, s
     eft.setTermScaling(function, 1, scaleFactors1)
     eft.setTermNodeParameter(function, 2, localNode, valueLabel2, version2)
     eft.setTermScaling(function, 2, scaleFactors2)
+
 
 def remapEftLocalNodes(eft, newNodeCount, localNodeIndexes):
     '''
@@ -53,6 +58,7 @@ def remapEftLocalNodes(eft, newNodeCount, localNodeIndexes):
         for t in range(1, termCount + 1):
             eft.setTermNodeParameter(f, t, localNodeIndexes[eft.getTermLocalNodeIndex(f, t) - 1], eft.getTermNodeValueLabel(f, t), eft.getTermNodeVersion(f, t))
     eft.setNumberOfLocalNodes(newNodeCount)
+
 
 def remapEftNodeValueLabel(eft, localNodeIndexes, fromValueLabel, expressionTerms):
     '''
@@ -77,6 +83,7 @@ def remapEftNodeValueLabel(eft, localNodeIndexes, fromValueLabel, expressionTerm
                     if expressionTerm[1]:
                         eft.setTermScaling(f, t, expressionTerm[1])
 
+
 def remapEftNodeValueLabelsVersion(eft, localNodeIndexes, valueLabels, version):
     '''
     Remap all uses of the given valueLabels to use the version.
@@ -93,6 +100,7 @@ def remapEftNodeValueLabelsVersion(eft, localNodeIndexes, valueLabels, version):
             if (localNodeIndex in localNodeIndexes) and (valueLabel in valueLabels):
                 result = eft.setTermNodeParameter(f, t, localNodeIndex, valueLabel, version)
                 #print('remap result', result)
+
 
 def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, expressionTerms):
     '''
@@ -116,6 +124,7 @@ def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, express
                     if expressionTerm[2]:
                         eft.setTermScaling(f, t, expressionTerm[2])
 
+
 def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIndexes):
     '''
     Multiply all uses of the given ValueLabels by scale factor at scaleFactorIndex.
@@ -134,6 +143,7 @@ def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIn
                     scaleFactorIndexes += addScaleFactorIndexes
                     eft.setTermScaling(f, t, scaleFactorIndexes)
 
+
 def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
     '''
     Set general followed by node scale factor identifiers.
@@ -148,3 +158,123 @@ def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
         eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
         eft.setScaleFactorIdentifier(s, id)
         s += 1
+
+
+def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
+    """
+    Create eft for layer above xi3 = 1, from either tricubic hermite or bicubic hermite linear.
+    Extracts mapping information from top xi3=1 surface of elementIn with eftIn.
+    Returns eft for new element and scalefactors for it.
+    :param elementIn: The element to build on.
+    :param eftIn: The eft for the base element field. Assumed validated.
+    :param eftfactory: The eft factory to create new eft from, if needed.
+    Either eftfactory_tricubichermite or eftfactory_bicubichermitelinear.
+    :param eftStd: The standard eft for the new element as created by eftfactory.createEftNoCrossDerivatives.
+    Assumed unscaled, without cross derivatives, max 1 version and not collapsed. Never modified.
+    :return: eftStd or new eft if remapped, scalefactors
+    """
+    eft = eftStd
+    scalefactors = None
+    scaleFactorCountIn = eftIn.getNumberOfLocalScaleFactors()
+    scaleFactorsUsed = [False]*scaleFactorCountIn  # flag scale factors used on top surface of element
+    functionCountIn = eftIn.getNumberOfFunctions()
+    elementBasis = eftfactory.getElementbasis()
+    functionCountOut = elementBasis.getNumberOfFunctions()
+    halfFunctionCountOut = functionCountOut // 2
+    assert functionCountOut == eftStd.getNumberOfFunctions()
+    assert (functionCountIn in (32, 64)) and (functionCountOut in (32, 64)) and (functionCountIn > functionCountOut)
+    assert eftIn.getNumberOfLocalNodes() == 8
+    assert eftStd.getNumberOfLocalNodes() == 8
+    functionsPerNodeIn = functionCountIn // 8
+    functionsPerNodeOut = functionCountOut // 8
+    for i in range(halfFunctionCountOut):
+        f = 1 + i
+        fInLocalNodeLayer1 = 1 + ((i // functionsPerNodeOut) * functionsPerNodeIn) + (i % functionsPerNodeOut)
+        fIn = fInLocalNodeLayer1 + (functionCountIn // 2)
+        termCountIn = eftIn.getFunctionNumberOfTerms(fIn)
+        for t in range(1, termCountIn + 1):
+            localNodeIndex = eftIn.getTermLocalNodeIndex(fInLocalNodeLayer1, t)
+            nodeValueLabel = eftIn.getTermNodeValueLabel(fIn, t)
+            nodeVersion = eftIn.getTermNodeVersion(fIn, t)
+            scalingCount, scalingIndexes = eftIn.getTermScaling(fIn, t, 0)
+            if scalingCount > 0:
+                scalingIndexes = eftIn.getTermScaling(fIn, t, scalingCount)[1]
+                #if (scalingCount > 1) or (scalingIndexes != 1):
+                #    print("Scaling", scalingIndexes)
+                if scalingCount == 1:
+                    scalingIndexes = [scalingIndexes]
+                for scalingIndex in scalingIndexes:
+                    scaleFactorsUsed[scalingIndex - 1] = True
+            if ((t > 1) or (scalingCount > 0)
+                    or (eft.getTermLocalNodeIndex(f, 1) != localNodeIndex)
+                    or (eft.getTermNodeValueLabel(f, 1) != nodeValueLabel)
+                    or (eft.getTermNodeVersion(f, 1) != nodeVersion)):
+                if eft is eftStd:
+                    eft = eftfactory.createEftNoCrossDerivatives()
+                    # initially use same number of scale factors as eftIn, with default type and identifiers
+                    # later set type and identifiers, duplicating node scale factor indexes for top row
+                    eft.setNumberOfLocalScaleFactors(scaleFactorCountIn)
+                if t == 2:
+                    eft.setFunctionNumberOfTerms(f, termCountIn)
+                    eft.setFunctionNumberOfTerms(f + halfFunctionCountOut, termCountIn)
+                eft.setTermNodeParameter(f, t, localNodeIndex, nodeValueLabel, nodeVersion)
+                if scalingCount > 0:
+                    eft.setTermScaling(f, t, scalingIndexes)
+                # top surface is the same, with node offset
+                eft.setTermNodeParameter(f + halfFunctionCountOut, t, localNodeIndex + 4, nodeValueLabel, nodeVersion)
+                if scalingCount > 0:
+                    eft.setTermScaling(f + halfFunctionCountOut, t, scalingIndexes)
+    if True in scaleFactorsUsed:
+        # get used scale factors, reorder indexes
+        result, scalefactorsIn = elementIn.getScaleFactors(eftIn, scaleFactorCountIn)
+        if isinstance(scalefactorsIn, float):
+            scalefactorsIn = [scalefactorsIn]
+        scalefactors = []
+        oldToNewScaleFactorIndex = {}
+        globalScaleFactorIds = []
+        for i in range(scaleFactorCountIn):
+            if scaleFactorsUsed[i]:
+                sf = i + 1
+                scaleFactorType = eftIn.getScaleFactorType(sf)
+                if scaleFactorType == Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL:
+                    globalScaleFactorIds.append(eftIn.getScaleFactorIdentifier(sf))
+                    scalefactors.append(scalefactorsIn[i])
+                    oldToNewScaleFactorIndex[sf] = len(scalefactors)
+                else:
+                    # only other type current supported here:
+                    assert scaleFactorType == Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL
+        nodeScaleFactorIds = []
+        for i in range(scaleFactorCountIn):
+            if scaleFactorsUsed[i]:
+                sf = i + 1
+                scaleFactorType = eftIn.getScaleFactorType(sf)
+                if scaleFactorType == Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL:
+                    nodeScaleFactorIds.append(eftIn.getScaleFactorIdentifier(sf))
+                    scalefactors.append(scalefactorsIn[i])
+                    oldToNewScaleFactorIndex[sf] = len(scalefactors)
+        # must duplicate node scale factors as separate for top layer
+        setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds + nodeScaleFactorIds)
+        globalScaleFactorCount = len(globalScaleFactorIds)
+        nodeScaleFactorCount = len(nodeScaleFactorIds)
+        if nodeScaleFactorCount:
+            scalefactors += scalefactors[-nodeScaleFactorCount:]
+        # remap scale factor indexes
+        for f in range(1, functionCountOut + 1):
+            termCount = eft.getFunctionNumberOfTerms(f)
+            for t in range(1, termCount + 1):
+                scalingCount = eft.getTermScaling(f, t, 0)[0]
+                if scalingCount > 0:
+                    oldScalingIndexes = eft.getTermScaling(f, t, scalingCount)[1]
+                    if scalingCount == 1:
+                        oldScalingIndexes = [oldScalingIndexes]
+                    scalingIndexes = [oldToNewScaleFactorIndex[index] for index in oldScalingIndexes]
+                    if nodeScaleFactorCount and (f > halfFunctionCountOut):
+                        # remap top row node scale factor indexes to extra set
+                        for i in range(scalingCount):
+                            if scalingIndexes[i] > globalScaleFactorCount:
+                                scalingIndexes[i] += nodeScaleFactorCount
+                    if scalingIndexes != oldScalingIndexes:
+                        eft.setTermScaling(f, t, scalingIndexes)
+    elif eft is not eftStd:
+        eft.setNumberOfLocalScaleFactors(0)
+    return eft, scalefactors
