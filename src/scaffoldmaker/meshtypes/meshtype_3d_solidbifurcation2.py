@@ -6,17 +6,16 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
 from __future__ import division
 import math
 import copy
+
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
-from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
+from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import MeshType_1d_stickman1
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.bifurcation3d2 import BifurcationMesh
-from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import extractPathParametersFromRegion
 from scaffoldmaker.utils import vector
 
 
@@ -43,16 +42,14 @@ with variable numbers of elements in major, minor, shell and axial directions.
         #     #         [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
         #     #     ])
         # }),
-        'control curves': ScaffoldPackage(MeshType_1d_bifurcationtree1, {
+        'control curves': ScaffoldPackage(MeshType_1d_stickman1, {
             'scaffoldSettings': {
-                'Number of generations' : 2,
-                'Root diameter' : 0.25,
-                'Root length' : 1.0,
-                'Fork angle degrees' : 10.0,
-                'Fork diameter ratio' : 0.9,
-                'Branch arc angle degrees' : 40.0,
-                'Branch diameter ratio' : 0.8,
-                'Branch length ratio' : 0.8
+                'Coordinate dimensions': 3,
+            }
+        }),
+        'control curves1': ScaffoldPackage(MeshType_1d_stickman1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
             }
         })
     }
@@ -64,8 +61,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
+        centralPathOption1 = cls.centralPathDefaultScaffoldPackages['control curves1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
+            'Central path1': copy.deepcopy(centralPathOption1),
             'Armpit': [1.2, 0.0, 1.0],
             'Torso radius': 1.0,
             'Left arm radius': 1.0,
@@ -114,6 +113,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
     def getOrderedOptionNames():
         return [
             'Central path',
+            'Central path1',
             'Armpit',
             'Torso radius',
             'Left arm radius',
@@ -280,21 +280,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
-                                                                        [Node.VALUE_LABEL_VALUE,
-                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                         Node.VALUE_LABEL_D_DS3,
-                                                                         Node.VALUE_LABEL_D2_DS1DS2,
-                                                                         Node.VALUE_LABEL_D2_DS1DS3])
-
-        deltacx = vector.vectorRejection(vector.addVectors([cx[2], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
-        right_arm_angle = vector.angleBetweenVectors([1.0, 0.0, 0.0], deltacx)
-        if cx[2][2] > cx[1][2]:
-            right_arm_angle = -right_arm_angle
+        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
 
         deltacx = vector.vectorRejection(vector.addVectors([cx[3], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
-        left_arm_angle = vector.angleBetweenVectors([-1.0, 0.0, 0.0], deltacx)
-        if cx[3][2] > cx[1][2]:
+        right_arm_angle = vector.angleBetweenVectors([-1.0, 0.0, 0.0], deltacx)
+        if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
+            right_arm_angle = -right_arm_angle
+
+        deltacx = vector.vectorRejection(vector.addVectors([cx[7], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
+        left_arm_angle = vector.angleBetweenVectors([1.0, 0.0, 0.0], deltacx)
+        if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
             left_arm_angle = -left_arm_angle
 
         # bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
