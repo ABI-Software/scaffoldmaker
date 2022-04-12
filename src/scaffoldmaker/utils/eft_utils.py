@@ -1,8 +1,9 @@
 '''
 Utility functions for element field templates shared by mesh generators.
 '''
+from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
 from opencmiss.zinc.element import Elementfieldtemplate
-from opencmiss.zinc.node import Node
+from opencmiss.zinc.result import RESULT_OK
 
 
 def getEftTermScaling(eft, functionIndex, termIndex):
@@ -160,7 +161,7 @@ def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
         s += 1
 
 
-def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
+def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNodeValueLabel=None):
     """
     Create eft for layer above xi3 = 1, from either tricubic hermite or bicubic hermite linear.
     Extracts mapping information from top xi3=1 surface of elementIn with eftIn.
@@ -171,6 +172,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
     Either eftfactory_tricubichermite or eftfactory_bicubichermitelinear.
     :param eftStd: The standard eft for the new element as created by eftfactory.createEftNoCrossDerivatives.
     Assumed unscaled, without cross derivatives, max 1 version and not collapsed. Never modified.
+    :param removeNodeValueLabel: If not None, remove mappings from the value label in newly created layer.
     :return: eftStd or new eft if remapped, scalefactors
     """
     eft = eftStd
@@ -178,6 +180,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
     scaleFactorCountIn = eftIn.getNumberOfLocalScaleFactors()
     scaleFactorsUsed = [False]*scaleFactorCountIn  # flag scale factors used on top surface of element
     functionCountIn = eftIn.getNumberOfFunctions()
+    halfFunctionCountIn = functionCountIn // 2
     elementBasis = eftfactory.getElementbasis()
     functionCountOut = elementBasis.getNumberOfFunctions()
     halfFunctionCountOut = functionCountOut // 2
@@ -189,11 +192,13 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
     functionsPerNodeOut = functionCountOut // 8
     for i in range(halfFunctionCountOut):
         f = 1 + i
-        fInLocalNodeLayer1 = 1 + ((i // functionsPerNodeOut) * functionsPerNodeIn) + (i % functionsPerNodeOut)
-        fIn = fInLocalNodeLayer1 + (functionCountIn // 2)
+        fIn = halfFunctionCountIn + 1 + ((i // functionsPerNodeOut) * functionsPerNodeIn) + (i % functionsPerNodeOut)
         termCountIn = eftIn.getFunctionNumberOfTerms(fIn)
-        for t in range(1, termCountIn + 1):
-            localNodeIndex = eftIn.getTermLocalNodeIndex(fInLocalNodeLayer1, t)
+        noRemap = True
+        newt = 0
+        for j in range(termCountIn):
+            t = 1 + j
+            localNodeIndex = eftIn.getTermLocalNodeIndex(fIn, t) - 4
             nodeValueLabel = eftIn.getTermNodeValueLabel(fIn, t)
             nodeVersion = eftIn.getTermNodeVersion(fIn, t)
             scalingCount, scalingIndexes = eftIn.getTermScaling(fIn, t, 0)
@@ -209,6 +214,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
                     or (eft.getTermLocalNodeIndex(f, 1) != localNodeIndex)
                     or (eft.getTermNodeValueLabel(f, 1) != nodeValueLabel)
                     or (eft.getTermNodeVersion(f, 1) != nodeVersion)):
+                noRemap = False
                 if eft is eftStd:
                     eft = eftfactory.createEftNoCrossDerivatives()
                     # initially use same number of scale factors as eftIn, with default type and identifiers
@@ -216,14 +222,23 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
                     eft.setNumberOfLocalScaleFactors(scaleFactorCountIn)
                 if t == 2:
                     eft.setFunctionNumberOfTerms(f, termCountIn)
-                    eft.setFunctionNumberOfTerms(f + halfFunctionCountOut, termCountIn)
                 eft.setTermNodeParameter(f, t, localNodeIndex, nodeValueLabel, nodeVersion)
                 if scalingCount > 0:
                     eft.setTermScaling(f, t, scalingIndexes)
-                # top surface is the same, with node offset
-                eft.setTermNodeParameter(f + halfFunctionCountOut, t, localNodeIndex + 4, nodeValueLabel, nodeVersion)
-                if scalingCount > 0:
-                    eft.setTermScaling(f + halfFunctionCountOut, t, scalingIndexes)
+                if nodeValueLabel != removeNodeValueLabel:
+                    newt += 1
+                    if newt > 1:
+                        eft.setFunctionNumberOfTerms(f + halfFunctionCountOut, newt)
+                    # top surface is the same, with node offset
+                    assert localNodeIndex <= 4
+                    assert RESULT_OK == eft.setTermNodeParameter(f + halfFunctionCountOut, newt, localNodeIndex + 4,
+                                                                 nodeValueLabel, nodeVersion), localNodeIndex + 4
+                    if scalingCount > 0:
+                        eft.setTermScaling(f + halfFunctionCountOut, newt, scalingIndexes)
+            else:
+                newt = t
+        assert noRemap or (newt > 0), "Element " + str(elementIn.getIdentifier()) + " f " + str(f) + \
+            " terms " + str(termCountIn)
     if True in scaleFactorsUsed:
         # get used scale factors, reorder indexes
         result, scalefactorsIn = elementIn.getScaleFactors(eftIn, scaleFactorCountIn)
@@ -277,4 +292,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd):
                         eft.setTermScaling(f, t, scalingIndexes)
     elif eft is not eftStd:
         eft.setNumberOfLocalScaleFactors(0)
+    if eft is not eftStd:
+        assert eft.validate(), "Element " + str(elementIn.getIdentifier()) + " eft not validated"
+
     return eft, scalefactors

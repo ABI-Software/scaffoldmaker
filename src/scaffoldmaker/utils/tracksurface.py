@@ -12,6 +12,25 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
 
+class TrackSurfacePosition:
+    '''
+    Position on TrackSurface. Create with createPosition~ method of TrackSurface.
+    '''
+
+    def __init__(self, e1, e2, xi1, xi2):
+        '''
+        :param e1, e2: Element index in directions 1 and 2, starting at 0.
+        :param xi1, xi2: 2-D element chart coordinates 0.0 <= xiN <= 1.0
+        '''
+        self.e1 = e1
+        self.e2 = e2
+        self.xi1 = xi1
+        self.xi2 = xi2
+
+    def __str__(self):
+        return 'element (' + str(self.e1) + ',' + str(self.e2) + ') xi (' + str(self.xi1) + ',' + str(self.xi2) + ')'
+
+
 class TrackSurface:
     '''
     A surface description on which positions can be stored and tracked for
@@ -114,7 +133,7 @@ class TrackSurface:
         maxProportion1 = 2.0 if self.loop1 else 1.0
         return [ maxProportion1*(position.e1 + position.xi1)/self.elementsCount1, (position.e2 + position.xi2)/self.elementsCount2 ]
 
-    def evaluateCoordinates(self, position, derivatives = False):
+    def evaluateCoordinates(self, position: TrackSurfacePosition, derivatives = False):
         '''
         Evaluate coordinates on surface at position, and optionally
         derivative w.r.t. xi1 and xi2.
@@ -293,10 +312,12 @@ class TrackSurface:
             nd2[-1] = vector.setMagnitude(nd2[-1], vector.magnitude(nd1[-1]))
         return nx, nd1, nd2, nd3, nProportions
 
-    def findNearestPosition(self, targetx, startPosition = None):
+    def findNearestPosition(self, targetx: list, startPosition: TrackSurfacePosition = None) -> TrackSurfacePosition:
         '''
         Find the nearest point to targetx on the track surface, with optional start position.
         Only works if track surface is simply shaped; use a close startPosition if not.
+        :param targetx:  Coordinates of point to find nearest to.
+        :param startPosition: Optional initial track surface position
         :return: Nearest TrackSurfacePosition
         '''
         if not startPosition:
@@ -467,24 +488,6 @@ class TrackSurface:
         return onBoundary
 
 
-class TrackSurfacePosition:
-    '''
-    Position on TrackSurface. Create with createPosition~ method of TrackSurface.
-    '''
-
-    def __init__(self, e1, e2, xi1, xi2):
-        '''
-        :param e1, e2: Element index in directions 1 and 2, starting at 0.
-        :param xi1, xi2: 2-D element chart coordinates 0.0 <= xiN <= 1.0
-        '''
-        self.e1 = e1
-        self.e2 = e2
-        self.xi1 = xi1
-        self.xi2 = xi2
-
-    def __str__(self):
-        return 'element (' + str(self.e1) + ',' + str(self.e2) + ') xi (' + str(self.xi1) + ',' + str(self.xi2) + ')'
-
 def calculate_surface_delta_xi(d1, d2, direction):
     '''
     Calculate dxi1, dxi2 in 3-D vector direction.
@@ -524,6 +527,7 @@ def calculate_surface_delta_xi(d1, d2, direction):
     #print('delx', delx, 'dir', direction, 'diff', vector.magnitude([ (delx[c] - direction[c]) for c in range(3) ]))
     return delta_xi1, delta_xi2
 
+
 def calculate_surface_axes(d1, d2, direction):
     '''
     :return: Vectors ax1, ax2, ax3: ax1 in-plane in 3-D vector direction,
@@ -541,6 +545,7 @@ def calculate_surface_axes(d1, d2, direction):
         ax3 = [ 0.0, 0.0, 0.0 ]
         ax2 = [ 0.0, 0.0, 0.0 ]
     return ax1, ax2, ax3
+
 
 def increment_xi_on_square(xi1, xi2, dxi1, dxi2):
     '''

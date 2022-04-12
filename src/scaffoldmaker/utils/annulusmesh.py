@@ -188,7 +188,6 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
             'createAnnulusMesh3d: Length of endProportions does not equal nodesCountAround'
 
     fm = mesh.getFieldmodule()
-    fm.beginChange()
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
 
@@ -262,8 +261,10 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
         # scaling end derivatives to arc length gives even curvature along the curve
         aMag = vector.magnitude(ad2)
         bMag = vector.magnitude(bd2)
-        ad2Scaled = vector.setMagnitude(ad2, 0.5 * ((1.0 + sampleBlend) * aMag + (1.0 - sampleBlend) * bMag))
-        bd2Scaled = vector.setMagnitude(bd2, 0.5 * ((1.0 + sampleBlend) * bMag + (1.0 - sampleBlend) * aMag))
+        ad2mag = 0.5 * ((1.0 + sampleBlend) * aMag + (1.0 - sampleBlend) * bMag)
+        ad2Scaled = vector.setMagnitude(ad2, ad2mag) if (aMag > 0.0) else [0.0, 0.0, 0.0]
+        bd2mag = 0.5 * ((1.0 + sampleBlend) * bMag + (1.0 - sampleBlend) * aMag)
+        bd2Scaled = vector.setMagnitude(bd2, bd2mag) if (bMag > 0.0) else [0.0, 0.0, 0.0]
         scaling = interp.computeCubicHermiteDerivativeScaling(ax, ad2Scaled, bx, bd2Scaled)
         ad2Scaled = [d * scaling for d in ad2Scaled]
         bd2Scaled = [d * scaling for d in bd2Scaled]
@@ -662,8 +663,6 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                     for annotationGroup in wallAnnotationGroups[e3]:
                         meshGroup = annotationGroup.getMeshGroup(mesh)
                         meshGroup.addElement(element)
-
-    fm.endChange()
 
     return nodeIdentifier, elementIdentifier
 
