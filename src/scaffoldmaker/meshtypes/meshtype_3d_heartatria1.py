@@ -308,7 +308,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Inferior vena cava inlet wall thickness'] = 0.015
         options['Superior vena cava inlet position over'] = 0.65
         options['Superior vena cava inlet position right'] = 0.22
-        options['Superior vena cava inlet angle left degrees'] = 0.0
+        options['Superior vena cava inlet angle left degrees'] = -15.0
         options['Superior vena cava inlet angle over degrees'] = 15.0
         options['Superior vena cava inlet derivative factor'] = 1.0
         options['Superior vena cava inlet length'] = 0.1
@@ -423,11 +423,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Right pulmonary vein ostium position left'] = 0.22
             options['Right pulmonary vein ostium position over'] = 0.33
             options['Inferior vena cava inlet position over'] = 0.22
-            options['Inferior vena cava inlet position right'] = 0.23
+            options['Inferior vena cava inlet position right'] = 0.25
             options['Inferior vena cava inlet angle left degrees'] = 0.0
             options['Inferior vena cava inlet angle over degrees'] = 0.0
             options['Inferior vena cava inlet derivative factor'] = 0.5
             options['Superior vena cava inlet position over'] = 0.6
+            options['Superior vena cava inlet position right'] = 0.25
             options['Superior vena cava inlet angle left degrees'] = 0.0
             options['Superior vena cava inlet angle over degrees'] = -10.0
         cls.updateSubScaffoldOptions(options)
@@ -815,13 +816,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cache = fm.createFieldcache()
 
         heartGroup = AnnotationGroup(region, get_heart_term("heart"))
-        laGroup = AnnotationGroup(region, get_heart_term("left atrium myocardium"))
-        raGroup = AnnotationGroup(region, get_heart_term("right atrium myocardium"))
+        lamGroup = AnnotationGroup(region, get_heart_term("left atrium myocardium"))
+        ramGroup = AnnotationGroup(region, get_heart_term("right atrium myocardium"))
         aSeptumGroup = AnnotationGroup(region, get_heart_term("interatrial septum"))
         fossaGroup = AnnotationGroup(region, get_heart_term("fossa ovalis"))
         laaGroup = AnnotationGroup(region, get_heart_term("left auricle"))
         raaGroup = AnnotationGroup(region, get_heart_term("right auricle"))
-        annotationGroups = [heartGroup, laGroup, raGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup]
+        annotationGroups = [heartGroup, lamGroup, ramGroup, aSeptumGroup, fossaGroup, laaGroup, raaGroup]
         if defineEpicardialFatLayer:
             epicardialFatGroup = AnnotationGroup(region, get_heart_term("epicardial fat"))
             annotationGroups.append(epicardialFatGroup)
@@ -896,8 +897,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
 
         heartMeshGroup = heartGroup.getMeshGroup(mesh)
-        laMeshGroup = laGroup.getMeshGroup(mesh)
-        raMeshGroup = raGroup.getMeshGroup(mesh)
+        lamMeshGroup = lamGroup.getMeshGroup(mesh)
+        ramMeshGroup = ramGroup.getMeshGroup(mesh)
         aSeptumMeshGroup = aSeptumGroup.getMeshGroup(mesh)
         fossaMeshGroup = fossaGroup.getMeshGroup(mesh)
         laaMeshGroup = laaGroup.getMeshGroup(mesh)
@@ -964,7 +965,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lpvOstiumDirection = [ (cosAngle*-td2[c] + sinAngle*td1[c]) for c in range(3) ]
         nodeIdentifier, elementIdentifier, (lpvox, lpvod1, lpvod2, lpvod3, lpvoNodeId, lpvoPositions) = \
             generateOstiumMesh(region, lpvOstiumSettings, laTrackSurface, lpvOstiumPosition, lpvOstiumDirection, nodeIdentifier, elementIdentifier,
-                               vesselMeshGroups=[ [ heartMeshGroup, meshGroup ] for meshGroup in lpvMeshGroups ], ostiumMeshGroups=[ heartMeshGroup, laMeshGroup ])
+                               vesselMeshGroups=[ [ heartMeshGroup, meshGroup ] for meshGroup in lpvMeshGroups ], ostiumMeshGroups=[ heartMeshGroup, lamMeshGroup ])
 
         if not commonLeftRightPvOstium:
             # create right pulmonary vein ostium
@@ -979,7 +980,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             rpvOstiumDirection = [ (cosAngle*-td2[c] + sinAngle*td1[c]) for c in range(3) ]
             nodeIdentifier, elementIdentifier, (rpvox, rpvod1, rpvod2, rpvod3, rpvoNodeId, rpvoPositions) = \
                 generateOstiumMesh(region, rpvOstiumSettings, laTrackSurface, rpvOstiumPosition, rpvOstiumDirection, nodeIdentifier, elementIdentifier,
-                                   vesselMeshGroups=[ [ heartMeshGroup, meshGroup ] for meshGroup in rpvMeshGroups ], ostiumMeshGroups=[ heartMeshGroup, laMeshGroup ])
+                                   vesselMeshGroups=[ [ heartMeshGroup, meshGroup ] for meshGroup in rpvMeshGroups ], ostiumMeshGroups=[ heartMeshGroup, lamMeshGroup ])
 
         # get points over interatrial septum on exterior groove
         agn1Mid = elementsCountOverRightAtriumNonVenousAnterior + elementsCountOverRightAtriumVenous//2
@@ -2169,14 +2170,14 @@ class MeshType_3d_heartatria1(Scaffold_base):
             if None in nids:
                 continue  # left atrial appendage
             scalefactors = None
-            meshGroups = [ heartMeshGroup, laMeshGroup ]
+            meshGroups = [ heartMeshGroup, lamMeshGroup ]
             if e1 == -1:
                 # cfb/anterior interatrial groove straddles left and right atria, collapsed to 6 node wedge
                 nids[0] = rabNodeId[0][-elementsCountAroundAtrialSeptum]
                 nids[2] = ravtNodeId[0][-1]
                 nids.pop(6)
                 nids.pop(4)
-                meshGroups += [ raMeshGroup ]
+                meshGroups += [ ramMeshGroup ]
                 eft1 = eftBaseSulcus
                 scalefactors = [ -1.0 ]
             elif e1 == 0:
@@ -2211,7 +2212,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             if None in nids:
                 continue  # right atrial appendage
             scalefactors = None
-            meshGroups = [ heartMeshGroup, raMeshGroup ]
+            meshGroups = [ heartMeshGroup, ramMeshGroup ]
             # Anderson definition of right atrial appendage starts at crista terminalis:
             #if (e1 >= elementsCountAroundRightAtriumPosteriorVenous) and (e1 < elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtriumAorta - 1):
             #    meshGroups += [ raaMeshGroup ]
@@ -2221,7 +2222,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 nids[2] = lavtNodeId[0][elementsCountAroundLeftAtriumFreeWall]
                 nids.pop(6)
                 nids.pop(4)
-                meshGroups += [ laMeshGroup ]
+                meshGroups += [ lamMeshGroup ]
                 eft1 = eftBaseSulcus
                 scalefactors = [ -1.0 ]
             elif e1 == 0:
@@ -2255,7 +2256,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         if commonLeftRightPvOstium:
             # left atrium row above vestibule beside aorta 
-            meshGroups = [ heartMeshGroup, laMeshGroup ]
+            meshGroups = [ heartMeshGroup, lamMeshGroup ]
             for e1 in range(elementsCountAroundLeftAtriumAorta):
                 eft1 = eft
                 elementtemplate1 = elementtemplate
@@ -2287,7 +2288,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     meshGroup.addElement(element)
         else:
             # left atrium extra row between appendage and RPV, anterior
-            meshGroups = [ heartMeshGroup, laMeshGroup ]
+            meshGroups = [ heartMeshGroup, lamMeshGroup ]
             for e1 in range(elementsCountAroundLeftAtriumRPV):
                 eft1 = eft
                 elementtemplate1 = elementtemplate
@@ -2324,7 +2325,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         if not commonLeftRightPvOstium:
             # left atrium first row of elements above vestibule, posterior
-            meshGroups = [ heartMeshGroup, laMeshGroup ]
+            meshGroups = [ heartMeshGroup, lamMeshGroup ]
             scalefactors = [ -1.0 ]
             elementsCount = len(lavqx[1]) - 1 if commonLeftRightPvOstium else elementsCountAroundLeftAtriumRPV
             for e1 in range(elementsCount):
@@ -2353,7 +2354,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     meshGroup.addElement(element)
 
         # create atrial septum base row of elements
-        meshGroups = [ heartMeshGroup, laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+        meshGroups = [ heartMeshGroup, lamMeshGroup, ramMeshGroup, aSeptumMeshGroup ]
         for e1 in range(elementsCountAroundAtrialSeptum):
             n1l = elementsCountAroundLeftAtriumFreeWall + e1 - elementsCountAroundLeftAtrium
             n1r = -e1
@@ -2384,7 +2385,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 meshGroup.addElement(element)
 
         # create fossa ovalis elements
-        meshGroups = [ heartMeshGroup, laMeshGroup, raMeshGroup, aSeptumMeshGroup, fossaMeshGroup ]
+        meshGroups = [ heartMeshGroup, lamMeshGroup, ramMeshGroup, aSeptumMeshGroup, fossaMeshGroup ]
         radiansAround0 = fossaRadiansAround[-1]
         if radiansAround0 > fossaRadiansAround[0]:
             radiansAround0 -= 2.0*math.pi
@@ -2420,7 +2421,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             radiansAround0, radiansAround1, radiansAround2 = radiansAround1, radiansAround2, radiansAround3
 
         # create atrial septum elements around fossa
-        meshGroups = [ heartMeshGroup, laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+        meshGroups = [ heartMeshGroup, lamMeshGroup, ramMeshGroup, aSeptumMeshGroup ]
         for e1 in range(elementsCountAroundFossa):
             e1p = (e1 + 1)%elementsCountAroundFossa
             nids = [ asNodeId[0][e1], asNodeId[0][e1p], foNodeId[0][e1], foNodeId[0][e1p], \
@@ -2477,7 +2478,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         remapEftNodeValueLabel(eftAGroove, [ 1, 2, 3, 4, 5, 6, 7, 8 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [] ) ])
         ln_map = [ 1, 2, 3, 4, 1, 2, 5, 6 ]
         remapEftLocalNodes(eftAGroove, 6, ln_map)
-        meshGroups = [ heartMeshGroup, laMeshGroup, raMeshGroup, aSeptumMeshGroup ]
+        meshGroups = [ heartMeshGroup, lamMeshGroup, ramMeshGroup, aSeptumMeshGroup ]
         elementsCountOverArch = elementsCountOverAtria - 2
         elementtemplateX.defineField(coordinates, -1, eftAGroove)
         scalefactors = [ -1.0 ]
@@ -2629,7 +2630,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             lpvox, lpvod1, lpvod2, lpvod3, lpvoNodeId, None,
             lpvax, lpvad1, lpvad2, lpvad3, lpvaNodeId, lpvaDerivativesMap,
             maxEndThickness=laVenousFreeWallThickness,
-            elementsCountRadial = elementsCountRadialPVAnnuli, meshGroups = [ heartMeshGroup, laMeshGroup ],
+            elementsCountRadial = elementsCountRadialPVAnnuli, meshGroups = [ heartMeshGroup, lamMeshGroup ],
             tracksurface=laTrackSurface, startProportions=lpvoProportions, endProportions=lpvaProportions,
             rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0, fixMinimumStart=True)
 
@@ -2648,7 +2649,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         cache.setNode(markerPoint)
         markerName.assignString(cache, laeVenousMidpointGroup.getName())
         markerLocation.assignMeshLocation(cache, laevmElement, laevmXi)
-        for group in [ heartGroup, laGroup, laeVenousMidpointGroup ]:
+        for group in [ heartGroup, lamGroup, laeVenousMidpointGroup ]:
             group.getNodesetGroup(nodes).addNode(markerPoint)
 
         if not commonLeftRightPvOstium:
@@ -2735,7 +2736,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 rpvox, rpvod1, rpvod2, rpvod3, rpvoNodeId, None,
                 rpvax, rpvad1, rpvad2, rpvad3, rpvaNodeId, rpvaDerivativesMap,
                 maxEndThickness=laVenousFreeWallThickness,
-                elementsCountRadial = elementsCountRadialPVAnnuli, meshGroups = [ heartMeshGroup, laMeshGroup ],
+                elementsCountRadial = elementsCountRadialPVAnnuli, meshGroups = [ heartMeshGroup, lamMeshGroup ],
                 tracksurface=laTrackSurface, startProportions=rpvoProportions, endProportions=rpvaProportions,
                 rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0)
 
@@ -2927,7 +2928,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             vcMeshGroup = ivcMeshGroup if (v == 0) else svcMeshGroup
             vcInletMeshGroup = ivcInletMeshGroup if (v == 0) else svcInletMeshGroup
             if elementsCountAlongVCInlet == 1:
-                rowMeshGroups = [ [ heartMeshGroup, vcMeshGroup, vcInletMeshGroup, raMeshGroup] ]
+                rowMeshGroups = [ [ heartMeshGroup, vcMeshGroup, vcInletMeshGroup, ramMeshGroup] ]
             else:
                 rowMeshGroups = []
                 for i in range(elementsCountAlongVCInlet):
@@ -2936,7 +2937,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     if xi < 0.67:
                         meshGroups +=  [ vcMeshGroup ]
                     if xi > 0.51:
-                        meshGroups +=  [ vcInletMeshGroup, raMeshGroup ]
+                        meshGroups +=  [ vcInletMeshGroup, ramMeshGroup ]
                     rowMeshGroups.append(meshGroups)
             nodeIdentifier, elementIdentifier = createAnnulusMesh3d(
                 nodes, mesh, nodeIdentifier, elementIdentifier,
@@ -2956,7 +2957,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 cache.setNode(markerPoint)
                 markerName.assignString(cache, raeVenousMidpointGroup.getName())
                 markerLocation.assignMeshLocation(cache, raevmElement, raevmXi)
-                for group in [ heartGroup, raGroup, raeVenousMidpointGroup ]:
+                for group in [ heartGroup, ramGroup, raeVenousMidpointGroup ]:
                     group.getNodesetGroup(nodes).addNode(markerPoint)
 
         # create left atrial appendage
@@ -3073,12 +3074,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
             forceMidLinearXi3 = True, forceEndLinearXi3 = True,
             maxStartThickness = laaWallThickness,
             elementsCountRadial = elementsCountAlongAtrialAppendages,
-            meshGroups = [ heartMeshGroup, laMeshGroup, laaMeshGroup ])
+            meshGroups = [ heartMeshGroup, lamMeshGroup, laaMeshGroup ])
 
         # create right atrium plain elements
         # Anderson considers these part of the right atrial appendage:
-        #meshGroups = [ raMeshGroup, raaMeshGroup ]
-        meshGroups = [ heartMeshGroup, raMeshGroup ]
+        #meshGroups = [ ramMeshGroup, raaMeshGroup ]
+        meshGroups = [ heartMeshGroup, ramMeshGroup ]
         for e2 in range(2):
             for e1 in range(elementsCountOverSideRightAtriumPouch):
                 eft1 = eft
@@ -3266,13 +3267,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
             forceMidLinearXi3 = True, forceEndLinearXi3 = True,
             maxStartThickness = raaWallThickness,
             elementsCountRadial = elementsCountAlongAtrialAppendages,
-            meshGroups = [ heartMeshGroup, raMeshGroup, raaMeshGroup ])
+            meshGroups = [ heartMeshGroup, ramMeshGroup, raaMeshGroup ])
 
         if defineEpicardialFatLayer:
             # project epicardial points over atria to build fat pad
             epiGroup = fm.createFieldGroup()
             epiMesh = epiGroup.createFieldElementGroup(mesh).getMeshGroup()
-            is_a = fm.createFieldOr(laGroup.getFieldElementGroup(mesh), raGroup.getFieldElementGroup(mesh))
+            is_a = fm.createFieldOr(lamGroup.getFieldElementGroup(mesh), ramGroup.getFieldElementGroup(mesh))
             is_aa = fm.createFieldOr(laaGroup.getFieldElementGroup(mesh), raaGroup.getFieldElementGroup(mesh))
             is_not_epi = fm.createFieldNot(fm.createFieldOr(is_aa, aSeptumGroup.getFieldElementGroup(mesh)))
             is_a_epi = fm.createFieldAnd(is_a, is_not_epi)
@@ -3333,8 +3334,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     # epifx must be above the epicardium surface
                     # and at least epicardialFatMinimumThickness away from epix
                     if (dot(delta_epi, epid3) > 0.0) and (magnitude(delta_epi) >= epicardialFatMinimumThickness):
-                        fatx = epifx
                         epifNormal = normalize(cross(epifd1, epifd2))
+                        # epix must be under the fatpad
+                        if dot(delta_epi, epifNormal) > 0.0:
+                            fatx = epifx
 
                 node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
                 cache.setNode(node)
@@ -3387,9 +3390,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
-                for meshGroup in [laMeshGroup, raMeshGroup]:
-                    if meshGroup.containsElement(epiElement):
-                        meshGroup.addElement(element)
 
             # smooth bridge nodes
             smoothing = DerivativeSmoothing(region, coordinates, selectionGroupName="ia_bridge",
@@ -3544,21 +3544,25 @@ class MeshType_3d_heartatria1(Scaffold_base):
         New face annotation groups are appended to this list.
         """
         # create endocardium and epicardium groups
+        defineEpicardialFatLayer = options['Define epicardial fat layer']
         fm = region.getFieldmodule()
-        laGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
-        raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
+        lamGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
+        ramGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
         aSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interatrial septum"))
         laaGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left auricle"))
         raaGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right auricle"))
+        epicardialFatGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardial fat")) \
+            if defineEpicardialFatLayer else None
+
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_la = laGroup.getFieldElementGroup(mesh2d)
-        is_ra = raGroup.getFieldElementGroup(mesh2d)
-        is_la_endo = fm.createFieldAnd(is_la, is_exterior_face_xi3_0)
-        is_ra_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ra, is_exterior_face_xi3_0),
-                                                        fm.createFieldNot(is_la_endo)),
+        is_lam = lamGroup.getFieldElementGroup(mesh2d)
+        is_ram = ramGroup.getFieldElementGroup(mesh2d)
+        is_lam_endo = fm.createFieldAnd(is_lam, is_exterior_face_xi3_0)
+        is_ram_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ram, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_lam_endo)),
                                       fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
         is_laa = laaGroup.getFieldElementGroup(mesh2d)
         is_raa = raaGroup.getFieldElementGroup(mesh2d)
@@ -3566,15 +3570,20 @@ class MeshType_3d_heartatria1(Scaffold_base):
         is_raa_endo = fm.createFieldAnd(is_raa, is_exterior_face_xi3_0)
         is_laa_epi = fm.createFieldAnd(laaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1)
         is_raa_epi = fm.createFieldAnd(raaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1)
-        is_a_epi = fm.createFieldAnd(fm.createFieldOr(fm.createFieldOr(is_la, is_ra), fm.createFieldOr(is_laa, is_raa)),
+        is_myocardium = fm.createFieldOr(is_lam, is_ram)
+        is_a_epi = fm.createFieldAnd(fm.createFieldOr(is_myocardium, fm.createFieldOr(is_laa, is_raa)),
                                      fm.createFieldAnd(is_exterior_face_xi3_1,
                                                        fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d))))
         epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
         epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_a_epi)
+        if defineEpicardialFatLayer:
+            # add non-exterior surfaces between myocardium and epicardial fat to epicardium
+            is_epicardial_fat = epicardialFatGroup.getFieldElementGroup(mesh2d)
+            epiGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(is_myocardium, is_epicardial_fat))
         laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
-        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_la_endo)
+        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lam_endo)
         raEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right atrium"))
-        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ra_endo)
+        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_ram_endo)
         laaEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left auricle"))
         laaEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_laa_endo)
         raaEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right auricle"))
@@ -3612,9 +3621,9 @@ class MeshType_3d_heartatria1(Scaffold_base):
             if tmp2dElementGroup.isValid():
                 is_exterior_face_xi2_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0))
                 is_fibrous_ring = fm.createFieldAnd(tmp2dElementGroup, is_exterior_face_xi2_0)
-                is_left_fibrous_ring = fm.createFieldAnd(is_la, is_fibrous_ring)
+                is_left_fibrous_ring = fm.createFieldAnd(is_lam, is_fibrous_ring)
                 lFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_left_fibrous_ring)
-                is_right_fibrous_ring = fm.createFieldAnd(is_ra, is_fibrous_ring)
+                is_right_fibrous_ring = fm.createFieldAnd(is_ram, is_fibrous_ring)
                 rFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_right_fibrous_ring)
 
 def getLeftAtriumPulmonaryVeinOstiaElementsCounts(elementsCountAroundLeftAtriumFreeWall, elementsCountOverAtria, commonLeftRightPvOstium):
