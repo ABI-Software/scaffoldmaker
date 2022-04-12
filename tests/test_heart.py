@@ -57,8 +57,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-50.7876375290527, -57.74727184261748, -91.6], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [43.810947610743156, 39.03925080604259, 41.13241236955093], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-50.7876375290527, -58.42494589146976, -91.6], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [43.810947610743156, 39.03925080604259, 42.018608492002784], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             epicardiumGroup = fieldmodule.findFieldByName('epicardium').castGroup()
@@ -72,10 +72,10 @@ class HeartScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 36854.25295430545, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 36633.02428358943, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 221614.11043609766, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 221522.96428936574, delta=1.0E-1)
 
         # check some annotationGroups:
         expectedSizes3d = {
