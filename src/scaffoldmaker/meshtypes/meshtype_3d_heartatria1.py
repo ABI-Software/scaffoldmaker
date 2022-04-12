@@ -249,11 +249,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Atrial septum height'] = 0.25
         options['Atrial septum length'] = 0.25
         options['Atrial septum thickness'] = 0.07
-        options['Atrial vestibule outer height'] = 0.08
+        options['Atrial vestibule outer height'] = 0.05
         options['Fossa ovalis height'] = 0.1
-        options['Fossa ovalis length'] = 0.15
+        options['Fossa ovalis length'] = 0.14
         options['Fossa ovalis thickness'] = 0.07
-        options['Fossa ovalis midpoint height'] = 0.16
+        options['Fossa ovalis midpoint height'] = 0.15
         options['Left atrium venous free wall thickness'] = 0.02
         options['Right atrium venous free wall thickness'] = 0.015
         options['Crista terminalis thickness'] = 0.03
@@ -266,7 +266,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Atria venous anterior over'] = 0.7
         options['Atria venous midpoint over'] = 0.41
         options['Left atrium venous midpoint left'] = 0.5
-        options['Right atrium venous right'] = 0.4
+        options['Right atrium venous right'] = 0.45
         options['Left atrial appendage angle axial degrees'] = 0.0
         options['Left atrial appendage angle left degrees'] = 20.0
         options['Left atrial appendage angle up degrees'] = -60.0
@@ -296,20 +296,20 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Left pulmonary vein ostium position over'] = 0.47
         options['Right pulmonary vein ostium'] = copy.deepcopy(rpvOstium)
         options['Right pulmonary vein ostium angle degrees'] = 80.0
-        options['Right pulmonary vein ostium position left'] = 0.16
+        options['Right pulmonary vein ostium position left'] = 0.2
         options['Right pulmonary vein ostium position over'] = 0.4
         options['Inferior vena cava inlet position over'] = 0.18
-        options['Inferior vena cava inlet position right'] = 0.22
-        options['Inferior vena cava inlet angle left degrees'] = -15.0
+        options['Inferior vena cava inlet position right'] = 0.25
+        options['Inferior vena cava inlet angle left degrees'] = 0.0
         options['Inferior vena cava inlet angle over degrees'] = -30.0
         options['Inferior vena cava inlet derivative factor'] = 1.0
         options['Inferior vena cava inlet length'] = 0.1
         options['Inferior vena cava inlet inner diameter'] = 0.22
         options['Inferior vena cava inlet wall thickness'] = 0.015
         options['Superior vena cava inlet position over'] = 0.65
-        options['Superior vena cava inlet position right'] = 0.2
-        options['Superior vena cava inlet angle left degrees'] = -10.0
-        options['Superior vena cava inlet angle over degrees'] = -5.0
+        options['Superior vena cava inlet position right'] = 0.22
+        options['Superior vena cava inlet angle left degrees'] = 0.0
+        options['Superior vena cava inlet angle over degrees'] = 15.0
         options['Superior vena cava inlet derivative factor'] = 1.0
         options['Superior vena cava inlet length'] = 0.1
         options['Superior vena cava inlet inner diameter'] = 0.18
@@ -370,8 +370,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Left atrial appendage wedge angle degrees'] = 80.0
             options['Left atrium venous free wall thickness'] = 0.04
             options['Left atrium venous midpoint left'] = 0.45
-            options['Left pulmonary vein ostium angle degrees'] = 30.0
-            options['Left pulmonary vein ostium position left'] = 0.32
+            options['Left pulmonary vein ostium angle degrees'] = 50.0
+            options['Left pulmonary vein ostium position left'] = 0.3
             options['Left pulmonary vein ostium position over'] = 0.36
             options['Right atrial appendage angle axial degrees'] = 35.0
             options['Right atrial appendage angle left degrees'] = 20.0
@@ -386,13 +386,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Right atrial appendage wedge angle degrees'] = 90.0
             options['Right atrium venous free wall thickness'] = 0.03
             options['Right atrium venous right'] = 0.5
-            options['Superior vena cava inlet angle left degrees'] = 15.0
+            options['Superior vena cava inlet angle left degrees'] = 0.0
             options['Superior vena cava inlet angle over degrees'] = -5.0
             options['Superior vena cava inlet derivative factor'] = 2.0
             options['Superior vena cava inlet inner diameter'] = 0.15
             options['Superior vena cava inlet length'] = 0.2
             options['Superior vena cava inlet position over'] = 0.62
-            options['Superior vena cava inlet position right'] = 0.14
+            options['Superior vena cava inlet position right'] = 0.25
             options['Superior vena cava inlet wall thickness'] = 0.012
         elif 'Pig' in parameterSetName:
             if notUnitScale:
@@ -423,12 +423,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Right pulmonary vein ostium position left'] = 0.22
             options['Right pulmonary vein ostium position over'] = 0.33
             options['Inferior vena cava inlet position over'] = 0.22
-            options['Inferior vena cava inlet position right'] = 0.2
-            options['Inferior vena cava inlet angle left degrees'] = 10.0
+            options['Inferior vena cava inlet position right'] = 0.23
+            options['Inferior vena cava inlet angle left degrees'] = 0.0
             options['Inferior vena cava inlet angle over degrees'] = 0.0
             options['Inferior vena cava inlet derivative factor'] = 0.5
             options['Superior vena cava inlet position over'] = 0.6
-            options['Superior vena cava inlet angle left degrees'] = -15.0
+            options['Superior vena cava inlet angle left degrees'] = 0.0
             options['Superior vena cava inlet angle over degrees'] = -10.0
         cls.updateSubScaffoldOptions(options)
         return options
@@ -1249,6 +1249,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
             lavtx .append(x)
             lavtd1.append(vector.setMagnitude(ax2, -vector.magnitude(labd1[1][n1])))
             lavtd2.append(vector.setMagnitude(ax1, trackDistance1))
+            # if not commonLeftRightPvOstium and \
+            #         (n1 == (elementsCountAroundLeftAtriumFreeWall - elementsCountAroundLeftAtriumRPV - 1)):
+            #     # derivative needs a tweak for LPV annulus
+            #     lavtd2[-1] = sub(lavtd2[-1], vector.setMagnitude(lavtd1[-1], trackDistance1))
             lavtd3.append(vector.setMagnitude(ax3, laVenousFreeWallThickness))
             # fix d2 on outer base
             labd2[1][n1] = vector.setMagnitude(labd2[1][n1], trackDistance1)
@@ -2582,7 +2586,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     lpvaNodeId[n3][ix] = lamlNodeId[n3][n1]
                     lpvaDerivativesMap[n3][ix] = ( (0, 1, 0), (-1, 0, 0), None )
                 ix += 1
-            # left around left cs, including 2 corners
+            # left around left vestibule top, including 2 corners
             for n1 in range(elementsCountAroundLeftAtriumLPV + 1):
                 nc = lan1MidVenous - n1
                 for n3 in range(2):
@@ -2627,7 +2631,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             maxEndThickness=laVenousFreeWallThickness,
             elementsCountRadial = elementsCountRadialPVAnnuli, meshGroups = [ heartMeshGroup, laMeshGroup ],
             tracksurface=laTrackSurface, startProportions=lpvoProportions, endProportions=lpvaProportions,
-            rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0)
+            rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0, fixMinimumStart=True)
 
         # left atrium epicardium venous midpoint marker point
         if commonLeftRightPvOstium:
@@ -2940,7 +2944,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 vcax, vcad1, vcad2, vcad3, vcaNodeId, vcaDerivativesMap,
                 maxEndThickness = 1.5*raVenousFreeWallThickness,
                 elementsCountRadial = elementsCountAlongVCInlet,
-                meshGroups = rowMeshGroups, rescaleEndDerivatives=True)
+                meshGroups = rowMeshGroups, rescaleEndDerivatives=True, fixMinimumStart=True)
 
             if v == 0:  # ivc
                 # right atrium epicardium venous midpoint marker point
@@ -3325,12 +3329,12 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 epifPosition = fpTrackSurface.findNearestPosition(epix, startPosition=None)
                 if 0.0001 < epifPosition.xi1 < 0.9999:
                     epifx, epifd1, epifd2 = fpTrackSurface.evaluateCoordinates(epifPosition, derivatives=True)
-                    # epix must be above the fatpad track surface
-                    epifNormal = vector.normalise(cross(epifd1, epifd2))
-                    if dot(sub(epifx, epix), epifNormal) > 0:
-                        # epifx must be above the epicardium surface
-                        if dot(sub(epifx, epix), vector.normalise(epid3)) > 0.0:
-                            fatx = epifx
+                    delta_epi = sub(epifx, epix)
+                    # epifx must be above the epicardium surface
+                    # and at least epicardialFatMinimumThickness away from epix
+                    if (dot(delta_epi, epid3) > 0.0) and (magnitude(delta_epi) >= epicardialFatMinimumThickness):
+                        fatx = epifx
+                        epifNormal = normalize(cross(epifd1, epifd2))
 
                 node = nodes.createNode(nodeIdentifier, nodetemplateLinearS3)
                 cache.setNode(node)
