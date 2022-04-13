@@ -6,12 +6,13 @@ from __future__ import division
 
 from opencmiss.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 from opencmiss.zinc.element import Element, Elementbasis
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
     interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
-
+from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters
 
 def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
     '''
@@ -324,3 +325,22 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
             meshGroup.addElement(element)
 
     return elementIdentifier
+
+def move_1D_central_path(region, bifurcationTreeScaffold):
+    """
+    Extract the central path from MeshType_1d_bifurcationtree1.
+    :param region: Zinc region to define model in. Must be empty
+    :param bifurcationTreeScaffold: MeshType_1d_bifurcationtree1
+    :return fieldParameters: coordinates and first derivatives at each node
+    """
+    # Central path extraction
+    tmpRegion = region.createRegion()
+    bifurcationTreeScaffold.generate(tmpRegion)
+    fieldmodule = tmpRegion.getFieldmodule()
+    nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    tmpCoordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    tmpRadius = fieldmodule.findFieldByName('radius').castFiniteElement()
+    valueLabels, fieldParameters = extract_node_field_parameters(nodeset, tmpCoordinates)
+    valueLabels_1, fieldParameters_1 = extract_node_field_parameters(nodeset, tmpRadius)
+    [fieldParameters[i][1].append(fieldParameters_1[i][1]) for i in range(len(fieldParameters))]
+    return fieldParameters
