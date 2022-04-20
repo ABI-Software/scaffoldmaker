@@ -703,7 +703,7 @@ class MeshType_3d_stomach2(Scaffold_base):
 
         # Create annotation groups for stomach sections
         allAnnotationGroups = []
-        stomachCentralPathLength = sum(arcLengthOfGroupsAlong[1:])
+        stomachCentralPathLength = arcLengthOfGroupsAlong[0]
         fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1] / stomachCentralPathLength
         arcLengthRatioForGroupsFromFundusEnd = []
         for i in range(2, len(stomachTermsAlong)):
