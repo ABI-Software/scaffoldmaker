@@ -56,7 +56,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
         options['Number of elements up LV apex'] = 1
-        options['Number of elements up RV'] = 3
+        options['Number of elements up RV'] = 4
         options['Collapse RV columns'] = False
         options['Unit scale'] = 1.0
         options['Interventricular sulcus derivative factor'] = 0.5
@@ -66,7 +66,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['LV apex thickness'] = 0.08
         options['RV inner height fraction'] = 0.85
         options['RV arc around degrees'] = 145.0
-        options['RV arc apex fraction'] = 0.5
+        options['RV arc apex fraction'] = 0.7
         options['RV free wall thickness'] = 0.05
         options['RV width'] = 0.3
         options['RV width growth factor'] = 0.7
@@ -86,19 +86,19 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             if notUnitScale:
                 options['Unit scale'] = 5.0 if isMouse else 12.0
             options['Interventricular sulcus derivative factor'] = 0.8
-            options['LV outer height'] = 0.85
+            options['LV outer height'] = 0.9
             options['LV outer diameter'] = 0.85
             options['LV free wall thickness'] = 0.12
-            options['LV apex thickness'] = 0.05
+            options['LV apex thickness'] = 0.12
             options['RV inner height fraction'] = 0.9
-            options['RV arc around degrees'] = 140.0
-            options['RV arc apex fraction'] = 0.5
+            options['RV arc around degrees'] = 130.0
+            options['RV arc apex fraction'] = 0.7
             options['RV free wall thickness'] = 0.05
-            options['RV width'] = 0.28
+            options['RV width'] = 0.25
             options['RV width growth factor'] = 0.8
-            options['RV side extension'] = 0.05
+            options['RV side extension'] = 0.03
             options['RV side extension growth factor'] = 0.1
-            options['Ventricular septum thickness'] = 0.15
+            options['Ventricular septum thickness'] = 0.12
             options['Ventricular septum base radial displacement'] = 0.0
         elif isPig:
             options['Number of elements up LV apex'] = 1
@@ -314,6 +314,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         elementSizeUpRVTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
         # LV apex points, noting s1, s2 is x, -y to get out outward s3
         lvApexInnerx = [ 0.0, 0.0, -lvInnerHeight ]
+        # d1 and d2 are corrected later when inner derivatives are smoothed
         lvApexInnerd1 = [ elementSizeUpApex, 0.0, 0.0 ]
         lvApexInnerd2 = [ 0.0, -elementSizeUpApex, 0.0, 0.0 ]
         lvApexInnerd3 = [ 0.0, 0.0, -lvApexThickness ]
@@ -427,14 +428,19 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         for n1 in range(pointsCountAroundOuterApex):
             cosRadiansAround = math.cos(apexRadiansAround[n1])
             sinRadiansAround = math.sin(apexRadiansAround[n1])
-            apexd2 = [ (lvApexOuterd1[c]*cosRadiansAround + lvApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
-            nx = [ lvApexOuterx ]
-            nd2 = [ apexd2 ]
+            apexd2 = [ (lvApexInnerd1[c]*cosRadiansAround + lvApexInnerd2[c]*sinRadiansAround) for c in range(3) ]
+            nx = [lvApexInnerx]
+            nd2 = [apexd2]
             for n2 in range(elementsCountUpLV):
                 nx.append(lvInnerx[n2][n1])
                 nd2.append([ 0.0, 0.0, 0.0 ])
             nd2[-1] = [ 0.0, 0.0, elementSizeUpRV ]
-            nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True)
+            nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDirection=(n1 == 0),
+                                                           fixStartDerivative=(n1 > 0))
+            if n1 == 0:
+                mag = vector.magnitude((nd2[0]))
+                lvApexInnerd1 = [mag, 0.0, 0.0]
+                lvApexInnerd2 = [0.0, -mag, 0.0, 0.0]
             for n2 in range(elementsCountUpLV):
                 lvInnerd2[n2].append(nd2[n2 + 1])
 
