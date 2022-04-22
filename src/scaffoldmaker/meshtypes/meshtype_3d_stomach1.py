@@ -355,7 +355,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
-                'Use linear through vessel wall': True,
+                'Use linear through vessel wall': False, # change back to true
                 'Use cross derivatives': False,
                 'Refine': False,
                 'Refine number of elements around': 4,
@@ -1723,6 +1723,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     d2AlongGC = d2Section1[:-1] + d2Section2[:-1] + d2Section3
     d2AlongGCSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongGC, d2AlongGC, fixStartDerivative=True)
 
+    xAlongGCReverse = copy.deepcopy(xAlongGC)
+    xAlongGCReverse.reverse()
+    d2AlongGCReverse = copy.deepcopy(d2AlongGC)
+    d2AlongGCReverse.reverse()
+    rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][0]), vector.normalise(o1_d2[-1][0])))
+    d2 = [cardiaDerivativeFactor * o1_d2[-1][0][c] for c in range(3)]
+    rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
+    d2AlongGCReverse[-1] = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
+    d2AlongGCReverseSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongGCReverse, d2AlongGCReverse,
+                                                                        fixEndDerivative=True)
+
+    # for n1 in range(len(xAlongGCReverse)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGCReverse[n1])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongGCReverseSmoothed[n1])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     nodeIdentifier += 1
+
     # for n1 in range(len(xAlongGC)):
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
     #     cache.setNode(node)
@@ -1772,6 +1792,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
                                         lengthFractionStart=0.5, arcLengthDerivatives=True)[0:2]
 
     # Smooth
+    xAlongLC = xSection4
     d2AlongLCSmoothed = interp.smoothCubicHermiteDerivativesLine(xSection4, d2Section4, fixStartDerivative=True)
 
     # for n1 in range(len(xSection4)):
@@ -1901,6 +1922,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Around section B - Complete rings before esophagus
     xAroundB = []
     d1AroundB = []
+    d2AroundB = []
     xSection1.reverse()
 
     for n2 in range(len(xSection1) - elementsAroundQuarterDuod):
@@ -1953,9 +1975,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         xAround = xQuarter1[:-1] + xQuarter2[:-1] + xQuarter3[:-1] + xQuarter4[:-1]
         d1Around = d1Quarter1[:-1] + d1Quarter2[:-1] + d1Quarter3[:-1] + d1Quarter4[:-1]
         d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+        d2Around = [zero for n in range(len(d1Around))]
 
         xAroundB.append(xAround)
         d1AroundB.append(d1AroundSmoothed)
+        d2AroundB.append(d2Around)
 
     # for n2 in range(len(xAroundB)):
     #     for n1 in range(len(xAroundB[n2])):
@@ -1970,6 +1994,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Around section F - Complete rings after esophagus
     xAroundF = []
     d1AroundF = []
+    d2AroundF = []
 
     for n2 in range(1, len(xSection4) - 1):
         section3Idx = elementsAroundQuarterEso + n2 - 1
@@ -2023,13 +2048,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         xAround = xQuarter1[:-1] + xQuarter2[:-1] + xQuarter3[:-1] + xQuarter4[:-1]
         d1Around = d1Quarter1[:-1] + d1Quarter2[:-1] + d1Quarter3[:-1] + d1Quarter4[:-1]
         d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+        d2Around = [zero for n in range(len(d1Around))]
 
         xAroundF.append(xAround)
         d1AroundF.append(d1AroundSmoothed)
+        d2AroundF.append(d2Around)
 
     # Last ring
     xAroundF.append(xSampledAll[-1])
     d1AroundF.append(d1SampledAll[-1])
+    d2AroundF.append([zero for n in range(len(d1SampledAll[-1]))])
 
     # for n2 in range(len(xAroundF)):
     #     for n1 in range(len(xAroundF[n2])):
@@ -2044,6 +2072,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Section C - First ring to esophagus
     xAroundC = []
     d1AroundC = []
+    d2AroundC = []
     section2Idx = elementsAlongFundusApexToCardia
     quarterIdx = len(xSection1) - elementsAroundQuarterDuod + 2
 
@@ -2097,9 +2126,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     xAround = xQuarter1[:-1] + xQuarter2 + [xAnnulusOuter[0]] + xQuarter3[:-1] + xQuarter4[:-1]
     d1Around = d1Quarter1[:-1] + d1Quarter2 + [d1Annulus1] + d1Quarter3[:-1] + d1Quarter4[:-1]
     d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+    d2Around = [zero for n in range(len(d1Around))]
 
     xAroundC.append(xAround)
     d1AroundC.append(d1AroundSmoothed)
+    d2AroundC.append(d2Around)
 
     # for n2 in range(len(xAroundC)):
     #     for n1 in range(len(xAroundC[n2])):
@@ -2114,6 +2145,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Section E - Last ring to esophagus
     xAroundE = []
     d1AroundE = []
+    d2AroundE = []
     section3Idx = elementsAroundQuarterEso - 1
     quarterIdx = len(xSection1) - elementsAroundQuarterDuod + elementsAroundHalfEso
 
@@ -2170,9 +2202,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     xAround = xQuarter1[:-1] + xQuarter2 + [xAnnulusOuter[elementsAroundHalfEso]] + xQuarter3[:-1] + xQuarter4[:-1]
     d1Around = d1Quarter1[:-1] + d1Quarter2 + [d1AnnulusHalfMinus1] + d1Quarter3[:-1] + d1Quarter4[:-1]
     d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+    d2Around = [zero for n in range(len(d1Around))]
 
     xAroundE.append(xAround)
     d1AroundE.append(d1AroundSmoothed)
+    d2AroundE.append(d2Around)
 
     # for n2 in range(len(xAroundE)):
     #     for n1 in range(len(xAroundE[n2])):
@@ -2187,6 +2221,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Section D - Within esophagus
     xAroundD = []
     d1AroundD = []
+    d2AroundD = []
 
     for n2 in range(elementsAroundHalfEso - 3):
         GCIdx = int(len(xSection1) * 2.0) - 1 + n2
@@ -2253,9 +2288,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
 
         xAround = xAroundFirst + xAroundSecond[:-1]
         d1Around = d1AroundFirstSmoothed + d1AroundSecondSmoothed[:-1]
+        d2Around = [zero for n in range(len(d1Around))]
 
         xAroundD.append(xAround)
         d1AroundD.append(d1Around)
+        d2AroundD.append(d2Around)
 
     # for n2 in range(len(xAroundD)):
     #     for n1 in range(len(xAroundD[n2])):
@@ -2306,6 +2343,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         v2 = xAroundA[(n1 + 1) % len(xAroundA)]
         d1AroundA.append(findDerivativeBetweenPoints(v1, v2))
     d1AroundA = interp.smoothCubicHermiteDerivativesLoop(xAroundA, d1AroundA)
+    d2AroundA = [zero for c in range(len(d1AroundA))]
 
     # for n in range(len(xAroundA)):
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -2319,6 +2357,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Assemble xOuter
     xOuter = []
     d1Outer = []
+    d2Outer = []
     x0 = []
     d0 = []
     # Apex
@@ -2326,6 +2365,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         GCIdx = elementsAlongFundusApexToCardia - (elementsAroundQuarterDuod - 2) + 1 + n
         x0.append(xAlongGC[GCIdx])
         d0.append(findDerivativeBetweenPoints(xAlongGC[GCIdx], xAroundA[int(len(xAroundA) * 0.5) - 2 - n]))
+    x0Reverse = copy.deepcopy(x0)
+    x0Reverse.reverse()
 
     # Rearrange x0 - apex first, next level along, GC first
     x0Arranged = []
@@ -2339,368 +2380,253 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         d0Arranged.append(d0[int(len(d0) * 0.5) - n2])
     xOuter.append(x0Arranged)
     d1Outer.append(d0Arranged)
+    d2Outer.append([zero for c in range(len(d0Arranged))])
 
     xOuter += [xAroundA] + xAroundB + xAroundC + xAroundD + xAroundE + xAroundF
     d1Outer += [d1AroundA] + d1AroundB + d1AroundC + d1AroundD + d1AroundE + d1AroundF
+    d2Outer += [d2AroundA] + d2AroundB + d2AroundC + d2AroundD + d2AroundE + d2AroundF
 
     xAlongAll = []
     d2AlongAll = []
-    for n1 in range(elementsAroundDuo):
+    count = 0
+    for n1 in range(elementsCountAroundDuod):
         xAlongN1 = []
         d2AlongN1 = []
         if n1 == 0: # GC
             xAlongN1 = xAlongGC[elementsAlongFundusApexToCardia:]
             d2AlongN1 = d2AlongGCSmoothed[elementsAlongFundusApexToCardia:]
+
+        elif n1 == 1: # Start from 2nd point on quarterline
+            for n in range(int(0.25 * len(xOuter[1])), 0, -1):
+                xAlongN1.append(xOuter[1][n])
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                xAlongN1.append(xOuter[n2][n1])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif n1 == 2: # Start from xOuter[1][0]
+            xAlongN1 += xOuter[1][:2]
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                xAlongN1.append(xOuter[n2][n1])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif 2 < n1 < elementsAroundQuarterDuod or elementsAroundQuarterDuod < n1 < elementsAroundHalfDuod - 2:
+            # Additional elements for duodenum above and below quarter line
+            xAlongN1 = [x0Reverse[count]] + [xOuter[1][2 + count]]
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                xAlongN1.append(xOuter[n2][n1])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+            count += 1
+
         elif n1 == elementsAroundQuarterDuod:
             xAlongN1 = xSampledQuarterLine
             d2AlongN1 = d2SampledQuarterLineSmoothed
+            count += 1
+
+        elif n1 == elementsAroundHalfDuod - 2: # start from xOuter[1][half]
+            xAlongN1 = [xOuter[1][int(len(xOuter[1]) * 0.5)]] + [xOuter[1][int(len(xOuter[1]) * 0.5 - 1)]]
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                xAlongN1.append(xOuter[n2][n1])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif n1 == elementsAroundHalfDuod - 1:
+            # Start from 2nd point on quarterline
+            for n in range(int(0.25 * len(xOuter[1])), int(len(xOuter[1]) * 0.5)):
+                xAlongN1.append(xOuter[1][n])
+            for n2 in range(2, elementsAlongStomach + 1):
+                xAlongN1.append(xOuter[n2][n1])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif n1 == elementsAroundHalfDuod: # Need to be processed as two parts!
+            xAlongN1 = xAlongGCReverse[-(elementsAlongFundusApexToCardia + 1):] + xAlongLC
+            d2AlongN1 = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia + 1):] + d2AlongLCSmoothed
+
+        elif n1 == elementsAroundHalfDuod + 1:
+            # Start from 2nd point on threeQuarterline
+            for n in range(int(0.75 * len(xOuter[1])), int(len(xOuter[1]) * 0.5), -1):
+                xAlongN1.append(xOuter[1][n])
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                xAlongN1.append(xOuter[n2][n1Idx])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif n1 == elementsAroundHalfDuod + 2:
+            # Start from xOuter[1][half]
+            xAlongN1 += [xOuter[1][int(len(xOuter[1]) * 0.5)]] + [xOuter[1][int(len(xOuter[1]) * 0.5) + 1]]
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                xAlongN1.append(xOuter[n2][n1Idx])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif elementsAroundHalfDuod + 2 < n1 < int(elementsAroundQuarterDuod * 3) or int(elementsAroundQuarterDuod * 3) < n1 < elementsCountAroundDuod - 2:
+            count -= 1
+            # Additional elements for duodenum above and below three quarter line
+            xAlongN1 = [x0Reverse[count]] + [xOuter[1][int(len(xOuter[1]) * 0.5) + len(x0) - count + 1]]
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                xAlongN1.append(xOuter[n2][n1Idx])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
         elif n1 == int(elementsAroundQuarterDuod * 3):
             xAlongN1 = xSampledThreeQuarterLine
             d2AlongN1 = d2SampledThreeQuarterLineSmoothed
-        else:
-            pass
+            count -= 1
+
+        elif n1 == elementsCountAroundDuod - 2: # Start from xOuter[1][0]
+            xAlongN1 += [xOuter[1][0]] + [xOuter[1][-1]]
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                xAlongN1.append(xOuter[n2][n1Idx])
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
+        elif n1 == elementsCountAroundDuod - 1: # Start from 2nd point on quarterline
+            for n in range(int(0.25 * len(xOuter[1]))):
+                xAlongN1.append(xOuter[1][int(0.75 * len(xOuter[1])) + n])
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                xAlongN1.append(xOuter[n2][n1Idx])
+
+            for n in range(len(xAlongN1) - 1):
+                d = findDerivativeBetweenPoints(xAlongN1[n], xAlongN1[n + 1])
+                d2AlongN1.append(d)
+            d2AlongN1.append(d)
+            d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
+
         xAlongAll.append(xAlongN1)
         d2AlongAll.append(d2AlongN1)
 
-        # for n2 in range(2, elementsAlongStomach + 1):
-        #     xAlongN1.append(xOuter[n2][n1])
+    # for n1 in range(len(xAlongAll)):
+    #     for n2 in range(len(xAlongAll[n1])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongAll[n1][n2])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d2AlongAll[n1][n2])
+    #         nodeIdentifier += 1
 
-        for n in range(len(xAlongN1)):
+    # Re-arrange back to xOuter
+    completeRowsBeforeEso = len(xSection1) - elementsAroundQuarterDuod
+
+    for n2 in range(len(xOuter)):
+        if n2 == 0:
+            n1 = 0
+            d2Outer[n2][n1] = d2AlongAll[n1][n2]
+            if len(d2Outer[n2]) > 1:
+                for n in range(int(len(xOuter[n2]) * 0.5)):
+                    d2Outer[n2][2 * n + 1] = d2AlongAll[elementsAroundQuarterDuod - n - 1][n2]
+                    d2Outer[n2][2 * n + 2] = d2AlongAll[elementsAroundQuarterDuod + n + 1][n2]
+        elif n2 == 1:
+            d2New = []
+            count = 0
+            for n in range(int(2 * (len(xOuter[0]) + 2))):
+                n1AllIdx = elementsAroundQuarterDuod - int(0.5 * len(xOuter[0])) - 1 + n + count
+                if n == 0:
+                    d2New.append(d2AlongAll[n1AllIdx][0])
+                d2New.append(d2AlongAll[n1AllIdx][1])
+                if n == len(xOuter[0]) + 1:
+                    d2New.append(d2AlongAll[n1AllIdx][0])
+                    count = 3
+            d2Outer[n2] = d2New
+
+        elif n2 > 1:
+            d2New = []
+            idxFromEnd = -(elementsAlongStomach + 1 - n2)
+            for n1 in range(elementsCountAroundDuod +
+                            (-1 if 3 + completeRowsBeforeEso <= n2 <
+                                   3 + completeRowsBeforeEso + (elementsAroundHalfEso - 3) else 0)):
+                if n1 == elementsAroundHalfDuod and 1 < n2 < 3 + completeRowsBeforeEso:
+                    d2New.append(d2AlongAll[n1][int(0.5 * len(xOuter[0])) + n2])
+                elif n1 >= elementsAroundHalfDuod \
+                        and 3 + completeRowsBeforeEso <= n2 < 3 + completeRowsBeforeEso + (elementsAroundHalfEso - 3):
+                    d2New.append(d2AlongAll[n1 + 1][idxFromEnd])
+                else:
+                    d2New.append(d2AlongAll[n1][idxFromEnd])
+            d2Outer[n2] = d2New
+
+    # Set d1 on xOuter[0] (apart from apex) to point along GC towards esophagus
+    for n in range(1, len(xOuter[0]), 2):
+        d1Outer[0][n] = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia + int(0.5 * n) + 2)]
+        d1Outer[0][n + 1] = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia - int(0.5 * n))]
+
+    # Set d1 on xOuter[1] on GC to point along GC towards esophagus
+    if len(xOuter[0]) == 1:
+        d1Outer[1][0] = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia + 2)]
+        d1Outer[1][int(0.5 * len(xOuter[1]))] = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia)]
+    else:
+        d1Outer[1][0] = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia + int(0.5 * n) + 3)]
+        d1Outer[1][int(0.5 * len(xOuter[1]))] = d2AlongGCReverseSmoothed[-(elementsAlongFundusApexToCardia -
+                                                                           int(0.5 * n) - 1)]
+
+    # Calculate d3
+    d3UnitOuter = []
+    for n2 in range(len(xOuter)):
+        d3Around = []
+        for n1 in range(len(xOuter[n2])):
+            d3Around.append(vector.normalise(
+                vector.crossproduct3(vector.normalise(d1Outer[n2][n1]), vector.normalise(d2Outer[n2][n1]))))
+        d3UnitOuter.append(d3Around)
+
+    for n2 in range(len(xOuter)):
+        for n1 in range(len(xOuter[n2])):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongN1[n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AlongN1[n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[n2][n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Outer[n2][n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Outer[n2][n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3UnitOuter[n2][n1])
             nodeIdentifier += 1
 
-    # for n2 in range(len(xOuter)):
-    #     for n1 in range(len(xOuter[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Outer[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero) #d2Outer[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero) #d3UnitOuter[n2][n1])
-    #         nodeIdentifier += 1
-
-
-    # Calculate d2 - see if can reduce code!!
-    # d2Outer = []
-    # # Apex
-    # d2Outer.append([d2AlongFundusApexToEnd[0]])
-    #
-    # # Row with wedges - NEED FIX IF aroundDuod > 12
-    # d2Row = []
-    # for n1 in range(len(xOuter[1])):
-    #     if n1 < 2:
-    #         v2 = xOuter[2][n1]
-    #     elif 1 < n1 < int(len(xOuter[1]) * 0.5 - 1):
-    #         v2 = xOuter[2][n1 + 1]
-    #     elif int(len(xOuter[1]) * 0.5 - 1) <= n1 <= int(len(xOuter[1]) * 0.5 + 1):
-    #         v2 = xOuter[2][n1 + 2]
-    #     elif int(len(xOuter[1]) * 0.5 + 1) < n1 < len(xOuter[1]) - 1:
-    #         v2 = xOuter[2][n1 + 3]
-    #     else:
-    #         v2 = xOuter[2][n1 + 4]
-    #     d2 = findDerivativeBetweenPoints(xOuter[1][n1], v2)
-    #     d2Row.append(d2)
-    # d2Outer.append(d2Row)
-    #
-    # # Rings not connected to ostium
-    # for n2 in range(elementsAlongCardiaToFundusApex - 2):
-    #     rowIdx = n2 + 2
-    #     d2Row = []
-    #     for n1 in range(len(xOuter[rowIdx])):
-    #         d2 = findDerivativeBetweenPoints(xOuter[rowIdx][n1], xOuter[rowIdx + 1][n1])
-    #         d2Row.append(d2)
-    #     d2Outer.append(d2Row)
-    #
-    # # 1st ring connected to ostium
-    # rowIdx = elementsAlongCardiaToFundusApex
-    # d2Row = []
-    # for n1 in range(len(xOuter[rowIdx])):
-    #     if n1 <= int(0.5 * len(xOuter[rowIdx])):
-    #         n1NextRow = n1
-    #     else:
-    #         n1NextRow = n1 - 1
-    #     d2 = findDerivativeBetweenPoints(xOuter[rowIdx][n1], xOuter[rowIdx + 1][n1NextRow])
-    #     if n1 == int(0.5 * len(xOuter[rowIdx])):
-    #         d2 = findDerivativeBetweenPoints(xOuter[rowIdx][n1], o1_x[-1][0])
-    #     d2Row.append(d2)
-    # d2Outer.append(d2Row)
-    #
-    # # Rings connected to ostium
-    # for n2 in range(elementsAroundHalfEso - 3):
-    #     rowIdx = n2 + elementsAlongCardiaToFundusApex + 1
-    #     d2Row = []
-    #     for n1 in range(len(xOuter[rowIdx])):
-    #         if n2 == elementsAroundHalfEso - 4 and n1 >= elementsAroundHalfDuod:
-    #             n1NextRow = n1 + 1
-    #         else:
-    #             n1NextRow = n1
-    #         d2 = findDerivativeBetweenPoints(xOuter[rowIdx][n1], xOuter[rowIdx + 1][n1NextRow])
-    #         d2Row.append(d2)
-    #     d2Outer.append(d2Row)
-    #
-    # # Rest
-    # for n2 in range(elementsAlongCardiaToDuod):
-    #     rowIdx = len(xOuter) - elementsAlongCardiaToDuod + n2 - 1
-    #     d2Row = []
-    #     for n1 in range(len(xOuter[rowIdx])):
-    #         d2 = findDerivativeBetweenPoints(xOuter[rowIdx][n1], xOuter[rowIdx + 1][n1])
-    #         d2Row.append(d2)
-    #     d2Outer.append(d2Row)
-    # d2Outer.append(d2Row)
-    #
-    # # Calculate d3
-    # d3UnitOuter = []
-    # for n2 in range(len(xOuter)):
-    #     d3Around = []
-    #     for n1 in range(len(xOuter[n2])):
-    #         d3Around.append(vector.normalise(
-    #             vector.crossproduct3(vector.normalise(d1Outer[n2][n1]), vector.normalise(d2Outer[n2][n1]))))
-    #     d3UnitOuter.append(d3Around)
-    #
-    # # Arrange into rows along stomach to smooth and get curvature
-    # xOuterAlong = []
-    # d2OuterAlong = []
-    # d3UnitOuterAlong = []
-    #
-    # # REDUCE!!!
-    # n1 = 0
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # for n2 in range(len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 1
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # for n2 in range(1, len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 2 # ***
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 1])
-    # d2Along.append(d2Outer[1][n1 - 1])
-    # d3Along.append(d3UnitOuter[1][n1 - 1])
-    # for n2 in range(2, len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    # # Need to remove d2OuterAlong[2][0] later after processing
-    #
-    # n1 = 3
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 1])
-    # d2Along.append(d2Outer[1][n1 - 1])
-    # d3Along.append(d3UnitOuter[1][n1 - 1])
-    # for n2 in range(2, len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 4 # ****
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 1])
-    # d2Along.append(d2Outer[1][n1 - 1])
-    # d3Along.append(d3UnitOuter[1][n1 - 1])
-    # for n2 in range(2, len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    # # Need to remove d2OuterAlong[4][0] later after processing
-    #
-    # n1 = 5
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 2])
-    # d2Along.append(d2Outer[1][n1 - 2])
-    # d3Along.append(d3UnitOuter[1][n1 - 2])
-    # for n2 in range(2, len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 6 # elementsAroundHalfDuod
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 2])
-    # d2Along.append(d2Outer[1][n1 - 2])
-    # d3Along.append(d3UnitOuter[1][n1 - 2])
-    # # Broken into 2 sections due to ostium
-    # for n2 in range(2, elementsAlongCardiaToFundusApex + 1):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # for n2 in range(elementsAlongCardiaToFundusApex + 2, len(xOuter)):
-    #     xAlong.append(xOuter[n2][n1])
-    #     d2Along.append(d2Outer[n2][n1])
-    #     d3Along.append(d3UnitOuter[n2][n1])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 7
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 2])
-    # d2Along.append(d2Outer[1][n1 - 2])
-    # d3Along.append(d3UnitOuter[1][n1 - 2])
-    # for n2 in range(2, len(xOuter)):
-    #     if elementsAlongCardiaToFundusApex + 1 <= n2 < elementsAlongCardiaToFundusApex + elementsAroundHalfEso - 2: # within ostium
-    #         n1NextRow = n1 - 1
-    #     else:
-    #         n1NextRow = n1
-    #     xAlong.append(xOuter[n2][n1NextRow])
-    #     d2Along.append(d2Outer[n2][n1NextRow])
-    #     d3Along.append(d3UnitOuter[n2][n1NextRow])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 8
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 3])
-    # d2Along.append(d2Outer[1][n1 - 3])
-    # d3Along.append(d3UnitOuter[1][n1 - 3])
-    # for n2 in range(2, len(xOuter)):
-    #     if elementsAlongCardiaToFundusApex + 1 <= n2 < elementsAlongCardiaToFundusApex + elementsAroundHalfEso - 2: # within ostium
-    #         n1NextRow = n1 - 1
-    #     else:
-    #         n1NextRow = n1
-    #     xAlong.append(xOuter[n2][n1NextRow])
-    #     d2Along.append(d2Outer[n2][n1NextRow])
-    #     d3Along.append(d3UnitOuter[n2][n1NextRow])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    # # Need to remove d2Along[8][0]
-    #
-    # n1 = 9
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 3])
-    # d2Along.append(d2Outer[1][n1 - 3])
-    # d3Along.append(d3UnitOuter[1][n1 - 3])
-    # for n2 in range(2, len(xOuter)):
-    #     if elementsAlongCardiaToFundusApex + 1 <= n2 < elementsAlongCardiaToFundusApex + elementsAroundHalfEso - 2: # within ostium
-    #         n1NextRow = n1 - 1
-    #     else:
-    #         n1NextRow = n1
-    #     xAlong.append(xOuter[n2][n1NextRow])
-    #     d2Along.append(d2Outer[n2][n1NextRow])
-    #     d3Along.append(d3UnitOuter[n2][n1NextRow])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # n1 = 10
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 3])
-    # d2Along.append(d2Outer[1][n1 - 3])
-    # d3Along.append(d3UnitOuter[1][n1 - 3])
-    # for n2 in range(2, len(xOuter)):
-    #     if elementsAlongCardiaToFundusApex + 1 <= n2 < elementsAlongCardiaToFundusApex + elementsAroundHalfEso - 2: # within ostium
-    #         n1NextRow = n1 - 1
-    #     else:
-    #         n1NextRow = n1
-    #     xAlong.append(xOuter[n2][n1NextRow])
-    #     d2Along.append(d2Outer[n2][n1NextRow])
-    #     d3Along.append(d3UnitOuter[n2][n1NextRow])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    # # Need to remove d2Along[10][0]
-    #
-    # n1 = 11
-    # xAlong = []
-    # d2Along = []
-    # d3Along = []
-    # xAlong.append(xOuter[1][n1 - 4])
-    # d2Along.append(d2Outer[1][n1 - 4])
-    # d3Along.append(d3UnitOuter[1][n1 - 4])
-    # for n2 in range(2, len(xOuter)):
-    #     if elementsAlongCardiaToFundusApex + 1 <= n2 < elementsAlongCardiaToFundusApex + elementsAroundHalfEso - 2: # within ostium
-    #         n1NextRow = n1 - 1
-    #     else:
-    #         n1NextRow = n1
-    #     xAlong.append(xOuter[n2][n1NextRow])
-    #     d2Along.append(d2Outer[n2][n1NextRow])
-    #     d3Along.append(d3UnitOuter[n2][n1NextRow])
-    # xOuterAlong.append(xAlong)
-    # d2OuterAlong.append(d2Along)
-    # d3UnitOuterAlong.append(d3Along)
-    #
-    # # for n1 in range(len(xOuterAlong)):
-    # #     for n2 in range(len(xOuterAlong[n1])):
-    # #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    # #         cache.setNode(node)
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuterAlong[n1][n2])
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2OuterAlong[n1][n2])
-    # #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3UnitOuterAlong[n1][n2])
-    # #         nodeIdentifier += 1
-    # #
-    # for n2 in range(len(xOuter)):
-    #     for n1 in range(len(xOuter[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Outer[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero) #d2Outer[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero) #d3UnitOuter[n2][n1])
-    #         nodeIdentifier += 1
-
-    # nodeIdentifier = 10000
-    # for n1 in range(len(xSampledQuarterLine)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledQuarterLine[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2SampledQuarterLine[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-    #
     # # Calculate curvature around - REDUCE!
     # d1Curvature = []
     # # Apex
