@@ -2386,6 +2386,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     d1Outer += [d1AroundA] + d1AroundB + d1AroundC + d1AroundD + d1AroundE + d1AroundF
     d2Outer += [d2AroundA] + d2AroundB + d2AroundC + d2AroundD + d2AroundE + d2AroundF
 
+    d2Curvature = []
+    for n2 in range(len(d2Outer)):
+        curvature = []
+        for n1 in range(len(d2Outer[n2])):
+            curvature.append(0.0)
+        d2Curvature.append(curvature)
+
     xAlongAll = []
     d2AlongAll = []
     count = 0
@@ -2491,7 +2498,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
             d2AlongN1.append(d)
             d2AlongN1 = interp.smoothCubicHermiteDerivativesLine(xAlongN1, d2AlongN1)
 
-        elif elementsAroundHalfDuod + 2 < n1 < int(elementsAroundQuarterDuod * 3) or int(elementsAroundQuarterDuod * 3) < n1 < elementsCountAroundDuod - 2:
+        elif elementsAroundHalfDuod + 2 < n1 < int(elementsAroundQuarterDuod * 3) or \
+                int(elementsAroundQuarterDuod * 3) < n1 < elementsCountAroundDuod - 2:
             count -= 1
             # Additional elements for duodenum above and below three quarter line
             xAlongN1 = [x0Reverse[count]] + [xOuter[1][int(len(xOuter[1]) * 0.5) + len(x0) - count + 1]]
@@ -2557,7 +2565,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
 
     # Re-arrange back to xOuter
     completeRowsBeforeEso = len(xSection1) - elementsAroundQuarterDuod
-
     for n2 in range(len(xOuter)):
         if n2 == 0:
             n1 = 0
@@ -2617,171 +2624,291 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
                 vector.crossproduct3(vector.normalise(d1Outer[n2][n1]), vector.normalise(d2Outer[n2][n1]))))
         d3UnitOuter.append(d3Around)
 
-    for n2 in range(len(xOuter)):
-        for n1 in range(len(xOuter[n2])):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Outer[n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Outer[n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3UnitOuter[n2][n1])
-            nodeIdentifier += 1
-
-    # # Calculate curvature around - REDUCE!
-    # d1Curvature = []
-    # # Apex
-    # d1Curvature.append([findCurvatureAlongLine([xOuter[0][0], xOuter[1][int(0.25*len(xOuter[1]))]],
-    #                                           [d1Outer[0][0], d1Outer[1][int(0.25*len(xOuter[1]))]],
-    #                                           [d3UnitOuter[0][0], d3UnitOuter[1][int(0.25*len(xOuter[1]))]])][0])
-    # # Rows before ostium
-    # for n2 in range(1, elementsAlongCardiaToFundusApex + 1):
-    #     d1Curvature.append(findD1CurvatureAround(xOuter[n2], d1Outer[n2], d3UnitOuter[n2]))
-    #
-    # # Rows in ostium
-    # for n2 in range(elementsAroundHalfEso - 3):
-    #     rowIdx = n2 + elementsAlongCardiaToFundusApex + 1
-    #     d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[rowIdx][:int(0.5*len(xOuter[rowIdx]) + 1)],
-    #                                                   d1Outer[rowIdx][:int(0.5*len(xOuter[rowIdx]) + 1)],
-    #                                                   d3UnitOuter[rowIdx][:int(0.5*len(xOuter[rowIdx]) + 1)])
-    #     # xTest = xOuter[rowIdx][int(0.5*len(xOuter[rowIdx]) + 1):] + [xOuter[rowIdx][0]] # xOuter[rowIdx][:int(0.5*len(xOuter[rowIdx]) + 1)] # KM
-    #
-    #     nx = xOuter[rowIdx][int(0.5*len(xOuter[rowIdx]) + 1):] + [xOuter[rowIdx][0]]
-    #     nd1 = d1Outer[rowIdx][int(0.5*len(xOuter[rowIdx]) + 1):] + [d1Outer[rowIdx][0]]
-    #     nd3 = d3UnitOuter[rowIdx][int(0.5*len(xOuter[rowIdx]) + 1):] + [d3UnitOuter[rowIdx][0]]
-    #     d1CurvatureSecondHalf = findCurvatureAlongLine(nx, nd1, nd3)
-    #     d1CurvatureBoth = d1CurvatureFirstHalf + d1CurvatureSecondHalf
-    #     d1Curvature.append(d1CurvatureBoth)
-    #
-    # # Rows after ostium
-    # for n2 in range(elementsAlongCardiaToDuod + 1):
-    #     rowIdx = elementsAlongCardiaToFundusApex + elementsAroundHalfEso - 2 + n2
-    #     d1Curvature.append(findD1CurvatureAround(xOuter[rowIdx], d1Outer[rowIdx], d3UnitOuter[rowIdx]))
-    #
-    # # Calculate curvature along
-    # d2CurvatureAlong = []
-    # for n1 in range(elementsCountAroundDuod):
-    #     if n1 == elementsAroundHalfDuod:
-    #         curvatureGC = findCurvatureAlongLine(xOuterAlong[n1][:elementsAlongCardiaToFundusApex],
-    #                                              d2OuterAlong[n1][:elementsAlongCardiaToFundusApex],
-    #                                              d3UnitOuterAlong[n1][:elementsAlongCardiaToFundusApex])
-    #         curvatureLC = findCurvatureAlongLine(xOuterAlong[n1][elementsAlongCardiaToFundusApex:],
-    #                                              d2OuterAlong[n1][elementsAlongCardiaToFundusApex:],
-    #                                              d3UnitOuterAlong[n1][elementsAlongCardiaToFundusApex:])
-    #         curvature = curvatureGC + curvatureLC
-    #     else:
-    #         curvature = findCurvatureAlongLine(xOuterAlong[n1], d2OuterAlong[n1], d3UnitOuterAlong[n1])
-    #     d2CurvatureAlong.append(curvature)
-    #
-    # # Sort to back to same order as d2Outer
-    # d2Curvature = []
-    # d2Curvature.append([d2CurvatureAlong[0][0]])
-    # for n2 in range(1, elementsAlongCardiaToFundusApex + elementsAroundHalfEso + elementsAlongCardiaToDuod - 1):
-    #     d2CurvatureAround = []
-    #     xAround = [] # KM
-    #     d2CurvatureAround.append(d2CurvatureAlong[0][n2])
-    #     xAround.append(xOuterAlong[0][n2]) # KM
-    #
-    #     for n1 in range(1, len(d2OuterAlong)):
-    #         if n2 == 1 and n1 in [2, int(len(d2OuterAlong) * 0.5) - 2, int(len(d2OuterAlong) * 0.5) + 2, len(d2OuterAlong) - 2]:
-    #             pass
-    #         elif n2 == elementsAlongCardiaToFundusApex + elementsAroundQuarterEso - 1 and n1 == int(len(d2OuterAlong) * 0.5): # Combine with above condition?
-    #             pass
-    #         elif n2 > elementsAlongCardiaToFundusApex + elementsAroundQuarterEso - 1 and n1 == int(len(d2OuterAlong) * 0.5):
-    #             d2CurvatureAround.append(d2CurvatureAlong[n1][n2 - 2])
-    #             xAround.append(xOuterAlong[n1][n2 - 2]) # KM
-    #         else:
-    #             d2CurvatureAround.append(d2CurvatureAlong[n1][n2 - 1])
-    #             xAround.append(xOuterAlong[n1][n2 - 1]) # KM
-    #     d2Curvature.append(d2CurvatureAround)
-    #
-    #     # for m in range(len(xAround)):
-    #     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     #     cache.setNode(node)
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAround[m])
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     #     nodeIdentifier += 1
-    #
-    # # Create inner nodes
-    # xList = []
-    # d1List = []
-    # d2List = []
-    # d3List = []
-    # nodeIdx = stomachStartNode
-    # idxMat = []
-    #
-    # if elementsCountThroughWall > 1:
-    #     thicknessProportionsUI = [0.0, mucosaRelThickness, submucosaRelThickness, circularRelThickness,
-    #                               longitudinalRelThickness, longitudinalRelThickness]
-    #     thicknessProportions = [thicknessProportion / sum(thicknessProportionsUI[:-1])
-    #                             for thicknessProportion in thicknessProportionsUI]
-    #
-    #     xi3List = []
-    #     xi3 = 0.0
-    #     for i in range(len(thicknessProportions) - 1):
-    #         xi3 += thicknessProportions[i]
-    #         xi3List.append(xi3)
-    #
     # for n2 in range(len(xOuter)):
-    #     idxThroughWall = []
-    #     for n3 in range(elementsCountThroughWall + 1):
-    #         xi3 = xi3List[n3] if elementsCountThroughWall > 1 else 1.0 / elementsCountThroughWall * n3
-    #         idxAround = []
-    #         for n1 in range(len(xOuter[n2])):
-    #             # Coordinates
-    #             norm = d3UnitOuter[n2][n1]
-    #             xOut = xOuter[n2][n1]
-    #             xIn = [xOut[i] - norm[i] * wallThickness for i in range(3)]
-    #             dWall = [wallThickness * c for c in norm]
-    #             x = interp.interpolateCubicHermite(xIn, dWall, xOut, dWall, xi3)
-    #             xList.append(x)
-    #
-    #             # d1
-    #             factor = 1.0 + wallThickness * (1.0 - xi3) * d1Curvature[n2][n1]
-    #             d1 = [factor * c for c in d1Outer[n2][n1]]
-    #             d1List.append(d1)
-    #
-    #             # d2
-    #             factor = 1.0 + wallThickness * (1.0 - xi3) * d2Curvature[n2][n1]
-    #             d2 = [factor * c for c in d2Outer[n2][n1]]
-    #             d2List.append(d2)
-    #
-    #             # d3
-    #             d3 = [c * wallThickness * (thicknessProportions[n3 + 1] if elementsCountThroughWall > 1 else 1.0)
-    #                   for c in norm]
-    #             d3List.append(d3)
-    #
-    #             idxAround.append(nodeIdx)
-    #             nodeIdx += 1
-    #         idxThroughWall.append(idxAround)
-    #     idxMat.append(idxThroughWall)
-    #
-    # for n2 in range(len(xList)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xList[n2])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1List[n2])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2List[n2])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3List[n2])
-    #     if useCrossDerivatives:
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
-    #     nodeIdentifier += 1
-    #
-    # nodeIdentifier = 100000
-    # for n2 in range(len(xAroundConnectedToEso)):
-    #     for n1 in range(len(xAroundConnectedToEso[n2])):
+    #     for n1 in range(len(xOuter[n2])):
     #         node = nodes.createNode(nodeIdentifier, nodetemplate)
     #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundConnectedToEso[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Outer[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Outer[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3UnitOuter[n2][n1])
+    #         nodeIdentifier += 1
+
+    # Calculate curvature around
+    d1Curvature = []
+    d1Curvature.append([1.0 for n in range(len(xOuter[0]))]) # To be replaced later!
+    for n2 in range(1, len(xOuter)):
+        if 2 + completeRowsBeforeEso < n2 < 2 + completeRowsBeforeEso + elementsAroundHalfEso - 2:
+            curvatureLeft = findCurvatureAlongLine(xOuter[n2][0: int(0.5 * len(xOuter[n2])) + 1],
+                                                   d1Outer[n2][0: int(0.5 * len(xOuter[n2])) + 1],
+                                                   d3UnitOuter[n2][0: int(0.5 * len(xOuter[n2])) + 1])
+            xRight = xOuter[n2][int(0.5 * len(xOuter[n2])) + 1:] + [xOuter[n2][0]]
+            d1Right = d1Outer[n2][int(0.5 * len(xOuter[n2])) + 1:] + [d1Outer[n2][0]]
+            d3Right = d3UnitOuter[n2][int(0.5 * len(xOuter[n2])) + 1:] + [d3UnitOuter[n2][0]]
+            curvatureRight = findCurvatureAlongLine(xRight, d1Right, d3Right)
+            curvatureBoth = curvatureLeft + curvatureRight[:-1]
+            d1Curvature.append(curvatureBoth)
+        else:
+            d1Curvature.append(findD1CurvatureAround(xOuter[n2], d1Outer[n2], d3UnitOuter[n2]))
+
+    # Calculate curvature along
+    # Populate d3AlongAll
+    d3AlongAll = []
+    count = 0
+    for n1 in range(elementsCountAroundDuod):
+        d3AlongN1 = []
+        if n1 == 0: # GC
+            d3AlongN1.append(d3UnitOuter[0][0])
+            for n in range(1, len(xOuter[0]), 2):
+                d3AlongN1.append(d3UnitOuter[0][n])
+            for n2 in range(1, len(xOuter)):
+                d3AlongN1.append(d3UnitOuter[n2][0])
+
+        elif n1 == 1: # Start from 2nd point on quarterline
+            for n in range(int(0.25 * len(xOuter[1])), 0, -1):
+                d3AlongN1.append(d3UnitOuter[1][n])
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                d3AlongN1.append(d3UnitOuter[n2][n1])
+
+        elif n1 == 2: # Start from xOuter[1][0]
+            d3AlongN1 += d3UnitOuter[1][:2]
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                d3AlongN1.append(d3UnitOuter[n2][n1])
+
+        elif 2 < n1 < elementsAroundQuarterDuod or elementsAroundQuarterDuod < n1 < elementsAroundHalfDuod - 2:
+            # Additional elements for duodenum above and below quarter line
+            if 2 < n1 < elementsAroundQuarterDuod:
+                x0Idx = int(2 * int(0.5 * len(xOuter[0]))) - 1 - 2 * count
+            else:
+                x0Idx = -(int(2 * int(0.5 * len(xOuter[0]))) - 2 * count)
+            d3AlongN1 = [d3UnitOuter[0][x0Idx]] + [d3UnitOuter[1][2 + count]]
+
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                d3AlongN1.append(d3UnitOuter[n2][n1])
+            count += 1
+
+        elif n1 == elementsAroundQuarterDuod:
+            d3AlongN1.append(d3UnitOuter[0][0])
+            for n2 in range(1, len(xOuter)):
+                d3AlongN1.append(d3UnitOuter[n2]
+                                 [int(0.25 * len(xOuter[n2])) +
+                                  (1 if 2 + completeRowsBeforeEso < n2 < completeRowsBeforeEso + elementsAroundHalfEso
+                                   else 0)])
+            count += 1
+
+        elif n1 == elementsAroundHalfDuod - 2: # start from xOuter[1][half]
+            d3AlongN1 = [d3UnitOuter[1][int(len(xOuter[1]) * 0.5)]] + [d3UnitOuter[1][int(len(xOuter[1]) * 0.5 - 1)]]
+            for n2 in range(2, elementsAlongStomach + 1): # Template
+                d3AlongN1.append(d3UnitOuter[n2][n1])
+
+        elif n1 == elementsAroundHalfDuod - 1:
+            # Start from 2nd point on quarterline
+            for n in range(int(0.25 * len(xOuter[1])), int(len(xOuter[1]) * 0.5)):
+                d3AlongN1.append(d3UnitOuter[1][n])
+            for n2 in range(2, elementsAlongStomach + 1):
+                d3AlongN1.append(d3UnitOuter[n2][n1])
+
+        elif n1 == elementsAroundHalfDuod:
+            d3AlongN1.append(d3UnitOuter[0][0])
+            for n in range(2, len(xOuter[0]), 2):
+                d3AlongN1.append(d3UnitOuter[0][n])
+            for n2 in range(1, 3 + completeRowsBeforeEso):
+                d3AlongN1.append(d3UnitOuter[n2][int(0.5 * len(xOuter[n2]))])
+            # Need to be processed as two parts!
+            breakIdx = len(d3AlongN1)
+            for n2 in range(completeRowsBeforeEso + elementsAroundHalfEso, len(xOuter)):
+                d3AlongN1.append(d3UnitOuter[n2][int(0.5 * len(xOuter[n2]))])
+
+        elif n1 == elementsAroundHalfDuod + 1:
+            # Start from 2nd point on threeQuarterline
+            for n in range(int(0.75 * len(xOuter[1])), int(len(xOuter[1]) * 0.5), -1):
+                d3AlongN1.append(d3UnitOuter[1][n])
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                d3AlongN1.append(d3UnitOuter[n2][n1Idx])
+
+        elif n1 == elementsAroundHalfDuod + 2:
+            # Start from xOuter[1][half]
+            d3AlongN1 += [d3UnitOuter[1][int(len(xOuter[1]) * 0.5)]] + [d3UnitOuter[1][int(len(xOuter[1]) * 0.5) + 1]]
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                d3AlongN1.append(d3UnitOuter[n2][n1Idx])
+
+        elif elementsAroundHalfDuod + 2 < n1 < int(elementsAroundQuarterDuod * 3) or \
+                int(elementsAroundQuarterDuod * 3) < n1 < elementsCountAroundDuod - 2:
+            count -= 1
+            # Additional elements for duodenum above and below three quarter line
+            if elementsAroundHalfDuod + 2 < n1 < int(elementsAroundQuarterDuod * 3):
+                x0Idx = -(int(2 * int(0.5 * len(xOuter[0]))) - 2 * count)
+            else:
+                x0Idx = int(2 * int(0.5 * len(xOuter[0]))) - 1 - 2 * count
+            d3AlongN1 = [d3UnitOuter[0][x0Idx]] + [d3UnitOuter[1][int(len(xOuter[1]) * 0.5) + len(x0) - count + 1]]
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                d3AlongN1.append(d3UnitOuter[n2][n1Idx])
+
+        elif n1 == int(elementsAroundQuarterDuod * 3):
+            d3AlongN1.append(d3UnitOuter[0][0])
+            for n2 in range(1, len(xOuter)):
+                d3AlongN1.append(d3UnitOuter[n2][int(0.75 * len(xOuter[n2]))])
+            count -= 1
+
+        elif n1 == elementsCountAroundDuod - 2: # Start from xOuter[1][0]
+            d3AlongN1 += [d3UnitOuter[1][0]] + [d3UnitOuter[1][-1]]
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                d3AlongN1.append(d3UnitOuter[n2][n1Idx])
+
+        elif n1 == elementsCountAroundDuod - 1: # Start from 2nd point on quarterline
+            for n in range(int(0.25 * len(xOuter[1]))):
+                d3AlongN1.append(d3UnitOuter[1][int(0.75 * len(xOuter[1])) + n])
+            for n2 in range(2, elementsAlongStomach + 1): # new condition
+                if 2 + len(xAroundB) < n2 < 2 + len(xAroundB) + elementsAroundHalfEso - 2:
+                    n1Idx = n1 - 1
+                else:
+                    n1Idx = n1
+                d3AlongN1.append(d3UnitOuter[n2][n1Idx])
+
+        d3AlongAll.append(d3AlongN1)
+
+    # for n1 in range(len(xAlongAll)):
+    #     for n2 in range(len(xAlongAll[n1])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongAll[n1][n2])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d3AlongAll[n1][n2])
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
     #         nodeIdentifier += 1
-    #
+
+    # Calculate d2Curvature along
+    d2CurvatureAlong = []
+    for n1 in range(len(xAlongAll)):
+        if n1 == elementsAroundHalfDuod:
+            curvatureGC = findCurvatureAlongLine(xAlongAll[n1][:breakIdx], d2AlongAll[n1][:breakIdx], d3AlongAll[n1][:breakIdx])
+            curvatureLC = findCurvatureAlongLine(xAlongAll[n1][breakIdx:], d2AlongAll[n1][breakIdx:], d3AlongAll[n1][breakIdx:])
+            curvature = curvatureGC + curvatureLC
+        else:
+            curvature = findCurvatureAlongLine(xAlongAll[n1], d2AlongAll[n1], d3AlongAll[n1])
+        d2CurvatureAlong.append(curvature)
+
+    # Re-arrange d2Curvature along to xOuter
+    for n2 in range(len(xOuter)):
+        if n2 == 0:
+            n1 = 0
+            d2Curvature[n2][n1] = d2CurvatureAlong[n1][n2]
+            if len(d2Curvature[n2]) > 1:
+                for n in range(int(len(xOuter[n2]) * 0.5)):
+                    d2Curvature[n2][2 * n + 1] = d2CurvatureAlong[elementsAroundQuarterDuod - n - 1][n2]
+                    d2Curvature[n2][2 * n + 2] = d2CurvatureAlong[elementsAroundQuarterDuod + n + 1][n2]
+        elif n2 == 1:
+            d2New = []
+            count = 0
+            for n in range(int(2 * (len(xOuter[0]) + 2))):
+                n1AllIdx = elementsAroundQuarterDuod - int(0.5 * len(xOuter[0])) - 1 + n + count
+                if n == 0:
+                    d2New.append(d2CurvatureAlong[n1AllIdx][0])
+                d2New.append(d2CurvatureAlong[n1AllIdx][1])
+                if n == len(xOuter[0]) + 1:
+                    d2New.append(d2CurvatureAlong[n1AllIdx][0])
+                    count = 3
+            d2Curvature[n2] = d2New
+
+        elif n2 > 1:
+            d2New = []
+            idxFromEnd = -(elementsAlongStomach + 1 - n2)
+            for n1 in range(elementsCountAroundDuod +
+                            (-1 if 3 + completeRowsBeforeEso <= n2 <
+                                   3 + completeRowsBeforeEso + (elementsAroundHalfEso - 3) else 0)):
+                if n1 == elementsAroundHalfDuod and 1 < n2 < 3 + completeRowsBeforeEso:
+                    d2New.append(d2CurvatureAlong[n1][int(0.5 * len(xOuter[0])) + n2])
+                elif n1 >= elementsAroundHalfDuod \
+                        and 3 + completeRowsBeforeEso <= n2 < 3 + completeRowsBeforeEso + (elementsAroundHalfEso - 3):
+                    d2New.append(d2CurvatureAlong[n1 + 1][idxFromEnd])
+                else:
+                    d2New.append(d2CurvatureAlong[n1][idxFromEnd])
+            d2Curvature[n2] = d2New
+
+    # Create inner nodes
+    xList = []
+    d1List = []
+    d2List = []
+    d3List = []
+    nodeIdx = stomachStartNode
+    idxMat = []
+
+    if elementsCountThroughWall > 1:
+        thicknessProportionsUI = [0.0, mucosaRelThickness, submucosaRelThickness, circularRelThickness,
+                                  longitudinalRelThickness, longitudinalRelThickness]
+        thicknessProportions = [thicknessProportion / sum(thicknessProportionsUI[:-1])
+                                for thicknessProportion in thicknessProportionsUI]
+
+        xi3List = []
+        xi3 = 0.0
+        for i in range(len(thicknessProportions) - 1):
+            xi3 += thicknessProportions[i]
+            xi3List.append(xi3)
+
+    for n2 in range(len(xOuter)):
+        idxThroughWall = []
+        for n3 in range(elementsCountThroughWall + 1):
+            xi3 = xi3List[n3] if elementsCountThroughWall > 1 else 1.0 / elementsCountThroughWall * n3
+            idxAround = []
+            for n1 in range(len(xOuter[n2])):
+                # Coordinates
+                norm = d3UnitOuter[n2][n1]
+                xOut = xOuter[n2][n1]
+                xIn = [xOut[i] - norm[i] * wallThickness for i in range(3)]
+                dWall = [wallThickness * c for c in norm]
+                x = interp.interpolateCubicHermite(xIn, dWall, xOut, dWall, xi3)
+                xList.append(x)
+
+                # d1
+                factor = 1.0 + wallThickness * (1.0 - xi3) * d1Curvature[n2][n1]
+                d1 = [factor * c for c in d1Outer[n2][n1]]
+                d1List.append(d1)
+
+                # d2
+                factor = 1.0 + wallThickness * (1.0 - xi3) * d2Curvature[n2][n1]
+                d2 = [factor * c for c in d2Outer[n2][n1]]
+                d2List.append(d2)
+
+                # d3
+                d3 = [c * wallThickness * (thicknessProportions[n3 + 1] if elementsCountThroughWall > 1 else 1.0)
+                      for c in norm]
+                d3List.append(d3)
+
+                idxAround.append(nodeIdx)
+                nodeIdx += 1
+            idxThroughWall.append(idxAround)
+        idxMat.append(idxThroughWall)
+
+    for n2 in range(len(xList)):
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xList[n2])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1List[n2])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2List[n2])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3List[n2])
+        if useCrossDerivatives:
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
+        nodeIdentifier += 1
+
     # # Create elements
     # fundusMucosaElementIdentifiers = []
     # elementIdxMat = []
