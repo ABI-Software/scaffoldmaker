@@ -641,8 +641,6 @@ class MeshType_3d_lung2(Scaffold_base):
         baseLungTerms = ["left lung", "right lung", "right lung accessory lobe"]
         lobe = {}
 
-        group = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
-        group2d = group.getFieldElementGroup(mesh2d)
         for term in surfaceTerms:
             if (numberOfLeftLung == 1) and (term in subLeftLungTerms):
                 continue
