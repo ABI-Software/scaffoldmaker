@@ -28,6 +28,9 @@ class eftfactory_tricubichermite:
         self._fieldmodule = mesh.getFieldmodule()
         self._tricubicHermiteBasis = self._fieldmodule.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
 
+    def getElementbasis(self):
+        return self._tricubicHermiteBasis
+
     def createEftBasic(self):
         '''
         Create the basic tricubic hermite element field template with 1:1 mappings to

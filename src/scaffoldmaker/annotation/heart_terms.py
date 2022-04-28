@@ -11,6 +11,7 @@ heart_terms = [
     ( "interventricular septum", "FMA:7133" ),
     ( "endocardium of left ventricle", "FMA:9559" ),
     ( "endocardium of right ventricle", "FMA:9536" ),
+    ( "epicardial fat", "UBERON:0015129"),
     ( "epicardium", "FMA:9461", "UBERON:0002348"),
     #( "epicardium of ventricle", "FMA:12150", "UBERON:0001082" ),
     # ventricles with base

@@ -56,7 +56,8 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
         options['Number of elements up LV apex'] = 1
-        options['Number of elements up RV'] = 3
+        options['Number of elements up RV'] = 4
+        options['Collapse RV columns'] = False
         options['Unit scale'] = 1.0
         options['Interventricular sulcus derivative factor'] = 0.5
         options['LV outer height'] = 1.0
@@ -65,7 +66,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['LV apex thickness'] = 0.08
         options['RV inner height fraction'] = 0.85
         options['RV arc around degrees'] = 145.0
-        options['RV arc apex fraction'] = 0.5
+        options['RV arc apex fraction'] = 0.7
         options['RV free wall thickness'] = 0.05
         options['RV width'] = 0.3
         options['RV width growth factor'] = 0.7
@@ -85,19 +86,19 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             if notUnitScale:
                 options['Unit scale'] = 5.0 if isMouse else 12.0
             options['Interventricular sulcus derivative factor'] = 0.8
-            options['LV outer height'] = 0.85
+            options['LV outer height'] = 0.9
             options['LV outer diameter'] = 0.85
             options['LV free wall thickness'] = 0.12
-            options['LV apex thickness'] = 0.05
+            options['LV apex thickness'] = 0.12
             options['RV inner height fraction'] = 0.9
-            options['RV arc around degrees'] = 140.0
-            options['RV arc apex fraction'] = 0.5
+            options['RV arc around degrees'] = 130.0
+            options['RV arc apex fraction'] = 0.7
             options['RV free wall thickness'] = 0.05
-            options['RV width'] = 0.28
+            options['RV width'] = 0.25
             options['RV width growth factor'] = 0.8
-            options['RV side extension'] = 0.05
+            options['RV side extension'] = 0.03
             options['RV side extension growth factor'] = 0.1
-            options['Ventricular septum thickness'] = 0.15
+            options['Ventricular septum thickness'] = 0.12
             options['Ventricular septum base radial displacement'] = 0.0
         elif isPig:
             options['Number of elements up LV apex'] = 1
@@ -129,6 +130,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             'Number of elements around RV free wall',
             'Number of elements up LV apex',
             'Number of elements up RV',
+            'Collapse RV columns',
             'Unit scale',
             'Interventricular sulcus derivative factor',
             'LV outer height',
@@ -165,14 +167,17 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             if options[key] < 1:
                 options[key] = 1
         for key in [
-            'Number of elements around LV free wall',
+            'Number of elements around LV free wall']:
+            if options[key] < 4:
+                options[key] = 4
+        for key in [
             'Number of elements up RV']:
             if options[key] < 2:
                 options[key] = 2
         for key in [
             'Number of elements around RV free wall']:
-            if options[key] < 3:
-                options[key] = 3
+            if options[key] < 5:
+                options[key] = 5
         for key in [
             'Unit scale',
             'LV outer height',
@@ -216,11 +221,14 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         """
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
-        pointsCountAroundOuter = elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
-        elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
         elementsCountUpLVApex = options['Number of elements up LV apex']
         elementsCountUpRV = options['Number of elements up RV']
         elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        collapseRVColumns = options['Collapse RV columns']
+        elementsCountAroundVSeptum = (elementsCountAroundRVFreeWall - 2) if collapseRVColumns \
+            else elementsCountAroundRVFreeWall
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundVSeptum
+
         unitScale = options['Unit scale']
         ivSulcusDerivativeFactor = options['Interventricular sulcus derivative factor']
 
@@ -306,6 +314,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         elementSizeUpRVTransition = 0.5*(elementSizeUpApex + elementSizeUpRV)
         # LV apex points, noting s1, s2 is x, -y to get out outward s3
         lvApexInnerx = [ 0.0, 0.0, -lvInnerHeight ]
+        # d1 and d2 are corrected later when inner derivatives are smoothed
         lvApexInnerd1 = [ elementSizeUpApex, 0.0, 0.0 ]
         lvApexInnerd2 = [ 0.0, -elementSizeUpApex, 0.0, 0.0 ]
         lvApexInnerd3 = [ 0.0, 0.0, -lvApexThickness ]
@@ -377,8 +386,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             widthExtension, sideExtension = getRVOuterSize(xiUpWidth, xiUpSide, rvAddWidthBase, rvWidthGrowthFactor, rvSideExtension, rvSideExtensionGrowthFactor)
             addWidthRadius = interp.interpolateHermiteLagrange([ 0.0 ], [ 0.0 ], [ rvAddWidthRadiusBase ], xiUpSide)[0]
 
+            elementsCountAroundRVOutside = \
+                elementsCountAroundVSeptum if (n2 < elementsCountUpLVApex) else elementsCountAroundRVFreeWall
+
             nx, nd1 = getVentriclesOuterPoints(lvRadius, widthExtension, sideExtension, addWidthRadius, rvArcAroundZRadians, z, \
-                elementsCountAroundLVFreeWall, elementsCountAroundRVFreeWall, ivSulcusDerivativeFactor)
+                elementsCountAroundLVFreeWall, elementsCountAroundRVOutside, ivSulcusDerivativeFactor)
 
             vOuterx.append(nx)
             vOuterd1.append(nd1)
@@ -389,7 +401,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         lvApexRadiansPerElement = lvApexArcAroundRadians/(elementsCountAroundLVFreeWall + ivSulcusDerivativeFactor - 1.0)
         lvApexRadiansPerElementTransition = 0.5*lvApexRadiansPerElement*(1.0 + ivSulcusDerivativeFactor)
         ivSulcusRadiansPerElement = 2.0*lvApexRadiansPerElementTransition - lvApexRadiansPerElement
-        rvApexRadiansPerElement = (rvApexArcAroundRadians - ivSulcusRadiansPerElement)/(elementsCountAroundRVFreeWall - 1)
+        rvApexRadiansPerElement = (rvApexArcAroundRadians - ivSulcusRadiansPerElement)/(elementsCountAroundVSeptum - 1)
         rvApexRadiansPerElementTransition = 0.5*(rvApexRadiansPerElement + ivSulcusRadiansPerElement)
         apexRadiansAround = []
         radiansAround = -0.5*rvApexArcAroundRadians
@@ -399,9 +411,9 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                 radiansAround -= lvApexRadiansPerElementTransition
             else:
                 radiansAround -= lvApexRadiansPerElement
-        for n1 in range(elementsCountAroundRVFreeWall):
+        for n1 in range(elementsCountAroundVSeptum):
             apexRadiansAround.append(radiansAround)
-            if (n1 == 0) or (n1 == (elementsCountAroundRVFreeWall - 1)):
+            if (n1 == 0) or (n1 == (elementsCountAroundVSeptum - 1)):
                 radiansAround -= rvApexRadiansPerElementTransition
             else:
                 radiansAround -= rvApexRadiansPerElement
@@ -411,17 +423,24 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         lvInnerd2 = []
         for n2 in range(elementsCountUpLV):
             lvInnerd2.append([])
-        for n1 in range(pointsCountAroundOuter):
+        pointsCountAroundOuterApex = elementsCountAroundLVFreeWall + elementsCountAroundVSeptum
+        pointsCountAroundOuterFree = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
+        for n1 in range(pointsCountAroundOuterApex):
             cosRadiansAround = math.cos(apexRadiansAround[n1])
             sinRadiansAround = math.sin(apexRadiansAround[n1])
-            apexd2 = [ (lvApexOuterd1[c]*cosRadiansAround + lvApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
-            nx = [ lvApexOuterx ]
-            nd2 = [ apexd2 ]
+            apexd2 = [ (lvApexInnerd1[c]*cosRadiansAround + lvApexInnerd2[c]*sinRadiansAround) for c in range(3) ]
+            nx = [lvApexInnerx]
+            nd2 = [apexd2]
             for n2 in range(elementsCountUpLV):
                 nx.append(lvInnerx[n2][n1])
                 nd2.append([ 0.0, 0.0, 0.0 ])
             nd2[-1] = [ 0.0, 0.0, elementSizeUpRV ]
-            nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True)
+            nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDirection=(n1 == 0),
+                                                           fixStartDerivative=(n1 > 0))
+            if n1 == 0:
+                mag = vector.magnitude((nd2[0]))
+                lvApexInnerd1 = [mag, 0.0, 0.0]
+                lvApexInnerd2 = [0.0, -mag, 0.0, 0.0]
             for n2 in range(elementsCountUpLV):
                 lvInnerd2[n2].append(nd2[n2 + 1])
 
@@ -430,19 +449,49 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         vOuterd2 = []
         for n2 in range(elementsCountUpLV):
             vOuterd2.append([])
-        for n1 in range(pointsCountAroundOuter):
-            cosRadiansAround = math.cos(apexRadiansAround[n1])
-            sinRadiansAround = math.sin(apexRadiansAround[n1])
+        for n1 in range(pointsCountAroundOuterFree):
+            apex_n1 = n1
+            if collapseRVColumns:
+                if n1 in [elementsCountAroundLVFreeWall + 2, pointsCountAroundOuterFree - 2]:
+                    # RV rows ending at angle are calculated in the next loop
+                    for n2 in range(elementsCountUpLVApex, elementsCountUpLV):
+                        vOuterd2[n2].append([0.0, 0.0, 0.0])
+                    nd2[-1] = [0.0, 0.0, elementSizeUpRV]
+                    continue
+                if n1 > (elementsCountAroundLVFreeWall + 1):
+                    apex_n1 = min(n1, pointsCountAroundOuterApex) - 1
+            cosRadiansAround = math.cos(apexRadiansAround[apex_n1])
+            sinRadiansAround = math.sin(apexRadiansAround[apex_n1])
             apexd2 = [ (lvApexOuterd1[c]*cosRadiansAround + lvApexOuterd2[c]*sinRadiansAround) for c in range(3) ]
             nx = [ lvApexOuterx ]
             nd2 = [ apexd2 ]
             for n2 in range(elementsCountUpLV):
-                nx.append(vOuterx[n2][n1])
-                nd2.append([ 0.0, 0.0, 0.0 ])
-            nd2[-1] = [ 0.0, 0.0, elementSizeUpRV ]
+                use_n1 = n1
+                if collapseRVColumns and (n1 > (elementsCountAroundLVFreeWall + 1)) and (n2 < elementsCountUpLVApex):
+                    use_n1 = apex_n1
+                nx.append(vOuterx[n2][use_n1])
+                nd2.append([0.0, 0.0, 0.0])
+            nd2[-1] = [0.0, 0.0, elementSizeUpRV]
             nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True)
             for n2 in range(elementsCountUpLV):
                 vOuterd2[n2].append(nd2[n2 + 1])
+        if collapseRVColumns:
+            # add GLM angle columns
+            for n1 in [elementsCountAroundLVFreeWall + 2, pointsCountAroundOuterFree - 2]:
+                start_n2 = elementsCountUpLVApex - 1
+                start_n1 = n1 - 1
+                nx = [vOuterx[start_n2][start_n1]]
+                if n1 == (elementsCountAroundLVFreeWall + 2):
+                    nd2 = [[vOuterd2[start_n2][start_n1][c] + vOuterd1[start_n2][start_n1][c] for c in range(3)]]
+                else:
+                    nd2 = [[vOuterd2[start_n2][start_n1][c] - vOuterd1[start_n2][start_n1][c] for c in range(3)]]
+                nd2 = [vOuterd2[start_n2][start_n1]]
+                for n2 in range(elementsCountUpLVApex, elementsCountUpLV):
+                    nx.append(vOuterx[n2][n1])
+                    nd2.append(vOuterd2[n2][n1])
+                nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative=True)  # , fixEndDirection=True)
+                for n2 in range(elementsCountUpLVApex, elementsCountUpLV):
+                    vOuterd2[n2][n1] = nd2[n2 - elementsCountUpLVApex + 1]
 
         # calculate derivative 3 on LV free wall and sub-RV apex from difference between inner and outer surfaces
 
@@ -451,17 +500,21 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         for n2 in range(elementsCountUpLV):
             layerInnerd3 = []
             layerOuterd3 = []
-            for n1 in range(pointsCountAroundOuter):
+            for n1 in range(pointsCountAroundOuterApex):
                 if (n2 < elementsCountUpLVApex) or (n1 <= elementsCountAroundLVFreeWall):
                     ix = lvInnerx[n2][n1]
                     ox = vOuterx[n2][n1]
                     innerd3 = outerd3 = [ (ox[c] - ix[c]) for c in range(3) ]
-                else:
-                    innerd3 = outerd3 = [ 0.0, 0.0, 0.0 ]
-                layerInnerd3.append(innerd3)
-                layerOuterd3.append(outerd3)
+                    layerInnerd3.append(innerd3)
+                    layerOuterd3.append(outerd3)
             lvInnerd3.append(layerInnerd3)
             vOuterd3.append(layerOuterd3)
+        # add zeros for remaining d3 on lvInnerd3, vOuterd3
+        for n2 in range(elementsCountUpLVApex, elementsCountUpLV):
+            for n1 in range(elementsCountAroundVSeptum - 1):
+                lvInnerd3[n2].append([0.0, 0.0, 0.0])
+            for n1 in range(elementsCountAroundRVFreeWall - 1):
+                vOuterd3[n2].append([0.0, 0.0, 0.0])
 
         # get points on inside of RV, anticlockwise starting at node opposite posterior interventricular sulcus
 
@@ -476,7 +529,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             layerInnerd2 = []
             layerInnerd3 = []
             if n2 >= elementsCountUpLVApex:
-                for n1 in range(elementsCountAroundLVFreeWall + 1, pointsCountAroundOuter):
+                for n1 in range(elementsCountAroundLVFreeWall + 1, pointsCountAroundOuterFree):
                     outerx  = vOuterx [n2][n1]
                     outerd1 = vOuterd1[n2][n1]
                     outerd2 = vOuterd2[n2][n1]
@@ -485,7 +538,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     innerx = [ (outerx[c] - innerd3[c]) for c in range(3) ]
                     # calculate inner d1 from curvature around
                     n1m = n1 - 1
-                    n1p = (n1 + 1) % pointsCountAroundOuter
+                    n1p = (n1 + 1) % pointsCountAroundOuterFree
                     curvature = -0.5*(
                         interp.getCubicHermiteCurvature(vOuterx[n2][n1m], vOuterd1[n2][n1m], outerx, outerd1, unitNormal, 1.0) +
                         interp.getCubicHermiteCurvature(outerx, outerd1, vOuterx[n2][n1p], vOuterd1[n2][n1p], unitNormal, 0.0))
@@ -493,10 +546,24 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     innerd1 = [ factor*c for c in outerd1 ]
                     # calculate inner d2 from curvature up
                     n2m = n2 - 1
-                    curvature = -interp.getCubicHermiteCurvature(vOuterx[n2m][n1], vOuterd2[n2m][n1], outerx, outerd2, unitNormal, 1.0)
+                    if collapseRVColumns and (n2m < elementsCountUpLVApex) and \
+                            (n1 > (elementsCountAroundLVFreeWall + 1)):
+                        use_n1 = min(n1, len(apexRadiansAround)) - 1
+                        startx = vOuterx[n2m][use_n1]
+                        startd2 = vOuterd2[n2m][use_n1]
+                        # add d1 + d2 where elements collapsed:
+                        if n1 == (elementsCountAroundLVFreeWall + 2):
+                            startd2 = [startd2[c] + vOuterd1[n2m][use_n1][c] for c in range(3)]
+                        elif n1 == (pointsCountAroundOuterFree - 2):
+                            startd2 = [startd2[c] - vOuterd1[n2m][use_n1][c] for c in range(3)]
+                    else:
+                        startx = vOuterx[n2m][n1]
+                        startd2 = vOuterd2[n2m][n1]
+                    curvature = -interp.getCubicHermiteCurvature(startx, startd2, outerx, outerd2, unitNormal, 1.0)
                     if n2 < (elementsCountUpLVApex - 1):
                         n2p = n2 + 1
-                        curvature = 0.5*(curvature - interp.getCubicHermiteCurvature(outerx, outerd2, vOuterx[n2p][n1], vOuterd2[n2p][n1], unitNormal, 0.0))
+                        curvature = 0.5*(curvature - interp.getCubicHermiteCurvature(
+                            outerx, outerd2, vOuterx[n2p][n1], vOuterd2[n2p][n1], unitNormal, 0.0))
                     factor = 1.0 - curvature*rvFreeWallThickness
                     innerd2 = [ factor*c for c in outerd2 ]
                     layerInnerx .append(innerx)
@@ -530,8 +597,13 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     arcLengthDerivatives = False)[0:2]
                 for n1 in range(elementsCountAroundVSeptum + 1):
                     # d3 at ends of septum is toward adjacent interventricular sulcus, inside septum is across septum to lvInner
-                    insideSeptum = (n1 > 0) and (n1 < elementsCountAroundVSeptum)
-                    lvx = lvInnerx[n2][-n1] if insideSeptum else vOuterx[n2][-n1]
+                    insideSeptum = 0 < n1 < elementsCountAroundVSeptum
+                    if insideSeptum:
+                        lvx = lvInnerx[n2][-n1]
+                    elif collapseRVColumns and (n1 > 0):
+                        lvx = vOuterx[n2][-n1 - 2]
+                    else:
+                        lvx = vOuterx[n2][-n1]
                     rvx = px[n1 + 1]
                     innerd3 = [ (lvx[c] - rvx[c]) for c in range(3) ]
                     layerInnerx .append(rvx)
@@ -564,7 +636,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         sd1 = []
         sd2 = []
         for n1 in range(1, elementsCountAroundRVFreeWall):
-            r1 = 2*elementsCountAroundRVFreeWall - n1
+            r1 = elementsCountAroundRVFreeWall + elementsCountAroundVSeptum - n1
+            if collapseRVColumns and (n1 > 1):
+                r1 += 1
+                if n1 > (elementsCountAroundRVFreeWall - 2):
+                    r1 += 1
             ax = rvInnerx[n2][r1]
             ad1 = [ -d for d in rvInnerd1[n2][r1] ]
             ad2 = [ -dFactor*d for d in rvInnerd2[n2][r1] ]
@@ -583,18 +659,18 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         bx  = rvInnerx [n2][elementsCountAroundRVFreeWall]
         bd1 = [ -d for d in rvInnerd1[n2][elementsCountAroundRVFreeWall] ]
         bd2 = rvInnerd2[n2][elementsCountAroundRVFreeWall]
-        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves([ ax ] + sx + [ bx ], [ ad2 ] + sd1 + [ bd2 ], elementsCountAroundRVFreeWall + 2,
+        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves([ ax ] + sx + [ bx ], [ ad2 ] + sd1 + [ bd2 ], elementsCountAroundVSeptum + 2,
             addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
             addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
         pd2 = interp.interpolateSampleLinear([ ad1 ] + sd2 + [ bd1 ], pe, pxi)
         n2 = elementsCountUpLVApex - 1
         # loop skips first and last in sample:
-        for n1 in range(1, elementsCountAroundRVFreeWall + 2):
+        for n1 in range(1, elementsCountAroundVSeptum + 2):
             rvInnerx [n2].append(px [n1])
             rvInnerd1[n2].append(pd1[n1])
             o1 = (elementsCountAroundLVFreeWall + n1 - 1) % elementsCountAroundLV
-            d1Factor = 1.0 if (n1 == 1) else (-1.0 if (n1 == (elementsCountAroundRVFreeWall + 1)) else 0.0)
-            if (n1 == 1) or (n1 == elementsCountAroundRVFreeWall + 1):
+            d1Factor = 1.0 if (n1 == 1) else (-1.0 if (n1 == (elementsCountAroundVSeptum + 1)) else 0.0)
+            if (n1 == 1) or (n1 == elementsCountAroundVSeptum + 1):
                 # collapsed RV corner uses triangle derivative d/dx{1|3} = +/-d2; outside d/dxi2 = +/-d1
                 # compute derivative 2 to fit with glm vector on inside row:
                 od2 = [ (d1Factor*lvInnerd1[n2][o1][c] + lvInnerd2[n2][o1][c] + lvInnerd3[n2][o1][c]) for c in range(3) ]
@@ -627,7 +703,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             nd2 = lvInnerd2[n2]
             nd3 = lvInnerd3[n2]
             layerNodeId = []
-            for n1 in range(pointsCountAroundOuter):
+            for n1 in range(len(nx)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n1])
@@ -659,8 +735,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             rvInnerNodeId.append(layerNodeId)
         # mirror RV apex so can index as for other rows
         n2 = elementsCountUpLVApex - 1
-        for n1 in range(elementsCountAroundRVFreeWall - 1, 0, -1):
-            rvInnerNodeId[n2].append(rvInnerNodeId[n2][n1])
+        rvInnerNodeId[n2] += rvInnerNodeId[n2][-2:-len(rvInnerNodeId[n2]):-1]
 
         # create nodes on outer ventricles
 
@@ -682,7 +757,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             nd2 = vOuterd2[n2]
             nd3 = vOuterd3[n2]
             layerNodeId = []
-            for n1 in range(pointsCountAroundOuter):
+            for n1 in range(len(nx)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n1])
@@ -712,8 +787,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
         norl = elementsCountAroundLV
-        nowl = 2 + elementsCountAroundRVFreeWall + elementsCountAroundLV*elementsCountUpLV + elementsCountAroundVSeptum*2*elementsCountUpRV
-        norr = 2*elementsCountAroundRVFreeWall
+        # node offset wall
+        nowl = 2 + elementsCountAroundLV*elementsCountUpLV \
+               + elementsCountAroundVSeptum*(elementsCountUpRV + 1) \
+               + elementsCountAroundRVFreeWall*elementsCountUpRV
 
         for e2 in range(elementsCountUpLV):
 
@@ -781,7 +858,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                              vOuterNodeId [e2 - 1][va], vOuterNodeId [e2 - 1][vb], vOuterNodeId [e2][va], vOuterNodeId [e2][vb] ]
                     if e1 == -1:
                         # anterior interventricular sulcus, collapsed to 6 node wedge
-                        nids[0] = rvInnerNodeId[e2 - 1][elementsCountAroundRVFreeWall]
+                        if e2 == elementsCountUpLVApex:
+                            nids[0] = rvInnerNodeId[e2 - 1][elementsCountAroundVSeptum]
+                        else:
+                            nids[0] = rvInnerNodeId[e2 - 1][elementsCountAroundRVFreeWall]
                         nids[2] = rvInnerNodeId[e2    ][elementsCountAroundRVFreeWall]
                         nids.pop(6)
                         nids.pop(4)
@@ -817,11 +897,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     for meshGroup in meshGroups:
                         meshGroup.addElement(element)
 
-            if e2 >= (elementsCountUpLVApex - 1):
+            if e2 == (elementsCountUpLVApex - 1):
 
-                # RV free wall elements starting from -1 = posterior interventricular sulcus collapsed element
+                # collapsed elements under RV and septum
 
-                for e1 in range(-1, elementsCountAroundRVFreeWall):
+                for e1 in range(elementsCountAroundVSeptum):
 
                     eft1 = eft
                     scalefactors = None
@@ -829,13 +909,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     ua = e1
                     ub = e1 + 1
                     va = elementsCountAroundLVFreeWall + e1
-                    vb = (va + 1)%elementsCountAroundLV
+                    vb = (va + 1) % (elementsCountAroundLVFreeWall + elementsCountAroundVSeptum)
                     e2m = max(e2 - 1, elementsCountUpLVApex - 1)
                     nids = [ rvInnerNodeId[e2m][ua], rvInnerNodeId[e2m][ub], rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub],
                              vOuterNodeId [e2m][va], vOuterNodeId [e2m][vb], vOuterNodeId [e2][va], vOuterNodeId [e2][vb] ]
                     if e2 == (elementsCountUpLVApex - 1):
-                        if e1 == -1:
-                            continue
                         nids[0] = lvInnerNodeId[e2m][va]
                         nids[1] = lvInnerNodeId[e2m][vb]
                         nids.pop(7)
@@ -864,7 +942,55 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                             remapEftNodeValueLabel(eft1, [ 7, 8 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
                         ln_map = [ 1, 2, 3, 4, 5, 6, 5, 6 ]
                         remapEftLocalNodes(eft1, 6, ln_map)
-                    elif e1 == -1:
+
+                    result1 = elementtemplate1.defineField(coordinates, -1, eft1)
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate1)
+                    result2 = element.setNodesByIdentifier(eft1, nids)
+                    result3 = element.setScaleFactors(eft1, scalefactors) if scalefactors else None
+                    #print('create element under rv', elementIdentifier, result1, result2, result3, nids)
+                    elementIdentifier = elementIdentifier + 1
+
+                    for meshGroup in meshGroups:
+                        meshGroup.addElement(element)
+
+            elif e2 > (elementsCountUpLVApex - 1):
+
+                # RV free wall elements starting from -1 = posterior interventricular sulcus collapsed element
+
+                for e1 in range(-1, elementsCountAroundRVFreeWall):
+
+                    eft1 = eft
+                    scalefactors = None
+                    meshGroups = [ heartMeshGroup, rvMeshGroup ]
+                    ua = e1
+                    ub = e1 + 1
+                    va = elementsCountAroundLVFreeWall + e1
+                    vb = (va + 1) % (elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall)
+                    e2m = max(e2 - 1, elementsCountUpLVApex - 1)
+                    if collapseRVColumns and (e2 == elementsCountUpLVApex):
+                        uam = ua
+                        ubm = ub
+                        vam = va
+                        vbm = (va + 1) % (elementsCountAroundLVFreeWall + elementsCountAroundVSeptum)
+                        if e1 >= 1:
+                            offset = 1
+                            if e1 >= (elementsCountAroundRVFreeWall - 1):
+                                offset = 2
+                            uam -= offset
+                            ubm -= offset
+                            vam -= offset
+                            vbm -= offset
+                        nids = [rvInnerNodeId[e2m][uam], rvInnerNodeId[e2m][ubm],
+                                rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub],
+                                vOuterNodeId[e2m][vam], vOuterNodeId[e2m][vbm],
+                                vOuterNodeId[e2][va], vOuterNodeId[e2][vb]]
+                    else:
+                        nids = [rvInnerNodeId[e2m][ua], rvInnerNodeId[e2m][ub],
+                                rvInnerNodeId[e2][ua], rvInnerNodeId[e2][ub],
+                                vOuterNodeId[e2m][va], vOuterNodeId[e2m][vb],
+                                vOuterNodeId[e2][va], vOuterNodeId[e2][vb]]
+                    if e1 == -1:
                         # posterior interventricular sulcus, collapsed to 6 node wedge
                         nids[0] = lvInnerNodeId[e2 - 1][elementsCountAroundLVFreeWall]
                         nids[2] = lvInnerNodeId[e2    ][elementsCountAroundLVFreeWall]
@@ -921,6 +1047,32 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                         setEftScaleFactorIds(eft1, [1], [])
                         scalefactors = [ -1.0 ]
                         remapEftNodeValueLabel(eft1, [ 5, 6 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS2, [1] ), ( Node.VALUE_LABEL_D_DS3, []) ])
+                        if collapseRVColumns:
+                            if e1 == 1:
+                                # collapse bottom surface to line on the left
+                                nids.pop(4)
+                                nids.pop(0)
+                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [])
+                                remapEftNodeValueLabel(eft1, [ 2, 6 ], Node.VALUE_LABEL_D_DS2,
+                                                       [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                                ln_map = [ 1, 1, 2, 3, 4, 4, 5, 6 ]
+                                remapEftLocalNodes(eft1, 6, ln_map)
+                            elif e1 == 2:
+                                # adapt to prev element's d2 mapping
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elif e1 == (elementsCountAroundRVFreeWall - 3):
+                                # adapt to next element's d2 mapping
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                            elif e1 == (elementsCountAroundRVFreeWall - 2):
+                                nids.pop(5)
+                                nids.pop(1)
+                                remapEftNodeValueLabel(eft1, [ 1, 2, 5, 6 ], Node.VALUE_LABEL_D_DS1, [])
+                                remapEftNodeValueLabel(eft1, [ 1, 5 ], Node.VALUE_LABEL_D_DS2,
+                                                       [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS2, []) ])
+                                ln_map = [ 1, 1, 2, 3, 4, 4, 5, 6 ]
+                                remapEftLocalNodes(eft1, 6, ln_map)
 
                     result1 = elementtemplate1.defineField(coordinates, -1, eft1)
 
@@ -994,7 +1146,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                             scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
                             remapEftNodeValueLabel(eft1, [ 5, 7 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS3, [1] ) ])
                             scaleEftNodeValueLabels(eft1, [ 6, 8 ], [ Node.VALUE_LABEL_D_DS3 ], [ 1 ])
-                        elif e1 == (elementsCountAroundRVFreeWall - 1):
+                        elif e1 == (elementsCountAroundVSeptum - 1):
                             # general linear map d3 adjacent to collapsed anterior interventricular sulcus
                             remapEftNodeValueLabel(eft1, [ 2, 4 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
                             scaleEftNodeValueLabels(eft1, [ 5, 6, 7, 8 ], [ Node.VALUE_LABEL_D_DS1 ], [ 1 ])
@@ -1034,18 +1186,21 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         assert isinstance(meshrefinement, MeshRefinement)
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
-        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
-        elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
         elementsCountUpLVApex = options['Number of elements up LV apex']
         elementsCountUpRV = options['Number of elements up RV']
-        elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        # elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        collapseRVColumns = options['Collapse RV columns']
+        elementsCountAroundVSeptum = (elementsCountAroundRVFreeWall - 2) if collapseRVColumns \
+            else elementsCountAroundRVFreeWall
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundVSeptum
         refineElementsCountSurface = options['Refine number of elements surface']
         refineElementsCountThroughLVWall = options['Refine number of elements through LV wall']
         refineElementsCountThroughRVWall = options['Refine number of elements through wall']
 
         startPostApexElementIdentifier = elementsCountAroundLV*elementsCountUpLVApex + 1
-        elementsCountPostApexLayer = elementsCountAroundLV + 2 + elementsCountAroundVSeptum
-        lastVentriclesElementIdentifier = startPostApexElementIdentifier + elementsCountAroundVSeptum + elementsCountUpRV*elementsCountPostApexLayer - 1
+        elementsCountPostApexLayer = elementsCountAroundLV + 2 + elementsCountAroundRVFreeWall
+        lastVentriclesElementIdentifier = startPostApexElementIdentifier + elementsCountAroundVSeptum + \
+                                          elementsCountUpRV*elementsCountPostApexLayer - 1
 
         element = meshrefinement._sourceElementiterator.next()
         while element.isValid():
