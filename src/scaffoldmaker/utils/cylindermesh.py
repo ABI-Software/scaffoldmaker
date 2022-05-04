@@ -598,8 +598,8 @@ class Ellipse2D:
         for n2 in range(n2d, n2m + 1):
             txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
                 [btx[n2][n1a], rscx[n2 - n2a], btx[n2][n1z]],
-                [vector.setMagnitude(btd3[n2][n1a], -1.0), rscd3[n2 - n2a], btd3[n2][n1z]],
-                self.elementsCountAcrossMinor-2*self.elementsCountAcrossShell, arcLengthDerivatives=True)
+                [vector.scaleVector(btd3[n2][n1a], -1.0), rscd3[n2 - n2a], btd3[n2][n1z]],
+                self.elementsCountAcrossMinor-2*self.elementsCountAcrossShell)
             td1m = interpolateSampleCubicHermite([[-btd1[n2][n1a][c] for c in range(3)], rscd1[n2 - n2a],
                                                   btd1[n2][n1z]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
 
