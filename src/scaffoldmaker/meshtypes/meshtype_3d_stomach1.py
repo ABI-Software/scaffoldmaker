@@ -746,12 +746,6 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 allAnnotationGroups, centralPath=geometricCentralPath, options=options,
                                 nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
                                 materialCoordinates=False)
-        # allAnnotationGroups, arcLengthRatioForGroupsFromFundusApex, fundusEndPositionAlongFactor = \
-        #     createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCountAlongTrackSurface,
-        #                         allAnnotationGroups, arcLengthRatioForGroupsFromFundusApex, fundusEndPositionAlongFactor,
-        #                         centralPath=geometricCentralPath, options=options,
-        #                         nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
-        #                         materialCoordinates=False)
 
         # Material coordinates
         print('Making Stomach Coordinates')
@@ -1309,9 +1303,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         submucosaRelThickness = 0.25
         circularRelThickness = 0.25
         longitudinalRelThickness = 0.25
-        relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longitudinalRelThickness]
+        if elementsCountThroughWall == 4:
+            relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longitudinalRelThickness]
+        else:
+            relThicknesses = [1.0]
         GEJPositionAlongFactor = 0.4
-        cardiaDiameterFactor = 1.5
 
         ostiumLength = GEJSettings['Ostium length']
         ostiumWallThickness = GEJSettings['Ostium wall thickness']
@@ -1563,8 +1559,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         allAnnotationGroups += [esophagusMucosaGroup, esophagusSubmucosaGroup,
                                 esophagusCircularGroup, esophagusLongitudinalGroup]
 
-    # print('wallthickness =', GEJSettings['Ostium wall thickness'])
-    # print('elements through wall =', GEJSettings['Number of elements through wall'])
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
                            nodeIdentifier, elementIdentifier,
@@ -1582,7 +1576,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
 
     stomachStartNode = nextNodeIdentifier
-    stomachStartElement = nextElementIdentifier
+    # stomachStartElement = nextElementIdentifier
     nodeIdentifier = nextNodeIdentifier
     elementIdentifier = nextElementIdentifier
 
@@ -3955,4 +3949,4 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
 
         allAnnotationGroups.append(nearLCGroup)
 
-    return allAnnotationGroups #, arcLengthRatioForGroupsFromFundusApex, fundusEndPositionAlongFactor
+    return allAnnotationGroups
