@@ -350,7 +350,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 5.0,
-                'Vessel wall thickness': 5.0,
+                'Vessel wall thickness': 3.0,
                 'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -381,7 +381,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 0.5,
-                'Vessel wall thickness': 0.45,
+                'Vessel wall thickness': 0.27,
                 'Vessel wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -412,7 +412,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 3.0,
-                'Vessel wall thickness': 5.0,
+                'Vessel wall thickness': 3.0,
                 'Vessel wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -443,7 +443,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 2.0,
-                'Vessel wall thickness': 0.5,
+                'Vessel wall thickness': 0.3,
                 'Vessel wall relative thicknesses': [0.65, 0.12, 0.18, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -467,14 +467,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Outlet': False,
                 'Ostium diameter': 0.3, # changed
                 'Ostium length': 0.3, # changed
-                'Ostium wall thickness': 0.07, # changed
+                'Ostium wall thickness': 0.05, # changed
                 'Ostium wall relative thicknesses': [0.25, 0.25, 0.25, 0.25], # changed
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 0.1, # changed
-                'Vessel wall thickness': 0.07, # changed
+                'Vessel wall thickness': 0.03, # changed
                 'Vessel wall relative thicknesses': [0.25, 0.25, 0.25, 0.25], # changed
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -585,7 +585,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 12
             options['Number of elements between fundus apex and cardia'] = 4
             options['Number of elements between cardia and duodenum'] = 4
-            options['Wall thickness'] = 0.07
+            options['Wall thickness'] = 0.05
             options['Mucosa relative thickness'] = 0.25
             options['Submucosa relative thickness'] = 0.25
             options['Circular muscle layer relative thickness'] = 0.25
@@ -1298,7 +1298,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     seeTrackSurface = options['Track surface'] # KM
 
     if materialCoordinates:
-        wallThickness = 0.07
+        wallThickness = 0.05
         mucosaRelThickness = 0.25
         submucosaRelThickness = 0.25
         circularRelThickness = 0.25
@@ -1321,7 +1321,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         GEJSettings['Ostium wall thickness'] = wallThickness
         GEJSettings['Ostium wall relative thicknesses'] = relThicknesses
         GEJSettings['Vessel inner diameter'] = 0.1
-        GEJSettings['Vessel wall thickness'] = wallThickness
+        GEJSettings['Vessel wall thickness'] = wallThickness * 0.6
         GEJSettings['Vessel wall relative thicknesses'] = relThicknesses
         sf = (cardiaDiameterFactor - 1) * GEJSettings['Ostium diameter'] * 0.5
 
