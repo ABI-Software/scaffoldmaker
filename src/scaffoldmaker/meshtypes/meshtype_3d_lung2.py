@@ -94,7 +94,7 @@ class MeshType_3d_lung2(Scaffold_base):
         }
         materialOptions = copy.deepcopy(options)
         if 'Human 1' in parameterSetName:
-            options['Left-right lung spacing'] = 1.0
+            options['Left-right lung spacing'] = 0.9
             options['Left-right apex closing space'] = 0.7
             options['Left-right apex along y-axis'] = -1.0
             options['Left lung width'] = 0.4
@@ -112,6 +112,9 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Accessory lobe'] = False
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
+            options['Rotation in degree about [z, y, x]: Left lung'] = [25.0, 0.0, 0.0]
+            options['Rotation in degree about [z, y, x]: Right lung'] = [-25.0, 0.0, 0.0]
+            options['Rotation in degree about [z, y, x]: Accessory lobe'] = [0.0, 0.0, 0.0]
         elif 'Mouse 1' in parameterSetName:
             options['Number of left lung lobes'] = 1
             options['Left-right lung spacing'] = 0.75
