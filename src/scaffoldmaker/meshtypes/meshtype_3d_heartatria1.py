@@ -2057,12 +2057,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
             fpx = []
             fpd1 = []
             fpd2 = []
-            fpd3 = []
-            proportionAcross = 0.1
+            proportionAcross = 0.2
             for i in range(2):
                 if i == 0:
-                    nx, nd2, nd1, nd3 = laTrackSurface.createHermiteCurvePoints(
-                        0.0, proportionAcross, 1.0, proportionAcross, elementsCountAcrossTrackSurface)[0:4]
+                    nx, nd2, nd1, nd3, nProportions = laTrackSurface.createHermiteCurvePoints(
+                        0.0, proportionAcross, 1.0, proportionAcross, elementsCountAcrossTrackSurface)
                 else:
                     nx, nd2, nd1, nd3 = raTrackSurface.createHermiteCurvePoints(
                         1.0, proportionAcross, 0.0, proportionAcross, elementsCountAcrossTrackSurface)[0:4]
@@ -2072,7 +2071,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 fpx.append(nx)
                 fpd1.append(nd1)
                 fpd2.append(nd2)
-                fpd3.append(nd3)
 
             # put into single arrays cycling left to right fastest, smoothing each d1 row
             nx = []
@@ -2082,7 +2080,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 scale = interp.computeCubicHermiteDerivativeScaling(fpx[0][n], fpd1[0][n], fpx[1][n], fpd1[1][n])
                 for i in range(2):
                     nx.append(fpx[i][n])
-                    nd1.append(mult(fpd1[i][n], scale))
+                    fpd1[i][n] = mult(fpd1[i][n], scale)
+                    nd1.append(fpd1[i][n])
                     nd2.append(fpd2[i][n])
 
             fpTrackSurface = TrackSurface(1, elementsCountAcrossTrackSurface, nx, nd1, nd2)
@@ -3315,6 +3314,20 @@ class MeshType_3d_heartatria1(Scaffold_base):
             bridgeNodes = bridgeGroup.createFieldNodeGroup(nodes).getNodesetGroup()
             bridgeNodeTangents = {}
 
+            # parameters for shifting centre of fatpad to spread elements around PV, VC inlets
+            # have ivcPositionOver, svcPositionOver
+            rpvPositionOver = lpvOstiumPositionOver if commonLeftRightPvOstium else rpvOstiumPositionOver
+            # GRC fudge factors
+            svcSpread = ivcSpread = ivcPositionOver
+            rpvSpread = ivcSpread
+            ivcMag = 0.15
+            svcMag = 0.0
+            rpvMag = 0.15
+
+            for n in range(elementsCountAcrossTrackSurface + 1):
+                xi_ivc = max(1.0, math.fabs(ivcPositionOver - nProportions[n][1]))
+                xi_svc = max(1.0, math.fabs(ivcPositionOver - nProportions[n][1]))
+
             for epiNodeIdentifier in epiFatPadNodeIdentifiersMap.keys():
                 epiNode = nodes.findNodeByIdentifier(epiNodeIdentifier)
                 cache.setNode(epiNode)
@@ -3328,8 +3341,35 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 epifx = None
 
                 epifPosition = fpTrackSurface.findNearestPosition(epix, startPosition=None)
-                if 0.0001 < epifPosition.xi1 < 0.9999:
-                    epifx, epifd1, epifd2 = fpTrackSurface.evaluateCoordinates(epifPosition, derivatives=True)
+                if not (((epifPosition.e1 == 0) and (epifPosition.xi1 < 0.0001)) or
+                        ((epifPosition.e1 == (fpTrackSurface.elementsCount1 - 1)) and (0.9999 < epifPosition.xi1))):
+                    # shift proportion 1 around inlet
+                    xi_centre = 1.0 - (2.0 * math.fabs(0.5 - epifPosition.xi1))
+                    proportion1, proportion2 = fpTrackSurface.getProportion(epifPosition)
+                    # scale to spread out centre
+                    # proportion1Scaled = interp.interpolateCubicHermite([0.0], [0.5], [0.5], [0.6], xi_centre)[0]
+                    # if proportion1 < 0.5:
+                    #     proportion1 = proportion1Scaled
+                    # else:
+                    #     proportion1 = 1.0 - proportion1Scaled
+                    proportion1Shift = 0.0
+                    xi_ivc = math.fabs((ivcPositionOver - proportion2) / ivcSpread)
+                    if xi_ivc < 1.0:
+                        proportion1Shift -= interp.interpolateCubicHermite([ivcMag], [0.0], [0.0], [0.0], xi_ivc)[0]
+                    xi_svc = math.fabs((svcPositionOver - proportion2) / svcSpread)
+                    if xi_svc < 1.0:
+                        proportion1Shift -= interp.interpolateCubicHermite([svcMag], [0.0], [0.0], [0.0], xi_svc)[0]
+                    xi_rpv = math.fabs((rpvPositionOver - proportion2) / rpvSpread)
+                    if xi_rpv < 1.0:
+                        proportion1Shift += interp.interpolateCubicHermite([rpvMag], [0.0], [0.0], [0.0], xi_rpv)[0]
+                    proportion1Shift *= xi_centre
+                    # proportion1Shift = interp.interpolateCubicHermite(
+                    #     [0.0], [0.0], [proportion1Shift], [0.0], xi_centre)[0]
+                    proportion1 += proportion1Shift
+
+                    # convert shifted proportions to shifted position on fpTrackSurface
+                    epifPosition2 = fpTrackSurface.createPositionProportion(proportion1, proportion2)
+                    epifx, epifd1, epifd2 = fpTrackSurface.evaluateCoordinates(epifPosition2, derivatives=True)
                     delta_epi = sub(epifx, epix)
                     # epifx must be above the epicardium surface
                     # and at least epicardialFatMinimumThickness away from epix
@@ -3580,6 +3620,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
             # add non-exterior surfaces between myocardium and epicardial fat to epicardium
             is_epicardial_fat = epicardialFatGroup.getFieldElementGroup(mesh2d)
             epiGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(is_myocardium, is_epicardial_fat))
+            is_epicardium_outer_surface = fm.createFieldAnd(is_epicardial_fat, is_exterior_face_xi3_1)
+            epicardiumSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                             get_heart_term("outer surface of epicardium"))
+            epicardiumSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_epicardium_outer_surface)
         laEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left atrium"))
         laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lam_endo)
         raEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right atrium"))

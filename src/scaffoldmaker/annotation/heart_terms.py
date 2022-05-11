@@ -13,6 +13,7 @@ heart_terms = [
     ( "endocardium of right ventricle", "FMA:9536" ),
     ( "epicardial fat", "UBERON:0015129"),
     ( "epicardium", "FMA:9461", "UBERON:0002348"),
+    ( "outer surface of epicardium", "None"),
     #( "epicardium of ventricle", "FMA:12150", "UBERON:0001082" ),
     # ventricles with base
     ( "conus arteriosus", "UBERON:0003983" ),
