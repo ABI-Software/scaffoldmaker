@@ -1,6 +1,7 @@
 '''
 Generates a 3D generic lung mesh.
 '''
+
 import copy
 import math
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
@@ -19,7 +20,7 @@ from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import magnitude, setMagnitude, crossproduct3, normalise
 from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString, createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.node import Node
@@ -58,16 +59,16 @@ class MeshType_3d_lung2(Scaffold_base):
             'Base parameter set': parameterSetName,
             'Number of left lung lobes': 2,
             'Left-right lung spacing': 1.0,
-            'Left-right apex closing space': 0.0,
-            'Left-right apex along y-axis': 0.0,
-            'Left lung width': 0.25,
-            'Left lung depth': 0.5,
+            'Left-right apex medial shear displacement': 0.0,
+            'Left-right apex ventral shear displacement': 0.0,
+            'Left lung width': 0.5,
+            'Left lung depth': 1.0,
             'Left lung height': 1.0,
             'Left lung ventral edge sharpness factor': 0.0,
             'Left lung medial curvature factor': 0.0,
             'Left lung medial protrusion factor': 0.0,
-            'Right lung width': 0.25,
-            'Right lung depth': 0.5,
+            'Right lung width': 0.5,
+            'Right lung depth': 1.0,
             'Right lung height': 1.0,
             'Right lung ventral edge sharpness factor': 0.0,
             'Right lung medial curvature factor': 0.0,
@@ -76,7 +77,7 @@ class MeshType_3d_lung2(Scaffold_base):
             'Accessory lobe': True,
             'Accessory lobe medial curvature': 0.0,
             'Accessory lobe length': 0.5,
-            'Accessory lobe dorsal centre [x,y]': [0.0, 0.0],
+            'Accessory lobe dorsal centre [x,y]': [0.0, 0.25],
             'Accessory lobe dorsal height': 0.5,
             'Accessory lobe dorsal width': 0.5,
             'Accessory lobe ventral height': 0.5,
@@ -85,84 +86,87 @@ class MeshType_3d_lung2(Scaffold_base):
             'Diaphragm centre y': 0.0,
             'Diaphragm curvature x': 0.0,
             'Diaphragm curvature y': 0.0,
-            'Rotation in degree about [z, y, x]: Left lung': [0.0, 0.0, 0.0],
-            'Rotation in degree about [z, y, x]: Right lung': [0.0, 0.0, 0.0],
-            'Rotation in degree about [z, y, x]: Accessory lobe': [0.0, 0.0, 0.0],
+            'Left lung rotation in degree about z-axis': 0.0,
+            'Right lung rotation in degree about z-axis': 0.0,
+            'Accessory lobe rotation in degree about z-axis': 0.0,
             'Refine': False,
             'Refine number of elements': 4,
             'Material Parameters': None
         }
         materialOptions = copy.deepcopy(options)
         if 'Human 1' in parameterSetName:
-            options['Left-right lung spacing'] = 0.9
-            options['Left-right apex closing space'] = 0.7
-            options['Left-right apex along y-axis'] = -1.0
-            options['Left lung width'] = 0.4
-            options['Left lung depth'] = 0.5
+            options['Left-right lung spacing'] = 0.75
+            options['Left-right apex medial shear displacement'] = 0.2
+            options['Left-right apex ventral shear displacement'] = -0.2
+            options['Left lung width'] = 0.8
+            options['Left lung depth'] = 1.0
             options['Left lung height'] = 1.0
-            options['Left lung ventral edge sharpness factor'] = 1.0
-            options['Left lung medial curvature factor'] = 1.5
-            options['Left lung medial protrusion factor'] = 0.7
-            options['Right lung width'] = 0.4
-            options['Right lung depth'] = 0.5
+            options['Left lung ventral edge sharpness factor'] = 0.8
+            options['Left lung medial curvature factor'] = 1.0
+            options['Left lung medial protrusion factor'] = 0.1
+            options['Left lung rotation in degree about z-axis'] = -15.0
+            options['Right lung width'] = 0.8
+            options['Right lung depth'] = 1.0
             options['Right lung height'] = 1.0
-            options['Right lung ventral edge sharpness factor'] = 1.0
-            options['Right lung medial curvature factor'] = 1.5
-            options['Right lung medial protrusion factor'] = 0.7
+            options['Right lung ventral edge sharpness factor'] = 0.8
+            options['Right lung medial curvature factor'] = 1.0
+            options['Right lung medial protrusion factor'] = 0.1
+            options['Right lung rotation in degree about z-axis'] = 15.0
             options['Accessory lobe'] = False
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
-            options['Rotation in degree about [z, y, x]: Left lung'] = [25.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Right lung'] = [-25.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Accessory lobe'] = [0.0, 0.0, 0.0]
         elif 'Mouse 1' in parameterSetName:
             options['Number of left lung lobes'] = 1
-            options['Left-right lung spacing'] = 0.75
-            options['Left-right apex closing space'] = 0.7
-            options['Left-right apex along y-axis'] = -1.3
-            options['Left lung width'] = 0.25
-            options['Left lung depth'] = 0.5
+            options['Left-right lung spacing'] = 0.9
+            options['Left-right apex medial shear displacement'] = 0.35
+            options['Left-right apex ventral shear displacement'] = -0.2
+            options['Left lung width'] = 0.5
+            options['Left lung depth'] = 1.0
             options['Left lung height'] = 0.7
-            options['Left lung ventral edge sharpness factor'] = 1.0
-            options['Left lung medial curvature factor'] = 1.5
-            options['Right lung width'] = 0.4
-            options['Right lung depth'] = 0.55
+            options['Left lung ventral edge sharpness factor'] = 0.5
+            options['Left lung medial curvature factor'] = 1.0
+            options['Left lung medial protrusion factor'] = 0.4
+            options['Left lung rotation in degree about z-axis'] = 3.0
+            options['Right lung width'] = 0.8
+            options['Right lung depth'] = 1.2
             options['Right lung height'] = 0.85
-            options['Right lung ventral edge sharpness factor'] = 1.0
-            options['Right lung medial curvature factor'] = 2.0
-            options['Accessory lobe dorsal centre [x,y]'] = [0.0, 0.2]
-            options['Accessory lobe length'] = 0.5
+            options['Right lung ventral edge sharpness factor'] = 0.8
+            options['Right lung medial curvature factor'] = 0.8
+            options['Right lung medial protrusion factor'] = 0.2
+            options['Right lung rotation in degree about z-axis'] = 15.0
+            options['Accessory lobe dorsal centre [x,y]'] = [0.0, -0.3]
+            options['Accessory lobe length'] = 0.6
             options['Accessory lobe dorsal height'] = 0.5
             options['Accessory lobe dorsal width'] = 0.5
             options['Accessory lobe ventral height'] = 0.15
             options['Accessory lobe ventral width'] = 0.28
             options['Accessory lobe medial curvature'] = 2.0
+            options['Accessory lobe rotation in degree about z-axis'] = 10.0
             options['Diaphragm centre y'] = 0.5
             options['Diaphragm curvature x'] = 0.8
             options['Diaphragm curvature y'] = 1.0
-            options['Rotation in degree about [z, y, x]: Left lung'] = [-20.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Right lung'] = [-10.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Accessory lobe'] = [-80.0, 0.0, 0.0]
         elif 'Rat 1' in parameterSetName:
             options['Number of left lung lobes'] = 1
-            options['Left-right lung spacing'] = 0.9
-            options['Left-right apex closing space'] = 1.3
-            options['Left-right apex along y-axis'] = 0.8
-            options['Left lung width'] = 0.25
-            options['Left lung depth'] = 0.7
+            options['Left-right lung spacing'] = 1.1
+            options['Left-right apex medial shear displacement'] = 0.35
+            options['Left-right apex ventral shear displacement'] = 0.0
+            options['Left lung width'] = 0.5
+            options['Left lung depth'] = 1.4
             options['Left lung height'] = 1.0
             options['Left lung ventral edge sharpness factor'] = 0.6
-            options['Left lung medial curvature factor'] = 1.0
-            options['Left lung medial protrusion factor'] = 0.8
-            options['Right lung width'] = 0.18
-            options['Right lung depth'] = 0.9
+            options['Left lung medial curvature factor'] = 0.8
+            options['Left lung medial protrusion factor'] = 0.0
+            options['Left lung rotation in degree about z-axis'] = 15.0
+            options['Right lung width'] = 0.5
+            options['Right lung depth'] = 1.8
             options['Right lung height'] = 1.0
-            options['Right lung ventral edge sharpness factor'] = 0.8
-            options['Right lung medial curvature factor'] = 1.3
-            options['Right lung medial protrusion factor'] = 1.2
+            options['Right lung ventral edge sharpness factor'] = 0.0
+            options['Right lung medial curvature factor'] = 0.8
+            options['Right lung medial protrusion factor'] = 0.0
+            options['Right lung rotation in degree about z-axis'] = 0.0
             options['Accessory lobe'] = True
-            options['Accessory lobe dorsal centre [x,y]'] = [0.02, 0.14]
-            options['Accessory lobe length'] = 0.9
+            options['Accessory lobe dorsal centre [x,y]'] = [0.0, -0.15]
+            options['Accessory lobe length'] = 1.0
             options['Accessory lobe dorsal height'] = 0.5
             options['Accessory lobe dorsal width'] = 0.5
             options['Accessory lobe ventral width'] = 0.2
@@ -170,37 +174,38 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Accessory lobe medial curvature'] = 1.0
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
-            options['Rotation in degree about [z, y, x]: Left lung'] = [-5.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Right lung'] = [0.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Accessory lobe'] = [-46.0, 0.0, 0.0]
+            options['Accessory lobe rotation in degree about z-axis'] = 30.0
         elif 'Pig 1' in parameterSetName:
             options['Number of left lung lobes'] = 1
-            options['Left-right lung spacing'] = 1.15
-            options['Left-right apex closing space'] = 1.4
-            options['Left-right apex along y-axis'] = 0.8
-            options['Left lung width'] = 0.4
-            options['Left lung depth'] = 0.8
+            options['Left-right lung spacing'] = 1.2
+            options['Left-right apex medial shear displacement'] = 0.5
+            options['Left-right apex ventral shear displacement'] = -0.4
+            options['Left lung width'] = 0.8
+            options['Left lung depth'] = 1.6
             options['Left lung height'] = 1.1
-            options['Left lung ventral edge sharpness factor'] = 0.9
-            options['Left lung medial curvature factor'] = 1.6
-            options['Right lung width'] = 0.4
-            options['Right lung depth'] = 0.75
+            options['Left lung ventral edge sharpness factor'] = 0.7
+            options['Left lung medial curvature factor'] = 0.7
+            options['Left lung medial protrusion factor'] = 0.3
+            options['Left lung rotation in degree about z-axis'] = -10.0
+            options['Right lung width'] = 0.8
+            options['Right lung depth'] = 1.5
             options['Right lung height'] = 1.1
-            options['Right lung ventral edge sharpness factor'] = 0.9
-            options['Right lung medial curvature factor'] = 1.4
+            options['Right lung ventral edge sharpness factor'] = 0.7
+            options['Right lung medial curvature factor'] = 0.7
+            options['Right lung medial protrusion factor'] = 0.3
+            options['Right lung rotation in degree about z-axis'] = 10.0
             options['Accessory lobe'] = True
-            options['Accessory lobe dorsal centre [x,y]'] = [0.0, 0.3]
-            options['Accessory lobe length'] = 0.77
+            options['Accessory lobe dorsal centre [x,y]'] = [-0.02, -0.3]
+            options['Accessory lobe length'] = 0.8
             options['Accessory lobe dorsal height'] = 0.5
             options['Accessory lobe dorsal width'] = 0.6
             options['Accessory lobe ventral height'] = 0.1
-            options['Accessory lobe ventral width'] = 0.25
-            options['Accessory lobe medial curvature'] = 1.4
-            options['Diaphragm centre y'] = 0.5
+            options['Accessory lobe ventral width'] = 0.2
+            options['Accessory lobe medial curvature'] = 1.6
+            options['Accessory lobe rotation in degree about z-axis'] = 0.0
+            options['Diaphragm centre y'] = 0.1
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
-            options['Rotation in degree about [z, y, x]: Left lung'] = [-10.0, 0.0, 0.0]
-            options['Rotation in degree about [z, y, x]: Accessory lobe'] = [-60.0, 0.0, 0.0]
         options['Material Parameters'] = materialOptions
         options['Material Parameters']['Base parameter set'] = 'Material'
         options['Material Parameters']['Accessory lobe'] = options['Accessory lobe']
@@ -211,20 +216,22 @@ class MeshType_3d_lung2(Scaffold_base):
         optionNames = [
             'Number of left lung lobes',
             'Left-right lung spacing',
-            'Left-right apex closing space',
-            'Left-right apex along y-axis',
+            'Left-right apex medial shear displacement',
+            'Left-right apex ventral shear displacement',
             'Left lung width',
             'Left lung depth',
             'Left lung height',
             'Left lung ventral edge sharpness factor',
             'Left lung medial curvature factor',
             'Left lung medial protrusion factor',
+            'Left lung rotation in degree about z-axis',
             'Right lung width',
             'Right lung depth',
             'Right lung height',
             'Right lung ventral edge sharpness factor',
             'Right lung medial curvature factor',
             'Right lung medial protrusion factor',
+            'Right lung rotation in degree about z-axis',
             'Open fissures',
             'Accessory lobe',
             'Accessory lobe dorsal centre [x,y]',
@@ -234,13 +241,11 @@ class MeshType_3d_lung2(Scaffold_base):
             'Accessory lobe ventral height',
             'Accessory lobe ventral width',
             'Accessory lobe medial curvature',
+            'Accessory lobe rotation in degree about z-axis',
             'Diaphragm centre x',
             'Diaphragm centre y',
             'Diaphragm curvature x',
             'Diaphragm curvature y',
-            'Rotation in degree about [z, y, x]: Left lung',
-            'Rotation in degree about [z, y, x]: Right lung',
-            'Rotation in degree about [z, y, x]: Accessory lobe',
             'Refine',
             'Refine number of elements'
         ]
@@ -254,14 +259,10 @@ class MeshType_3d_lung2(Scaffold_base):
         dependentChanges = False
         if options['Refine number of elements'] < 1:
             options['Refine number of elements'] = 1
+
         if options['Number of left lung lobes'] > 2:
             options['Number of left lung lobes'] = 2
-        if len(options['Rotation in degree about [z, y, x]: Left lung']) != 3:
-            options['Rotation in degree about [z, y, x]: Left lung'] = [0.0, 0.0, 0.0]
-        if len(options['Rotation in degree about [z, y, x]: Right lung']) != 3:
-            options['Rotation in degree about [z, y, x]: Right lung'] = [0.0, 0.0, 0.0]
-        if len(options['Rotation in degree about [z, y, x]: Accessory lobe']) != 3:
-            options['Rotation in degree about [z, y, x]: Accessory lobe'] = [0.0, 0.0, 0.0]
+
         return dependentChanges
 
     @classmethod
@@ -275,18 +276,18 @@ class MeshType_3d_lung2(Scaffold_base):
         # Generate two meshes: geometric[0] and lung[1] coordinates
         for coordinate in range(2):
             if coordinate == 0:
-                fm_n0 = region.getFieldmodule()
-                coordinates_n0 = findOrCreateFieldCoordinates(fm_n0)
+                fm_0 = region.getFieldmodule()
+                coordinates_0 = findOrCreateFieldCoordinates(fm_0)
                 # point reference
-                fm = fm_n0
-                coordinates = coordinates_n0
+                fm = fm_0
+                coordinates = coordinates_0
             else:
-                region_n1 = region.createRegion()
-                fm_n1 = region_n1.getFieldmodule()
-                coordinates_n1 = findOrCreateFieldCoordinates(fm_n1, name="lung coordinates")
+                region_1 = region.createRegion()
+                fm_1 = region_1.getFieldmodule()
+                coordinates_1 = findOrCreateFieldCoordinates(fm_1, name="lung coordinates")
                 # point reference
-                fm = fm_n1
-                coordinates = coordinates_n1
+                fm = fm_1
+                coordinates = coordinates_1
                 # update material coordinates according to geometric parameters
                 options['Material Parameters']['Number of left lung lobes'] = options['Number of left lung lobes']
                 options['Material Parameters']['Open fissures'] = options['Open fissures']
@@ -294,20 +295,20 @@ class MeshType_3d_lung2(Scaffold_base):
                 options = options['Material Parameters']
 
             numberOfLeftLung = options['Number of left lung lobes']
-            spacingBetweenLeftRight = options['Left-right lung spacing']/2.0
-            closingSpaceLeftRightApex = options['Left-right apex closing space']/4.0
-            forwardLeftRightApex = options['Left-right apex along y-axis']/4.0
-            leftWidth = options['Left lung width']
-            leftDepth = options['Left lung depth']
+            spacingBetweenLeftRight = options['Left-right lung spacing'] / 2.0
+            lungsApexDisplacement = options['Left-right apex medial shear displacement']
+            forwardLeftRightApex = options['Left-right apex ventral shear displacement']
+            leftWidth = options['Left lung width'] / 2.0
+            leftDepth = options['Left lung depth'] / 2.0
             leftHeight = options['Left lung height']
             leftEdgeSharpFactor = options['Left lung ventral edge sharpness factor']
-            leftLungMedialCurvature = options['Left lung medial curvature factor']
+            leftLungMedialCurvature = options['Left lung medial curvature factor'] * 2.0
             leftLungMedialProtrusion = options['Left lung medial protrusion factor']
-            rightWidth = options['Right lung width']
-            rightDepth = options['Right lung depth']
+            rightWidth = options['Right lung width'] / 2.0
+            rightDepth = options['Right lung depth'] / 2.0
             rightHeight = options['Right lung height']
             rightEdgeSharpFactor = options['Right lung ventral edge sharpness factor']
-            rightLungMedialCurvature = options['Right lung medial curvature factor']
+            rightLungMedialCurvature = options['Right lung medial curvature factor'] * 2.0
             rightLungMedialProtrusion = options['Right lung medial protrusion factor']
             isOpenfissure = options['Open fissures']
             hasAccessoryLobe = options['Accessory lobe']
@@ -322,9 +323,9 @@ class MeshType_3d_lung2(Scaffold_base):
             diaphragmCentreY = options['Diaphragm centre y']
             diaphragmCurvatureX = options['Diaphragm curvature x']
             diaphragmCurvatureY = options['Diaphragm curvature y']
-            rotateLeftLung = options['Rotation in degree about [z, y, x]: Left lung']
-            rotateRightLung = options['Rotation in degree about [z, y, x]: Right lung']
-            rotateAccessoryLobe = options['Rotation in degree about [z, y, x]: Accessory lobe']
+            rotateLeftLung = options['Left lung rotation in degree about z-axis']
+            rotateRightLung = options['Right lung rotation in degree about z-axis']
+            rotateAccessoryLobe = options['Accessory lobe rotation in degree about z-axis']
 
             nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
             nodetemplate = nodes.createNodetemplate()
@@ -487,51 +488,6 @@ class MeshType_3d_lung2(Scaffold_base):
                     accessoryLobeLength, accessoryLobeDorsalWidth, accessoryLobeDorsalHeight, accessoryLobeVentralWidth,
                     accessoryLobeVentralHeight, accessoryLobeNodeIds, nodeIdentifier)
 
-            ####################################################################
-            # Transformation and translation to the left (0) and right lungs (1)
-            ####################################################################
-            for i in [leftLung, rightLung]:
-                lungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
-                edgeSharpFactor = leftEdgeSharpFactor if i == 0 else rightEdgeSharpFactor
-                width = leftWidth if i == 0 else rightWidth
-                length = leftDepth if i == 0 else rightDepth
-                height = leftHeight if i == 0 else rightHeight
-                spacing = spacingBetweenLeftRight if i == 0 else -spacingBetweenLeftRight
-                apexClosingspace = closingSpaceLeftRightApex if i == 0 else -closingSpaceLeftRightApex
-                lungMedialcurvature = -leftLungMedialCurvature if i == 0 else rightLungMedialCurvature
-                rotateLung = rotateLeftLung if i == 0 else rotateRightLung
-                lungProtrusion = leftLungMedialProtrusion if i == 0 else rightLungMedialProtrusion
-
-                # Transformation of the left and right lungs
-                if lungProtrusion != 0.0:
-                    medialProtrusion(lungProtrusion, fm, coordinates, lungNodeset, spacing, width, length, height)
-
-                if edgeSharpFactor != 0.0:
-                    sharpeningRidge(edgeSharpFactor, fm, coordinates, lungNodeset, spacing, length)
-
-                if lungMedialcurvature != 0.0:
-                    bendingAroundZAxis(lungMedialcurvature, fm, coordinates, lungNodeset, spacing)
-
-                if apexClosingspace != 0.0:
-                    tiltLungs(apexClosingspace, 0, 0, 0, fm, coordinates, lungNodeset)
-
-                if forwardLeftRightApex != 0.0:
-                    tiltLungs(0, forwardLeftRightApex, 0, 0, fm, coordinates, lungNodeset)
-
-                if rotateLung != [0.0, 0.0, 0.0]:
-                    rotateLungs(rotateLung[0], rotateLung[1], rotateLung[2], fm, coordinates, lungNodeset)
-
-            if (accessoryLobeMedialCurve != 0.0) and hasAccessoryLobe:
-                spacing = accessoryLobeDorsalCentre
-                bendingAroundZAxis(-accessoryLobeMedialCurve, fm, coordinates, rightLungAccessoryLobeNodesetGroup, spacing)
-
-            if (rotateAccessoryLobe != [0.0, 0.0, 0.0]) and hasAccessoryLobe:
-                rotateLungs(rotateAccessoryLobe[0], rotateAccessoryLobe[1], rotateAccessoryLobe[2], fm, coordinates, rightLungAccessoryLobeNodesetGroup)
-
-            if (diaphragmCurvatureX != 0.0) or (diaphragmCurvatureY != 0.0):
-                concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, coordinates, diaphragmCentreX,
-                                              diaphragmCentreY, lungNodesetGroup)
-
             ##################
             # Create elements
             ##################
@@ -581,12 +537,12 @@ class MeshType_3d_lung2(Scaffold_base):
                                                 accessoryLobeNodeIds, elementIdentifier)
 
             ########################
-            # Write two coordinates
+            # Combining two coordinates
             ########################
             if coordinate == 1:
-                sir = region_n1.createStreaminformationRegion()
+                sir = region_1.createStreaminformationRegion()
                 srm = sir.createStreamresourceMemory()
-                region_n1.write(sir)
+                region_1.write(sir)
                 result, buffer = srm.getBuffer()
 
                 sir = region.createStreaminformationRegion()
@@ -595,9 +551,57 @@ class MeshType_3d_lung2(Scaffold_base):
 
                 del srm
                 del sir
-                del fm_n1
-                del coordinates_n1
-                del region_n1
+                del fm_1
+                del coordinates_1
+                del region_1
+
+            ####################################################################
+            # Transformation and translation to the left (0) and right lungs (1)
+            ####################################################################
+            for i in [leftLung, rightLung]:
+                lungNodeset = leftLungNodesetGroup if i == 0 else rightLungNodesetGroup
+                edgeSharpFactor = leftEdgeSharpFactor if i == 0 else rightEdgeSharpFactor
+                width = leftWidth if i == 0 else -rightWidth
+                length = leftDepth if i == 0 else rightDepth
+                height = leftHeight if i == 0 else rightHeight
+                spacing = spacingBetweenLeftRight if i == 0 else -spacingBetweenLeftRight
+                apexMedialDisplacement = lungsApexDisplacement if i == 0 else -lungsApexDisplacement
+                lungMedialcurvature = -leftLungMedialCurvature if i == 0 else rightLungMedialCurvature
+                rotateLung = rotateLeftLung if i == 0 else rotateRightLung
+                lungProtrusion = leftLungMedialProtrusion if i == 0 else rightLungMedialProtrusion
+
+                # Transformation of the left and right lungs
+                if lungProtrusion != 0.0:
+                    medialProtrusion(lungProtrusion, fm, coordinates, lungNodeset, spacing, width, length, height)
+
+                if edgeSharpFactor != 0.0:
+                    sharpeningRidge(edgeSharpFactor, fm, coordinates, lungNodeset, spacing, length)
+
+                if lungMedialcurvature != 0.0:
+                    bendingAroundZAxis(lungMedialcurvature, fm, coordinates, lungNodeset, spacing)
+
+                if apexMedialDisplacement != 0.0:
+                    medialShearRadian = math.atan(apexMedialDisplacement/height)
+                    tiltLungs(medialShearRadian, 0, 0, 0, fm, coordinates, lungNodeset)
+
+                if forwardLeftRightApex != 0.0:
+                    ventralShearRadian = math.atan(forwardLeftRightApex / height)
+                    tiltLungs(0, ventralShearRadian, 0, 0, fm, coordinates, lungNodeset)
+
+                if rotateLung != 0.0:
+                    rotateLungs(rotateLung, fm, coordinates, lungNodeset, spacing)
+
+            if (accessoryLobeMedialCurve != 0.0) and hasAccessoryLobe:
+                spacing = accessoryLobeDorsalCentre
+                bendingAroundZAxis(-accessoryLobeMedialCurve, fm, coordinates, rightLungAccessoryLobeNodesetGroup, spacing)
+
+            if (rotateAccessoryLobe != 0.0) and hasAccessoryLobe:
+                spacing = accessoryLobeDorsalCentre
+                rotateLungs(rotateAccessoryLobe, fm, coordinates, rightLungAccessoryLobeNodesetGroup, spacing)
+
+            if (diaphragmCurvatureX != 0.0) or (diaphragmCurvatureY != 0.0):
+                concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, coordinates, diaphragmCentreX,
+                                              diaphragmCentreY, lungNodesetGroup)
 
             ###############
             # Marker points
@@ -699,7 +703,7 @@ class MeshType_3d_lung2(Scaffold_base):
         # edge markers
         mediastanumTerms = ["anterior mediastinum of left lung", "anterior mediastinum of right lung"]
         for mediastanumTerm in mediastanumTerms:
-            mediastanumGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term(mediastanumTerm))
+            mediastanumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(mediastanumTerm))
             is_anteriorBorderGroup = mediastanumGroup.getFieldElementGroup(mesh1d)
             is_mediastanumGroup_exterior = fm.createFieldAnd(is_anteriorBorderGroup, is_exterior)
             is_mediastanumGroup_exterior_xi1_0 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi1_0)
@@ -1631,7 +1635,7 @@ def createAccessorylobeLungNodes(centre, cache, coordinates, nodes, nodetemplate
                 if (n1 != 1) and (n3 == elementsCount3):
                     continue
                 unitRatio = 0.5 if n3 == 1 else 1.0
-                x_dorsal[n3][n2][n1] = [width * unitRatio * (n1 - 1), lengthUnit * (n2*elementsCount2), height * n3]
+                x_dorsal[n3][n2][n1] = [width * unitRatio * (n1 - 1), lengthUnit * (n2*elementsCount2) - length/2.0, height * n3]
 
     # Interpolate triangular faces between two ends
     px = []
@@ -2014,7 +2018,7 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, spaceFr
     #                                 1] |  z]
     offset = fm.createFieldConstant([spaceFromCentre, 0.75 * length, 0.0])
     origin = fm.createFieldAdd(coordinates, offset)
-    k1 = -sharpeningFactor / (length * 2.0)
+    k1 = -sharpeningFactor / (length * 1.75)
     scale = fm.createFieldConstant([0.0, k1, 0.0])
     scaleFunction = fm.createFieldMultiply(origin, scale)
     constant = fm.createFieldConstant([0.0, 1.0, 1.0])
@@ -2047,38 +2051,33 @@ def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-def rotateLungs(rotateZ, rotateY, rotateX, fm, coordinates, lungNodesetGroup):
+def rotateLungs(rotateZ, fm, coordinates, lungNodesetGroup, spaceFromCentre):
     """
-    :param tiltDegree: [tilted degree for apex, for diaphragm]
+    Rotate a specific lung at the center of the elements about z-axis
+    :param rotateZ:
+    :param rotateY:
+    :param rotateX:
     :param fm:
     :param coordinates:
-    :param nodes:
-    :return: transformed lungs
+    :param lungNodesetGroup:
+    :param spaceFromCentre:
+    :return:
     """
     # FieldConstant - Matrix = [   x1,    x4,    x7,
     #                              x2,    x5,    x8,
     #                              x3,    x6,    x9]
-    if rotateX != 0.0:
-        rotateX = rotateX / 180 * math.pi
-        rotateXMatrix = fm.createFieldConstant([1.0, 0.0, 0.0, 0.0, math.cos(rotateX), math.sin(rotateX), 0.0, -math.sin(rotateX), math.cos(rotateX)])
-        newCoordinates = fm.createFieldMatrixMultiply(3, rotateXMatrix, coordinates)
-        fieldassignment = coordinates.createFieldassignment(newCoordinates)
-        fieldassignment.setNodeset(lungNodesetGroup)
-        fieldassignment.assign()
-
-    if rotateY != 0.0:
-        rotateY = rotateY / 180 * math.pi
-        rotateYMatrix = fm.createFieldConstant([math.cos(rotateY), 0.0, -math.sin(rotateY), 0.0, 1.0, 0.0, math.sin(rotateY), 0.0, math.cos(rotateY)])
-        newCoordinates = fm.createFieldMatrixMultiply(3, rotateYMatrix, coordinates)
-        fieldassignment = coordinates.createFieldassignment(newCoordinates)
-        fieldassignment.setNodeset(lungNodesetGroup)
-        fieldassignment.assign()
+    if isinstance(spaceFromCentre, list):
+        offset = fm.createFieldConstant([spaceFromCentre[0], -spaceFromCentre[1], 0.0])
+    else:
+        offset = fm.createFieldConstant([spaceFromCentre, 0.0, 0.0])
+    origin = fm.createFieldAdd(coordinates, offset)
 
     if rotateZ != 0.0:
-        rotateZ = rotateZ / 180 * math.pi
+        rotateZ = -rotateZ / 180 * math.pi # negative value due to right handed rule
         rotateZMatrix = fm.createFieldConstant([math.cos(rotateZ), math.sin(rotateZ), 0.0, -math.sin(rotateZ), math.cos(rotateZ), 0.0, 0.0, 0.0, 1.0])
-        newCoordinates = fm.createFieldMatrixMultiply(3, rotateZMatrix, coordinates)
-        fieldassignment = coordinates.createFieldassignment(newCoordinates)
+        newCoordinates = fm.createFieldMatrixMultiply(3, rotateZMatrix, origin)
+        translate_coordinates = fm.createFieldSubtract(newCoordinates, offset)
+        fieldassignment = coordinates.createFieldassignment(translate_coordinates)
         fieldassignment.setNodeset(lungNodesetGroup)
         fieldassignment.assign()
 
@@ -2093,41 +2092,41 @@ def medialProtrusion(protrusion_factor, fm, coordinates, lungNodesetGroup, space
     # FieldConstant - Matrix = [   x1,    x4,    x7,
     #                              x2,    x5,    x8,
     #                              x3,    x6,    x9]
-    offset = fm.createFieldConstant([1.5*spaceFromCentre, length/3.0, 0.0])
+    offset = fm.createFieldConstant([spaceFromCentre + width, length * 0.3, 0.0])
     origin = fm.createFieldAdd(coordinates, offset)
     squaredOrigin = fm.createFieldMultiply(origin, origin)
-    peak = 1/(protrusion_factor*0.65)
-    rateOfChangeY = 5.0
-    rateOfChangeZ = 5.0
+    peak = 2 - protrusion_factor # initial value is 1/(acceptable protrusion factor *0.67) 2.25
+    rateOfChangeY = protrusion_factor*10
+    rateOfChangeZ = protrusion_factor*10
 
     scale = fm.createFieldConstant([1.0, 0.0, 0.0])
     scale_1 = fm.createFieldConstant([peak, 1.0, 1.0])
-    constant = fm.createFieldConstant([1.0, rateOfChangeY, 0.0])
-    scaleFunction = fm.createFieldMultiply(constant, squaredOrigin) # [x^2, k1y^2, k2z^2]
+
+    constant = fm.createFieldConstant([0.0, rateOfChangeY, 0.0])
+    scaleFunction = fm.createFieldMultiply(constant, squaredOrigin) # [0.0, k1y^2, 0.0]
     squaredY = fm.createFieldComponent(scaleFunction, [2, 1, 1])
     squaredZ = fm.createFieldComponent(scaleFunction, [3, 1, 1])
-    squaredYZ = fm.createFieldAdd(squaredY, squaredZ) # [k1y^2 + k2z^2, 2x^2, 2x^2]
-    squaredYZOne = fm.createFieldAdd(squaredYZ, scale_1) # [k1y^2 + k1z^2 + peak, 2x^2+1, 2x^2+1]
+    squaredYZ = fm.createFieldAdd(squaredY, squaredZ) # [k1y^2, 0.0, 0.0]
+    squaredYZOne = fm.createFieldAdd(squaredYZ, scale_1) # [k1y^2 + peak, 1.0, 1.0]
 
-    recipFunction = fm.createFieldDivide(scale, squaredYZOne) # 1/[k1y^2 + k1z^2 + 1, 2x^2+1, 2x^2+1]
+    recipFunction = fm.createFieldDivide(scale, squaredYZOne) # 1/[k1y^2 + peak], 0.0/1.0, 0.0/1.0]
 
-    constant_1 = fm.createFieldConstant([width, 0.0, 1.0]) #
-    yFunction = fm.createFieldAdd(recipFunction, constant_1)
-    xyFunction = fm.createFieldComponent(yFunction, [1, 3, 3])
+    constant_1 = fm.createFieldConstant([0.5, 0.0, 1.0])
+    yFunction = fm.createFieldAdd(recipFunction, constant_1) # 2.0 * |width|/[k1y^2 + peak], 1.0, 1.0]
+    xyFunction = fm.createFieldComponent(yFunction, [1, 3, 3]) # 2.0 * |width|/[k1y^2 + peak], 1.0, 1.0]
 
-
-    constant = fm.createFieldConstant([1.0, 0.0, rateOfChangeZ])
-    scaleFunction = fm.createFieldMultiply(constant, squaredOrigin) # [x^2, k1y^2, k2z^2]
+    constant = fm.createFieldConstant([0.0, 0.0, rateOfChangeZ])
+    scaleFunction = fm.createFieldMultiply(constant, squaredOrigin) # [0.0, 0.0, k2z^2]
     squaredY = fm.createFieldComponent(scaleFunction, [2, 1, 1])
     squaredZ = fm.createFieldComponent(scaleFunction, [3, 1, 1])
-    squaredYZ = fm.createFieldAdd(squaredY, squaredZ) # [k1y^2 + k2z^2, 2x^2, 2x^2]
-    squaredYZOne = fm.createFieldAdd(squaredYZ, scale_1) # [k1y^2 + k1z^2 + peak, 2x^2+1, 2x^2+1]
+    squaredYZ = fm.createFieldAdd(squaredY, squaredZ) # [k2z^2, 0.0, 0.0]
+    squaredYZOne = fm.createFieldAdd(squaredYZ, scale_1) # [k2z^2 + peak, 1.0, 1.0]
 
-    recipFunction = fm.createFieldDivide(scale, squaredYZOne) # 1/[k1y^2 + k1z^2 + 1, 2x^2+1, 2x^2+1]
+    recipFunction = fm.createFieldDivide(scale, squaredYZOne) # 1/[k2z^2 + peak], 0/1.0, 0/1.0]
 
-    constant_1 = fm.createFieldConstant([height, 0.0, 1.0]) #
-    zFunction = fm.createFieldAdd(recipFunction, constant_1)
-    xzFunction = fm.createFieldComponent(zFunction, [1, 3, 3])
+    constant_1 = fm.createFieldConstant([height/2, 0.0, 1.0])
+    zFunction = fm.createFieldAdd(recipFunction, constant_1) # height/[k2z^2 + peak], 0.0, 1.0
+    xzFunction = fm.createFieldComponent(zFunction, [1, 3, 3]) # height/[k2z^2 + peak], 1.0, 1.0
 
     transformation_matrix = fm.createFieldMultiply(xyFunction, xzFunction)
 
