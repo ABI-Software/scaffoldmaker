@@ -157,7 +157,7 @@ class BranchCap:
                             n1c = 1
                         elif n2 < 1 and n1 == elementsCountAcross[1] - n2:
                             n1c = elementsCountAcross[1] - 1
-                        elif n2 > 3:
+                        elif n2 > elementsCountAcross[1] - 1:
                             if n1 == elementsCountAcross[1] - n2:
                                 n1c = 1
                             elif n1 == n2:
@@ -293,24 +293,6 @@ class BifurcationMesh:
         box_part = BoxPart([elementsCount[0] - 2, elementsCount[1], elementsCount[0] - 2], torso_upper_part, shoulder_part, shoulder_part_left, neck_part)
         self.generateNodes(nodes, fieldmodule, coordinates, box_part)
         self.generateElements(mesh, fieldmodule, coordinates, box_part)
-
-
-
-
-
-        # joining_box = JoiningBox([1, elementsCount[1], elementsCount[2]//2], self.shoulder_height)
-        # self.generateNodes(nodes, fieldmodule, coordinates, joining_box)
-        # self.join_box_to_bottom_and_shoulder(joining_box, torso_upper_part, shoulder_part)
-        # self.generateElements(mesh, fieldmodule, coordinates, joining_box)
-
-        # joining_box_right = JoiningBoxRight([1, 4, 1], torso_upper_part, shoulder_part_left, joining_box)
-        # self.generateElements(mesh, fieldmodule, coordinates, joining_box_right)
-        #
-        # joining_box_3 = JoiningBox3([1, 4, 1], joining_box, neck_part)
-        # self.generateElements(mesh, fieldmodule, coordinates, joining_box_3)
-        #
-        # joining_box_4 = JoiningBox4([1, 4, 1], joining_box_3, neck_part, joining_box_right)
-        # self.generateElements(mesh, fieldmodule, coordinates, joining_box_4)
 
     def create_branch_cylinder(self, radius, length, number_of_elements, path_list=None,
                                part1=None, attach_bottom=True, branch_type=BranchType.LEFT_ARM):

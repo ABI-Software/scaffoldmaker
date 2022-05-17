@@ -294,7 +294,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
                                                                    part1=bifurcation1._torso_upper_part, branch_type=4,
                                                                    attach_bottom=False)
 
-        bifurcation1.smooth_all_derivatives()
+        # bifurcation1.smooth_all_derivatives()
 
         annotationGroup = []
         return annotationGroup
