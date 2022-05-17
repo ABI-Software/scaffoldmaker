@@ -13,7 +13,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import MeshType_1d_stickman1,
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation3d2 import BifurcationMesh, BranchType, PathNodes
+from scaffoldmaker.utils.bifurcation3d2 import TrifurcationMesh, BranchType, PathNodes
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
@@ -251,17 +251,17 @@ Generates a whole body scaffold using a mesh of all cube elements,
         if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
             left_arm_angle = -left_arm_angle
 
-        bifurcation1 = BifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
+        trifurcation1 = TrifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
                                        neck_radius, shoulder_height, neck_height, right_arm_angle,left_arm_angle,
                                        right_shoulder_length, armpit, [elementsCountAcrossMajor, elementsCountAcrossMajor, 2])
 
-        bifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2],
+        trifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2],
                                             right_arm_length, [elementsCountAcrossMajor, elementsCountAcrossMajor, rightArmNumberOfElements],
                                             branch_type=BranchType.LEFT_ARM)
-        bifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2],
+        trifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2],
                                             right_arm_length, [elementsCountAcrossMajor, elementsCountAcrossMajor, rightArmNumberOfElements],
                                             branch_type=BranchType.RIGHT_ARM)
-        neck_cylinder = bifurcation1.create_branch_cylinder([[neck_radius2]*2, [neck_radius2]*2], neck_length,
+        neck_cylinder = trifurcation1.create_branch_cylinder([[neck_radius2]*2, [neck_radius2]*2], neck_length,
                                                             [elementsCountAcrossMajor,elementsCountAcrossMajor, neck_number_of_elements], branch_type=BranchType.NECK)
 
         neck_cyliner_shield = neck_cylinder._shield
@@ -281,20 +281,20 @@ Generates a whole body scaffold using a mesh of all cube elements,
             else:
                 path_list.append([cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]])
 
-        head_cylinder = bifurcation1.create_branch_cylinder([[neck_radius2] * 2, [head_radius, neck_radius2]],
+        head_cylinder = trifurcation1.create_branch_cylinder([[neck_radius2] * 2, [head_radius, neck_radius2]],
                                                             head_length/head_number_of_elements,
                                                             [elementsCountAcrossMajor,elementsCountAcrossMajor, head_number_of_elements], path_list=path_list,
                                                             part1=neck_cyliner_shield, branch_type=4)
 
-        cap = bifurcation1.create_branch_cap(head_cylinder, head_radius)
+        cap = trifurcation1.create_branch_cap(head_cylinder, head_radius)
 
-        lower_torso_cylinder = bifurcation1.create_branch_cylinder([[torso_radius]*2, lower_torso_radii],
+        lower_torso_cylinder = trifurcation1.create_branch_cylinder([[torso_radius]*2, lower_torso_radii],
                                                                    lower_torso_length,
                                                                    [elementsCountAcrossMajor,elementsCountAcrossMajor, lower_torso_number_of_elements],
-                                                                   part1=bifurcation1._torso_upper_part, branch_type=4,
+                                                                   part1=trifurcation1._torso_upper_part, branch_type=4,
                                                                    attach_bottom=False)
 
-        # bifurcation1.smooth_all_derivatives()
+        trifurcation1.smooth_all_derivatives()
 
         annotationGroup = []
         return annotationGroup

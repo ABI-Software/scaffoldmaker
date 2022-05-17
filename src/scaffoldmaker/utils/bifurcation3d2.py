@@ -188,7 +188,7 @@ class BranchType(Enum):
     LEFT_ARM = 3
 
 
-class BifurcationMesh:
+class TrifurcationMesh:
     """
     Bifurction mesh generator.
     """
@@ -226,11 +226,11 @@ class BifurcationMesh:
         self._shoulder_part_left = None
         self._neck_part = None
 
-        self.createBifurcationMesh3d(fieldmodule, coordinates)
+        self.createTrifurcationMesh3d(fieldmodule, coordinates)
 
-    def createBifurcationMesh3d(self, fieldmodule, coordinates):
+    def createTrifurcationMesh3d(self, fieldmodule, coordinates):
         """
-        Create a bifurcation.
+        Create a trifurcation.
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
         :return: Final values of nextNodeIdentifier, nextElementIdentifier.
@@ -578,7 +578,7 @@ class BifurcationMesh:
                         shoulder_part.pd2[n3][n2][n1] = bottom_part.pd2[n3b][n2b][n1b]
                         shoulder_part.pd3[n3][n2][n1] = bottom_part.pd3[n3b][n2b][n1b]
 
-    def copyBaseLeg2Bifurcation(self, baseleg, idx):
+    def copyBaseLeg2Trifurcation(self, baseleg, idx):
         """
 
         :return:
@@ -2112,7 +2112,7 @@ class BaseLeg:
         txc1, td1c1 = self.generate1DPath(curves.xc1, curves.d1c1, self._elementsCount[0])
         txc2, td1c2 = self.generate1DPath(curves.xc2, curves.d1c2, self._elementsCount[1])
         ellipse = self.generateSurfaceUsingTwoCurves(centre, txc1, td1c1, txc2, td1c2)
-        self.copyEllipseNodesToBifurcation(ellipse, n3)
+        self.copyEllipseNodesToTrifurcation(ellipse, n3)
 
     def generateMiddleLevels(self):
         """
@@ -2316,9 +2316,9 @@ class BaseLeg:
 
         return ellipse
 
-    def copyEllipseNodesToBifurcation(self, ellipse, n3):
+    def copyEllipseNodesToTrifurcation(self, ellipse, n3):
         """
-        Copy ellipse nodes to bifurcation
+        Copy ellipse nodes to trifurcation
         :param ellipse:
         :return:
         """
@@ -2416,7 +2416,7 @@ class JoiningTorso:
         self.elementId = [[[None] * elementsCount[0] for c in range(elementsCount[1])] for c in range(elementsCount[2])]
 
 
-class BifurcationMeshCrotch:
+class TrifurcationMeshCrotch:
     """
     Bifurction mesh generator.
     """
@@ -2431,11 +2431,11 @@ class BifurcationMeshCrotch:
         self._elementsCount = elementsCount
         self._region = region
 
-        self.createBifurcationMesh3d(fieldModule, coordinates)
+        self.createTrifurcationMesh3d(fieldModule, coordinates)
 
-    def createBifurcationMesh3d(self, fieldmodule, coordinates):
+    def createTrifurcationMesh3d(self, fieldmodule, coordinates):
         """
-        Create a bifurcation.
+        Create a trifurcation.
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
         :return: Final values of nextNodeIdentifier, nextElementIdentifier.
