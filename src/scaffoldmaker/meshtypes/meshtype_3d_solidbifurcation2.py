@@ -13,7 +13,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import MeshType_1d_stickman1,
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation3d2 import TrifurcationMesh, BranchType, PathNodes
+from scaffoldmaker.utils.bifurcation3d2 import TrifurcationMesh, BranchType, PathNodes, BifurcationMesh
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
@@ -293,6 +293,8 @@ Generates a whole body scaffold using a mesh of all cube elements,
                                                                    [elementsCountAcrossMajor,elementsCountAcrossMajor, lower_torso_number_of_elements],
                                                                    part1=trifurcation1._torso_upper_part, branch_type=4,
                                                                    attach_bottom=False)
+
+        bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii)
 
         trifurcation1.smooth_all_derivatives()
 
