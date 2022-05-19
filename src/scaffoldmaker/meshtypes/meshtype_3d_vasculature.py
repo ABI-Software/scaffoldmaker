@@ -12,6 +12,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from opencmiss.zinc.element import Element, Elementbasis
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 
 
 class MeshType_3d_vasculature1(Scaffold_base):
@@ -306,11 +307,17 @@ class MeshType_3d_vasculature1(Scaffold_base):
             result = element.setNodesByIdentifier(eftRadius, elem_list[e3])
             elementIdentifier = elementIdentifier + 1
 
+        vagusGroup = AnnotationGroup(region, ("n_5", ""))
+        annotationGroups = [vagusGroup]
 
+        # Groups of different parts of the vagus
+        is_vagus = fm.createFieldConstant(1)
+        vagusMeshGroup = vagusGroup.getMeshGroup(mesh)
+        vagusMeshGroup.addElementsConditional(is_vagus)
 
 
         fm.endChange()
-        return []
+        return annotationGroups
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
