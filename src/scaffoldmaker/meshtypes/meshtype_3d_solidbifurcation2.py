@@ -296,7 +296,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
         bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii)
 
-        trifurcation1.smooth_all_derivatives()
+        # trifurcation1.smooth_all_derivatives()
 
         annotationGroup = []
         return annotationGroup
