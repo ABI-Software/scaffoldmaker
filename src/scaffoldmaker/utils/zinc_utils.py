@@ -5,10 +5,10 @@ Utility functions for easing use of Zinc API.
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.context import Context
-from opencmiss.zinc.element import MeshGroup
+from opencmiss.zinc.element import Mesh, MeshGroup
 from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.fieldmodule import Fieldmodule
-from opencmiss.zinc.node import Node
+from opencmiss.zinc.node import Node, Nodeset
 from opencmiss.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
@@ -146,6 +146,31 @@ def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType
         del isOnFace
     return faceMeshGroup
 
+
+def get_highest_dimension_mesh(fieldmodule : Fieldmodule) -> Mesh:
+    '''
+    Get highest dimension non-empty mesh.
+    :return: Zinc Mesh or None if all are empty.
+    '''
+    for dimension in range(3, 0, -1):
+        mesh = fieldmodule.findMeshByDimension(dimension)
+        if mesh.getSize() > 0:
+            return mesh
+    return None
+
+
+def get_next_unused_node_identifier(nodeset: Nodeset, start_identifier=1) -> int:
+    """
+    :return: Unused node identifier >= start_identifier.
+    """
+    identifier = start_identifier
+    node = nodeset.findNodeByIdentifier(identifier)
+    while node.isValid():
+        identifier += 1
+        node = nodeset.findNodeByIdentifier(identifier)
+    return identifier
+
+
 def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_dimension=None):
     '''
     Add to group elements and/or nodes from other_group.
@@ -169,6 +194,7 @@ def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_
                 nodeset_group = node_group.getNodesetGroup()
                 nodeset_group.addNodesConditional(other_group.getFieldNodeGroup(nodeset))
 
+
 def group_get_highest_dimension(group : FieldGroup):
     '''
     Get highest dimension of elements or nodes in group.
@@ -186,6 +212,7 @@ def group_get_highest_dimension(group : FieldGroup):
         return 0
     return -1
 
+
 def identifier_ranges_fix(identifier_ranges):
     '''
     Sort from lowest to highest identifier and merge adjacent and overlapping
@@ -202,11 +229,13 @@ def identifier_ranges_fix(identifier_ranges):
         else:
             i += 1
 
+
 def identifier_ranges_from_string(identifier_ranges_string):
     '''
     Parse string containing identifiers and identifier ranges.
     Function is suitable for processing manual input with whitespace, trailing non-digits.
     Ranges are sorted so strictly increasing. Overlapping ranges are merged.
+    Future: migrate to use .. as separator for compatibility with EX file groups and cmgui.
     :param identifier_ranges_string: Identifier ranges as a string e.g. '1-30,55,66-70'.
     '30-1, 55,66-70s' also produces the same result.
     :return: Ordered list of identifier ranges e.g. [[1,30],[55,55],[66,70]]
@@ -242,6 +271,7 @@ def identifier_ranges_from_string(identifier_ranges_string):
 def identifier_ranges_to_string(identifier_ranges):
     '''
     Convert ranges to a string, contracting single object ranges.
+    Future: migrate to use .. as separator for compatibility with EX file groups and cmgui.
     :param identifier_ranges: Ordered list of identifier ranges e.g. [[1,30],[55,55],[66,70]]
     :return: Identifier ranges as a string e.g. '1-30,55,66-70'
     '''
@@ -327,6 +357,7 @@ def nodeset_group_to_identifier_ranges(nodeset_group):
     :return: Ordered list of node identifier ranges e.g. [[1,30],[55,55],[66,70]]
     '''
     return domain_iterator_to_identifier_ranges(nodeset_group.createNodeiterator())
+
 
 def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
     '''

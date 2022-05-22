@@ -82,7 +82,8 @@ class MeshType_3d_heart1(Scaffold_base):
             'Refine',
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
-            'Refine number of elements through wall']:
+            'Refine number of elements through wall',
+            'Refine number of elements through epicardial fat layer']:
             optionNames.remove(optionName)
             optionNames.append(optionName)
         return optionNames
