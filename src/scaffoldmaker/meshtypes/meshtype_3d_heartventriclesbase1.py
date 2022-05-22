@@ -13,7 +13,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
+from opencmiss.zinc.field import Field, FieldGroup
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
@@ -101,8 +101,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         if isHuman:
             options['LV outer height'] = 0.9
         elif isMouse or isRat:
-            options['LV outer height'] = 0.85
-            options['Base height'] = 0.23
+            options['LV outer height'] = 0.9
+            options['Base height'] = 0.18
             options['Base thickness'] = 0.08
             options['Fibrous ring thickness'] = 0.005
             options['LV outlet inner diameter'] = 0.21
@@ -177,8 +177,6 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         '''
         dependentChanges = MeshType_3d_heartventricles1.checkOptions(options)
         # only works with particular numbers of elements around
-        options['Number of elements around RV free wall'] = 7
-        options['Number of elements around atrial septum'] = 3
         # start with limitations from atria1:
         #if options['Number of elements around atrial septum'] < 2:
         #    options['Number of elements around atrial septum'] = 2
@@ -189,6 +187,26 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 options[key] = 6
             elif options[key] > 10:
                 options[key] = 10
+        if options['Collapse RV columns']:
+            if options['Number of elements around right atrium free wall'] != 8:
+                options['Number of elements around right atrium free wall'] = 8
+                dependentChanges = True
+            if options['Number of elements around atrial septum'] != 3:
+                options['Number of elements around atrial septum'] = 3
+                dependentChanges = True
+            if options['Number of elements around RV free wall'] != 9:
+                options['Number of elements around RV free wall'] = 9
+                dependentChanges = True
+        else:
+            if options['Number of elements around right atrium free wall'] not in [6, 8]:
+                options['Number of elements around right atrium free wall'] = 8
+                dependentChanges = True
+            if options['Number of elements around atrial septum'] != 3:
+                options['Number of elements around atrial septum'] = 3
+                dependentChanges = True
+            if options['Number of elements around RV free wall'] != 7:
+                options['Number of elements around RV free wall'] = 7
+                dependentChanges = True
         # Supports only 6 or 8 elements around right atrium free wall:
         if options['Number of elements around right atrium free wall'] <= 6:
             options['Number of elements around right atrium free wall'] = 6
@@ -247,12 +265,14 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         """
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
-        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
-        elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
-        elementsCountAroundRV = 2*elementsCountAroundRVFreeWall
         elementsCountUpLVApex = options['Number of elements up LV apex']
         elementsCountUpRV = options['Number of elements up RV']
         elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        collapseRVColumns = options['Collapse RV columns']
+        elementsCountAroundVSeptum = (elementsCountAroundRVFreeWall - 2) if collapseRVColumns \
+            else elementsCountAroundRVFreeWall
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundVSeptum
+        elementsCountAroundRV = elementsCountAroundRVFreeWall + elementsCountAroundVSeptum
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
         elementsCountAroundLeftAtriumFreeWall = options['Number of elements around left atrium free wall']
         elementsCountAroundLeftAtrium = elementsCountAroundLeftAtriumFreeWall + elementsCountAroundAtrialSeptum
@@ -307,10 +327,10 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
         conusArteriosusGroup = AnnotationGroup(region, get_heart_term("conus arteriosus"))
-        annotationGroups += [ conusArteriosusGroup ]
         # av boundary nodes are put in left and right fibrous ring groups only so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
+        annotationGroups += [conusArteriosusGroup, lFibrousRingGroup, rFibrousRingGroup]
 
         # annotation fiducial points
         markerGroup = findOrCreateFieldGroup(fm, "marker")
@@ -351,15 +371,21 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         newCoordinates = fm.createFieldAdd(fm.createFieldMatrixMultiply(3, rotationMatrix, coordinates), ventriclesOffset)
         fieldassignment = coordinates.createFieldassignment(newCoordinates)
         fieldassignment.setNodeset(nodes)
+        # marker points are not rotated
+        fieldassignment.setConditionalField(fm.createFieldNot(markerGroup.getFieldNodeGroup(nodes)))
         fieldassignment.assign()
 
         # discover ventricles top LV inner, RV inner, V Outer nodes, coordinates and derivatives
         startLVInnerNodeId = 2 + (elementsCountUpLV - 1)*elementsCountAroundLV
         lvInnerNodeId = [ (startLVInnerNodeId + n1) for n1 in range(elementsCountAroundLV) ]
-        startRVInnerNodeId = startLVInnerNodeId + elementsCountAroundLV + elementsCountAroundRVFreeWall + 1 + elementsCountAroundRV*(elementsCountUpRV - 1)
+        startRVInnerNodeId = startLVInnerNodeId + elementsCountAroundLV + elementsCountAroundVSeptum + 1 \
+                             + elementsCountAroundRV*(elementsCountUpRV - 1)
         rvInnerNodeId = [ (startRVInnerNodeId + n1) for n1 in range(elementsCountAroundRV) ]
-        startVOuterNodeId = startRVInnerNodeId + elementsCountAroundRV + 1 + (elementsCountUpLV - 1)*elementsCountAroundLV
-        vOuterNodeId = [ (startVOuterNodeId + n1) for n1 in range(elementsCountAroundLV) ]
+        startVOuterNodeId = startRVInnerNodeId + elementsCountAroundRV + 1 \
+                            + elementsCountUpLVApex*elementsCountAroundLV \
+                            + (elementsCountUpLV - elementsCountUpLVApex - 1) * \
+                            (elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall)
+        vOuterNodeId = [ (startVOuterNodeId + n1) for n1 in range(elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall) ]
         for nodeId in [ lvInnerNodeId, rvInnerNodeId, vOuterNodeId ]:
             vx  = []
             vd1 = [] if (nodeId is rvInnerNodeId) else None
@@ -476,8 +502,12 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                 for c in range(3):
                     lavd2[0][0][noa][c] += lavd1[0][0][noa][c]
                     lavd2[1][0][noa][c] += lavd1[1][0][noa][c]
-        elementsCountRVHanging = 2 if (elementsCountAroundRightAtriumFreeWall == 8) else 0
-        elementsCountRVFreeWallRegular = 3 + elementsCountRVHanging
+        if collapseRVColumns:
+            elementsCountRVHanging = 0
+            elementsCountRVFreeWallRegular = 5
+        else:
+            elementsCountRVHanging = 2 if (elementsCountAroundRightAtriumFreeWall == 8) else 0
+            elementsCountRVFreeWallRegular = 3 + elementsCountRVHanging
         for n1 in range(elementsCountRVFreeWallRegular + 1):
             noa = n1
             niv = n1
@@ -535,7 +565,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
 
         # copy derivative 3 from av points to LV outlet at centre, left and right cfb; negate as d1 is reversed:
         lvOutletOuterd3[0] = [ -d for d in lavd3[1][0][0] ]
-        lvOutletOuterd3[1] = [ -d for d in ravd3[1][0][-2] ]
+        lvOutletOuterd3[1] = [ -d for d in ravd3[1][0][elementsCountAroundRightAtriumFreeWall - 1] ]
         lvOutletOuterd3[-1] = [ -d for d in lavd3[1][0][1] ]
 
         # create point above anterior ventricular septum end
@@ -553,51 +583,56 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         avsd3 = interp.interpolateHermiteLagrangeDerivative(lvInnerx[0], lvInnerd2[0], avsx, 1.0)
         lavd2[1][0][2] = pd1[2]
 
-        # create points on bottom and top of RV supraventricular crest
-        ns = elementsCountAroundRVFreeWall//2 + 1
-        nf = elementsCountAroundRVFreeWall + 2
-        xis = 0.667
-        xif = 1.0 - xis
-        mx = [ xis*rvInnerx[ns][0] + xif*rvInnerx[nf][0], xis*rvInnerx[ns][1] + xif*rvInnerx[nf][1], -(fibrousRingThickness + baseThickness) ]
-        md2 = [ (rvInnerx[nf][c] - rvInnerx[ns][c]) for c in range(3) ]
-        sd1 = [ -d for d in ravd2[0][0][ravsvcn2] ]
+        # create points on top and bottom of RV supraventricular crest
+
+        ns = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall - 3
+        nf = 2
+        sx = vOuterx[ns]
+        sd2 = vOuterd2[ns]
+        fx = lvOutletOuterx[nf]
+        fd2 = vector.setMagnitude([lvOutletInnerx[nf][c] - lvOutletOuterx[nf][c] for c in range(3)],
+                                  vector.magnitude(sd2))
+        scale = interp.computeCubicHermiteDerivativeScaling(sx, sd2, fx, fd2)
+        px, pd2 = interp.sampleCubicHermiteCurvesSmooth([sx, fx], [[d*scale for d in sd2], [d*scale for d in fd2]], 2,
+            derivativeMagnitudeStart=vector.magnitude(sd2))[0:2]
+        svcox = px[1]
+        sd1 = [-d for d in ravd2[1][0][ravsvcn2]]
+        fd1 = [rvOutletOuterd1[2][c] + rvOutletd2[c] for c in range(3)]
+        pd1 = interp.smoothCubicHermiteDerivativesLine(
+            [ravx[1][0][ravsvcn2], svcox, rvOutletOuterx[1]], [sd1, zero, fd1],
+            fixStartDerivative=True, fixEndDerivative=True)
+        svcod1 = pd1[1]
+        svcod2 = pd2[1]
+        svcod3 = vector.setMagnitude(vector.crossproduct3(svcod1, svcod2), baseThickness)
+        lvOutletOuterd3[nf] = [-d for d in pd2[2]]
+        # set a reasonable value for next d2 up on right fibrous ring by supraventricular crest 1
+        sd12 = [(svcod2[c] - svcod1[c]) for c in range(3)]
+        pd2 = interp.smoothCubicHermiteDerivativesLine([svcox, ravx[1][0][ravsvcn1]], [sd12, ravd2[1][0][ravsvcn1]],
+            fixStartDerivative=True, fixEndDirection=True)
+        ravd2[1][0][ravsvcn1] = pd2[1]
+
+        ns = elementsCountAroundRVFreeWall - 3
+        nf = elementsCountAroundRVFreeWall + 2  # finish on septum
+        svcix = [svcox[c] - svcod3[c] for c in range(3)]
+        sd1 = [-d for d in ravd2[0][0][ravsvcn2]]
         if elementsCountRVHanging == 0:
             for c in range(3):
                 sd1[c] += ravd1[0][0][ravsvcn2][c]
-        fd1 = [ (rvOutletInnerd1[2][c] + rvOutletd2[c]) for c in range(3) ]
-        pd1 = interp.smoothCubicHermiteDerivativesLine([ ravx[0][0][ravsvcn2], mx, rvOutletInnerx[1] ], [ sd1, zero, fd1 ],
-            fixStartDerivative=True, fixEndDerivative = True)
-        pd2 = interp.smoothCubicHermiteDerivativesLine([ rvInnerx[ns], mx, rvInnerx[nf] ], [ rvInnerd2[ns], md2, [ -d for d in rvInnerd2[nf] ] ],
-            fixStartDerivative = True, fixEndDerivative = True)
-        svcix = [ mx[0], mx[1], mx[2] ]  # list components to avoid reference bug
+        fd1 = [rvOutletOuterd1[2][c] + rvOutletd2[c] for c in range(3)]
+        pd1 = interp.smoothCubicHermiteDerivativesLine(
+            [ravx[0][0][ravsvcn2], svcix, rvOutletOuterx[1]], [sd1, zero, fd1],
+            fixStartDerivative=True, fixEndDerivative=True)
+        pd2 = interp.smoothCubicHermiteDerivativesLine(
+            [rvInnerx[ns], svcix, rvInnerx[nf]], [rvInnerd2[ns], svcod2, [-d for d in rvInnerd2[nf]]],
+            fixStartDerivative=True, fixEndDerivative=True, fixAllDirections=True)
         svcid1 = pd1[1]
         svcid2 = pd2[1]
-        svcid3 = vector.setMagnitude(vector.crossproduct3(svcid1, svcid2), baseThickness)
-        sd2 = [ (svcid2[c] - svcid1[c]) for c in range(3) ]
-        pd2 = interp.smoothCubicHermiteDerivativesLine([ mx, ravx[0][0][ravsvcn1] ], [ sd2, ravd2[0][0][ravsvcn1] ],
-            fixStartDerivative=True, fixEndDirection = True)
+        svcid3 = svcod3
+        # set a reasonable value for next d2 up on right fibrous ring by supraventricular crest 1
+        sd12 = [ (svcid2[c] - svcid1[c]) for c in range(3) ]
+        pd2 = interp.smoothCubicHermiteDerivativesLine([svcix, ravx[0][0][ravsvcn1]], [sd12, ravd2[0][0][ravsvcn1]],
+            fixStartDerivative=True, fixEndDirection=True)
         ravd2[0][0][ravsvcn1] = pd2[1]
-
-        mx = [ (mx[c] + svcid3[c]) for c in range(3) ]
-        md2 = svcid2
-        nf = 2
-        sd1 = [ -d for d in ravd2[1][0][ravsvcn2] ]
-        if elementsCountRVHanging == 0:
-            for c in range(3):
-                sd1[c] += ravd1[1][0][ravsvcn2][c]
-        fd1 = [ (rvOutletOuterd1[2][c] + rvOutletd2[c]) for c in range(3) ]
-        pd1 = interp.smoothCubicHermiteDerivativesLine([ ravx[1][0][ravsvcn2], mx, rvOutletOuterx[1] ], [ sd1, zero, fd1 ],
-            fixStartDerivative=True, fixEndDerivative = True)
-        pd2 = interp.smoothCubicHermiteDerivativesLine([ mx, lvOutletOuterx[nf] ], [ md2, svcid2 ], fixStartDirection=True)  # , instrument=True)
-        svcox = copy.copy(mx)
-        svcod1 = pd1[1]
-        svcod2 = pd2[0]
-        svcod3 = svcid3
-        lvOutletOuterd3[nf] = [ -d for d in pd2[1] ]
-        sd2 = [ (svcod2[c] - svcod1[c]) for c in range(3) ]
-        pd2 = interp.smoothCubicHermiteDerivativesLine([ mx, ravx[1][0][ravsvcn1] ], [ sd2, ravd2[1][0][ravsvcn1] ],
-            fixStartDerivative=True, fixEndDirection = True)
-        ravd2[1][0][ravsvcn1] = pd2[1]
 
         # LV outlet nodes
         lvOutletNodeId = [ [], [] ]
@@ -826,7 +861,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
                     niv -= 1
             nivp = niv + 1
             nov = elementsCountAroundLVFreeWall + niv
-            novp = (nov + 1)%elementsCountAroundLV
+            novp = (nov + 1) % (elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall)
             if e == -1:
                 # crux / posterior interventricular sulcus, collapsed to 6 node wedge
                 nids = [ lvInnerNodeId[elementsCountAroundLVFreeWall], rvInnerNodeId[nivp], lavNodeId[0][0][elementsCountAroundLeftAtriumFreeWall], ravNodeId[0][0][noa + 1],
@@ -1338,12 +1373,14 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         assert isinstance(meshrefinement, MeshRefinement)
         elementsCountAroundLVFreeWall = options['Number of elements around LV free wall']
         elementsCountAroundRVFreeWall = options['Number of elements around RV free wall']
-        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundRVFreeWall
-        elementsCountAroundVSeptum = elementsCountAroundRVFreeWall
-        elementsCountAroundRV = 2*elementsCountAroundRVFreeWall
         elementsCountUpLVApex = options['Number of elements up LV apex']
         elementsCountUpRV = options['Number of elements up RV']
         elementsCountUpLV = elementsCountUpLVApex + elementsCountUpRV
+        collapseRVColumns = options['Collapse RV columns']
+        elementsCountAroundVSeptum = (elementsCountAroundRVFreeWall - 2) if collapseRVColumns \
+            else elementsCountAroundRVFreeWall
+        elementsCountAroundLV = elementsCountAroundLVFreeWall + elementsCountAroundVSeptum
+        elementsCountAroundRV = elementsCountAroundRVFreeWall + elementsCountAroundVSeptum
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
         elementsCountAroundLeftAtriumFreeWall = options['Number of elements around left atrium free wall']
         elementsCountAroundRightAtriumFreeWall = options['Number of elements around right atrium free wall']
@@ -1405,3 +1442,61 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         New face annotation groups are appended to this list.
         """
         MeshType_3d_heartventricles1.defineFaceAnnotations(region, options, annotationGroups)
+
+        fm = region.getFieldmodule()
+        lFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right fibrous ring"))
+        if (lFibrousRingGroup.getDimension() == 0) or (lFibrousRingGroup.getDimension() == 0):
+            # not already added by full heart scaffold
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            lFibrousRingNodeGroup = lFibrousRingGroup.getNodesetGroup(nodes)
+            rFibrousRingNodeGroup = rFibrousRingGroup.getNodesetGroup(nodes)
+            # make temp group containing all elements, faces etc. if have any nodes in fibrous ring groups
+            tmpGroup = fm.createFieldGroup()
+            tmpGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+            mesh3d = fm.findMeshByDimension(3)
+            tmp3dMeshGroup = tmpGroup.createFieldElementGroup(mesh3d).getMeshGroup()
+            coordinates = fm.findFieldByName("coordinates").castFiniteElement()
+            elementIter = mesh3d.createElementiterator()
+            element = elementIter.next()
+            while element.isValid():
+                eft = element.getElementfieldtemplate(coordinates, -1)
+                if eft.isValid():
+                    for n in range(eft.getNumberOfLocalNodes()):
+                        node = element.getNode(eft, n + 1)
+                        if lFibrousRingNodeGroup.containsNode(node) or rFibrousRingNodeGroup.containsNode(node):
+                            tmp3dMeshGroup.addElement(element)
+                            break
+                element = elementIter.next()
+            mesh2d = fm.findMeshByDimension(2)
+            tmp2dElementGroup = tmpGroup.getFieldElementGroup(mesh2d)
+            if tmp2dElementGroup.isValid():
+                lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
+                rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
+                is_lv = lvGroup.getFieldElementGroup(mesh2d)
+                is_rv = rvGroup.getFieldElementGroup(mesh2d)
+                is_exterior = fm.createFieldIsExterior()
+                is_face_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
+                is_face_xi2_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0)
+                is_face_xi2_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1)
+                is_face_xi1_0_or_xi2_1 = fm.createFieldOr(is_face_xi1_0, is_face_xi2_1)
+                is_exterior_face_xi1_0_or_xi2_1 = fm.createFieldAnd(is_exterior, is_face_xi1_0_or_xi2_1)
+                is_face_xi2_0_or_xi2_1 = fm.createFieldOr(is_face_xi2_0, is_face_xi2_1)
+                is_exterior_face_xi2_0_or_xi2_1 = fm.createFieldAnd(is_exterior, is_face_xi2_0_or_xi2_1)
+                is_left_fibrous_ring = fm.createFieldAnd(
+                    is_lv, fm.createFieldAnd(tmp2dElementGroup, is_exterior_face_xi2_0_or_xi2_1))
+                lFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_left_fibrous_ring)
+                is_right_fibrous_ring = fm.createFieldAnd(
+                    is_rv, fm.createFieldAnd(tmp2dElementGroup, is_exterior_face_xi1_0_or_xi2_1))
+                rFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_right_fibrous_ring)
+                # hacky correction around LV outflow
+                size = tmp3dMeshGroup.getSize()
+                elementIter = tmp3dMeshGroup.createElementiterator()
+                identifiers = []
+                for i in range(size - 8):
+                    element = elementIter.next()
+                    identifiers.append(element.getIdentifier())
+                for identifier in identifiers:
+                    tmp3dMeshGroup.removeElement(mesh3d.findElementByIdentifier(identifier))
+                is_lv_outflow = fm.createFieldAnd(tmp2dElementGroup, is_face_xi2_1)
+                lFibrousRingGroup.getMeshGroup(mesh2d).removeElementsConditional(is_lv_outflow)

@@ -339,7 +339,8 @@ class DerivativeSmoothing:
                         else: # self._scalingMode == DerivativeScalingMode.HARMONIC_MEAN
                             mag = edgeCount/mag
                         if (mag <= 0.0):
-                            print('Node', nodeIdentifier, 'label', label, 'version', version, 'has negative mag', mag)
+                            print('Node', nodeIdentifier, 'value', nodeValueLabel, 'version', nodeVersion, \
+                                  'has negative mag', mag)
                         x = setMagnitude(x, mag)
                         result = self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
                 for derivativeKey, derivativeEdges in self._derivativeMap.items():

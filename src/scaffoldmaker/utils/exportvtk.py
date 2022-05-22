@@ -4,6 +4,7 @@ Class for exporting a Scaffold from Zinc to legacy vtk text format.
 
 import io
 import os
+import sys
 from sys import version_info
 
 from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
@@ -41,7 +42,6 @@ class ExportVtk:
             markerNodeGroup = markerGroup.getFieldNodeGroup(self._nodes)
             if markerNodeGroup.isValid():
                 self._markerNodes = markerNodeGroup.getNodesetGroup()
-
 
     def _write(self, outstream):
         if version_info.major > 2:
@@ -168,11 +168,14 @@ class ExportVtk:
 
     def writeFile(self, filename):
         '''
-        Export to legacy vtk file/
+        Export to legacy vtk file.
         '''
-        with open(filename, 'w') as outstream:
-            self._write(outstream)
-        if self._markerNodes and (self._markerNodes.getSize() > 0):
-            markerFilename = os.path.splitext(filename)[0] + "_marker.csv"
-            with open(markerFilename, 'w') as outstream:
-                self._writeMarkers(outstream)
+        try:
+            with open(filename, 'w') as outstream:
+                self._write(outstream)
+            if self._markerNodes and (self._markerNodes.getSize() > 0):
+                markerFilename = os.path.splitext(filename)[0] + "_marker.csv"
+                with open(markerFilename, 'w') as outstream:
+                    self._writeMarkers(outstream)
+        except Exception as e:
+            print("Failed to write VTK file", filename, file=sys.stderr);

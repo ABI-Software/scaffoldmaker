@@ -13,7 +13,14 @@ def readfile(filename, split=False):
         return stream.read()
 
 
-readme = readfile("README.rst", split=True)[3:]  # skip title
+readme = readfile("README.rst", split=True)
+readme.append('License')
+readme.append('=======')
+readme.append('')
+readme.append('::')
+readme.append('')
+readme.append('')
+
 # For requirements not hosted on PyPi place listings
 # into the 'requirements.txt' file.
 requires = [
@@ -28,9 +35,10 @@ source_license = readfile("LICENSE")
 
 setup(
     name="scaffoldmaker",
-    version="0.3.0",
+    version="0.4.4",
     description="Python client for generating anatomical scaffolds using OpenCMISS-Zinc",
     long_description="\n".join(readme) + source_license,
+    long_description_content_type="text/x-rst",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python",
