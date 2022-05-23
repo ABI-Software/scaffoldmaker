@@ -1,5 +1,5 @@
 """
-Generates a fusiform muscle with tendon and muscle groups using a CylinderMesh of all cube elements,
+Generates a fusiform muscle using a CylinderMesh of all cube elements,
  with variable numbers of elements in major, minor, shell and axial directions.
 """
 
@@ -44,7 +44,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     [[30.07, 24.60, 299.90], [6.77, -1.97, 35.60], [1.85, -0.92, -0.40], [-1.04, 0.40, 0.71], [1.27, 2.61, -0.09], [-1.23, -5.71, 1.40]]
                 ])
         }),
-        'Long head of right biceps femoris 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Biceps femoris 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
@@ -77,7 +77,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         return [
             'Default',
             'Brachioradialis 1',
-            'Long head of right biceps femoris 1',
+            'Biceps femoris 1',
         ]
 
     @classmethod
@@ -87,17 +87,17 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         if 'Brachioradialis 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Brachioradialis 1']
-        elif 'Long head of right biceps femoris 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Long head of right biceps femoris 1']
+        elif 'Biceps femoris 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Biceps femoris 1']
 
         options = {
+            'Base parameter set': parameterSetName,
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements across major': 4,
             'Number of elements across minor': 4,
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
-            'Number of elements along': 6,
-            'Number of tendon elements': [0, 0],
+            'Number of elements along': 10,
             'Shell element thickness proportion': 1.0,
             'Use cross derivatives': False,
             'Refine': False,
@@ -115,7 +115,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across shell',
             'Number of elements across transition',
             'Number of elements along',
-            'Number of tendon elements',
             'Shell element thickness proportion',
             'Refine',
             'Refine number of elements across',
@@ -181,12 +180,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
         if options['Shell element thickness proportion'] < 0.15:
             options['Shell element thickness proportion'] = 1.0
 
-        if sum(options['Number of tendon elements']) > options['Number of elements along']:
-            options['Number of tendon elements'] = [0, 0]
-
-        if any(c < 0 for c in options['Number of tendon elements']):
-            options['Number of tendon elements'] = [0, 0]
-
         return dependentChanges
 
     @staticmethod
@@ -197,6 +190,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
+        parameterSetName = options['Base parameter set']
 
         centralPath = options['Central path']
         full = True
@@ -208,24 +202,13 @@ with variable numbers of elements in major, minor, shell and axial directions.
         elementsCountAcrossTransition = options['Number of elements across transition']
         elementsCountAlong = options['Number of elements along']
         shellProportion = options['Shell element thickness proportion']
-        numberOftendonElements = options['Number of tendon elements']
         useCrossDerivatives = options['Use cross derivatives']
-
-        meshGroupsElementsAlong = [numberOftendonElements[0], elementsCountAlong - sum(numberOftendonElements),
-                                   numberOftendonElements[1]]
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         mesh = fm.findMeshByDimension(3)
-        tendonGroup1 = AnnotationGroup(region, ("tendon group 1", ""))
-        tendonMeshGroup1 = tendonGroup1.getMeshGroup(mesh)
-        muscleGroup = AnnotationGroup(region, ("muscle group", ""))
-        muscleMeshGroup = muscleGroup.getMeshGroup(mesh)
-        tendonGroup2 = AnnotationGroup(region, ("tendon group 2", ""))
-        tendonMeshGroup2 = tendonGroup2.getMeshGroup(mesh)
-        meshGroups = [tendonMeshGroup1, muscleMeshGroup, tendonMeshGroup2]
-        annotationGroups = [tendonGroup1, muscleGroup, tendonGroup2]
+        annotationGroups = []
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
@@ -238,8 +221,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
                                  cylinderShape=cylinderShape,
-                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
-                                 meshGroupsElementsAlong=meshGroupsElementsAlong, meshGroups=meshGroups)
+                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
         return annotationGroups
 
