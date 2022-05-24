@@ -6,13 +6,13 @@ Common resource for heart annotation terms.
 heart_terms = [
     ( "heart", "UBERON:0000948", "FMA:7088" ),
     # ventricles
-    ( "left ventricle myocardium", "FMA:9558" ),
-    ( "right ventricle myocardium", "FMA:9535" ),
-    ( "interventricular septum", "FMA:7133" ),
-    ( "endocardium of left ventricle", "FMA:9559" ),
-    ( "endocardium of right ventricle", "FMA:9536" ),
+    ( "left ventricle myocardium", "UBERON:0006566", "FMA:9558" ),
+    ( "right ventricle myocardium", "UBERON:0006567", "FMA:9535" ),
+    ( "interventricular septum", "UBERON:0002094", "FMA:7133" ),
+    ( "endocardium of left ventricle", "UBERON:0009713", "FMA:9559" ),
+    ( "endocardium of right ventricle", "UBERON:0009712", "FMA:9536" ),
     ( "epicardial fat", "UBERON:0015129"),
-    ( "epicardium", "FMA:9461", "UBERON:0002348"),
+    ( "epicardium", "UBERON:0002348", "FMA:9461"),
     ( "outer surface of epicardium", "None"),
     #( "epicardium of ventricle", "FMA:12150", "UBERON:0001082" ),
     # ventricles with base
@@ -22,17 +22,17 @@ heart_terms = [
     # atria
     ( "left atrium myocardium", "FMA:7285" ),
     ( "right atrium myocardium", "FMA:7282" ),
-    ( "endocardium of left atrium", "FMA:7286", "UBERON:0034903" ),
-    ( "endocardium of right atrium", "FMA:7281", "UBERON:0009129" ),
-    ( "interatrial septum", "FMA:7108" ),
-    ( "fossa ovalis", "FMA:9246" ),
-    ( "left auricle", "FMA:7219", "UBERON:0006630" ),  # uncertain if just the tissue like myocardium
-    ( "right auricle", "FMA:7218", "UBERON:0006631" ),  # uncertain if just the tissue like myocardium
-    ( "endocardium of left auricle", "FMA:13236", "UBERON:0011006" ),
-    ( "endocardium of right auricle", "FMA:13235", "UBERON:0011007" ),
+    ( "endocardium of left atrium", "UBERON:0034903", "FMA:7286" ),
+    ( "endocardium of right atrium", "UBERON:0009129", "FMA:7281" ),
+    ( "interatrial septum", "UBERON:0002085", "FMA:7108" ),
+    ( "fossa ovalis", "UBERON:0003369", "FMA:9246" ),
+    ( "left auricle", "UBERON:0006630", "FMA:7219" ),  # uncertain if just the tissue like myocardium
+    ( "right auricle", "UBERON:0006631", "FMA:7218" ),  # uncertain if just the tissue like myocardium
+    ( "endocardium of left auricle", "UBERON:0011006", "FMA:13236" ),
+    ( "endocardium of right auricle", "UBERON:0011007", "FMA:13235" ),
     ( "epicardium of left auricle", "FMA:13233" ),
     ( "epicardium of right auricle", "FMA:13232" ),
-    ( "pulmonary vein", "FMA:66643", "UBERON:0002016" ),
+    ( "pulmonary vein", "UBERON:0002016", "FMA:66643" ),
     ( "left pulmonary vein", "UBERON:0009030" ),
     ( "left inferior pulmonary vein", "FMA:49913" ),
     ( "left superior pulmonary vein", "FMA:49916" ),
@@ -40,9 +40,9 @@ heart_terms = [
     ( "right pulmonary vein", "UBERON:0009032" ),
     ( "right inferior pulmonary vein", "FMA:49911" ),
     ( "right superior pulmonary vein", "FMA:49914" ),
-    ( "inferior vena cava", "FMA:10951", "UBERON:0001072", "posterior vena cava" ),
+    ( "inferior vena cava", "UBERON:0001072", "FMA:10951", "posterior vena cava" ),
     ( "inferior vena cava inlet", "ILX:0738358" ),
-    ( "superior vena cava", "FMA:4720", "UBERON:0001585", "anterior vena cava" ),
+    ( "superior vena cava", "UBERON:0001585", "FMA:4720", "anterior vena cava" ),
     ( "superior vena cava inlet", "ILX:0738367" ),
     # arterial root
     ( "root of aorta", "FMA:3740" ),
