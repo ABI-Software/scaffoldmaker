@@ -65,17 +65,17 @@ class MeshType_3d_lung2(Scaffold_base):
             'Left lung depth': 1.0,
             'Left lung height': 1.0,
             'Left lung ventral edge sharpness factor': 0.0,
-            'Left lung medial curvature': 0.0,
+            'Left lung dorsal-ventral medial curvature': 0.0,
             'Left lung base medial protrusion': 0.0,
             'Right lung width': 0.5,
             'Right lung depth': 1.0,
             'Right lung height': 1.0,
             'Right lung ventral edge sharpness factor': 0.0,
-            'Right lung medial curvature': 0.0,
+            'Right lung dorsal-ventral medial curvature': 0.0,
             'Right lung base medial protrusion': 0.0,
             'Open fissures': False,
             'Accessory lobe': True,
-            'Accessory lobe medial curvature': 0.0,
+            'Accessory lobe medial curvature about z-axis': 0.0,
             'Accessory lobe length': 0.5,
             'Accessory lobe dorsal centre [x,y]': [0.0, 0.25],
             'Accessory lobe dorsal height': 0.5,
@@ -86,9 +86,9 @@ class MeshType_3d_lung2(Scaffold_base):
             'Diaphragm centre y': 0.0,
             'Diaphragm curvature x': 0.0,
             'Diaphragm curvature y': 0.0,
-            'Left lung medial rotation in degree about z-axis': 0.0,
-            'Right lung medial rotation in degree about z-axis': 0.0,
-            'Accessory lobe rotation in degree about z-axis': 0.0,
+            'Left lung ventral-medial rotation degrees': 0.0,
+            'Right lung ventral-medial rotation degrees': 0.0,
+            'Accessory lobe ventral-left rotation degrees': 0.0,
             'Refine': False,
             'Refine number of elements': 4,
             'Material Parameters': None
@@ -102,16 +102,16 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Left lung depth'] = 1.0
             options['Left lung height'] = 1.0
             options['Left lung ventral edge sharpness factor'] = 0.8
-            options['Left lung medial curvature'] = 1.0
+            options['Left lung dorsal-ventral medial curvature'] = 1.0
             options['Left lung base medial protrusion'] = 0.1
-            options['Left lung medial rotation in degree about z-axis'] = 20.0
+            options['Left lung ventral-medial rotation degrees'] = 20.0
             options['Right lung width'] = 0.8
             options['Right lung depth'] = 1.0
             options['Right lung height'] = 1.0
             options['Right lung ventral edge sharpness factor'] = 0.8
-            options['Right lung medial curvature'] = 1.0
+            options['Right lung dorsal-ventral medial curvature'] = 1.0
             options['Right lung base medial protrusion'] = 0.1
-            options['Right lung medial rotation in degree about z-axis'] = 20.0
+            options['Right lung ventral-medial rotation degrees'] = 20.0
             options['Accessory lobe'] = False
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
@@ -124,24 +124,24 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Left lung depth'] = 1.0
             options['Left lung height'] = 0.7
             options['Left lung ventral edge sharpness factor'] = 0.5
-            options['Left lung medial curvature'] = 0.6
+            options['Left lung dorsal-ventral medial curvature'] = 0.6
             options['Left lung base medial protrusion'] = 0.4
-            options['Left lung medial rotation in degree about z-axis'] = 5.0
+            options['Left lung ventral-medial rotation degrees'] = 5.0
             options['Right lung width'] = 0.8
             options['Right lung depth'] = 1.2
             options['Right lung height'] = 0.85
             options['Right lung ventral edge sharpness factor'] = 0.8
-            options['Right lung medial curvature'] = 0.8
+            options['Right lung dorsal-ventral medial curvature'] = 0.8
             options['Right lung base medial protrusion'] = 0.2
-            options['Right lung medial rotation in degree about z-axis'] = 15.0
-            options['Accessory lobe dorsal centre [x,y]'] = [-0.05, 0.125]
-            options['Accessory lobe length'] = 0.6
+            options['Right lung ventral-medial rotation degrees'] = 15.0
+            options['Accessory lobe dorsal centre [x,y]'] = [-0.09, 0.13]
+            options['Accessory lobe length'] = 0.65
             options['Accessory lobe dorsal height'] = 0.5
             options['Accessory lobe dorsal width'] = 0.5
             options['Accessory lobe ventral height'] = 0.15
             options['Accessory lobe ventral width'] = 0.2
-            options['Accessory lobe medial curvature'] = -1.0
-            options['Accessory lobe rotation in degree about z-axis'] = 40
+            options['Accessory lobe medial curvature about z-axis'] = -0.7
+            options['Accessory lobe ventral-left rotation degrees'] = 30
             options['Diaphragm centre y'] = 0.5
             options['Diaphragm curvature x'] = 0.8
             options['Diaphragm curvature y'] = 1.0
@@ -154,16 +154,16 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Left lung depth'] = 1.4
             options['Left lung height'] = 1.0
             options['Left lung ventral edge sharpness factor'] = 0.6
-            options['Left lung medial curvature'] = 0.8
+            options['Left lung dorsal-ventral medial curvature'] = 0.8
             options['Left lung base medial protrusion'] = 0.1
-            options['Left lung medial rotation in degree about z-axis'] = -5.0
+            options['Left lung ventral-medial rotation degrees'] = -5.0
             options['Right lung width'] = 0.5
             options['Right lung depth'] = 1.8
             options['Right lung height'] = 1.0
             options['Right lung ventral edge sharpness factor'] = 0.0
-            options['Right lung medial curvature'] = 0.7
+            options['Right lung dorsal-ventral medial curvature'] = 0.7
             options['Right lung base medial protrusion'] = 0.35
-            options['Right lung medial rotation in degree about z-axis'] = 5.0
+            options['Right lung ventral-medial rotation degrees'] = 5.0
             options['Accessory lobe'] = True
             options['Accessory lobe dorsal centre [x,y]'] = [-0.15, 0.25]
             options['Accessory lobe length'] = 0.7
@@ -171,8 +171,8 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Accessory lobe dorsal width'] = 0.5
             options['Accessory lobe ventral width'] = 0.2
             options['Accessory lobe ventral height'] = 0.2
-            options['Accessory lobe medial curvature'] = -0.7
-            options['Accessory lobe rotation in degree about z-axis'] = 20.0
+            options['Accessory lobe medial curvature about z-axis'] = -0.7
+            options['Accessory lobe ventral-left rotation degrees'] = 20.0
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
         elif 'Pig 1' in parameterSetName:
@@ -184,16 +184,16 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Left lung depth'] = 1.6
             options['Left lung height'] = 1.1
             options['Left lung ventral edge sharpness factor'] = 0.7
-            options['Left lung medial curvature'] = 0.55
+            options['Left lung dorsal-ventral medial curvature'] = 0.55
             options['Left lung base medial protrusion'] = 0.1
-            options['Left lung medial rotation in degree about z-axis'] = 10.0
+            options['Left lung ventral-medial rotation degrees'] = 10.0
             options['Right lung width'] = 0.8
             options['Right lung depth'] = 1.5
             options['Right lung height'] = 1.1
             options['Right lung ventral edge sharpness factor'] = 0.7
-            options['Right lung medial curvature'] = 0.7
+            options['Right lung dorsal-ventral medial curvature'] = 0.7
             options['Right lung base medial protrusion'] = 0.1
-            options['Right lung medial rotation in degree about z-axis'] = 10.0
+            options['Right lung ventral-medial rotation degrees'] = 10.0
             options['Accessory lobe'] = True
             options['Accessory lobe dorsal centre [x,y]'] = [-0.12, 0.15]
             options['Accessory lobe length'] = 1.0
@@ -201,8 +201,8 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Accessory lobe dorsal width'] = 0.6
             options['Accessory lobe ventral height'] = 0.1
             options['Accessory lobe ventral width'] = 0.2
-            options['Accessory lobe medial curvature'] = -0.9
-            options['Accessory lobe rotation in degree about z-axis'] = 15.0
+            options['Accessory lobe medial curvature about z-axis'] = -0.9
+            options['Accessory lobe ventral-left rotation degrees'] = 15.0
             options['Diaphragm centre y'] = 0.1
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
@@ -222,16 +222,16 @@ class MeshType_3d_lung2(Scaffold_base):
             'Left lung depth',
             'Left lung height',
             'Left lung ventral edge sharpness factor',
-            'Left lung medial curvature',
+            'Left lung dorsal-ventral medial curvature',
             'Left lung base medial protrusion',
-            'Left lung medial rotation in degree about z-axis',
+            'Left lung ventral-medial rotation degrees',
             'Right lung width',
             'Right lung depth',
             'Right lung height',
             'Right lung ventral edge sharpness factor',
-            'Right lung medial curvature',
+            'Right lung dorsal-ventral medial curvature',
             'Right lung base medial protrusion',
-            'Right lung medial rotation in degree about z-axis',
+            'Right lung ventral-medial rotation degrees',
             'Open fissures',
             'Accessory lobe',
             'Accessory lobe dorsal centre [x,y]',
@@ -240,8 +240,8 @@ class MeshType_3d_lung2(Scaffold_base):
             'Accessory lobe dorsal width',
             'Accessory lobe ventral height',
             'Accessory lobe ventral width',
-            'Accessory lobe medial curvature',
-            'Accessory lobe rotation in degree about z-axis',
+            'Accessory lobe medial curvature about z-axis',
+            'Accessory lobe ventral-left rotation degrees',
             'Diaphragm centre x',
             'Diaphragm centre y',
             'Diaphragm curvature x',
@@ -302,13 +302,13 @@ class MeshType_3d_lung2(Scaffold_base):
             leftDepth = options['Left lung depth'] / 2.0
             leftHeight = options['Left lung height']
             leftEdgeSharpFactor = options['Left lung ventral edge sharpness factor']
-            leftLungMedialCurvature = options['Left lung medial curvature'] * 2.0
+            leftLungMedialCurvature = options['Left lung dorsal-ventral medial curvature'] * 2.0
             leftLungMedialProtrusion = options['Left lung base medial protrusion']
             rightWidth = options['Right lung width'] / 2.0
             rightDepth = options['Right lung depth'] / 2.0
             rightHeight = options['Right lung height']
             rightEdgeSharpFactor = options['Right lung ventral edge sharpness factor']
-            rightLungMedialCurvature = options['Right lung medial curvature'] * 2.0
+            rightLungMedialCurvature = options['Right lung dorsal-ventral medial curvature'] * 2.0
             rightLungMedialProtrusion = options['Right lung base medial protrusion']
             isOpenfissure = options['Open fissures']
             hasAccessoryLobe = options['Accessory lobe']
@@ -318,14 +318,14 @@ class MeshType_3d_lung2(Scaffold_base):
             accessoryLobeDorsalWidth = options['Accessory lobe dorsal width']
             accessoryLobeVentralHeight = options['Accessory lobe ventral height']
             accessoryLobeVentralWidth = options['Accessory lobe ventral width']
-            accessoryLobeMedialCurve = options['Accessory lobe medial curvature'] * 2.0
+            accessoryLobeMedialCurve = options['Accessory lobe medial curvature about z-axis'] * 2.0
             diaphragmCentreX = options['Diaphragm centre x']
             diaphragmCentreY = options['Diaphragm centre y']
             diaphragmCurvatureX = options['Diaphragm curvature x']
             diaphragmCurvatureY = options['Diaphragm curvature y']
-            rotateLeftLung = options['Left lung medial rotation in degree about z-axis']
-            rotateRightLung = options['Right lung medial rotation in degree about z-axis']
-            rotateAccessoryLobe = options['Accessory lobe rotation in degree about z-axis']
+            rotateLeftLung = options['Left lung ventral-medial rotation degrees']
+            rotateRightLung = options['Right lung ventral-medial rotation degrees']
+            rotateAccessoryLobe = options['Accessory lobe ventral-left rotation degrees']
 
             nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
             nodetemplate = nodes.createNodetemplate()
