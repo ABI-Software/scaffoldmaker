@@ -1608,7 +1608,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
                 theta = math.pi - n1 * angleAroundUnit
             t = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2))
             xScale = maxCircumference / 2
-            yScale = minorarcLength / 2
+            yScale = bladderLength / 2
             x = [xScale * math.cos(phi) * math.sin(theta / 2) / t,
                  yScale * (math.sin(phi) / t + 1),
                  0.0]
