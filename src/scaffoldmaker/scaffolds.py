@@ -50,6 +50,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.meshtypes.meshtype_3d_vasculature import MeshType_3d_vasculature1
+from scaffoldmaker.meshtypes.meshtype_1d_nervecentreline1 import MeshType_1d_nervecentreline1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
@@ -58,6 +59,7 @@ class Scaffolds(object):
     def __init__(self):
         self._allScaffoldTypes = [
             MeshType_1d_bifurcationtree1,
+            MeshType_1d_nervecentreline1,
             MeshType_1d_path1,
             MeshType_1d_stickman1,
             MeshType_2d_plate1,
