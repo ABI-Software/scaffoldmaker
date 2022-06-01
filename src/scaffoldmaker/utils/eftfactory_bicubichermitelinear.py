@@ -50,6 +50,9 @@ class eftfactory_bicubichermitelinear:
         if self._d2_ds1ds2 != Node.VALUE_LABEL_D2_DS1DS2:
             remapEftNodeValueLabel(eft, range(1, 9), Node.VALUE_LABEL_D2_DS1DS2, [ (self._d2_ds1ds2, []) ])
 
+    def getElementbasis(self):
+        return self._basis
+
     def createEftBasic(self):
         '''
         Create the basic biicubic Hermite x linear Lagrange element template with 1:1 mappings to
