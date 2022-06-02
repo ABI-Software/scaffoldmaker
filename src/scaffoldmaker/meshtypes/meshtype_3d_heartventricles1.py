@@ -39,11 +39,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             'Human 1',
             'Mouse 1',
             'Pig 1',
-            'Rat 1',
-            'Unit Human 1',
-            'Unit Mouse 1',
-            'Unit Pig 1',
-            'Unit Rat 1']
+            'Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -51,7 +47,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         isMouse = 'Mouse' in parameterSetName
         isPig = 'Pig' in parameterSetName
         isRat = 'Rat' in parameterSetName
-        notUnitScale = 'Unit' not in parameterSetName
         options = {}
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
@@ -79,12 +74,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['Refine number of elements surface'] = 4
         options['Refine number of elements through LV wall'] = 1
         options['Refine number of elements through wall'] = 1
-        if isHuman:
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 80.0
-        elif isMouse or isRat:
-            if notUnitScale:
-                options['Unit scale'] = 5.0 if isMouse else 12.0
+        if isMouse or isRat:
             options['Interventricular sulcus derivative factor'] = 0.8
             options['LV outer height'] = 0.9
             options['LV outer diameter'] = 0.85
@@ -103,8 +93,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         elif isPig:
             options['Number of elements up LV apex'] = 1
             options['Number of elements up RV'] = 3
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 80.0
             options['LV outer height'] = 0.9
             options['LV free wall thickness'] = 0.17
             options['LV apex thickness'] = 0.07
@@ -115,12 +103,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             options['RV side extension'] = 0.1
             options['RV side extension growth factor'] = 0.4
             options['Ventricular septum thickness'] = 0.13
-        elif 'Rat' in parameterSetName:
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 12.0
-            options['LV outer height'] = 0.9
-            options['LV apex thickness'] = 0.08
-            options['RV width'] = 0.35
         return options
 
     @staticmethod

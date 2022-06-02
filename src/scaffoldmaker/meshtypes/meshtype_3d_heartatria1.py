@@ -203,11 +203,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             'Human 1',
             'Mouse 1',
             'Pig 1',
-            'Rat 1',
-            'Unit Human 1',
-            'Unit Mouse 1',
-            'Unit Pig 1',
-            'Unit Rat 1']
+            'Rat 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -215,7 +211,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
         isMouse = 'Mouse' in parameterSetName
         isPig = 'Pig' in parameterSetName
         isRat = 'Rat' in parameterSetName
-        notUnitScale = 'Unit' not in parameterSetName
         if isPig:
             lpvOstium = cls.lpvOstiumDefaultScaffoldPackages['LPV Pig 1']
             rpvOstium = cls.rpvOstiumDefaultScaffoldPackages['RPV Pig 1']
@@ -322,12 +317,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         options['Refine number of elements through epicardial fat layer'] = 1
         options['Use cross derivatives'] = False
 
-        if isHuman:
-            if notUnitScale:
-                options['Unit scale'] = 80.0
-        elif isMouse or isRat:
-            if notUnitScale:
-                options['Unit scale'] = 6.0 if isMouse else 12.0
+        if isMouse or isRat:
             options['Atria base inner major axis length'] = 0.32
             options['Atria base inner minor axis length'] = 0.26
             options['Atria major axis rotation degrees'] = 30.0
@@ -394,9 +384,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             options['Superior vena cava inlet position over'] = 0.62
             options['Superior vena cava inlet position right'] = 0.25
             options['Superior vena cava inlet wall thickness'] = 0.012
-        elif 'Pig' in parameterSetName:
-            if notUnitScale:
-                options['Unit scale'] = 80.0
+        elif isPig:
             options['Atrial base side incline degrees'] = 0.0
             options['Left atrial appendage angle axial degrees'] = -10.0
             options['Left atrial appendage angle left degrees'] = 20.0

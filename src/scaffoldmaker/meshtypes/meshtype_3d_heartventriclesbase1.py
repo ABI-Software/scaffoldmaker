@@ -46,11 +46,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             'Human 1',
             'Mouse 1',
             'Pig 1',
-            'Rat 1',
-            'Unit Human 1',
-            'Unit Mouse 1',
-            'Unit Pig 1',
-            'Unit Rat 1']
+            'Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -60,7 +56,6 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         isMouse = 'Mouse' in parameterSetName
         isPig = 'Pig' in parameterSetName
         isRat = 'Rat' in parameterSetName
-        notUnitScale = 'Unit' not in parameterSetName
         # only works with particular numbers of elements around
         options['Number of elements around LV free wall'] = 7
         options['Number of elements around RV free wall'] = 7

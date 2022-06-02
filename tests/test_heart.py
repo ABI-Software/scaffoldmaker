@@ -22,12 +22,12 @@ class HeartScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_heart1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, [ "Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1",
-            "Unit Human 1", "Unit Mouse 1", "Unit Pig 1", "Unit Rat 1" ]);
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1"]);
         options = scaffold.getDefaultOptions("Human 1")
         self.assertEqual(123, len(options))
         self.assertEqual(0.9, options.get("LV outer height"))
-        self.assertEqual(80.0, options.get("Unit scale"))
+        self.assertEqual(1.0, options.get("Unit scale"))
+        options["Unit scale"] = 80.0
         self.assertEqual(7, options.get("Number of elements around LV free wall"))
         self.assertEqual(7, options.get("Number of elements around RV free wall"))
         # simplify atria
