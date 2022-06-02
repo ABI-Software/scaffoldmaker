@@ -29,14 +29,14 @@ class MeshType_1d_nervecentreline1(Scaffold_base):
     def getDefaultOptions(parameterSetName='Default'):
         return {
             'Read centrelines from flatmap directory': False,
-            'Flatmap directory': ''
+            'Manifest file': ''
         }
 
     @staticmethod
     def getOrderedOptionNames():
         return [
             'Read centrelines from flatmap directory',
-            'Flatmap directory'
+            'Manifest file'
         ]
 
     @staticmethod
@@ -52,7 +52,7 @@ class MeshType_1d_nervecentreline1(Scaffold_base):
         :return: AnnotationGroups list
         """
         read_files = options['Read centrelines from flatmap directory']
-        input_directory = options['Flatmap directory']
+        input_file = options['Manifest file']
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -114,16 +114,17 @@ class MeshType_1d_nervecentreline1(Scaffold_base):
         cache = fm.createFieldcache()
 
         # markers group, coordinates and derivatives
-        def read_centrelines(flatmap_directory):
+        def read_centrelines(manifest_file):
             def read_json(filename):
                 with open(filename, 'r') as f:
                     dicf = json.loads(f.read())
                 return dicf
 
-            # input_directory = 'C:\flatmap\rat-flatmap'
-            manifest_dict = read_json(os.path.join(flatmap_directory, 'manifest.json'))
-            properties_data = read_json(os.path.join(flatmap_directory, manifest_dict['properties']))
-            anatomicalMap_data = read_json(os.path.join(flatmap_directory, manifest_dict['anatomicalMap']))
+            # input_file = 'C:\flatmap\rat-flatmap\manifest.json'
+            manifest_dict = read_json(os.path.join(manifest_file))
+            file_dirname = os.path.dirname(manifest_file)
+            properties_data = read_json(os.path.join(file_dirname, manifest_dict['properties']))
+            anatomicalMap_data = read_json(os.path.join(file_dirname, manifest_dict['anatomicalMap']))
             return properties_data, anatomicalMap_data
 
         def get_anatomical_names(properties_data, anatomicalMap_data):
@@ -141,8 +142,8 @@ class MeshType_1d_nervecentreline1(Scaffold_base):
             except KeyError:
                 return internal_name
 
-        if input_directory:
-            properties_data, anatomicalMap_data = read_centrelines(input_directory)
+        if input_file:
+            properties_data, anatomicalMap_data = read_centrelines(input_file)
 
         def marker_record(name, x, d1, radius_size):
             anatomical_name = get_anatomical_name(name, d)
@@ -233,7 +234,7 @@ class MeshType_1d_nervecentreline1(Scaffold_base):
             "urinary_13-1": "kidney",
         }
 
-        if input_directory:
+        if input_file:
             d = get_anatomical_names(properties_data, anatomicalMap_data)
         else:
             d = names_internal_anatomical_map
