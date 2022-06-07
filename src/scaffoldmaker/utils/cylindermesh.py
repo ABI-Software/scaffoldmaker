@@ -179,7 +179,14 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
-        self._rangeOfRequiredElements = rangeOfRequiredElements
+        if rangeOfRequiredElements:
+            self._rangeOfRequiredElements = rangeOfRequiredElements
+        else:
+            self._rangeOfRequiredElements = [
+                [0, self._elementsCountAcrossMajor],
+                [0, self._elementsCountAcrossMinor],
+                [0, self._elementsCountAlong],
+            ]
 
         self._meshGroups = meshGroups
         self._meshGroupsElementsAlong = meshGroupsElementsAlong

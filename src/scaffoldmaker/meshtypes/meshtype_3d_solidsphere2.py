@@ -151,8 +151,8 @@ with variable numbers of elements across axes and shell directions.
         ]
         rangeOfRequiredElements = [
             [cropElements[0][0], elementsCountAcrossAxis1 - cropElements[0][1]],
-            [cropElements[1][0], elementsCountAcrossAxis1 - cropElements[1][1]],
-            [cropElements[2][0], elementsCountAcrossAxis1 - cropElements[2][1]],
+            [cropElements[1][0], elementsCountAcrossAxis2 - cropElements[1][1]],
+            [cropElements[2][0], elementsCountAcrossAxis3 - cropElements[2][1]],
         ]
         sphereBoxDerivatives = [-options['Box derivatives'][0], options['Box derivatives'][1],
                                 options['Box derivatives'][2]]  # To make the values more intuitive for the user but
