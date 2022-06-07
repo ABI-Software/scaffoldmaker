@@ -1050,8 +1050,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Create annotation groups for dorsal and ventral parts of the bladder and urethra
         bladderDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of bladder"))
         bladderVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of bladder"))
-        leftHemibladderGroup = AnnotationGroup(region, get_bladder_term("left hemi-bladder"))
-        rightHemibladderGroup = AnnotationGroup(region, get_bladder_term("right hemi-bladder"))
+        leftHemibladderGroup = AnnotationGroup(region, ("left hemi-bladder", "None"))
+        rightHemibladderGroup = AnnotationGroup(region, ("right hemi-bladder", "None"))
         dorsalBladderMeshGroup = bladderDorsalGroup.getMeshGroup(mesh)
         ventralBladderMeshGroup = bladderVentralGroup.getMeshGroup(mesh)
         leftHemibladderMeshGroup = leftHemibladderGroup.getMeshGroup(mesh)
@@ -1568,8 +1568,8 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     minorNodeAlong_x = []
     minorNodeAlong_d2 = []
     for n1 in range(1, elementsCountAlongBladder + 1):
-        xNodesOnEllips = []
-        d1NodesOnEllips = []
+        xNodesOnEllipse = []
+        d1NodesOnEllipse = []
         idMinor = (n1 - 1) * elementsCountAround * (elementsCountThroughWall + 1) + elementsCountThroughWall + 1
         minorNodeAlong_x.append(xFinal[idMinor])
         minorNodeAlong_d2.append(d2Final[idMinor])
@@ -1577,11 +1577,11 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
             id = n2 + idMinor
             x = xFinal[id]
             d1 = d1Final[id]
-            xNodesOnEllips.append(x)
-            d1NodesOnEllips.append(d1)
-        xNodesOnEllips.append(xFinal[idMinor])
-        d1NodesOnEllips.append(d1Final[idMinor])
-        circumference = interp.getCubicHermiteCurvesLength(xNodesOnEllips, d1NodesOnEllips)
+            xNodesOnEllipse.append(x)
+            d1NodesOnEllipse.append(d1)
+        xNodesOnEllipse.append(xFinal[idMinor])
+        d1NodesOnEllipse.append(d1Final[idMinor])
+        circumference = interp.getCubicHermiteCurvesLength(xNodesOnEllipse, d1NodesOnEllipse)
         circumferenceList.append(circumference)
     maxCircumference = max(circumferenceList)
 
