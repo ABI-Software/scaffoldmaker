@@ -35,14 +35,13 @@ with variable numbers of elements across axes and shell directions.
             'Radius1': 1.0,
             'Radius2': 1.0,
             'Radius3': 1.0,
-            'Range of elements required in direction 1': [0, 4],
-            'Range of elements required in direction 2': [0, 4],
-            'Range of elements required in direction 3': [0, 4],
+            'Crop number of elements in direction 1': [0, 0],
+            'Crop number of elements in direction 2': [0, 0],
+            'Crop number of elements in direction 3': [0, 0],
             'Box derivatives': [1, 2, 3],
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements': 1,
-            'Current number of elements': [4, 4, 4]
         }
         return options
 
@@ -58,9 +57,9 @@ with variable numbers of elements across axes and shell directions.
             'Radius1',
             'Radius2',
             'Radius3',
-            'Range of elements required in direction 1',
-            'Range of elements required in direction 2',
-            'Range of elements required in direction 3',
+            'Crop number of elements in direction 1',
+            'Crop number of elements in direction 2',
+            'Crop number of elements in direction 3',
             'Box derivatives',
             'Refine',
             'Refine number of elements'
@@ -96,37 +95,20 @@ with variable numbers of elements across axes and shell directions.
         if len(options['Box derivatives']) > len(set(options['Box derivatives'])):
             options['Box derivatives'] = [1, 2, 3]
 
-        for i in range(1, 4):
-            if options['Range of elements required in direction {}'.format(i)][1] >= \
-                    options['Number of elements across axis {}'.format(i)] - 1\
-                    - options['Number of elements across shell']:
-                options['Range of elements required in direction {}'.format(i)][1] = \
-                    options['Number of elements across axis {}'.format(i)]
-
-        nm = 4
-        for i in range(1, nm):
-            if options['Range of elements required in direction {}'.format(i)][0] <= 1 + \
-                    options['Number of elements across shell']:
-                options['Range of elements required in direction {}'.format(i)][0] = 0
-
         maxelems = [options['Number of elements across axis 1'],
                     options['Number of elements across axis 2'],
                     options['Number of elements across axis 3']]
-        ranges = [options['Range of elements required in direction 1'],
-                  options['Range of elements required in direction 2'],
-                  options['Range of elements required in direction 3']]
-        for i in range(3):
-            if ranges[i][1] > maxelems[i] or ranges[i][1] <= max(1, ranges[i][0]):
-                dependentChanges = True
-                ranges[i][1] = maxelems[i]
-        for i in range(3):
-            if ranges[i][0] >= min(maxelems[i] - 1, ranges[i][1]) or ranges[i][0] < 1:
-                dependentChanges = True
-                ranges[i][0] = 0
 
-        options['Range of elements required in direction 1'] = ranges[0]
-        options['Range of elements required in direction 2'] = ranges[1]
-        options['Range of elements required in direction 3'] = ranges[2]
+        cropElements = [
+            options['Crop number of elements in direction 1'],
+            options['Crop number of elements in direction 2'],
+            options['Crop number of elements in direction 3'],
+        ]
+
+        for i in range(3):
+            for j in [0, 1]:
+                if not (1 + options['Number of elements across shell'] < cropElements[i][j] < maxelems[i]):
+                    options['Crop number of elements in direction {}'.format(i + 1)][j] = 0
 
         elementsCount_min = min(options['Number of elements across axis 1'],
                                 options['Number of elements across axis 2'],
@@ -141,12 +123,6 @@ with variable numbers of elements across axes and shell directions.
         if options['Shell element thickness proportion'] < 0.15:
             options['Shell element thickness proportion'] = 1.0
 
-        for i in range(1, nm):
-            if options['Number of elements across axis {}'.format(i)] != options['Current number of elements'][i - 1]:
-                dependentChanges = True
-                options['Range of elements required in direction {}'.format(i)][1] = \
-                    options['Number of elements across axis {}'.format(i)]
-                options['Current number of elements'][i - 1] = options['Number of elements across axis {}'.format(i)]
         return dependentChanges
 
     @staticmethod
@@ -167,9 +143,16 @@ with variable numbers of elements across axes and shell directions.
         shellProportion = options['Shell element thickness proportion']
         radius = [options['Radius1'], options['Radius2'], options['Radius3']]
         useCrossDerivatives = options['Use cross derivatives']
-        rangeOfRequiredElements = [options['Range of elements required in direction 1'],
-                                   options['Range of elements required in direction 2'],
-                                   options['Range of elements required in direction 3']]
+        cropElements = [
+            options['Crop number of elements in direction 1'],
+            options['Crop number of elements in direction 2'],
+            options['Crop number of elements in direction 3'],
+        ]
+        rangeOfRequiredElements = [
+            [cropElements[0][0], elementsCountAcrossAxis1 - cropElements[0][1]],
+            [cropElements[1][0], elementsCountAcrossAxis1 - cropElements[1][1]],
+            [cropElements[2][0], elementsCountAcrossAxis1 - cropElements[2][1]],
+        ]
         sphereBoxDerivatives = [-options['Box derivatives'][0], options['Box derivatives'][1],
                                 options['Box derivatives'][2]]  # To make the values more intuitive for the user but
         # consistent with [back, right, up]
