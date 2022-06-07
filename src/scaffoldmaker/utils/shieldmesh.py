@@ -434,12 +434,13 @@ class ShieldMesh2D:
                         self.pd2[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd2[n3][n2][n1])
                         self.pd3[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd3[n3][n2][n1])
 
-    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, mirrorPlane=None):
+    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, rangeOfRequiredElements, mirrorPlane=None):
         """
         Create shield nodes from coordinates.
         :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
         :param startNodeIdentifier: First node identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
         :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
         :return: next nodeIdentifier.
          """
@@ -465,6 +466,10 @@ class ShieldMesh2D:
         for n2 in range(self.elementsCountUpFull + 1):
             for n3 in range(self.elementsCountAlong+1):
                 for n1 in range(self.elementsCountAcross + 1):
+                    if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0]\
+                            or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0]\
+                            or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
+                        continue
                     if self.px[n3][n2][n1]:
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         self.nodeId[n3][n2][n1] = nodeIdentifier
@@ -477,12 +482,14 @@ class ShieldMesh2D:
 
         return nodeIdentifier
 
-    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroupsElementsAlong=[], meshGroups=[]):
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, rangeOfRequiredElements,
+                         meshGroupsElementsAlong=[], meshGroups=[]):
         """
         Create shield elements from nodes.
         :param fieldmodule: Zinc fieldmodule to create elements in.
         :param coordinates: Coordinate field to define.
         :param startElementIdentifier: First element identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
         :param meshGroups, meshGroupsElementsAlong: Zinc mesh groups to add elements to. meshGroupsElementsAlong is a
         list that specifies number of elements along the cylinder to be added to the same meshGroup.
         :return: next elementIdentifier.
@@ -522,6 +529,10 @@ class ShieldMesh2D:
         for e3 in range(self.elementsCountAlong):
             for e2 in range(self.elementsCountUpFull):
                 for e1 in range(self.elementsCountAcross):
+                    if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or\
+                            e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0]\
+                            or e1 >= rangeOfRequiredElements[1][1] or e1 < rangeOfRequiredElements[1][0]:
+                        continue
                     eft1 = eft
                     scalefactors = None
                     if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:

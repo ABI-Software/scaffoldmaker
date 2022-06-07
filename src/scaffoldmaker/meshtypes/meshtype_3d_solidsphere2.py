@@ -143,6 +143,7 @@ with variable numbers of elements across axes and shell directions.
         shellProportion = options['Shell element thickness proportion']
         radius = [options['Radius1'], options['Radius2'], options['Radius3']]
         useCrossDerivatives = options['Use cross derivatives']
+
         cropElements = [
             options['Crop number of elements in direction 1'],
             options['Crop number of elements in direction 2'],
