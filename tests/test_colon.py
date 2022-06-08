@@ -179,7 +179,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 629.4883774904393, delta=1.0E-6)
+        self.assertAlmostEqual(flatSurfaceArea, 615.2587495920166, delta=1.0E-6)
         result, colonSurfaceArea = colonSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(colonSurfaceArea, 90.4578820802557, delta=1.0E-6)

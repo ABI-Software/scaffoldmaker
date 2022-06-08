@@ -73,7 +73,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [-37.166408946939285, 0.0, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [43.162112471562814, 67.96829871181363, 0.5], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [43.162112471562814, 60.35206128046009, 0.5], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -94,7 +94,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(volume, 2221.200414557121, delta=1.0E-6)
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 4604.8779963335855, delta=1.0E-3)
+        self.assertAlmostEqual(flatSurfaceArea, 4087.7670057497376, delta=1.0E-3)
 
         # check some annotationGroups:
         expectedSizes3d = {
