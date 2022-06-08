@@ -136,7 +136,7 @@ class CylinderMesh:
 
     def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
-                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False):
+                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False , meshGroupsElementsAlong=[], meshGroups=[]):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -177,6 +177,8 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
+        self._meshGroups = meshGroups
+        self._meshGroupsElementsAlong = meshGroupsElementsAlong
         self._cylinderCentralPath = cylinderCentralPath
         if cylinderCentralPath:
             self.calculateEllipseParams(cylinderCentralPath=self._cylinderCentralPath)
@@ -390,7 +392,8 @@ class CylinderMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [])
+        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier,
+                                                          self._meshGroupsElementsAlong, self._meshGroups)
         self._endElementIdentifier = elementIdentifier
 
     def getElementsCountAround(self):
@@ -786,13 +789,15 @@ def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, he
     unitMajorAxis = vector.normalise(majorAxis)
     unitMinorAxis = vector.normalise(minorAxis)
     useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
-    totalRadians = geometry.getEllipseRadiansToX(magMajorAxis, 0.0, magMajorAxis - useHeight,
-                                                 initialTheta=0.5 * math.pi * useHeight / magMajorAxis)
+
+    totalRadians = math.acos((magMajorAxis - useHeight)/magMajorAxis)
     radians = 0.0
-    arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians)
+
+    arcLengthUp = geometry.getEllipseArcLength(magMajorAxis, magMinorAxis, radians, totalRadians, 'integrate')
     elementsCountUp = elementsCountAround // 2
     elementArcLength = arcLengthUp / elementsCountUp
-    radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp)
+
+    radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, -arcLengthUp, method='Newton')
     for n1 in range(2 * elementsCountUp + 1):
         cosRadians = math.cos(radians)
         sinRadians = math.sin(radians)
@@ -802,7 +807,8 @@ def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, he
         ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
         nd1.append(
             [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
-        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength)
+        radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength,
+                                                         method='Newton')
     return nx, nd1
 
 
