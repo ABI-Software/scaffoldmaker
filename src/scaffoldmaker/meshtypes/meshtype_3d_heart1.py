@@ -79,7 +79,7 @@ class MeshType_3d_heart1(Scaffold_base):
             'Refine number of elements surface',
             'Refine number of elements through LV wall',
             'Refine number of elements through wall',
-            'Refine number of elements through epicardial fat layer']:
+            'Refine number of elements through epicardium layer']:
             optionNames.remove(optionName)
             optionNames.append(optionName)
         return optionNames
@@ -129,32 +129,20 @@ class MeshType_3d_heart1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fm)
         cache = fm.createFieldcache()
 
-        mesh = fm.findMeshByDimension(3)
-
         # generate heartventriclesbase1 model and put atria1 on it
         ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase1.generateBaseMesh(region, options)
         atriaAnnotationGroups = MeshType_3d_heartatria1.generateBaseMesh(region, options)
         annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
         heartGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("heart"))
-        cruxGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("crux of heart"))
+        cruxGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("crux cordis"))
         lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
-
-        # annotation fiducial points
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
 
         ##############
         # Create nodes
         ##############
 
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         # discover left and right fibrous ring nodes from ventricles and atria
@@ -215,6 +203,7 @@ class MeshType_3d_heart1(Scaffold_base):
         # Create elements
         #################
 
+        mesh = fm.findMeshByDimension(3)
         heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lFibrousRingMeshGroup = lFibrousRingGroup.getMeshGroup(mesh)
         rFibrousRingMeshGroup = rFibrousRingGroup.getMeshGroup(mesh)
@@ -393,16 +382,13 @@ class MeshType_3d_heart1(Scaffold_base):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
 
-        # annotation fiducial points
+        # crux cordis annotation point
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
         cruxXi = [ 0.5, 0.5, 1.0 ]
-        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        nodeIdentifier += 1
-        cache.setNode(markerPoint)
-        markerName.assignString(cache, cruxGroup.getName())
-        markerLocation.assignMeshLocation(cache, cruxElement, cruxXi)
-        for group in [ heartGroup, cruxGroup ]:
-            group.getNodesetGroup(nodes).addNode(markerPoint)
+        markerNode = cruxGroup.createMarkerNode(nodeIdentifier, element=cruxElement, xi=cruxXi)
+        nodeIdentifier = markerNode.getIdentifier() + 1
+        for group in [ heartGroup ]:
+            group.getNodesetGroup(nodes).addNode(markerNode)
 
         return annotationGroups
 

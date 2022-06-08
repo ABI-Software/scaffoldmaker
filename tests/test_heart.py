@@ -39,9 +39,22 @@ class HeartScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
-        self.assertEqual(32, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
+
+        # Need to do the following manually to save originalAnnotationGroups which has some temporary groups
+        # annotationGroups = scaffold.generateMesh(region, options)
+        with ChangeManager(fieldmodule):
+            annotationGroups = scaffold.generateBaseMesh(region, options)
+            fieldmodule.defineAllFaces()
+            originalAnnotationGroups = copy.copy(annotationGroups)
+            for annotationGroup in annotationGroups:
+                annotationGroup.addSubelements()
+            scaffold.defineFaceAnnotations(region, options, annotationGroups)
+            for annotationGroup in annotationGroups:
+                if annotationGroup not in originalAnnotationGroups:
+                    annotationGroup.addSubelements()
+
+        self.assertEqual(45, len(annotationGroups))
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(332, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
@@ -49,7 +62,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(1567, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(614, nodes.getSize())
+        self.assertEqual(611, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -93,8 +106,8 @@ class HeartScaffoldTestCase(unittest.TestCase):
         expectedSizes2d = {
             "endocardium of left ventricle" : 88,
             "endocardium of right ventricle" : 73,
-            "endocardium of left atrium" : 82,
-            "endocardium of right atrium" : 74,
+            "left atrium endocardium" : 82,
+            "right atrium endocardium" : 74,
             "epicardium" : 229
             }
         for name in expectedSizes2d:
@@ -105,7 +118,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
         markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
-        self.assertEqual(7, markerNodes.getSize())
+        self.assertEqual(4, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
         markerLocation = fieldmodule.findFieldByName("marker_location")
@@ -122,14 +135,9 @@ class HeartScaffoldTestCase(unittest.TestCase):
         self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
 
         # refine 2x2x2 and check result
-        # first remove any face (but not point) annotation groups as they are re-added by defineFaceAnnotations
-        removeAnnotationGroups = []
-        for annotationGroup in annotationGroups:
-            if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
-                removeAnnotationGroups.append(annotationGroup)
-        for annotationGroup in removeAnnotationGroups:
-            annotationGroups.remove(annotationGroup)
-        self.assertEqual(23, len(annotationGroups))
+        # need to use original annotation groups to get temporaries
+        annotationGroups = originalAnnotationGroups
+        self.assertEqual(26, len(annotationGroups))  # 23 + 3 temporary groups
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -148,7 +156,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(32, len(annotationGroups))
+        self.assertEqual(45, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(2580, mesh3d.getSize())
@@ -157,7 +165,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         mesh1d = refineFieldmodule.findMeshByDimension(1)
         self.assertEqual(9983, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(3693, nodes.getSize())
+        self.assertEqual(3690, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -181,7 +189,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
-        self.assertEqual(7, markerNodes.getSize())
+        self.assertEqual(4, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
         markerLocation = refineFieldmodule.findFieldByName("marker_location")
