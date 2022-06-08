@@ -639,7 +639,10 @@ def createNodesAndElements(region,
         for n2 in range(elementsCountAlong):
             for n3 in range(elementsCountThroughWall + 1):
                 for n1 in range(elementsCountAround):
-                    i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1 + elementsCountThroughWall + 1
+                    if closedProximalEnd:
+                        i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1 + elementsCountThroughWall + 1
+                    else:
+                        i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1
                     node = nodes.findNodeByIdentifier(nodeIdentifier)
                     node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
                     cache.setNode(node)
