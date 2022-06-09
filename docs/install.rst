@@ -1,6 +1,5 @@
-
-Installing
-==========
+Installation
+============
 
 Install with::
 

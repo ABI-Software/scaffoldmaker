@@ -39,11 +39,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             'Human 1',
             'Mouse 1',
             'Pig 1',
-            'Rat 1',
-            'Unit Human 1',
-            'Unit Mouse 1',
-            'Unit Pig 1',
-            'Unit Rat 1']
+            'Rat 1']
 
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
@@ -51,7 +47,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         isMouse = 'Mouse' in parameterSetName
         isPig = 'Pig' in parameterSetName
         isRat = 'Rat' in parameterSetName
-        notUnitScale = 'Unit' not in parameterSetName
         options = {}
         options['Number of elements around LV free wall'] = 5
         options['Number of elements around RV free wall'] = 7
@@ -79,12 +74,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         options['Refine number of elements surface'] = 4
         options['Refine number of elements through LV wall'] = 1
         options['Refine number of elements through wall'] = 1
-        if isHuman:
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 80.0
-        elif isMouse or isRat:
-            if notUnitScale:
-                options['Unit scale'] = 5.0 if isMouse else 12.0
+        if isMouse or isRat:
             options['Interventricular sulcus derivative factor'] = 0.8
             options['LV outer height'] = 0.9
             options['LV outer diameter'] = 0.85
@@ -103,8 +93,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         elif isPig:
             options['Number of elements up LV apex'] = 1
             options['Number of elements up RV'] = 3
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 80.0
             options['LV outer height'] = 0.9
             options['LV free wall thickness'] = 0.17
             options['LV apex thickness'] = 0.07
@@ -115,12 +103,6 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             options['RV side extension'] = 0.1
             options['RV side extension growth factor'] = 0.4
             options['Ventricular septum thickness'] = 0.13
-        elif 'Rat' in parameterSetName:
-            if 'Unit' not in parameterSetName:
-                options['Unit scale'] = 12.0
-            options['LV outer height'] = 0.9
-            options['LV apex thickness'] = 0.08
-            options['RV width'] = 0.35
         return options
 
     @staticmethod
@@ -1239,28 +1221,53 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         """
         # create endocardium and epicardium groups
         fm = region.getFieldmodule()
-        lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
-        rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
+        lvmGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
+        rvmGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interventricular septum"))
         mesh2d = fm.findMeshByDimension(2)
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_lv = lvGroup.getFieldElementGroup(mesh2d)
-        is_rv = rvGroup.getFieldElementGroup(mesh2d)
-        is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
-        is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
-                                                        fm.createFieldNot(is_lv_endo)),
-                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
-        is_v_epi = fm.createFieldAnd(fm.createFieldOr(is_lv, is_rv),
-                                     fm.createFieldAnd(is_exterior_face_xi3_1,
-                                                     fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d))))
+        is_lvm = lvmGroup.getFieldElementGroup(mesh2d)
+        is_rvm = rvmGroup.getFieldElementGroup(mesh2d)
+        is_lvm_endo = fm.createFieldAnd(is_lvm, is_exterior_face_xi3_0)
+        is_rvm_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rvm, is_exterior_face_xi3_0),
+                                                        fm.createFieldNot(is_lvm_endo)),
+                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d),
+                                                        is_exterior_face_xi3_1))
+        is_ext_xi3_1_and_not_septum = fm.createFieldAnd(
+            is_exterior_face_xi3_1, fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
+        is_os_lvm = fm.createFieldAnd(is_lvm, is_ext_xi3_1_and_not_septum)
+        is_os_rvm = fm.createFieldAnd(is_rvm, is_ext_xi3_1_and_not_septum)
+
+        # luminal surfaces of endocardium of left/right ventricle
+        lslvEndoGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("luminal surface of left ventricle"))
+        lslvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lvm_endo)
+        lsrvEndoGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("luminal surface of right ventricle"))
+        lsrvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rvm_endo)
+        # endocardium groups are defined identically to luminal surfaces at scaffold scale
+        lvEndoGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("endocardium of left ventricle"))
+        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lslvEndoGroup.getFieldElementGroup(mesh2d))
+        rvEndoGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("endocardium of right ventricle"))
+        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lsrvEndoGroup.getFieldElementGroup(mesh2d))
+
+        oslvmGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("outer surface of myocardium of left ventricle"))
+        oslvmGroup.getMeshGroup(mesh2d).addElementsConditional(is_os_lvm)
+        osrvmGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("outer surface of myocardium of right ventricle"))
+        osrvmGroup.getMeshGroup(mesh2d).addElementsConditional(is_os_rvm)
+        osmGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("outer surface of myocardium"))
+        osmGroup.getMeshGroup(mesh2d).addElementsConditional(oslvmGroup.getFieldElementGroup(mesh2d))
+        osmGroup.getMeshGroup(mesh2d).addElementsConditional(osrvmGroup.getFieldElementGroup(mesh2d))
+        # if no volumetric epicardium group, add outer surface of myocardium
         epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
-        epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_v_epi)
-        lvEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left ventricle"))
-        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_lv_endo)
-        rvEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of right ventricle"))
-        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(is_rv_endo)
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(osmGroup.getFieldElementGroup(mesh2d))
 
 
 def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundVSeptum, z, n3):

@@ -109,7 +109,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(24, len(annotationGroups))
 
-        endocardium_of_la = scaffoldPackage.findAnnotationGroupByName('endocardium of left atrium')
+        endocardium_of_la = scaffoldPackage.findAnnotationGroupByName('left atrium endocardium')
         self.assertTrue(isinstance(endocardium_of_la, AnnotationGroup))
         self.assertFalse(scaffoldPackage.isUserAnnotationGroup(endocardium_of_la))
         self.assertFalse(scaffoldPackage.deleteAnnotationGroup(endocardium_of_la))  # can't delete auto annotation groups
