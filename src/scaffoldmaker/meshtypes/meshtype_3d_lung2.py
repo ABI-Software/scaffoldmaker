@@ -37,6 +37,44 @@ class MeshType_3d_lung2(Scaffold_base):
          Regions and markers of the lung are annotated.
     """
 
+    materialOptions = {
+        'Number of left lung lobes': 2,
+        'Left-right lung spacing': 1.0,
+        'Left-right apex medial shear displacement': 0.0,
+        'Left-right apex ventral shear displacement': 0.0,
+        'Left lung width': 0.5,
+        'Left lung depth': 1.0,
+        'Left lung height': 1.0,
+        'Left lung ventral edge sharpness factor': 0.0,
+        'Left lung dorsal-ventral medial curvature': 0.0,
+        'Left lung base medial protrusion': 0.0,
+        'Right lung width': 0.5,
+        'Right lung depth': 1.0,
+        'Right lung height': 1.0,
+        'Right lung ventral edge sharpness factor': 0.0,
+        'Right lung dorsal-ventral medial curvature': 0.0,
+        'Right lung base medial protrusion': 0.0,
+        'Open fissures': False,
+        'Accessory lobe': True,
+        'Accessory lobe medial curvature about z-axis': 0.0,
+        'Accessory lobe length': 0.5,
+        'Accessory lobe dorsal centre [x,y]': [0.0, 0.25],
+        'Accessory lobe dorsal height': 0.5,
+        'Accessory lobe dorsal width': 0.5,
+        'Accessory lobe ventral height': 0.5,
+        'Accessory lobe ventral width': 0.5,
+        'Diaphragm centre x': 0.0,
+        'Diaphragm centre y': 0.0,
+        'Diaphragm curvature x': 0.0,
+        'Diaphragm curvature y': 0.0,
+        'Left lung ventral-medial rotation degrees': 0.0,
+        'Right lung ventral-medial rotation degrees': 0.0,
+        'Accessory lobe ventral-left rotation degrees': 0.0,
+        'Refine': False,
+        'Refine number of elements': 4,
+        'Material Parameters': None
+    }
+
     @staticmethod
     def getName():
         return '3D Lung 2'
@@ -56,45 +94,9 @@ class MeshType_3d_lung2(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if parameterSetName == 'Default':
             parameterSetName = 'Human 1'
-        options = {
-            'Base parameter set': parameterSetName,
-            'Number of left lung lobes': 2,
-            'Left-right lung spacing': 1.0,
-            'Left-right apex medial shear displacement': 0.0,
-            'Left-right apex ventral shear displacement': 0.0,
-            'Left lung width': 0.5,
-            'Left lung depth': 1.0,
-            'Left lung height': 1.0,
-            'Left lung ventral edge sharpness factor': 0.0,
-            'Left lung dorsal-ventral medial curvature': 0.0,
-            'Left lung base medial protrusion': 0.0,
-            'Right lung width': 0.5,
-            'Right lung depth': 1.0,
-            'Right lung height': 1.0,
-            'Right lung ventral edge sharpness factor': 0.0,
-            'Right lung dorsal-ventral medial curvature': 0.0,
-            'Right lung base medial protrusion': 0.0,
-            'Open fissures': False,
-            'Accessory lobe': True,
-            'Accessory lobe medial curvature about z-axis': 0.0,
-            'Accessory lobe length': 0.5,
-            'Accessory lobe dorsal centre [x,y]': [0.0, 0.25],
-            'Accessory lobe dorsal height': 0.5,
-            'Accessory lobe dorsal width': 0.5,
-            'Accessory lobe ventral height': 0.5,
-            'Accessory lobe ventral width': 0.5,
-            'Diaphragm centre x': 0.0,
-            'Diaphragm centre y': 0.0,
-            'Diaphragm curvature x': 0.0,
-            'Diaphragm curvature y': 0.0,
-            'Left lung ventral-medial rotation degrees': 0.0,
-            'Right lung ventral-medial rotation degrees': 0.0,
-            'Accessory lobe ventral-left rotation degrees': 0.0,
-            'Refine': False,
-            'Refine number of elements': 4,
-            'Material Parameters': None
-        }
-        materialOptions = copy.deepcopy(options)
+
+        options = copy.deepcopy(cls.materialOptions)
+
         if 'Human 1' in parameterSetName:
             options['Left-right lung spacing'] = 0.8
             options['Left-right apex medial shear displacement'] = 0.3
@@ -207,9 +209,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Diaphragm centre y'] = 0.1
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
-        options['Material Parameters'] = materialOptions
-        options['Material Parameters']['Base parameter set'] = 'Material'
-        options['Material Parameters']['Accessory lobe'] = options['Accessory lobe']
+
         return options
 
     @staticmethod
@@ -283,6 +283,7 @@ class MeshType_3d_lung2(Scaffold_base):
                 fm = fm_0
                 coordinates = coordinates_0
                 region_temp = region
+                useOptions = options
             else:
                 region_1 = region.createRegion()
                 fm_1 = region_1.getFieldmodule()
@@ -292,43 +293,43 @@ class MeshType_3d_lung2(Scaffold_base):
                 fm = fm_1
                 coordinates = coordinates_1
                 # update material coordinates according to geometric parameters
-                options['Material Parameters']['Number of left lung lobes'] = options['Number of left lung lobes']
-                options['Material Parameters']['Open fissures'] = options['Open fissures']
-                options['Material Parameters']['Accessory lobe'] = options['Accessory lobe']
-                options = options['Material Parameters']
+                useOptions = copy.deepcopy(cls.materialOptions)
+                useOptions['Number of left lung lobes'] = options['Number of left lung lobes']
+                useOptions['Open fissures'] = options['Open fissures']
+                useOptions['Accessory lobe'] = options['Accessory lobe']
 
-            numberOfLeftLung = options['Number of left lung lobes']
-            spacingBetweenLeftRight = options['Left-right lung spacing'] / 2.0
-            lungsApexDisplacement = options['Left-right apex medial shear displacement']
-            forwardLeftRightApex = options['Left-right apex ventral shear displacement']
-            leftWidth = options['Left lung width'] / 2.0
-            leftDepth = options['Left lung depth'] / 2.0
-            leftHeight = options['Left lung height']
-            leftEdgeSharpFactor = options['Left lung ventral edge sharpness factor']
-            leftLungMedialCurvature = options['Left lung dorsal-ventral medial curvature'] * 2.0
-            leftLungMedialProtrusion = options['Left lung base medial protrusion']
-            rightWidth = options['Right lung width'] / 2.0
-            rightDepth = options['Right lung depth'] / 2.0
-            rightHeight = options['Right lung height']
-            rightEdgeSharpFactor = options['Right lung ventral edge sharpness factor']
-            rightLungMedialCurvature = options['Right lung dorsal-ventral medial curvature'] * 2.0
-            rightLungMedialProtrusion = options['Right lung base medial protrusion']
-            isOpenfissure = options['Open fissures']
-            hasAccessoryLobe = options['Accessory lobe']
-            accessoryLobeDorsalCentre = options['Accessory lobe dorsal centre [x,y]']
-            accessoryLobeLength = options['Accessory lobe length']
-            accessoryLobeDorsalHeight = options['Accessory lobe dorsal height']
-            accessoryLobeDorsalWidth = options['Accessory lobe dorsal width']
-            accessoryLobeVentralHeight = options['Accessory lobe ventral height']
-            accessoryLobeVentralWidth = options['Accessory lobe ventral width']
-            accessoryLobeMedialCurve = options['Accessory lobe medial curvature about z-axis'] * 2.0
-            diaphragmCentreX = options['Diaphragm centre x']
-            diaphragmCentreY = options['Diaphragm centre y']
-            diaphragmCurvatureX = options['Diaphragm curvature x']
-            diaphragmCurvatureY = options['Diaphragm curvature y']
-            rotateLeftLung = options['Left lung ventral-medial rotation degrees']
-            rotateRightLung = options['Right lung ventral-medial rotation degrees']
-            rotateAccessoryLobe = options['Accessory lobe ventral-left rotation degrees']
+            numberOfLeftLung = useOptions['Number of left lung lobes']
+            spacingBetweenLeftRight = useOptions['Left-right lung spacing'] / 2.0
+            lungsApexDisplacement = useOptions['Left-right apex medial shear displacement']
+            forwardLeftRightApex = useOptions['Left-right apex ventral shear displacement']
+            leftWidth = useOptions['Left lung width'] / 2.0
+            leftDepth = useOptions['Left lung depth'] / 2.0
+            leftHeight = useOptions['Left lung height']
+            leftEdgeSharpFactor = useOptions['Left lung ventral edge sharpness factor']
+            leftLungMedialCurvature = useOptions['Left lung dorsal-ventral medial curvature'] * 2.0
+            leftLungMedialProtrusion = useOptions['Left lung base medial protrusion']
+            rightWidth = useOptions['Right lung width'] / 2.0
+            rightDepth = useOptions['Right lung depth'] / 2.0
+            rightHeight = useOptions['Right lung height']
+            rightEdgeSharpFactor = useOptions['Right lung ventral edge sharpness factor']
+            rightLungMedialCurvature = useOptions['Right lung dorsal-ventral medial curvature'] * 2.0
+            rightLungMedialProtrusion = useOptions['Right lung base medial protrusion']
+            isOpenfissure = useOptions['Open fissures']
+            hasAccessoryLobe = useOptions['Accessory lobe']
+            accessoryLobeDorsalCentre = useOptions['Accessory lobe dorsal centre [x,y]']
+            accessoryLobeLength = useOptions['Accessory lobe length']
+            accessoryLobeDorsalHeight = useOptions['Accessory lobe dorsal height']
+            accessoryLobeDorsalWidth = useOptions['Accessory lobe dorsal width']
+            accessoryLobeVentralHeight = useOptions['Accessory lobe ventral height']
+            accessoryLobeVentralWidth = useOptions['Accessory lobe ventral width']
+            accessoryLobeMedialCurve = useOptions['Accessory lobe medial curvature about z-axis'] * 2.0
+            diaphragmCentreX = useOptions['Diaphragm centre x']
+            diaphragmCentreY = useOptions['Diaphragm centre y']
+            diaphragmCurvatureX = useOptions['Diaphragm curvature x']
+            diaphragmCurvatureY = useOptions['Diaphragm curvature y']
+            rotateLeftLung = useOptions['Left lung ventral-medial rotation degrees']
+            rotateRightLung = useOptions['Right lung ventral-medial rotation degrees']
+            rotateAccessoryLobe = useOptions['Accessory lobe ventral-left rotation degrees']
 
             nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
             nodetemplate = nodes.createNodetemplate()
