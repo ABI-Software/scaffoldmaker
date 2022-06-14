@@ -394,12 +394,18 @@ class MeshType_3d_lung2(Scaffold_base):
                     annotationGroups.append(rightLungAccessoryLobeGroup)
                     rightLungAccessoryLobeNodesetGroup = rightLungAccessoryLobeGroup.getNodesetGroup(nodes)
                     # Marker points
-                    accessoryApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                            get_lung_term("apex of right lung accessory lobe"))
-                    accessoryVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                               get_lung_term("ventral base of right lung accessory lobe"))
-                    accessoryDorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                              get_lung_term("dorsal base of right lung accessory lobe"))
+                    accessoryDorsalApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                            get_lung_term("dorsal apex of right lung accessory lobe"))
+                    accessoryVentralApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                                  get_lung_term("ventral apex of right lung accessory lobe"))
+                    accessoryVentralLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                                   get_lung_term("left ventral base of right lung accessory lobe"))
+                    accessoryVentralRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                               get_lung_term("right ventral base of right lung accessory lobe"))
+                    accessoryDorsalLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                              get_lung_term("left dorsal base of right lung accessory lobe"))
+                    accessoryDorsalRightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                                  get_lung_term("right dorsal base of right lung accessory lobe"))
 
                 # Nodeset group
                 leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
@@ -658,14 +664,25 @@ class MeshType_3d_lung2(Scaffold_base):
 
                 idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1) + 1
                 idx = rightLungElementCount + leftLungElementCount + idx_temp
-                markerList.append({"group": accessoryApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+                markerList.append({"group": accessoryDorsalApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+
+                idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3)
+                idx = rightLungElementCount + leftLungElementCount + idx_temp
+                markerList.append({"group": accessoryVentralApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
 
                 idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1)
                 idx = rightLungElementCount + leftLungElementCount + idx_temp
-                markerList.append({"group": accessoryVentralGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
+                markerList.append({"group": accessoryVentralRightGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
+
+                idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1) - 1
+                idx = rightLungElementCount + leftLungElementCount + idx_temp
+                markerList.append({"group": accessoryVentralLeftGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
                 idx = rightLungElementCount + leftLungElementCount + 1
-                markerList.append({"group": accessoryDorsalGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+                markerList.append({"group": accessoryDorsalLeftGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+
+                idx = rightLungElementCount + leftLungElementCount + 2
+                markerList.append({"group": accessoryDorsalRightGroup, "elementId": idx, "xi": [1.0, 0.0, 0.0]})
 
             for marker in markerList:
                 annotationGroup = marker["group"]
@@ -800,6 +817,17 @@ class MeshType_3d_lung2(Scaffold_base):
                     if (('lateral' in sideTerm) and ('left' in term)) or (('medial' in sideTerm) and ('right' in term)):
                         surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_0))
                     elif (('medial' in sideTerm) and ('left' in term)) or (('lateral' in sideTerm) and ('right' in term)):
+                        surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_1))
+            else:
+                for sideTerm in ['dorsal surface of ', 'ventral surface of ', 'left surface of ', 'right surface of ']:
+                    surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(sideTerm + term))
+                    if sideTerm == 'dorsal surface of ':
+                        surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi2_0))
+                    elif sideTerm == 'ventral surface of ':
+                        surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi2_1))
+                    elif sideTerm == 'left surface of ':
+                        surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_0))
+                    elif sideTerm == 'right surface of ':
                         surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_1))
 
         # Base surface of lungs (incl. lobes)
