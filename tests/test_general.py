@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from opencmiss.maths.vectorops import magnitude
@@ -12,6 +13,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
+from scaffoldmaker.utils.geometry import getEllipsoidPolarCoordinatesFromPosition, \
+    getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.zinc_utils import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
     nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
@@ -350,6 +353,80 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         elementOut, xiOut = fredGroup2.getMarkerLocation()
         self.assertEqual(105, elementOut.getIdentifier())
         assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
+
+    def test_utils_ellipsoid(self):
+        """
+        Test ellipsoid functions converting between coor
+        """
+        a = 1.0
+        b = 0.75
+        c = 2.0
+        TOL = 1.0E-7
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, [1.0, 0.0, 0.0])
+        self.assertAlmostEqual(u, 0.0, delta=TOL)
+        self.assertAlmostEqual(v, 0.5 * math.pi, delta=TOL)
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)
+        assertAlmostEqualList(self, x, [1.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [0.0, 0.75, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [0.0, 0.0, -2.0], delta=TOL)
+
+        # test a point not on the surface
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, [1.0, 0.75, 1.0])
+        self.assertAlmostEqual(u, 0.6795888593403792, delta=TOL)
+        self.assertAlmostEqual(v, 1.1035255937433424, delta=TOL)
+        x = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)[0]
+        assertAlmostEqualList(self, x, [0.694448461834745, 0.42082618548100487, 0.9009025475758113], delta=TOL)
+        mag = (x[0] / a) * (x[0] / a) + (x[1] / b) * (x[1] / b) + (x[2] / c) * (x[2] / c)
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+        # test the nearest point found on the surface has same polar coordinates
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, 0.6795888593403792, delta=TOL)
+        self.assertAlmostEqual(v, 1.1035255937433424, delta=TOL)
+
+        # test a point not on the surface
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, [-0.9, -0.25, -1.2])
+        self.assertAlmostEqual(u, -2.8190485195549204, delta=TOL)
+        self.assertAlmostEqual(v, 2.185488763727226, delta=TOL)
+        x = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)[0]
+        assertAlmostEqualList(self, x, [-0.7748223762344193, -0.19421813246373332, -1.1534145713074584], delta=TOL)
+        mag = (x[0] / a) * (x[0] / a) + (x[1] / b) * (x[1] / b) + (x[2] / c) * (x[2] / c)
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+        # test the nearest point found on the surface has same polar coordinates
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, -2.8190485195549204, delta=TOL)
+        self.assertAlmostEqual(v, 2.185488763727226, delta=TOL)
+
+        u_in = math.pi / 3.0
+        v_in = math.pi / 2.0
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u_in, v_in)
+        assertAlmostEqualList(self, x, [0.5, 0.649519052838329, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [-0.8660254037844386, 0.375, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [0.0, 0.0, -2.0], delta=TOL)
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, u_in, delta=TOL)
+        self.assertAlmostEqual(v, v_in, delta=TOL)
+
+        u_in = -0.7 * math.pi
+        v_in = 0.3 * math.pi
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u_in, v_in)
+        assertAlmostEqualList(self, x, [-0.4755282581475769, -0.49088137289060524, 1.1755705045849463], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [0.6545084971874736, -0.35664619361068267, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [-0.3454915028125264, -0.35664619361068256, -1.618033988749895], delta=TOL)
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, u_in, delta=TOL)
+        self.assertAlmostEqual(v, v_in, delta=TOL)
+
+        u_in = 0.35 * math.pi
+        v_in = 0.65 * math.pi
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u_in, v_in)
+        assertAlmostEqualList(self, x, [0.4045084971874737, 0.5954194696096774, -0.9079809994790935], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [-0.7938926261462366, 0.3033813728906053, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [-0.20610737385376343, -0.30338137289060524, -1.7820130483767358], delta=TOL)
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, u_in, delta=TOL)
+        self.assertAlmostEqual(v, v_in, delta=TOL)
+
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_brainstem1)
 
 
 if __name__ == "__main__":
