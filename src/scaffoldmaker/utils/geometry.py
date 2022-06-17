@@ -8,6 +8,7 @@ import copy
 import math
 
 from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 
 
 def getApproximateEllipsePerimeter(a, b):
@@ -184,6 +185,78 @@ def createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround, eleme
             radiansAround += radiansPerElementAround
         radiansUp = updateEllipseAngleByArcLength(magPoleAxis, magSideAxis, radiansUp, elementLengthUp)
     return nx, nd1, nd2
+
+
+def getEllipsoidPolarCoordinatesTangents(a: float, b: float, c: float, u: float, v: float):
+    """
+    Get rate of change of x, y, z with u and v at current u, v.
+    Given parametric equation for ellipsoid:
+    x = a*cos(u)*sin(v)
+    y = b*sin(u)*sin(v)
+    z = c*cos(v)
+    Fails at apex.
+    :param a, b, c: Axis length in x, y, z directions
+    :param u: Polar coordinate (radians from positive x towards y) from -pi to + pi
+    :param v: Polar coordinate (radians from positive z downwards) from 0 to pi
+    :return: 3 lists (x, y, z), d(x, y, z)/du d(x, y, z)/dv.
+    """
+    cos_u = math.cos(u)
+    sin_u = math.sin(u)
+    cos_v = math.cos(v)
+    sin_v = math.sin(v)
+    x = [
+        a * cos_u * sin_v,
+        b * sin_u * sin_v,
+        c * cos_v
+    ]
+    dx_du = [
+        a * -sin_u * sin_v,
+        b * cos_u * sin_v,
+        0.0
+    ]
+    dx_dv = [
+        a * cos_u * cos_v,
+        b * sin_u * cos_v,
+        c * -sin_v
+    ]
+    return x, dx_du, dx_dv
+
+
+def getEllipsoidPolarCoordinatesFromPosition(a: float, b: float, c: float, pos: list):
+    """
+    Convert position in x, y, z to polar coordinates u, v at nearest location on ellipsoid centred at origin.
+    Given parametric equation for ellipsoid:
+    x = a*cos(u)*sin(v)
+    y = b*sin(u)*sin(v)
+    z = c*cos(v)
+    Fails at apex.
+    :param a, b, c: Axis length in x, y, z directions
+    :param pos: Position of points, list of 3 coordinates in x, y, z.
+    :return: Polar coordinates u, v in radians.
+    """
+    # initial guess
+    rx = pos[0] / a
+    ry = pos[1] / b
+    rz = pos[2] / c
+    u = math.atan2(ry, rx)
+    v = math.atan2(math.sqrt(rx*rx + ry*ry), rz)
+    # move along tangents
+    TOL = 1.0E-6
+    iters = 0
+    while True:
+        iters += 1
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)
+        deltax = [pos[c] - x[c] for c in range(3)]
+        du, dv = calculate_surface_delta_xi(dx_du, dx_dv, deltax)
+        u += du
+        v += dv
+        if (abs(du) < TOL) and (abs(dv) < TOL):
+            break
+        if iters == 100:
+            print('getEllipsoidPolarCoordinatesFromPosition: did not converge!')
+            break
+    return u, v
+
 
 def getCircleProjectionAxes(ax, ad1, ad2, ad3, length, angle1radians, angle2radians, angle3radians = None):
     '''
