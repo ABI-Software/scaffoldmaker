@@ -10,6 +10,7 @@ lung_terms = [
     ("anterior mediastinum of right lung", "ILX:0793184"),
     ("apex of left lung", "ILX:0778112"),
     ("apex of right lung", "ILX:0778113"),
+    ("apex of right lung accessory lobe", "ILX:0778119"),
     ("base of left lung surface", "ILX:0793187"),
     ("base of lower lobe of left lung surface", "ILX:0793577"),
     ("base of upper lobe of left lung surface", "ILX:0793578"),
