@@ -18,6 +18,7 @@ lung_terms = [
     ("base of right lung surface", "ILX:0793188"),
     ("base of lower lobe of right lung surface", "ILX:0793579"),
     ("base of middle lobe of right lung surface", "ILX:0793580"),
+    ("apex of right lung accessory lobe", "ILX:0778119"),  # needed by lung1
     ("dorsal apex of right lung accessory lobe", "ILX:0793603"),
     ("dorsal base of right lung accessory lobe", "ILX:0778125"),
     ("dorsal base of left lung", "ILX:0778126"),
