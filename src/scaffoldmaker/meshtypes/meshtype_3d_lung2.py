@@ -14,11 +14,12 @@ from scaffoldmaker.utils.cylindermesh import createEllipsePerimeter
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.utils.zinc.general import ChangeManager
 from scaffoldmaker.utils.geometry import createEllipsoidPoints, getEllipseRadiansToX, getEllipseArcLength, getApproximateEllipsePerimeter, \
-    updateEllipseAngleByArcLength
+    updateEllipseAngleByArcLength, getEllipsoidPolarCoordinatesFromPosition, getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import magnitude, setMagnitude, crossproduct3, normalise
+from opencmiss.maths.vectorops import add, cross, dot, normalize, sub
 from scaffoldmaker.utils.zinc_utils import disconnectFieldMeshGroupBoundaryNodes
 from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString, createFieldEulerAnglesRotationMatrix
@@ -1172,23 +1173,49 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
             px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
         elif n2 == 2:
             # lower lobe
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 2, lengthFractionStart = 0.3,
-                                                             lengthFractionEnd = 1, arcLengthDerivatives = True)
+            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
         elif n2 == 3:
             # 2nd oblique
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 2,  arcLengthDerivatives = True)
+            x_temp.append(lower_row1[-2])
+            nd2_temp.append(lower_row1_d2[-2])
+            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, lengthFractionStart = 1, lengthFractionEnd = 1,  arcLengthDerivatives = True)
         elif n2 == 4:
             # rows 2
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 2, arcLengthDerivatives = True)
+            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
+            # sampling the node vertically on row 2
+            for col in range(2):
+                startEndRatio = 1 if col == 0 else 1.1
+                x_col_temp = [obl[1+col], lowerObl[1+col], lower_row1[1+col]]
+                nd2_col_temp = [obl_d2[1+col], lowerObl_d2[1+col], lower_row1_d2[1+col]]
+                px_temp, pd1_temp, pe, pxi, psf = sampleCubicHermiteCurves(x_col_temp, nd2_col_temp, len(x_col_temp), elementLengthStartEndRatio = startEndRatio, arcLengthDerivatives=True)
+
+                u, v = getEllipsoidPolarCoordinatesFromPosition(majorXAxis[0], minorYAxis[1], minorZAxis[2], px_temp[-2])
+                px[1 + col], dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(majorXAxis[0], minorYAxis[1], minorZAxis[2], u, v)
+                unit_normal = normalize(cross(dx_du, dx_dv))
+                pd1[1 + col] = sub(pd1_temp[-2], unit_normal)  # now tangential to surface of ellipsoid
+
+                # print('px[1 + col]', px[1 + col])
+                # print('pd1[1 + col]', pd1[1 + col])
+                # print(px_temp[-2])
+                # print(pd1_temp[-2])
+                # px[1 + col] = px_temp[-2]
+                # pd1[1 + col] = pd1_temp[-2]
 
         [x.append(px[i]) for i in range(len(px))]
         [nd2.append(pd1[i]) for i in range(len(pd1))]
 
+    # # move the apex node of the triangular element
+    # px = lowerObl
+    # pd1 = lowerObl_d2
+    # px.pop(-1)
+    # pd1.pop(-1)
+    # px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(px, pd1, len(px)-1, lengthFractionStart = 1.0, lengthFractionEnd = 1.0,  arcLengthDerivatives = True)
+    # lowerObl[-2] = px[-2]
+    # lowerObl_d2[-2] = pd1[-2]
+
     # complete lower_row2 and lowerObl list
     lower_row2.append(obl[3])
     lower_row2_d2.append(obl_d2[3])
-    lowerObl.append(lower_row1[3])
-    lowerObl_d2.append(lower_row1[3])
 
     # smooth derivatives
     tx_d2 = []
@@ -1213,11 +1240,15 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
         elif n3 == 3:
             x = obl
             d2 = obl
-        for n2 in range(lElementsCount2 + 1):
+        for n2 in range(len(x)):
             tx_d2[n3].append(x[n2])
             td2[n3].append(d2[n2])
             if n3 == 0:
-                if n2 == 4:
+                if n2 == 3:
+                    reverse_lowerObl = [lowerObl[-i] for i in range(1, len(lowerObl)+1)]
+                    tx_d3.append(reverse_lowerObl)
+                    td3.append(reverse_lowerObl)
+                elif n2 == 4:
                     reverse_obl = [obl[-i] for i in range(1, len(obl)+1)]
                     tx_d3.append(reverse_obl)
                     td3.append(reverse_obl)
@@ -1246,17 +1277,24 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                     x = copy.deepcopy(lower_row2[n2])
                     if n2 < 4:
                         next_xd2 = copy.deepcopy(lower_row2[n2 + 1])
+                    else:
+                        d2 = [d2[0], d2[1], d2[2]*0.6]
+
                 elif (n3 == 2) and (n2 < 3):
                     x = copy.deepcopy(lowerObl[n2])
-                    if n2 < 4:
+                    if n2 < 3:
                         next_xd2 = copy.deepcopy(lowerObl[n2 + 1])
                 elif (n3 == 3) and (n2 < 3):
                     x = copy.deepcopy(obl[n2])
                     if n2 < 2:
                         next_xd2 = copy.deepcopy(obl[n2 + 1])
-                    else:
+
+                    # lower oblique - 2nd from the dorsal
+                    if n2 == 1:
+                        d3 = [d3[0]*0.5, d3[1]*0.5, d3[2]/0.75]
+                    elif n2 == 2:
                         # 3-way point
-                        d2 = [md3[n2][n3][0], md3[n2][n3][1], md3[n2][n3][2]]
+                        d2 = [md3[n2][n3][0], md3[n2][n3][1], md3[n2][n3][2]*0.7]
                         d3 = [-md2[n3][n2][0], -md2[n3][n2][1], -md2[n3][n2][2]]
                 else:
                     continue
