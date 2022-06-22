@@ -11,6 +11,7 @@ from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
+from scaffoldmaker.utils.zinc_utils import mesh_group_to_identifier_ranges
 
 from testutils import assertAlmostEqualList
 
@@ -193,7 +194,21 @@ class LungScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+
+        # Need to do the following manually to save originalAnnotationGroups which has some temporary groups
+        fieldmodule = region.getFieldmodule()
+        # annotationGroups = scaffold.generateMesh(region, options)
+        with ChangeManager(fieldmodule):
+            annotationGroups = scaffold.generateBaseMesh(region, options)
+            fieldmodule.defineAllFaces()
+            originalAnnotationGroups = copy.copy(annotationGroups)
+            for annotationGroup in annotationGroups:
+                annotationGroup.addSubelements()
+            scaffold.defineFaceAnnotations(region, options, annotationGroups)
+            for annotationGroup in annotationGroups:
+                if annotationGroup not in originalAnnotationGroups:
+                    annotationGroup.addSubelements()
+
         self.assertEqual(54, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -274,12 +289,12 @@ class LungScaffoldTestCase(unittest.TestCase):
             # "oblique fissure of middle lobe of right lung": 4,
             # "oblique fissure of upper lobe of right lung": 4,
             "left lung surface": 56,
-            "lower lobe of left lung surface": 28,
-            "upper lobe of left lung surface": 28,
+            "lower lobe of left lung surface": 36,
+            "upper lobe of left lung surface": 36,
             "right lung surface": 56,
-            "lower lobe of right lung surface": 28,
-            "middle lobe of right lung surface": 12,
-            "upper lobe of right lung surface": 16,
+            "lower lobe of right lung surface": 36,
+            "middle lobe of right lung surface": 20,
+            "upper lobe of right lung surface": 24,
         }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
@@ -311,20 +326,15 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertEqual(40, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
-        # refine 4 and check result
-        # first remove any face (but not point) annotation groups as they are re-added by defineFaceAnnotations
-        removeAnnotationGroups = []
-        for annotationGroup in annotationGroups:
-            if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
-                removeAnnotationGroups.append(annotationGroup)
-        for annotationGroup in removeAnnotationGroups:
-            annotationGroups.remove(annotationGroup)
-        self.assertEqual(15, len(annotationGroups))
+        # refine 2x2x2 and check result
+        # need to use original annotation groups to get temporaries
+        annotationGroups = originalAnnotationGroups
+        self.assertEqual(19, len(annotationGroups))  # including 4 temporary groups
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
         options['Refine'] = True
-        options['Refine number of elements'] = 4
+        options['Refine number of elements'] = 2
         refineNumberOfElements = options['Refine number of elements']
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
@@ -341,13 +351,13 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertEqual(54, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(5632, mesh3d.getSize())
+        self.assertEqual(704, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(17344, mesh2d.getSize())
+        self.assertEqual(2224, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(17848, mesh1d.getSize())
+        self.assertEqual(2364, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(6145, nodes.getSize())
+        self.assertEqual(853, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -360,11 +370,6 @@ class LungScaffoldTestCase(unittest.TestCase):
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
             size = group.getMeshGroup(mesh2d).getSize()
             self.assertEqual(expectedSizes2d[name]*(refineNumberOfElements**2), size, name)
-        # for name in expectedSizes1d:
-        #     group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
-        #     size = group.getMeshGroup(mesh1d).getSize()
-        #     self.assertEqual(expectedSizes1d[name]*refineNumberOfElements, size, name)
-
 
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
@@ -381,7 +386,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(2557, element.getIdentifier())
+        self.assertEqual(319, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
     def test_lung2_mouse(self):
@@ -397,7 +402,21 @@ class LungScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+
+        # Need to do the following manually to save originalAnnotationGroups which has some temporary groups
+        fieldmodule = region.getFieldmodule()
+        # annotationGroups = scaffold.generateMesh(region, options)
+        with ChangeManager(fieldmodule):
+            annotationGroups = scaffold.generateBaseMesh(region, options)
+            fieldmodule.defineAllFaces()
+            originalAnnotationGroups = copy.copy(annotationGroups)
+            for annotationGroup in annotationGroups:
+                annotationGroup.addSubelements()
+            scaffold.defineFaceAnnotations(region, options, annotationGroups)
+            for annotationGroup in annotationGroups:
+                if annotationGroup not in originalAnnotationGroups:
+                    annotationGroup.addSubelements()
+
         self.assertEqual(54, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -469,9 +488,9 @@ class LungScaffoldTestCase(unittest.TestCase):
             # "oblique fissure of upper lobe of right lung": 4,
             "left lung surface": 56,
             "right lung surface": 56,
-            "lower lobe of right lung surface": 28,
-            "middle lobe of right lung surface": 12,
-            "upper lobe of right lung surface": 16,
+            "lower lobe of right lung surface": 36,
+            "middle lobe of right lung surface": 20,
+            "upper lobe of right lung surface": 24,
         }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
@@ -503,20 +522,15 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertEqual(40, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
-        # refine 4 and check result
-        # first remove any face (but not point) annotation groups as they are re-added by defineFaceAnnotations
-        removeAnnotationGroups = []
-        for annotationGroup in annotationGroups:
-            if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
-                removeAnnotationGroups.append(annotationGroup)
-        for annotationGroup in removeAnnotationGroups:
-            annotationGroups.remove(annotationGroup)
-        self.assertEqual(20, len(annotationGroups))
+        # refine 2x2x2 and check result
+        # need to use original annotation groups to get temporaries
+        annotationGroups = originalAnnotationGroups
+        self.assertEqual(24, len(annotationGroups))  # including 4 temporary groups
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
         options['Refine'] = True
-        options['Refine number of elements'] = 4
+        options['Refine number of elements'] = 2
         refineNumberOfElements = options['Refine number of elements']
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
@@ -533,13 +547,13 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertEqual(54, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(6912, mesh3d.getSize())
+        self.assertEqual(864, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(21408, mesh2d.getSize())
+        self.assertEqual(2760, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(22164, mesh1d.getSize())
+        self.assertEqual(2970, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(7684, nodes.getSize())
+        self.assertEqual(1090, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -573,7 +587,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(2557, element.getIdentifier())
+        self.assertEqual(319, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
     def test_lung2_human_openFissures(self):
@@ -590,6 +604,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
+
         annotationGroups = scaffold.generateMesh(region, options)
         self.assertEqual(54, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
@@ -672,12 +687,12 @@ class LungScaffoldTestCase(unittest.TestCase):
             # "oblique fissure of middle lobe of right lung": 4,
             # "oblique fissure of upper lobe of right lung": 4,
             "left lung surface": 56,
-            "lower lobe of left lung surface": 28,
-            "upper lobe of left lung surface": 28,
+            "lower lobe of left lung surface": 36,
+            "upper lobe of left lung surface": 36,
             "right lung surface": 56,
-            "lower lobe of right lung surface": 28,
-            "middle lobe of right lung surface": 12,
-            "upper lobe of right lung surface": 16,
+            "lower lobe of right lung surface": 36,
+            "middle lobe of right lung surface": 20,
+            "upper lobe of right lung surface": 24,
         }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
@@ -708,74 +723,6 @@ class LungScaffoldTestCase(unittest.TestCase):
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
         self.assertEqual(40, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
-
-        # refine 4 and check result
-        # first remove any face (but not point) annotation groups as they are re-added by defineFaceAnnotations
-        # removeAnnotationGroups = []
-        # for annotationGroup in annotationGroups:
-        #     if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
-        #         removeAnnotationGroups.append(annotationGroup)
-        # for annotationGroup in removeAnnotationGroups:
-        #     annotationGroups.remove(annotationGroup)
-        # self.assertEqual(15, len(annotationGroups))
-        #
-        # refineRegion = region.createRegion()
-        # refineFieldmodule = refineRegion.getFieldmodule()
-        # options['Refine'] = True
-        # options['Refine number of elements'] = 4
-        # refineNumberOfElements = options['Refine number of elements']
-        # meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
-        # scaffold.refineMesh(meshrefinement, options)
-        # annotationGroups = meshrefinement.getAnnotationGroups()
-        #
-        # refineFieldmodule.defineAllFaces()
-        # oldAnnotationGroups = copy.copy(annotationGroups)
-        # for annotationGroup in annotationGroups:
-        #     annotationGroup.addSubelements()
-        # scaffold.defineFaceAnnotations(refineRegion, options, annotationGroups)
-        # for annotation in annotationGroups:
-        #     if annotation not in oldAnnotationGroups:
-        #         annotationGroup.addSubelements()
-        #
-        # self.assertEqual(44, len(annotationGroups))
-        # mesh3d = refineFieldmodule.findMeshByDimension(3)
-        # self.assertEqual(5632, mesh3d.getSize())
-        # mesh2d = refineFieldmodule.findMeshByDimension(2)
-        # self.assertEqual(17344, mesh2d.getSize())
-        # mesh1d = refineFieldmodule.findMeshByDimension(1)
-        # self.assertEqual(17848, mesh1d.getSize())
-        # nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # self.assertEqual(6145, nodes.getSize())
-        # datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        # self.assertEqual(0, datapoints.getSize())
-        #
-        # # check some refined annotationGroups:
-        # for name in expectedSizes3d:
-        #     group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
-        #     size = group.getMeshGroup(mesh3d).getSize()
-        #     self.assertEqual(expectedSizes3d[name]*(refineNumberOfElements**3), size, name)
-        # for name in expectedSizes2d:
-        #     group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
-        #     size = group.getMeshGroup(mesh2d).getSize()
-        #     self.assertEqual(expectedSizes2d[name]//2*(refineNumberOfElements**2), size, name)
-        #
-        # # test finding a marker in refined scaffold
-        # markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
-        # refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
-        # self.assertEqual(7, markerNodes.getSize())
-        # markerName = refineFieldmodule.findFieldByName("marker_name")
-        # self.assertTrue(markerName.isValid())
-        # markerLocation = refineFieldmodule.findFieldByName("marker_location")
-        # self.assertTrue(markerLocation.isValid())
-        # # test apex marker point
-        # cache = refineFieldmodule.createFieldcache()
-        # node = findNodeWithName(markerNodes, markerName, "apex of left lung")
-        # self.assertTrue(node.isValid())
-        # cache.setNode(node)
-        # element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        # self.assertEqual(2557, element.getIdentifier())
-        # assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
     def test_lung2_mouse_openFissures(self):
         """
@@ -863,9 +810,9 @@ class LungScaffoldTestCase(unittest.TestCase):
             # "oblique fissure of upper lobe of right lung": 4,
             "left lung surface": 56,
             "right lung surface": 56,
-            "lower lobe of right lung surface": 28,
-            "middle lobe of right lung surface": 12,
-            "upper lobe of right lung surface": 16,
+            "lower lobe of right lung surface": 36,
+            "middle lobe of right lung surface": 20,
+            "upper lobe of right lung surface": 24,
         }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
@@ -897,78 +844,6 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertEqual(40, element.getIdentifier())
         assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
-        # refine 4 and check result
-        # first remove any face (but not point) annotation groups as they are re-added by defineFaceAnnotations
-        # removeAnnotationGroups = []
-        # for annotationGroup in annotationGroups:
-        #     if (not annotationGroup.hasMeshGroup(mesh3d)) and (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
-        #         removeAnnotationGroups.append(annotationGroup)
-        # for annotationGroup in removeAnnotationGroups:
-        #     annotationGroups.remove(annotationGroup)
-        # self.assertEqual(17, len(annotationGroups))
-        #
-        # refineRegion = region.createRegion()
-        # refineFieldmodule = refineRegion.getFieldmodule()
-        # options['Refine'] = True
-        # options['Refine number of elements'] = 4
-        # refineNumberOfElements = options['Refine number of elements']
-        # meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
-        # scaffold.refineMesh(meshrefinement, options)
-        # annotationGroups = meshrefinement.getAnnotationGroups()
-        #
-        # refineFieldmodule.defineAllFaces()
-        # oldAnnotationGroups = copy.copy(annotationGroups)
-        # for annotationGroup in annotationGroups:
-        #     annotationGroup.addSubelements()
-        # scaffold.defineFaceAnnotations(refineRegion, options, annotationGroups)
-        # for annotation in annotationGroups:
-        #     if annotation not in oldAnnotationGroups:
-        #         annotationGroup.addSubelements()
-        # self.assertEqual(47, len(annotationGroups))
-        #
-        # mesh3d = refineFieldmodule.findMeshByDimension(3)
-        # self.assertEqual(6912, mesh3d.getSize())
-        # mesh2d = refineFieldmodule.findMeshByDimension(2)
-        # self.assertEqual(21408, mesh2d.getSize())
-        # mesh1d = refineFieldmodule.findMeshByDimension(1)
-        # self.assertEqual(22164, mesh1d.getSize())
-        # nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # self.assertEqual(7681, nodes.getSize())
-        # datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        # self.assertEqual(0, datapoints.getSize())
-        #
-        # # check some refined annotationGroups:
-        # for name in expectedSizes3d:
-        #     group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
-        #     size = group.getMeshGroup(mesh3d).getSize()
-        #     self.assertEqual(expectedSizes3d[name]*(refineNumberOfElements**3), size, name)
-        # for name in expectedSizes2d:
-        #     group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
-        #     size = group.getMeshGroup(mesh2d).getSize()
-        #     self.assertEqual(expectedSizes2d[name]*(refineNumberOfElements**2), size, name)
-        # # for name in expectedSizes1d:
-        # #     group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
-        # #     size = group.getMeshGroup(mesh1d).getSize()
-        # #     self.assertEqual(expectedSizes1d[name]*refineNumberOfElements, size, name)
-        #
-        #
-        # # test finding a marker in refined scaffold
-        # markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
-        # refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
-        # self.assertEqual(10, markerNodes.getSize())
-        # markerName = refineFieldmodule.findFieldByName("marker_name")
-        # self.assertTrue(markerName.isValid())
-        # markerLocation = refineFieldmodule.findFieldByName("marker_location")
-        # self.assertTrue(markerLocation.isValid())
-        # # test apex marker point
-        # cache = refineFieldmodule.createFieldcache()
-        # node = findNodeWithName(markerNodes, markerName, "apex of left lung")
-        # self.assertTrue(node.isValid())
-        # cache.setNode(node)
-        # element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        # self.assertEqual(2557, element.getIdentifier())
-        # assertAlmostEqualList(self, xi, [ 0.0, 1.0, 1.0 ], 1.0E-10)
 
 if __name__ == "__main__":
     unittest.main()
