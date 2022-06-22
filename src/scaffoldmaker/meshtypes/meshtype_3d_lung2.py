@@ -870,7 +870,7 @@ class MeshType_3d_lung2(Scaffold_base):
         baseRightLowerLung = fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'], is_xi3_0)
         groupTerm.append(baseRightLowerLung)
         baseRightMiddleLung = fm.createFieldAnd(fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], is_xi3_0),
-                                              fm.createFieldNot(arbLobe_exterior["upper lobe of right lung dorsal"]))
+                                                fm.createFieldNot(arbLobe_exterior["upper lobe of right lung dorsal"]))
         groupTerm.append(baseRightMiddleLung)
         baseRightLung = fm.createFieldOr(baseRightLowerLung, baseRightMiddleLung)
         groupTerm.append(baseRightLung)
@@ -886,15 +886,18 @@ class MeshType_3d_lung2(Scaffold_base):
             baseSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(groupTerm[baseTerms.index(term)])
 
         # Fissures
-        fissureTerms = ["oblique fissure of right lung", "horizontal fissure of right lung"]
-        if numberOfLeftLung > 1: fissureTerms.append("oblique fissure of left lung")
-        lobeFissureTerms = ["oblique fissure of lower lobe of left lung", "oblique fissure of upper lobe of left lung",
-                            "oblique fissure of lower lobe of right lung", "oblique fissure of middle lobe of right lung",
-                            "oblique fissure of upper lobe of right lung", "horizontal fissure of middle lobe of right lung",
-                            "horizontal fissure of upper lobe of right lung"]
 
-        for fissureTerm in fissureTerms:
-            if not openFissures:
+        if not openFissures:
+            fissureTerms = ["oblique fissure of right lung", "horizontal fissure of right lung"]
+            if numberOfLeftLung > 1: fissureTerms.append("oblique fissure of left lung")
+            lobeFissureTerms = ["oblique fissure of lower lobe of left lung",
+                                "oblique fissure of upper lobe of left lung",
+                                "oblique fissure of lower lobe of right lung",
+                                "oblique fissure of middle lobe of right lung",
+                                "oblique fissure of upper lobe of right lung",
+                                "horizontal fissure of middle lobe of right lung",
+                                "horizontal fissure of upper lobe of right lung"]
+            for fissureTerm in fissureTerms:
                 if (fissureTerm == "oblique fissure of left lung") and (numberOfLeftLung > 1):
                     fissureGroup = fm.createFieldAnd(lobe["upper lobe of left lung"], lobe["lower lobe of left lung"])
                 elif fissureTerm == "oblique fissure of right lung":
@@ -917,7 +920,40 @@ class MeshType_3d_lung2(Scaffold_base):
                         fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(lobeFissureTerm))
                         fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fissureGroup)
 
-        # Open fissures
+            # add fissures to lobe surface groups
+            if numberOfLeftLung > 1:
+                obliqueFissureOfLeftLungElementGroup = getAnnotationGroupForTerm(
+                    annotationGroups, get_lung_term("oblique fissure of left lung")).getFieldElementGroup(mesh2d)
+                for lobeSurfaceTerm in ("lower lobe of left lung surface", "upper lobe of left lung surface"):
+                    lobeSurfaceGroup = getAnnotationGroupForTerm(
+                        annotationGroups, get_lung_term(lobeSurfaceTerm))
+                    lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfLeftLungElementGroup)
+            horizontalFissureOfRightLungElementGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("horizontal fissure of right lung")).getFieldElementGroup(mesh2d)
+            obliqueFissureOfRightLungElementGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("oblique fissure of right lung")).getFieldElementGroup(mesh2d)
+            obliqueFissureOfMiddleLobeOfRightLungElementGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("oblique fissure of middle lobe of right lung")).getFieldElementGroup(mesh2d)
+            obliqueFissureOfUpperLobeOfRightLungElementGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("oblique fissure of upper lobe of right lung")).getFieldElementGroup(mesh2d)
+            lobeSurfaceGroup = getAnnotationGroupForTerm(
+                annotationGroups, get_lung_term("lower lobe of right lung surface"))
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfRightLungElementGroup)
+            lobeSurfaceGroup = getAnnotationGroupForTerm(
+                annotationGroups, get_lung_term("middle lobe of right lung surface"))
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                fm.createFieldOr(obliqueFissureOfMiddleLobeOfRightLungElementGroup,
+                                 horizontalFissureOfRightLungElementGroup))
+            lobeSurfaceGroup = getAnnotationGroupForTerm(
+                annotationGroups, get_lung_term("upper lobe of right lung surface"))
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                fm.createFieldOr(obliqueFissureOfUpperLobeOfRightLungElementGroup,
+                                 horizontalFissureOfRightLungElementGroup))
+
         if openFissures:
             if numberOfLeftLung > 1:
                 obliqueLowerLeft = fm.createFieldOr(fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi2_1),
@@ -976,11 +1012,11 @@ class MeshType_3d_lung2(Scaffold_base):
             rightLungSurface = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], fm.createFieldNot(fissureRight))
             rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(rightLungSurface)
 
-            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,get_lung_term('upper lobe of right lung surface'))
+            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('upper lobe of right lung surface'))
             rightLungSurface = fm.createFieldAnd(lobe_exterior['upper lobe of right lung surface'], fm.createFieldNot(fissureRight))
             rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(rightLungSurface)
 
-            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,get_lung_term('right lung surface'))
+            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('right lung surface'))
             rightLungSurface = fm.createFieldAnd(lobe_exterior['right lung surface'], fm.createFieldNot(fissureRight))
             rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(rightLungSurface)
 
@@ -999,7 +1035,7 @@ class MeshType_3d_lung2(Scaffold_base):
             fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'upper lobe of right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalUpperRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,get_lung_term('oblique fissure of ' + 'right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueRight)
 
             fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'right lung'))
@@ -1007,6 +1043,7 @@ class MeshType_3d_lung2(Scaffold_base):
 
         for key, value in arbLobe_group.items():
             annotationGroups.remove(value)
+
 
 def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProportion,
                  lungSide, cache, coordinates, nodes, nodetemplate,
