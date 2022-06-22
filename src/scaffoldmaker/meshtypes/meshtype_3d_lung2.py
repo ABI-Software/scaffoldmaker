@@ -188,7 +188,7 @@ class MeshType_3d_lung2(Scaffold_base):
             options['Diaphragm curvature x'] = 1.0
             options['Diaphragm curvature y'] = 1.0
         elif 'Pig 1' in parameterSetName:
-            options['Number of left lung lobes'] = 1
+            options['Number of left lung lobes'] = 2
             options['Left-right lung spacing'] = 0.8
             options['Left-right apex medial shear displacement'] = 0.1
             options['Left-right apex ventral shear displacement'] = 0.5
