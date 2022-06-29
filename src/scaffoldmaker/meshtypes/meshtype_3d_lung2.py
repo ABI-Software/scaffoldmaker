@@ -13,13 +13,14 @@ from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueL
 from scaffoldmaker.utils.cylindermesh import createEllipsePerimeter
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from opencmiss.utils.zinc.general import ChangeManager
-from scaffoldmaker.utils.geometry import createEllipsoidPoints, getEllipseRadiansToX, getEllipseArcLength, getApproximateEllipsePerimeter, \
-    updateEllipseAngleByArcLength, getEllipsoidPolarCoordinatesFromPosition, getEllipsoidPolarCoordinatesTangents
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode
-from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
+from scaffoldmaker.utils.geometry import createEllipsoidPoints, getEllipseRadiansToX, getEllipseArcLength, \
+    getApproximateEllipsePerimeter, sampleEllipsePoints, updateEllipseAngleByArcLength, getEllipsoidPlaneA, \
+    getEllipsoidPolarCoordinatesFromPosition, getEllipsoidPolarCoordinatesTangents
+from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, interpolateCubicHermite, \
+    interpolateCubicHermiteDerivative
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import magnitude, setMagnitude, crossproduct3, normalise
-from opencmiss.maths.vectorops import add, cross, dot, normalize, sub
+from opencmiss.maths.vectorops import add, cross, dot, mult, normalize, sub
 from scaffoldmaker.utils.zinc_utils import disconnectFieldMeshGroupBoundaryNodes
 from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString, createFieldEulerAnglesRotationMatrix
@@ -1112,265 +1113,241 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
     p3.append([y, p3[0][1], p3[0][2]])
     p3.insert(0, [-y, p3[0][1], p3[0][2]])
 
-    # points around on 2D Ellipse base
     # -------------------------------------------------- Lower lobe ------------------------------------------------
-    lower_row1 = []
-    lower_row1_d2 = []
-    lower_row2 = []
-    lower_row2_d2 = []
-    obl = []
-    obl_d2 = []
-    lower_edge = []
-    lower_edge_d2 = []
-    lowerObl = []
-    lowerObl_d2 = []
 
-    for n2 in range(lElementsCount2 + 1):
-        if n2 == 0:
-            # row 1
+    # lower lobe dorsal edge
+    dx = p4[1]
+    vec1 = minorYAxis
+    vec2 = [-minorZAxis[i] for i in range(3)]
+    planeCentre = centre
+    totalRadiansAround = math.acos(-dx / magnitude(minorYAxis))
+    lower_edge, lower_edge_d3 = sampleEllipsePoints(
+        planeCentre, vec1, vec2, 0.0, -totalRadiansAround, lElementsCount3)
+
+    # rows up dorsal edge
+    for n3 in range(lElementsCount3 + 1):
+        if n3 == 0:
             dx = p3[2][1]
             vec1 = minorYAxis
             vec2 = majorXAxis
             planeCentre = centre
-            elementsCountAround = 4
-            nodesCountAround = elementsCountAround + 1
-            x = lower_row1
-            nd2 = lower_row1_d2
-        elif n2 == 1:
-            # oblique
-            vec1_1 = ([(p4[i] - p3[1][i]) / obliqueProportion for i in range(3)])
-            vec1 = [vec1_1[i]/2 for i in range(3)]
-            vec2 = majorXAxis
-            planeCentre = [p4[i] - vec1[i] for i in range(3)]
-            dx = magnitude([p3[1][i] - planeCentre[i] for i in range(3)])
-            elementsCountAround = 4
-            nodesCountAround = elementsCountAround + 1
-            x = obl
-            nd2 = obl_d2
-        elif n2 == 2:
-            # lower lobe
-            dx = obl[0][1]
-            elementsCountAround = 3
-            vec1 = minorYAxis
-            vec2 = [minorZAxis[i] * -1 for i in range(3)]
-            planeCentre = centre
-            nodesCountAround = elementsCountAround + 1
-            x = lower_edge
-            nd2 = lower_edge_d2
-        elif n2 == 3:
-            # 2nd oblique
-            obliqueProportion_1 = (lengthUnit + lower_row1[3][1])/(lengthUnit*2)
-            row1_temp = [0.0, lower_row1[3][1], lower_row1[3][2]]
-            vec1_1 = ([(lower_edge[2][i] - row1_temp[i]) / obliqueProportion_1 for i in range(3)])
-            vec1 = ([vec1_1[i]/2 for i in range(3)])
-            vec2 = majorXAxis
-            planeCentre = [lower_edge[2][i] - vec1[i] for i in range(3)]
-            dx = magnitude([planeCentre[i] - row1_temp[i] for i in range(3)])
-            elementsCountAround = 4
-            nodesCountAround = elementsCountAround
-            x = lowerObl
-            nd2 = lowerObl_d2
-        elif n2 == 4:
-            # row 2
-            row1_temp = [0.0, 0.0, lowerObl[3][2]]
-            y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (lowerObl[3][2] / heightUnit) ** 2) * widthUnit
-            row1_ellipse = [-y, 0.0, lowerObl[3][2]]
-            vec1 = ([lower_edge[1][i] - row1_temp[i] for i in range(3)])
-            vec2 = [-row1_ellipse[i] + row1_temp[i] for i in range(3)]
-            planeCentre = row1_temp
-            dx = lowerObl[3][1]
-            elementsCountAround = 3
-            nodesCountAround = elementsCountAround + 1
-            x = lower_row2
-            nd2 = lower_row2_d2
-
-        magMajorAxis = magnitude(vec1)
-        magMinorAxis = magnitude(vec2)
-        unitMajorAxis = normalise(vec1)
-        unitMinorAxis = normalise(vec2)
-
-        radians = 0.0
-        totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, -dx, 0.5 * math.pi)
-        arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
-        elementArcLength = arclengthAround / elementsCountAround
-        radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
-
-        x_temp = []
-        nd2_temp = []
-        for n1 in range(nodesCountAround):
-            cosRadiansAround = math.cos(radians)
-            sinRadiansAround = math.sin(radians)
-
-            temp = ([(planeCentre[c] + cosRadiansAround * vec1[c] + sinRadiansAround * vec2[c]) for c in range(3)])
-            x_temp.append(temp)
-
-            ndab = setMagnitude([-sinRadiansAround * magMajorAxis, cosRadiansAround * magMinorAxis], -elementArcLength)
-            nd2_temp.append(
-                [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
-            radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), radians, -elementArcLength)
-
-        # Gradual changes in node spacing
-        if n2 == 0:
-            # row 1
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
-        elif n2 == 1:
-            # oblique
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
-        elif n2 == 2:
-            # lower lobe
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
-        elif n2 == 3:
-            # 2nd oblique
-            x_temp.append(lower_row1[-2])
-            nd2_temp.append(lower_row1_d2[-2])
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, lengthFractionStart = 1, lengthFractionEnd = 1,  arcLengthDerivatives = True)
-        elif n2 == 4:
-            # rows 2
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp)-1, elementLengthStartEndRatio = 1, arcLengthDerivatives = True)
-            # sampling the node vertically on row 2
-            for col in range(2):
-                startEndRatio = 1 if col == 0 else 1.1
-                x_col_temp = [obl[1+col], lowerObl[1+col], lower_row1[1+col]]
-                nd2_col_temp = [obl_d2[1+col], lowerObl_d2[1+col], lower_row1_d2[1+col]]
-                px_temp, pd1_temp, pe, pxi, psf = sampleCubicHermiteCurves(x_col_temp, nd2_col_temp, len(x_col_temp), elementLengthStartEndRatio = startEndRatio, arcLengthDerivatives=True)
-
-                u, v = getEllipsoidPolarCoordinatesFromPosition(majorXAxis[0], minorYAxis[1], minorZAxis[2], px_temp[-2])
-                px[1 + col], dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(majorXAxis[0], minorYAxis[1], minorZAxis[2], u, v)
-                unit_normal = normalize(cross(dx_du, dx_dv))
-                pd1[1 + col] = sub(pd1_temp[-2], unit_normal)  # now tangential to surface of ellipsoid
-
-                # print('px[1 + col]', px[1 + col])
-                # print('pd1[1 + col]', pd1[1 + col])
-                # print(px_temp[-2])
-                # print(pd1_temp[-2])
-                # px[1 + col] = px_temp[-2]
-                # pd1[1 + col] = pd1_temp[-2]
-
-        [x.append(px[i]) for i in range(len(px))]
-        [nd2.append(pd1[i]) for i in range(len(pd1))]
-
-    # # move the apex node of the triangular element
-    # px = lowerObl
-    # pd1 = lowerObl_d2
-    # px.pop(-1)
-    # pd1.pop(-1)
-    # px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(px, pd1, len(px)-1, lengthFractionStart = 1.0, lengthFractionEnd = 1.0,  arcLengthDerivatives = True)
-    # lowerObl[-2] = px[-2]
-    # lowerObl_d2[-2] = pd1[-2]
-
-    # complete lower_row2 and lowerObl list
-    lower_row2.append(obl[3])
-    lower_row2_d2.append(obl_d2[3])
-
-    # smooth derivatives
-    tx_d2 = []
-    td2 = []
-    tx_d3 = []
-    td3 = []
-    md2 = []
-    md3 = []
-
-    for n3 in range(lElementsCount3 + 1):
-        tx_d2.append([])
-        td2.append([])
+        else:
+            planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit, p3[1], lower_edge[n3])
+            dx = magnitude(sub(p3[1], planeCentre))
+        totalRadiansAround = math.acos(-dx / magnitude(vec1))
+        px, pd2 = sampleEllipsePoints(planeCentre, vec1, vec2, 0.0, -totalRadiansAround, lElementsCount2)
         if n3 == 0:
-            x = lower_row1
-            d2 = lower_row1
+            lower_row1, lower_row1_d2 = px, pd2
         elif n3 == 1:
-            x = lower_row2
-            d2 = lower_row2
+            lower_row2, lower_row2_d2 = px, pd2
         elif n3 == 2:
-            x = lowerObl
-            d2 = lowerObl
+            lowerObl, lowerObl_d2 = px, pd2
         elif n3 == 3:
-            x = obl
-            d2 = obl
-        for n2 in range(len(x)):
-            tx_d2[n3].append(x[n2])
-            td2[n3].append(d2[n2])
+            obl, obl_d2 = px, pd2
+
+    # ---------------------------------------------------- Upper lobe --------------------------------------------
+
+    # upper lobe ventral-dorsal edge
+    # up from ventral tip of base to apex
+    dx = 0.0
+    vec1 = [-minorYAxis[i] for i in range(3)]
+    vec2 = minorZAxis
+    planeCentre = centre
+    elementsCountAround = 5
+    upper_edge, upper_edge_d2 = sampleEllipsePoints(
+        planeCentre, vec1, vec2, 0.0, math.pi / 2.0, elementsCountAround)
+    # down from apex to dorsal tip of oblique fissure
+    dx = obl[0][2]
+    vec1 = minorZAxis
+    vec2 = minorYAxis
+    planeCentre = centre
+    elementsCountAround = 3
+    totalRadiansAround = math.acos(dx / magnitude(minorZAxis))
+    tx, td2 = sampleEllipsePoints(
+        planeCentre, vec1, vec2, 0.0, totalRadiansAround, elementsCountAround)
+    upper_edge += tx[1:]
+    upper_edge_d2 += td2[1:]
+    upper_edge.reverse()
+    upper_edge_d2.reverse()
+
+    # points around middle lobe from base to horizontal fissure
+    for n3 in range(3):
+        if n3 == 0:
+            planeCentre = centre
+            vec1 = [-minorYAxis[i] for i in range(3)]
+            vec2 = majorXAxis
+            dx = p3[1][1]
+        else:
+            obl_temp = [0.0, obl[-1 - n3][1], obl[-1 - n3][2]]
+            planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit,
+                                                         obl_temp, upper_edge[-1 - n3])
+            dx = magnitude(sub(obl_temp, planeCentre))
+        totalRadiansAround = math.acos(dx / magnitude(vec1))
+        px, pd2 = sampleEllipsePoints(planeCentre, vec1, vec2, -totalRadiansAround, 0.0, elementCount=2)
+        if n3 == 0:
+            upper_row1, upper_row1_d2 = px, pd2
+        elif n3 == 1:
+            upper_row2, upper_row2_d2 = px, pd2
+        elif n3 == 2:
+            upper_row3, upper_row3_d2 = px, pd2
+
+    # columns up upper lobe from distal to ventral
+    for n2 in range(3):
+        col_end = obl[n2 + 1] if n2 < 2 else upper_row3[1]
+        midx = [0.0, col_end[1], col_end[2]]
+        planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit, midx, upper_edge[n2 + 2])
+        dx = magnitude(sub(midx, planeCentre))
+        totalRadiansAround = math.acos(dx / magnitude(vec1))
+        px, pd3 = sampleEllipsePoints(planeCentre, vec1, vec2, -totalRadiansAround, 0.0, elementCount=2)
+        if n2 == 0:
+            upper_col1, upper_col1_d3 = px, pd3
+        elif n2 == 1:
+            upper_col2, upper_col2_d3 = px, pd3
+        elif n2 == 2:
+            upper_col3, upper_col3_d3 = px, pd3
+
+    # row 4 - curve
+    upper_row4 = [upper_edge[1], upper_col1[1], upper_col2[1], upper_col3[1], upper_edge[5]]
+
+    # position tip of triangular element by interpolating between lower_row2 and upper_row2
+    x1 = lower_row2[-3]
+    d1 = lower_row2_d2[-3]
+    x2 = upper_row2[0]
+    d2 = upper_row2_d2[0]
+    scale = computeCubicHermiteDerivativeScaling(x1, d1, x2, d2)
+    d1 = mult(d1, scale)
+    d2 = mult(d2, scale)
+    ix = interpolateCubicHermite(x1, d1, x2, d2, 0.5)
+    id = interpolateCubicHermiteDerivative(x1, d1, x2, d2, 0.5)
+    # move sample point to be on ellipsoid surface and re-smooth derivatives to be tangential
+    u, v = getEllipsoidPolarCoordinatesFromPosition(widthUnit, lengthUnit, heightUnit, ix)
+    tip_x, tip_dx_du, tip_dx_dv = getEllipsoidPolarCoordinatesTangents(widthUnit, lengthUnit, heightUnit, u, v)
+    tip_surface_normal = normalize(cross(tip_dx_du, tip_dx_dv))
+    lower_row2[-2] = tip_x
+    lower_row2[-1] = obl[-2]
+    # subtract component of derivative in surface normal direction
+    snc = dot(id, tip_surface_normal)
+    lower_row2_d2[-2] = sub(id, mult(tip_surface_normal, snc))
+    lower_row2_d2[-1] = upper_row2_d2[0]
+    td2 = smoothCubicHermiteDerivativesLine(lower_row2[-3:], lower_row2_d2[-3:], fixAllDirections=True,
+                                            fixStartDerivative=True, fixEndDerivative=True)
+    # # subtract component of derivative in surface normal direction
+    # snc = dot(td2[1], tip_surface_normal)
+    # td2[1] = sub(td2[1], mult(tip_surface_normal, snc))
+    # td2 = smoothCubicHermiteDerivativesLine(lower_row2[-3:], td2, fixAllDirections=True,
+    #                                         fixStartDerivative=True, fixEndDerivative=True)
+    lower_row2_d2[-2] = td2[1]
+    # lower_row2_d2[-2] = id  # GRC temp
+    # smooth along lowerObl through new point to get its d2
+    lowerObl[-2] = tip_x
+    lowerObl[-1] = lower_row1[-2]
+    td2 = smoothCubicHermiteDerivativesLine(lowerObl[-3:], lowerObl_d2[-3:],
+                                            fixStartDerivative=True)
+    snc = dot(td2[1], tip_surface_normal)
+    td2[1] = sub(td2[1], mult(tip_surface_normal, snc))
+    td2[2][0] = 0.0
+    td2 = smoothCubicHermiteDerivativesLine(lowerObl[-3:], td2, fixAllDirections=True,
+                                            fixStartDerivative=True)
+    lowerObl_d2[-2] = td2[1]
+    lowerObl_d2[-1] = td2[2]
+
+    # smooth derivatives - lower lobe
+    md2 = [lower_row1_d2, lower_row2_d2, lowerObl_d2, obl_d2]
+    md3 = [lower_edge_d3]
+    for n2 in range(1, 3):
+        tx = []
+        for n3 in range(lElementsCount3 + 1):
             if n3 == 0:
-                if n2 == 3:
-                    reverse_lowerObl = [lowerObl[-i] for i in range(1, len(lowerObl)+1)]
-                    tx_d3.append(reverse_lowerObl)
-                    td3.append(reverse_lowerObl)
-                elif n2 == 4:
-                    reverse_obl = [obl[-i] for i in range(1, len(obl)+1)]
-                    tx_d3.append(reverse_obl)
-                    td3.append(reverse_obl)
-                else:
-                    tx_d3.append([lower_row1[n2], lower_row2[n2], lowerObl[n2], obl[n2]])
-                    td3.append([lower_row1[n2], lower_row2[n2], lowerObl[n2], obl[n2]])
-                md3.append(smoothCubicHermiteDerivativesLine(tx_d3[n2], td3[n2]))
-        md2.append(smoothCubicHermiteDerivativesLine(tx_d2[n3], td2[n3]))
+                x = lower_row1
+            elif n3 == 1:
+                x = lower_row2
+            elif n3 == 2:
+                x = lowerObl
+            elif n3 == 3:
+                x = obl
+            tx.append(x[n2])
+        td3 = [[0.0, 0.0, 0.0] for n3 in range(lElementsCount3 + 1)]
+        fixEndDerivative = False
+        # if n2 == 1:
+        #     td3[-1] = upper_col1_d3[0]
+        #     fixEndDerivative = True
+        td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixEndDerivative=fixEndDerivative)
+        # make the derivatives tangential to the ellipsoid
+        for n3 in range(lElementsCount3 + 1):
+            u, v = getEllipsoidPolarCoordinatesFromPosition(widthUnit, lengthUnit, heightUnit, tx[n3])
+            x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(widthUnit, lengthUnit, heightUnit, u, v)
+            surface_normal = normalize(cross(tip_dx_du, tip_dx_dv))
+            # subtract component of derivative in surface normal direction
+            snc = dot(td3[n3], surface_normal)
+            td3[n3] = sub(td3[n3], mult(surface_normal, snc))
+        # re-smooth with tangential directions
+        td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixAllDirections=True, fixEndDerivative=fixEndDerivative)
+        md3.append(td3)
+    md3.append([[-d for d in lowerObl_d2[-1]], [-d for d in lowerObl_d2[-2]], None, None])
+    md3.append([[-d for d in obl_d2[-1]], [-d for d in obl_d2[-2]], None, None])
 
     # create nodes
     for n3 in range(lElementsCount3 + 1):
         lowerNodeIds.append([])
         for n2 in range(lElementsCount2 + 1):
-            lowerNodeIds[n3].append([])
-            for n1 in range(lElementsCount1 + 1):
-                lowerNodeIds[n3][n2].append(None)
-                d2 = md2[n3][n2]
-                d3 = md3[n2][n3]
-
-                # each i row
-                if n3 == 0:
-                    x = copy.deepcopy(lower_row1[n2])
-                    if n2 < 4:
-                        next_xd2 = copy.deepcopy(lower_row1[n2 + 1])
-                elif n3 == 1:
-                    x = copy.deepcopy(lower_row2[n2])
-                    if n2 < 4:
-                        next_xd2 = copy.deepcopy(lower_row2[n2 + 1])
-                    else:
-                        d2 = [d2[0], d2[1], d2[2]*0.6]
-
-                elif (n3 == 2) and (n2 < 3):
-                    x = copy.deepcopy(lowerObl[n2])
-                    if n2 < 3:
-                        next_xd2 = copy.deepcopy(lowerObl[n2 + 1])
-                elif (n3 == 3) and (n2 < 3):
-                    x = copy.deepcopy(obl[n2])
-                    if n2 < 2:
-                        next_xd2 = copy.deepcopy(obl[n2 + 1])
-
-                    # lower oblique - 2nd from the dorsal
-                    if n2 == 1:
-                        d3 = [d3[0]*0.5, d3[1]*0.5, d3[2]/0.75]
-                    elif n2 == 2:
-                        # 3-way point
-                        d2 = [md3[n2][n3][0], md3[n2][n3][1], md3[n2][n3][2]*0.7]
-                        d3 = [-md2[n3][n2][0], -md2[n3][n2][1], -md2[n3][n2][2]]
+            lowerNodeIds[n3].append([None] * (lElementsCount1 + 1))
+            sd2 = md2[n3][n2]
+            sd3 = md3[n2][n3]
+            if n3 == 0:
+                sx = lower_row1[n2]
+                if n2 < 4:
+                    next_xd2 = lower_row1[n2 + 1]
                 else:
-                    continue
+                    next_xd2 = add(lower_row1[n2], sub(lower_row1[n2], lower_row1[n2 - 1]))
+            elif n3 == 1:
+                sx = lower_row2[n2]
+                if n2 < 4:
+                    next_xd2 = lower_row2[n2 + 1]
+                else:
+                    next_xd2 = add(lower_row1[n2], sub(lower_row1[n2], lower_row1[n2 - 1]))
+            elif (n3 == 2) and (n2 < 3):
+                sx = lowerObl[n2]
+                if n2 < 3:
+                    next_xd2 = lowerObl[n2 + 1]
+            elif (n3 == 3) and (n2 < 3):
+                sx = obl[n2]
+                if n2 < 2:
+                    next_xd2 = obl[n2 + 1]
+                if n2 == 2:
+                    # 3-way point at intersection of lower, middle and upper lobes
+                    sd2 = md3[n2][n3]
+                    sd3 = [-d for d in md2[n3][n2]]
+            else:
+                continue
 
-                # skipping the first and last column and row - edge.
+            # apply symmetry across 1 (x) direction
+            sd1 = [-sx[0], 0.0, 0.0]
+            for n1 in range(lElementsCount1 + 1):
+                # skip the first and last columns beside dorsal edge
                 if (n2 == 0) and (n1 != 1):
                     continue
 
-                # symmetry
+                d1 = sd1
                 if n1 == 0:
-                    next_xd1 = [0.0, x[1], x[2]]
-                    d1 = [next_xd1[i] - x[i] for i in range(3)]
+                    x = sx
+                    d2 = sd2
+                    d3 = sd3
                 elif n1 == 1:
-                    x = [0.0, x[1], x[2]]
-                    next_x = [0.0, next_xd2[1], next_xd2[2]]
+                    x = [0.0, sx[1], sx[2]]
+                    d2 = [0.0, sd2[1], sd2[2]]
+                    d3 = [0.0, sd3[1], sd3[2]]
+                    offset2 = [0.0, next_xd2[1] - x[1], next_xd2[2] - x[2]]
                     if n2 == 0:
-                        d1 = [widthUnit * math.sin(0.5 * math.pi), 0.0, 0.0]
-                        d2 = [next_x[i] - x[i] for i in range(3)]
-                    # 3-way point
-                    if (n3 == 3) and (n2 == 2):
+                        d1 = [-d for d in sd2]
+                        d2 = offset2
+                    elif (n3 == 3) and (n2 == 2):  # 3-way point
                         d3 = [0.0, -md2[n3][n2][1], -md2[n3][n2][2]]
-                    elif (n2 < 4):
-                        next_xd2[0] = 0.0
-                        d2 = [next_xd2[i] - x[i] for i in range(3)]
-                        previous_d2 = d2
                     else:
-                        d2 = previous_d2
-                else:
-                    x = [-x[0], x[1], x[2]]
-                    d2 = [-d2[0], d2[1], d2[2]]
-                    d3 = [-d3[0], d3[1], d3[2]]
+                        d2 = offset2
+                else:  # mirror in x
+                    x = [-sx[0], sx[1], sx[2]]
+                    d2 = [-sd2[0], sd2[1], sd2[2]]
+                    d3 = [-sd3[0], sd3[1], sd3[2]]
 
                 # translate right lung to the defined centre of the right lung
                 if lungSide != leftLung:
@@ -1397,135 +1374,6 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                     lungNodesetGroup.addNode(node)
 
     # ---------------------------------------------------- Upper lobe --------------------------------------------
-    upper_row1 = []
-    upper_row2 = []
-    upper_row3 = []
-    upper_row4 = []
-    upper_edge = []
-
-    for n2 in range(uElementsCount1):
-        if n2 == 0:
-            # Upper lobe along the edge
-            dx = 0.0
-            vec1 = [minorYAxis[i] * -1 for i in range(3)]
-            vec2 = minorZAxis
-            planeCentre = centre
-            elementsCountAround = 5
-            nodesCountAround = elementsCountAround + 1
-            x = upper_edge
-        else:
-            # Upper lobe along the edge on the lower lobe
-            dx = obl[0][2]
-            vec1 = minorZAxis
-            vec2 = minorYAxis
-            planeCentre = centre
-            elementsCountAround = 3
-            nodesCountAround = elementsCountAround + 1
-            x = upper_edge
-
-        radians = 0.0
-        totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, dx, 0.5 * math.pi)
-        arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
-        elementArcLength = arclengthAround / elementsCountAround
-        radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
-
-        for n1 in range(nodesCountAround):
-            cosRadians = math.cos(radians)
-            sinRadians = math.sin(radians)
-            x_temp = ([(planeCentre[c] + cosRadians * vec1[c] + sinRadians * vec2[c]) for c in range(3)])
-            radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), radians, elementArcLength)
-            if (n2 == 1) and (n1 == 0):
-                continue
-            x.insert(0, x_temp)
-
-    # Interpolate the nodes between the upper lobe edge and fissures
-    for n2 in range(uElementsCount3):
-        if n2 == 0:
-            # row 1
-            dx = p3[2][1]
-            vec1 = [minorYAxis[i] * -1 for i in range(3)]
-            vec2 = majorXAxis
-            planeCentre = centre
-            elementsCountAround = 2
-            nodesCountAround = elementsCountAround + 1
-            x = upper_row1
-        elif n2 == 1:
-            # row 2
-            obl_temp = [0.0, 0.0, obl[-2][2]]
-            y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (obl[-2][2] / heightUnit) ** 2) * widthUnit
-            obl_ellipse = [-y, 0.0, obl[-2][2]]
-            vec1 = [upper_edge[-2][i] - obl_temp[i] for i in range(3)]
-            vec2 = [-obl_ellipse[i] + obl_temp[i] for i in range(3)]
-            planeCentre = obl_temp
-            dx = obl[-2][1]
-            elementsCountAround = 2
-            nodesCountAround = elementsCountAround + 1
-            x = upper_row2
-        elif n2 == 2:
-            # row 3
-            obl_temp = [0.0, 0.0, obl[-3][2]]
-            y = math.sqrt(1 - (0.0 / lengthUnit) ** 2 - (obl[-3][2] / heightUnit) ** 2) * widthUnit
-            obl_ellipse = [-y, 0.0, obl[-3][2]]
-            vec1 = [upper_edge[-3][i] - obl_temp[i] for i in range(3)]
-            vec2 = [-obl_ellipse[i] + obl_temp[i] for i in range(3)]
-            planeCentre = obl_temp
-            dx = obl[-3][1]
-            elementsCountAround = 2
-            nodesCountAround = elementsCountAround + 1
-            x = upper_row3
-
-        radians = 0.0
-        totalRadiansAround = getEllipseRadiansToX(magnitude(vec1), 0.0, dx, 0.5 * math.pi)
-        arclengthAround = getEllipseArcLength(magnitude(vec1), magnitude(vec2), radians, totalRadiansAround)
-        elementArcLength = arclengthAround / elementsCountAround
-        radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), totalRadiansAround, -arclengthAround)
-
-        x_temp = []
-        nd2_temp = []
-        for n1 in range(nodesCountAround):
-            cosRadians = math.cos(radians)
-            sinRadians = math.sin(radians)
-
-            temp = ([(planeCentre[c] + cosRadians * vec1[c] + sinRadians * vec2[c]) for c in range(3)])
-            x_temp.insert(0, temp)
-
-            ndab = setMagnitude([-sinRadiansAround * magMajorAxis, cosRadiansAround * magMinorAxis], -elementArcLength)
-            nd2_temp.append(
-                [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
-
-            radians = updateEllipseAngleByArcLength(magnitude(vec1), magnitude(vec2), radians, -elementArcLength)
-
-        # Gradual changes in node spacing
-        if n2 == 0:
-            # row 1
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
-                                                             elementLengthStartEndRatio=1.0, arcLengthDerivatives=True)
-        elif n2 == 1:
-            # row 2
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
-                                                             elementLengthStartEndRatio=1.0, arcLengthDerivatives=True)
-        elif n2 == 2:
-            # row 3
-            px, pd1, pe, pxi, psf = sampleCubicHermiteCurves(x_temp, nd2_temp, len(x_temp) - 1,
-                                                             elementLengthStartEndRatio=1.0, arcLengthDerivatives=True)
-        elif n2 == 3:
-            # row 4 - curve
-            x = upper_row4
-            px = []
-            for j in range(5):
-                x_temp_start = upper_edge[j + 1]
-                if (j > 0) and (j < 4):
-                    x_temp_end = obl[j] if j < 3 else upper_row3[1]
-                    px_1, pd1, pe, pxi, psf = sampleCubicHermiteCurves([x_temp_start, x_temp_end], [x_temp_start, x_temp_end], 2,
-                                                                     elementLengthStartEndRatio=1, arcLengthDerivatives=True)
-                    x_ellipse = math.sqrt(1 - (px_1[1][1] / lengthUnit) ** 2 - (px_1[1][2] / heightUnit) ** 2) * widthUnit
-                    x_temp = [-x_ellipse, px_1[1][1], px_1[1][2]]
-                    px.append(x_temp)
-                else:
-                    px.append(x_temp_start)
-
-        [x.append(px[i]) for i in range(len(px))]
-        [nd2.append(pd1[i]) for i in range(len(pd1))]
 
     # smooth derivatives
     tx_d2 = []
