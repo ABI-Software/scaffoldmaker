@@ -21,6 +21,7 @@ lung_terms = [
     ("medial base of right lung", "ILX:0778121"),
     ("oblique fissure of left lung", "ILX:0778115"),
     ("oblique fissure of right lung", "ILX:0778114"),
+    ("respiratory airway", "UBERON:0001005", "ILX:0728555"),
     ("right lung", "UBERON:0002167", "ILX:0729582"),
     ("right lung accessory lobe", "UBERON:0004890", "ILX:0728696"),
     ("upper lobe of left lung", "UBERON:0008952", "ILX:0735339"),
