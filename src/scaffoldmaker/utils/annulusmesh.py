@@ -83,7 +83,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                         maxStartThickness=None, maxEndThickness=None, useCrossDerivatives=False,
                         elementsCountRadial=1, meshGroups=None, wallAnnotationGroups=None,
                         tracksurface=None, startProportions=None, endProportions=None,
-                        rescaleStartDerivatives=False, rescaleEndDerivatives=False, sampleBlend=0.0, coordinates=None):
+                        rescaleStartDerivatives=False, rescaleEndDerivatives=False, sampleBlend=0.0,
+                        fixMinimumStart=False, fixMinimumEnd=False):
     """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
@@ -133,6 +134,8 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
     :param sampleBlend: Real value varying from 0.0 to 1.0 controlling weighting of start and end
     derivatives when interpolating extra points in-between, where 0.0 = sample with equal end derivatives,
     and 1.0 = proportional to current magnitudes, interpolated in between.
+    :param fixMinimumStart, fixMinimumEnd: If either set (but not both) the shortest arc length is used to fix
+    the interpolation derivative at that end, reducing stretching on long diagonals. Sample blend must be 0.0.
     :return: Final values of nextNodeIdentifier, nextElementIdentifier
     """
     assert (elementsCountRadial >= 1), 'createAnnulusMesh3d:  Invalid number of radial elements'
@@ -168,6 +171,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                ((startDerivativesMap is None) or (len(startDerivativesMap[n3]) == nodesCountAround)) and \
                ((endDerivativesMap is None) or (len(endDerivativesMap[n3]) == nodesCountAround)), \
             'createAnnulusMesh3d:  Mismatch in number of points/nodes in layers through wall'
+    assert not (fixMinimumStart and fixMinimumEnd and (sampleBlend > 0.0))
     rowMeshGroups = meshGroups
     if meshGroups:
         assert isinstance(meshGroups, Sequence), 'createAnnulusMesh3d:  Mesh groups is not a sequence'
@@ -188,9 +192,12 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
             'createAnnulusMesh3d: Length of endProportions does not equal nodesCountAround'
 
     fm = mesh.getFieldmodule()
+<<<<<<< HEAD
     if not coordinates:
         coordinates = findOrCreateFieldCoordinates(fm)
     fm.beginChange()
+=======
+>>>>>>> 07fcb837961b725a7ccffc9bf4cd77b82f4d0553
     cache = fm.createFieldcache()
 
     # Build arrays of points from start to end
@@ -233,6 +240,31 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
     if rescaleEndDerivatives:
         scaleFactorMapEnd = [[] for n3 in range(nodesCountWall)]
 
+    fixStartMagnitude = None
+    fixEndMagnitude = None
+    if fixMinimumStart or fixMinimumEnd:
+        n3 = nodesCountWall - 1
+        # get minimum derivative for shortest arc length to bias interpolation
+        for n1 in range(nodesCountAround):
+            ax = startPointsx[n3][n1]
+            ad1, ad2 = getMappedD1D2([startPointsd1[n3][n1], startPointsd2[n3][n1]] +
+                                     ([startPointsd3[n3][n1]] if startPointsd3 else []),
+                                     startDerivativesMap[n3][n1] if startDerivativesMap else None)
+            bx = endPointsx[n3][n1]
+            bd1, bd2 = getMappedD1D2([endPointsd1[n3][n1], endPointsd2[n3][n1]] +
+                                     ([endPointsd3[n3][n1]] if endPointsd3 else []),
+                                     endDerivativesMap[n3][n1] if endDerivativesMap else None)
+            bd2 = vector.setMagnitude(bd2, vector.magnitude(ad2))
+            scaling = interp.computeCubicHermiteDerivativeScaling(ax, ad2, bx, bd2)
+            if fixMinimumStart:
+                mag = vector.magnitude(ad2) * scaling
+                if (fixStartMagnitude is None) or (mag < fixStartMagnitude):
+                    fixStartMagnitude = mag
+            else:  # fixMinimumEnd:
+                mag = vector.magnitude(bd2) * scaling
+                if (fixEndMagnitude is None) or (mag < fixEndMagnitude):
+                    fixEndMagnitude = mag
+
     # following code adds in-between points, but also handles rescaling for 1 radial element
     for n3 in range(nodesCountWall):
         for n2 in range(1, elementsCountRadial):
@@ -263,13 +295,20 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
         # scaling end derivatives to arc length gives even curvature along the curve
         aMag = vector.magnitude(ad2)
         bMag = vector.magnitude(bd2)
-        ad2Scaled = vector.setMagnitude(ad2, 0.5 * ((1.0 + sampleBlend) * aMag + (1.0 - sampleBlend) * bMag))
-        bd2Scaled = vector.setMagnitude(bd2, 0.5 * ((1.0 + sampleBlend) * bMag + (1.0 - sampleBlend) * aMag))
+        ad2mag = 0.5 * ((1.0 + sampleBlend) * aMag + (1.0 - sampleBlend) * bMag)
+        ad2Scaled = vector.setMagnitude(ad2, ad2mag) if (aMag > 0.0) else [0.0, 0.0, 0.0]
+        bd2mag = 0.5 * ((1.0 + sampleBlend) * bMag + (1.0 - sampleBlend) * aMag)
+        bd2Scaled = vector.setMagnitude(bd2, bd2mag) if (bMag > 0.0) else [0.0, 0.0, 0.0]
         scaling = interp.computeCubicHermiteDerivativeScaling(ax, ad2Scaled, bx, bd2Scaled)
         ad2Scaled = [d * scaling for d in ad2Scaled]
         bd2Scaled = [d * scaling for d in bd2Scaled]
         derivativeMagnitudeStart = None if rescaleStartDerivatives else vector.magnitude(ad2)
         derivativeMagnitudeEnd = None if rescaleEndDerivatives else vector.magnitude(bd2)
+        if fixStartMagnitude:
+            derivativeMagnitudeStart = fixStartMagnitude / elementsCountRadial
+        elif fixEndMagnitude:
+            derivativeMagnitudeEnd = fixEndMagnitude / elementsCountRadial
+
         if tracksurface:
             mx, md2, md1, md3, mProportions = \
                 tracksurface.createHermiteCurvePoints(startProportions[n1][0], startProportions[n1][1],
@@ -663,8 +702,6 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                     for annotationGroup in wallAnnotationGroups[e3]:
                         meshGroup = annotationGroup.getMeshGroup(mesh)
                         meshGroup.addElement(element)
-
-    fm.endChange()
 
     return nodeIdentifier, elementIdentifier
 
