@@ -1168,7 +1168,7 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
     upper_edge += tx[1:]
     upper_edge_d2 += td2[1:]
     upper_edge.reverse()
-    upper_edge_d2.reverse()
+    upper_edge_d2 = [[-d for d in d2] for d2 in reversed(upper_edge_d2)]
 
     # points around middle lobe from base to horizontal fissure
     for n3 in range(3):
@@ -1276,7 +1276,7 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
         for n3 in range(lElementsCount3 + 1):
             u, v = getEllipsoidPolarCoordinatesFromPosition(widthUnit, lengthUnit, heightUnit, tx[n3])
             x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(widthUnit, lengthUnit, heightUnit, u, v)
-            surface_normal = normalize(cross(tip_dx_du, tip_dx_dv))
+            surface_normal = normalize(cross(dx_du, dx_dv))
             # subtract component of derivative in surface normal direction
             snc = dot(td3[n3], surface_normal)
             td3[n3] = sub(td3[n3], mult(surface_normal, snc))
@@ -1286,39 +1286,39 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
     md3.append([[-d for d in lowerObl_d2[-1]], [-d for d in lowerObl_d2[-2]], None, None])
     md3.append([[-d for d in obl_d2[-1]], [-d for d in obl_d2[-2]], None, None])
 
-    # create nodes
+    # create nodes - lower lobe
     for n3 in range(lElementsCount3 + 1):
         lowerNodeIds.append([])
+        offset2 = None
         for n2 in range(lElementsCount2 + 1):
             lowerNodeIds[n3].append([None] * (lElementsCount1 + 1))
             sd2 = md2[n3][n2]
             sd3 = md3[n2][n3]
+            next_sxd2 = None
             if n3 == 0:
                 sx = lower_row1[n2]
                 if n2 < 4:
-                    next_xd2 = lower_row1[n2 + 1]
-                else:
-                    next_xd2 = add(lower_row1[n2], sub(lower_row1[n2], lower_row1[n2 - 1]))
+                    next_sxd2 = lower_row1[n2 + 1]
             elif n3 == 1:
                 sx = lower_row2[n2]
                 if n2 < 4:
-                    next_xd2 = lower_row2[n2 + 1]
-                else:
-                    next_xd2 = add(lower_row1[n2], sub(lower_row1[n2], lower_row1[n2 - 1]))
+                    next_sxd2 = lower_row2[n2 + 1]
             elif (n3 == 2) and (n2 < 3):
                 sx = lowerObl[n2]
                 if n2 < 3:
-                    next_xd2 = lowerObl[n2 + 1]
+                    next_sxd2 = lowerObl[n2 + 1]
             elif (n3 == 3) and (n2 < 3):
                 sx = obl[n2]
                 if n2 < 2:
-                    next_xd2 = obl[n2 + 1]
+                    next_sxd2 = obl[n2 + 1]
                 if n2 == 2:
                     # 3-way point at intersection of lower, middle and upper lobes
                     sd2 = md3[n2][n3]
                     sd3 = [-d for d in md2[n3][n2]]
             else:
                 continue
+            if next_sxd2:
+                offset2 = [0.0, next_sxd2[1] - sx[1], next_sxd2[2] - sx[2]]
 
             # apply symmetry across 1 (x) direction
             sd1 = [-sx[0], 0.0, 0.0]
@@ -1336,7 +1336,6 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                     x = [0.0, sx[1], sx[2]]
                     d2 = [0.0, sd2[1], sd2[2]]
                     d3 = [0.0, sd3[1], sd3[2]]
-                    offset2 = [0.0, next_xd2[1] - x[1], next_xd2[2] - x[2]]
                     if n2 == 0:
                         d1 = [-d for d in sd2]
                         d2 = offset2
@@ -1373,138 +1372,162 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                     lungSideNodesetGroup.addNode(node)
                     lungNodesetGroup.addNode(node)
 
-    # ---------------------------------------------------- Upper lobe --------------------------------------------
 
-    # smooth derivatives
-    tx_d2 = []
-    tx_d3 = []
-    md2 = []
+     # smooth derivatives - upper lobe
+    upper_row4_d2 = [[-1.0, 0.0, 0.0]] + [[0.0, 0.0, 0.0] for i in range(len(upper_row4) - 2)] + [[1.0, 0.0, 0.0]]
+    upper_row4_d2 = smoothCubicHermiteDerivativesLine(upper_row4, upper_row4_d2,
+                                                      fixStartDirection=True, fixEndDirection=True)
+    # apex row
+    upper_row5_d2 = [upper_edge_d2[1]] + [upper_edge_d2[i] for i in range(2, 5)] + [upper_edge_d2[5]]
+    md2 = [[None, None] + upper_row1_d2, [None, None] + upper_row2_d2, [None, None] + upper_row3_d2,
+           upper_row4_d2, upper_row5_d2]
     md3 = []
+    for n2 in range(5):
+        tx = []
+        td3 = []
+        smooth = False
+        if n2 == 0:
+            tx = [None, None] + [upper_edge[i] for i in range(3)]
+            td3 = [None, None] + [upper_edge_d2[i] for i in range(3)]
+        elif n2 == 1:
+            tx = [None, None] + upper_col1
+            td3 = [None, None] + upper_col1_d3
+        elif n2 == 2:
+            tx = [upper_row1[0], upper_row2[0]] + upper_col2
+            td3 = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]] + upper_col2_d3
+        elif n2 == 3:
+            tx = [upper_row1[1], upper_row2[1]] + upper_col3
+            td3 = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]] + upper_col3_d3
+            smooth = True
+        elif n2 == 4:
+            tx = [upper_edge[-i] for i in range(1, 6)]
+            td3 = [[-d for d in upper_edge_d2[-i]] for i in range(1, 6)]
+
+        if smooth:
+            fixEndDerivative = 1 <= n2 <= 3
+            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixEndDerivative=fixEndDerivative)
+            # make the derivatives tangential to the ellipsoid
+            for n3 in range(len(tx)):
+                u, v = getEllipsoidPolarCoordinatesFromPosition(widthUnit, lengthUnit, heightUnit, tx[n3])
+                _, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(widthUnit, lengthUnit, heightUnit, u, v)
+                surface_normal = normalize(cross(dx_du, dx_dv))
+                # subtract component of derivative in surface normal direction
+                snc = dot(td3[n3], surface_normal)
+                td3[n3] = sub(td3[n3], mult(surface_normal, snc))
+            # re-smooth with tangential directions
+            td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixAllDirections=True, fixEndDerivative=fixEndDerivative)
+        md3.append(td3)
+
+    # create nodes - upper lobe
     for n3 in range(uElementsCount3 + 1):
-        if n3 == 0:
-            tx_d2 = upper_row1
-            tx_d3 = [upper_edge[-i] for i in range(1, 6)]
-        elif n3 == 1:
-            tx_d2 = upper_row2
-            tx_d3 = [upper_row1[-n3-1], upper_row2[-n3-1], upper_row3[-n3-1], upper_row4[-n3-1], upper_edge[-5]]
-        elif n3 == 2:
-            tx_d2 = upper_row3
-            tx_d3 = [obl[n3], upper_row4[n3], upper_edge[n3 + 1]]
-        elif n3 == 3:
-            tx_d2 = upper_row4
-            tx_d3 = [obl[n3-2], upper_row4[n3-2], upper_edge[n3 - 1]]
-        elif n3 == 4:
-            # Apex row
-            tx_d2 = [upper_edge[i] for i in range(1, 6)]
-            tx_d3 = [upper_edge[i] for i in range(3)]
-
-        md2.append(smoothCubicHermiteDerivativesLine(tx_d2, tx_d2))
-        md3.append(smoothCubicHermiteDerivativesLine(tx_d3, tx_d3))
-
-    # create nodes
-    for i in range(uElementsCount3 + 1):
         upperNodeIds.append([])
-        for j in range(uElementsCount2 + 1):
-            upperNodeIds[i].append([])
-            for k in range(uElementsCount1 + 1):
-                upperNodeIds[i][j].append(None)
+        offset2 = None
+        for n2 in range(uElementsCount2 + 1):
+            upperNodeIds[n3].append([None] * (uElementsCount1 + 1))
+            next_sxd2 = None
+            sd2 = md2[n3][n2]
+            sd3 = md3[n2][n3]
+            if (n3 == 0) and (n2 > 2):
+                sx = upper_row1[n2 - 2]
+                if n2 < 4:
+                    next_sxd2 = upper_row1[n2 - 1]
+            elif (n3 == 1) and (n2 > 2):
+                sx = upper_row2[n2 - 2]
+                if n2 < 4:
+                    next_sxd2 = upper_row2[n2 - 1]
+            elif (n3 == 2) and (n2 > 2):
+                sx = upper_row3[n2 - 2]
+                if n2 < 4:
+                    next_sxd2 = upper_row3[n2 - 1]
+            elif (n3 == 3):
+                sx = upper_row4[n2]
+                if n2 < 4:
+                    next_sxd2 = upper_row4[n2 + 1]
+            elif (n3 == 4) and (1 <= n2 <= 3):
+                sx = upper_edge[n2 + 1]
+                col = upper_col1 if n2 == 1 else upper_col2 if n2 == 2 else upper_col3
+                sd3 = sub(col[-1], col[-2])
+            if next_sxd2:
+                offset2 = [0.0, next_sxd2[1] - sx[1], next_sxd2[2] - sx[2]]
 
-                # Oblique fissure nodes
-                if (i < 2) and (j == 2):
-                    upperNodeIds[i][j][k] = lowerNodeIds[i][-1][k]
-                elif (i == 2) and (j < 4):
-                    upperNodeIds[i][j][k] = lowerNodeIds[-1][j][k]
+            # apply symmetry across 1 (x) direction
+            sd1 = [-sx[0], 0.0, 0.0]
+            for n1 in range(uElementsCount1 + 1):
+                # skip first and last n1 on edges
+                if (n1 != 1) and ((n2 == 0) or (n2 == 4) or (n3 == 4)):
+                    continue
+                if (n3 == 4) and ((n2 == 0) or (n2 == 4)):
+                    continue
 
-                # each i row
-                if (i == 0) and (j > 2):
-                    x = copy.deepcopy(upper_row1[j - 2])
-                    d2 = md2[i][j-2]
-                    idx = j-(j//2)*2
-                    d3 = md3[idx][i]
-                    if j < 4:
-                        next_xd2 = copy.deepcopy(upper_row1[j - 1])
-                elif (i == 1) and (j > 2):
-                    x = copy.deepcopy(upper_row2[j - 2])
-                    d2 = md2[i][j-2]
-                    idx = j-(j//2)*2
-                    d3 = md3[idx][i]
-                    if j < 4:
-                        next_xd2 = copy.deepcopy(upper_row2[j - 1])
-                elif (i == 2) and (j > 2):
-                    x = copy.deepcopy(upper_row3[j - 2])
-                    d2 = md2[i][j-2]
-                    idx = j-(j//2)*2
-                    d3 = md3[idx][i]
-                    if j < 4:
-                        next_xd2 = copy.deepcopy(upper_row3[j - 1])
-                elif (i == 3):
-                    x = copy.deepcopy(upper_row4[j])
-                    d2 = md2[i][j]
-                    d3 = md3[-j-1][i] if j > 2 else md3[-j-1][i-2]
-                    if j < 4:
-                        next_xd2 = copy.deepcopy(upper_row4[j+1])
-                elif (i == 4) and (j > 0) and (j < 4):
-                    x = copy.deepcopy(upper_edge[j+1])
-                    d2 = md2[i][j]
-                    d3 = md3[-j-1][i] if j == 3 else md3[-j-1][i-3]
-                    if j < 4:
-                        next_xd2 = copy.deepcopy(upper_edge[j+2])
+                # use oblique fissure nodes from lower lobe
+                if (n3 < 2) and (n2 == 2):
+                    upperNodeIds[n3][n2][n1] = lowerNodeIds[n3][-1][n1]
+                elif (n3 == 2) and (n2 < 4):
+                    upperNodeIds[n3][n2][n1] = lowerNodeIds[-1][n2][n1]
+                if upperNodeIds[n3][n2][n1]:
+                    node = nodes.findNodeByIdentifier(upperNodeIds[n3][n2][n1])
+                elif (n3 < 2) and (n2 < 2):
+                    # hole where the lower lobe is
+                    continue
                 else:
-                    continue
+                    d1 = sd1
+                    if n1 == 0:
+                        x = sx
+                        d2 = sd2
+                        d3 = sd3
+                    elif n1 == 1:
+                        if n2 == 4:
+                            # ventral edge
+                            x = sx
+                            d1 = sd2
+                            d2 = offset2
+                            d3 = sd3
+                        elif n3 == 4:
+                            # apex row
+                            x = sx
+                            d1 = upper_col1_d3[-1] if (n2 == 1) else \
+                                upper_col2_d3[-1] if (n2 == 2) else \
+                                upper_col3_d3[-1]
+                            d2 = sd2
+                            d3 = [0.0, sd3[1], sd3[2]]
+                        else:
+                            x = [0.0, sx[1], sx[2]]
+                            d1 = [-d for d in sd2]
+                            d2 = offset2
+                            d3 = [0.0, sd3[1], sd3[2]]
+                    else:  # mirror in x
+                        x = [-sx[0], sx[1], sx[2]]
+                        d2 = [-sd2[0], sd2[1], sd2[2]]
+                        d3 = [-sd3[0], sd3[1], sd3[2]]
 
-                # skipping the first and last, k.
-                if (((j == 0) or (j == 4)) and (k != 1)) or ((i == 4) and (k != 1)):
-                    continue
-
-                # symmetry
-                if k == 0:
-                    # d2 = md2[i][j]
-                    pass
-                elif k == 1:
-                    if j == 4:
-                        # Ridges
-                        d2 = previous_d2
-                    elif i == 4:
-                        # Apex row
-                        d3 = [0.0, d3[1], d3[2]]
+                    # translate right lung to the defined centre of the right lung
+                    if lungSide != leftLung:
+                        x = [x[0] + spaceFromCentre, x[1], x[2]]
                     else:
-                        x = [0.0, x[1], x[2]]
-                        next_xd2 = [0.0, next_xd2[1], next_xd2[2]]
-                        d2 = [next_xd2[i] - x[i] for i in range(3)]
-                        previous_d2 = d2
-                        d3 = [0.0, d3[1], d3[2]]
-                else:
-                    x = [-x[0], x[1], x[2]]
-                    d2 = [-d2[0], d2[1], d2[2]]
-                    d3 = [-d3[0], d3[1], d3[2]]
+                        x = [x[0] - spaceFromCentre, x[1], x[2]]
 
-                # translate right lung to the defined centre of the right lung
-                if lungSide != leftLung:
-                    x = [x[0] + spaceFromCentre, x[1], x[2]]
-                else:
-                    x = [x[0] - spaceFromCentre, x[1], x[2]]
-
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                upperNodeIds[i][j][k] = nodeIdentifier
-                nodeIdentifier += 1
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    upperNodeIds[n3][n2][n1] = nodeIdentifier
+                    nodeIdentifier += 1
 
                 # Annotation
                 if lungNodesetGroup or lungSideNodesetGroup or medialLungNodesetGroup or mediastinumNodesetGroup:
-                    if j > 2:
+                    if n2 > 2:
                         mediastinumNodesetGroup.addNode(node)
-                    if (lungSide == leftLung) and (k != 0):
+                    if (lungSide == leftLung) and (n1 != 0):
                         medialLungNodesetGroup.addNode(node)
-                    elif (lungSide != leftLung) and (k != uElementsCount1):
+                    elif (lungSide != leftLung) and (n1 != uElementsCount1):
                         medialLungNodesetGroup.addNode(node)
                     lungSideNodesetGroup.addNode(node)
                     lungNodesetGroup.addNode(node)
 
     return nodeIdentifier
+
 
 def createLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegular, elementtemplateCustom, mesh,
                     lungMeshGroup, lungSideMeshGroup, lowerLobeMeshGroup, middleLobeMeshGroup,
