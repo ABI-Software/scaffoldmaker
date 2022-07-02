@@ -1,4 +1,5 @@
 import copy
+import math
 import unittest
 
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
@@ -225,9 +226,11 @@ class LungScaffoldTestCase(unittest.TestCase):
         # check coordinates range, outside surface area and volume
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
+        material_coordinates = fieldmodule.findFieldByName("lung coordinates").castFiniteElement()
+        self.assertTrue(material_coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5604163214943202, -0.466842088914134, -0.2084853920913896], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [0.5604163214943202, 0.34567264189961144, 0.9604476810137638], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-0.5604046150578359, -0.46588462707467704, -0.20848015499159522], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [0.5604046150578359, 0.3440517958126045, 0.9604261163849366], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
@@ -238,13 +241,23 @@ class LungScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
             volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
             volumeField.setNumbersOfPoints(3)
+            left_lung_group = getAnnotationGroupForTerm(annotationGroups, get_lung_term("left lung"))
+            left_lung_mesh_group = left_lung_group.getMeshGroup(mesh3d)
+            materialVolumeField = fieldmodule.createFieldMeshIntegral(one, material_coordinates, left_lung_mesh_group)
+            materialVolumeField.setNumbersOfPoints(3)
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 1.8798921303528096, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 1.838244693520495, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume,  0.3939966467507881, delta=1.0E-2)
+        self.assertAlmostEqual(volume,  0.3859394886952645, delta=1.0E-6)
+        result, material_volume = materialVolumeField.evaluateReal(fieldcache, 1)
+        self.assertEqual(result, RESULT_OK)
+        halfEllipsoidVolume = 0.5 * (4.0 / 3.0) * math.pi * 0.25 * 0.5 * 1.0  # 3 axis lengths
+        self.assertAlmostEqual(halfEllipsoidVolume, 0.2617993877991494, delta=1.0E-12)
+        # not quite the same as the above due to sharpening on the ventral edge
+        self.assertAlmostEqual(material_volume, 0.2597062752904966, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -434,8 +447,8 @@ class LungScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5965044150610541, -0.9033753549633335, -0.6098596053921448], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [0.6642334206803495, 0.013022322792385225, 0.6698850677137351], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-0.5965062723149795, -0.9035466860119679, -0.6098596059713717], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [0.6642156880908214, 0.009214327892980281, 0.669464028759718], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
@@ -449,10 +462,10 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 2.1246873977602028, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 2.077889388115966, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume,  0.38833210870887075, delta=1.0E-2)
+        self.assertAlmostEqual(volume,  0.3799935491917908, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -623,8 +636,8 @@ class LungScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5604163214943202, -0.466842088914134, -0.2084853920913896], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [0.5604163214943202, 0.34567264189961144, 0.9604476810137638], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-0.5604046150578359, -0.46588462707467704, -0.20848015499159522], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [0.5604046150578359, 0.3440517958126045, 0.9604261163849366], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
@@ -638,10 +651,10 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 1.8798921303528096, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 1.8382446935204972, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume,  0.3939966467507881, delta=1.0E-2)
+        self.assertAlmostEqual(volume,  0.3859394886952645, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -756,8 +769,8 @@ class LungScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5965044150610541, -0.9033753549633335, -0.6098596053921448], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [0.6642334206803495, 0.013022322792385225, 0.6698850677137351], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-0.5965062723149795, -0.9035466860119679, -0.6098596059713717], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [0.6642156880908214, 0.009214327892980281, 0.669464028759718], 1.0E-6)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
@@ -771,10 +784,10 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 2.1246873977602028, delta=1.0E-2)
+        self.assertAlmostEqual(surfaceArea, 2.077889388115967, delta=1.0E-2)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume,  0.38833210870887075, delta=1.0E-2)
+        self.assertAlmostEqual(volume,  0.3799935491917908, delta=1.0E-2)
 
         # check some annotationGroups:
         expectedSizes3d = {

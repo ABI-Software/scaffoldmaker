@@ -480,11 +480,12 @@ class MeshType_3d_lung2(Scaffold_base):
             uElementsCount1 = 2
             uElementsCount2 = 4
             uElementsCount3 = 4
-            # Fissure angle and element distribution
-            leftFissureAngle = math.atan(leftHeight/(leftDepth * 2.0)) * 180 / math.pi
-            leftObliqueProportion = 0.8
-            rightFissureAngle = math.atan(rightHeight/(rightDepth * 2.0)) * 180 / math.pi
-            rightObliqueProportion = 0.8
+            # Fissure locations
+            horizontalHeightProportion = 0.5
+            leftObliqueLengthProportion = 0.8
+            leftObliqueHeightProportion = 0.7
+            rightObliqueLengthProportion = 0.8
+            rightObliqueHeightProportion = 0.7
 
             ###############
             # Create nodes
@@ -496,8 +497,9 @@ class MeshType_3d_lung2(Scaffold_base):
             upperRightNodeIds = []
 
             # Left lung nodes
-            nodeIdentifier = createLungNodes(spacingBetweenLeftRight,
-                leftDepth, leftWidth, leftHeight, leftFissureAngle, leftObliqueProportion,
+            nodeIdentifier = createLungNodes(
+                spacingBetweenLeftRight, leftDepth, leftWidth, leftHeight,
+                leftObliqueLengthProportion, leftObliqueHeightProportion, horizontalHeightProportion,
                 leftLung, cache, coordinates, nodes, nodetemplate,
                 mediastinumLeftNodesetGroup, leftMedialLungNodesetGroup,
                 leftLungNodesetGroup, lungNodesetGroup,
@@ -506,8 +508,9 @@ class MeshType_3d_lung2(Scaffold_base):
                 lowerLeftNodeIds, upperLeftNodeIds, nodeIdentifier)
 
             # Right lung nodes
-            nodeIdentifier = createLungNodes(spacingBetweenLeftRight,
-                rightDepth, rightWidth, rightHeight, rightFissureAngle, rightObliqueProportion,
+            nodeIdentifier = createLungNodes(
+                spacingBetweenLeftRight, rightDepth, rightWidth, rightHeight,
+                rightObliqueLengthProportion, rightObliqueHeightProportion, horizontalHeightProportion,
                 rightLung, cache, coordinates, nodes, nodetemplate,
                 mediastinumRightNodesetGroup, rightMedialLungNodesetGroup,
                 rightLungNodesetGroup, lungNodesetGroup,
@@ -1037,20 +1040,22 @@ class MeshType_3d_lung2(Scaffold_base):
             annotationGroups.remove(value)
 
 
-def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureAngle, obliqueProportion,
-                 lungSide, cache, coordinates, nodes, nodetemplate,
-                 mediastinumNodesetGroup, medialLungNodesetGroup,
-                 lungSideNodesetGroup, lungNodesetGroup,
-                 lElementsCount1, lElementsCount2, lElementsCount3,
-                 uElementsCount1, uElementsCount2, uElementsCount3,
-                 lowerNodeIds, upperNodeIds, nodeIdentifier):
+def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit,
+                    obliqueLengthProportion, obliqueHeightProportion, horizontalHeightProportion,
+                    lungSide, cache, coordinates, nodes, nodetemplate,
+                    mediastinumNodesetGroup, medialLungNodesetGroup,
+                    lungSideNodesetGroup, lungNodesetGroup,
+                    lElementsCount1, lElementsCount2, lElementsCount3,
+                    uElementsCount1, uElementsCount2, uElementsCount3,
+                    lowerNodeIds, upperNodeIds, nodeIdentifier):
     """
     :param spaceFromCentre:
     :param lengthUnit:
     :param widthUnit:
     :param heightUnit:
-    :param fissureAngle:
-    :param obliqueProportion:
+    :param obliqueLengthProportion: Proportion of total base length from distal tip to start of oblique fissure.
+    :param obliqueHeightProportion: Proportion of height where oblique fissure intersects distal edge.
+    :param horizontalHeightProportion: Proportion of height where horizontal fissure intersects ventral edge.
     :param lungSide:
     :param cache:
     :param coordinates:
@@ -1086,55 +1091,52 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
     minorYAxis = [yAxis[i] * -lengthUnit for i in range(3)]
     minorZAxis = [zAxis[i] * heightUnit for i in range(3)]
 
-    fissureRadian = fissureAngle/180 * math.pi
-    tanFissureRadian = math.tan(fissureRadian)
+    # oblique fissure base point on x = 0 plane
+    obp = [0.0, (obliqueLengthProportion - 0.5) * 2.0 * lengthUnit, 0.0]
+    # oblique fissure distal point
+    obliqueTheta = math.acos(obliqueHeightProportion)
+    odp = [0.0, -lengthUnit * math.sin(obliqueTheta), obliqueHeightProportion * heightUnit]
+    # oblique fissure centre point
+    ocp = [0.5 * (obp[c] + odp[c]) for c in range(3)]
 
-    # Create 5 points at the centre of 2D Ellipse base
-    p1 = [yAxis[i] * -lengthUnit for i in range(3)]
-    p2 = [yAxis[i] * lengthUnit for i in range(3)]
-    p3 = [[p1[i] - (p1[i] - p2[i]) * obliqueProportion for i in range(3)]] # point of oblique fissure on diaphragm
-
-    # Simplified simultaneous (linear and ellipsoid) equations
-    C = tanFissureRadian * p3[0][1] # (y-offset) - y = mx + c
-
-    # Quadratic equation - ax^2 + bx + c = 0
-    a = (heightUnit ** 2) + ((lengthUnit ** 2) * (tanFissureRadian ** 2))
-    b = (lengthUnit ** 2) * 2 * tanFissureRadian * C
-    c = (lengthUnit ** 2) * (C ** 2) - ((lengthUnit ** 2) * (heightUnit ** 2))
-    det = (b ** 2) - (4 * a * c) # determinant b^2 - 4ac
-    assert det > 0, "No real solution"
-    y = (-b + math.sqrt(det)) / (2 * a)
-    z = tanFissureRadian*y + C
-    p4 = [0.0, -y, z] # point at the oblique-ellispe intersection
-
-    # points on 2D Ellipse base (two on the curve and one centre)
-    x = p3[0][1]
-    y = math.sqrt(1 - (x/lengthUnit) ** 2) * widthUnit
-    p3.append([y, p3[0][1], p3[0][2]])
-    p3.insert(0, [-y, p3[0][1], p3[0][2]])
+    # horizontal fissure ventral point
+    horizontalTheta = math.acos(horizontalHeightProportion)
+    hvp = [0.0, lengthUnit * math.sin(horizontalTheta), horizontalHeightProportion * heightUnit]
 
     # -------------------------------------------------- Lower lobe ------------------------------------------------
 
     # lower lobe dorsal edge
-    dx = p4[1]
     vec1 = minorYAxis
     vec2 = [-minorZAxis[i] for i in range(3)]
     planeCentre = centre
+    dx = odp[1]
     totalRadiansAround = math.acos(-dx / magnitude(minorYAxis))
     lower_edge, lower_edge_d3 = sampleEllipsePoints(
         planeCentre, vec1, vec2, 0.0, -totalRadiansAround, lElementsCount3)
 
+    # oblique fissure - in 2 parts as horizontal fissure starts half way up it
+    planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit, obp, lower_edge[lElementsCount3])
+    dx = dot(sub(obp, planeCentre), normalize(vec1))
+    totalRadiansAround = math.acos(dx / magnitude(vec1))
+    dx_mid = dot(sub(ocp, planeCentre), normalize(vec1))
+    midRadiansAround = math.acos(dx_mid / magnitude(vec1))
+    obl, obl_d2 = sampleEllipsePoints(planeCentre, vec1, vec2, 0.0, -midRadiansAround, lElementsCount2 - 2)
+    tx, td2 = sampleEllipsePoints(planeCentre, vec1, vec2, -midRadiansAround, -totalRadiansAround, 2)
+    obl += tx[1:]
+    obl_d2 += td2[1:]
+
     # rows up dorsal edge
-    for n3 in range(lElementsCount3 + 1):
+    for n3 in range(lElementsCount3):
         if n3 == 0:
-            dx = p3[2][1]
             vec1 = minorYAxis
             vec2 = majorXAxis
             planeCentre = centre
+            dx = -obp[1]
         else:
-            planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit, p3[1], lower_edge[n3])
-            dx = magnitude(sub(p3[1], planeCentre))
-        totalRadiansAround = math.acos(-dx / magnitude(vec1))
+            pt = [0.0, lower_row1[-2][1], lower_row1[-2][2]]
+            planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit, pt, lower_edge[n3])
+            dx = dot(sub(pt, planeCentre), normalize(vec1))
+        totalRadiansAround = math.acos(dx / magnitude(vec1))
         px, pd2 = sampleEllipsePoints(planeCentre, vec1, vec2, 0.0, -totalRadiansAround, lElementsCount2)
         if n3 == 0:
             lower_row1, lower_row1_d2 = px, pd2
@@ -1148,18 +1150,26 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
     # ---------------------------------------------------- Upper lobe --------------------------------------------
 
     # upper lobe ventral-dorsal edge
-    # up from ventral tip of base to apex
-    dx = 0.0
+
+    # up from ventral tip of base to horizontal fissure point
     vec1 = [-minorYAxis[i] for i in range(3)]
     vec2 = minorZAxis
     planeCentre = centre
-    elementsCountAround = 5
+    dx = hvp[1]
+    totalRadiansAround = math.acos(dx / lengthUnit)
+    elementsCountAround = 2
     upper_edge, upper_edge_d2 = sampleEllipsePoints(
-        planeCentre, vec1, vec2, 0.0, math.pi / 2.0, elementsCountAround)
+        planeCentre, vec1, vec2, 0.0, totalRadiansAround, elementsCountAround)
+    # up from horizontal fissure point to apex
+    elementsCountAround = 3
+    tx, td2 = sampleEllipsePoints(
+        planeCentre, vec1, vec2, totalRadiansAround, math.pi / 2.0, elementsCountAround)
+    upper_edge += tx[1:]
+    upper_edge_d2 += td2[1:]
     # down from apex to dorsal tip of oblique fissure
-    dx = obl[0][2]
     vec1 = minorZAxis
     vec2 = minorYAxis
+    dx = obl[0][2]
     planeCentre = centre
     elementsCountAround = 3
     totalRadiansAround = math.acos(dx / magnitude(minorZAxis))
@@ -1176,12 +1186,12 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
             planeCentre = centre
             vec1 = [-minorYAxis[i] for i in range(3)]
             vec2 = majorXAxis
-            dx = p3[1][1]
+            dx = obp[1] - planeCentre[1]
         else:
             obl_temp = [0.0, obl[-1 - n3][1], obl[-1 - n3][2]]
             planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit,
                                                          obl_temp, upper_edge[-1 - n3])
-            dx = magnitude(sub(obl_temp, planeCentre))
+            dx = dot(sub(obl_temp, planeCentre), normalize(vec1))
         totalRadiansAround = math.acos(dx / magnitude(vec1))
         px, pd2 = sampleEllipsePoints(planeCentre, vec1, vec2, -totalRadiansAround, 0.0, elementCount=2)
         if n3 == 0:
@@ -1196,7 +1206,7 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
         col_end = obl[n2 + 1] if n2 < 2 else upper_row3[1]
         midx = [0.0, col_end[1], col_end[2]]
         planeCentre, vec1, vec2 = getEllipsoidPlaneA(widthUnit, lengthUnit, heightUnit, midx, upper_edge[n2 + 2])
-        dx = magnitude(sub(midx, planeCentre))
+        dx = dot(sub(midx, planeCentre), normalize(vec1))
         totalRadiansAround = math.acos(dx / magnitude(vec1))
         px, pd3 = sampleEllipsePoints(planeCentre, vec1, vec2, -totalRadiansAround, 0.0, elementCount=2)
         if n2 == 0:
@@ -1268,9 +1278,9 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
             tx.append(x[n2])
         td3 = [[0.0, 0.0, 0.0] for n3 in range(lElementsCount3 + 1)]
         fixEndDerivative = False
-        # if n2 == 1:
-        #     td3[-1] = upper_col1_d3[0]
-        #     fixEndDerivative = True
+        if n2 == 1:
+            td3[-1] = upper_col1_d3[0]
+            fixEndDerivative = True
         td3 = smoothCubicHermiteDerivativesLine(tx, td3, fixEndDerivative=fixEndDerivative)
         # make the derivatives tangential to the ellipsoid
         for n3 in range(lElementsCount3 + 1):
@@ -1313,7 +1323,7 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                     next_sxd2 = obl[n2 + 1]
                 if n2 == 2:
                     # 3-way point at intersection of lower, middle and upper lobes
-                    sd2 = md3[n2][n3]
+                    sd2 = upper_row3_d2[0]
                     sd3 = [-d for d in md2[n3][n2]]
             else:
                 continue
@@ -1340,7 +1350,7 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                         d1 = [-d for d in sd2]
                         d2 = offset2
                     elif (n3 == 3) and (n2 == 2):  # 3-way point
-                        d3 = [0.0, -md2[n3][n2][1], -md2[n3][n2][2]]
+                        pass
                     else:
                         d2 = offset2
                 else:  # mirror in x
@@ -1482,6 +1492,12 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                             d1 = sd2
                             d2 = offset2
                             d3 = sd3
+                        elif n2 == 0:
+                            # ventral edge
+                            x = [0.0, sx[1], sx[2]]
+                            d1 = [-d for d in sd2]
+                            d2 = offset2
+                            d3 = [0.0, sd3[1], sd3[2]]
                         elif n3 == 4:
                             # apex row
                             x = sx
@@ -1492,7 +1508,6 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit, fissureA
                             d3 = [0.0, sd3[1], sd3[2]]
                         else:
                             x = [0.0, sx[1], sx[2]]
-                            d1 = [-d for d in sd2]
                             d2 = offset2
                             d3 = [0.0, sd3[1], sd3[2]]
                     else:  # mirror in x
@@ -1545,7 +1560,8 @@ def createLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegul
     eftWedgeCollapseXi1_26 = eftfactory.createEftWedgeCollapseXi1Quadrant([2, 6])
     eftWedgeCollapseXi1_57 = eftfactory.createEftWedgeCollapseXi1Quadrant([5, 7])
     eftWedgeCollapseXi1_68 = eftfactory.createEftWedgeCollapseXi1Quadrant([6, 8])
-    eftWedgeCollapseXi2_78 = eftfactory.createEftWedgeCollapseXi2Quadrant([7, 8])
+    # eftWedgeCollapseXi2_78 = eftfactory.createEftWedgeCollapseXi2Quadrant([7, 8])
+    eftWedgeCollapseXi3_78 = eftfactory.createEftWedgeCollapseXi3Quadrant([7, 8])
     eftTetCollapseXi1Xi2_71 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(7, 1)
     eftTetCollapseXi1Xi2_82 = eftfactory.createEftTetrahedronCollapseXi1Xi2Quadrant(8, 2)
 
@@ -1580,7 +1596,8 @@ def createLungElements(coordinates, eftfactory, eftRegular, elementtemplateRegul
                     # Middle wedge
                     nodeIdentifiers.pop(7)
                     nodeIdentifiers.pop(6)
-                    eft = eftWedgeCollapseXi2_78
+                    # eft = eftWedgeCollapseXi2_78
+                    eft = eftWedgeCollapseXi3_78
                 elif (e3 == (lElementsCount3 - 1)) and (e2 == (lElementsCount2 - 3)):
                     # Remapped cube element 1
                     eft = eftfactory.createEftBasic()
