@@ -824,7 +824,7 @@ class MeshType_3d_lung2(Scaffold_base):
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
 
             surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(term + " surface"))
-            if not openFissures:
+            if (not openFissures) or (term == "right lung accessory lobe"):
                 surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(group2d_exterior)
 
             lobe_exterior.update({term + " surface": group2d_exterior})
