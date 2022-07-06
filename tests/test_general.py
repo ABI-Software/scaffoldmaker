@@ -1,6 +1,7 @@
+import math
 import unittest
 
-from opencmiss.maths.vectorops import magnitude
+from opencmiss.maths.vectorops import dot, magnitude, normalize, sub
 from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
@@ -12,6 +13,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
+from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
+    getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.zinc_utils import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
     nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
@@ -107,7 +110,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         scaffoldPackage.generate(region)
 
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(24, len(annotationGroups))
+        self.assertEqual(33, len(annotationGroups))
 
         endocardium_of_la = scaffoldPackage.findAnnotationGroupByName('left atrium endocardium')
         self.assertTrue(isinstance(endocardium_of_la, AnnotationGroup))
@@ -146,7 +149,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual('group2', annotationGroup3.getName())  # default name
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(annotationGroup3))
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(27, len(annotationGroups))
+        self.assertEqual(36, len(annotationGroups))
 
         # rename group1 to fred
         self.assertTrue(annotationGroup1.setName('fred'))
@@ -156,7 +159,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         self.assertTrue(scaffoldPackage.deleteAnnotationGroup(annotationGroup3))
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(26, len(annotationGroups))
+        self.assertEqual(35, len(annotationGroups))
 
         # test serialisation
         dct = scaffoldPackage.toDict()
@@ -170,7 +173,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         scaffoldPackage2.generate(region2)
 
         annotationGroups2 = scaffoldPackage2.getAnnotationGroups()
-        self.assertEqual(26, len(annotationGroups2))
+        self.assertEqual(35, len(annotationGroups2))
 
         annotationGroup1 = scaffoldPackage2.findAnnotationGroupByName('fred')
         self.assertEqual('fred', annotationGroup1.getName())
@@ -261,12 +264,13 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
         self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
         # these should be precisely cos(45) but are not due to ellipse approximations
-        assertAlmostEqualList(self, [0.707016, -0.707198, 0], brainstemCoordinatesValueOut, delta=TOL)
+        cos45 = math.cos(math.pi / 4.0)
+        assertAlmostEqualList(self, [cos45, -cos45, 0], brainstemCoordinatesValueOut, delta=TOL)
         # set element:xi location and check brainstem coordinates change
         bobGroup.setMarkerLocation(mesh.findElementByIdentifier(33), [0.0, 0.5, 0.0])
         brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
         self.assertEqual(brainstemCoordinatesFieldOut, brainstemCoordinatesField)
-        assertAlmostEqualList(self, [0.707016, -0.707198, 1.5], brainstemCoordinatesValueOut, delta=TOL)
+        assertAlmostEqualList(self, [cos45, -cos45, 1.5], brainstemCoordinatesValueOut, delta=TOL)
         # assign brainstem coordinates and check element:xi has moved
         bobGroup.setMarkerMaterialCoordinates(brainstemCoordinatesField, [-0.1, -0.5, 2.2])
         brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
@@ -274,7 +278,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [-0.1, -0.5, 2.2], brainstemCoordinatesValueOut, delta=TOL)
         elementOut, xiOut = bobGroup.getMarkerLocation()
         self.assertEqual(82, elementOut.getIdentifier())
-        assertAlmostEqualList(self, [0.305595, 0.2, 0.485941], xiOut, delta=TOL)
+        assertAlmostEqualList(self, [0.30536897479419056, 0.2, 0.486013009421796], xiOut, delta=TOL)
 
         # now make a marker annotation named "fred" with brainstem coordinates from the start
         fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
@@ -288,7 +292,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [0.5, 0.5, 4], brainstemCoordinatesValueOut, delta=TOL)
         elementOut, xiOut = fredGroup.getMarkerLocation()
         self.assertEqual(105, elementOut.getIdentifier())
-        assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
+        assertAlmostEqualList(self, [0.3452673123795837, 1.0, 0.6634646029995092], xiOut, delta=TOL)
 
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(20, len(annotationGroups))
@@ -306,12 +310,13 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # re-recreate fred with just element:xi location
         fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
         element = mesh.findElementByIdentifier(105)
-        node = fredGroup.createMarkerNode(nextNodeIdentifier, element=element, xi=[0.346095, 1, 0.66399])
+        node = fredGroup.createMarkerNode(nextNodeIdentifier, element=element,
+                                          xi=[0.3452673123795837, 1.0, 0.6634646029995092])
         self.assertEqual(fredNodeIdentifier, node.getIdentifier())
         del node
         elementOut, xiOut = fredGroup.getMarkerLocation()
         self.assertEqual(105, elementOut.getIdentifier())
-        assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
+        assertAlmostEqualList(self, [0.3452673123795837, 1.0, 0.6634646029995092], xiOut, delta=TOL)
 
         # check the total number of groups
         annotationGroups = scaffoldPackage.getAnnotationGroups()
@@ -341,7 +346,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [-0.1, -0.5, 2.2], brainstemCoordinatesValueOut, delta=TOL)
         elementOut, xiOut = bobGroup2.getMarkerLocation()
         self.assertEqual(82, elementOut.getIdentifier())
-        assertAlmostEqualList(self, [0.305595, 0.2, 0.485941], xiOut, delta=TOL)
+        assertAlmostEqualList(self, [0.30536897479419256, 0.20000000000000018, 0.48601300942181097], xiOut, delta=TOL)
 
         fredGroup2 = scaffoldPackage2.findAnnotationGroupByName('fred')
         brainstemCoordinatesFieldOut, brainstemCoordinatesValueOut = fredGroup2.getMarkerMaterialCoordinates()
@@ -349,7 +354,158 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertIsNone(brainstemCoordinatesValueOut)
         elementOut, xiOut = fredGroup2.getMarkerLocation()
         self.assertEqual(105, elementOut.getIdentifier())
-        assertAlmostEqualList(self, [0.346095, 1, 0.66399], xiOut, delta=TOL)
+        assertAlmostEqualList(self, [0.3452673123795837, 1.0, 0.6634646029995092], xiOut, delta=TOL)
+
+    def test_utils_ellipsoid(self):
+        """
+        Test ellipsoid functions converting between coor
+        """
+        a = 1.0
+        b = 0.75
+        c = 2.0
+        aa = a * a
+        bb = b * b
+        cc = c * c
+        TOL = 1.0E-6
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, [1.0, 0.0, 0.0])
+        self.assertAlmostEqual(u, 0.0, delta=TOL)
+        self.assertAlmostEqual(v, 0.5 * math.pi, delta=TOL)
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)
+        assertAlmostEqualList(self, x, [1.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [0.0, 0.75, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [0.0, 0.0, 2.0], delta=TOL)
+
+        # test a point not on the surface
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, [1.0, 0.75, 1.0])
+        self.assertAlmostEqual(u, 0.6795893730435009, delta=TOL)
+        self.assertAlmostEqual(v, 2.038067043010934, delta=TOL)
+        x = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)[0]
+        assertAlmostEqualList(self, x, [0.6944481794937621, 0.42082645661076656, 0.9009025175142785], delta=TOL)
+        mag = (x[0] * x[0]) / aa + (x[1] * x[1]) / bb + (x[2] * x[2]) / cc
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+        # test the nearest point found on the surface has same polar coordinates
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, 0.6795893730435009, delta=TOL)
+        self.assertAlmostEqual(v, 2.038067043010935, delta=TOL)
+
+        # test a point not on the surface
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, [-0.9, -0.25, -1.2])
+        self.assertAlmostEqual(u, -2.8190484300147065, delta=TOL)
+        self.assertAlmostEqual(v, 0.9561038921906282, delta=TOL)
+        x = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)[0]
+        assertAlmostEqualList(self, x, [-0.7748223543206793, -0.19421818481623945, -1.153414567503636], delta=TOL)
+        mag = (x[0] * x[0]) / aa + (x[1] * x[1]) / bb + (x[2] * x[2]) / cc
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+        # test the nearest point found on the surface has same polar coordinates
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, -2.8190484300147065, delta=TOL)
+        self.assertAlmostEqual(v, 0.9561038921906281, delta=TOL)
+
+        u_in = math.pi / 3.0
+        v_in = math.pi / 2.0
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u_in, v_in)
+        assertAlmostEqualList(self, x, [0.5, 0.649519052838329, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [-0.8660254037844386, 0.375, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [0.0, 0.0, 2.0], delta=TOL)
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, u_in, delta=TOL)
+        self.assertAlmostEqual(v, v_in, delta=TOL)
+
+        u_in = -0.7 * math.pi
+        v_in = 0.3 * math.pi
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u_in, v_in)
+        assertAlmostEqualList(self, x, [-0.4755282581475767, -0.4908813728906053, -1.1755705045849463], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [0.6545084971874737, -0.35664619361068256, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [-0.3454915028125262, -0.3566461936106826, 1.618033988749895], delta=TOL)
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, u_in, delta=TOL)
+        self.assertAlmostEqual(v, v_in, delta=TOL)
+
+        u_in = 0.35 * math.pi
+        v_in = 0.65 * math.pi
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u_in, v_in)
+        assertAlmostEqualList(self, x, [0.4045084971874737, 0.5954194696096774, 0.9079809994790935], delta=TOL)
+        assertAlmostEqualList(self, dx_du, [-0.7938926261462366, 0.3033813728906053, 0.0], delta=TOL)
+        assertAlmostEqualList(self, dx_dv, [-0.20610737385376343, -0.30338137289060524, 1.7820130483767358], delta=TOL)
+        u, v = getEllipsoidPolarCoordinatesFromPosition(a, b, c, x)
+        self.assertAlmostEqual(u, u_in, delta=TOL)
+        self.assertAlmostEqual(v, v_in, delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.0, 0.0], [0.0, -b, 0.0])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, -b, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis2, [a, 0.0, 0.0], delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, b / 3.0, 0.0], [0.0, -b, 0.0])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, -b, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis2, [a, 0.0, 0.0], delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.0, 0.0], [0.0, 0.0, c])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, 0.0, c], delta=TOL)
+        assertAlmostEqualList(self, axis2, [a, 0.0, 0.0], delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.0, c / 4.0], [0.0, 0.0, c])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, 0.0, c], delta=TOL)
+        assertAlmostEqualList(self, axis2, [a, 0.0, 0.0], delta=TOL)
+
+        z = 0.25 * c
+        y = -math.sqrt((b * b) * (1.0 - (z * z) / (c * c)))
+        x = math.sqrt((a * a) * (1.0 - (z * z) / (c * c)))
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.0, z], [0.0, y, z])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, z], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, y, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis2, [x, 0.0, 0.0], delta=TOL)
+        mag = (axis2[0] * axis2[0]) / aa + (z * z) / cc
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.0, 0.0], [0.0, y, z])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, y, z], delta=TOL)
+        assertAlmostEqualList(self, axis2, [a, 0.0, 0.0], delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.1, 0.1], [0.0, y, z])
+        assertAlmostEqualList(self, centre, [0.0, 0.009782267266570388, 0.1436792247347149], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, -0.735966644680461, 0.3563207752652851], delta=TOL)
+        assertAlmostEqualList(self, axis2, [0.9973309128094611, 0.0, 0.0], delta=TOL)
+        mag = (axis2[0] * axis2[0]) / aa + (centre[1] * centre[1]) / bb + (centre[2] * centre[2]) / cc
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+        # check original midx is on axis1
+        dir1 = normalize(sub(centre, [0.0, 0.1, 0.1]))
+        dir2 = normalize(axis1)
+        dir3 = normalize(sub([0.0, y, z], centre))
+        assertAlmostEqualList(self, dir1, dir2, delta=TOL)
+        assertAlmostEqualList(self, dir1, dir3, delta=TOL)
+
+        z = 0.8 * c
+        y = math.sqrt((b * b) * (1.0 - (z * z) / (c * c)))
+        x = math.sqrt((a * a) * (1.0 - (y * y) / (b * b)))
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, y, 0.0], [0.0, y, z])
+        assertAlmostEqualList(self, centre, [0.0, y, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, 0.0, z], delta=TOL)
+        assertAlmostEqualList(self, axis2, [x, 0.0, 0.0], delta=TOL)
+        mag = (axis2[0] * axis2[0]) / aa + (y * y) / bb
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, 0.0, 0.0], [0.0, y, z])
+        assertAlmostEqualList(self, centre, [0.0, 0.0, 0.0], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, y, z], delta=TOL)
+        assertAlmostEqualList(self, axis2, [a, 0.0, 0.0], delta=TOL)
+
+        centre, axis1, axis2 = getEllipsoidPlaneA(a, b, c, [0.0, -0.3, -0.1], [0.0, y, z])
+        assertAlmostEqualList(self, centre, [0.0, -0.10732946298984034, 0.3367198838896952], delta=TOL)
+        assertAlmostEqualList(self, axis1, [0.0, 0.5573294629898402, 1.2632801161103049], delta=TOL)
+        assertAlmostEqualList(self, axis2, [0.9752823267321079, 0.0, 0.0], delta=TOL)
+        mag = (axis2[0] * axis2[0]) / aa + (centre[1] * centre[1]) / bb + (centre[2] * centre[2]) / cc
+        self.assertAlmostEqual(mag, 1.0, delta=TOL)
+        # check original midx is on axis1
+        dir1 = normalize(sub(centre, [0.0, -0.3, -0.1]))
+        dir2 = normalize(axis1)
+        dir3 = normalize(sub([0.0, y, z], centre))
+        assertAlmostEqualList(self, dir1, dir2, delta=TOL)
+        assertAlmostEqualList(self, dir1, dir3, delta=TOL)
 
 
 if __name__ == "__main__":

@@ -887,8 +887,7 @@ class eftfactory_tricubichermite:
         else:
             valid = False
 
-        if not valid:
-            assert False, "createEftWedgeCollapseXi1Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+        assert valid, "createEftWedgeCollapseXi1Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
 
         # zero cross derivative parameters
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
@@ -965,8 +964,7 @@ class eftfactory_tricubichermite:
         else:
             valid = False
 
-        if not valid:
-            assert False, "createEftWedgeCollapseXi2Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+        assert valid, "createEftWedgeCollapseXi2Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
 
         # zero cross derivative parameters
         remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS2, [])
@@ -976,6 +974,46 @@ class eftfactory_tricubichermite:
         remapEftLocalNodes(eft, 6, ln_map)
         if not eft.validate():
             print('eftfactory_tricubichermite.createEftWedgeCollapseXi2Quadrant:  Failed to validate eft for collapseNodes', collapseNodes)
+        return eft
+
+    def createEftWedgeCollapseXi3Quadrant(self, collapseNodes):
+        '''
+        Create a tricubic hermite element field for a wedge element collapsed in xi3.
+        :param collapseNodes: As the element can be collapsed in xi3 at either ends of xi1 or xi2, collapseNodes
+        are the local indices of nodes whose d1 (for elements collapse at either ends of xi1) or
+        d2 (for elements collapse at either ends of xi2) are remapped with d3 before collapsing the nodes.
+        :return: Element field template
+        '''
+        eft = self.createEftBasic()
+
+        valid = True
+        if collapseNodes in [[3, 4], [7, 8]]:
+            nodes = [3, 4, 7, 8]
+            # remap parameters on xi2 = 1 before collapsing nodes
+            if collapseNodes == [3, 4]:
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS3, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+            elif collapseNodes == [7, 8]:
+                setEftScaleFactorIds(eft, [1], [])
+                remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS3, [])
+                remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
+            else:
+                valid = False
+            ln_map = [1, 2, 3, 4, 5, 6, 3, 4]
+        else:
+            valid = False
+
+        assert valid, "createEftWedgeCollapseXi3Quadrant.  Not implemented for collapse nodes " + str(collapseNodes)
+
+        # zero cross derivative parameters
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS1DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D2_DS2DS3, [])
+        remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D3_DS1DS2DS3, [])
+
+        remapEftLocalNodes(eft, 6, ln_map)
+        if not eft.validate():
+            print('eftfactory_tricubichermite.createEftWedgeCollapseXi3Quadrant:  '
+                  'Failed to validate eft for collapseNodes', collapseNodes)
         return eft
 
     def createEftTetrahedronCollapseXi1Xi2Quadrant(self, peakNode, sideNode):
