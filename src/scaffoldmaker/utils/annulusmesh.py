@@ -84,7 +84,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                         elementsCountRadial=1, meshGroups=None, wallAnnotationGroups=None,
                         tracksurface=None, startProportions=None, endProportions=None,
                         rescaleStartDerivatives=False, rescaleEndDerivatives=False, sampleBlend=0.0,
-                        fixMinimumStart=False, fixMinimumEnd=False):
+                        fixMinimumStart=False, fixMinimumEnd=False, coordinates=None):
     """
     Create an annulus mesh from a loop of start points/nodes with specified derivative mappings to
     a loop of end points/nodes with specified derivative mappings.
@@ -192,12 +192,9 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
             'createAnnulusMesh3d: Length of endProportions does not equal nodesCountAround'
 
     fm = mesh.getFieldmodule()
-<<<<<<< HEAD
     if not coordinates:
         coordinates = findOrCreateFieldCoordinates(fm)
     fm.beginChange()
-=======
->>>>>>> 07fcb837961b725a7ccffc9bf4cd77b82f4d0553
     cache = fm.createFieldcache()
 
     # Build arrays of points from start to end
@@ -703,6 +700,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                         meshGroup = annotationGroup.getMeshGroup(mesh)
                         meshGroup.addElement(element)
 
+    fm.endChange()
     return nodeIdentifier, elementIdentifier
 
 

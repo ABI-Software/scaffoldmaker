@@ -536,7 +536,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Longitudinal muscle layer relative thickness': 0.05,
             'Limiting ridge': False,
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
-            'Gastro-esophagal junction position along factor': 0.35,
+            # 'Gastro-esophagal junction position along factor': 0.35,
             'Cardia diameter factor': 1.5,
             'Use linear through wall': True,
             'Track surface': False, # KM
@@ -554,7 +554,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Submucosa relative thickness'] = 0.05
             options['Circular muscle layer relative thickness'] = 0.15
             options['Longitudinal muscle layer relative thickness'] = 0.05
-            options['Gastro-esophagal junction position along factor'] = 0.53
+            # options['Gastro-esophagal junction position along factor'] = 0.53
             options['Limiting ridge'] = True
         elif 'Pig 1' in parameterSetName:
             options['Number of elements around esophagus'] = 8
@@ -566,7 +566,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Submucosa relative thickness'] = 0.1
             options['Circular muscle layer relative thickness'] = 0.33
             options['Longitudinal muscle layer relative thickness'] = 0.1
-            options['Gastro-esophagal junction position along factor'] = 0.45
+            # options['Gastro-esophagal junction position along factor'] = 0.45
             options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
             options['Number of elements around esophagus'] = 8
@@ -578,7 +578,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Submucosa relative thickness'] = 0.12
             options['Circular muscle layer relative thickness'] = 0.18
             options['Longitudinal muscle layer relative thickness'] = 0.05
-            options['Gastro-esophagal junction position along factor'] = 0.55
+            # options['Gastro-esophagal junction position along factor'] = 0.55
             options['Limiting ridge'] = True
         elif 'Stomach 1' in parameterSetName:
             options['Number of elements around esophagus'] = 8
@@ -590,7 +590,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Submucosa relative thickness'] = 0.25
             options['Circular muscle layer relative thickness'] = 0.25
             options['Longitudinal muscle layer relative thickness'] = 0.25
-            options['Gastro-esophagal junction position along factor'] = 0.4
+            # options['Gastro-esophagal junction position along factor'] = 0.4
             options['Limiting ridge'] = False
 
         cls.updateSubScaffoldOptions(options)
@@ -613,7 +613,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Longitudinal muscle layer relative thickness',
             'Limiting ridge',
             'Gastro-esophagal junction',
-            'Gastro-esophagal junction position along factor',
+            # 'Gastro-esophagal junction position along factor',
             'Cardia diameter factor',
             'Use linear through wall',
             'Track surface', # KM
@@ -668,6 +668,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Gastro-esophagal junction'):
             options['Gastro-esophagal junction'] = cls.getOptionScaffoldPackage('Gastro-esophagal junction',
                                                                                 MeshType_3d_ostium1)
+        # Add condition for elements between cardia and duodenum wrt to number of annotations groups
         if options['Number of elements around esophagus'] < 8:
             options['Number of elements around esophagus'] = 8
         if options['Number of elements around esophagus'] % 4 > 0:
@@ -738,13 +739,13 @@ class MeshType_3d_stomach1(Scaffold_base):
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
-        geometricCentralPath = StomachCentralPath(region, geometricCentralPath, elementsCountAlongTrackSurface,
-                                                  stomachTermsAlong)
+        geometricCentralPath = StomachCentralPath(region, geometricCentralPath, stomachTermsAlong)
 
-        allAnnotationGroups = \
+        elementCountGroupList = []
+        allAnnotationGroups, elementCountGroupList = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCountAlongTrackSurface,
-                                allAnnotationGroups, centralPath=geometricCentralPath, options=options,
-                                nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
+                                allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
+                                options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
                                 materialCoordinates=False)
 
         # Material coordinates
@@ -753,14 +754,13 @@ class MeshType_3d_stomach1(Scaffold_base):
         tmp_fm = tmp_region.getFieldmodule()
         tmp_stomach_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="stomach coordinates")
 
-        materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, elementsCountAlongTrackSurface,
-                                                 stomachTermsAlong)
+        materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
 
-        allAnnotationGroups = createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
-                                                  elementsCountAlongTrackSurface, allAnnotationGroups,
-                                                  centralPath=materialCentralPath, options=options,
-                                                  nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
-                                                  materialCoordinates=True)
+        allAnnotationGroups, elementCountGroupList = \
+            createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
+                                elementsCountAlongTrackSurface, allAnnotationGroups, elementCountGroupList,
+                                centralPath=materialCentralPath, options=options, nodeIdentifier=1, elementIdentifier=1,
+                                splitCoordinates=False, materialCoordinates=True)
 
         # Write two coordinates
         sir = tmp_region.createStreaminformationRegion()
@@ -1051,7 +1051,8 @@ class StomachCentralPath:
     """
     Generates sampled central path for stomach scaffold.
     """
-    def __init__(self, region, centralPath, elementsCountAlong, stomachTermsAlong=[None]):
+    def __init__(self, region, centralPath, # elementsCountAlong,
+                 stomachTermsAlong=[None]):
         """
         :param region: Zinc region to define model in.
         :param centralPath: Central path subscaffold from meshtype_1d_path1
@@ -1060,6 +1061,12 @@ class StomachCentralPath:
         """
         # Extract length of each group along stomach from central path
         arcLengthOfGroupsAlong = []
+        cxGroups = []
+        cd1Groups = []
+        cd2Groups = []
+        cd3Groups = []
+        cd12Groups = []
+        cd13Groups = []
 
         for i in range(len(stomachTermsAlong)):
             tmpRegion = region.createRegion()
@@ -1075,21 +1082,33 @@ class StomachCentralPath:
                 arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
                                                              cxGroup[e + 1], cd1Group[e + 1])
             arcLengthOfGroupsAlong.append(arcLength)
+            cxGroups.append(cxGroup)
+            cd1Groups.append(cd1Group)
+            cd2Groups.append(cd2Group)
+            cd3Groups.append(cd3Group)
+            cd12Groups.append(cd12Group)
+            cd13Groups.append(cd13Group)
 
-            if i == 0:
-                cx = cxGroup
-                cd1 = cd1Group
-                cd2 = cd2Group
-                cd3 = cd3Group
-                cd12 = cd12Group
-                cd13 = cd13Group
+            # if i == 0:
+            #     cx = cxGroup
+            #     cd1 = cd1Group
+            #     cd2 = cd2Group
+            #     cd3 = cd3Group
+            #     cd12 = cd12Group
+            #     cd13 = cd13Group
             del tmpRegion
 
         # print([vector.magnitude(cd2[n]) for n in range(len(cd2))])
-        self.sx, self.sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-        self.sd2, self.sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-        self.sd3, self.sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
+        # self.sx, self.sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+        # self.sd2, self.sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+        # self.sd3, self.sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
         self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
+        self.cxGroups = cxGroups
+        self.cd1Groups = cd1Groups
+        self.cd2Groups = cd2Groups
+        self.cd3Groups = cd3Groups
+        self.cd12Groups = cd12Groups
+        self.cd13Groups = cd13Groups
 
         # print('Total arcLengths:', arcLengthOfGroupsAlong[0])
         # print('arcLengthOfGroupsAlong:', arcLengthOfGroupsAlong)
@@ -1243,8 +1262,8 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
     return curvature
 
 def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCountAlongTrackSurface, allAnnotationGroups,
-                        centralPath, options, nodeIdentifier, elementIdentifier, splitCoordinates,
-                        materialCoordinates=False):
+                        elementCountGroupList, centralPath, options, nodeIdentifier, elementIdentifier,
+                        splitCoordinates, materialCoordinates=False):
     """
     Generates a stomach scaffold in the region using a central path and parameter options.
     :param region: Region to create elements in.
@@ -1277,7 +1296,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     useCrossDerivatives = False
     useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
-    GEJPositionAlongFactor = options['Gastro-esophagal junction position along factor']
+    # GEJPositionAlongFactor = options['Gastro-esophagal junction position along factor']
     GEJOptions = options['Gastro-esophagal junction']
     GEJSettings = GEJOptions.getScaffoldSettings()
     elementsAlongEsophagus = GEJSettings['Number of elements along']
@@ -1348,7 +1367,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
     stomachCentralPathLength = arcLengthOfGroupsAlong[0]
 
-    fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1] / stomachCentralPathLength
+    # fundusEndPositionAlongFactor = arcLengthOfGroupsAlong[1] / stomachCentralPathLength
     for i in range(1, len(stomachTermsAlong)):
         arcLengthRatio = arcLengthOfGroupsAlong[i] / stomachCentralPathLength
         arcLengthRatioForGroupsFromFundusApex.append(arcLengthRatio)
@@ -1390,21 +1409,99 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     markerTemplateInternal.defineField(markerName)
     markerTemplateInternal.defineField(markerLocation)
 
-    # Fundus diameter
-    sx = centralPath.sx
-    sd1 = centralPath.sd1
-    sd2 = centralPath.sd2
-    sd3 = centralPath.sd3
-    sd12 = centralPath.sd12
-    sd13 = centralPath.sd13
+    # Extract boundary planes between groups
+    cxGroupBoundaries = [centralPath.cxGroups[0][0]]
+    cd1GroupBoundaries = [centralPath.cd1Groups[0][0]]
+    cd2GroupBoundaries = [centralPath.cd2Groups[0][0]]
+    cd3GroupBoundaries = [centralPath.cd3Groups[0][0]]
+    cd12GroupBoundaries = [centralPath.cd12Groups[0][0]]
+    cd13GroupBoundaries = [centralPath.cd13Groups[0][0]]
 
-    # Visualise central path
+    for i in range(1, len(stomachTermsAlong)):
+        cxGroupBoundaries.append(centralPath.cxGroups[i][-1])
+        cd1GroupBoundaries.append(centralPath.cd1Groups[i][-1])
+        cd2GroupBoundaries.append(centralPath.cd2Groups[i][-1])
+        cd3GroupBoundaries.append(centralPath.cd3Groups[i][-1])
+        cd12GroupBoundaries.append(centralPath.cd12Groups[i][-1])
+        cd13GroupBoundaries.append(centralPath.cd13Groups[i][-1])
+
+    # elementsAlongFromBody cannot be less than (number of annotation groups - fundus)
+    elementsAlongFromBody = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
+    arcLengthOfGroupsAlongFromBody = arcLengthOfGroupsAlong[0] - arcLengthOfGroupsAlong[1]
+    estElementLengthFromBody = arcLengthOfGroupsAlongFromBody / elementsAlongFromBody
+
+    if not materialCoordinates:
+        modGroups = []
+        elementsAlongCPFundus = elementsAlongFundusApexToCardia + elementsAroundQuarterEso - 1
+        elementCountGroupList = [elementsAlongCPFundus]
+        elementsTally = 0
+        for i in range(2, len(stomachTermsAlong)):
+            numberOfElementsGroup = int(arcLengthOfGroupsAlong[i] // estElementLengthFromBody)
+            mod = arcLengthOfGroupsAlong[i] % estElementLengthFromBody
+            modGroups.append(mod)
+            if numberOfElementsGroup < 1:
+                numberOfElementsGroup = 1
+            elementsTally += numberOfElementsGroup
+            # print(numberOfElementsGroup, mod)
+            elementCountGroupList.append(numberOfElementsGroup)
+
+        excessElements = elementsAlongFromBody - elementsTally
+        for i in range(excessElements):
+            maxIdx = min(range(len(modGroups)), key=modGroups.__getitem__)
+            # print('idx', maxIdx)
+            elementCountGroupList[maxIdx - 1] += 1
+            modGroups[maxIdx - 1] = 0
+
+    print('GroupList', elementCountGroupList)
+
+    # Break central path into elements allocation to each group
+    cxSections = []
+    cd1Sections = []
+    cd2Sections = []
+    cd3Sections = []
+
+    for i in range(len(elementCountGroupList)):
+        cxBoundary = [cxGroupBoundaries[i], cxGroupBoundaries[i + 1]]
+        cd1Boundary = [cd1GroupBoundaries[i], cd1GroupBoundaries[i + 1]]
+        cd2Boundary = [cd2GroupBoundaries[i], cd2GroupBoundaries[i + 1]]
+        cd3Boundary = [cd3GroupBoundaries[i], cd3GroupBoundaries[i + 1]]
+        cd12Boundary = [cd12GroupBoundaries[i], cd12GroupBoundaries[i + 1]]
+        cd13Boundary = [cd13GroupBoundaries[i], cd13GroupBoundaries[i + 1]]
+
+        # Sample
+        elementsOutSection = elementCountGroupList[i]
+        cxSection, cd1Section, pe, pxi, psf = \
+            interp.sampleCubicHermiteCurvesSmooth(cxBoundary, cd1Boundary, elementsOutSection,
+                                                  derivativeMagnitudeStart=
+                                                  (vector.magnitude(cd1Sections[-1][-1]) if i else None),
+                                                  derivativeMagnitudeEnd=None)
+        cd2Section = interp.interpolateSampleCubicHermite(cd2Boundary, cd12Boundary, pe, pxi, psf)[0]
+        cd3Section = interp.interpolateSampleCubicHermite(cd3Boundary, cd13Boundary, pe, pxi, psf)[0]
+        cxSections.append(cxSection)
+        cd1Sections.append(cd1Section)
+        cd2Sections.append(cd2Section)
+        cd3Sections.append(cd3Section)
+
+    # Create track surface
+    # Determine radius along stomach
+    cx = centralPath.cxGroups[0]
+    cd1 = centralPath.cd1Groups[0]
+    cd2 = centralPath.cd2Groups[0]
+    cd3 = centralPath.cd3Groups[0]
+    cd12 = centralPath.cd12Groups[0]
+    cd13 = centralPath.cd13Groups[0]
+
+    sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongTrackSurface)
+    sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+    sd3, sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
+
+    # # Visualise central path
     # for n in range(len(sx)):
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
     #     cache.setNode(node)
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero) #sd2[n])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sd2[n])
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero) #sd3[n])
     #     nodeIdentifier += 1
 
@@ -1461,6 +1558,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # Spread out elements
     xRaw = []
     d2Raw = []
+
     for n1 in range(elementsCountAroundDuod):
         xAlong = []
         d2Along = []
@@ -1470,9 +1568,25 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along,
                                                                         elementsCountAlongTrackSurface,
                                                                         arcLengthDerivatives=True)[0:2]
+
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlong, d2SampledAlong)
         xRaw.append(xSampledAlong)
         d2Raw.append(d2Smoothed)
+
+        if n1 == 0:
+            xSampledGC = xSampledAlong
+            d2SampledGC = d2Smoothed
+            arcLengthGC = 0.0
+            for n in range(len(xSampledGC) - 1):
+                arcLengthGC += interp.getCubicHermiteArcLength(xSampledGC[n], d2Smoothed[n],
+                                                               xSampledGC[n + 1], d2Smoothed[n + 1])
+        elif n1 == elementsAroundQuarterDuod:
+            xSampledQuarterDuod = xSampledAlong
+            d2SampledQuarterDuod = d2Smoothed
+            arcLengthQuarterDuod = 0.0
+            for n in range(len(xSampledQuarterDuod) - 1):
+                arcLengthQuarterDuod += interp.getCubicHermiteArcLength(xSampledQuarterDuod[n], d2Smoothed[n],
+                                                                        xSampledQuarterDuod[n + 1], d2Smoothed[n + 1])
 
     # Rearrange x and d2
     xSampledAll = []
@@ -1525,14 +1639,58 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurface[n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurface[n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d1TrackSurface[n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
             nodeIdentifier += 1
 
-    # Set up gastro-esophagal junction
+    # Find closest point to cd2 and cd3 on track surface for fundus
+    arcLengthPerSampledElementGC = arcLengthGC/elementsCountAlongTrackSurface
+    arcLengthPerSampledElementQuarterDuod = arcLengthQuarterDuod/elementsCountAlongTrackSurface
+
+    findRescaledCrossAxis(xSampledGC, d2SampledGC, arcLengthPerSampledElementGC, cxSections[0], cd2Sections[0])
+    findRescaledCrossAxis(xSampledQuarterDuod, d2SampledQuarterDuod, arcLengthPerSampledElementQuarterDuod,
+                          cxSections[0], cd3Sections[0])
+
+    xEllipseAroundAll = []
+    d1EllipseAroundAll = []
+    d2EllipseAroundAll = []
+
+    for s in range(len(cxSections)):
+        for n2 in range(1, len(cxSections[s])):
+            px, pd1 = createEllipsePoints(cxSections[s][n2], 2 * math.pi, cd2Sections[s][n2], cd3Sections[s][n2],
+                                          elementsCountAroundDuod, startRadians=0.0)
+            d2Around = [zero for n in range(len(pd1))]
+
+            xEllipseAroundAll.append(px)
+            d1EllipseAroundAll.append(pd1)
+            d2EllipseAroundAll.append(d2Around)
+
+            if s == 0 and n2 == len(cxSections[s]) - 1:
+                xGEJ = px[elementsAroundHalfDuod]
+
+            # for n1 in range(len(px)):
+            #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+            #     cache.setNode(node)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, px[n1])
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n1])
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+            #     nodeIdentifier += 1
+
+    # for s in range(len(cxSections)):
+    #     for n2 in range(len(cxSections[s])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxSections[s][n2])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd2Sections[s][n2])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd3Sections[s][n2])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #         nodeIdentifier += 1
+
+    # Set up gastro-esophagal junction with midpoint aligned to fundus-body junction
     GEJSettings['Number of elements around ostium'] = elementsCountAroundEso
-    GEJPosition = trackSurfaceStomach.createPositionProportion(0.5, GEJPositionAlongFactor)
+    GEJPosition = trackSurfaceStomach.findNearestPosition(xGEJ)
     xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(GEJPosition, derivatives=True)
     axis1 = d1Centre
 
@@ -1608,147 +1766,109 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
     #     cache.setNode(node)
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAnnulusOuter[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dAnnulusOuter[n1])
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     # print('annulus', nodeIdentifier)
     #     nodeIdentifier += 1
 
-    # See if we can write a function here
-    # Section 1 - from cardia to fundus apex on GC
-    fundusEndPosition = trackSurfaceStomach.createPositionProportion(0.0, fundusEndPositionAlongFactor)
-    xFundusEnd, d1FundusEnd, d2FundusEnd = trackSurfaceStomach.evaluateCoordinates(fundusEndPosition,
-                                                                                   derivatives=True)
+    esoCount = 2
+    xAroundB = []
+    d1AroundB = []
+    d2AroundB = []
+    xAroundC = []
+    d1AroundC = []
+    d2AroundC = []
+    xAroundD = []
+    d1AroundD = []
+    d2AroundD = []
 
-    xTrackSurfaceSection1 = []
-    d2TrackSurfaceSection1 = []
-    cardiaGCProportion2 = trackSurfaceStomach.getProportion(xAnnulusOuterPosition[0])[1]
-    elementsAlongUpstreamOfCardia = int(elementsCountAlongTrackSurface * cardiaGCProportion2)
-    arcLengthEsoApex = 0.0
-    xTrackSurfaceSection1.append(xAnnulusOuter[0])
-    for n2 in range(elementsAlongUpstreamOfCardia):
-        nAlong = elementsAlongUpstreamOfCardia - n2
-        xTrackSurfaceSection1.append(xSampledAll[nAlong][elementsAroundHalfDuod])
-    xTrackSurfaceSection1.append(xTrackSurface[0])
+    xAroundE = []
+    d1AroundE = []
+    d2AroundE = []
 
-    for n2 in range(len(xTrackSurfaceSection1) - 1):
-        v1 = xTrackSurfaceSection1[n2]
-        v2 = xTrackSurfaceSection1[n2 + 1]
-        d = [v2[c] - v1[c] for c in range(3)]
-        arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-        arcLengthEsoApex += arcLengthAround
-        d2 = [c * arcLengthAround for c in vector.normalise(d)]
-        d2TrackSurfaceSection1.append(d2)
-    d2TrackSurfaceSection1.append(d2TrackSurface[0])
+    xAroundF = []
+    d1AroundF = []
+    d2AroundF = []
 
-    # for n1 in range(len(xTrackSurfaceSection1)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurfaceSection1[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurfaceSection1[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
+    for n2 in range(len(xEllipseAroundAll)):
+        # straight from LC and GC to end of duodenum
+        if n2 <= elementsAroundQuarterDuod - 3: # xAroundA - DEAL WITH DUOD > 12
+            print('link to duod - ', n2)
+            xEllipseNew, d1EllipseNew = createEllipsePoints(cxSections[0][1], 2*math.pi, cd2Sections[0][1],
+                                                            cd3Sections[0][1], elementsCountAroundDuod - 4)
+            xEllipseAroundAll[n2] = xEllipseNew
+            d1EllipseAroundAll[n2] = d1EllipseNew
+            d2Around = [zero for n in range(len(d1EllipseNew))]
+            d2EllipseAroundAll[n2] = d2Around
 
-    # Sample
-    elementsOutSection1 = elementsAlongFundusApexToCardia
-    normD2 = vector.normalise(o1_d2[-1][0])
-    startDerivative = [sf * normD2[c] for c in range(3)]
-    xSection1, d2Section1 = \
-                interp.sampleCubicHermiteCurves(xTrackSurfaceSection1, d2TrackSurfaceSection1, elementsOutSection1,
-                                                addLengthStart=0.5 * vector.magnitude(startDerivative),
-                                                lengthFractionStart=0.5, arcLengthDerivatives=True)[0:2]
+            xAroundA = xEllipseNew
+            d1AroundA = d1EllipseNew
+            d2AroundA = d2Around
 
-    # for n1 in range(len(xSection1)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSection1[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Section1[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
+        elif elementsAroundQuarterDuod - 3 < n2 < elementsAlongFundusApexToCardia - 1: # AroundB?
+            xAroundB.append(xEllipseAroundAll[n2])
+            d1AroundB.append(d1EllipseAroundAll[n2])
+            d2AroundB.append(d2EllipseAroundAll[n2])
+            print('complete ring before eso with no change -', n2) # take complete ellipse
 
-    # Section 2 - From fundus apex to fundus end on GC
-    xTrackSurfaceSection2 = []
-    d2TrackSurfaceSection2 = []
-    elementsAlongFundusTrackSurface = int(fundusEndPositionAlongFactor * elementsCountAlongTrackSurface)
-    xTrackSurfaceSection2.append(xTrackSurface[0])
-    d2TrackSurfaceSection2.append(d2TrackSurface[0])
-    for n2 in range(1, elementsAlongFundusTrackSurface):
-        v1 = xSampledAll[n2][0]
-        v2 = xSampledAll[n2 + 1][0]
-        d = [v2[c] - v1[c] for c in range(3)]
-        arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-        d2 = [c * arcLengthAround for c in vector.normalise(d)]
-        xTrackSurfaceSection2.append(v1)
-        d2TrackSurfaceSection2.append(d2)
-    xTrackSurfaceSection2.append(xFundusEnd)
-    d2TrackSurfaceSection2.append(d2FundusEnd)
+        elif n2 == elementsAlongFundusApexToCardia - 1: # AroundC
+            print('first ring joining to annulus[0] and annulus[1] -', n2)
+            xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[1]
+            xEllipseAroundAll[n2][elementsAroundHalfDuod] = xAnnulusOuter[0]
+            xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[-1]
+            xAroundC.append(xEllipseAroundAll[n2])
+            d1AroundC.append(d1EllipseAroundAll[n2])
+            d2AroundC.append(d2EllipseAroundAll[n2])
+        elif elementsAlongFundusApexToCardia - 1 < n2 < elementsAlongFundusApexToCardia - 1 + elementsAroundHalfEso - 2: # AroundD
+            print('ring interior of eso -', n2)
+            xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[esoCount]
+            xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[-esoCount]
+            esoCount += 1
+            del xEllipseAroundAll[n2][elementsAroundHalfDuod]
+            del d1EllipseAroundAll[n2][elementsAroundHalfDuod]
+            del d2EllipseAroundAll[n2][elementsAroundHalfDuod]
+            xAroundD.append(xEllipseAroundAll[n2])
+            d1AroundD.append(d1EllipseAroundAll[n2])
+            d2AroundD.append(d2EllipseAroundAll[n2])
+        elif n2 == elementsAlongFundusApexToCardia - 1 + elementsAroundHalfEso - 2: # AroundE
+            print('last ring joining to annulus[0] and annulus[1] -', n2)
+            xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[elementsAroundHalfEso - 1]
+            xEllipseAroundAll[n2][elementsAroundHalfDuod] = xAnnulusOuter[elementsAroundHalfEso]
+            xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[elementsAroundHalfEso + 1]
+            xAroundE.append(xEllipseAroundAll[n2])
+            d1AroundE.append(d1EllipseAroundAll[n2])
+            d2AroundE.append(d2EllipseAroundAll[n2])
+        else:
+            print('complete rings beyond eso -', n2) # AroundF
+            xAroundF.append(xEllipseAroundAll[n2])
+            d1AroundF.append(d1EllipseAroundAll[n2])
+            d2AroundF.append(d2EllipseAroundAll[n2])
 
-    # for n1 in range(len(xTrackSurfaceSection2)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurfaceSection2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2TrackSurfaceSection2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
+    # for n2 in range(len(xEllipseAroundAll)):
+    #     for n1 in range(len(xEllipseAroundAll[n2])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xEllipseAroundAll[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1EllipseAroundAll[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #         nodeIdentifier += 1
 
-    # Sample
-    elementsOutSection2 = elementsAlongFundusApexToCardia + elementsAroundQuarterEso - 1
-    xSection2, d2Section2 = \
-            interp.sampleCubicHermiteCurves(xTrackSurfaceSection2, d2TrackSurfaceSection2, elementsOutSection2,
-                                            addLengthStart=0.5 * vector.magnitude(d2Section1[-1]),
-                                            lengthFractionStart=0.5, arcLengthDerivatives=True)[0:2]
-
-    # for n1 in range(len(xSection2)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSection2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2Section2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Section 3 - From fundus end to duodenum on GC
-    xTrackSurfaceSection3 = []
-    d2TrackSurfaceSection3 = []
-    xTrackSurfaceSection3.append(xFundusEnd)
-    d2TrackSurfaceSection3.append(d2Section2[-1])
-    startIdx = fundusEndPositionAlongFactor * elementsCountAlongTrackSurface
-    startIdx = math.ceil(startIdx) + (1 if startIdx - math.ceil(startIdx) == 0 else 0)
-    for n2 in range(startIdx, len(xSampledAll)):
-        xTrackSurfaceSection3.append(xSampledAll[n2][0])
-        d2TrackSurfaceSection3.append(d2SampledAll[n2][0])
-
-    # for n1 in range(len(xTrackSurfaceSection3)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurfaceSection3[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurfaceSection3[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Sample
-    elementsOutSection3 = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
-    xSection3, d2Section3 = \
-        interp.sampleCubicHermiteCurves(xTrackSurfaceSection3, d2TrackSurfaceSection3, elementsOutSection3,
-                                        addLengthStart=0.5 * vector.magnitude(d2Section2[-1]),
-                                        lengthFractionStart=0.5, arcLengthDerivatives=True)[0:2]
-
-    # for n1 in range(len(xSection3)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSection3[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Section3[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Assemble and smooth along GC
-    xAlongGC = xSection1[:-1] + xSection2[:-1] + xSection3
-    d2AlongGC = d2Section1[:-1] + d2Section2[:-1] + d2Section3
+    # Along GC
+    xAlongGC = []
+    annulusD2 = vector.normalise(o1_d2[-1][0])
+    d2 = [sf * annulusD2[c] for c in range(3)]
+    d2AlongGC = [d2]
+    for n2 in range(elementsAlongFundusApexToCardia - 1, -1, -1):
+        xAlongGC.append(xEllipseAroundAll[n2][int(0.5 * len(xEllipseAroundAll[n2]))])
+    xAlongGC.append(cxSections[0][0])
+    for n2 in range(len(xEllipseAroundAll)):
+        xAlongGC.append(xEllipseAroundAll[n2][0])
+    for n in range(len(xAlongGC) - 1):
+        d2AlongGC.append(findDerivativeBetweenPoints(xAlongGC[n], xAlongGC[n + 1]))
     d2AlongGCSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongGC, d2AlongGC, fixStartDerivative=True)
+                                                                 #fixEndDerivative=True)
 
     xAlongGCReverse = copy.deepcopy(xAlongGC)
     xAlongGCReverse.reverse()
@@ -1762,602 +1882,55 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
     d2AlongGCReverse.append([rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)])
     d2AlongGCReverseSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongGCReverse, d2AlongGCReverse)
-                                                                        #fixEndDerivative=True)
+    #fixEndDerivative=True)
 
-    # for n1 in range(len(xAlongGCReverse)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGCReverse[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongGCReverseSmoothed[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AlongGCReverse[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
+    # Along LC
+    startIdx = elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3
+    xAlongLC = []
+    d2 = vector.normalise(o1_d2[-1][elementsAroundHalfEso])
+    d2 = [sf * d2[c] for c in range(3)]
+    d2AlongLC = [d2]
+    for n2 in range(elementsAlongCardiaToDuod + 1):
+        idx = startIdx + n2
+        xAlongLC.append(xEllipseAroundAll[idx][int(0.5 * len(xEllipseAroundAll[idx]))])
+    for n in range(len(xAlongLC) - 1):
+        d2AlongLC.append(findDerivativeBetweenPoints(xAlongLC[n], xAlongLC[n + 1]))
+    d2AlongLCSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongLC, d2AlongLC, fixStartDerivative=True)
 
-    # for n1 in range(len(xAlongGC)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGC[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongGCSmoothed[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AlongGC[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Section 4 - From cardia to duodenum on LC
-    xTrackSurfaceSection4 = []
-    d2TrackSurfaceSection4 = []
-    xTrackSurfaceSection4.append(xAnnulusOuter[elementsAroundHalfEso])
-    cardiaLCProportion2 = trackSurfaceStomach.getProportion(xAnnulusOuterPosition[elementsAroundHalfEso])[1]
-    elementsAlongDownstreamOfEso = int(elementsCountAlongTrackSurface * cardiaLCProportion2)
-
-    for n2 in range(elementsAlongDownstreamOfEso + 1, len(xSampledAll) - 1):
-        v1 = xSampledAll[n2][elementsAroundHalfDuod]
-        xTrackSurfaceSection4.append(v1)
-    xTrackSurfaceSection4.append(xSampledAll[n2 + 1][elementsAroundHalfDuod])
-
-    for n2 in range(len(xTrackSurfaceSection4) - 1):
-        v1 = xTrackSurfaceSection4[n2]
-        v2 = xTrackSurfaceSection4[n2 + 1]
-        d = [v2[c] - v1[c] for c in range(3)]
-        arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-        d2 = [c * arcLengthAround for c in vector.normalise(d)]
-        d2TrackSurfaceSection4.append(d2)
-
-    d2TrackSurfaceSection4.append(d2SampledAll[-1][elementsAroundHalfDuod])
-
-    # for n1 in range(len(xTrackSurfaceSection4)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurfaceSection4[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurfaceSection4[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Sample
-    elementsOutSection4 = elementsAlongCardiaToDuod
-    normD2 = vector.normalise(o1_d2[-1][elementsAroundHalfEso])
-    startDerivative = [sf * normD2[c] for c in range(3)]
-    xSection4, d2Section4 = \
-        interp.sampleCubicHermiteCurves(xTrackSurfaceSection4, d2TrackSurfaceSection4, elementsOutSection4,
-                                        addLengthStart=0.5 * vector.magnitude(startDerivative),
-                                        lengthFractionStart=0.5, arcLengthDerivatives=True)[0:2]
-
-    # Smooth
-    xAlongLC = xSection4
-    d2AlongLCSmoothed = interp.smoothCubicHermiteDerivativesLine(xSection4, d2Section4, fixStartDerivative=True)
-
-    # for n1 in range(len(xSection4)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSection4[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2Section4Smoothed[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Section4[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Use element spacing on greater curvature from fundus apex to duod to decide where annotation groups should sit
-    arcLengthGCFromFundusApexToDuodTotal = 0.0
-    arcLengthsGCFromFundusApexToDuod = []
-    xAlongGCFundusApexToDuod = xSection2[:-1] + xSection3
-    d2AlongGCFundusApexToDuodSmoothed = d2AlongGCSmoothed[len(d2Section1[:-1]):]
-
-    for n2 in range(len(xAlongGCFundusApexToDuod) - 1):
-        arcLength = interp.getCubicHermiteArcLength(xAlongGCFundusApexToDuod[n2], d2AlongGCFundusApexToDuodSmoothed[n2],
-                                                    xAlongGCFundusApexToDuod[n2 + 1],
-                                                    d2AlongGCFundusApexToDuodSmoothed[n2 + 1])
-        arcLengthsGCFromFundusApexToDuod.append(arcLength)
-        arcLengthGCFromFundusApexToDuodTotal += arcLength
-
-    # for n1 in range(len(xAlongGCFundusApexToDuod)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGCFundusApexToDuod[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongGCFundusApexToDuodSmoothed[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # # arcLength = 0.0
-    # # for e in range(len(xEsoToDuodGC) - 1):
-    # #     arcLength += interp.getCubicHermiteArcLength(xEsoToDuodGC[e], d2EsoToDuodGC[e],
-    # #                                                  xEsoToDuodGC[e + 1], d2EsoToDuodGC[e + 1])
-    # #     if arcLength > arcLengthEsoApex:
-    # #         nodesCountFromEsoToApex = e + 2
-    # #         break
-    # nodesCountFromEsoToApex = elementsAlongEsoToFundusApex + 1
-
-    ptsOnTrackSurfaceGC = []
-    ptsOnTrackSurfaceLC = []
-    ptsOnTrackSurfaceQuarterProportion2 = []
-    ptsOnTrackSurfaceThreeQuarterProportion2 = []
-    d2OnTrackSurfaceQuarterProportion2 = []
-    d2OnTrackSurfaceThreeQuarterProportion2 = []
-    for n2 in range(elementsCountAlongTrackSurface + 1):
-        ptsOnTrackSurfaceGC.append(xSampledAll[n2][0])
-        ptsOnTrackSurfaceLC.append(xSampledAll[n2][elementsAroundHalfDuod])
-        ptsOnTrackSurfaceQuarterProportion2.append(xSampledAll[n2][elementsAroundQuarterDuod])
-        d2OnTrackSurfaceQuarterProportion2.append(d2SampledAll[n2][elementsAroundQuarterDuod])
-        ptsOnTrackSurfaceThreeQuarterProportion2.append(xSampledAll[n2]
-                                                        [elementsAroundHalfDuod + elementsAroundQuarterDuod])
-        d2OnTrackSurfaceThreeQuarterProportion2.append(d2SampledAll[n2]
-                                                        [elementsAroundHalfDuod + elementsAroundQuarterDuod])
-
-    # for n1 in range(len(ptsOnTrackSurfaceQuarterProportion2)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ptsOnTrackSurfaceQuarterProportion2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2OnTrackSurfaceQuarterProportion2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Sample quarter lines to equal elements along stomach length
-    # elementsAlongStomach = elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2 + elementsAlongCardiaToDuod
-    elementsAlongStomach = len(xSection1) - elementsAroundQuarterDuod + elementsAroundHalfEso + elementsAlongCardiaToDuod
-    xSampledQuarterLine, d2SampledQuarterLine = interp.sampleCubicHermiteCurves(ptsOnTrackSurfaceQuarterProportion2,
-                                                                                d2OnTrackSurfaceQuarterProportion2,
-                                                                                elementsAlongStomach)[0:2]
+    # Along quarter line
+    xSampledQuarterLine = [cxSections[0][0]]
+    d2SampledQuarterLine = [cd3Sections[0][0]]
+    for n2 in range(len(xEllipseAroundAll)):
+        xSampledQuarterLine.append(xEllipseAroundAll[n2][elementsAroundQuarterDuod if n2 else int(0.25 * len(xEllipseAroundAll[n2]))])
+    for n in range(len(xSampledQuarterLine) - 1):
+        d2SampledQuarterLine.append(findDerivativeBetweenPoints(xSampledQuarterLine[n], xSampledQuarterLine[n + 1]))
     d2SampledQuarterLineSmoothed = interp.smoothCubicHermiteDerivativesLine(xSampledQuarterLine, d2SampledQuarterLine,
                                                                             fixStartDirection=True)
-    xSampledThreeQuarterLine, d2SampledThreeQuarterLine = \
-        interp.sampleCubicHermiteCurves(ptsOnTrackSurfaceThreeQuarterProportion2,
-                                        d2OnTrackSurfaceThreeQuarterProportion2,
-                                        elementsAlongStomach)[0:2]
+
+    # Along three quarter line
+    xSampledThreeQuarterLine = [cxSections[0][0]]
+    d = cd3Sections[0][0]
+    rotAxis = vector.crossproduct3(vector.normalise(cd2Sections[0][0]), vector.normalise(cd3Sections[0][0]))
+    rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
+    d = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2] for j in range(3)]
+    d2SampledThreeQuarterLine = [d]
+    for n2 in range(len(xEllipseAroundAll)):
+        xSampledThreeQuarterLine.append(xEllipseAroundAll[n2][-elementsAroundQuarterDuod if n2 else -int(0.25 * len(xEllipseAroundAll[n2]))])
+    for n in range(len(xSampledThreeQuarterLine) - 1):
+        d2SampledThreeQuarterLine.append(findDerivativeBetweenPoints(xSampledThreeQuarterLine[n],
+                                                                     xSampledThreeQuarterLine[n + 1]))
     d2SampledThreeQuarterLineSmoothed = interp.smoothCubicHermiteDerivativesLine(xSampledThreeQuarterLine,
                                                                                  d2SampledThreeQuarterLine,
                                                                                  fixStartDirection=True)
 
-# for n1 in range(len(xSampledQuarterLine)):
+    # for n2 in range(len(xSampledThreeQuarterLine)):
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
     #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledQuarterLine[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2SampledQuarterLine[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledQuarterLineSmoothed[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # for n1 in range(len(ptsOnTrackSurfaceThreeQuarterProportion2)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, ptsOnTrackSurfaceThreeQuarterProportion2[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledThreeQuarterLine[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2SampledThreeQuarterLineSmoothed[n2])
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # Around section B - Complete rings before esophagus
-    xAroundB = []
-    d1AroundB = []
-    d2AroundB = []
-    xSection1.reverse()
-
-    for n2 in range(len(xSection1) - elementsAroundQuarterDuod):
-        # First half
-        sectionIdx = elementsAroundQuarterDuod - 1 + n2
-        quarterIdx = 2 + n2
-        positionStart, d1Start = findClosestPositionAndDerivativeOnTrackSurface(xSection2[sectionIdx], ptsOnTrackSurfaceGC,
-                                                                                trackSurfaceStomach, 0.0,
-                                                                                elementsCountAlongTrackSurface)
-        proportion1Start, proportion2Start = trackSurfaceStomach.getProportion(positionStart)
-
-        positionPt25, d1Pt25 = findClosestPositionAndDerivativeOnTrackSurface(xSampledQuarterLine[quarterIdx],
-                                                                              ptsOnTrackSurfaceQuarterProportion2,
-                                                                              trackSurfaceStomach, 0.25,
-                                                                              elementsCountAlongTrackSurface)
-        proportion1Pt25, proportion2Pt25 = trackSurfaceStomach.getProportion(positionPt25)
-
-        positionPt75, d1Pt75 = findClosestPositionAndDerivativeOnTrackSurface(xSampledThreeQuarterLine[quarterIdx],
-                                                                              ptsOnTrackSurfaceThreeQuarterProportion2,
-                                                                              trackSurfaceStomach, 0.75,
-                                                                              elementsCountAlongTrackSurface)
-        proportion1Pt75, proportion2Pt75 = trackSurfaceStomach.getProportion(positionPt75)
-
-        positionEnd, d1End = findClosestPositionAndDerivativeOnTrackSurface(xSection1[sectionIdx], ptsOnTrackSurfaceGC,
-                                                                          trackSurfaceStomach, 0.5,
-                                                                          elementsCountAlongTrackSurface)
-        proportion1End, proportion2End = trackSurfaceStomach.getProportion(positionEnd)
-
-        xQuarter1, d1Quarter1 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, proportion2Start, 0.25,
-                                                   proportion2Pt25, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Start, endDerivative=d1Pt25)
-
-        xQuarter2, d1Quarter2 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.25, proportion2Pt25,
-                                                   0.5, proportion2End, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter1[-1], endDerivative=d1End)
-
-        xQuarter3, d1Quarter3 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.5, proportion2End, 0.75,
-                                                   proportion2Pt75, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter2[-1], endDerivative=d1Pt75)
-
-        xQuarter4, d1Quarter4 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.75, proportion2Pt75,
-                                                   1.0, proportion2Start, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter3[-1], endDerivative=d1Start)
-
-        # Assemble & smooth
-        xAround = xQuarter1[:-1] + xQuarter2[:-1] + xQuarter3[:-1] + xQuarter4[:-1]
-        d1Around = d1Quarter1[:-1] + d1Quarter2[:-1] + d1Quarter3[:-1] + d1Quarter4[:-1]
-        d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        d2Around = [zero for n in range(len(d1Around))]
-
-        xAroundB.append(xAround)
-        d1AroundB.append(d1AroundSmoothed)
-        d2AroundB.append(d2Around)
-
-    # for n2 in range(len(xAroundB)):
-    #     for n1 in range(len(xAroundB[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundB[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AroundB[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
-
-    # Around section F - Complete rings after esophagus
-    xAroundF = []
-    d1AroundF = []
-    d2AroundF = []
-
-    for n2 in range(1, len(xSection4) - 1):
-        section3Idx = elementsAroundQuarterEso + n2 - 1
-        # quarterIdx = elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2 + n2
-        quarterIdx = len(xSection1) - elementsAroundQuarterDuod + elementsAroundHalfEso + n2
-
-        # First half
-        positionStart, d1Start = findClosestPositionAndDerivativeOnTrackSurface(xSection3[section3Idx], ptsOnTrackSurfaceGC,
-                                                                                trackSurfaceStomach, 0.0,
-                                                                                elementsCountAlongTrackSurface)
-        proportion1Start, proportion2Start = trackSurfaceStomach.getProportion(positionStart)
-
-        positionPt25, d1Pt25 = findClosestPositionAndDerivativeOnTrackSurface(xSampledQuarterLine[quarterIdx],
-                                                                              ptsOnTrackSurfaceQuarterProportion2,
-                                                                              trackSurfaceStomach, 0.25,
-                                                                              elementsCountAlongTrackSurface)
-        proportion1Pt25, proportion2Pt25 = trackSurfaceStomach.getProportion(positionPt25)
-
-        positionPt75, d1Pt75 = findClosestPositionAndDerivativeOnTrackSurface(xSampledThreeQuarterLine[quarterIdx],
-                                                                              ptsOnTrackSurfaceThreeQuarterProportion2,
-                                                                              trackSurfaceStomach, 0.75,
-                                                                              elementsCountAlongTrackSurface)
-        proportion1Pt75, proportion2Pt75 = trackSurfaceStomach.getProportion(positionPt75)
-
-        positionEnd, d1End = findClosestPositionAndDerivativeOnTrackSurface(xSection4[n2], ptsOnTrackSurfaceLC, # diff from section B
-                                                                            trackSurfaceStomach, 0.5,
-                                                                            elementsCountAlongTrackSurface)
-        proportion1End, proportion2End = trackSurfaceStomach.getProportion(positionEnd)
-
-        xQuarter1, d1Quarter1 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, proportion2Start, 0.25,
-                                                   proportion2Pt25, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Start, endDerivative=d1Pt25)
-
-        xQuarter2, d1Quarter2 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.25, proportion2Pt25,
-                                                   0.5, proportion2End, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter1[-1], endDerivative=d1End)
-
-        xQuarter3, d1Quarter3 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.5, proportion2End, 0.75,
-                                                   proportion2Pt75, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter2[-1], endDerivative=d1Pt75)
-
-        xQuarter4, d1Quarter4 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.75, proportion2Pt75,
-                                                   1.0, proportion2Start, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter3[-1], endDerivative=d1Start)
-
-        # Assemble & smooth
-        xAround = xQuarter1[:-1] + xQuarter2[:-1] + xQuarter3[:-1] + xQuarter4[:-1]
-        d1Around = d1Quarter1[:-1] + d1Quarter2[:-1] + d1Quarter3[:-1] + d1Quarter4[:-1]
-        d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        d2Around = [zero for n in range(len(d1Around))]
-
-        xAroundF.append(xAround)
-        d1AroundF.append(d1AroundSmoothed)
-        d2AroundF.append(d2Around)
-
-    # Last ring
-    xAroundF.append(xSampledAll[-1])
-    d1AroundF.append(d1SampledAll[-1])
-    d2AroundF.append([zero for n in range(len(d1SampledAll[-1]))])
-
-    # for n2 in range(len(xAroundF)):
-    #     for n1 in range(len(xAroundF[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundF[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AroundF[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
-
-    # Section C - First ring to esophagus
-    xAroundC = []
-    d1AroundC = []
-    d2AroundC = []
-    section2Idx = elementsAlongFundusApexToCardia
-    quarterIdx = len(xSection1) - elementsAroundQuarterDuod + 2
-
-    # First half
-    positionStart, d1Start = findClosestPositionAndDerivativeOnTrackSurface(xSection2[section2Idx], ptsOnTrackSurfaceGC,
-                                                                            trackSurfaceStomach, 0.0,
-                                                                            elementsCountAlongTrackSurface)
-    proportion1Start, proportion2Start = trackSurfaceStomach.getProportion(positionStart)
-
-    positionPt25, d1Pt25 = findClosestPositionAndDerivativeOnTrackSurface(xSampledQuarterLine[quarterIdx],
-                                                                          ptsOnTrackSurfaceQuarterProportion2,
-                                                                          trackSurfaceStomach, 0.25,
-                                                                          elementsCountAlongTrackSurface)
-    proportion1Pt25, proportion2Pt25 = trackSurfaceStomach.getProportion(positionPt25)
-
-    positionPt75, d1Pt75 = findClosestPositionAndDerivativeOnTrackSurface(xSampledThreeQuarterLine[quarterIdx],
-                                                                          ptsOnTrackSurfaceThreeQuarterProportion2,
-                                                                          trackSurfaceStomach, 0.75,
-                                                                          elementsCountAlongTrackSurface)
-    proportion1Pt75, proportion2Pt75 = trackSurfaceStomach.getProportion(positionPt75)
-
-    positionAnnulus1 = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[1])
-    proportion1Annulus1, proportion2Annulus1 = trackSurfaceStomach.getProportion(positionAnnulus1)
-    d1Annulus1 = findDerivativeBetweenPoints(xAnnulusOuter[1], xAnnulusOuter[0])
-
-    positionAnnulusMinus1 = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[-1])
-    proportion1AnnulusMinus1, proportion2AnnulusMinus1 = trackSurfaceStomach.getProportion(positionAnnulusMinus1)
-    d1AnnulusMinus1 = findDerivativeBetweenPoints(xAnnulusOuter[0], xAnnulusOuter[-1])
-
-    xQuarter1, d1Quarter1 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, proportion2Start, 0.25,
-                                               proportion2Pt25, elementsAroundQuarterDuod,
-                                               startDerivative=d1Start, endDerivative=d1Pt25)
-
-    xQuarter2, d1Quarter2 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.25, proportion2Pt25,
-                                               proportion1Annulus1, proportion2Annulus1, elementsAroundQuarterDuod - 1,
-                                               startDerivative=d1Quarter1[-1], endDerivative=d1Annulus1)
-
-    xQuarter3, d1Quarter3 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, proportion1AnnulusMinus1, proportion2AnnulusMinus1,
-                                               0.75, proportion2Pt75, elementsAroundQuarterDuod - 1,
-                                               startDerivative=d1AnnulusMinus1, endDerivative=d1Pt75)
-
-    xQuarter4, d1Quarter4 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.75, proportion2Pt75,
-                                               1.0, proportion2Start, elementsAroundQuarterDuod,
-                                               startDerivative=d1Quarter3[-1], endDerivative=d1Start)
-
-    # Assemble & smooth
-    xAround = xQuarter1[:-1] + xQuarter2 + [xAnnulusOuter[0]] + xQuarter3[:-1] + xQuarter4[:-1]
-    d1Around = d1Quarter1[:-1] + d1Quarter2 + [d1Annulus1] + d1Quarter3[:-1] + d1Quarter4[:-1]
-    d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-    d2Around = [zero for n in range(len(d1Around))]
-
-    xAroundC.append(xAround)
-    d1AroundC.append(d1AroundSmoothed)
-    d2AroundC.append(d2Around)
-
-    # for n2 in range(len(xAroundC)):
-    #     for n1 in range(len(xAroundC[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundC[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AroundC[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
-
-    # Section E - Last ring to esophagus
-    xAroundE = []
-    d1AroundE = []
-    d2AroundE = []
-    section3Idx = elementsAroundQuarterEso - 1
-    quarterIdx = len(xSection1) - elementsAroundQuarterDuod + elementsAroundHalfEso
-
-    # First half
-    positionStart, d1Start = findClosestPositionAndDerivativeOnTrackSurface(xSection3[section3Idx], ptsOnTrackSurfaceGC,
-                                                                            trackSurfaceStomach, 0.0,
-                                                                            elementsCountAlongTrackSurface)
-    proportion1Start, proportion2Start = trackSurfaceStomach.getProportion(positionStart)
-
-    positionAnnulusHalfMinus1 = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[elementsAroundHalfEso - 1])
-    proportion1AnnulusHalfMinus1, proportion2AnnulusHalfMinus1 = trackSurfaceStomach.getProportion(positionAnnulusHalfMinus1)
-    d1AnnulusHalfMinus1 = findDerivativeBetweenPoints(xAnnulusOuter[elementsAroundHalfEso - 1], xAnnulusOuter[elementsAroundHalfEso])
-
-    positionAnnulusHalfPlus1 = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[elementsAroundHalfEso + 1])
-    proportion1AnnulusHalfPlus1, proportion2AnnulusHalfPlus1 = trackSurfaceStomach.getProportion(positionAnnulusHalfPlus1)
-    d1AnnulusHalfPlus1 = findDerivativeBetweenPoints(xAnnulusOuter[elementsAroundHalfEso], xAnnulusOuter[elementsAroundHalfEso + 1])
-
-    positionPt25, d1Pt25 = findClosestPositionAndDerivativeOnTrackSurface(xSampledQuarterLine[quarterIdx],
-                                                                          ptsOnTrackSurfaceQuarterProportion2,
-                                                                          trackSurfaceStomach, 0.25,
-                                                                          elementsCountAlongTrackSurface)
-    proportion1Pt25, proportion2Pt25 = trackSurfaceStomach.getProportion(positionPt25)
-
-    positionPt75, d1Pt75 = findClosestPositionAndDerivativeOnTrackSurface(xSampledThreeQuarterLine[quarterIdx],
-                                                                          ptsOnTrackSurfaceThreeQuarterProportion2,
-                                                                          trackSurfaceStomach, 0.75,
-                                                                          elementsCountAlongTrackSurface)
-    proportion1Pt75, proportion2Pt75 = trackSurfaceStomach.getProportion(positionPt75)
-
-
-    xQuarter1, d1Quarter1 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, proportion2Start, 0.25,
-                                               proportion2Pt25, elementsAroundQuarterDuod,
-                                               startDerivative=d1Start, endDerivative=d1Pt25)
-
-    xQuarter2, d1Quarter2 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.25, proportion2Pt25,
-                                               proportion1AnnulusHalfMinus1, proportion2AnnulusHalfMinus1,
-                                               elementsAroundQuarterDuod - 1,
-                                               startDerivative=d1Quarter1[-1], endDerivative=d1AnnulusHalfMinus1)
-
-    xQuarter3, d1Quarter3 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, proportion1AnnulusHalfPlus1,
-                                               proportion2AnnulusHalfPlus1,
-                                               0.75, proportion2Pt75, elementsAroundQuarterDuod - 1,
-                                               startDerivative=d1AnnulusHalfPlus1, endDerivative=d1Pt75)
-
-    xQuarter4, d1Quarter4 = \
-        getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.75, proportion2Pt75,
-                                               1.0, proportion2Start, elementsAroundQuarterDuod,
-                                               startDerivative=d1Quarter3[-1], endDerivative=d1Start)
-
-    # Assemble & smooth
-    xAround = xQuarter1[:-1] + xQuarter2 + [xAnnulusOuter[elementsAroundHalfEso]] + xQuarter3[:-1] + xQuarter4[:-1]
-    d1Around = d1Quarter1[:-1] + d1Quarter2 + [d1AnnulusHalfMinus1] + d1Quarter3[:-1] + d1Quarter4[:-1]
-    d1AroundSmoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-    d2Around = [zero for n in range(len(d1Around))]
-
-    xAroundE.append(xAround)
-    d1AroundE.append(d1AroundSmoothed)
-    d2AroundE.append(d2Around)
-
-    # for n2 in range(len(xAroundE)):
-    #     for n1 in range(len(xAroundE[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundE[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AroundE[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
-
-    # Section D - Within esophagus
-    xAroundD = []
-    d1AroundD = []
-    d2AroundD = []
-
-    for n2 in range(elementsAroundHalfEso - 3):
-        GCIdx = int(len(xSection1) * 2.0) - 1 + n2
-        annulusIdx = n2 + 2
-        # quarterIdx = elementsAlongFundusApexToCardia + 1 + n2
-        quarterIdx = len(xSection1) - elementsAroundQuarterDuod + 2 + 1 + n2
-
-        # First half
-        positionStart, d1Start = findClosestPositionAndDerivativeOnTrackSurface(xAlongGC[GCIdx], ptsOnTrackSurfaceGC,
-                                                                                trackSurfaceStomach, 0.0,
-                                                                                elementsCountAlongTrackSurface)
-        proportion1Start, proportion2Start = trackSurfaceStomach.getProportion(positionStart)
-
-        positionAnnulusFirstHalf = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[annulusIdx])
-        proportion1AnnulusFirstHalf, proportion2AnnulusFirstHalf = trackSurfaceStomach.getProportion(positionAnnulusFirstHalf)
-        d1AnnulusFirstHalf = findDerivativeBetweenPoints(xAnnulusOuter[annulusIdx], o1_x[-1][annulusIdx])
-
-        positionAnnulusSecondHalf = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[-annulusIdx])
-        proportion1AnnulusSecondHalf, proportion2AnnulusSecondHalf = trackSurfaceStomach.getProportion(positionAnnulusSecondHalf)
-        d1AnnulusSecondHalf = findDerivativeBetweenPoints(o1_x[-1][-annulusIdx], xAnnulusOuter[-annulusIdx])
-
-        positionPt25, d1Pt25 = findClosestPositionAndDerivativeOnTrackSurface(xSampledQuarterLine[quarterIdx],
-                                                                              ptsOnTrackSurfaceQuarterProportion2,
-                                                                              trackSurfaceStomach, 0.25,
-                                                                              elementsCountAlongTrackSurface)
-        proportion1Pt25, proportion2Pt25 = trackSurfaceStomach.getProportion(positionPt25)
-
-        positionPt75, d1Pt75 = findClosestPositionAndDerivativeOnTrackSurface(xSampledThreeQuarterLine[quarterIdx],
-                                                                              ptsOnTrackSurfaceThreeQuarterProportion2,
-                                                                              trackSurfaceStomach, 0.75,
-                                                                              elementsCountAlongTrackSurface)
-        proportion1Pt75, proportion2Pt75 = trackSurfaceStomach.getProportion(positionPt75)
-
-        xQuarter1, d1Quarter1 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.0, proportion2Start, 0.25,
-                                                   proportion2Pt25, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Start, endDerivative=d1Pt25)
-
-        xQuarter2, d1Quarter2 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.25, proportion2Pt25,
-                                                   proportion1AnnulusFirstHalf, proportion2AnnulusFirstHalf,
-                                                   elementsAroundQuarterDuod - 1,
-                                                   startDerivative=d1Quarter1[-1], endDerivative=d1AnnulusFirstHalf)
-
-        xQuarter3, d1Quarter3 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, proportion1AnnulusSecondHalf,
-                                                   proportion2AnnulusSecondHalf,
-                                                   0.75, proportion2Pt75, elementsAroundQuarterDuod - 1,
-                                                   startDerivative=d1AnnulusSecondHalf, endDerivative=d1Pt75)
-
-        xQuarter4, d1Quarter4 = \
-            getSmoothedSampledPointsOnTrackSurface(trackSurfaceStomach, 0.75, proportion2Pt75,
-                                                   1.0, proportion2Start, elementsAroundQuarterDuod,
-                                                   startDerivative=d1Quarter3[-1], endDerivative=d1Start)
-
-        # Assemble & smooth
-        xAroundFirst = xQuarter1[:-1] + xQuarter2
-        d1AroundFirst = d1Quarter1[:-1] + d1Quarter2
-        d1AroundFirstSmoothed = interp.smoothCubicHermiteDerivativesLine(xAroundFirst, d1AroundFirst, fixStartDirection=True)
-
-        xAroundSecond = xQuarter3[:-1] + xQuarter4
-        d1AroundSecond = d1Quarter3[:-1] + d1Quarter4
-        d1AroundSecondSmoothed = interp.smoothCubicHermiteDerivativesLine(xAroundSecond, d1AroundSecond, fixEndDirection=True)
-
-        xAround = xAroundFirst + xAroundSecond[:-1]
-        d1Around = d1AroundFirstSmoothed + d1AroundSecondSmoothed[:-1]
-        d2Around = [zero for n in range(len(d1Around))]
-
-        xAroundD.append(xAround)
-        d1AroundD.append(d1Around)
-        d2AroundD.append(d2Around)
-
-    # for n2 in range(len(xAroundD)):
-    #     for n1 in range(len(xAroundD[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundD[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AroundD[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
-
-    # Section A - ring between 1st complete ring and apex
-    xAroundA = []
-    d1AroundA = []
-    nodesInHalfSectionA = int((elementsAroundQuarterDuod - 2) * 2 + 1)
-    xAroundA.append(xAlongGC[elementsAlongFundusApexToCardia + int((nodesInHalfSectionA - 1) * 0.5)])
-    xAroundARight = []
-    for n1 in range(nodesInHalfSectionA):
-        GCIdx = elementsAlongFundusApexToCardia + int((nodesInHalfSectionA - 1) * 0.5) - n1
-        sectionBIdx = 2 + n1
-        x1 = xAroundB[0][sectionBIdx]
-        x2 = xAlongGC[GCIdx]
-        x3 = xAroundB[0][-sectionBIdx]
-        d1 = findDerivativeBetweenPoints(xAroundB[1][sectionBIdx] if len(xAroundB)> 1 else xAroundC[0][sectionBIdx],
-                                         xAroundB[0][sectionBIdx])
-        d2 = findClosestPositionAndDerivativeOnTrackSurface(xAlongGC[GCIdx], ptsOnTrackSurfaceGC,
-                                                            trackSurfaceStomach, 0.0, elementsCountAlongTrackSurface)[1]
-        d3 = findDerivativeBetweenPoints(xAroundB[0][-sectionBIdx],
-                                         xAroundB[1][-sectionBIdx] if len(xAroundB)> 1 else xAroundC[0][-sectionBIdx])
-
-        nx = [x1, x2, x3]
-        nd2 = [d1, d2, d3]
-        xSampled = interp.sampleCubicHermiteCurves(nx, nd2, 4)[0]
-        for n in range(len(xSampled)):
-            if n == 1 or n == 3:
-                xPosition = trackSurfaceStomach.findNearestPosition(xSampled[n])
-                if n == 1:
-                    xAroundA.append(trackSurfaceStomach.evaluateCoordinates(xPosition, derivatives=False))
-                elif n == 3:
-                    xAroundARight.append(trackSurfaceStomach.evaluateCoordinates(xPosition, derivatives=False))
-
-    xAroundARight.reverse()
-    xAroundA.append(xAlongGC[GCIdx])
-    xAroundA += xAroundARight
-
-    for n1 in range(len(xAroundA)):
-        v1 = xAroundA[n1]
-        v2 = xAroundA[(n1 + 1) % len(xAroundA)]
-        d1AroundA.append(findDerivativeBetweenPoints(v1, v2))
-    d1AroundA = interp.smoothCubicHermiteDerivativesLoop(xAroundA, d1AroundA)
-    d2AroundA = [zero for c in range(len(d1AroundA))]
-
-    # for n in range(len(xAroundA)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundA[n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AroundA[n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     print('xSampledThreeQuarterLine', nodeIdentifier)
     #     nodeIdentifier += 1
 
     # Assemble xOuter
@@ -2378,7 +1951,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     x0Arranged = []
     d0Arranged = []
     x0Arranged.append(x0[int(len(x0) * 0.5)])
-    d0Arranged.append(d2SampledQuarterLineSmoothed[0])
+    # d0Arranged.append(d2SampledQuarterLineSmoothed[0])
+    d0Arranged.append(findDerivativeBetweenPoints(cxSections[0][0],
+                                                  xEllipseAroundAll[0][int(0.25 * len(xEllipseAroundAll[0]))]))
     for n2 in range(1, int(len(x0) * 0.5) + 1):
         x0Arranged.append(x0[int(len(x0) * 0.5) + n2])
         x0Arranged.append(x0[int(len(x0) * 0.5) - n2])
@@ -2392,7 +1967,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     d1Outer += [d1AroundA] + d1AroundB + d1AroundC + d1AroundD + d1AroundE + d1AroundF
     d2Outer += [d2AroundA] + d2AroundB + d2AroundC + d2AroundD + d2AroundE + d2AroundF
 
-    completeRowsBeforeEso = len(xSection1) - elementsAroundQuarterDuod
+    # completeRowsBeforeEso = len(xSection1) - elementsAroundQuarterDuod
+    completeRowsBeforeEso = elementsAlongFundusApexToCardia + 1 - elementsAroundQuarterDuod
+    # elementsAlongStomach = len(xSection1) - elementsAroundQuarterDuod + elementsAroundHalfEso + elementsAlongCardiaToDuod
+    elementsAlongStomach = elementsAlongFundusApexToCardia + 1 - elementsAroundQuarterDuod + elementsAroundHalfEso + \
+                           elementsAlongCardiaToDuod
 
     d2Curvature = []
     for n2 in range(len(d2Outer)):
@@ -2910,15 +2489,15 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
 
         d3AlongAll.append(d3AlongN1)
 
-    # for n1 in range(len(xAlongAll)):
-    #     for n2 in range(len(xAlongAll[n1])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongAll[n1][n2])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AlongAll[n1][n2])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
+#     # for n1 in range(len(xAlongAll)):
+#     #     for n2 in range(len(xAlongAll[n1])):
+#     #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+#     #         cache.setNode(node)
+#     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongAll[n1][n2])
+#     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+#     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AlongAll[n1][n2])
+#     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+#     #         nodeIdentifier += 1
 
     # Calculate d2Curvature along
     d2CurvatureAlong = []
@@ -3115,61 +2694,42 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
         nodeIdentifier += 1
 
-    # nodeIdentifier = 10000
-    # for n in range(elementsCountAroundEso):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAnnulusOuter[n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dAnnulusOuter[n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #     nodeIdentifier += 1
-
-    # node = nodes.createNode(nodeIdentifier, nodetemplate)
-    # cache.setNode(node)
-    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCheck)
-    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2Check)
-    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d1Check)
-    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    # nodeIdentifier += 1
-
-
-    # Move along elements on GC and assign to annotation group
-    elementsCountAlongGroups = []
-    groupLength = 0.0
-    e = 0
-    elementsCount = 1
-    length = arcLengthsGCFromFundusApexToDuod[e]
-    for i in range(len(arcLengthRatioForGroupsFromFundusApex)):
-        groupLength += arcLengthRatioForGroupsFromFundusApex[i] * arcLengthGCFromFundusApexToDuodTotal
-        if e == len(arcLengthsGCFromFundusApexToDuod) - 2:
-            elementsCount += 1
-            elementsCountAlongGroups.append(elementsCount)
-        else:
-            while length < groupLength:
-                elementsCount += 1
-                e += 1
-                length += arcLengthsGCFromFundusApexToDuod[e]
-
-            # check which end is grouplength closer to
-            distToUpperEnd = abs(length - groupLength)
-            distToLowerEnd = abs(groupLength - (length - arcLengthsGCFromFundusApexToDuod[e]))
-            if distToLowerEnd < distToUpperEnd:
-                elementsCount -= 1
-                elementsCountAlongGroups.append(elementsCount)
-                e -= 1
-                length -= arcLengthsGCFromFundusApexToDuod[e]
-            else:
-                elementsCountAlongGroups.append(elementsCount)
-        elementsCount = 0
-
-    #  Account for multiple elements in n2 == 0:
-    if len(xOuter[0]) > 1:
-        elementsCountAlongGroups[0] -= int((len(xOuter[0]) - 1) * 0.5)
-
+#     # Move along elements on GC and assign to annotation group
+#     elementsCountAlongGroups = []
+#     groupLength = 0.0
+#     e = 0
+#     elementsCount = 1
+#     length = arcLengthsGCFromFundusApexToDuod[e]
+#     for i in range(len(arcLengthRatioForGroupsFromFundusApex)):
+#         groupLength += arcLengthRatioForGroupsFromFundusApex[i] * arcLengthGCFromFundusApexToDuodTotal
+#         if e == len(arcLengthsGCFromFundusApexToDuod) - 2:
+#             elementsCount += 1
+#             elementsCountAlongGroups.append(elementsCount)
+#         else:
+#             while length < groupLength:
+#                 elementsCount += 1
+#                 e += 1
+#                 length += arcLengthsGCFromFundusApexToDuod[e]
+#
+#             # check which end is grouplength closer to
+#             distToUpperEnd = abs(length - groupLength)
+#             distToLowerEnd = abs(groupLength - (length - arcLengthsGCFromFundusApexToDuod[e]))
+#             if distToLowerEnd < distToUpperEnd:
+#                 elementsCount -= 1
+#                 elementsCountAlongGroups.append(elementsCount)
+#                 e -= 1
+#                 length -= arcLengthsGCFromFundusApexToDuod[e]
+#             else:
+#                 elementsCountAlongGroups.append(elementsCount)
+#         elementsCount = 0
+#
+#     #  Account for multiple elements in n2 == 0:
+#     if len(xOuter[0]) > 1:
+#         elementsCountAlongGroups[0] -= int((len(xOuter[0]) - 1) * 0.5)
+#
     annotationGroupsAlong = []
-    for i in range(len(elementsCountAlongGroups)):
-        elementsCount = elementsCountAlongGroups[i]
+    for i in range(len(elementCountGroupList)):
+        elementsCount = elementCountGroupList[i]
         for n in range(elementsCount):
             annotationGroupsAlong.append(annotationGroupAlong[i])
 
@@ -3208,7 +2768,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
         idxTop.append(n)
     outer0 = idxBottom + idxTop
 
-    fundusElements = elementsCountAlongGroups[0]
+    fundusElements = elementCountGroupList[0]
 
     for e2 in range(len(xOuter) - 1):
         elementIdxThroughWall = []
@@ -3705,248 +3265,302 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, elementsCoun
     # delete mucosa layer in fundus when there is a limiting ridge
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, fundusMucosaElementIdentifiers)
 
-    # # annotation fiducial points for embedding in whole body
-    # markerNames = [["esophagogastric junction along the greater curvature on luminal surface",
-    #                 "esophagogastric junction along the lesser curvature on luminal surface",
-    #                 "gastroduodenal junction along the greater curvature on luminal surface",
-    #                 "gastroduodenal junction along the lesser curvature on luminal surface",
-    #                 "body-antrum junction along the greater curvature on luminal surface",
-    #                 "limiting ridge at the greater curvature on the luminal surface" if limitingRidge else
-    #                 "fundus-body junction along the greater curvature on luminal surface"]]
-    # if elementsCountThroughWall == 4:
-    #     markerNames.append(
-    #         ["esophagogastric junction along the greater curvature on circular-longitudinal muscle interface",
-    #          "esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface",
-    #          "gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface",
-    #          "gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface",
-    #          "body-antrum junction along the greater curvature on circular-longitudinal muscle interface",
-    #          "limiting ridge at the greater curvature on the circular-longitudinal muscle interface" if limitingRidge
-    #          else "fundus-body junction along the greater curvature on circular-longitudinal muscle interface"])
-    # markerNames.append(["esophagogastric junction along the greater curvature on serosa",
-    #                     "esophagogastric junction along the lesser curvature on serosa",
-    #                     "gastroduodenal junction along the greater curvature on serosa",
-    #                     "gastroduodenal junction along the lesser curvature on serosa",
-    #                     "body-antrum junction along the greater curvature on serosa",
-    #                     "limiting ridge at the greater curvature on serosa" if limitingRidge else
-    #                     "fundus-body junction along the greater curvature on serosa",
-    #                     "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
-    #                     "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"])
-    #
-    # markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
-    #                                  stomachStartElement - (elementsCountThroughWall - 1) * elementsCountAroundEso -
-    #                                  elementsAroundHalfEso,
-    #                                  lastDuodenumElementIdentifier - elementsCountThroughWall *
-    #                                  elementsCountAroundDuod * (elementsCountAlongGroups[-1] + 1),
-    #                                  lastDuodenumElementIdentifier - elementsCountThroughWall *
-    #                                  elementsCountAroundDuod * (elementsCountAlongGroups[-1] + 1) +
-    #                                  elementsAroundHalfDuod,
-    #                                  lastDuodenumElementIdentifier - elementsCountThroughWall *
-    #                                  elementsCountAroundDuod * (sum(elementsCountAlongGroups[-3:]) + 1),
-    #                                  fundusBodyJunctionInnerElementIdentifier,
-    #                                  elementsCountAroundEso * (elementsCountThroughWall - 1) + 1,
-    #                                  elementsCountAroundEso * elementsCountThroughWall - elementsAroundHalfEso + 1]
-    #
-    # elementsCountAroundLayer = [elementsCountAroundEso, elementsCountAroundEso,
-    #                             elementsCountAroundDuod, elementsCountAroundDuod,
-    #                             elementsCountAroundDuod, elementsCountAroundDuod]
-    #
-    # for n3 in range(len(markerNames)):
-    #     for n in range(len(markerNames[n3])):
-    #         markerGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region,
-    #                                                          get_stomach_term(markerNames[n3][n]))
-    #         if n < 6:
-    #             markerElementIdentifier = \
-    #                 markerInnerElementIdentifiers[n] + \
-    #                 (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
-    #                                                                     (elementsCountThroughWall - 1))
-    #             markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 \
-    #                 else [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
-    #         else:
-    #             markerElementIdentifier = markerInnerElementIdentifiers[n]
-    #             markerXi = [0.0, 0.0, 1.0]
-    #         markerElement = mesh.findElementByIdentifier(markerElementIdentifier)
-    #
-    #         cache.setMeshLocation(markerElement, markerXi)
-    #         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-    #         nodeIdentifier += 1
-    #         cache.setNode(markerPoint)
-    #         markerName.assignString(cache, markerGroup.getName())
-    #         markerLocation.assignMeshLocation(cache, markerElement, markerXi)
-    #         for group in [stomachGroup, markerGroup]:
-    #             group.getNodesetGroup(nodes).addNode(markerPoint)
-    #
-    # Create annotation groups for dorsal and ventral parts of the stomach
-    dorsalGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("dorsal stomach"))
-    ventralGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("ventral stomach"))
-    dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
-    ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
+#     # # annotation fiducial points for embedding in whole body
+#     # markerNames = [["esophagogastric junction along the greater curvature on luminal surface",
+#     #                 "esophagogastric junction along the lesser curvature on luminal surface",
+#     #                 "gastroduodenal junction along the greater curvature on luminal surface",
+#     #                 "gastroduodenal junction along the lesser curvature on luminal surface",
+#     #                 "body-antrum junction along the greater curvature on luminal surface",
+#     #                 "limiting ridge at the greater curvature on the luminal surface" if limitingRidge else
+#     #                 "fundus-body junction along the greater curvature on luminal surface"]]
+#     # if elementsCountThroughWall == 4:
+#     #     markerNames.append(
+#     #         ["esophagogastric junction along the greater curvature on circular-longitudinal muscle interface",
+#     #          "esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface",
+#     #          "gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface",
+#     #          "gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface",
+#     #          "body-antrum junction along the greater curvature on circular-longitudinal muscle interface",
+#     #          "limiting ridge at the greater curvature on the circular-longitudinal muscle interface" if limitingRidge
+#     #          else "fundus-body junction along the greater curvature on circular-longitudinal muscle interface"])
+#     # markerNames.append(["esophagogastric junction along the greater curvature on serosa",
+#     #                     "esophagogastric junction along the lesser curvature on serosa",
+#     #                     "gastroduodenal junction along the greater curvature on serosa",
+#     #                     "gastroduodenal junction along the lesser curvature on serosa",
+#     #                     "body-antrum junction along the greater curvature on serosa",
+#     #                     "limiting ridge at the greater curvature on serosa" if limitingRidge else
+#     #                     "fundus-body junction along the greater curvature on serosa",
+#     #                     "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
+#     #                     "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"])
+#     #
+#     # markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
+#     #                                  stomachStartElement - (elementsCountThroughWall - 1) * elementsCountAroundEso -
+#     #                                  elementsAroundHalfEso,
+#     #                                  lastDuodenumElementIdentifier - elementsCountThroughWall *
+#     #                                  elementsCountAroundDuod * (elementsCountAlongGroups[-1] + 1),
+#     #                                  lastDuodenumElementIdentifier - elementsCountThroughWall *
+#     #                                  elementsCountAroundDuod * (elementsCountAlongGroups[-1] + 1) +
+#     #                                  elementsAroundHalfDuod,
+#     #                                  lastDuodenumElementIdentifier - elementsCountThroughWall *
+#     #                                  elementsCountAroundDuod * (sum(elementsCountAlongGroups[-3:]) + 1),
+#     #                                  fundusBodyJunctionInnerElementIdentifier,
+#     #                                  elementsCountAroundEso * (elementsCountThroughWall - 1) + 1,
+#     #                                  elementsCountAroundEso * elementsCountThroughWall - elementsAroundHalfEso + 1]
+#     #
+#     # elementsCountAroundLayer = [elementsCountAroundEso, elementsCountAroundEso,
+#     #                             elementsCountAroundDuod, elementsCountAroundDuod,
+#     #                             elementsCountAroundDuod, elementsCountAroundDuod]
+#     #
+#     # for n3 in range(len(markerNames)):
+#     #     for n in range(len(markerNames[n3])):
+#     #         markerGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region,
+#     #                                                          get_stomach_term(markerNames[n3][n]))
+#     #         if n < 6:
+#     #             markerElementIdentifier = \
+#     #                 markerInnerElementIdentifiers[n] + \
+#     #                 (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
+#     #                                                                     (elementsCountThroughWall - 1))
+#     #             markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 \
+#     #                 else [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
+#     #         else:
+#     #             markerElementIdentifier = markerInnerElementIdentifiers[n]
+#     #             markerXi = [0.0, 0.0, 1.0]
+#     #         markerElement = mesh.findElementByIdentifier(markerElementIdentifier)
+#     #
+#     #         cache.setMeshLocation(markerElement, markerXi)
+#     #         markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+#     #         nodeIdentifier += 1
+#     #         cache.setNode(markerPoint)
+#     #         markerName.assignString(cache, markerGroup.getName())
+#     #         markerLocation.assignMeshLocation(cache, markerElement, markerXi)
+#     #         for group in [stomachGroup, markerGroup]:
+#     #             group.getNodesetGroup(nodes).addNode(markerPoint)
+#     #
+#     # Create annotation groups for dorsal and ventral parts of the stomach
+#     dorsalGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("dorsal stomach"))
+#     ventralGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("ventral stomach"))
+#     dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
+#     ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
+#
+#     for e2 in range(len(elementIdxMat)):
+#         for e3 in range(len(elementIdxMat[e2])):
+#             for e1 in range(len(elementIdxMat[e2][e3])):
+#                 elementIdx = elementIdxMat[e2][e3][e1]
+#                 element = mesh.findElementByIdentifier(elementIdx)
+#                 if e1 < 0.5 * len(elementIdxMat[e2][e3]):
+#                     ventralMeshGroup.addElement(element)
+#                 else:
+#                     dorsalMeshGroup.addElement(element)
+#     if dorsalGroup not in allAnnotationGroups:
+#         allAnnotationGroups.append(dorsalGroup)
+#     if ventralGroup not in allAnnotationGroups:
+#         allAnnotationGroups.append(ventralGroup)
+#
+#     # Create split coordinate field
+#     if splitCoordinates:
+#         nodesOnSplitMargin = []
+#         nodesOnLCMargin = []
+#
+#         for n2 in range(elementsAlongEsophagus + 1):
+#             for n3 in range(elementsThroughEsophagusWall + 1):
+#                 nodeIdxOnGCMargin = 1 + n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
+#                                     n3 * elementsCountAroundEso
+#                 nodesOnSplitMargin.append(nodeIdxOnGCMargin)
+#                 nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
+#                                     n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
+#                                     n3 * elementsCountAroundEso
+#                 nodesOnSplitMargin.append(nodeIdxOnLCMargin)
+#                 nodesOnLCMargin.append(nodeIdxOnLCMargin)
+#         nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
+#         allNodesOnLC = nodesOnLCMargin + nodeIdxLC
+#
+#         splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
+#         splitNodetemplate1 = nodes.createNodetemplate()
+#         splitNodetemplate1.defineField(splitCoordinates)
+#         splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+#         splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+#         splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+#         if useCrossDerivatives:
+#             splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+#         if useCubicHermiteThroughWall:
+#             splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+#             if useCrossDerivatives:
+#                 splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
+#                 splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
+#                 splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+#
+#         splitNodetemplate2 = nodes.createNodetemplate()
+#         splitNodetemplate2.defineField(splitCoordinates)
+#         splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
+#         splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+#         splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
+#         if useCrossDerivatives:
+#             splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
+#         if useCubicHermiteThroughWall:
+#             splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
+#             if useCrossDerivatives:
+#                 splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 2)
+#                 splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 2)
+#                 splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 2)
+#
+#         nodeIter = nodes.createNodeiterator()
+#         node = nodeIter.next()
+#         while node.isValid():
+#             if not markerPoints.containsNode(node):
+#                 cache.setNode(node)
+#                 identifier = node.getIdentifier()
+#                 marginNode = identifier in nodesOnSplitMargin
+#                 x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+#                 d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)[1]
+#                 d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+#                 if useCrossDerivatives:
+#                     d1d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)[1]
+#                 if useCubicHermiteThroughWall:
+#                     d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)[1]
+#                     if useCrossDerivatives:
+#                         d1d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)[1]
+#                         d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, 3)[1]
+#                         d1d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, 3)[1]
+#
+#                 node.merge(splitNodetemplate2 if marginNode else splitNodetemplate1)
+#                 versionCount = 2 if marginNode else 1
+#                 for vn in range(versionCount):
+#                     splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, vn + 1, x)
+#                     splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, vn + 1, d1)
+#                     splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, vn + 1, d2)
+#                     if useCrossDerivatives:
+#                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, vn + 1, d1d2)
+#                     if useCubicHermiteThroughWall:
+#                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, vn + 1, d3)
+#                         if useCrossDerivatives:
+#                             splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
+#                             splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
+#                             splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
+#
+#             node = nodeIter.next()
+#
+#         nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
+#
+#         elementIter = mesh.createElementiterator()
+#         element = elementIter.next()
+#         splitElementtemplate1 = mesh.createElementtemplate()
+#         splitElementtemplate2 = mesh.createElementtemplate()
+#
+#         count = 0
+#         elementsInOstium = elementsCountAroundEso * elementsAlongEsophagus * elementsThroughEsophagusWall
+#         closedLoopElementId = nextElementIdentifier - elementsCountAroundEso * elementsCountAcrossCardia - \
+#                               elementsCountAroundDuod * elementsCountThroughWall * (elementsAlongCardiaToDuod + 1)
+#
+#         allValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+#                           Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3,
+#                           Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+#
+#         while element.isValid():
+#             eft = element.getElementfieldtemplate(coordinates, -1)
+#             nodeIdentifiers = get_element_node_identifiers(element, eft)
+#             for n in range(len(nodeIdentifiers)):
+#                 if nodeIdentifiers[n] in allNodesOnLC:
+#                     nearLCGroup.getMeshGroup(mesh).addElement(element)
+#                     break
+#             elementId = element.getIdentifier()
+#             marginDorsal = False
+#             for n in range(len(nodeIdentifiers)):
+#                 marginElement = nodeIdentifiers[n] in nodesOnSplitMargin
+#                 if marginElement:
+#                     count += 1
+#                     if count < 3 and (elementId <= elementsInOstium or elementId > closedLoopElementId):
+#                         marginDorsal = True
+#                     elif count >= 3 and (elementId <= elementsInOstium or elementId > closedLoopElementId):
+#                         if count == 4:
+#                             count = 0
+#                     elif elementsInOstium < elementId < elementsInOstium + len(xOuter[0]) + 1:
+#                         marginDorsal = True
+#                         count = 0
+#                     elif elementsInOstium + len(xOuter[0]) < elementId < elementsInOstium + len(xOuter[0]) * 2 + 1:
+#                         count = 0
+#                     elif count < 2 and elementId > elementsInOstium + 2 * (len(xOuter[0])):
+#                         marginDorsal = True
+#                     elif count >= 2 and elementId > elementsInOstium + 2 * (len(xOuter[0])):
+#                         if count == 2:
+#                             count = 0
+#                     break
+#
+#             if marginDorsal:
+#                 # Find nodes on margin to remap with version 2
+#                 lnRemapV2 = []
+#                 for n in range(len(nodeIdentifiers)):
+#                     if nodeIdentifiers[n] in nodesOnSplitMargin:
+#                         lnRemapV2.append(n + 1)
+#                 eft2 = eft
+#                 remapEftNodeValueLabelsVersion(eft2, lnRemapV2, allValueLabels, 2)
+#
+#                 splitElementtemplate2.defineField(splitCoordinates, -1, eft2)
+#                 element.merge(splitElementtemplate2)
+#                 element.setNodesByIdentifier(eft2, nodeIdentifiers)
+#                 if eft2.getNumberOfLocalScaleFactors() > 0:
+#                     element.setScaleFactor(eft2, 1, -1.0)
+#             else:
+#                 splitElementtemplate1.defineField(splitCoordinates, -1, eft)
+#                 element.merge(splitElementtemplate1)
+#                 element.setNodesByIdentifier(eft, nodeIdentifiers)
+#                 if eft.getNumberOfLocalScaleFactors() == 1:
+#                     element.setScaleFactors(eft, [-1.0])
+#
+#             element = elementIter.next()
+#
+#         allAnnotationGroups.append(nearLCGroup)
 
-    for e2 in range(len(elementIdxMat)):
-        for e3 in range(len(elementIdxMat[e2])):
-            for e1 in range(len(elementIdxMat[e2][e3])):
-                elementIdx = elementIdxMat[e2][e3][e1]
-                element = mesh.findElementByIdentifier(elementIdx)
-                if e1 < 0.5 * len(elementIdxMat[e2][e3]):
-                    ventralMeshGroup.addElement(element)
-                else:
-                    dorsalMeshGroup.addElement(element)
-    if dorsalGroup not in allAnnotationGroups:
-        allAnnotationGroups.append(dorsalGroup)
-    if ventralGroup not in allAnnotationGroups:
-        allAnnotationGroups.append(ventralGroup)
+    return allAnnotationGroups, elementCountGroupList
 
-    # Create split coordinate field
-    if splitCoordinates:
-        nodesOnSplitMargin = []
-        nodesOnLCMargin = []
+def findRescaledCrossAxis(xSampled, d2Sampled, arcLengthPerSampledElement, xCentralPath, dCentralPath):
+    """
 
-        for n2 in range(elementsAlongEsophagus + 1):
-            for n3 in range(elementsThroughEsophagusWall + 1):
-                nodeIdxOnGCMargin = 1 + n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
-                                    n3 * elementsCountAroundEso
-                nodesOnSplitMargin.append(nodeIdxOnGCMargin)
-                nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
-                                    n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
-                                    n3 * elementsCountAroundEso
-                nodesOnSplitMargin.append(nodeIdxOnLCMargin)
-                nodesOnLCMargin.append(nodeIdxOnLCMargin)
-        nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
-        allNodesOnLC = nodesOnLCMargin + nodeIdxLC
+    :param xSampled:
+    :param d2Sampled:
+    :param arcLengthPerSampledElement:
+    :param xCentralPath:
+    :param dCentralPath:
+    :return:
+    """
+    for n in range(1, len(xCentralPath) - 1):
+        cdProjected = [xCentralPath[n][c] + dCentralPath[n][c] for c in range(3)]
+        index = interp.getNearestPointIndex(xSampled, cdProjected)
+        arcDist = arcLengthPerSampledElement * index
+        arcLow = arcDist - arcLengthPerSampledElement * 0.5
+        arcUp = arcDist + arcLengthPerSampledElement * 0.5
 
-        splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
-        splitNodetemplate1 = nodes.createNodetemplate()
-        splitNodetemplate1.defineField(splitCoordinates)
-        splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if useCrossDerivatives:
-            splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-        if useCubicHermiteThroughWall:
-            splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-            if useCrossDerivatives:
-                splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
-                splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
-                splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
+        for iter in range(100):
+            thetaLow = findThetaFromArcDistance(xSampled, d2Sampled, arcLow, xCentralPath[n], dCentralPath[n])
+            thetaUp = findThetaFromArcDistance(xSampled, d2Sampled, arcUp, xCentralPath[n], dCentralPath[n])
+            arcDistance = (arcLow + arcUp) * 0.5
 
-        splitNodetemplate2 = nodes.createNodetemplate()
-        splitNodetemplate2.defineField(splitCoordinates)
-        splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
-        splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
-        splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
-        if useCrossDerivatives:
-            splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
-        if useCubicHermiteThroughWall:
-            splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
-            if useCrossDerivatives:
-                splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 2)
-                splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 2)
-                splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 2)
-
-        nodeIter = nodes.createNodeiterator()
-        node = nodeIter.next()
-        while node.isValid():
-            if not markerPoints.containsNode(node):
-                cache.setNode(node)
-                identifier = node.getIdentifier()
-                marginNode = identifier in nodesOnSplitMargin
-                x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
-                d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)[1]
-                d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
-                if useCrossDerivatives:
-                    d1d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)[1]
-                if useCubicHermiteThroughWall:
-                    d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)[1]
-                    if useCrossDerivatives:
-                        d1d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)[1]
-                        d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, 3)[1]
-                        d1d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, 3)[1]
-
-                node.merge(splitNodetemplate2 if marginNode else splitNodetemplate1)
-                versionCount = 2 if marginNode else 1
-                for vn in range(versionCount):
-                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, vn + 1, x)
-                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, vn + 1, d1)
-                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, vn + 1, d2)
-                    if useCrossDerivatives:
-                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, vn + 1, d1d2)
-                    if useCubicHermiteThroughWall:
-                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, vn + 1, d3)
-                        if useCrossDerivatives:
-                            splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
-                            splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
-                            splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
-
-            node = nodeIter.next()
-
-        nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
-
-        elementIter = mesh.createElementiterator()
-        element = elementIter.next()
-        splitElementtemplate1 = mesh.createElementtemplate()
-        splitElementtemplate2 = mesh.createElementtemplate()
-
-        count = 0
-        elementsInOstium = elementsCountAroundEso * elementsAlongEsophagus * elementsThroughEsophagusWall
-        closedLoopElementId = nextElementIdentifier - elementsCountAroundEso * elementsCountAcrossCardia - \
-                              elementsCountAroundDuod * elementsCountThroughWall * (elementsAlongCardiaToDuod + 1)
-
-        allValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                          Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3,
-                          Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
-
-        while element.isValid():
-            eft = element.getElementfieldtemplate(coordinates, -1)
-            nodeIdentifiers = get_element_node_identifiers(element, eft)
-            for n in range(len(nodeIdentifiers)):
-                if nodeIdentifiers[n] in allNodesOnLC:
-                    nearLCGroup.getMeshGroup(mesh).addElement(element)
-                    break
-            elementId = element.getIdentifier()
-            marginDorsal = False
-            for n in range(len(nodeIdentifiers)):
-                marginElement = nodeIdentifiers[n] in nodesOnSplitMargin
-                if marginElement:
-                    count += 1
-                    if count < 3 and (elementId <= elementsInOstium or elementId > closedLoopElementId):
-                        marginDorsal = True
-                    elif count >= 3 and (elementId <= elementsInOstium or elementId > closedLoopElementId):
-                        if count == 4:
-                            count = 0
-                    elif elementsInOstium < elementId < elementsInOstium + len(xOuter[0]) + 1:
-                        marginDorsal = True
-                        count = 0
-                    elif elementsInOstium + len(xOuter[0]) < elementId < elementsInOstium + len(xOuter[0]) * 2 + 1:
-                        count = 0
-                    elif count < 2 and elementId > elementsInOstium + 2 * (len(xOuter[0])):
-                        marginDorsal = True
-                    elif count >= 2 and elementId > elementsInOstium + 2 * (len(xOuter[0])):
-                        if count == 2:
-                            count = 0
-                    break
-
-            if marginDorsal:
-                # Find nodes on margin to remap with version 2
-                lnRemapV2 = []
-                for n in range(len(nodeIdentifiers)):
-                    if nodeIdentifiers[n] in nodesOnSplitMargin:
-                        lnRemapV2.append(n + 1)
-                eft2 = eft
-                remapEftNodeValueLabelsVersion(eft2, lnRemapV2, allValueLabels, 2)
-
-                splitElementtemplate2.defineField(splitCoordinates, -1, eft2)
-                element.merge(splitElementtemplate2)
-                element.setNodesByIdentifier(eft2, nodeIdentifiers)
-                if eft2.getNumberOfLocalScaleFactors() > 0:
-                    element.setScaleFactor(eft2, 1, -1.0)
+            if thetaLow > thetaUp:
+                arcLow = arcDistance
+            elif thetaLow < thetaUp:
+                arcUp = arcDistance
             else:
-                splitElementtemplate1.defineField(splitCoordinates, -1, eft)
-                element.merge(splitElementtemplate1)
-                element.setNodesByIdentifier(eft, nodeIdentifiers)
-                if eft.getNumberOfLocalScaleFactors() == 1:
-                    element.setScaleFactors(eft, [-1.0])
+                xFundus = interp.getCubicHermiteCurvesPointAtArcDistance(xSampled, d2Sampled, arcDistance)[0]
+                dCentralPath[n] = \
+                    vector.setMagnitude(dCentralPath[n],
+                                        vector.magnitude([xFundus[c] - xCentralPath[n][c] for c in range(3)]))
+        if iter > 99:
+            print('Search for fundus element boundaries on greater curvature - Max iters reached:', iter)
 
-            element = elementIter.next()
+    return
 
-        allAnnotationGroups.append(nearLCGroup)
+def findThetaFromArcDistance(xSampled, d2Sampled, arcDistance, xCentralPath, dCentralPath):
+    """
 
-    return allAnnotationGroups
+    :param xSampled:
+    :param d2Sampled:
+    :param arcDistance:
+    :param xCentralPath:
+    :param dCentralPath:
+    :return:
+    """
+    x = interp.getCubicHermiteCurvesPointAtArcDistance(xSampled, d2Sampled, arcDistance)[0]
+    dv = [x[c] - xCentralPath[c] for c in range(3)]
+    cosTheta = vector.dotproduct(dv, dCentralPath) / (vector.magnitude(dv) * vector.magnitude(dCentralPath))
+    cosTheta = 1 if cosTheta > 1.0 else cosTheta
+    theta = math.acos(cosTheta)
+
+    return theta
