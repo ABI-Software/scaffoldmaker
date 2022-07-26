@@ -2458,9 +2458,11 @@ class BifurcationMesh:
                                 #                 remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2,
                                 #                                        [(Node.VALUE_LABEL_D_DS2, []),
                                 #                                         (Node.VALUE_LABEL_D_DS3, [1])])
-
+                                remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS3, [1])])
                                 remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3,
                                                        [(Node.VALUE_LABEL_D_DS1, [])])
+
                                 if part_structure._side == 'right':
                                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
                                                            [(Node.VALUE_LABEL_D_DS1, [])])
@@ -2479,8 +2481,7 @@ class BifurcationMesh:
                                     else:
                                         remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
-                                remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-                                                       [(Node.VALUE_LABEL_D_DS3, [1])])
+
 
                                 # else:
                                 #     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
