@@ -52,6 +52,7 @@ class MeshType_1d_stickman1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fieldmodule, components_count=3)
         cache = fieldmodule.createFieldcache()
 
+        six_stick = True
         #################
         # Create nodes
         #################
@@ -63,9 +64,13 @@ class MeshType_1d_stickman1(Scaffold_base):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
         nodeIdentifier = 1
-        x_list = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.75], [0.0, 0.0, 0.5],
-                  [-0.25, 0.0, 0.81], [-0.5, 0.0, 0.87], [-0.25, 0.0, 0.25], [-0.5, 0.0, 0.0],
-                  [0.25, 0.0, 0.81], [0.5, 0.0, 0.87], [0.25, 0.0, 0.25], [0.5, 0.0, 0.0]]
+        if six_stick:
+            x_list = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.75], [0.0, 0.0, 0.5],
+                      [-0.25, 0.0, 0.81], [-0.01, 0.0, 0.0], [0.25, 0.0, 0.81], [0.01, 0.0, 0.0]]
+        else:
+            x_list = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.75], [0.0, 0.0, 0.5],
+                      [-0.25, 0.0, 0.81], [-0.25, 0.0, 0.25], [0.25, 0.0, 0.81], [0.25, 0.0, 0.25], [-0.5, 0.0, 0.87] , [-0.5, 0.0, 0.0],
+                      [0.5, 0.0, 0.87], [0.5, 0.0, 0.0]]
 
         for x in x_list:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -85,9 +90,14 @@ class MeshType_1d_stickman1(Scaffold_base):
         result = elementtemplate.defineField(coordinates, -1, eft)
 
         elementIdentifier = 1
-        lines = [[1, 2], [2, 3],
-                 [2, 4], [4, 5], [3, 6], [6, 7],
-                 [2, 8], [8, 9], [3, 10], [10, 11]]
+        if six_stick:
+            lines = [[1, 2], [2, 3],
+                     [2, 4], [3, 5],
+                     [2, 6], [3, 7]]
+        else:
+            lines = [[1, 2], [2, 3],
+                     [2, 4], [3, 5], [2, 6], [3, 7],
+                     [4, 8], [5, 9], [6, 10], [7, 11]]
         for e in lines:
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, e)

@@ -45,11 +45,11 @@ Generates a whole body scaffold using a mesh of all cube elements,
                 'Coordinate dimensions': 3,
             }
         }),
-        'control curves1': ScaffoldPackage(MeshType_1d_stickman1, {
-            'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-            }
-        })
+        # 'control curves1': ScaffoldPackage(MeshType_1d_stickman1, {
+        #     'scaffoldSettings': {
+        #         'Coordinate dimensions': 3,
+        #     }
+        # })
     }
 
     @staticmethod
@@ -59,10 +59,10 @@ Generates a whole body scaffold using a mesh of all cube elements,
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
-        centralPathOption1 = cls.centralPathDefaultScaffoldPackages['control curves1']
+        # centralPathOption1 = cls.centralPathDefaultScaffoldPackages['control curves1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Central path1': copy.deepcopy(centralPathOption1),
+            # 'Central path1': copy.deepcopy(centralPathOption1),
             'Armpit': [1.2, 0.0, 1.0],
             'Head length': 1.0,
             'Head number of elements': 5,
@@ -114,7 +114,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
     def getOrderedOptionNames():
         return [
             'Central path',
-            'Central path1',
+            # 'Central path1',
             'Armpit',
             'Head length',
             'Head number of elements',
@@ -243,15 +243,28 @@ Generates a whole body scaffold using a mesh of all cube elements,
         centralPath.generate(tmpRegion)
         cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
 
-        deltacx = vector.vectorRejection(vector.addVectors([cx[3], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
-        right_arm_angle = vector.angleBetweenVectors([-1.0, 0.0, 0.0], deltacx)
-        if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
-            right_arm_angle = -right_arm_angle
+        def limb_angle(p1, p2):
+            deltacx = vector.vectorRejection(vector.addVectors([p2, p1], [1, -1]), [0.0, 1.0, 0.0])
+            right_arm_angle = vector.angleBetweenVectors([p2[0], 0.0, 0.0], deltacx)
+            if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
+                right_arm_angle = -right_arm_angle
+            return right_arm_angle
 
-        deltacx = vector.vectorRejection(vector.addVectors([cx[7], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
-        left_arm_angle = vector.angleBetweenVectors([1.0, 0.0, 0.0], deltacx)
-        if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
-            left_arm_angle = -left_arm_angle
+        # deltacx = vector.vectorRejection(vector.addVectors([cx[3], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
+        # right_arm_angle = vector.angleBetweenVectors([-1.0, 0.0, 0.0], deltacx)
+        # if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
+        #     right_arm_angle = -right_arm_angle
+        #
+        # deltacx = vector.vectorRejection(vector.addVectors([cx[5], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
+        # left_arm_angle = vector.angleBetweenVectors([1.0, 0.0, 0.0], deltacx)
+        # if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
+        #     left_arm_angle = -left_arm_angle
+
+        right_arm_angle = limb_angle(cx[1], cx[3])
+        left_arm_angle = limb_angle(cx[1], cx[5])
+        right_leg_angle = limb_angle(cx[2], cx[4])
+        left_leg_angle = limb_angle(cx[2], cx[6])
+
 
         trifurcation1 = TrifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
                                        neck_radius, shoulder_height, neck_height, right_arm_angle,left_arm_angle,
@@ -297,7 +310,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
                                                                    attach_bottom=False)
 
         bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii,
-                                       part1=lower_torso_cylinder)
+                                       right_leg_angle, left_leg_angle, part1=lower_torso_cylinder)
 
         # trifurcation1.smooth_all_derivatives()
 

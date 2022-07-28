@@ -2167,7 +2167,7 @@ class BifurcationMesh:
     Bifurction mesh generator.
     """
 
-    def __init__(self, fieldModule, coordinates, region, centre, radii, part1=None):
+    def __init__(self, fieldModule, coordinates, region, centre, radii, right_leg_angle, left_leg_angle, part1=None):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -2178,6 +2178,8 @@ class BifurcationMesh:
         self._region = region
         self._centre = centre
         self._radii = radii
+        self.right_leg_angle = right_leg_angle
+        self.left_leg_angle = left_leg_angle
         self._part1 = part1
 
         self._coordinates = coordinates
@@ -2252,7 +2254,8 @@ class BifurcationMesh:
         radius1 = 0.8
         radius2 = 0.8
         hip_length = 1.6
-        angle = math.pi/2*0.7
+        # angle = math.pi/2*0.7
+        angle = self.left_leg_angle
         hip_distance = 1.4  # distance from belly button.
 
         kv = [0.0, 1.0, 0.0]
@@ -2272,9 +2275,9 @@ class BifurcationMesh:
         # shield = ellipse3.getShield()
         # self.generateNodes(nodes, fieldmodule, coordinates, shield)
 
-        hip_right = Hip(elementsCount, 'right')
+        hip_left = Hip(elementsCount, 'left')
 
-        pr = [hip_right.nodeId, hip_right.px, hip_right.pd1, hip_right.pd2, hip_right.pd3]
+        pr = [hip_left.nodeId, hip_left.px, hip_left.pd1, hip_left.pd2, hip_left.pd3]
         p1 = [ellipse1.nodeId[0], ellipse1.px, ellipse1.pd1, ellipse1.pd2, ellipse1.pd3]
         p1v2 = [self._part1._shield.nodeId[0], self._part1._shield.px[0], self._part1._shield.pd1[0], self._part1._shield.pd2[0], self._part1._shield.pd3[0]]
         p2 = [ellipse2.nodeId[0], ellipse2.px, ellipse2.pd1, ellipse2.pd2, ellipse2.pd3]
@@ -2292,7 +2295,7 @@ class BifurcationMesh:
                             else:
                                 pr[i][n3][n2][n1] = p2[i][n2][n1]
 
-        self.generateNodes(nodes, fieldmodule, coordinates, hip_right)
+        self.generateNodes(nodes, fieldmodule, coordinates, hip_left)
         # Add the common nodeIds
         for n3 in range(elementsCount[2] + 1):
             for n2 in range(elementsCount[1] + 1):
@@ -2301,12 +2304,12 @@ class BifurcationMesh:
                         if n3 == elementsCount[2]:
                             if n1 <= elementsCount[0]//2:
                                 pr[i][n3][n2][n1] = p1v2[i][n2][n1]
-        self.generateElements(mesh, fieldmodule, coordinates, hip_right)
+        self.generateElements(mesh, fieldmodule, coordinates, hip_left)
 
         x_hip_joint = vector.addVectors([centre1,
                                          vector.setMagnitude(vector.rotateVectorAroundVector(vector.scaleVector(xa, -1), kv, -math.pi/4),
                                                              hip_distance)], [1, 1])
-        Lv = vector.setMagnitude(vector.rotateVectorAroundVector(vector.scaleVector(xa, -1), kv, -angle), hip_length)
+        Lv = vector.setMagnitude(vector.rotateVectorAroundVector(vector.scaleVector(xa, -1), kv, -self.right_leg_angle), hip_length)
         centre = vector.addVectors([x_hip_joint, [0, 0, 0]], [1, 1])
         # centre = vector.addVectors([centre1, Lv], [1, 1])
         minorAxis = vector.setMagnitude(vector.vectorRejection(vector.scaleVector(xa, -1), Lv), radius1)
@@ -2319,9 +2322,9 @@ class BifurcationMesh:
         # shield = ellipse4.getShield()
         # self.generateNodes(nodes, fieldmodule, coordinates, shield)
 
-        hip_left = Hip(elementsCount, 'left')
+        hip_right = Hip(elementsCount, 'right')
 
-        pl = [hip_left.nodeId, hip_left.px, hip_left.pd1, hip_left.pd2, hip_left.pd3]
+        pl = [hip_right.nodeId, hip_right.px, hip_right.pd1, hip_right.pd2, hip_right.pd3]
         p1 = [ellipse1.nodeId[0], ellipse1.px, ellipse1.pd1, ellipse1.pd2, ellipse1.pd3]
         p2 = [ellipse2.nodeId[0], ellipse2.px, ellipse2.pd1, ellipse2.pd2, ellipse2.pd3]
         p3 = [ellipse4.nodeId[0], ellipse4.px, ellipse4.pd1, ellipse4.pd2, ellipse4.pd3]
@@ -2340,7 +2343,7 @@ class BifurcationMesh:
                                     n2r, n1r = n2, elementsCount[0] - n1
                                     pl[i][n3][n2][n1] = pr[i][n3][n2r][n1r]
 
-        self.generateNodes(nodes, fieldmodule, coordinates, hip_left)
+        self.generateNodes(nodes, fieldmodule, coordinates, hip_right)
         for n3 in range(elementsCount[2] + 1):
             for n2 in range(elementsCount[1] + 1):
                 for n1 in range(elementsCount[0] + 1):
@@ -2348,19 +2351,19 @@ class BifurcationMesh:
                         if n3 == elementsCount[2]:
                             if n1 > elementsCount[0]//2:
                                 pl[i][n3][n2][n1] = p1v2[i][n2][n1]
-        self.generateElements(mesh, fieldmodule, coordinates, hip_left)
+        self.generateElements(mesh, fieldmodule, coordinates, hip_right)
 
-
-        pn = PathNodes(hip_right, [[radius1]*2, [radius1*0.8]*2], 6.0, [4, 4, 7], attach_bottom=False)
-        path_list = pn.get_path_list()
-        bc = BranchCylinder(self._region, self._mesh, self._nodes, self._fieldmodule, self._coordinates,
-                            path_list, [4, 4, 7], hip_right, attach_bottom=False)
-        cylinder = bc.get_cylinder()
 
         pn = PathNodes(hip_left, [[radius1]*2, [radius1*0.8]*2], 6.0, [4, 4, 7], attach_bottom=False)
         path_list = pn.get_path_list()
         bc = BranchCylinder(self._region, self._mesh, self._nodes, self._fieldmodule, self._coordinates,
                             path_list, [4, 4, 7], hip_left, attach_bottom=False)
+        cylinder = bc.get_cylinder()
+
+        pn = PathNodes(hip_right, [[radius1]*2, [radius1*0.8]*2], 6.0, [4, 4, 7], attach_bottom=False)
+        path_list = pn.get_path_list()
+        bc = BranchCylinder(self._region, self._mesh, self._nodes, self._fieldmodule, self._coordinates,
+                            path_list, [4, 4, 7], hip_right, attach_bottom=False)
         cylinder = bc.get_cylinder()
         a=1
 
@@ -2486,7 +2489,7 @@ class BifurcationMesh:
                                 #                 remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2,
                                 #                                        [(Node.VALUE_LABEL_D_DS2, []),
                                 #                                         (Node.VALUE_LABEL_D_DS3, [1])])
-                                if part_structure._side == 'right':
+                                if part_structure._side == 'left':
                                 # if e3,e2,e1 = 0, 0, 2
                                     if e1 == e1y:
                                         remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2,
@@ -2496,7 +2499,7 @@ class BifurcationMesh:
                                 remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS3,
                                                        [(Node.VALUE_LABEL_D_DS1, [])])
 
-                                if part_structure._side == 'right':
+                                if part_structure._side == 'left':
                                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3,
                                                            [(Node.VALUE_LABEL_D_DS1, [])])
                                     if e1 == e1y:
@@ -2505,7 +2508,7 @@ class BifurcationMesh:
                                     else:
                                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, [])])
-                                elif part_structure._side == 'left':
+                                elif part_structure._side == 'right':
                                     if e1 == e1b:
                                         remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
@@ -2586,7 +2589,7 @@ class BifurcationMesh:
                                 # TODO if e3 == -1
                                 remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1])])
                                 # remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS2, [1])])
-                                if part_structure._side == 'right':
+                                if part_structure._side == 'left':
                                     if e1 == e1y:
                                         remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS2, [1])])
@@ -2599,7 +2602,7 @@ class BifurcationMesh:
                                                                [(Node.VALUE_LABEL_D_DS1, [1])])
                                     remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1,
                                                            [(Node.VALUE_LABEL_D_DS3, [])])
-                                elif part_structure._side == 'left':
+                                elif part_structure._side == 'right':
                                     # remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
                                     #                        [(Node.VALUE_LABEL_D_DS1, [1])])
                                     # remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS3,
@@ -2685,15 +2688,15 @@ class BifurcationMesh:
                                     #         remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                     #     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                     # else:
-                                    tripleN = [5, 7] if part_structure._side == 'right' else [5]
+                                    tripleN = [5, 7] if part_structure._side == 'left' else [5]
                                     remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                 elif e2 == e2y:
                                     nids[1] = part_structure.nodeId[e3][e2z+1][e1b]
                                     nids[3] = part_structure.nodeId[e3+1][e2z+1][e1b]
-                                    tripleN = [6, 8] if part_structure._side == 'right' else [6]
+                                    tripleN = [6, 8] if part_structure._side == 'left' else [6]
                                     remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
                                 remapEftNodeValueLabel(eft1, [1, 2], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [1] ) ])
-                                if part_structure._side == 'left':
+                                if part_structure._side == 'right':
                                     remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
                                     if e2 == e2b:
                                         remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2,
@@ -2709,7 +2712,7 @@ class BifurcationMesh:
                                                                [(Node.VALUE_LABEL_D_DS3, [1])])
                                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [1])])
-                                elif part_structure._side == 'right':
+                                elif part_structure._side == 'left':
                                     # remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS3,
                                     #                        [(Node.VALUE_LABEL_D_DS1, [1]),
                                     #                         (Node.VALUE_LABEL_D_DS3, [1])])
@@ -2736,7 +2739,7 @@ class BifurcationMesh:
                                     #     remapEftNodeValueLabel(eft1, [3], Node.VALUE_LABEL_D_DS3, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS3, [])])
                                     # else:
                                     remapEftNodeValueLabel(eft1, [ 1, 3 ], Node.VALUE_LABEL_D_DS3, [ ( Node.VALUE_LABEL_D_DS1, [1] ), ( Node.VALUE_LABEL_D_DS3, [] ) ])
-                                    if part_structure._side == 'right':
+                                    if part_structure._side == 'left':
                                         remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
                                         remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
                                 elif e2 == e2y:
@@ -2744,7 +2747,7 @@ class BifurcationMesh:
                                     nids[7] = part_structure.nodeId[e3+1][e2z+1][e1z]
                                     remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS3,[(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
                                     # if e3,e2,e1 = 0 2 3
-                                    if part_structure._side == 'right':
+                                    if part_structure._side == 'left':
                                         setEftScaleFactorIds(eft1, [1], [])
                                         scalefactors = [ -1.0 ]
                                         remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2,
@@ -2765,7 +2768,7 @@ class BifurcationMesh:
                         elif e1 == e1b:
                             if e2 == e2b:
                                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                                if part_structure._side == 'left':
+                                if part_structure._side == 'right':
                                     setEftScaleFactorIds(eft1, [1], [])
                                     scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS3,
@@ -2776,7 +2779,7 @@ class BifurcationMesh:
                                                            [(Node.VALUE_LABEL_D_DS3, [1])])
                             else:
                                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                                if part_structure._side == 'left':
+                                if part_structure._side == 'right':
                                     setEftScaleFactorIds(eft1, [1], [])
                                     scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS3,
@@ -2790,7 +2793,7 @@ class BifurcationMesh:
                         elif e1 == e1y:
                             if e2 == e2b or e2 == e2y:
                                 eft1 = tricubichermite.createEftNoCrossDerivatives()
-                                if part_structure._side == 'right':
+                                if part_structure._side == 'left':
                                     setEftScaleFactorIds(eft1, [1], [])
                                     scalefactors = [-1.0]
                                     remapEftNodeValueLabel(eft1, [3, 4], Node.VALUE_LABEL_D_DS3,
