@@ -1,8 +1,8 @@
 Brainstem Scaffold
 ==================
 
-The current recommended brainstem scaffold is ``3D brainstem 1`` built from ``class MeshType_3d_brainstem1``;
-the human variant is shown in :numref:`fig-scaffoldmaker-human-brainstem`.
+The current brainstem scaffold is ``3D brainstem 1`` built from ``class MeshType_3d_brainstem1``.
+The human variant is shown in :numref:`fig-scaffoldmaker-human-brainstem`.
 
 .. _fig-scaffoldmaker-human-brainstem:
 
@@ -12,11 +12,8 @@ the human variant is shown in :numref:`fig-scaffoldmaker-human-brainstem`.
    Human brainstem scaffold.
 
 The brainstem scaffold is a 3-D volumetric model of the brainstem representing all three parts: midbrain, pons, and
-medulla oblongata.
-
-.. note::
-
-  The parts of the brainstem are connected to each other and they are inseparable.
+medulla oblongata. Each part is meshed with its own elements but these are connected with common faces to the elements
+of the neighbouring parts.
 
 Variants
 --------
@@ -35,31 +32,38 @@ On the web, the latest published generic brainstem scaffold variants can be view
 `SPARC Portal <https://sparc.science/>`_ by searching for ``brainstem``, filtering for models, selecting a variant and
 viewing the scaffold in its Gallery tab.
 
-The brainstem scaffold script generates the scaffold mesh and geometry from a cylinder function with many parameters
-controlling the shape and size. The parameters were carefully tuned for each species, and it is not recommended that
-these be edited.
+The brainstem scaffold script generates the scaffold mesh and geometry from a solid cylinder function based on a
+one dimensional central path with side axes controlling lateral dimensions. The parameters were carefully tuned for
+each species, and it is not recommended that these be edited.
 
-To customise the shape and size, Clicking *'Central path'* navigates a user from a 3D volumetric model to a 1D line model,
-representing the 1D central path of the brainstem scaffold. If you would like to change its shape, holding *S* on your keyboard
-and left-clicking nodes on the GUI to move the nodes (Make sure *Node points* in Display is checked). Similarly, if you would
-like to customise the derivatives, left-clicking the nodes and their derivatives (Make sure *Node derivatives* in Display is checked).
-After finishing 1D path customisation, Clicking *'<< Back'* in Central path will navigate back to a 3D volumetric model.
-Additionally, Displaying ``Annotations`` is recommended along with shape and size adjustment.
+Instructions for editing the central path are given with the ABI Mapping Tools **Scaffold Creator** documentation.
+Note that the D2 and D3 derivatives control the side dimensions, and derivatives D12 and D13 control the rate of change
+of these along the central path. If editing, use the Interactive Functions to *Smooth derivatives*,
+*Make side derivatives normal* and *Smooth side cross derivatives* to make these as smooth as required.
+
+.. note::
+
+   The central path is annotated with ``midbrain``, ``pons``, and ``medulla oblongata`` regions but these are only
+   approximately used to define their geometric extents in the final scaffold. Be aware that material coordinates are
+   only correctly defined when there are exactly 8 elements along the brainstem. These limitations will be fixed at a
+   later date.
 
 Coordinates
 -----------
 
-The brainstem scaffold defines both geometric and material coordinates (field ``coordinates``) which give *modified* geometry at approximately
-unit scale. Note that the scaffold has a *Unit scale* parameter (default value ``1.0``) which scales the entire
-scaffold efficiently.
+The brainstem scaffold defines both geometric and material coordinates.
 
-A material coordinates field is provided, so to perform embedding at this time, it is necessary to use the
-``material coordinates`` field, built with the standard, *unmodified* parameter set (incl. *Unit scale* ``1.0``) for the species.
+The geometric ``coordinates`` field gives an approximate, idealized representation of the brainstem shape for the
+species, which is intended to be fitted to actual data for a specimen.
+
+The material coordinates field ``brainstem coordinates`` defines a highly idealized coordinate system to give
+permanent locations for embedding structures in the brainstem. This is a cylinder of unit radius and 8 units long:
+intended to be 3 units for medulla oblongata, 3 units for pons, and 2 units for midbrain. Be aware at this time that
+these ratios are only correctly defined if there are 8 elements along the brainstem.
 
 The brainstem scaffold supports limited refinement/resampling by checking *Refine* (set parameter to ``true``) with
 chosen *Refine number of elements~* parameters. Be aware that only the ``coordinates`` field is currently defined
-on the refined mesh (but annotations are transferred), and the refined brainstem is only conformant if all *Refine
-number of elements~* parameters have the same value.
+on the refined mesh (but annotations are transferred).
 
 Annotations
 -----------
@@ -79,7 +83,8 @@ different material properties in models and the strain/curvature penalty (stiffn
 
 Annotated 2-dimensional surface regions are defined for matching annotated contours digitized from medical images
 including (where ``interface`` means the outside boundary of the brainstem connecting to different organs such as
-thalamus and spinal cord, ``exterior`` is the outside boundary of the brainstem):
+thalamus and spinal cord, ``exterior`` is the outside boundary of the brainstem not including interfaces to structures
+along its length):
 
 * brainstem exterior
 * brainstem-spinal cord interface
@@ -88,8 +93,8 @@ thalamus and spinal cord, ``exterior`` is the outside boundary of the brainstem)
 * pons exterior
 * thalamus-brainstem interface
 
-Annotated 1-dimensional line regions are defined for displaying a 3D annotation groups on the 1D line model. This
-helps a user during shape and size customisation.
+Annotated 1-dimensional line regions are defined on the central path and used to label elements in each part (but be
+aware of their limitations noted above):
 
 * medulla oblongata
 * midbrain
@@ -107,4 +112,3 @@ usable when digitizing:
 * brainstem dorsal midline cranial point
 * brainstem ventral midline cranial point
 
-At present these are defined on the outer surface of the brainstem in each section of the brainstem.
