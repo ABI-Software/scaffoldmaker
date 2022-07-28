@@ -413,6 +413,9 @@ class CylinderMesh:
     def getElementIdentifiers(self):
         return self._shield.elementId
 
+    def getShield(self):
+        return self._shield
+
 
 class Ellipse2D:
     """

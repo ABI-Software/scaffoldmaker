@@ -1,9 +1,10 @@
 """
-Utility functions for generating a 3-D solid bifurcation.
+Utility functions for generating solid bifurcation and trifurcation.
 """
 import math
 
 from enum import Enum
+
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
@@ -25,13 +26,23 @@ from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
 
 
 class PathNodes:
+    """
+    Coordinates for the start and end nodes of the centralpath.
+    """
     def __init__(self, part1, radius, length, elements_count, attach_bottom=True):
+        """
+        Extends part1 scaffold with a cylinder with given radius and length and elements count.
+        :param part1: Scaffold with shield structure at its end.
+        :param attach_bottom: If true, the path starts from the top of the par1. Otherwise top of the
+         path attaches to the bottom of the part1.
+        """
         if attach_bottom:
             n3 = -1
             sc = 1
         else:
             n3 = 0
             sc = -1
+        # get nodes parameters from part1 end.
         csh = part1.px[n3][elements_count[1] // 2][elements_count[0] // 2]
         d1sh = part1.pd2[n3][elements_count[1] // 2][elements_count[0] // 2]
         d2sh = part1.pd1[n3][elements_count[1] // 2][elements_count[0] // 2]
@@ -56,14 +67,32 @@ class PathNodes:
 
 
 class BranchCylinder:
+    """
+    Generates a cylinder on top of the given part.
+    """
     def __init__(self, region, mesh, nodes, fieldmodule, coordinates, path_list, elements_count, part1,
                  attach_bottom=True):
+        """
+        Generate a cylinder to extend part1. see PathNodes class.
+        :param region: Zinc region
+        :param mesh:  Zinc mesh.
+        :param nodes: Zinc nodeset.
+        :param fieldmodule: Zinc fieldModule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :param path_list: node parameters on the cylinder centralpath.
+        :param elements_count:
+        :param part1: Scaffold with shield structure at its end.
+        :param attach_bottom: If true, the cylinder starts from the top of the par1. Otherwise top of the
+         cylinder attaches to the bottom of the part1
+        """
         if attach_bottom:
             n3, n3p = 0, -1
             node_ranges = [1, elements_count[2]]
         else:
             n3, n3p = -1, 0
             node_ranges = [0, elements_count[2] - 1]
+
+        # generate the cylinder
         centralPath = ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -88,9 +117,11 @@ class BranchCylinder:
                                 cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False,
                                 rangeOfRequiredElementsAlong=[-1, -1])
 
+        # skip generating common nodes with the part1.
         cylinder.generateNodes(nodes, fieldmodule, coordinates, node_ranges)
 
-        cylinder_shield = cylinder._shield
+        # add the common node parameters.
+        cylinder_shield = cylinder.getShield()
         for n2 in range(elements_count[1] + 1):
             for n1 in range(elements_count[0] + 1):
                 cylinder_shield.nodeId[n3][n2][n1] = part1.nodeId[n3p][n2][n1]
@@ -107,7 +138,14 @@ class BranchCylinder:
 
 
 class BranchCap:
+    """
+    Create a cap to attach to the given scaffold.
+    """
     def __init__(self, fieldmodule, coordinates, mesh, nodes, part1, radius):
+        """
+        A hemisphere scaffold to attach to the part1 scaffold.
+        :param part1: Scaffold with shield structure at its end.
+        """
         sphere_shape = SphereShape.SPHERE_SHAPE_FULL
         sphere_base = part1._ellipses[-1]
         sphere_centre = sphere_base.centre

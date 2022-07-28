@@ -45,11 +45,6 @@ Generates a whole body scaffold using a mesh of all cube elements,
                 'Coordinate dimensions': 3,
             }
         }),
-        # 'control curves1': ScaffoldPackage(MeshType_1d_stickman1, {
-        #     'scaffoldSettings': {
-        #         'Coordinate dimensions': 3,
-        #     }
-        # })
     }
 
     @staticmethod
@@ -59,10 +54,8 @@ Generates a whole body scaffold using a mesh of all cube elements,
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
-        # centralPathOption1 = cls.centralPathDefaultScaffoldPackages['control curves1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            # 'Central path1': copy.deepcopy(centralPathOption1),
             'Armpit': [1.2, 0.0, 1.0],
             'Head length': 1.0,
             'Head number of elements': 5,
@@ -114,7 +107,6 @@ Generates a whole body scaffold using a mesh of all cube elements,
     def getOrderedOptionNames():
         return [
             'Central path',
-            # 'Central path1',
             'Armpit',
             'Head length',
             'Head number of elements',
@@ -244,49 +236,47 @@ Generates a whole body scaffold using a mesh of all cube elements,
         cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
 
         def limb_angle(p1, p2):
-            deltacx = vector.vectorRejection(vector.addVectors([p2, p1], [1, -1]), [0.0, 1.0, 0.0])
-            right_arm_angle = vector.angleBetweenVectors([p2[0], 0.0, 0.0], deltacx)
-            if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
-                right_arm_angle = -right_arm_angle
-            return right_arm_angle
+            p1p2 = vector.vectorRejection(vector.addVectors([p2, p1], [1, -1]), [0.0, 1.0, 0.0])
+            angle = vector.angleBetweenVectors([p2[0], 0.0, 0.0], p1p2)
+            if vector.crossproduct3(p1p2, [1.0, 0.0, 0.0])[1] > 0:
+                angle = -angle
+            return angle
 
-        # deltacx = vector.vectorRejection(vector.addVectors([cx[3], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
-        # right_arm_angle = vector.angleBetweenVectors([-1.0, 0.0, 0.0], deltacx)
-        # if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
-        #     right_arm_angle = -right_arm_angle
-        #
-        # deltacx = vector.vectorRejection(vector.addVectors([cx[5], cx[1]], [1, -1]), [0.0, 1.0, 0.0])
-        # left_arm_angle = vector.angleBetweenVectors([1.0, 0.0, 0.0], deltacx)
-        # if vector.crossproduct3(deltacx, [1.0, 0.0, 0.0])[1] > 0:
-        #     left_arm_angle = -left_arm_angle
-
+        # get the angles from the stickman
         right_arm_angle = limb_angle(cx[1], cx[3])
         left_arm_angle = limb_angle(cx[1], cx[5])
         right_leg_angle = limb_angle(cx[2], cx[4])
         left_leg_angle = limb_angle(cx[2], cx[6])
 
-
+        # create torso, head and arms
         trifurcation1 = TrifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
-                                       neck_radius, shoulder_height, neck_height, right_arm_angle,left_arm_angle,
-                                       right_shoulder_length, armpit, [elementsCountAcrossMajor, elementsCountAcrossMajor, 2])
+                                         neck_radius, shoulder_height, neck_height, right_arm_angle, left_arm_angle,
+                                         right_shoulder_length, armpit,
+                                         [elementsCountAcrossMajor, elementsCountAcrossMajor, 2])
 
-        trifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2],
-                                            right_arm_length, [elementsCountAcrossMajor, elementsCountAcrossMajor, rightArmNumberOfElements],
-                                            branch_type=BranchType.LEFT_ARM)
-        trifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2],
-                                            right_arm_length, [elementsCountAcrossMajor, elementsCountAcrossMajor, rightArmNumberOfElements],
-                                            branch_type=BranchType.RIGHT_ARM)
+        trifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2], right_arm_length,
+                                             [elementsCountAcrossMajor, elementsCountAcrossMajor,
+                                              rightArmNumberOfElements],
+                                             branch_type=BranchType.LEFT_ARM)
+        trifurcation1.create_branch_cylinder([[right_arm_radius]*2, [righ_wrist_radius]*2], right_arm_length,
+                                             [elementsCountAcrossMajor, elementsCountAcrossMajor,
+                                              rightArmNumberOfElements],
+                                             branch_type=BranchType.RIGHT_ARM)
         neck_cylinder = trifurcation1.create_branch_cylinder([[neck_radius2]*2, [neck_radius2]*2], neck_length,
-                                                            [elementsCountAcrossMajor,elementsCountAcrossMajor, neck_number_of_elements], branch_type=BranchType.NECK)
+                                                             [elementsCountAcrossMajor, elementsCountAcrossMajor,
+                                                              neck_number_of_elements],
+                                                             branch_type=BranchType.NECK)
 
-        neck_cyliner_shield = neck_cylinder._shield
-        pn = PathNodes(neck_cyliner_shield, [[neck_radius2]*2, [head_radius, neck_radius2]],
-                       head_length/head_number_of_elements, [elementsCountAcrossMajor,elementsCountAcrossMajor, 1])
+        # neck
+        neck_cylinder_shield = neck_cylinder.getShield()
+        pn = PathNodes(neck_cylinder_shield, [[neck_radius2]*2, [head_radius, neck_radius2]],
+                       head_length/head_number_of_elements, [elementsCountAcrossMajor, elementsCountAcrossMajor, 1])
         path_list = pn.get_path_list()
         path_list[1][0] = vector.addVectors(
             [path_list[1][0], vector.setMagnitude([0.0, -1.0, 0.0],
                                                   head_length/head_number_of_elements)], [1, 1])
 
+        # extend the neck and create the head using a cylinder with its central path
         cw, d1w, d2w = path_list[1][:3]
         d3w = path_list[1][4]
         for ni in range(2, head_number_of_elements + 1):
@@ -297,18 +287,21 @@ Generates a whole body scaffold using a mesh of all cube elements,
                 path_list.append([cw, d1w, d2w, [0.0, 0.0, 0.0], d3w, [0.0, 0.0, 0.0]])
 
         head_cylinder = trifurcation1.create_branch_cylinder([[neck_radius2] * 2, [head_radius, neck_radius2]],
-                                                            head_length/head_number_of_elements,
-                                                            [elementsCountAcrossMajor, elementsCountAcrossMajor, head_number_of_elements], path_list=path_list,
-                                                            part1=neck_cyliner_shield, branch_type=4)
+                                                             head_length/head_number_of_elements,
+                                                             [elementsCountAcrossMajor, elementsCountAcrossMajor,
+                                                              head_number_of_elements], path_list=path_list,
+                                                             part1=neck_cylinder_shield, branch_type=4)
 
         cap = trifurcation1.create_branch_cap(head_cylinder, head_radius)
 
         lower_torso_cylinder = trifurcation1.create_branch_cylinder([[torso_radius]*2, lower_torso_radii],
-                                                                   lower_torso_length,
-                                                                   [elementsCountAcrossMajor,elementsCountAcrossMajor, lower_torso_number_of_elements],
-                                                                   part1=trifurcation1._torso_upper_part, branch_type=4,
-                                                                   attach_bottom=False)
+                                                                    lower_torso_length,
+                                                                    [elementsCountAcrossMajor, elementsCountAcrossMajor,
+                                                                     lower_torso_number_of_elements],
+                                                                    part1=trifurcation1._torso_upper_part,
+                                                                    branch_type=4, attach_bottom=False)
 
+        # create the legs
         bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii,
                                        right_leg_angle, left_leg_angle, part1=lower_torso_cylinder)
 
