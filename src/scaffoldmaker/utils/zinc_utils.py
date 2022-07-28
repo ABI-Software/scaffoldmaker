@@ -459,3 +459,79 @@ def print_node_field_parameters(value_labels, node_field_parameters, format_stri
         nodeIdentifier = nodeParameters[0]
         print('( ' + str(nodeIdentifier) + ', [ ' + ', '.join(parameter_lists_to_string(valueParameters, format_string) for valueParameters in nodeParameters[1]) + ' ] )' +  (', ' if (nodeIdentifier != lastNodeIdentifier) else ''))
     print(']\n')
+
+def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGroup2, nextNodeIdentifier):
+    """
+    Duplicate nodes in use by coordinateField on meshGroup1 and meshGroup2 and use these exclusively in meshGroup2.
+    :param coordinateFields: The sequence of field to disconnect, type Zinc FieldFiniteElement. These are expected to
+    be define with the same Elementfieldtemplate for all components in any element.
+    :param meshGroup1: A Zinc MeshGroup containing elements in first group.
+    :param meshGroup2: A Zinc MeshGroup containing elements in second group, which will be changed to use the new copies of nodes.
+    :param nextNodeIdentifier: First available node identifier.
+    :return: Final nextNodeIdentifier to use after this call, list of created node identifiers.
+    """
+    elemiter = meshGroup1.createElementiterator()
+    element = elemiter.next()
+    nodeIdentifiers1 = set()
+    while element.isValid():
+        eft = element.getElementfieldtemplate(coordinateFields[0], -1)
+        nodeCount = eft.getNumberOfLocalNodes()
+        for n in range(1, nodeCount + 1):
+            node = element.getNode(eft, n)
+            nodeIdentifiers1.add(node.getIdentifier())
+        element = elemiter.next()
+    copyIdentifiersMap = {}
+    fieldmodule = coordinateFields[0].getFieldmodule()
+    fieldcache = fieldmodule.createFieldcache()
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodetemplate = nodes.createNodetemplate()
+
+    allValueLabels = [
+        Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+        Node.VALUE_LABEL_D2_DS1DS3, Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+
+    with ChangeManager(fieldmodule):
+        elemiter = meshGroup2.createElementiterator()
+        element = elemiter.next()
+        while element.isValid():
+            eft = element.getElementfieldtemplate(coordinateFields[0], -1)
+            nodeCount = eft.getNumberOfLocalNodes()
+            for n in range(1, nodeCount + 1):
+                existingNode = element.getNode(eft, n)
+                existingNodeIdentifier = existingNode.getIdentifier()
+                copyNodeIdentifier = copyIdentifiersMap.get(existingNodeIdentifier)
+                copyNode = None
+
+                if copyNodeIdentifier:
+                    copyNode = nodes.findNodeByIdentifier(copyNodeIdentifier)
+                else:
+                    if existingNodeIdentifier in nodeIdentifiers1:
+                        copyNodeIdentifier = nextNodeIdentifier
+                        for coordinateField in coordinateFields:
+                            nodetemplate.defineFieldFromNode(coordinateField, existingNode)
+                        copyNode = nodes.createNode(nextNodeIdentifier, nodetemplate)
+                        copyIdentifiersMap[existingNodeIdentifier] = copyNodeIdentifier
+                        nextNodeIdentifier += 1
+
+                        # copy field parameters from existingNode to copyNode
+                        for coordinateField in coordinateFields:
+                            componentsCount = coordinateField.getNumberOfComponents()
+
+                            for valueLabel in allValueLabels:
+                                versionCount = nodetemplate.getValueNumberOfVersions(coordinateField, -1, valueLabel)
+
+                                for version in range(1, versionCount + 1):
+                                    fieldcache.setNode(existingNode)
+                                    result, values = coordinateField.getNodeParameters(
+                                        fieldcache, -1, valueLabel, version, componentsCount)
+                                    fieldcache.setNode(copyNode)
+                                    coordinateField.setNodeParameters(
+                                        fieldcache, -1, valueLabel, version, values)
+
+                if copyNode:
+                    result = element.setNode(eft, n, copyNode)
+                    assert result == 1
+
+            element = elemiter.next()
+
+    return nextNodeIdentifier, list(copyIdentifiersMap.values())

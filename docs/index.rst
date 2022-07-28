@@ -11,3 +11,6 @@ This documentation is intended to be a resource describing details about using i
 
    install
    scaffolds/heart
+   scaffolds/brainstem
+   scaffolds/lung
+

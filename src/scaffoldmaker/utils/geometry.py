@@ -7,7 +7,9 @@ from __future__ import division
 import copy
 import math
 
+from opencmiss.maths.vectorops import magnitude, mult
 from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 
 
 def getApproximateEllipsePerimeter(a, b):
@@ -143,6 +145,39 @@ def getEllipseRadiansToX(ax, bx, dx, initialTheta):
             break
     return theta
 
+
+def sampleEllipsePoints(centre: list, majorAxis: list, minorAxis: list, angle1Radians: float, angle2Radians: float,
+                        elementCount: int):
+    """
+    Sample evenly spaced points around ellipse from start to end angle.
+    :param centre: Centre point of ellipse.
+    :param majorAxis: Major axis vector, at angle 0PI.
+    :param minorAxis: Minor axis vector, at angle PI/2.
+    :param angle1Radians: First angle in radians from major axis towards minor axis.
+    :param angle2Radians: Second angle in radians from major axis towards minor axis.
+    :param elementCount: Number of elements to sample.
+    :return: px[], dp1[]
+    """
+    a = magnitude(majorAxis)
+    b = magnitude(minorAxis)
+    TOL = max(a, b) * 1.0E-6
+    totalArclength = getEllipseArcLength(a, b, angle1Radians, angle2Radians, method='integrate')
+    elementArcLength = totalArclength / elementCount
+    px = []
+    pd1 = []
+    radians = angle1Radians
+    for n in range(elementCount + 1):
+        cosRadians = math.cos(radians)
+        sinRadians = math.sin(radians)
+        x = [(centre[c] + cosRadians * majorAxis[c] + sinRadians * minorAxis[c]) for c in range(3)]
+        px.append(x)
+        d1 = [(-sinRadians * majorAxis[c] + cosRadians * minorAxis[c]) for c in range(3)]
+        scale = elementArcLength/magnitude(d1)
+        d1 = mult(d1, scale)
+        pd1.append(d1)
+        radians = updateEllipseAngleByArcLength(a, b, radians, elementArcLength, TOL, method="Newton")
+    return px, pd1
+
 def createCirclePoints(cx, axis1, axis2, elementsCountAround, startRadians = 0.0):
     '''
     Create circular ring of points centred at cx, from axis1 around through axis2.
@@ -165,6 +200,7 @@ def createCirclePoints(cx, axis1, axis2, elementsCountAround, startRadians = 0.0
         pd1.append([ radiansPerElementAround*(-sinRadiansAround*axis1[c] + cosRadiansAround*axis2[c]) for c in range(3) ])
         radiansAround += radiansPerElementAround
     return px, pd1
+
 
 def createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround, elementsCountUp, height):
     '''
@@ -207,6 +243,169 @@ def createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround, eleme
             radiansAround += radiansPerElementAround
         radiansUp = updateEllipseAngleByArcLength(magPoleAxis, magSideAxis, radiansUp, elementLengthUp)
     return nx, nd1, nd2
+
+
+def getEllipsoidPolarCoordinatesTangents(a: float, b: float, c: float, u: float, v: float):
+    """
+    Get rate of change of x, y, z with u and v at current u, v.
+    Given parametric equation for ellipsoid:
+    x = a*cos(u)*sin(v)
+    y = b*sin(u)*sin(v)
+    z = c*-cos(v)
+    Note cross(dx/du, dx/dv) gives an outward normal.
+    Fails at apexes.
+    :param a: Axis length in x direction.
+    :param b: Axis length in y direction.
+    :param c: Axis length in z direction.
+    :param u: Polar coordinate (radians from positive x towards y) from -pi to + pi
+    :param v: Polar coordinate (radians from negative z upwards) from 0 to pi
+    :return: 3 lists (x, y, z), d(x, y, z)/du d(x, y, z)/dv.
+    """
+    cos_u = math.cos(u)
+    sin_u = math.sin(u)
+    cos_v = math.cos(v)
+    sin_v = math.sin(v)
+    x = [
+        a * cos_u * sin_v,
+        b * sin_u * sin_v,
+        c * -cos_v
+    ]
+    dx_du = [
+        a * -sin_u * sin_v,
+        b * cos_u * sin_v,
+        0.0
+    ]
+    dx_dv = [
+        a * cos_u * cos_v,
+        b * sin_u * cos_v,
+        c * sin_v
+    ]
+    return x, dx_du, dx_dv
+
+
+def getEllipsoidPolarCoordinatesFromPosition(a: float, b: float, c: float, pos: list):
+    """
+    Convert position in x, y, z to polar coordinates u, v at nearest location on ellipsoid centred at origin.
+    Given parametric equation for ellipsoid:
+    x = a*cos(u)*sin(v)
+    y = b*sin(u)*sin(v)
+    z = c*cos(v)
+    Fails at apex.
+    :param a: Axis length in x direction.
+    :param b: Axis length in y direction.
+    :param c: Axis length in z direction.
+    :param pos: Position of points, list of 3 coordinates in x, y, z.
+    :return: Polar coordinates u, v in radians.
+    """
+    # initial guess
+    rx = pos[0] / a
+    ry = pos[1] / b
+    rz = pos[2] / c
+    u = math.atan2(ry, rx)
+    v = math.atan2(math.sqrt(rx*rx + ry*ry), rz)
+    # move along tangents
+    TOL = 1.0E-6
+    iters = 0
+    while True:
+        iters += 1
+        x, dx_du, dx_dv = getEllipsoidPolarCoordinatesTangents(a, b, c, u, v)
+        deltax = [pos[c] - x[c] for c in range(3)]
+        du, dv = calculate_surface_delta_xi(dx_du, dx_dv, deltax)
+        u += du
+        v += dv
+        if (math.fabs(du) < TOL) and (math.fabs(dv) < TOL):
+            break
+        if iters == 100:
+            print('getEllipsoidPolarCoordinatesFromPosition: did not converge!')
+            break
+    return u, v
+
+
+def getEllipsoidPlaneA(a: float, b: float, c: float, midx, majorx):
+    """
+    Get ellipse function for intersection of ellipsoid and plane where the
+    plane normal has no component in the x/a direction.
+    Returned minorAxis[3] will be in the +x direction from centre.
+    :param a: Axis length in x direction.
+    :param b: Axis length in y direction.
+    :param c: Axis length in z direction.
+    :param midx: Point inside ellipsoid on plane at z = 0.
+    :param majorx: Point on surface of ellipsoid at z = 0.
+    :return: centre[3], majorAxis[3], minorAxis[3]
+    """
+    assert midx[0] == 0.0
+    assert majorx[0] == 0.0
+    # get equation of line through midx and majorx fy + gz + h = 0
+    dx = [majorx[c] - midx[c] for c in range(3)]
+    abs_dy = math.fabs(dx[1])
+    abs_dz = math.fabs(dx[2])
+    yzero = majorx[1] - dx[1] * (majorx[2] / dx[2]) if (abs_dz > 0.0) else None
+    zzero = majorx[2] - dx[2] * (majorx[1] / dx[1]) if (abs_dy > 0.0) else None
+    aa = a * a
+    bb = b * b
+    cc = c * c
+    TOL = 1.0E-7
+    if abs_dy > abs_dz:
+        dz_dy = dx[2] / dx[1]
+        f = -dz_dy
+        g = 1.0
+        h = -zzero
+        # form quadratic equation qa.y2 + qb.y + qc = 0
+        cc_gg = cc * g * g
+        qa = 1.0 / bb + (f * f) / cc_gg
+        qb = 2.0 * h * f / cc_gg
+        qc = (h * h) / cc_gg - 1.0
+        det = qb * qb - 4.0 * qa * qc
+        assert det >= 0.0, "getEllipsoidPlaneA:  No intersection"
+        sqrt_det = math.sqrt(det)
+        y1 = (-qb + sqrt_det) / (2.0 * qa)
+        y2 = (-qb - sqrt_det) / (2.0 * qa)
+        y1_match = math.fabs((y1 - majorx[1]) / b) < TOL
+        y2_match = math.fabs((y2 - majorx[1]) / b) < TOL
+        assert y1_match != y2_match, "getEllipsoidPlaneA:  Exactly one root must match majorx"
+        opp_y = y2 if y1_match else y1
+        if yzero is not None:
+            opp_z = dz_dy * (opp_y - yzero)
+        else:
+            opp_z = majorx[2]
+        opp_majorx = [0.0, opp_y, opp_z]
+    else:
+        dy_dz = dx[1] / dx[2]
+        f = 1.0
+        g = -dy_dz
+        h = -yzero
+        # form quadratic equation qa.z2 + qb.z + qc = 0
+        bb_ff = bb * f * f
+        qa = 1.0 / cc + (g * g) / bb_ff
+        qb = 2.0 * h * g / bb_ff
+        qc = (h * h) / bb_ff - 1.0
+        det = qb * qb - 4.0 * qa * qc
+        assert det >= 0.0, "getEllipsoidPlaneA:  No intersection"
+        sqrt_det = math.sqrt(det)
+        z1 = (-qb + sqrt_det) / (2.0 * qa)
+        z2 = (-qb - sqrt_det) / (2.0 * qa)
+        z1_match = math.fabs((z1 - majorx[2]) / c) < TOL
+        z2_match = math.fabs((z2 - majorx[2]) / c) < TOL
+        assert z1_match != z2_match, "getEllipsoidPlaneA:  Exactly one root must match majorx"
+        opp_z = z2 if z1_match else z1
+        if zzero is not None:
+            opp_y = dy_dz * (opp_z - zzero)
+        else:
+            opp_y = majorx[1]
+        opp_majorx = [0.0, opp_y, opp_z]
+    centre = [0.5 * (majorx[c] + opp_majorx[c]) for c in range(3)]
+    majorAxis = [0.5 * (majorx[c] - opp_majorx[c]) for c in range(3)]
+    # get axis2 length in +x direction at centre
+    # form quadratic equation: qa.x2 + qb.x + qc = 0
+    qa = 1.0 / aa
+    # qb = 0.0
+    qc = centre[1] * centre[1] / bb + centre[2] * centre[2] / cc - 1.0
+    det = -4.0 * qa * qc
+    assert det >= 0.0, "getEllipsoidPlaneA:  Invalid quadratic"
+    sqrt_det = math.sqrt(det)
+    minorAxis = [sqrt_det / (2.0 * qa), 0.0, 0.0]
+    return centre, majorAxis, minorAxis
+
 
 def getCircleProjectionAxes(ax, ad1, ad2, ad3, length, angle1radians, angle2radians, angle3radians = None):
     '''
