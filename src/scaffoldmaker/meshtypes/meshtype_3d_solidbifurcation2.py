@@ -103,6 +103,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
             'Shell element thickness proportion': 1.0,
+            'Pre-fit configuration': True,
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across major': 1,
@@ -138,6 +139,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
             'Number of elements across shell',
             'Number of elements across transition',
             'Shell element thickness proportion',
+            'Pre-fit configuration',
             'Refine',
             'Refine number of elements across major',
                 ]
@@ -283,7 +285,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
         head_cylinder = trifurcation1.create_branch_cylinder([[neck_radius2] * 2, [head_radius, neck_radius2]],
                                                             head_length/head_number_of_elements,
-                                                            [elementsCountAcrossMajor,elementsCountAcrossMajor, head_number_of_elements], path_list=path_list,
+                                                            [elementsCountAcrossMajor, elementsCountAcrossMajor, head_number_of_elements], path_list=path_list,
                                                             part1=neck_cyliner_shield, branch_type=4)
 
         cap = trifurcation1.create_branch_cap(head_cylinder, head_radius)
@@ -294,7 +296,8 @@ Generates a whole body scaffold using a mesh of all cube elements,
                                                                    part1=trifurcation1._torso_upper_part, branch_type=4,
                                                                    attach_bottom=False)
 
-        bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii)
+        bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii,
+                                       part1=lower_torso_cylinder)
 
         # trifurcation1.smooth_all_derivatives()
 
