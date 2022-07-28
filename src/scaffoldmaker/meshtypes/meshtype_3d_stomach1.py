@@ -110,16 +110,15 @@ class MeshType_3d_stomach1(Scaffold_base):
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  0.9,  3.7, 0.0 ], [ -0.8, -3.6, 0.0 ], [  3.2, -0.6, 0.0 ], [ -1.3, -0.5, 0.0 ], [ 0.0, 0.0, 2.6 ], [ 0.0, 0.0,  0.9 ] ], 
-                [ [ -0.1,  0.7, 0.0 ], [ -1.2, -2.4, 0.0 ], [  2.0, -1.5, 0.0 ], [ -1.1, -1.3, 0.0 ], [ 0.0, 0.0, 3.1 ], [ 0.0, 0.0,  0.1 ] ], 
-                [ [ -1.4, -1.1, 0.0 ], [ -1.6, -1.1, 0.0 ], [  1.0, -3.0, 0.0 ], [ -1.3, -0.8, 0.0 ], [ 0.0, 0.0, 3.0 ], [ 0.0, 0.0, -0.2 ] ], 
-                [ [ -2.9, -1.6, 0.0 ], [ -1.6,  0.2, 0.0 ], [ -0.6, -3.3, 0.0 ], [ -1.4,  0.2, 0.0 ], [ 0.0, 0.0, 2.8 ], [ 0.0, 0.0, -0.1 ] ], 
-                [ [ -4.3, -0.8, 0.0 ], [ -1.2,  1.1, 0.0 ], [ -1.8, -2.5, 0.0 ], [ -0.8,  1.1, 0.0 ], [ 0.0, 0.0, 2.9 ], [ 0.0, 0.0, -0.1 ] ], 
-                [ [ -5.2,  0.6, 0.0 ], [ -0.8,  1.6, 0.0 ], [ -2.2, -1.1, 0.0 ], [  0.2,  1.1, 0.0 ], [ 0.0, 0.0, 2.5 ], [ 0.0, 0.0, -0.7 ] ], 
-                [ [ -5.9,  2.3, 0.0 ], [ -0.5,  1.3, 0.0 ], [ -1.3, -0.4, 0.0 ], [  0.6,  0.3, 0.0 ], [ 0.0, 0.0, 1.4 ], [ 0.0, 0.0, -0.7 ] ], 
-                [ [ -6.2,  3.2, 0.0 ], [ -0.4,  0.9, 0.0 ], [ -0.8, -0.3, 0.0 ], [  0.1, -0.0, 0.0 ], [ 0.0, 0.0, 0.9 ], [ 0.0, 0.0, -0.2 ] ], 
-                [ [ -6.8,  4.1, 0.0 ], [ -0.7,  0.9, 0.0 ], [ -1.1, -0.5, 0.0 ], [ -0.7, -0.4, 0.0 ], [ 0.0, 0.0, 1.1 ], [ 0.0, 0.0,  0.6 ] ] ] ),
-
+                    [ [1.400,2.300,0.000], [0.700,-2.300,0.000], [3.200,-0.600,0.000], [-1.300,-0.500,0.000], [0.000,0.000,2.600], [0.000,0.000,0.900] ] ,
+                    [ [1.330,0.100,0.000], [-1.000,-2.000,0.000], [2.000,-1.500,0.000], [-1.100,-1.300,0.000], [0.000,0.000,3.100], [0.000,0.000,0.100] ] ,
+                    [ [0.029,-1.400,0.000], [-2.000,-0.900,0.000], [1.000,-2.200,0.000], [-1.300,-0.800,0.000], [0.000,0.000,3.000], [0.000,0.000,-0.200] ] ,
+                    [ [-2.000,-1.800,0.000], [-2.300,0.300,0.000], [-0.300,-2.900,0.000], [-1.400,0.200,0.000], [0.000,0.000,2.800], [0.000,0.000,-0.100] ] ,
+                    [ [-4.300,-0.800,0.000], [-1.500,1.400,0.000], [-1.700,-2.100,0.000], [-0.800,1.100,0.000], [0.027,0.000,2.567], [0.000,0.000,-0.100] ] ,
+                    [ [-5.000,0.700,0.000], [-0.200,1.400,0.000], [-1.621,-1.179,0.000], [0.200,1.100,0.000], [0.002,0.000,2.202], [0.000,0.000,-0.700] ] ,
+                    [ [-4.958,1.892,0.000], [0.100,1.000,0.000], [-1.208,-0.390,0.000], [0.600,0.300,0.000], [0.000,0.000,1.400], [0.000,0.000,-0.700] ] ,
+                    [ [-4.729,2.806,0.000], [0.000,0.900,0.000], [-0.700,0.000,0.000], [0.100,0.000,0.000], [0.000,0.000,0.900], [0.000,0.000,-0.200] ] ,
+                    [ [-4.800,3.700,0.000], [-0.100,0.900,0.000], [-0.730,-0.016,0.000], [-0.700,-0.400,0.000], [0.000,0.000,0.800], [0.000,0.000,0.600] ]] ),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -167,14 +166,14 @@ class MeshType_3d_stomach1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  73.1,  50.2, 0.0 ], [ -18.5, -35.4, 0.0 ], [  18.5, -10.9, 0.0 ], [  18.6, -8.2, 0.0 ], [ 0.0, 0.0, 27.8 ], [ 0.0, 0.0,  8.6 ] ],
-                [ [  57.3,  20.3, 0.0 ], [ -13.1, -24.4, 0.0 ], [  30.1, -17.0, 0.0 ], [   4.6, -4.0, 0.0 ], [ 0.0, 0.0, 33.3 ], [ 0.0, 0.0,  2.4 ] ],
-                [ [  47.0,   1.4, 0.0 ], [ -12.6, -19.8, 0.0 ], [  30.2, -19.7, 0.0 ], [  -4.3, -4.5, 0.0 ], [ 0.0, 0.0, 33.7 ], [ 0.0, 0.0, -0.7 ] ],
-                [ [  32.0, -18.9, 0.0 ], [ -19.5, -14.4, 0.0 ], [  20.7, -26.4, 0.0 ], [ -13.7, -4.9, 0.0 ], [ 0.0, 0.0, 31.6 ], [ 0.0, 0.0, -3.7 ] ],
-                [ [  10.7, -26.3, 0.0 ], [ -24.3,   1.9, 0.0 ], [   3.1, -29.7, 0.0 ], [ -16.7,  4.8, 0.0 ], [ 0.0, 0.0, 26.5 ], [ 0.0, 0.0, -8.8 ] ],
-                [ [ -11.3, -14.4, 0.0 ], [ -14.4,  19.6, 0.0 ], [ -12.7, -15.9, 0.0 ], [  -4.1, 13.5, 0.0 ], [ 0.0, 0.0, 13.5 ], [ 0.0, 0.0, -7.8 ] ],
-                [ [ -15.8,   7.8, 0.0 ], [  -8.3,  18.3, 0.0 ], [  -6.4,  -2.7, 0.0 ], [   2.8,  4.4, 0.0 ], [ 0.0, 0.0, 10.4 ], [ 0.0, 0.0, -1.7 ] ],
-                [ [ -26.2,  21.4, 0.0 ], [ -11.8,   8.4, 0.0 ], [  -6.3,  -4.9, 0.0 ], [  -2.6, -8.8, 0.0 ], [ 0.0, 0.0,  9.8 ], [ 0.0, 0.0,  0.5 ] ] ] ),
+                    [ [73.1,50.2,0.0], [-20.7,-41.9,0.0], [18.5,-10.9,0.0], [18.6,-8.2,0.0], [0.0,0.0,27.8], [0.0,0.0,8.6] ],
+                    [ [56.1,17.1,0.0], [-13.3,-24.3,0.0], [31.0,-16.5,0.0], [4.6,-4.0,0.0], [0.0,0.0,33.3], [0.0,0.0,2.4] ],
+                    [ [47.0,1.4,0.0], [-11.9,-18.2,0.0], [30.2,-19.7,0.0], [-4.3,-4.5,0.0], [0.0,0.0,33.7], [0.0,0.0,-0.7] ],
+                    [ [32.0,-18.9,0.0], [-19.5,-14.4,0.0], [20.7,-26.4,0.0], [-13.7,-4.9,0.0], [0.0,0.0,31.6], [0.0,0.0,-3.7] ],
+                    [ [10.7,-26.3,0.0], [-24.3,1.9,0.0], [3.1,-29.7,0.0], [-16.7,4.8,0.0], [0.0,0.0,26.5], [0.0,0.0,-8.8] ],
+                    [ [-11.3,-14.4,0.0], [-14.4,19.6,0.0], [-12.7,-15.9,0.0], [-4.1,13.5,0.0], [0.0,0.0,13.5], [0.0,0.0,-7.8] ],
+                    [ [-15.8,7.8,0.0], [-8.3,18.3,0.0], [-6.1,-4.8,0.0], [2.8,4.4,0.0], [0.0,0.0,7.2], [0.0,0.0,-1.7] ],
+                    [ [-26.2,21.4,0.0], [-11.8,8.4,0.0], [-4.4,-6.0,0.0], [-2.6,-8.8,0.0], [0.0,0.0,8.0], [0.0,0.0,0.5] ] ] ),
 
             'userAnnotationGroups': [
                 {
@@ -223,15 +222,15 @@ class MeshType_3d_stomach1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  11.3, 13.4, 0.0 ], [  0.3, -13.4, 0.0 ], [  9.4,  -1.3, 0.0 ], [ -1.0, -5.6, 0.0 ], [ 0.0, 0.0, 7.4 ], [ 0.0, 0.0,  1.5 ] ],
-                [ [   9.3,  2.1, 0.0 ], [ -4.4,  -8.7, 0.0 ], [  7.4,  -6.1, 0.0 ], [ -3.0, -3.9, 0.0 ], [ 0.0, 0.0, 8.5 ], [ 0.0, 0.0,  0.7 ] ],
-                [ [   4.0, -3.6, 0.0 ], [ -6.8,  -3.8, 0.0 ], [  3.7,  -9.4, 0.0 ], [ -4.9, -2.4, 0.0 ], [ 0.0, 0.0, 9.0 ], [ 0.0, 0.0,  0.1 ] ],
-                [ [  -3.4, -5.1, 0.0 ], [ -6.4,   0.6, 0.0 ], [ -2.4, -10.9, 0.0 ], [ -5.0,  0.9, 0.0 ], [ 0.0, 0.0, 8.8 ], [ 0.0, 0.0, -0.5 ] ],
-                [ [  -8.1, -3.2, 0.0 ], [ -4.4,   3.8, 0.0 ], [ -6.7,  -8.3, 0.0 ], [ -2.5,  3.4, 0.0 ], [ 0.0, 0.0, 8.1 ], [ 0.0, 0.0, -1.2 ] ],
-                [ [ -11.4,  2.3, 0.0 ], [ -1.4,   6.4, 0.0 ], [ -6.9,  -4.0, 0.0 ], [  1.9,  4.2, 0.0 ], [ 0.0, 0.0, 6.2 ], [ 0.0, 0.0, -2.8 ] ],
-                [ [ -10.7,  8.9, 0.0 ], [  0.3,   5.0, 0.0 ], [ -2.9,   0.0, 0.0 ], [  0.9,  1.1, 0.0 ], [ 0.0, 0.0, 2.4 ], [ 0.0, 0.0, -0.6 ] ],
-                [ [ -10.7, 12.2, 0.0 ], [ -0.3,   3.0, 0.0 ], [ -3.5,  -0.3, 0.0 ], [ -0.3, -0.1, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0,  0.4 ] ],
-                [ [ -11.3, 14.8, 0.0 ], [ -0.9,   2.2, 0.0 ], [ -3.5,  -0.3, 0.0 ], [  0.3,  0.1, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0, -0.4 ] ] ] ),
+                    [ [ 10.2, 8.6, 0.0], [ 1.7,-8.2, 0.0], [ 5.9,-3.0, 0.0], [ 3.9,-3.0, 0.0], [ 0.0, 0.0, 7.4], [ 0.0, 0.0, 1.4] ] ,
+                    [ [ 9.9, 1.0, 0.0], [-2.4,-6.6,0.0], [ 7.4,-6.1, 0.0], [-0.9,-3.2, 0.0], [ 0.0, 0.0, 8.5], [ 0.0, 0.0, 0.8] ] ,
+                    [ [ 6.1,-4.0,0.0], [-5.9,-3.9,0.0], [ 3.7,-9.4, 0.0], [-3.5,-2.1, 0.0], [ 0.0, 0.0, 9.0], [ 0.0, 0.0, 0.1] ] ,
+                    [ [-1.2,-5.8, 0.0], [-7.6, 0.4, 0.0], [ 0.3,-10.4, 0.0], [-5.0, 0.4, 0.0], [ 0.0, 0.0, 8.8], [ 0.0, 0.0,-0.4] ] ,
+                    [ [-8.1,-3.2, 0.0], [-5.4, 4.5, 0.0], [-6.7,-8.3, 0.0], [-2.8, 2.8, 0.0], [ 0.0, 0.0, 8.1], [ 0.0, 0.0,-1.4] ] ,
+                    [ [-11.4, 2.3, 0.0], [-1.3, 6.4, 0.0], [-6.3,-4.9, 0.0], [ 1.7, 3.5, 0.0], [ 0.0, 0.0, 6.2], [ 0.0, 0.0,-2.7] ] ,
+                    [ [-10.5, 8.7, 0.0], [ 0.2, 5.0, 0.0], [-3.4,-1.4, 0.0], [ 1.6, 1.7, 0.0], [ 0.0, 0.0, 2.8], [ 0.0, 0.0,-0.8] ] ,
+                    [ [-10.7, 12.2, 0.0], [-0.4, 3.1, 0.0], [-2.5,-0.7, 0.0], [-0.0, 0.2, 0.0], [ 0.0, 0.0, 3.4], [ 0.0, 0.0, 0.3] ] ,
+                    [ [-11.3, 14.8, 0.0], [-0.8, 2.1, 0.0], [-3.2,-0.9, 0.0], [-1.4,-0.6, 0.0], [ 0.0, 0.0, 3.4], [ 0.0, 0.0,-0.3] ] ]),
 
             'userAnnotationGroups': [
                 {
@@ -284,7 +283,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     [ [1.5,0.0,0.0], [-0.4,0.0,0.0], [0.0,-0.5,0.0], [0.0,0.0,0.0], [0.0,0.0,0.5], [0.0,0.0,0.0] ],
                     [ [1.2,0.0,0.0], [-0.2,0.0,0.0], [0.0,-0.5,0.0], [0.0,0.0,0.0], [0.0,0.0,0.5], [0.0,0.0,0.0] ],
                     [ [1.0,0.0,0.0], [-0.3,0.0,0.0], [0.0,-0.5,0.0], [0.0,0.0,0.0], [0.0,0.0,0.5], [0.0,0.0,0.0] ],
-                    [ [0.6,0.0,0.0], [-0.3,0.0,0.0], [0.0,-0.5,0.0], [0.0,0.0,0.0], [0.0,0.0,0.5], [0.0,0.0, 0.0] ], # changed d12 and d13 to zero from [0, 0.1, 0] and [0, 0, -0.1]
+                    [ [0.6,0.0,0.0], [-0.3,0.0,0.0], [0.0,-0.5,0.0], [0.0,0.0,0.0], [0.0,0.0,0.5], [0.0,0.0, 0.0] ],
                     [ [0.4,0.0,0.0], [-0.2,0.0,0.0], [0.0,-0.4,0.0], [0.0,0.1,0.0], [0.0,0.0,0.4], [0.0,0.0,-0.1] ],
                     [ [0.2,0.0,0.0], [-0.2,0.0,0.0], [0.0,-0.2,0.0], [0.0,0.1,0.0], [0.0,0.0,0.2], [0.0,0.0,-0.1] ],
                     [ [0.0,0.0,0.0], [-0.2,0.0,0.0], [0.0,-0.2,0.0], [0.0,-0.1,0.0], [0.0,0.0,0.2], [0.0,0.0,0.1] ] ]),
@@ -371,14 +370,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Outlet': False,
                 'Ostium diameter': 1.5,
                 'Ostium length': 1.5,
-                'Ostium wall thickness': 0.45,
+                'Ostium wall thickness': 0.35,
                 'Ostium wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
                 'Ostium inter-vessel distance': 0.0,
                 'Ostium inter-vessel height': 0.0,
                 'Use linear through ostium wall': True,
                 'Vessel end length factor': 1.0,
                 'Vessel inner diameter': 0.5,
-                'Vessel wall thickness': 0.27,
+                'Vessel wall thickness': 0.2,
                 'Vessel wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
@@ -522,8 +521,8 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around esophagus': 8,
             'Number of elements around duodenum': 16,
-            'Number of elements between fundus apex and cardia': 3,
-            'Number of elements between cardia and duodenum': 5,
+            'Number of elements between fundus apex and cardia': 4,
+            'Number of elements between cardia and duodenum': 6,
             'Number of elements through wall': 4,
             'Wall thickness': 5.0,
             'Mucosa relative thickness': 0.55,
@@ -532,7 +531,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Longitudinal muscle layer relative thickness': 0.05,
             'Limiting ridge': False,
             'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
-            'Cardia diameter factor': 1.5,
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements surface': 4,
@@ -541,9 +539,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         if 'Mouse 1' in parameterSetName:
             options['Number of elements around esophagus'] = 8
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 4
-            options['Number of elements between cardia and duodenum'] = 4
-            options['Wall thickness'] = 0.45
+            options['Number of elements between fundus apex and cardia'] = 5
+            options['Number of elements between cardia and duodenum'] = 5
+            options['Wall thickness'] = 0.35
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
             options['Circular muscle layer relative thickness'] = 0.15
@@ -552,8 +550,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         elif 'Pig 1' in parameterSetName:
             options['Number of elements around esophagus'] = 8
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 3
-            options['Number of elements between cardia and duodenum'] = 5
+            options['Number of elements between fundus apex and cardia'] = 4
+            options['Number of elements between cardia and duodenum'] = 7
             options['Wall thickness'] = 5.0
             options['Mucosa relative thickness'] = 0.47
             options['Submucosa relative thickness'] = 0.1
@@ -563,8 +561,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         elif 'Rat 1' in parameterSetName:
             options['Number of elements around esophagus'] = 8
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 4
-            options['Number of elements between cardia and duodenum'] = 4
+            options['Number of elements between fundus apex and cardia'] = 5
+            options['Number of elements between cardia and duodenum'] = 6
             options['Wall thickness'] = 0.5
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
@@ -602,7 +600,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Longitudinal muscle layer relative thickness',
             'Limiting ridge',
             'Gastro-esophagal junction',
-            'Cardia diameter factor',
             'Use linear through wall',
             'Refine',
             'Refine number of elements surface',
@@ -666,14 +663,12 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = options['Number of elements around duodenum'] // 4 * 4
         if options['Number of elements between fundus apex and cardia'] < 3: # Needs update
             options['Number of elements between fundus apex and cardia'] = 3 # Needs update
-        if options['Number of elements between fundus apex and cardia'] < int(options['Number of elements around duodenum'] * 0.25):
-            options['Number of elements between fundus apex and cardia'] = int(options['Number of elements around duodenum'] * 0.25)
+        # if options['Number of elements between fundus apex and cardia'] < int(options['Number of elements around duodenum'] * 0.25):
+        #     options['Number of elements between fundus apex and cardia'] = int(options['Number of elements around duodenum'] * 0.25)
         if options['Number of elements between cardia and duodenum'] < 3: # Needs update
             options['Number of elements between cardia and duodenum'] = 3 # Needs update
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
-        if options['Cardia diameter factor'] <= 1.1:
-            options['Cardia diameter factor'] = 1.1
         for key in [
             'Refine number of elements surface',
             'Refine number of elements through wall']:
@@ -735,6 +730,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 materialCoordinates=False)
 
         # Material coordinates
+        print('Make stomach coordinates')
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
         tmp_stomach_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="stomach coordinates")
@@ -1201,7 +1197,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     ostiumDiameter = GEJSettings['Ostium diameter']
     limitingRidge = options['Limiting ridge']
     elementsCountAcrossCardia = 1
-    cardiaDiameterFactor = options['Cardia diameter factor'] # scale to ostium diameter
+    cardiaDiameterFactor = 1.4 # scale to ostium diameter
 
     fundusStraightFactor = 0.2
 
@@ -1211,7 +1207,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     elementsAroundQuarterDuod = int(elementsCountAroundDuod * 0.25)
 
     sf = (cardiaDiameterFactor - 1) * ostiumDiameter * 0.5
-
     zero = [0.0, 0.0, 0.0]
 
     if materialCoordinates:
@@ -1308,22 +1303,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     markerTemplateInternal.defineField(markerName)
     markerTemplateInternal.defineField(markerLocation)
 
-    # Extract boundary planes between groups
-    cxGroupBoundaries = [centralPath.cxGroups[0][0]]
-    cd1GroupBoundaries = [centralPath.cd1Groups[0][0]]
-    cd2GroupBoundaries = [centralPath.cd2Groups[0][0]]
-    cd3GroupBoundaries = [centralPath.cd3Groups[0][0]]
-    cd12GroupBoundaries = [centralPath.cd12Groups[0][0]]
-    cd13GroupBoundaries = [centralPath.cd13Groups[0][0]]
-
-    for i in range(1, len(stomachTermsAlong)):
-        cxGroupBoundaries.append(centralPath.cxGroups[i][-1])
-        cd1GroupBoundaries.append(centralPath.cd1Groups[i][-1])
-        cd2GroupBoundaries.append(centralPath.cd2Groups[i][-1])
-        cd3GroupBoundaries.append(centralPath.cd3Groups[i][-1])
-        cd12GroupBoundaries.append(centralPath.cd12Groups[i][-1])
-        cd13GroupBoundaries.append(centralPath.cd13Groups[i][-1])
-
+    # Spread out elements along groups
     elementsAlongFromBody = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
     arcLengthOfGroupsAlongFromBody = arcLengthOfGroupsAlong[0] - arcLengthOfGroupsAlong[1]
     estElementLengthFromBody = arcLengthOfGroupsAlongFromBody / elementsAlongFromBody
@@ -1337,6 +1317,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             numberOfElementsGroup = int(arcLengthOfGroupsAlong[i] // estElementLengthFromBody)
             if numberOfElementsGroup < 1:
                 numberOfElementsGroup = 1
+
             mod = arcLengthOfGroupsAlong[i] - estElementLengthFromBody * numberOfElementsGroup
             modGroups.append(mod)
 
@@ -1356,26 +1337,20 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     cd3Sections = []
 
     for i in range(1, len(elementCountGroupList)): # start from body
-        cxBoundary = [cxGroupBoundaries[i], cxGroupBoundaries[i + 1]]
-        cd1Boundary = [cd1GroupBoundaries[i], cd1GroupBoundaries[i + 1]]
-        cd2Boundary = [cd2GroupBoundaries[i], cd2GroupBoundaries[i + 1]]
-        cd3Boundary = [cd3GroupBoundaries[i], cd3GroupBoundaries[i + 1]]
-        if vector.magnitude(cd2Boundary[0]) == vector.magnitude(cd2Boundary[1]):
-            cd12Boundary = [zero, zero]
-        else:
-            cd12Boundary = [cd12GroupBoundaries[i], cd12GroupBoundaries[i + 1]]
-        if vector.magnitude(cd3Boundary[0]) == vector.magnitude(cd3Boundary[1]):
-            cd13Boundary = [zero, zero]
-        else:
-            cd13Boundary = [cd13GroupBoundaries[i], cd13GroupBoundaries[i + 1]]
+        cxGroup = centralPath.cxGroups[i + 1]
+        cd1Group = centralPath.cd1Groups[i + 1]
+        cd2Group = centralPath.cd2Groups[i + 1]
+        cd3Group = centralPath.cd3Groups[i + 1]
+        cd12Group = centralPath.cd12Groups[i + 1]
+        cd13Group = centralPath.cd13Groups[i + 1]
 
         # Break body into equal sized elements
         if i == 1: # body
             cxSection, cd1Section, pe, pxi, psf = \
-                interp.sampleCubicHermiteCurves(cxBoundary, cd1Boundary, elementCountGroupList[1],
+                interp.sampleCubicHermiteCurves(cxGroup, cd1Group, elementCountGroupList[1],
                                                 arcLengthDerivatives=True)
-            cd2Section = interp.interpolateSampleCubicHermite(cd2Boundary, cd12Boundary, pe, pxi, psf)[0]
-            cd3Section = interp.interpolateSampleCubicHermite(cd3Boundary, cd13Boundary, pe, pxi, psf)[0]
+            cd2Section = interp.interpolateSampleCubicHermite(cd2Group, cd12Group, pe, pxi, psf)[0]
+            cd3Section = interp.interpolateSampleCubicHermite(cd3Group, cd13Group, pe, pxi, psf)[0]
 
             for n in range(len(cxSection)):
                 px, pd1 = createEllipsePoints(cxSection[n], 2 * math.pi, cd2Section[n], cd3Section[n],
@@ -1405,19 +1380,19 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             if elementsOutSection > 1:
                 cxSection, cd1Section, pe, pxi, psf = \
-                    interp.sampleCubicHermiteCurvesSmooth(cxBoundary, cd1Boundary, elementsOutSection)
-                cd2Section = interp.interpolateSampleCubicHermite(cd2Boundary, cd12Boundary, pe, pxi, psf)[0]
-                cd3Section = interp.interpolateSampleCubicHermite(cd3Boundary, cd13Boundary, pe, pxi, psf)[0]
+                    interp.sampleCubicHermiteCurvesSmooth(cxGroup, cd1Group, elementsOutSection)
+                cd2Section = interp.interpolateSampleCubicHermite(cd2Group, cd12Group, pe, pxi, psf)[0]
+                cd3Section = interp.interpolateSampleCubicHermite(cd3Group, cd13Group, pe, pxi, psf)[0]
             else:
-                cxSection = cxBoundary
-                arcLength = interp.getCubicHermiteArcLength(cxBoundary[0], cd1Boundary[0],
-                                                            cxBoundary[1], cd1Boundary[1])
+                cxSection = cxGroup
+                arcLength = interp.getCubicHermiteArcLength(cxGroup[0], cd1Group[0],
+                                                            cxGroup[1], cd1Group[1])
                 d1BoundaryStart = cd1Sections[-1][-1]
-                d1BoundaryEnd = vector.setMagnitude(cd1Boundary[-1],
+                d1BoundaryEnd = vector.setMagnitude(cd1Group[-1],
                                                     2*arcLength - vector.magnitude(cd1Sections[-1][-1]))
                 cd1Section = [d1BoundaryStart, d1BoundaryEnd]
-                cd2Section = cd2Boundary
-                cd3Section = cd3Boundary
+                cd2Section = cd2Group
+                cd3Section = cd3Group
 
             cxSections.append(cxSection)
             cd1Sections.append(cd1Section)
@@ -1437,33 +1412,80 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # Create straight tube joined to ellipsoid for fundus
     lengthOfFundusAlongCP = centralPath.arcLengthOfGroupsAlong[1]
     ellipsoidHeight = (1 - fundusStraightFactor) * lengthOfFundusAlongCP
-    ellipsoidMajorDiameter = vector.magnitude(cd2Sections[0][0]) # start of body
-    ellipsoidMinorDiameter = vector.magnitude(cd3Sections[0][0])
+    # ellipsoidMajorDiameter = vector.magnitude(cd2Sections[0][0]) # start of body
+    # ellipsoidMinorDiameter = vector.magnitude(cd3Sections[0][0])
 
     elementsAlong = 10
     xQuarterFundus = []
     xGCFundus = []
     xLine = []
     dLine = []
+    d2Line = []
 
     # Sample ellipsoid part of central path into elementsAlong
     cxFundus = centralPath.cxGroups[1]
     cd1Fundus = centralPath.cd1Groups[1]
-    sxFundus, sd1Fundus = interp.sampleCubicHermiteCurves(cxFundus, cd1Fundus, elementsAlong)[0:2]
+    cd2Fundus = centralPath.cd2Groups[1]
+    cd3Fundus = centralPath.cd3Groups[1]
+    cd12Fundus = centralPath.cd12Groups[1]
+    cd13Fundus = centralPath.cd13Groups[1]
+
+    # for n2 in range(len(cxFundus)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxFundus[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd1Fundus[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd2Fundus[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3Fundus[n2])
+    #     nodeIdentifier += 1
+
+    sxFundus, sd1Fundus, pe, pxi, psf = interp.sampleCubicHermiteCurves(cxFundus, cd1Fundus, elementsAlong)
+    sd2Fundus, sd12Fundus = interp.interpolateSampleCubicHermite(cd2Fundus, cd12Fundus, pe, pxi, psf)
+    sd3Fundus, sd13Fundus = interp.interpolateSampleCubicHermite(cd3Fundus, cd13Fundus, pe, pxi, psf)
+
+    # for n2 in range(len(sxFundus)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, sxFundus[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1Fundus[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, sd2Fundus[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, sd3Fundus[n2])
+    #     nodeIdentifier += 1
+    #
+    # mesh1D = fm.findMeshByDimension(1)
+    # cubicHermiteBasis = fm.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+    # eft = mesh1D.createElementfieldtemplate(cubicHermiteBasis)
+    # elementtemplate = mesh1D.createElementtemplate()
+    # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
+    # result = elementtemplate.defineField(coordinates, -1, eft)
+
+    # for e in range(len(sxFundus) - 1):
+    #     element = mesh.createElement(elementIdentifier, elementtemplate)
+    #     element.setNodesByIdentifier(eft, [ e + 1, e + 2 ])
+    #     elementIdentifier = elementIdentifier + 1
+
     xEllipsoidEnd, d1EllipsoidEnd, elementEllipsoidEnd, xi = \
         interp.getCubicHermiteCurvesPointAtArcDistance(sxFundus, sd1Fundus, ellipsoidHeight)
+    d2EllipsoidEnd, d12EllipsoidEnd = interp.getCubicHermiteCurvesPointAtArcDistance(sd2Fundus, sd12Fundus,
+                                                                                     ellipsoidHeight)[0:2]
+    d3EllipsoidEnd, d13EllipsoidEnd = interp.getCubicHermiteCurvesPointAtArcDistance(sd3Fundus, sd13Fundus,
+                                                                                     ellipsoidHeight)[0:2]
+
+    ellipsoidMajorDiameter = vector.magnitude(d2EllipsoidEnd)
+    ellipsoidMinorDiameter = vector.magnitude(d3EllipsoidEnd)
 
     # resample just ellipsoidal part
-    sxFundusEllipsoid, sd1FundusEllipsoid = \
+    sxFundusEllipsoid, sd1FundusEllipsoid, pe, pxi, psf = \
         interp.sampleCubicHermiteCurves(sxFundus[:elementEllipsoidEnd + 1] + [xEllipsoidEnd],
                                         sd1Fundus[:elementEllipsoidEnd + 1] + [d1EllipsoidEnd],
-                                        elementsAlong, arcLengthDerivatives=True)[0:2]
+                                        elementsAlong, arcLengthDerivatives=True)
 
     # Create template fundus with path of fundus length for transformation
     xAroundAll = []
     for n2 in range(elementsAlong + 1):
         xLine.append([-ellipsoidHeight/elementsAlong * n2, 0.0, 0.0])
         dLine.append([-ellipsoidHeight/elementsAlong, 0.0, 0.0])
+        d2Line.append([0.0, -10.0, 0.0])
         theta = math.acos((-ellipsoidHeight/elementsAlong * n2 + ellipsoidHeight)/ellipsoidHeight)
         xAround = []
 
@@ -1482,12 +1504,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         unitTangent = vector.normalise(sd1FundusEllipsoid[n2])
         unitVectorLine = vector.normalise(dLine[n2])
         cp = vector.crossproduct3(unitVectorLine, unitTangent)
-        dp = vector.dotproduct(unitVectorLine, unitTangent)
+        dp = vector.dotproduct(dLine[n2], sd1FundusEllipsoid[n2])
         centroid = xLine[n2]
+        d2 = d2Line[n2]
 
         if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
             axisRot = vector.normalise(cp)
-            thetaRot = math.acos(vector.dotproduct(unitVectorLine, unitTangent))
+            thetaRot = math.acos(dp /(vector.magnitude(dLine[n2]) * vector.magnitude(sd1FundusEllipsoid[n2])))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
             centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] + rotFrame[j][2]*centroid[2] for j in range(3)]
 
@@ -1506,9 +1529,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         for n1 in range(len(xAroundAll[n2])):
             x = xAroundAll[n2][n1]
-            xRot = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
-            xAroundTransformed.append([xRot[j] + translateMatrix[j] for j in range(3)])
+            xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
+            xAroundTransformed.append([xRot1[j] + translateMatrix[j] for j in range(3)])
         xAroundAllTransformed.append(xAroundTransformed)
+
+    for n in range(elementEllipsoidEnd + 1, len(sxFundus) - 1):
+        x = createEllipsePoints(sxFundus[n], 2 * math.pi, sd2Fundus[n], sd3Fundus[n], elementsCountAroundDuod,
+                                startRadians=0.0)[0]
+        xAroundAllTransformed.append(x)
+
+    # for n2 in range(len(xAroundAllTransformed)):
+    #     for n1 in range(len(xAroundAllTransformed[n2])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAroundAllTransformed[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #         # if n1 == elementsAroundHalfDuod:
+    #         #     print('check', xAroundAllTransformed[n2][n1])
+    #         nodeIdentifier += 1
 
     for n2 in range(elementsAlong):
         xGCFundus.append(xAroundAllTransformed[n2][0])
@@ -1544,6 +1584,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xQuarterFundus.append(pxFundusEndQuarter)
     xGCFundus.append(pxFundusEndGC)
 
+    # nodeIdentifier = 10000
+    # for n2 in range(len(xFundusQuarterSampled)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFundusQuarterSampled[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     nodeIdentifier += 1
+
     cxFundus = [xApex]
     cd1Fundus = []
     cd2Fundus = [d1Apex]
@@ -1555,8 +1605,17 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         xProjectionAve = [0.5 * xProjectionQuarter[c] + 0.5 * xProjectionGC[c] for c in range(3)]
         cxFundus.append(xProjectionAve)
         cd1Fundus.append(findDerivativeBetweenPoints(cxFundus[n2 - 1], cxFundus[n2]))
-        cd2Fundus.append(findDerivativeBetweenPoints(xProjectionAve, xFundusGCSampled[n2]))
-        cd3Fundus.append(findDerivativeBetweenPoints(xProjectionAve, xFundusQuarterSampled[n2]))
+        cd2Fundus.append(findDerivativeBetweenPoints(xProjectionGC, xFundusGCSampled[n2]))
+        cd3Fundus.append(findDerivativeBetweenPoints(xProjectionQuarter, xFundusQuarterSampled[n2]))
+
+        # node = nodes.createNode(nodeIdentifier, nodetemplate)
+        # cache.setNode(node)
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxFundus[-1])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd1Fundus[-1])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd2Fundus[-1])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3Fundus[-1])
+        # nodeIdentifier += 1
+
     cd1Fundus.append(cd1Fundus[-1])
 
     # Merge fundus with other groups on central path
@@ -1590,6 +1649,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         for n2 in range(1, len(cxSections[s])):
             px, pd1 = createEllipsePoints(cxSections[s][n2], 2 * math.pi, cd2Sections[s][n2], cd3Sections[s][n2],
                                           elementsCountAroundDuod, startRadians=0.0)
+
+            # node = nodes.createNode(nodeIdentifier, nodetemplate)
+            # cache.setNode(node)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxSections[s][n2])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd2Sections[s][n2])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd3Sections[s][n2])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+            # print(cd3Sections[s][n2])
+            # nodeIdentifier += 1
+
             d2Around = [zero for n in range(len(pd1))]
             d2CurvatureAround = [0.0 for n in range(len(pd1))]
 
@@ -1622,14 +1691,19 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d2EllipseAroundAll[n2][n1] = d2Raw[n1][n2]
 
     # for n2 in range(len(xEllipseAroundAll)):
-    #     for n1 in range(len(xEllipseAroundAll[n2])):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xEllipseAroundAll[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1EllipseAroundAll[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2EllipseAroundAll[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
+        # for n1 in range(len(xEllipseAroundAll[n2])):
+        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #     cache.setNode(node)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xEllipseAroundAll[n2][n1])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1EllipseAroundAll[n2][n1])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2EllipseAroundAll[n2][n1])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+        #     nodeIdentifier += 1
+
+    # Copy points on lesser curvature before putting annulus
+    xTopCurvature = []
+    for n2 in range(len(xEllipseAroundAll)):
+        xTopCurvature.append(xEllipseAroundAll[n2][elementsAroundHalfDuod])
 
     # Create tracksurface
     xTrackSurface = []
@@ -1640,20 +1714,21 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             xTrackSurface.append(xEllipseAroundAll[n2][n1])
             d1TrackSurface.append(d1EllipseAroundAll[n2][n1])
             d2TrackSurface.append(d2EllipseAroundAll[n2][n1])
+            # if n1 == elementsAroundHalfDuod:
+            #     print('xEllipse', xEllipseAroundAll[n2][n1])
 
     trackSurfaceStomach = TrackSurface(elementsCountAroundDuod, len(xEllipseAroundAll) - 1,
                                        xTrackSurface, d1TrackSurface, d2TrackSurface, loop1=True)
 
     # # Visualise track surface
-    # if seeTrackSurface:
-    #     for n1 in range(len(xTrackSurface)):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurface[n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurface[n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d1TrackSurface[n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-    #         nodeIdentifier += 1
+    # for n1 in range(len(xTrackSurface)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurface[n1])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurface[n1])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d1TrackSurface[n1])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     nodeIdentifier += 1
 
     # Set up gastro-esophagal junction with midpoint aligned to fundus-body junction
     GEJSettings['Number of elements around ostium'] = elementsCountAroundEso
@@ -1779,13 +1854,106 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     #     # print('annulus', nodeIdentifier)
     #     nodeIdentifier += 1
 
-    esoCount = 2
-    for n2 in range(len(xEllipseAroundAll)):
-        if n2 < elementsAlongFundusApexToCardia:
-            # print('complete ring before eso with no change -', n2)
-            pass
+    # x along GC and LC row - needs to be in 2 parts
+    # GC
+    xAlongGCHalfDuod = []
+    endGCEsoP2 = trackSurfaceStomach.getProportion(o1_Positions[0])[1]
 
-        elif n2 == elementsAlongFundusApexToCardia:
+    for n2 in range(len(xEllipseAroundAll)):
+        xPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2][elementsAroundHalfDuod if n2 else 0])
+        p2 = trackSurfaceStomach.getProportion(xPosition)
+        if p2[1] < endGCEsoP2:
+            xAlongGCHalfDuod.append(xAroundAllTransformed[n2][elementsAroundHalfDuod if n2 else 0])
+        else:
+            break
+    xAlongGCHalfDuod.append(xAnnulusOuter[0])
+
+    rotAngle = -math.pi * 2.0 / elementsCountAroundDuod * elementsAroundHalfDuod
+    rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
+    d2ApexRot = [rotFrame[j][0] * d2Apex[0] + rotFrame[j][1] * d2Apex[1] + rotFrame[j][2] * d2Apex[2] for j in range(3)]
+
+    d2AlongGCHalfDuod = [d2ApexRot]
+    for n2 in range(1, len(xAlongGCHalfDuod) - 1):
+        d = findDerivativeBetweenPoints(xAlongGCHalfDuod[n2], xAlongGCHalfDuod[n2 + 1])
+        d2AlongGCHalfDuod.append(d)
+    d2AlongGCHalfDuod.append(d2AnnulusOuter[0])
+
+    xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod = \
+        interp.sampleCubicHermiteCurvesSmooth(xAlongGCHalfDuod + [o1_x[-1][0]], d2AlongGCHalfDuod + [d2AnnulusOuter[0]],
+                                              elementsAlongFundusApexToCardia + 1,
+                                              derivativeMagnitudeEnd=vector.magnitude(d2AnnulusOuter[0]))[0:2]
+    d2SampledAlongGCHalfDuod = \
+        interp.smoothCubicHermiteDerivativesLine(xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod, fixEndDerivative=True)
+
+    xAlongGCHalfDuod = xSampledAlongGCHalfDuod[:-1]
+    d2AlongGCHalfDuod = d2SampledAlongGCHalfDuod[:-1]
+    for n2 in range(len(xAlongGCHalfDuod)):
+        xEllipseAroundAll[n2][elementsAroundHalfDuod] = xAlongGCHalfDuod[n2]
+
+    # for n2 in range(len(xAlongGCHalfDuod)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGCHalfDuod[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongGCHalfDuod[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     nodeIdentifier += 1
+
+    # LC part
+    elementsInBody = elementCountGroupList[1]
+    xAnnulusOuterHalfEsoPosition = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[elementsAroundHalfEso])
+    startLCAnnulus = trackSurfaceStomach.getProportion(xAnnulusOuterHalfEsoPosition)
+
+    xAlongLCHalfDuod = [xAnnulusOuter[elementsAroundHalfEso]]
+    n2IdxEndBody = elementCountGroupList[0] + elementCountGroupList[1]
+
+    if elementsInBody - elementsAroundQuarterEso + 1 > 1:
+        xPositionEndBody = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2IdxEndBody][elementsAroundHalfDuod])
+        xProportionEndBody = trackSurfaceStomach.getProportion(xPositionEndBody)
+        nx, nd1, nd2, nd3, proportions = \
+            trackSurfaceStomach.createHermiteCurvePoints(
+                startLCAnnulus[0], startLCAnnulus[1], xProportionEndBody[0], xProportionEndBody[1],
+                elementsInBody - elementsAroundQuarterEso + 1, derivativeStart=d2AnnulusOuter[elementsAroundHalfEso])
+        nxNew, nd1New = \
+            trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]))[0:2]
+
+        xAlongLCHalfDuod += nxNew[1:-1]
+
+    for n2 in range(sum(elementCountGroupList) - sum(elementCountGroupList[:2]) + 1):
+        xAlongLCHalfDuod.append(xEllipseAroundAll[n2IdxEndBody + n2][elementsAroundHalfDuod])
+
+    d2AlongLCHalfDuod = [d2AnnulusOuter[elementsAroundHalfEso]]
+    for n2 in range(1, len(xAlongLCHalfDuod) - 1):
+        d = findDerivativeBetweenPoints(xAlongLCHalfDuod[n2], xAlongLCHalfDuod[n2 + 1])
+        d2AlongLCHalfDuod.append(d)
+    d2AlongLCHalfDuod.append(cd1Sections[-1][-1])
+
+    d2AlongLCHalfDuod = \
+        interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
+                                                 fixStartDerivative=True, fixEndDirection=True)
+
+    # for n2 in range(len(xAlongLCHalfDuod)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongLCHalfDuod[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongLCHalfDuod[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     nodeIdentifier += 1
+
+    for n2 in range(len(xAlongLCHalfDuod)):
+        # print(n2 + elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2, n2)
+        xEllipseAroundAll[n2 + elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2][elementsAroundHalfDuod] = \
+            xAlongLCHalfDuod[n2]
+
+    xAlongCurvatures = xAlongGCHalfDuod + xAlongLCHalfDuod
+    d2AlongCurvatures = d2AlongGCHalfDuod + d2AlongLCHalfDuod
+
+    esoCount = 2
+    for n2 in range(1, len(xEllipseAroundAll) - 1):
+        if n2 == elementsAlongFundusApexToCardia:
+            # print(n2, 'Enter Eso')
             # print('first ring joining to annulus[0] and annulus[1] -', n2)
             xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[1]
             d1EllipseAroundAll[n2][elementsAroundHalfDuod - 1] = d1AnnulusOuter[1]
@@ -1816,9 +1984,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][:elementsAroundHalfDuod],
                                                          d1EllipseAroundAll[n2][:elementsAroundHalfDuod],
                                                          fixEndDerivative=True)
+
             # Second half
             xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[-esoCount]
             d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1] = d1AnnulusOuter[-esoCount]
+
             d1Smoothed= \
                 interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [xEllipseAroundAll[n2][0]],
                                                          d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [d1EllipseAroundAll[n2][0]],
@@ -1831,6 +2001,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             del d2EllipseAroundAll[n2][elementsAroundHalfDuod]
 
         elif n2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2: # - 1 # AroundE
+            # print(n2, 'before leaving Eso')
             # print('last ring joining to annulus[0] and annulus[1] -', n2)
             xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[elementsAroundHalfEso - 1]
             d1EllipseAroundAll[n2][elementsAroundHalfDuod - 1] = d1AnnulusOuter[elementsAroundHalfEso - 1]
@@ -1852,6 +2023,68 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d1EllipseAroundAll[n2] = d1SmoothedFirstHalf + [d1AnnulusOuter[elementsAroundHalfEso]] + \
                                      d1SmoothedSecondHalf[:-1]
 
+        elif 0 < n2 < elementsAlongFundusApexToCardia or \
+                elementsAlongFundusApexToCardia + elementsAroundHalfEso - 1 <= n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso + elementsInBody - elementsAroundQuarterEso - 1:
+                if 0 < n2 < elementsAlongFundusApexToCardia:
+                    xToSample = [xEllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
+                                [xAlongGCHalfDuod[n2]] + \
+                                [xEllipseAroundAll[n2][elementsAroundQuarterDuod + elementsAroundHalfDuod]]
+                else:
+                    n2Idx = n2 - (elementsAlongFundusApexToCardia + elementsAroundHalfEso - 1) + 1
+                    # print(n2, 'body after Eso', n2Idx)
+                    xToSample = [xEllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
+                                [xAlongLCHalfDuod[n2Idx]] + \
+                                [xEllipseAroundAll[n2][elementsAroundQuarterDuod + elementsAroundHalfDuod]]
+
+                d1ToSample = [d1EllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
+                             [d1EllipseAroundAll[n2][elementsAroundHalfDuod]] + \
+                             [d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod]]
+
+                xPositionA = trackSurfaceStomach.findNearestPosition(xToSample[0])
+                xProportionA = trackSurfaceStomach.getProportion(xPositionA)
+                xPositionB = trackSurfaceStomach.findNearestPosition(xToSample[1])
+                xProportionB = trackSurfaceStomach.getProportion(xPositionB)
+                nx, nd1, nd2, nd3, proportions = \
+                    trackSurfaceStomach.createHermiteCurvePoints(
+                        xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
+                        elementsAroundQuarterDuod, derivativeStart=d1ToSample[0], derivativeEnd=d1ToSample[1])
+                if n2 == 1:
+                    sampledProportionsOneLeft = proportions
+                nxLeft, nd1Left = \
+                    trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=vector.magnitude(d1ToSample[0]))[0:2]
+
+                # for n in range(len(nxLeft)):
+                #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+                #     cache.setNode(node)
+                #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nxLeft[n])
+                #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+                #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+                #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+                #     # print(n2, n1, nodeIdentifier)
+                #     nodeIdentifier += 1
+
+                xPositionC = trackSurfaceStomach.findNearestPosition(xToSample[2])
+                xProportionC = trackSurfaceStomach.getProportion(xPositionC)
+                nx, nd1, nd2, nd3, proportions = \
+                    trackSurfaceStomach.createHermiteCurvePoints(
+                        xProportionB[0], xProportionB[1],  xProportionC[0], xProportionC[1], elementsAroundQuarterDuod,
+                        derivativeStart = d1ToSample[1], derivativeEnd = d1ToSample[2])
+                if n2 == 1:
+                    sampledProportionsOneRight = proportions
+                nxRight, nd1Right = \
+                    trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=vector.magnitude(d1ToSample[2]))[0:2]
+
+                xNew = nxLeft[1:] + nxRight[1:-1]
+                d1New = nd1Left[1:] + nd1Right[1:-1]
+
+                xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:-elementsAroundQuarterDuod] = xNew
+                d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:-elementsAroundQuarterDuod] = d1New
+
+                d1EllipseAroundAll[n2] = interp.smoothCubicHermiteDerivativesLoop(xEllipseAroundAll[n2],
+                                                                                  d1EllipseAroundAll[n2])
+
     # for n2 in range(len(xEllipseAroundAll)):
     #     for n1 in range(len(xEllipseAroundAll[n2])):
     #         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1860,6 +2093,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1EllipseAroundAll[n2][n1])
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2EllipseAroundAll[n2][n1])
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #         # print(n2, n1, nodeIdentifier)
     #         nodeIdentifier += 1
 
     # Calculate and smooth d2
@@ -1870,25 +2104,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             xAlong.append(xEllipseAroundAll[n2][n1 if n2 else 0])
         xAlongAll.append(xAlong)
 
-    # Row wth annulus - left
+    # Row with annulus - left
     xAlong = []
     for n2 in range(len(xEllipseAroundAll)):
         xAlong.append(xEllipseAroundAll[n2][elementsAroundHalfDuod - 1 if n2 else 0])
     xAlongAll.append(xAlong)
 
-    # GC and LC row - needs to be in 2 parts
-    # GC part
-    xAlongGCHalfDuod = []
-    for n2 in range(elementsAlongFundusApexToCardia + 1):
-        xAlongGCHalfDuod.append(xEllipseAroundAll[n2][elementsAroundHalfDuod if n2 else 0])
-
-    # LC part
-    xAlongLCHalfDuod = []
-    for n2 in range(elementsAlongCardiaToDuod + 1):
-        xAlongLCHalfDuod.append(xEllipseAroundAll[n2 + elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2]
-                      [elementsAroundHalfDuod])
-    xAlong = xAlongGCHalfDuod + xAlongLCHalfDuod
-    xAlongAll.append(xAlong)
+    xAlongAll.append(xAlongCurvatures)
 
     for n1 in range(elementsAroundHalfDuod - 1):
         xAlong = []
@@ -1910,26 +2132,41 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         if n1 == elementsAroundHalfDuod: # Process LC and GC
             # GC
-            d2AlongGCHalfDuod = [d2ApexRot]
+            # Resample point downstream from apex
+            nx = \
+                trackSurfaceStomach.createHermiteCurvePoints(
+                    sampledProportionsOneLeft[-2][0], sampledProportionsOneLeft[-2][1],
+                    sampledProportionsOneRight[1][0], sampledProportionsOneRight[1][1], 2,
+                    derivativeStart=d1EllipseAroundAll[1][elementsAroundHalfDuod - 1],
+                    derivativeEnd=d1EllipseAroundAll[1][elementsAroundHalfDuod + 1])[0]
+            xEllipseAroundAll[1][elementsAroundHalfDuod] = nx[1]
+            d1EllipseAroundAll[1] = interp.smoothCubicHermiteDerivativesLoop(xEllipseAroundAll[1], d1EllipseAroundAll[1])
 
-            for n2 in range(1, len(xAlongGCHalfDuod) - 1):
-                d = findDerivativeBetweenPoints(xAlongGCHalfDuod[n2], xAlongGCHalfDuod[n2 + 1])
-                d2AlongGCHalfDuod.append(d)
+            xAlongGCHalfDuodNew = []
+            for n2 in range(elementsAlongFundusApexToCardia + 1):
+                xAlongGCHalfDuodNew.append(xEllipseAroundAll[n2][elementsAroundHalfDuod])
 
-            d2AlongGCHalfDuod.append(d2AnnulusOuter[0])
-            d2AlongGCHalfDuod = interp.smoothCubicHermiteDerivativesLine(xAlongGCHalfDuod, d2AlongGCHalfDuod,
-                                                                          fixStartDirection=True, fixEndDerivative=True)
-            # LC
-            d2AlongLCHalfDuod = [d2AnnulusOuter[elementsAroundHalfEso]]
+            d2AlongGCHalfDuodNew = [d2ApexRot]
+            for n2 in range(1, len(xAlongGCHalfDuodNew) - 1):
+                d = findDerivativeBetweenPoints(xAlongGCHalfDuodNew[n2], xAlongGCHalfDuodNew[n2 + 1])
+                d2AlongGCHalfDuodNew.append(d)
+            d2AlongGCHalfDuodNew.append(d2AnnulusOuter[0])
 
-            for n2 in range(1, len(xAlongLCHalfDuod) - 1):
-                d = findDerivativeBetweenPoints(xAlongLCHalfDuod[n2], xAlongLCHalfDuod[n2 + 1])
-                d2AlongLCHalfDuod.append(d)
-            d2AlongLCHalfDuod.append(cd1Sections[-1][-1])
-            d2AlongLCHalfDuod = interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
-                                                                         fixStartDerivative=True,
-                                                                         fixEndDirection=True)
-            d2AlongCurvatures = d2AlongGCHalfDuod + d2AlongLCHalfDuod
+            d2AlongGCHalfDuodNew = \
+                interp.smoothCubicHermiteDerivativesLine(xAlongGCHalfDuodNew + [o1_x[-1][0]],
+                                                         d2AlongGCHalfDuodNew + [d2AnnulusOuter[0]],
+                                                         fixEndDerivative=True)[:-1]
+            d2AlongCurvatures[:len(d2AlongGCHalfDuodNew)] = d2AlongGCHalfDuodNew
+
+            # for n2 in range(len(xAlongGCHalfDuodNew)):
+            #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+            #     cache.setNode(node)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGCHalfDuodNew[n2])
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, zero)
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AlongGCHalfDuodNew[n2])
+            #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+            #     print(nodeIdentifier)
+            #     nodeIdentifier += 1
             d2AlongAll.append(d2AlongCurvatures)
 
         else:
@@ -1997,7 +2234,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     # Calculate curvature around
     d1Curvature = []
-    d1Curvature.append([1.0 for n in range(len(xOuter[0]))]) # To be replaced later!
+    d1Curvature.append([1.0 for n in range(len(xOuter[0]))]) # Will be replaced later!
     esoCount = 1
     for n2 in range(1, len(xOuter)):
         incompleteRingsWithinEso = elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2
@@ -2011,12 +2248,22 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod] + [o1_x[-1][esoCount]],
                                                           d1Outer[n2][:elementsAroundHalfDuod] + [d2Rot],
                                                           d3UnitOuter[n2][:elementsAroundHalfDuod] + [rotAxis])
+            curvature = interp.getCubicHermiteCurvature(xAnnulusOuter[esoCount], d1AnnulusOuter[esoCount],
+                                                        o1_x[-1][esoCount], d2Rot,
+                                                        d3UnitOuter[n2][elementsAroundHalfDuod - 1], 0.0)
+            d1CurvatureFirstHalf[-2] = curvature
 
             d3 = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][-esoCount]),
                                                        vector.normalise(o1_d2[-1][-esoCount])))
             d1CurvatureSecondHalf = findCurvatureAlongLine([o1_x[-1][-esoCount]] + xOuter[n2][elementsAroundHalfDuod:] + [xOuter[n2][0]],
                                                            [o1_d2[-1][-esoCount]] + d1Outer[n2][elementsAroundHalfDuod:] + [d1Outer[n2][0]],
                                                           [d3] + d3UnitOuter[n2][elementsAroundHalfDuod:] + [d3UnitOuter[n2][0]])[:-1]
+
+            curvature = interp.getCubicHermiteCurvature(o1_x[-1][-esoCount], o1_d2[-1][-esoCount],
+                                                        xAnnulusOuter[-esoCount], d1AnnulusOuter[-esoCount],
+                                                        d3UnitOuter[n2][elementsAroundHalfDuod], 1.0)
+
+            d1CurvatureSecondHalf[1] = curvature
 
             d1Curvature.append(d1CurvatureFirstHalf[:-1] + d1CurvatureSecondHalf[1:])
             esoCount += 1
@@ -2027,15 +2274,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                             vector.normalise(o1_d2[-1][esoCount])))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
             d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
+
             d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod] + [o1_x[-1][esoCount]],
                                                           d1Outer[n2][:elementsAroundHalfDuod] + [d2Rot],
                                                           d3UnitOuter[n2][:elementsAroundHalfDuod] + [rotAxis])
+
+            curvature = interp.getCubicHermiteCurvature(xAnnulusOuter[esoCount], d1AnnulusOuter[esoCount],
+                                                        o1_x[-1][esoCount], d2Rot, d3UnitOuter[n2][elementsAroundHalfDuod - 1], 0.0)
+            d1CurvatureFirstHalf[-2] = curvature
 
             d3 = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][-esoCount]),
                                                        vector.normalise(o1_d2[-1][-esoCount])))
             d1CurvatureSecondHalf = findCurvatureAlongLine([o1_x[-1][-esoCount]] + xOuter[n2][elementsAroundHalfDuod + 1:] + [xOuter[n2][0]],
                                                            [o1_d2[-1][-esoCount]] + d1Outer[n2][elementsAroundHalfDuod + 1:] + [d1Outer[n2][0]],
                                                            [d3] + d3UnitOuter[n2][elementsAroundHalfDuod + 1:] + [d3UnitOuter[n2][0]])[:-1]
+
+            curvature = interp.getCubicHermiteCurvature(o1_x[-1][-esoCount], o1_d2[-1][-esoCount],
+                                                        xAnnulusOuter[-esoCount], d1AnnulusOuter[-esoCount],
+                                                        d3UnitOuter[n2][elementsAroundHalfDuod + 1], 1.0)
+
+            d1CurvatureSecondHalf[1] = curvature
 
             midPtCurvature = annulusD2Curvature[0 if n2 == elementsAlongFundusApexToCardia else elementsAroundHalfEso]
             d1Curvature.append(d1CurvatureFirstHalf[:-1] + [midPtCurvature] + d1CurvatureSecondHalf[1:])
@@ -2115,6 +2373,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 d2Curvature[n2][n1] = d2CurvatureAlong[n1][n2 - (elementsAroundHalfEso + 1 - 4 if n1 == elementsAroundHalfDuod else 0)]
             else:
                 d2Curvature[n2][n1] = d2CurvatureAlong[n1][n2]
+
+    # Replace d1Curvature at apex with d2Curvature
+    for n1 in range(elementsCountAroundDuod):
+        d1Curvature[0][n1] = d2Curvature[0][n1]
 
     # for n2 in range(len(xOuter)):
     #     for n1 in range(len(xOuter[n2])):
@@ -2210,6 +2472,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
         nodeIdentifier += 1
+
+    # nodeIdentifier = 20000
+    # for n2 in range(len(xAlongGCHalfDuod)):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAlongGCHalfDuod[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2AlongGCHalfDuod[n2])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
+    #     nodeIdentifier += 1
 
     annotationGroupsAlong = []
     for i in range(len(elementCountGroupList)):
@@ -2516,7 +2788,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         elementsCountRadial=elementsCountAcrossCardia, meshGroups=[stomachMeshGroup, cardiaMeshGroup],
         wallAnnotationGroups=stomachWallAnnotationGroups,
         tracksurface=trackSurfaceStomach,
-        startProportions=startProportions, endProportions=endProportions, coordinates=coordinates)
+        startProportions=startProportions, endProportions=endProportions,
+        rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0, fixMinimumStart=True,
+        coordinates=coordinates)
 
     elementIdxThroughWall = []
     n = lastDuodenumElementIdentifier - 1
@@ -2570,7 +2844,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                      elementsAroundHalfDuod,
                                      lastDuodenumElementIdentifier - elementsCountThroughWall *
                                      elementsCountAroundDuod * (sum(elementCountGroupList[-3:]) + 1),
-                                     fundusBodyJunctionInnerElementIdentifier,
+                                     fundusBodyJunctionInnerElementIdentifier ,
                                      elementsCountAroundEso * (elementsCountThroughWall - 1) + 1,
                                      elementsCountAroundEso * elementsCountThroughWall - elementsAroundHalfEso + 1]
 
@@ -2587,8 +2861,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     markerInnerElementIdentifiers[n] + \
                     (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
                                                                         (elementsCountThroughWall - 1))
+                if n == 5 and limitingRidge and n3 == 0:
+                    markerElementIdentifier = markerElementIdentifier + elementsCountAroundDuod - 2
+
                 markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 \
-                    else [0.0, 0.0 if limitingRidge else 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
+                    else [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
             else:
                 markerElementIdentifier = markerInnerElementIdentifiers[n]
                 markerXi = [0.0, 0.0, 1.0]
@@ -2777,28 +3054,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         allAnnotationGroups.append(nearLCGroup)
 
-        # To visualise central path
-        # for n2 in range(len(centralPath.cxGroups[0])):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, centralPath.cxGroups[0][n2])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, centralPath.cd1Groups[0][n2])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, zero)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, zero)
-        #     nodeIdentifier += 1
-        #
-        # mesh1D = fm.findMeshByDimension(1)
-        # cubicHermiteBasis = fm.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-        # eft = mesh1D.createElementfieldtemplate(cubicHermiteBasis)
-        # elementtemplate = mesh1D.createElementtemplate()
-        # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
-        # result = elementtemplate.defineField(coordinates, -1, eft)
-        #
-        # for e in range(len(centralPath.cxGroups[0]) - 1):
-        #     element = mesh.createElement(elementIdentifier, elementtemplate)
-        #     element.setNodesByIdentifier(eft, [ e + 1, e + 2 ])
-        #     elementIdentifier = elementIdentifier + 1
-
     return allAnnotationGroups, elementCountGroupList
 
 def findCentreOnCentralPathFromCrossAxisEndPt(xPoint, xCentralPath, dCentralPath):
@@ -2847,6 +3102,7 @@ def findThetaFromArcDistance(xPt, arcDistance, xCentralPath, dCentralPath):
     :return:
     """
     xGuess, dGuess = interp.getCubicHermiteCurvesPointAtArcDistance(xCentralPath, dCentralPath, arcDistance)[0:2]
+    # print(xGuess, xPt)
     dxPt = findDerivativeBetweenPoints(xGuess, xPt)
     cosTheta = vector.dotproduct(dGuess, dxPt) / (vector.magnitude(dGuess) * vector.magnitude(dxPt))
     cosTheta = 1 if cosTheta > 1.0 else cosTheta
