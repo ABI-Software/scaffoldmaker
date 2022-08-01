@@ -14,4 +14,5 @@ This documentation is intended to be a resource describing details about using i
    scaffolds/brainstem
    scaffolds/lung
    scaffolds/stomach
+   scaffolds/colon
 
