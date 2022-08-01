@@ -134,7 +134,7 @@ Annotated 1-dimensional line regions are defined for matching annotated contours
 * circular-longitudinal muscle interface of pyloric canal along the greater/lesser curvature
 * limiting ridge on circular-longitudinal muscle interface/luminal surface/serosa (only in mouse, rat or if *Limiting ridge* is checked)
 
-Several fiducial marker points are defined on the lung scaffold, of which the followings are potentially usable when
+Several fiducial marker points are defined on the stomach scaffold, of which the followings are potentially usable when
 digitizing:
 
 * body-antrum junction along the greater curvature on circular-longitudinal muscle interface/luminal surface/serosa
