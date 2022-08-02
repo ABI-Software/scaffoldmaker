@@ -1050,8 +1050,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Create annotation groups for dorsal and ventral parts of the bladder and urethra
         bladderDorsalGroup = AnnotationGroup(region, get_bladder_term("dorsal part of bladder"))
         bladderVentralGroup = AnnotationGroup(region, get_bladder_term("ventral part of bladder"))
-        leftHemibladderGroup = AnnotationGroup(region, ("left hemi-bladder", "None"))
-        rightHemibladderGroup = AnnotationGroup(region, ("right hemi-bladder", "None"))
+        leftHemibladderGroup = AnnotationGroup(region, get_bladder_term("left hemi-bladder"))
+        rightHemibladderGroup = AnnotationGroup(region, get_bladder_term("right hemi-bladder"))
         dorsalBladderMeshGroup = bladderDorsalGroup.getMeshGroup(mesh)
         ventralBladderMeshGroup = bladderVentralGroup.getMeshGroup(mesh)
         leftHemibladderMeshGroup = leftHemibladderGroup.getMeshGroup(mesh)
