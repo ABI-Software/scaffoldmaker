@@ -222,16 +222,15 @@ class MeshType_3d_stomach1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  10.2,   8.6, 0.0 ], [  1.7, -8.2, 0.0 ], [  5.9,  -3.0, 0.0 ], [  3.9, -3.0, 0.0 ], [ 0.0, 0.0, 7.4 ], [ 0.0, 0.0, 1.4] ] ,
-                [ [   9.9,   1.0, 0.0 ], [ -2.4, -6.6, 0.0 ], [  7.4,  -6.1, 0.0 ], [ -0.9, -3.2, 0.0 ], [ 0.0, 0.0, 8.5 ], [ 0.0, 0.0, 0.8] ] ,
-                [ [   6.1,  -4.0, 0.0 ], [ -5.9, -3.9, 0.0 ], [  3.7,  -9.4, 0.0 ], [ -3.5, -2.1, 0.0 ], [ 0.0, 0.0, 9.0 ], [ 0.0, 0.0, 0.1] ] ,
-                [ [  -1.2,  -5.8, 0.0 ], [ -7.6,  0.4, 0.0 ], [  0.3, -10.4, 0.0 ], [ -5.0,  0.4, 0.0 ], [ 0.0, 0.0, 8.8 ], [ 0.0, 0.0,-0.4] ] ,
-                [ [  -8.1,  -3.2, 0.0 ], [ -5.4,  4.5, 0.0 ], [ -6.7,  -8.3, 0.0 ], [ -2.8,  2.8, 0.0 ], [ 0.0, 0.0, 8.1 ], [ 0.0, 0.0,-1.4] ] ,
-                [ [ -11.4,   2.3, 0.0 ], [ -1.3,  6.4, 0.0 ], [ -6.3,  -4.9, 0.0 ], [  1.7,  3.5, 0.0 ], [ 0.0, 0.0, 6.2 ], [ 0.0, 0.0,-2.7] ] ,
-                [ [ -10.5,   8.7, 0.0 ], [  0.2,  5.0, 0.0 ], [ -3.4,  -1.4, 0.0 ], [  1.6,  1.7, 0.0 ], [ 0.0, 0.0, 2.8 ], [ 0.0, 0.0,-0.8] ] ,
-                [ [ -10.7,  12.2, 0.0 ], [ -0.4,  3.1, 0.0 ], [ -2.5,  -0.7, 0.0 ], [ -0.0,  0.2, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0, 0.3] ] ,
-                [ [ -11.3,  14.8, 0.0 ], [ -0.8,  2.1, 0.0 ], [ -3.2,  -0.9, 0.0 ], [ -1.4, -0.6, 0.0 ], [ 0.0, 0.0, 3.4 ], [ 0.0, 0.0,-0.3] ] ]),
-
+                [ [  12.020,  6.890, 0.000 ], [ -0.115, -5.868, 0.000 ], [  6.618,  -0.130, 0.000 ], [  4.273, -4.479, 0.000 ], [ 0.000, 0.000, 7.400 ], [ 0.000, 0.000,  1.387 ] ] ,
+                [ [  10.453,  1.000, 0.000 ], [ -3.014, -5.681, 0.000 ], [  8.472,  -4.495, 0.000 ], [ -0.565, -4.250, 0.000 ], [ 0.000, 0.000, 8.500 ], [ 0.000, 0.000,  0.813 ] ] ,
+                [ [   6.100, -4.000, 0.000 ], [ -6.119, -3.739, 0.000 ], [  5.267,  -8.620, 0.000 ], [ -4.498, -3.019, 0.000 ], [ 0.000, 0.000, 9.000 ], [ 0.000, 0.000,  0.172 ] ] ,
+                [ [  -1.200, -5.800, 0.000 ], [ -7.509,  0.501, 0.000 ], [ -0.700, -10.381, 0.000 ], [ -6.147,  0.329, 0.000 ], [ 0.000, 0.000, 8.800 ], [ 0.000, 0.000, -0.454 ] ] ,
+                [ [  -8.198, -2.498, 0.000 ], [ -5.873,  5.549, 0.000 ], [ -6.570,  -7.456, 0.000 ], [ -3.357,  4.494, 0.000 ], [ 0.000, 0.000, 8.100 ], [ 0.000, 0.000, -1.342 ] ] ,
+                [ [ -11.290,  4.896, 0.000 ], [ -0.777,  6.708, 0.000 ], [ -5.607,  -2.449, 0.000 ], [  1.679,  4.032, 0.000 ], [ 0.000, 0.000, 6.200 ], [ 0.000, 0.000, -2.652 ] ] ,
+                [ [ -10.631,  9.289, 0.000 ], [  0.344,  3.828, 0.000 ], [ -3.677,   0.048, 0.000 ], [  2.178,  0.343, 0.000 ], [ 0.000, 0.000, 2.800 ], [ 0.000, 0.000, -0.819 ] ] ,
+                [ [ -10.700, 12.200, 0.000 ], [ -0.350,  2.774, 0.000 ], [ -2.570,  -0.367, 0.000 ], [  0.160, -0.605, 0.000 ], [ 0.000, 0.000, 2.687 ], [ 0.000, 0.000,  0.259 ] ] ,
+                [ [ -11.300, 14.800, 0.000 ], [ -0.844,  2.407, 0.000 ], [ -3.131,  -1.116, 0.000 ], [ -1.282, -0.893, 0.000 ], [ 0.000, 0.000, 3.400 ], [ 0.000, 0.000, -0.259 ] ] ] ),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -1577,6 +1576,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # Create track surface
     # Find d2
     d2Raw = []
+    xRawSampled = []
+    d2RawSampled = []
     for n1 in range(elementsCountAroundDuod):
         xAlong = []
         d2Along = []
@@ -1589,10 +1590,37 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
         d2Raw.append(d2Smoothed)
 
+        # sample
+        xAlongSampled, d2AlongSampled = interp.sampleCubicHermiteCurves(xAlong, d2Along, 20)[0:2]
+        d2AlongSampledSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSampled, d2AlongSampled)
+        d2RawSampled.append(d2AlongSampledSmoothed)
+        xRawSampled.append(xAlongSampled)
+
     # Rearrange d2
     for n2 in range(len(xEllipseAroundAll)):
         for n1 in range(elementsCountAroundDuod):
             d2EllipseAroundAll[n2][n1] = d2Raw[n1][n2]
+
+    # Rearrange sampled x and d2
+    xAroundTS = []
+    d1AroundTS = [d1ApexAround]
+    d2AroundTS = []
+
+    for n2 in range(21):
+        xAround= []
+        d1Around = []
+        d2Around = []
+        for n1 in range(elementsCountAroundDuod):
+            xAround.append(xRawSampled[n1][n2])
+            d2Around.append(d2RawSampled[n1][n2])
+        xAroundTS.append(xAround)
+        d2AroundTS.append(d2Around)
+
+        if n2:
+            for n1 in range(elementsCountAroundDuod):
+                d1Around.append(findDerivativeBetweenPoints(xAround[n1], xAround[(n1 + 1) % elementsCountAroundDuod]))
+            d1Around = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+            d1AroundTS.append(d1Around)
 
     # Copy points on lesser curvature before putting annulus
     xTopCurvature = []
@@ -1603,13 +1631,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xTrackSurface = []
     d1TrackSurface = []
     d2TrackSurface = []
-    for n2 in range(len(xEllipseAroundAll)):
+    for n2 in range(len(xAroundTS)):
         for n1 in range(elementsCountAroundDuod):
-            xTrackSurface.append(xEllipseAroundAll[n2][n1])
-            d1TrackSurface.append(d1EllipseAroundAll[n2][n1])
-            d2TrackSurface.append(d2EllipseAroundAll[n2][n1])
+            xTrackSurface.append(xAroundTS[n2][n1])
+            d1TrackSurface.append(d1AroundTS[n2][n1])
+            d2TrackSurface.append(d2AroundTS[n2][n1])
 
-    trackSurfaceStomach = TrackSurface(elementsCountAroundDuod, len(xEllipseAroundAll) - 1,
+    trackSurfaceStomach = TrackSurface(elementsCountAroundDuod, len(xAroundTS) - 1,
                                        xTrackSurface, d1TrackSurface, d2TrackSurface, loop1=True)
 
     # # Visualise track surface
@@ -1766,6 +1794,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         interp.sampleCubicHermiteCurvesSmooth(xAlongGCHalfDuod + [o1_x[-1][0]], d2AlongGCHalfDuod + [d2AnnulusOuter[0]],
                                               elementsAlongFundusApexToCardia + 1,
                                               derivativeMagnitudeEnd=vector.magnitude(d2AnnulusOuter[0]))[0:2]
+
     d2SampledAlongGCHalfDuod = \
         interp.smoothCubicHermiteDerivativesLine(xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod,
                                                  fixEndDerivative=True)
@@ -1792,6 +1821,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             trackSurfaceStomach.createHermiteCurvePoints(
                 startLCAnnulus[0], startLCAnnulus[1], xProportionEndBody[0], xProportionEndBody[1],
                 elementsInBody - elementsAroundQuarterEso + 1, derivativeStart=d2AnnulusOuter[elementsAroundHalfEso])
+
         nxNew, nd1New = \
             trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
                 nx, nd1, nd2, nd3, proportions,
