@@ -268,7 +268,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'ontId': get_stomach_term('duodenum')[1]
                 }]
         }),
-        'Stomach 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Material': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
@@ -451,7 +451,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Refine number of elements through wall': 1
             },
         }),
-        'Stomach 1': ScaffoldPackage(MeshType_3d_ostium1, {
+        'Material': ScaffoldPackage(MeshType_3d_ostium1, {
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
@@ -510,8 +510,8 @@ class MeshType_3d_stomach1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Rat 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']
         elif 'Material' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Stomach 1']
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Stomach 1']
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Material']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Material']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
@@ -706,7 +706,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         """
         cls.updateSubScaffoldOptions(options)
         geometricCentralPath = options['Central path']
-        materialCentralPath = cls.centralPathDefaultScaffoldPackages['Stomach 1']
+        materialCentralPath = cls.centralPathDefaultScaffoldPackages['Material']
         allAnnotationGroups = []
 
         stomachTermsAlong = [None, 'fundus of stomach', 'body of stomach',
