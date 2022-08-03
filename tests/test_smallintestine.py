@@ -98,7 +98,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [-1.39038154442654, 0.0, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [4.891237158967401, 23.712850030164294, 0.1], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [4.891237158967401, 25.293706698841913, 0.1], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -119,7 +119,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(volume, 16.35219225882822, delta=1.0E-6)
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 160.45009625494095, delta=1.0E-3)
+        self.assertAlmostEqual(flatSurfaceArea, 171.37026123844635, delta=1.0E-3)
 
 
 if __name__ == "__main__":
