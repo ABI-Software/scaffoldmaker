@@ -29,7 +29,7 @@ from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds, remapEftNodeValueLabel, remapEftNodeValueLabelsVersion
-from scaffoldmaker.utils.geometry import createEllipsePoints
+from scaffoldmaker.utils.geometry import sampleEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
 
@@ -1345,8 +1345,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             cd3Section = interp.interpolateSampleCubicHermite(cd3Group, cd13Group, pe, pxi, psf)[0]
 
             for n in range(len(cxSection)):
-                px, pd1 = createEllipsePoints(cxSection[n], 2 * math.pi, cd2Section[n], cd3Section[n],
-                                              elementsCountAroundDuod, startRadians=0.0)
+                px, pd1 = sampleEllipsePoints(cxSection[n], cd2Section[n], cd3Section[n], 0.0, math.pi * 2.0,
+                                              elementsCountAroundDuod)
+                del px[-1], pd1[-1]
+
                 if n == 0:
                     pxFundusEndQuarter = px[elementsAroundQuarterDuod]
                     d2FundusEndQuarter = cd1Section[0]
@@ -1473,11 +1475,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             x = xAroundAll[n2][n1]
             xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
             xAroundTransformed.append([xRot1[j] + translateMatrix[j] for j in range(3)])
+
         xAroundAllTransformed.append(xAroundTransformed)
 
+
     for n in range(elementEllipsoidEnd + 1, len(sxFundus) - 1):
-        x = createEllipsePoints(sxFundus[n], 2 * math.pi, sd2Fundus[n], sd3Fundus[n], elementsCountAroundDuod,
-                                startRadians=0.0)[0]
+        x = sampleEllipsePoints(sxFundus[n], sd2Fundus[n], sd3Fundus[n], 0.0, math.pi * 2.0, elementsCountAroundDuod)[0]
+        del x[-1]
+
         xAroundAllTransformed.append(x)
 
     for n2 in range(elementsAlong):
@@ -1523,6 +1528,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         xProjectionQuarter = findCentreOnCentralPathFromCrossAxisEndPt(xFundusQuarterSampled[n2], sxFundus, sd1Fundus)
         xProjectionGC = findCentreOnCentralPathFromCrossAxisEndPt(xFundusGCSampled[n2], sxFundus, sd1Fundus)
         xProjectionAve = [0.5 * xProjectionQuarter[c] + 0.5 * xProjectionGC[c] for c in range(3)]
+
         cxFundus.append(xProjectionAve)
         cd1Fundus.append(findDerivativeBetweenPoints(cxFundus[n2 - 1], cxFundus[n2]))
         cd2Fundus.append(findDerivativeBetweenPoints(xProjectionGC, xFundusGCSampled[n2]))
@@ -1559,12 +1565,12 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     for s in range(len(cxSections)):
         for n2 in range(1, len(cxSections[s])):
-            px, pd1 = createEllipsePoints(cxSections[s][n2], 2 * math.pi, cd2Sections[s][n2], cd3Sections[s][n2],
-                                          elementsCountAroundDuod, startRadians=0.0)
+            px, pd1 = sampleEllipsePoints(cxSections[s][n2], cd2Sections[s][n2], cd3Sections[s][n2], 0.0, math.pi * 2.0,
+                                          elementsCountAroundDuod)
+            del px[-1], pd1[-1]
 
             d2Around = [zero for n in range(len(pd1))]
             d2CurvatureAround = [0.0 for n in range(len(pd1))]
-
             xEllipseAroundAll.append(px)
             d1EllipseAroundAll.append(pd1)
             d2EllipseAroundAll.append(d2Around)
