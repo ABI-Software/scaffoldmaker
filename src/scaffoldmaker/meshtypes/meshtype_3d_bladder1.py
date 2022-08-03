@@ -76,14 +76,14 @@ class MeshType_3d_bladder1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [[139.76, 57.34, -16.27], [-52.81, -23.11, 12.04], [32.18, -67.08, 12.44], [19.63, -43.90, 9.31], [9.08, 18.22, 74.78], [-3.39, 2.26, 15.96]],
-                [[91.35, 36.27, -6.50], [-43.98, -19.02, 7.49], [46.88, -100.51, 20.06], [9.76, -22.95, 5.93], [6.26, 20.79, 89.53], [-2.24, 2.88, 13.53]],
-                [[51.89, 19.32, -1.00], [-41.04, -17.52, 5.91], [52.65, -115.01, 24.63], [3.38, -8.05, 4.65], [4.48, 23.91, 102.07], [-1.86, 3.01, 6.14]],
-                [[9.27, 1.23, 5.33], [-42.36, -18.03, 5.83], [53.45, -116.09, 29.37], [-1.80, 3.69, 2.43], [2.54, 26.79, 101.30], [-2.09, 0.92, -4.28]],
-                [[-32.82, -16.73, 10.66], [-39.90, -16.88, 4.78], [49.10, -107.71, 29.52], [-7.52, 15.61, -2.65], [0.30, 25.77, 93.56], [-1.92, -4.03, -16.55]],
-                [[-70.51, -32.54, 14.91], [-38.96, -16.55, 3.81], [38.76, -85.65, 24.37], [-16.39, 35.55, -9.99], [-1.33, 19.07, 69.15], [-0.57, -7.85, -26.68]],
-                [[-110.73, -49.84, 18.24], [-40.20, -17.01, 3.47], [15.89, -35.68, 9.21], [-17.74, 39.03, -11.30], [-0.78, 9.99, 40.04], [0.66, -8.57, -30.42]],
-                [[-150.90, -66.56, 21.84], [-40.14, -16.43, 3.72], [3.25, -7.53, 1.75], [-7.56, 17.27, -3.62], [-0.02, 1.93, 8.32], [0.86, -7.55, -33.03]]]),
+                [[139.76, 57.34, -16.27], [-48.91, -19.25, 7.52], [25.22, -60.05, 10.30], [13.84, -27.31, 3.97], [4.34, 11.87, 58.57], [0.50, 3.10, 20.20]],
+                [[93.16, 38.43, -9.34], [-44.30, -18.57, 6.33], [37.80, -85.02, 15.07], [11.31, -22.63, 5.57], [4.61, 16.17, 79.63], [0.05, 5.49, 21.92]],
+                [[51.16, 20.26, -3.58], [-42.36, -18.06, 5.86], [47.96, -105.53, 21.36], [5.99, -12.80, 6.16], [4.45, 22.74, 102.34], [-1.40, 5.62, 13.90]],
+                [[8.43, 2.30, 2.37], [-42.52, -17.82, 5.26], [49.71, -110.52, 27.39], [0.24, -1.20, 4.10], [1.79, 27.40, 107.31], [-2.40, 1.97, -2.17]],
+                [[-33.87, -15.38, 6.95], [-39.81, -16.66, 4.39], [48.45, -107.98, 29.59], [-5.06, 13.34, -1.82], [-0.35, 26.73, 98.10], [-0.90, -4.12, -19.76]],
+                [[-71.20, -31.01, 11.15], [-38.71, -16.87, 4.70], [40.03, -85.11, 24.22], [-15.45, 35.80, -10.05], [-0.15, 19.57, 69.02], [0.48, -8.03, -29.10]],
+                [[-111.26, -49.16, 16.38], [-39.85, -17.77, 5.34], [16.93, -35.23, 9.08], [-18.25, 38.75, -11.22], [0.63, 10.58, 39.89], [0.21, -8.76, -30.38]],
+                [[-150.90, -66.56, 21.84], [-39.43, -17.02, 5.58], [3.46, -7.44, 1.72], [-8.70, 16.83, -3.49], [0.29, 2.05, 8.29], [-0.90, -8.30, -32.83]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -144,14 +144,14 @@ class MeshType_3d_bladder1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [[150.30, 61.10, -12.86], [-47.11, -20.16, 6.83], [30.80, -67.69, 12.69], [27.21, -60.65, 11.72], [4.10, 16.06, 75.71], [0.28, 9.33, 47.19]],
-                [[103.17, 40.96, -6.43], [-47.13, -20.11, 6.03], [50.46, -111.70, 21.82], [12.12, -27.37, 6.55], [4.11, 23.30, 109.78], [-0.27, 5.16, 20.95]],
-                [[56.04, 20.87, -0.79], [-46.95, -19.87, 5.88], [55.04, -122.46, 25.78], [2.12, -1.88, 3.69], [3.57, 26.38, 117.64], [-1.13, 4.30, 6.43]],
-                [[9.27, 1.23, 5.33], [-41.12, -18.12, 5.34], [54.72, -115.54, 29.21], [-1.45, 8.26, 1.45], [1.86, 31.89, 122.66], [-2.07, 0.43, -8.11]],
-                [[-26.27, -15.18, 9.90], [-33.31, -15.33, 4.01], [52.40, -106.25, 29.14], [-7.06, 15.91, -2.71], [-0.49, 28.39, 104.42], [-1.72, -5.12, -21.84]],
-                [[-57.34, -29.43, 13.39], [-33.25, -15.20, 3.49], [41.21, -84.57, 24.12], [-17.19, 34.68, -9.70], [-1.65, 21.85, 79.44], [-0.13, -9.00, -31.73]],
-                [[-92.77, -45.59, 16.85], [-33.04, -15.33, 3.34], [17.20, -35.10, 9.08], [-18.39, 37.88, -10.95], [-0.62, 10.06, 40.03], [0.80, -9.84, -35.29]],
-                [[-123.44, -60.05, 20.05], [-28.30, -13.60, 3.06], [3.71, -7.33, 1.70], [-8.60, 17.67, -3.81], [-0.03, 1.92, 8.32], [0.39, -6.43, -28.12]]]),
+                [[177.93, 203.27, -6.98], [-39.04, -53.00, 0.83], [30.11, -22.17, 0.29], [51.78, -52.34, -1.70], [0.03, 0.42, 28.30], [1.06, -1.92, 120.97]],
+                [[133.76, 151.30, -6.66], [-49.17, -50.77, -0.19], [66.66, -64.55, -1.68], [21.33, -32.41, -2.24], [1.30, -1.69, 116.41], [1.47, -2.29, 55.25]],
+                [[79.63, 102.22, -7.39], [-55.84, -46.38, -0.19], [71.68, -86.28, -4.21], [-0.40, -15.45, 2.49], [3.00, -4.17, 136.47], [-0.79, 2.99, 6.58]],
+                [[22.26, 58.63, -7.05], [-62.26, -42.93, 1.27], [65.94, -95.54, 3.23], [-9.21, -3.67, 4.74], [-0.25, 4.21, 129.76], [-1.86, 5.07, -12.37]],
+                [[-44.89, 16.76, -4.76], [-67.15, -38.10, 1.57], [52.92, -93.08, 5.01], [-16.55, 14.33, 1.48], [-0.59, 5.64, 111.17], [-0.96, 1.25, -22.72]],
+                [[-111.81, -17.62, -3.87], [-64.44, -31.46, 0.87], [33.03, -67.48, 6.20], [-19.80, 30.23, -1.80], [-2.14, 6.72, 84.52], [0.49, -1.71, -32.39]],
+                [[-173.66, -46.27, -3.03], [-63.30, -25.43, 1.60], [13.32, -33.05, 1.69], [-14.90, 28.31, -1.76], [0.19, 2.48, 46.94], [0.94, -1.85, -35.99]],
+                [[-238.18, -68.39, -0.67], [-65.62, -18.77, 3.11], [3.23, -10.86, 2.68], [-5.27, 16.06, 3.74], [-0.27, 3.02, 12.55], [-1.86, 2.93, -32.79]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -234,35 +234,34 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements along dome': 8,
             'Number of elements along neck': 4,
-            'Number of elements around bladder': 8,
+            'Number of elements around': 8,
             'Number of elements through wall': 1,
             'Wall thickness': 1.5,
             'Ureter position around': 0.67,
             'Use linear through wall': True,
             'Refine': False,
-            'Refine number of elements along bladder': 4,
-            'Refine number of elements around bladder': 4,
+            'Refine number of elements along': 4,
+            'Refine Number of elements around': 4,
             'Refine number of elements through wall': 1
         }
         if 'Human 1' in parameterSetName:
-            options['Number of elements along dome'] = 8
-            options['Number of elements around bladder'] = 12
-            options['Wall thickness'] = 2.0
+            options['Number of elements along dome'] = 10
+            options['Number of elements along neck'] = 6
+            options['Number of elements around'] = 12
+            options['Wall thickness'] = 3.0
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Mouse 1' in parameterSetName:
-            options['Number of elements along dome'] = 10
-            # options['Number of elements around bladder'] = 8
+            options['Number of elements along neck'] = 6
             options['Wall thickness'] = 0.5
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Pig 1' in parameterSetName:
             options['Number of elements along dome'] = 10
-            options['Number of elements around bladder'] = 16
-            options['Wall thickness'] = 3.0
+            options['Number of elements along neck'] = 5
+            options['Number of elements around'] = 12
+            options['Wall thickness'] = 2.5
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Rat 1' in parameterSetName:
-            options['Number of elements along dome'] = 12
-            options['Number of elements around bladder'] = 12
-            options['Wall thickness'] = 0.2
+            options['Wall thickness'] = 0.3
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         return options
 
@@ -272,14 +271,14 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Central path',
             'Number of elements along dome',
             'Number of elements along neck',
-            'Number of elements around bladder',
+            'Number of elements around',
             'Number of elements through wall',
             'Wall thickness',
             'Ureter position around',
             'Use linear through wall',
             'Refine',
-            'Refine number of elements around bladder',
-            'Refine number of elements along bladder',
+            'Refine Number of elements around',
+            'Refine number of elements along',
             'Refine number of elements through wall']
         return optionNames
 
@@ -319,21 +318,23 @@ class MeshType_3d_bladder1(Scaffold_base):
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         for key in [
-            'Number of elements around bladder',
+            'Number of elements along dome',
+            'Number of elements along neck',
+            'Number of elements around',
             'Number of elements through wall',
-            'Refine number of elements along bladder',
-            'Refine number of elements around bladder',
+            'Refine number of elements along',
+            'Refine Number of elements around',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
-        if options['Number of elements around bladder'] % 2 != 0:
-            if options['Number of elements around bladder'] % 4 > 1:
-                options['Number of elements around bladder'] += 1
+        if options['Number of elements around'] % 2 != 0:
+            if options['Number of elements around'] % 4 > 1:
+                options['Number of elements around'] += 1
             else:
-                options['Number of elements around bladder'] -= 1
+                options['Number of elements around'] -= 1
         else:
-            if options['Number of elements around bladder'] % 4 != 0:
-                options['Number of elements around bladder'] += 2
+            if options['Number of elements around'] % 4 != 0:
+                options['Number of elements around'] += 2
         if options['Ureter position around'] < 0.5:
             options['Ureter position around'] = 0.5  # ureters are on the dorsal part of the bladder
 
@@ -348,14 +349,13 @@ class MeshType_3d_bladder1(Scaffold_base):
         centralPath = options['Central path']
         elementsCountAlongDome = options['Number of elements along dome']
         elementsCountAlongNeck = options['Number of elements along neck']
-        elementsCountAroundBladder = options['Number of elements around bladder']
+        elementsCountAround = options['Number of elements around']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = False
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
         elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
-        ureterPositionAroundFactor = options['Ureter position around'] / 2
 
         fm = region.getFieldmodule()
         fm.beginChange()
@@ -364,50 +364,6 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
-
-        # # Central path
-        # tmpRegion = region.createRegion()
-        # centralPath.generate(tmpRegion)
-        # arcLengthOfGroupsAlong = []
-        # bladderTermsAlong = ['dome of the bladder', 'neck of urinary bladder']
-        # for i in range(len(bladderTermsAlong)):
-        #     # tmpRegion = region.createRegion()
-        #     # centralPath.generate(tmpRegion)
-        #     cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
-        #         extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-        #                                                     Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-        #                                                     Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-        #                                         groupName=bladderTermsAlong[i])
-        #
-        #     arcLength = 0.0
-        #     for e in range(len(cxGroup) - 1):
-        #         arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
-        #                                                      cxGroup[e + 1], cd1Group[e + 1])
-        #     arcLengthOfGroupsAlong.append(arcLength)
-        #     if i == 0:
-        #         cx_dome = cxGroup
-        #         cd1_dome = cd1Group
-        #         cd2_dome = cd2Group
-        #         cd3_dome = cd3Group
-        #         cd12_dome = cd12Group
-        #         cd13_dome = cd13Group
-        #     else:
-        #         cx_neck = cxGroup
-        #         cd1_neck = cd1Group
-        #         cd2_neck = cd2Group
-        #         cd3_neck = cd3Group
-        #         cd12_neck = cd12Group
-        #         cd13_neck = cd13Group
-        # del tmpRegion
-        #
-        # domeLength = arcLengthOfGroupsAlong[0]
-        # neckLength = arcLengthOfGroupsAlong[1]
-        # domeSegmentLength = arcLengthOfGroupsAlong[0] / elementsCountAlongDome
-        # neckSegmentLength = arcLengthOfGroupsAlong[1] / elementsCountAlongNeck
-        # # total = arcLengthOfGroupsAlong[0] + arcLengthOfGroupsAlong[1]
-        # bladderCentralPathLength = sum(arcLengthOfGroupsAlong)
-        # # print('total', total)
-        # print('bladderCentralPathLength', bladderCentralPathLength)
 
         # Central path
         tmpRegion = region.createRegion()
@@ -422,7 +378,6 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                         Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
                                                         Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
                                             groupName='neck of urinary bladder')
-
         # Find arcLength
         # Dome
         domeLength = 0.0
@@ -453,202 +408,31 @@ class MeshType_3d_bladder1(Scaffold_base):
         sd2_neck, sd12_neck = interp.interpolateSampleCubicHermite(cd2_neck, cd12_neck, se_neck, sxi_neck, ssf_neck)
         sd3_neck, sd13_neck = interp.interpolateSampleCubicHermite(cd3_neck, cd13_neck, se_neck, sxi_neck, ssf_neck)
 
-        # Find Apex nodes d2
-        d2Apex = []
-        d2 = sd2_dome[0]
-        for n1 in range(elementsCountAroundBladder):
-            rotAngle = n1 * 2.0 * math.pi / elementsCountAroundBladder
-            rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(sd2_dome[0]), vector.normalise(sd3_dome[0])))
-            rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
-            d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-            d2Apex.append(d2Rot)
+        # Find nodes of bladder dome and neck
+        sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
+        sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
 
-        # Create ellipses along dome around the central path
-        xEllipses_dome = []
-        d1Ellipses_dome = []
-        for n in range(1, len(sx_dome)):
-            px, pd1 = createEllipsePoints(sx_dome[n], 2 * math.pi, sd2_dome[n], sd3_dome[n], elementsCountAroundBladder,
-                                          startRadians=0.0)
-            xEllipses_dome.append(px)
-            d1Ellipses_dome.append(pd1)
+        xDome, d1Dome, d2Dome = findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome)
 
-        # Find d2
-        d2Raw = []
-        for n1 in range(elementsCountAroundBladder):
-            xAlong = []
-            d2Along = []
-            for n2 in range(len(xEllipses_dome) - 1):
-                v1 = xEllipses_dome[n2][n1]
-                v2 = xEllipses_dome[n2 + 1][n1]
-                d2 = findDerivativeBetweenPoints(v1, v2)
-                xAlong.append(v1)
-                d2Along.append(d2)
-            xAlong.append(xEllipses_dome[-1][n1])
-            d2Along.append(d2)
-            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
-            d2Raw.append(d2Smoothed)
+        xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, neckSegmentLength, elementsCountAround, \
+                                                                             elementsCountAlongNeck, xDome, d2Dome)
 
-        # Rearrange d2
-        d2Ellipses_dome = []
-        for n2 in range(len(xEllipses_dome)):
-            d2Around = []
-            for n1 in range(elementsCountAroundBladder):
-                d2 = d2Raw[n1][n2]
-                d2Around.append(d2)
-            d2Ellipses_dome.append(d2Around)
-
-        # Merge apex and dome
-        xDome = [[sx_dome[0]] * elementsCountAroundBladder] + xEllipses_dome
-        d2Dome = [d2Apex] + d2Ellipses_dome
-
-        # Spread out elements along dome of the bladder
-        xRaw = []
-        d2Raw = []
-        for n1 in range(elementsCountAroundBladder):
-            xAlong = []
-            d2Along = []
-            for n2 in range(len(xDome)):
-                xAlong.append(xDome[n2][n1])
-                d2Along.append(d2Dome[n2][n1])
-            xSampledAlongDome, d2SampledAlongDome = interp.sampleCubicHermiteCurves(xAlong, d2Along,
-                                                                            elementsCountAlongDome,
-                                                                            arcLengthDerivatives=True)[0:2]
-            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongDome, d2SampledAlongDome)
-            xRaw.append(xSampledAlongDome)
-            d2Raw.append(d2Smoothed)
-
-        # Rearrange x and d2
-        xSampledAll = []
-        d1SampledAll = []
-        d2SampledAll = []
-        for n2 in range(elementsCountAlongDome + 1):
-            xAround = []
-            d1Around = []
-            d2Around = []
-            for n1 in range(elementsCountAroundBladder):
-                x = xRaw[n1][n2]
-                d2 = d2Raw[n1][n2]
-                xAround.append(x)
-                d2Around.append(d2)
-                # Calculate d1
-                if n2 > 0:
-                    v1 = xRaw[n1][n2]
-                    v2 = xRaw[n1 + 1 if n1 < elementsCountAroundBladder - 2 else 0][n2]
-                    d1 = findDerivativeBetweenPoints(v1, v2)
-                    d1Around.append(d1)
-                else:
-                    d1Around.append(d2Raw[n2][0])
-            if n2 > 0:
-                d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-            else:
-                d1Smoothed = d1Around
-            xSampledAll.append(xAround)
-            d1SampledAll.append(d1Smoothed)
-            # d2SampledAll.append(d2Around)
-            if n2 == elementsCountAlongDome:
-                pass
-            else:
-                d2SampledAll.append(d2Around)
-
-        # Transition
-        transitLength = (domeSegmentLength + neckSegmentLength) / 2
-        if transitLength < neckSegmentLength:
-            e = 1
-            xi = transitLength / neckSegmentLength
-        else:
-            e = int(transitLength / neckSegmentLength) + 1
-            xi = transitLength / (e * neckSegmentLength)
-        xTransition = interp.interpolateCubicHermite(sx_dome[-1], sd1_dome[-1], sx_neck[e], sd1_neck[e], xi)
-        # d1Transition = interp.interpolateCubicHermiteDerivative(sx_dome[-1], sd1_dome[-1], sx_neck[e], sd1_neck[e], xi)
-        d2Transition = interp.interpolateCubicHermite(sd2_dome[-1], sd12_dome[-1], sd2_neck[e], sd12_neck[e], xi)
-        d3Transition = interp.interpolateCubicHermite(sd3_dome[-1], sd13_dome[-1], sd3_neck[e], sd13_neck[e], xi)
-        px_transit, pd1_transit = createEllipsePoints(xTransition, 2 * math.pi, d2Transition, d3Transition, elementsCountAroundBladder,
-                                      startRadians=0.0)
+        # Replace d2 for the last layer of the dome based on the transition nodes
         d2Around = []
-        for n1 in range(elementsCountAroundBladder):
-            v1 = xSampledAll[-1][n1]
+        for n1 in range(elementsCountAround):
+            v1 = xDome[-1][n1]
             v2 = px_transit[n1]
             d2 = findDerivativeBetweenPoints(v1, v2)
             # xAlong.append(v1)
             d2Around.append(d2)
-        d2SampledAll += [d2Around]
+        d2Dome = d2Dome[:-1] + [d2Around]
 
-        # Create ellipses along neck around the central path
-        sx_neck_new = [xTransition] + sx_neck[e:]
-        sd2_neck_new = [d2Transition] + sd2_neck[e:]
-        sd3_neck_new = [d3Transition] + sd3_neck[e:]
-        xEllipses_neck = []
-        d1Ellipses_neck = []
-        for n in range(0, len(sx_neck_new)):
-            px, pd1 = createEllipsePoints(sx_neck_new[n], 2 * math.pi, sd2_neck_new[n], sd3_neck_new[n], elementsCountAroundBladder,
-                                          startRadians=0.0)
-            xEllipses_neck.append(px)
-            d1Ellipses_neck.append(pd1)
+        xSampledAll = xDome + xNeck
+        d1SampledAll = d1Dome + d1Neck
 
-        # Find d2
+        # Smoothing d2 from apex to down the neck
         d2Raw = []
-        for n1 in range(elementsCountAroundBladder):
-            xAlong = []
-            d2Along = []
-            for n2 in range(len(xEllipses_neck) - 1):
-                v1 = xEllipses_neck[n2][n1]
-                v2 = xEllipses_neck[n2 + 1][n1]
-                d2 = findDerivativeBetweenPoints(v1, v2)
-                xAlong.append(v1)
-                d2Along.append(d2)
-            xAlong.append(xEllipses_neck[-1][n1])
-            d2Along.append(d2)
-            # d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
-            d2Raw.append(d2Along)
-
-        # Rearrange d2
-        d2Ellipses_neck_new = []
-        for n2 in range(len(xEllipses_neck)):
-            d2Around = []
-            for n1 in range(elementsCountAroundBladder):
-                d2 = d2Raw[n1][n2]
-                d2Around.append(d2)
-            d2Ellipses_neck_new.append(d2Around)
-
-        # Spread out elements along neck of the bladder
-        xRawNeck = []
-        d2RawNeck = []
-        for n1 in range(elementsCountAroundBladder):
-            xAlong = []
-            d2Along = []
-            for n2 in range(len(xEllipses_neck)):
-                xAlong.append(xEllipses_neck[n2][n1])
-                d2Along.append(d2Ellipses_neck_new[n2][n1])
-            xSampledAlongNeck, d2SampledAlongNeck = interp.sampleCubicHermiteCurves(xAlong, d2Along,
-                                                                            elementsCountAlongNeck-1,
-                                                                            arcLengthDerivatives=True)[0:2]
-            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongNeck, d2SampledAlongNeck)
-            xRawNeck.append(xSampledAlongNeck)
-            d2RawNeck.append(d2Smoothed)
-
-        # Rearrange x and d2
-        for n2 in range(elementsCountAlongNeck):
-            xAround = []
-            d1Around = []
-            d2Around = []
-            for n1 in range(elementsCountAroundBladder):
-                x = xRawNeck[n1][n2]
-                d2 = d2RawNeck[n1][n2]
-                xAround.append(x)
-                d2Around.append(d2)
-                # Calculate d1
-                v1 = xRawNeck[n1][n2]
-                v2 = xRawNeck[n1 + 1 if n1 < elementsCountAroundBladder - 1 else 0][n2]
-                d1 = findDerivativeBetweenPoints(v1, v2)
-                d1Around.append(d1)
-            d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-            xSampledAll.append(xAround)
-            d1SampledAll.append(d1Smoothed)
-            d2SampledAll.append(d2Around)
-
-        # Smoothing d2  from apex to down the neck
-        d2Raw = []
-        for n1 in range(elementsCountAroundBladder):
+        for n1 in range(elementsCountAround):
             xAlong = []
             d2Along = []
             for n2 in range(elementsCountAlongBladder):
@@ -661,21 +445,22 @@ class MeshType_3d_bladder1(Scaffold_base):
             d2Along.append(xSampledAll[-1][n1])
             d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
             d2Raw.append(d2Smoothed)
+
         # Rearrange d2
-        d2Total = []
+        d2SampledAll = []
         for n2 in range(elementsCountAlongBladder + 1):
             d2Around = []
-            for n1 in range(elementsCountAroundBladder):
+            for n1 in range(elementsCountAround):
                 d2 = d2Raw[n1][n2]
                 d2Around.append(d2)
-            d2Total.append(d2Around)
+            d2SampledAll.append(d2Around)
 
         d3UnitOuter = []
         for n2 in range(1, elementsCountAlongBladder + 1):
             d3Around = []
-            for n1 in range(elementsCountAroundBladder):
+            for n1 in range(elementsCountAround):
                 d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledAll[n2][n1]), vector.normalise(d2Total[n2][n1]))))
+                vector.crossproduct3(vector.normalise(d1SampledAll[n2][n1]), vector.normalise(d2SampledAll[n2][n1]))))
             d3UnitOuter.append(d3Around)
 
         # Inner nodes
@@ -684,10 +469,10 @@ class MeshType_3d_bladder1(Scaffold_base):
         d2Inner = []
         d3Inner = []
         for n2 in range(elementsCountAlongBladder + 1):
-            for n1 in range(elementsCountAroundBladder):
+            for n1 in range(elementsCountAround):
                 x = xSampledAll[n2][n1]
                 d1 = d1SampledAll[n2][n1]
-                d2 = d2Total[n2][n1]
+                d2 = d2SampledAll[n2][n1]
                 d3 = d3UnitOuter[n2-1][n1]
                 xInner.append(x)
                 d1Inner.append(d1)
@@ -697,12 +482,12 @@ class MeshType_3d_bladder1(Scaffold_base):
         # Create outer layers from the inner nodes
         wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
         relativeThicknessList = []
-        transitElementList = [0] * elementsCountAroundBladder
+        transitElementList = [0] * elementsCountAround
         xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xInner, d1Inner,
                                                                                         d2Inner, d3Inner,
                                                                                         wallThicknessList,
                                                                                         relativeThicknessList,
-                                                                                        elementsCountAroundBladder,
+                                                                                        elementsCountAround,
                                                                                         elementsCountAlongBladder,
                                                                                         elementsCountThroughWall,
                                                                                         transitElementList)
@@ -710,8 +495,8 @@ class MeshType_3d_bladder1(Scaffold_base):
         # Deal with multiple nodes at the start point for closed proximal end
         xApexInner = xList[0]
         # Arclength between apex point and corresponding point on next face
-        mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAroundBladder],
-                                              d2List[2 * elementsCountAroundBladder])
+        mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
+                                              d2List[2 * elementsCountAround])
         d2ApexInner = vector.setMagnitude(sd2_dome[0], mag)
 
         d1ApexInner = vector.crossproduct3(sd1_dome[0], d2ApexInner)
@@ -720,6 +505,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
         d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
 
+        # Final nodes on the bladder
         xFinal = []
         d1Final = []
         d2Final = []
@@ -732,20 +518,12 @@ class MeshType_3d_bladder1(Scaffold_base):
             d2Final.append(d2ApexInner)
             d3Final.append(d3ApexInner)
 
-        xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAroundBladder:]
-        d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAroundBladder:]
-        d2Final += d2List[(elementsCountThroughWall + 1) * elementsCountAroundBladder:]
-        d3Final += d3List[(elementsCountThroughWall + 1) * elementsCountAroundBladder:]
+        xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAround:]
+        d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]
+        d2Final += d2List[(elementsCountThroughWall + 1) * elementsCountAround:]
+        d3Final += d3List[(elementsCountThroughWall + 1) * elementsCountAround:]
 
         xFlat = d1Flat = d2Flat = []
-        # neckDiameter = vector.magnitude(sd2_neck[-1])
-        # # xApexInner = xFinal[0]
-        # # d2ApexInner = d2Final[0]
-        # # Obtain flat nodes coordinates
-        # xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAroundBladder, elementsCountThroughWall,
-        #                                                xFinal, d1Final, d2Final, bladderCentralPathLength, neckDiameter, xApexInner, d2ApexInner,
-        #                                                wallThickness)
-
         xOrgan = d1Organ = d2Organ = []
 
         # Create annotation groups for bladder
@@ -763,7 +541,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             for n in range(elementsCount):
                 annotationGroupsAlong.append(annotationGroupAlong[i])
 
-        elementsCountAroundGroups = [elementsCountAroundBladder // 4, elementsCountAroundBladder // 2, elementsCountAroundBladder // 4]
+        elementsCountAroundGroups = [elementsCountAround // 4, elementsCountAround // 2, elementsCountAround // 4]
         annotationGroupAround = [[bladderGroup, bladderVentralGroup], [bladderGroup, bladderDorsalGroup], [bladderGroup, bladderVentralGroup]]
         annotationGroupsAround = []
         for i in range(len(elementsCountAroundGroups)):
@@ -778,27 +556,27 @@ class MeshType_3d_bladder1(Scaffold_base):
         # Create nodes and elements
         nodeIdentifier, elementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
             region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
-            elementsCountAroundBladder, elementsCountAlongBladder, elementsCountThroughWall,
+            elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
 
-        # Define trackSurface to put the ureters on
+        # Define trackSurface to put the ureter markers on
         xTrackSurface = []
         d1TrackSurface = []
         d2TrackSurface = []
         for n2 in range(elementsCountAlongBladder + 1):
-            for n1 in range(elementsCountAroundBladder):
-                idx = n2 * elementsCountAroundBladder + elementsCountAroundBladder + n1
+            for n1 in range(elementsCountAround):
+                idx = n2 * elementsCountAround + elementsCountAround + n1
                 xTrackSurface.append(xList[idx])
                 d1TrackSurface.append(d1List[idx])
                 d2TrackSurface.append(d2List[idx])
-        trackSurfaceBladder = TrackSurface(elementsCountAroundBladder, elementsCountAlongBladder,
+        trackSurfaceBladder = TrackSurface(elementsCountAround, elementsCountAlongBladder,
                                            xTrackSurface, d1TrackSurface, d2TrackSurface, loop1=True)
 
         # Ureter position
         neckStartPositionAlongFactor = domeLength / bladderCentralPathLength
-        # neckStartPositionAlongFactor = arcLengthOfGroupsAlong[0] / bladderCentralPathLength
+        ureterPositionAroundFactor = options['Ureter position around'] / 2
         ureter1Position = trackSurfaceBladder.createPositionProportion(ureterPositionAroundFactor, neckStartPositionAlongFactor)
         ureterElementPositionAround = ureter1Position.e1
 
@@ -822,10 +600,10 @@ class MeshType_3d_bladder1(Scaffold_base):
         xi1 = [0.0, 0.0, 0.0]
         markerList = []
         markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
-        idx2 = elementsCountAlongDome * elementsCountAroundBladder * elementsCountThroughWall + ureterElementPositionAround + 1
+        idx2 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
         xi2 = [ureter1Position.xi1, 0.0, 0.0]
         markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
-        idx3 = elementsCountAlongDome * elementsCountAroundBladder * elementsCountThroughWall + elementsCountAroundBladder - ureterElementPositionAround
+        idx3 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + elementsCountAround - ureterElementPositionAround
         xi3 = [1 - ureter1Position.xi1, 0.0, 0.0]
         markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
 
@@ -850,8 +628,8 @@ class MeshType_3d_bladder1(Scaffold_base):
         :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        refineElementsCountAround = options['Refine number of elements along bladder']
-        refineElementsCountAlong = options['Refine number of elements around bladder']
+        refineElementsCountAround = options['Refine number of elements along']
+        refineElementsCountAlong = options['Refine Number of elements around']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
@@ -1006,182 +784,203 @@ def findDerivativeBetweenPoints(v1, v2):
 
     return d
 
-def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
-                           xFinal, d1Final, d2Final, bladderLength, neckDiameter1, xApexInner, d2ApexInner,
-                           bladderWallThickness):
-    """
-    Calculates flat coordinates for the bladder when it is opened into a flat preparation.
-    :param elementsCountAlongBladder: Number of elements along bladder.
-    :param elementsCountAround: Number of elements around bladder.
-    :param elementsCountThroughWall: Number of elements through wall.
-    :param xFinal, d1Final, d2Final: Coordinates and derivatives of all nodes of coordinates field.
-    :param bladderLength: Bladder length along the central path.
-    :param neckDiameter1: Major diameter of the bladder neck.
-    :param xApexInner, d2ApexInner: Coordinates and d2 of the apex located on the lumen of the bladder.
-    :param bladderWallThickness: Thickness of wall.
-    :return: Coordinates and derivatives of flat coordinates field.
-    """
-    # Calculate ellipses circumference along the bladder inner layer(lumen)
-    circumferenceList = []
-    minorNodeAlong_x = []
-    minorNodeAlong_d2 = []
-    for n1 in range(1, elementsCountAlongBladder + 1):
-        xNodesOnEllipse = []
-        d1NodesOnEllipse = []
-        idMinor = (n1 - 1) * elementsCountAround * (elementsCountThroughWall + 1) + elementsCountThroughWall + 1
-        minorNodeAlong_x.append(xFinal[idMinor])
-        minorNodeAlong_d2.append(d2Final[idMinor])
-        for n2 in range(elementsCountAround):
-            id = n2 + idMinor
-            x = xFinal[id]
-            d1 = d1Final[id]
-            xNodesOnEllipse.append(x)
-            d1NodesOnEllipse.append(d1)
-        xNodesOnEllipse.append(xFinal[idMinor])
-        d1NodesOnEllipse.append(d1Final[idMinor])
-        circumference = interp.getCubicHermiteCurvesLength(xNodesOnEllipse, d1NodesOnEllipse)
-        circumferenceList.append(circumference)
-    maxCircumference = max(circumferenceList)
+def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome):
 
-    # Find the angle at the bottom of the bladder neck
-    v1 = [0.0, 0.0, bladderLength]
-    v2 = [0.5 * neckDiameter1, 0.0, bladderLength]
-    alpha = vector.angleBetweenVectors(v1, v2)
+    # Find Apex nodes d2
+    d2Apex = []
+    d2 = sx_dome_group[2][0]
+    for n1 in range(elementsCountAround):
+        rotAngle = n1 * 2.0 * math.pi / elementsCountAround
+        rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(sx_dome_group[2][0]), vector.normalise(sx_dome_group[4][0])))
+        rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
+        d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
+        d2Apex.append(d2Rot)
 
-    # Find apex to urethra arcLength in minor radius
-    minorNodeAlong_x.insert(0, xApexInner)
-    minorNodeAlong_d2.insert(0, d2ApexInner)
-    minorarcLength = interp.getCubicHermiteCurvesLength(minorNodeAlong_x, minorNodeAlong_d2)
+    # Create ellipses along dome around the central path
+    xEllipses_dome = []
+    d1Ellipses_dome = []
+    for n in range(1, len(sx_dome_group[0])):
+        px, pd1 = createEllipsePoints(sx_dome_group[0][n], 2 * math.pi, sx_dome_group[2][n], sx_dome_group[4][n], elementsCountAround,
+                                      startRadians=0.0)
+        xEllipses_dome.append(px)
+        d1Ellipses_dome.append(pd1)
 
-    # calculate nodes coordinates based on Hammer projection formulation
-    xfnList = []
-    angleAlongUnit = (math.pi - alpha) / elementsCountAlongBladder
-    angleAroundUnit = 2 * math.pi / elementsCountAround
-    for n2 in range(1, elementsCountAlongBladder + 1):
-        for n1 in range(elementsCountAround + 1):
-            phi = -math.pi / 2 - alpha + n2 * angleAlongUnit
-            if n1 < elementsCountAround // 2 + 1:
-                theta = n1 * angleAroundUnit
+    # Find d2
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipses_dome) - 1):
+            v1 = xEllipses_dome[n2][n1]
+            v2 = xEllipses_dome[n2 + 1][n1]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlong.append(v1)
+            d2Along.append(d2)
+        xAlong.append(xEllipses_dome[-1][n1])
+        d2Along.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2Ellipses_dome = []
+    for n2 in range(len(xEllipses_dome)):
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            d2 = d2Raw[n1][n2]
+            d2Around.append(d2)
+        d2Ellipses_dome.append(d2Around)
+
+    # Merge apex and dome
+    domeNodes_x = [[sx_dome_group[0][0]] * elementsCountAround] + xEllipses_dome
+    domeNodes_d2 = [d2Apex] + d2Ellipses_dome
+
+    # Spread out elements along dome of the bladder
+    xRaw = []
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(domeNodes_x)):
+            xAlong.append(domeNodes_x[n2][n1])
+            d2Along.append(domeNodes_d2[n2][n1])
+        xSampledAlongDome, d2SampledAlongDome = interp.sampleCubicHermiteCurves(xAlong, d2Along,
+                                                                                elementsCountAlongDome,
+                                                                                arcLengthDerivatives=True)[0:2]
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongDome, d2SampledAlongDome)
+        xRaw.append(xSampledAlongDome)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange x and d2
+    xSampledDome = []
+    d1SampledDome = []
+    d2SampledDome = []
+    for n2 in range(elementsCountAlongDome + 1):
+        xAround = []
+        d1Around = []
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            x = xRaw[n1][n2]
+            d2 = d2Raw[n1][n2]
+            xAround.append(x)
+            d2Around.append(d2)
+            # Calculate d1
+            if n2 > 0:
+                v1 = xRaw[n1][n2]
+                v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 2 else 0][n2]
+                d1 = findDerivativeBetweenPoints(v1, v2)
+                d1Around.append(d1)
             else:
-                theta = math.pi - n1 * angleAroundUnit
-            t = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2))
-            xScale = maxCircumference / 2
-            yScale = bladderLength / 2
-            x = [xScale * math.cos(phi) * math.sin(theta / 2) / t,
-                 yScale * (math.sin(phi) / t + 1),
-                 0.0]
-            xfnList.append(x)
+                d1Around.append(d2Raw[n2][0])
+        if n2 > 0:
+            d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+        else:
+            d1Smoothed = d1Around
+        xSampledDome.append(xAround)
+        d1SampledDome.append(d1Smoothed)
+        d2SampledDome.append(d2Around)
 
-    # Rearrange the nodes
-    xfnListRearranged = []
-    for n2 in range(elementsCountAlongBladder):
-        for n1 in range(elementsCountAround + 1):
-            if n1 < elementsCountAround // 2 + 1:
-                nodeIndex = n2 * (elementsCountAround + 1) + elementsCountAround // 2 - n1
-            else:
-                nodeIndex = n2 * (elementsCountAround + 1) + n1
-            xfnListRearranged.append(xfnList[nodeIndex])
+    return xSampledDome, d1SampledDome, d2SampledDome
 
-    # Define d1 for flat nodes
-    d1fnListRearranged = []
-    for n2 in range(elementsCountAlongBladder):
-        for n1 in range(elementsCountAround + 1):
-            if n1 == elementsCountAround:
-                id = (elementsCountAround + 1) * n2
-                d1 = [d1fnListRearranged[id][0], -d1fnListRearranged[id][1], d1fnListRearranged[id][2]]
-            else:
-                v1 = xfnListRearranged[(elementsCountAround + 1) * n2 + n1]
-                v2 = xfnListRearranged[(elementsCountAround + 1) * n2 + n1 + 1]
-                d1 = [v2[c] - v1[c] for c in range(3)]
-            d1fnListRearranged.append(d1)
-    # Smoothing the derivatives
-    smoothed_d1 = []
-    for n2 in range(elementsCountAlongBladder):
-        xLineSmoothing = []
-        d1LineSmoothing = []
-        for n1 in range(elementsCountAround + 1):
-            xLineSmoothing.append(xfnListRearranged[n2 * (elementsCountAround + 1) + n1])
-            d1LineSmoothing.append(d1fnListRearranged[n2 * (elementsCountAround + 1) + n1])
-        smd1 = interp.smoothCubicHermiteDerivativesLine(xLineSmoothing, d1LineSmoothing, fixAllDirections=False,
-                                                 fixStartDerivative=True, fixEndDerivative=True,
-                                                 fixStartDirection=False, fixEndDirection=False)
-        smoothed_d1 += smd1
+def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, neckSegmentLength, elementsCountAround, elementsCountAlongNeck, xDome, d2Dome):
 
-    # Define d2 for flat nodes
-    # Create lines from top go down the bladder
-    xNodesToDown = []
-    d2NodesToDown = []
-    for n2 in range(elementsCountAround + 1):
-        x = [xfnListRearranged[n1 * (elementsCountAround + 1) + n2] for n1 in range(0, elementsCountAlongBladder)]
-        xNodesToDown += x
-        for n1 in range(1, elementsCountAlongBladder + 1):
-            if n1 == elementsCountAlongBladder:
-                d2 = [0.0, minorarcLength / elementsCountAlongBladder, 0.0]
-            else:
-                v1 = xNodesToDown[elementsCountAlongBladder * n2 + n1 - 1]
-                v2 = xNodesToDown[elementsCountAlongBladder * n2 + n1]
-                d2 = [v2[c] - v1[c] for c in range(3)]
-            d2NodesToDown.append(d2)
-    # Smoothing the derivatives
-    smoothed_d2 = []
-    for n1 in range(elementsCountAround + 1):
-        lineSmoothingNodes = []
-        lineSmoothingNodes_d2 = []
-        for n2 in range(elementsCountAlongBladder):
-            lineSmoothingNodes.append(xNodesToDown[n1 * elementsCountAlongBladder + n2])
-            lineSmoothingNodes_d2.append(d2NodesToDown[n1 * elementsCountAlongBladder + n2])
-        smd2 = interp.smoothCubicHermiteDerivativesLine(lineSmoothingNodes, lineSmoothingNodes_d2, fixAllDirections=False,
-                                                 fixStartDerivative=False, fixEndDerivative=True,
-                                                 fixStartDirection=False, fixEndDirection=False)
-        smoothed_d2 += smd2
-    # Re-arrange the derivatives order
-    d2fnListRearranged = []
-    for n2 in range(elementsCountAlongBladder):
-        for n1 in range(elementsCountAround + 1):
-            rd2 = smoothed_d2[n1 * elementsCountAlongBladder + n2]
-            d2fnListRearranged.append(rd2)
+    # Transition
+    transitLength = (domeSegmentLength + neckSegmentLength) / 2
+    if transitLength < neckSegmentLength:
+        e = 1
+        xi = transitLength / neckSegmentLength
+    else:
+        e = int(transitLength / neckSegmentLength) + 1
+        xi = transitLength / (e * neckSegmentLength)
+    xTransition = interp.interpolateCubicHermite(sx_dome_group[0][-1], sx_dome_group[1][-1], sx_neck_group[0][e], sx_neck_group[1][e], xi)
+    # d1Transition = interp.interpolateCubicHermiteDerivative(sx_dome_group[0][-1], sx_dome_group[1][-1], sx_neck_group[0][e], sx_neck_group[1][e], xi)
+    d2Transition = interp.interpolateCubicHermite(sx_dome_group[2][-1], sx_dome_group[3][-1], sx_neck_group[2][e], sx_neck_group[3][e], xi)
+    d3Transition = interp.interpolateCubicHermite(sx_dome_group[4][-1], sx_dome_group[5][-1], sx_neck_group[4][e], sx_neck_group[5][e], xi)
+    px_transit, pd1_transit = createEllipsePoints(xTransition, 2 * math.pi, d2Transition, d3Transition, elementsCountAround,
+                                                  startRadians=0.0)
 
-    # Create the nodes through the wall
-    xflatList = []
-    d1flatList = []
-    d2flatList = []
-    for n2 in range(elementsCountThroughWall + 1):
-        for n1 in range(len(xfnListRearranged)):
-            x = [xfnListRearranged[n1][0], xfnListRearranged[n1][1], n2 * bladderWallThickness / elementsCountThroughWall]
-            d1 = smoothed_d1[n1]
-            d2 = d2fnListRearranged[n1]
-            xflatList.append(x)
-            d1flatList.append(d1)
-            d2flatList.append(d2)
+    # d2Around = []
+    # for n1 in range(elementsCountAround):
+    #     v1 = xDome[-1][n1]
+    #     v2 = px_transit[n1]
+    #     d2 = findDerivativeBetweenPoints(v1, v2)
+    #     # xAlong.append(v1)
+    #     d2Around.append(d2)
+    # d2Dome = d2Dome[:-1] + [d2Around]
 
-    # Apex derivatives
-    v1 = xApexInner
-    v1 = [0.0, 0.0, 0.0]
-    v2 = xfnListRearranged[0]
-    v3 = xfnListRearranged[elementsCountAround // 2]
-    v21 = [v2[c] - v1[c] for c in range(3)]
-    v31 = [v3[c] - v1[c] for c in range(3)]
-    d1Mag = vector.magnitude(v21)
-    d2Mag = vector.magnitude(v31)
+    # Create ellipses along neck around the central path
+    sx_neck_new = [xTransition] + sx_neck_group[0][e:]
+    sd2_neck_new = [d2Transition] + sx_neck_group[2][e:]
+    sd3_neck_new = [d3Transition] + sx_neck_group[4][e:]
+    xEllipses_neck = []
+    d1Ellipses_neck = []
+    for n in range(0, len(sx_neck_new)):
+        px, pd1 = createEllipsePoints(sx_neck_new[n], 2 * math.pi, sd2_neck_new[n], sd3_neck_new[n], elementsCountAround,
+                                      startRadians=0.0)
+        xEllipses_neck.append(px)
+        d1Ellipses_neck.append(pd1)
 
-    # Add apex nodes to the list
-    xFlat = []
-    d1Flat = []
-    d2Flat = []
-    for n1 in range(elementsCountThroughWall + 1):
-        # xApex = [xApexInner[0], xApexInner[1], xApexInner[2] + n1 * bladderWallThickness / elementsCountThroughWall]
-        xApex = [0.0, 0.0, 0.0 + n1 * bladderWallThickness / elementsCountThroughWall]
-        xFlat.append(xApex)
-        d1Flat.append([-d1Mag, 0.0, 0.0])
-        d2Flat.append([0.0, d2Mag, 0.0])
+    # Find d2
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipses_neck) - 1):
+            v1 = xEllipses_neck[n2][n1]
+            v2 = xEllipses_neck[n2 + 1][n1]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlong.append(v1)
+            d2Along.append(d2)
+        xAlong.append(xEllipses_neck[-1][n1])
+        d2Along.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
+        d2Raw.append(d2Along)
 
-    # Re-arrange the nodes
-    for n3 in range(1, elementsCountAlongBladder + 1):
-        for n2 in range(elementsCountThroughWall + 1):
-            for n1 in range(elementsCountAround + 1):
-                i = (n3 - 1) * (elementsCountAround + 1) + n2 * (elementsCountAround + 1) * elementsCountAlongBladder + n1
-                xFlat.append(xflatList[i])
-                d1Flat.append(d1flatList[i])
-                d2Flat.append(d2flatList[i])
+    # Rearrange d2
+    d2Ellipses_neck_new = []
+    for n2 in range(len(xEllipses_neck)):
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            d2 = d2Raw[n1][n2]
+            d2Around.append(d2)
+        d2Ellipses_neck_new.append(d2Around)
 
-    return xFlat, d1Flat, d2Flat
+    # Spread out elements along neck of the bladder
+    xRawNeck = []
+    d2RawNeck = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipses_neck)):
+            xAlong.append(xEllipses_neck[n2][n1])
+            d2Along.append(d2Ellipses_neck_new[n2][n1])
+        xSampledAlongNeck, d2SampledAlongNeck = interp.sampleCubicHermiteCurves(xAlong, d2Along,
+                                                                                elementsCountAlongNeck - 1,
+                                                                                arcLengthDerivatives=True)[0:2]
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongNeck, d2SampledAlongNeck)
+        xRawNeck.append(xSampledAlongNeck)
+        d2RawNeck.append(d2Smoothed)
+
+    # Rearrange x and d2
+    xSampledNeck = []
+    d1SampledNeck = []
+    d2SampledNeck = []
+    for n2 in range(elementsCountAlongNeck):
+        xAround = []
+        d1Around = []
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            x = xRawNeck[n1][n2]
+            d2 = d2RawNeck[n1][n2]
+            xAround.append(x)
+            d2Around.append(d2)
+            # Calculate d1
+            v1 = xRawNeck[n1][n2]
+            v2 = xRawNeck[n1 + 1 if n1 < elementsCountAround - 1 else 0][n2]
+            d1 = findDerivativeBetweenPoints(v1, v2)
+            d1Around.append(d1)
+        d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+        xSampledNeck.append(xAround)
+        d1SampledNeck.append(d1Smoothed)
+        d2SampledNeck.append(d2Around)
+
+    return xSampledNeck, d1SampledNeck, d2SampledNeck, px_transit
