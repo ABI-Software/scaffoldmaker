@@ -1475,9 +1475,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             x = xAroundAll[n2][n1]
             xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
             xAroundTransformed.append([xRot1[j] + translateMatrix[j] for j in range(3)])
-
         xAroundAllTransformed.append(xAroundTransformed)
-
 
     for n in range(elementEllipsoidEnd + 1, len(sxFundus) - 1):
         x = sampleEllipsePoints(sxFundus[n], sd2Fundus[n], sd3Fundus[n], 0.0, math.pi * 2.0, elementsCountAroundDuod)[0]
@@ -1854,75 +1852,99 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xAlongCurvatures = xAlongGCHalfDuod + xAlongLCHalfDuod
     d2AlongCurvatures = d2AlongGCHalfDuod + d2AlongLCHalfDuod
 
-    esoCount = 2
+    esoCount = 1
     for n2 in range(1, len(xEllipseAroundAll) - 1):
-        if n2 == elementsAlongFundusApexToCardia:
-            xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[1]
-            d1EllipseAroundAll[n2][elementsAroundHalfDuod - 1] = d1AnnulusOuter[1]
-            xEllipseAroundAll[n2][elementsAroundHalfDuod] = xAnnulusOuter[0]
-            xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[-1]
-            d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1] = d1AnnulusOuter[-1]
+        startAnnulus = n2 == elementsAlongFundusApexToCardia
+        endAnnulus = n2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2
+        interiorAnnulus = \
+            elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2
 
-            # Smooth two halves separately and join together again with d1 at xOuterAnnulus[0]
-            d1SmoothedFirstHalf = \
-                interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][:elementsAroundHalfDuod],
-                                                         d1EllipseAroundAll[n2][:elementsAroundHalfDuod],
-                                                         fixEndDerivative=True)
-            d1SmoothedSecondHalf = \
-                interp.smoothCubicHermiteDerivativesLine(
-                    xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [xEllipseAroundAll[n2][0]],
-                    d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [d1SmoothedFirstHalf[0]],
-                    fixStartDerivative=True, fixEndDerivative=True)
-
-            d1EllipseAroundAll[n2] = d1SmoothedFirstHalf + [d1AnnulusOuter[0]] + d1SmoothedSecondHalf[:-1]
-
-        elif elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2:
-            # Replace point near annulus with annulus point and smooth ventral and dorsal side separately
-            # First half
+        if startAnnulus or interiorAnnulus or endAnnulus:
             xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[esoCount]
             d1EllipseAroundAll[n2][elementsAroundHalfDuod - 1] = d1AnnulusOuter[esoCount]
-            d1EllipseAroundAll[n2][:elementsAroundHalfDuod] = \
-                interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][:elementsAroundHalfDuod],
-                                                         d1EllipseAroundAll[n2][:elementsAroundHalfDuod],
-                                                         fixEndDerivative=True)
-
-            # Second half
             xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[-esoCount]
             d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1] = d1AnnulusOuter[-esoCount]
 
-            d1Smoothed = \
-                interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] +
-                                                         [xEllipseAroundAll[n2][0]],
-                                                         d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] +
-                                                         [d1EllipseAroundAll[n2][0]],
-                                                         fixStartDerivative=True, fixEndDerivative=True)
-            d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] = d1Smoothed[:-1]
-            esoCount += 1
+            if startAnnulus or endAnnulus:
+                xEllipseAroundAll[n2][elementsAroundHalfDuod] = \
+                    xAnnulusOuter[0 if startAnnulus else elementsAroundHalfEso]
 
-            del xEllipseAroundAll[n2][elementsAroundHalfDuod]
-            del d1EllipseAroundAll[n2][elementsAroundHalfDuod]
-            del d2EllipseAroundAll[n2][elementsAroundHalfDuod]
+            xPositionA = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2][elementsAroundQuarterDuod])
+            xProportionA = trackSurfaceStomach.getProportion(xPositionA)
+            xPositionB = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[esoCount])
+            xProportionB = trackSurfaceStomach.getProportion(xPositionB)
 
-        elif n2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2:
-            xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[elementsAroundHalfEso - 1]
-            d1EllipseAroundAll[n2][elementsAroundHalfDuod - 1] = d1AnnulusOuter[elementsAroundHalfEso - 1]
-            xEllipseAroundAll[n2][elementsAroundHalfDuod] = xAnnulusOuter[elementsAroundHalfEso]
-            xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[elementsAroundHalfEso + 1]
-            d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1] = d1AnnulusOuter[elementsAroundHalfEso + 1]
+            nx, nd1, nd2, nd3, proportions = \
+                trackSurfaceStomach.createHermiteCurvePoints(
+                    xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1], elementsAroundQuarterDuod - 1,
+                    derivativeStart=d1EllipseAroundAll[n2][elementsAroundQuarterDuod])
 
-            # Smooth two halves separately and join together again with d1 at xOuterAnnulus[halfEso]
+            nx, nd1 = \
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
+                                                                     derivativeMagnitudeStart=
+                                                                     vector.magnitude(d1EllipseAroundAll[n2]
+                                                                                      [elementsAroundQuarterDuod]))[0:2]
+
+            xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nx[1:-1]
+            d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nd1[1:-1]
+
+            # Smooth two halves separately and join together again with d1 at xOuterAnnulus[0] and
+            # xOuterAnnulus[elementsAroundHalfEso]
             d1SmoothedFirstHalf = \
                 interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][:elementsAroundHalfDuod],
                                                          d1EllipseAroundAll[n2][:elementsAroundHalfDuod],
                                                          fixEndDerivative=True)
-            d1SmoothedSecondHalf = \
-                interp.smoothCubicHermiteDerivativesLine(
-                    xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [xEllipseAroundAll[n2][0]],
-                    d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [d1SmoothedFirstHalf[0]],
-                    fixStartDerivative=True, fixEndDerivative=True)
+            if interiorAnnulus:
+                d1EllipseAroundAll[n2][:elementsAroundHalfDuod] = d1SmoothedFirstHalf
 
-            d1EllipseAroundAll[n2] = d1SmoothedFirstHalf + [d1AnnulusOuter[elementsAroundHalfEso]] + \
-                                     d1SmoothedSecondHalf[:-1]
+            xPositionA = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[-esoCount])
+            xProportionA = trackSurfaceStomach.getProportion(xPositionA)
+            xPositionB = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2][elementsAroundHalfDuod +
+                                                                                       elementsAroundQuarterDuod])
+            xProportionB = trackSurfaceStomach.getProportion(xPositionB)
+
+            nx, nd1, nd2, nd3, proportions = \
+                trackSurfaceStomach.createHermiteCurvePoints(
+                    xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
+                    elementsAroundQuarterDuod - 1,
+                    derivativeEnd=d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod])
+
+            nx, nd1 = \
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
+                                                                     derivativeMagnitudeEnd=
+                                                                     vector.magnitude(d1EllipseAroundAll[n2]
+                                                                                      [elementsAroundHalfDuod +
+                                                                                       elementsAroundQuarterDuod]))[0:2]
+
+            xEllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
+                nx[1:-1]
+            d1EllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
+                nd1[1:-1]
+
+            esoCount += 1
+            if startAnnulus or endAnnulus:
+                d1SmoothedSecondHalf = \
+                    interp.smoothCubicHermiteDerivativesLine(
+                        xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [xEllipseAroundAll[n2][0]],
+                        d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [d1SmoothedFirstHalf[0]],
+                        fixStartDerivative=True, fixEndDerivative=True)
+
+                d1EllipseAroundAll[n2] = d1SmoothedFirstHalf + \
+                                         [d1AnnulusOuter[0 if startAnnulus else elementsAroundHalfEso]] + \
+                                         d1SmoothedSecondHalf[:-1]
+            else:
+                d1Smoothed = \
+                    interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] +
+                                                             [xEllipseAroundAll[n2][0]],
+                                                             d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] +
+                                                             [d1EllipseAroundAll[n2][0]],
+                                                             fixStartDerivative=True, fixEndDerivative=True)
+
+                d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] = d1Smoothed[:-1]
+
+                del xEllipseAroundAll[n2][elementsAroundHalfDuod]
+                del d1EllipseAroundAll[n2][elementsAroundHalfDuod]
+                del d2EllipseAroundAll[n2][elementsAroundHalfDuod]
 
         elif 0 < n2 < elementsAlongFundusApexToCardia or \
                 elementsAlongFundusApexToCardia + elementsAroundHalfEso - 1 <= n2 < elementsAlongFundusApexToCardia + \
