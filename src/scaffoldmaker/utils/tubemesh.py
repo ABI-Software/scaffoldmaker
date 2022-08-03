@@ -579,11 +579,12 @@ def createNodesAndElements(region,
         flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         flatElementtemplate2.defineField(flatCoordinates, -1, eftFlat2)
 
-        flatElementtemplateApex1 = mesh.createElementtemplate()
-        flatElementtemplateApex1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        if closedProximalEnd:
+            flatElementtemplateApex1 = mesh.createElementtemplate()
+            flatElementtemplateApex1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-        flatElementtemplateApex2 = mesh.createElementtemplate()
-        flatElementtemplateApex2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            flatElementtemplateApex2 = mesh.createElementtemplate()
+            flatElementtemplateApex2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
     if xOrgan:
         # Organ coordinates field
@@ -636,7 +637,7 @@ def createNodesAndElements(region,
                 if useCrossDerivatives:
                     flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
                 nodeIdentifier = nodeIdentifier + 1
-        for n2 in range(elementsCountAlong):
+        for n2 in range(elementsCountAlong if closedProximalEnd else elementsCountAlong + 1):
             for n3 in range(elementsCountThroughWall + 1):
                 for n1 in range(elementsCountAround):
                     if closedProximalEnd:
