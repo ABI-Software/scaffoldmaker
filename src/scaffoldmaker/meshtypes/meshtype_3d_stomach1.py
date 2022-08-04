@@ -649,8 +649,8 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 12
         if options['Number of elements around duodenum'] % 4 > 0:
             options['Number of elements around duodenum'] = options['Number of elements around duodenum'] // 4 * 4
-        if options['Number of elements between fundus apex and cardia'] < 4:
-            options['Number of elements between fundus apex and cardia'] = 4
+        if options['Number of elements between fundus apex and cardia'] < 2:
+            options['Number of elements between fundus apex and cardia'] = 2
         if options['Number of elements between cardia and duodenum'] < 4:
             options['Number of elements between cardia and duodenum'] = 4
         if options['Number of elements through wall'] != (1 or 4):
