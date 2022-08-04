@@ -519,7 +519,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around duodenum': 16,
-            'Number of elements between fundus apex and cardia': 4,
+            'Number of elements between fundus apex and cardia': 3,
             'Number of elements between cardia and duodenum': 6,
             'Number of elements through wall': 4,
             'Wall thickness': 5.0,
@@ -546,7 +546,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = True
         elif 'Pig 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 4
+            options['Number of elements between fundus apex and cardia'] = 3
             options['Number of elements between cardia and duodenum'] = 7
             options['Wall thickness'] = 5.0
             options['Mucosa relative thickness'] = 0.47
