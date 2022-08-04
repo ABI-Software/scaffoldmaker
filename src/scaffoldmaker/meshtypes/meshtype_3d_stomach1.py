@@ -645,8 +645,6 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Gastro-esophagal junction'):
             options['Gastro-esophagal junction'] = cls.getOptionScaffoldPackage('Gastro-esophagal junction',
                                                                                 MeshType_3d_ostium1)
-        if options['Number of elements around esophagus'] % 4 > 0:
-            options['Number of elements around esophagus'] = options['Number of elements around esophagus'] // 4 * 4
         if options['Number of elements around duodenum'] < 12:
             options['Number of elements around duodenum'] = 12
         if options['Number of elements around duodenum'] % 4 > 0:
