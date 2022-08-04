@@ -26,8 +26,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1", "Material"])
         options = scaffold.getDefaultOptions("Rat 1")
-        self.assertEqual(17, len(options))
-        self.assertEqual(8, options.get("Number of elements around esophagus"))
+        self.assertEqual(16, len(options))
         self.assertEqual(16, options.get("Number of elements around duodenum"))
         self.assertEqual(6, options.get("Number of elements between cardia and duodenum"))
         self.assertEqual(0.5, options.get("Wall thickness"))
@@ -68,8 +67,8 @@ class StomachScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-17.096481817461417, -16.181000081315087, -8.799997503197643], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [17.84599437195432, 15.915999863325624, 8.799999497564551], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-17.096481817461417, -16.181000081315087, -8.8], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [ 17.845967033547907, 15.915999863325624, 8.799999497564551], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -81,10 +80,10 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 2283.17181587405, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 2283.09899321184, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 744.6405284650127, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 744.6413814849769, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
