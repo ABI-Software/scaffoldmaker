@@ -1572,6 +1572,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2Raw = []
     xRawSampled = []
     d2RawSampled = []
+    arcLengthsAlongTS = []
     for n1 in range(elementsCountAroundDuod):
         xAlong = []
         d2Along = []
@@ -1589,6 +1590,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         d2AlongSampledSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSampled, d2AlongSampled)
         d2RawSampled.append(d2AlongSampledSmoothed)
         xRawSampled.append(xAlongSampled)
+
+        if n1 in [elementsAroundQuarterDuod, elementsAroundHalfDuod,
+                  elementsAroundHalfDuod + elementsAroundQuarterDuod]:
+            arcLength = 0.0
+            for n2 in range(len(xAlongSampled) - 1):
+                arcLength += interp.getCubicHermiteArcLength(xAlongSampled[n2], d2AlongSampledSmoothed[n2],
+                                                             xAlongSampled[n2 + 1], d2AlongSampledSmoothed[n2 + 1])
+            arcLengthsAlongTS.append(arcLength)
 
     # Rearrange d2
     for n2 in range(len(xEllipseAroundAll)):
@@ -1843,6 +1852,33 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2AlongCurvatures = d2AlongGCHalfDuod + d2AlongLCHalfDuod
 
     esoCount = 1
+    # Find arclengths to points on quarter, GC and 3-quarter fundus as trackSurface search for nearest position doesnt
+    # work well near apex
+    proportionsAlongQuarterMidThree = []
+    count = 0
+    for n1 in [elementsAroundQuarterDuod, elementsAroundHalfDuod, elementsAroundQuarterDuod + elementsAroundHalfDuod]:
+        xAlong = []
+        arcLength = 0.0
+        proportions = []
+        for n2 in range(elementsAlongFundusApexToCardia):
+            xAlong.append(xEllipseAroundAll[n2][n1])
+
+        rotAngle = -math.pi * 2.0 / elementsCountAroundDuod * n1
+        rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
+        d2ApexRot = [rotFrame[j][0] * d2Apex[0] + rotFrame[j][1] * d2Apex[1] +
+                     rotFrame[j][2] * d2Apex[2] for j in range(3)]
+        d2Along = [d2ApexRot]
+
+        for n2 in range(len(xAlong) - 1):
+            d2Along.append(findDerivativeBetweenPoints(xAlong[n2], xAlong[n2 + 1]))
+
+        for n2 in range(len(xAlong) - 1):
+            arcLength += interp.getCubicHermiteArcLength(xAlong[n2], d2Along[n2], xAlong[n2 + 1], d2Along[n2 + 1])
+            proportion = arcLength / arcLengthsAlongTS[count]
+            proportions.append(proportion)
+        proportionsAlongQuarterMidThree.append(proportions)
+        count += 1
+
     for n2 in range(1, len(xEllipseAroundAll) - 1):
         startAnnulus = n2 == elementsAlongFundusApexToCardia
         endAnnulus = n2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2
@@ -1951,6 +1987,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     xToSample = [xEllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
                                 [xAlongGCHalfDuod[n2]] + \
                                 [xEllipseAroundAll[n2][elementsAroundQuarterDuod + elementsAroundHalfDuod]]
+                    xToSampleProportion0 = [0.25, 0.5, 0.75]
+                    xToSampleProportion1 = [proportionsAlongQuarterMidThree[0][n2 - 1],
+                                            proportionsAlongQuarterMidThree[1][n2 - 1],
+                                            proportionsAlongQuarterMidThree[2][n2 - 1]]
                 else:
                     n2Idx = n2 - (elementsAlongFundusApexToCardia + elementsAroundHalfEso - 1) + 1
                     xToSample = [xEllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
@@ -1961,10 +2001,19 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                              [d1EllipseAroundAll[n2][elementsAroundHalfDuod]] + \
                              [d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod]]
 
-                xPositionA = trackSurfaceStomach.findNearestPosition(xToSample[0])
-                xProportionA = trackSurfaceStomach.getProportion(xPositionA)
-                xPositionB = trackSurfaceStomach.findNearestPosition(xToSample[1])
-                xProportionB = trackSurfaceStomach.getProportion(xPositionB)
+                if 0 < n2 < elementsAlongFundusApexToCardia:
+                    xProportionA = [xToSampleProportion0[0], xToSampleProportion1[0]]
+                    xProportionB = [xToSampleProportion0[1], xToSampleProportion1[1]]
+                    xProportionC = [xToSampleProportion0[2], xToSampleProportion1[2]]
+
+                else:
+                    xPositionA = trackSurfaceStomach.findNearestPosition(xToSample[0])
+                    xProportionA = trackSurfaceStomach.getProportion(xPositionA)
+                    xPositionB = trackSurfaceStomach.findNearestPosition(xToSample[1])
+                    xProportionB = trackSurfaceStomach.getProportion(xPositionB)
+                    xPositionC = trackSurfaceStomach.findNearestPosition(xToSample[2])
+                    xProportionC = trackSurfaceStomach.getProportion(xPositionC)
+
                 nx, nd1, nd2, nd3, proportions = \
                     trackSurfaceStomach.createHermiteCurvePoints(
                         xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
@@ -1975,8 +2024,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
                         nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=vector.magnitude(d1ToSample[0]))[0:2]
 
-                xPositionC = trackSurfaceStomach.findNearestPosition(xToSample[2])
-                xProportionC = trackSurfaceStomach.getProportion(xPositionC)
                 nx, nd1, nd2, nd3, proportions = \
                     trackSurfaceStomach.createHermiteCurvePoints(
                         xProportionB[0], xProportionB[1],  xProportionC[0], xProportionC[1], elementsAroundQuarterDuod,
@@ -3017,9 +3064,12 @@ def findThetaFromArcDistance(xPt, arcDistance, xCentralPath, dCentralPath):
     :return theta: angle between vectors
     """
     xGuess, dGuess = interp.getCubicHermiteCurvesPointAtArcDistance(xCentralPath, dCentralPath, arcDistance)[0:2]
-    dxPt = findDerivativeBetweenPoints(xGuess, xPt)
-    cosTheta = vector.dotproduct(dGuess, dxPt) / (vector.magnitude(dGuess) * vector.magnitude(dxPt))
-    cosTheta = 1 if cosTheta > 1.0 else cosTheta
-    theta = abs(math.pi * 0.5 - math.acos(cosTheta))
-
-    return theta
+    if xGuess == xPt:
+        return 0.0
+    else:
+        dxPt = findDerivativeBetweenPoints(xGuess, xPt)
+        cosTheta = vector.dotproduct(dGuess, dxPt) / (vector.magnitude(dGuess) * vector.magnitude(dxPt))
+        if abs(cosTheta) > 1.0:
+            cosTheta = 1.0 if cosTheta > 0.0 else -1.0
+        theta = abs(math.pi * 0.5 - math.acos(cosTheta))
+        return theta
