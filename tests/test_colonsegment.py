@@ -117,7 +117,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(surfaceArea, 468.17062489996886, delta=1.0E-6)
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 468.1706248998369, delta=1.0E-3)
+        self.assertAlmostEqual(flatSurfaceArea, surfaceArea, delta=1.0E-3)
 
 
 if __name__ == "__main__":
