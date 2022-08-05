@@ -48,18 +48,18 @@ class BladderScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateBaseMesh(region, options)
-        self.assertEqual(13, len(annotationGroups))
+        self.assertEqual(12, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(240, mesh3d.getSize())
+        self.assertEqual(144, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(960, mesh2d.getSize())
+        self.assertEqual(576, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1201, mesh1d.getSize())
+        self.assertEqual(721, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(487, nodes.getSize())
+        self.assertEqual(295, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -67,7 +67,13 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [-15.48570141314588, -12.992184072505665, -0.5], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [15.485696373577879, 13.837536258199144, 127.68631532717487], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [15.485696373577879, 12.992185118079435, 60.65303081523686], 1.0E-6)
+
+        flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
+        self.assertTrue(flatCoordinates.isValid())
+        minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
+        assertAlmostEqualList(self, minimums, [-37.166408946939285, 0.0, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [43.162112471562814, 60.35206128046009, 0.5], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -76,19 +82,24 @@ class BladderScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
             volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
             volumeField.setNumbersOfPoints(3)
+            flatSurfaceAreaField = fieldmodule.createFieldMeshIntegral(one, flatCoordinates, faceMeshGroup)
+            flatSurfaceAreaField.setNumbersOfPoints(4)
+
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 5334.9516480055845, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 4564.8516929316065, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 2555.560965374249, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 2221.200414557121, delta=1.0E-6)
+        result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
+        self.assertEqual(result, RESULT_OK)
+        self.assertAlmostEqual(flatSurfaceArea, 4087.7670057497376, delta=1.0E-3)
 
         # check some annotationGroups:
         expectedSizes3d = {
             "dome of the bladder": 108,
             "neck of urinary bladder": 36,
-            "urethra": 96,
             "urinary bladder": 144
             }
         for name in expectedSizes3d:
@@ -125,7 +136,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
 
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(13, len(annotationGroups))
+        self.assertEqual(12, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -145,16 +156,16 @@ class BladderScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(37, len(annotationGroups))
+        self.assertEqual(30, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(15360, mesh3d.getSize())
+        self.assertEqual(9216, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(49920, mesh2d.getSize())
+        self.assertEqual(29952, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(53764, mesh1d.getSize())
+        self.assertEqual(32260, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(19210, nodes.getSize())
+        self.assertEqual(11530, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 

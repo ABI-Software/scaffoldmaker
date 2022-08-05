@@ -16,6 +16,7 @@ from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.geometry import createCirclePoints
 
 
@@ -536,6 +537,9 @@ def createNodesAndElements(region,
     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
     result = elementtemplate.defineField(coordinates, -1, eft)
 
+    elementtemplateApex = mesh.createElementtemplate()
+    elementtemplateApex.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
     if xFlat:
         # Flat coordinates field
         bicubichermitelinear = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
@@ -559,6 +563,14 @@ def createNodesAndElements(region,
         if useCrossDerivatives:
             flatNodetemplate2.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
 
+        flatNodetemplate3 = nodes.createNodetemplate()
+        flatNodetemplate3.defineField(flatCoordinates)
+        flatNodetemplate3.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+        flatNodetemplate3.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
+        flatNodetemplate3.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        if useCrossDerivatives:
+            flatNodetemplate3.setValueNumberOfVersions(flatCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
         flatElementtemplate1 = mesh.createElementtemplate()
         flatElementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         flatElementtemplate1.defineField(flatCoordinates, -1, eftFlat1)
@@ -566,6 +578,13 @@ def createNodesAndElements(region,
         flatElementtemplate2 = mesh.createElementtemplate()
         flatElementtemplate2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         flatElementtemplate2.defineField(flatCoordinates, -1, eftFlat2)
+
+        if closedProximalEnd:
+            flatElementtemplateApex1 = mesh.createElementtemplate()
+            flatElementtemplateApex1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+            flatElementtemplateApex2 = mesh.createElementtemplate()
+            flatElementtemplateApex2.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
     if xOrgan:
         # Organ coordinates field
@@ -605,10 +624,26 @@ def createNodesAndElements(region,
     # Flat coordinates field
     if xFlat:
         nodeIdentifier = firstNodeIdentifier
-        for n2 in range(elementsCountAlong + 1):
+        if closedProximalEnd:
+            # Apexes
+            for n in range(elementsCountThroughWall + 1):
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                node.merge(flatNodetemplate3)
+                cache.setNode(node)
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xFlat[n])
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Flat[n])
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 2, d1Flat[n])
+                flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Flat[n])
+                if useCrossDerivatives:
+                    flatCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                nodeIdentifier = nodeIdentifier + 1
+        for n2 in range(elementsCountAlong if closedProximalEnd else elementsCountAlong + 1):
             for n3 in range(elementsCountThroughWall + 1):
                 for n1 in range(elementsCountAround):
-                    i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1
+                    if closedProximalEnd:
+                        i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1 + elementsCountThroughWall + 1
+                    else:
+                        i = n2*(elementsCountAround + 1)*(elementsCountThroughWall + 1) + (elementsCountAround + 1)*n3 + n1
                     node = nodes.findNodeByIdentifier(nodeIdentifier)
                     node.merge(flatNodetemplate2 if n1 == 0 else flatNodetemplate1)
                     cache.setNode(node)
@@ -642,26 +677,58 @@ def createNodesAndElements(region,
             nodeIdentifier = nodeIdentifier + 1
 
     # create elements
-    elementtemplate3 = mesh.createElementtemplate()
-    elementtemplate3.setElementShapeType(Element.SHAPE_TYPE_CUBE)
     radiansPerElementAround = math.pi*2.0 / elementsCountAround
+    radiansPerElementAroundFlat = math.pi / elementsCountAround
+    allValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                      Node.VALUE_LABEL_D2_DS1DS2]
 
     allAnnotationGroups = []
 
     if closedProximalEnd:
-        # Create apex
+        # Create apex elements
         for e3 in range(elementsCountThroughWall):
             for e1 in range(elementsCountAround):
                 va = e1
                 vb = (e1 + 1) % elementsCountAround
-                eft1 = eftfactory.createEftShellPoleBottom(va * 100, vb * 100)
-                elementtemplate3.defineField(coordinates, -1, eft1)
-                element = mesh.createElement(elementIdentifier, elementtemplate3)
+                eftApex = eftfactory.createEftShellPoleBottom(va * 100, vb * 100)
+                elementtemplateApex.defineField(coordinates, -1, eftApex)
+                element = mesh.createElement(elementIdentifier, elementtemplateApex)
                 bni1 = e3 + 1
                 bni2 = elementsCountThroughWall + 1 + elementsCountAround*e3 + e1 + 1
                 bni3 = elementsCountThroughWall + 1 + elementsCountAround*e3 + (e1 + 1) % elementsCountAround + 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni1 + 1, bni2 + elementsCountAround, bni3 + elementsCountAround]
-                element.setNodesByIdentifier(eft1, nodeIdentifiers)
+                element.setNodesByIdentifier(eftApex, nodeIdentifiers)
+                onOpening = e1 > elementsCountAround - 2
+                if xFlat:
+                    vaf = e1 + elementsCountAround
+                    vbf = vaf + 1
+                    eftApexFlat = eftfactory.createEftShellPoleBottom(vaf * 100, vbf * 100)
+                    if e1 >= (elementsCountAround // 2):
+                        remapEftNodeValueLabelsVersion(eftApexFlat, [1, 4], [Node.VALUE_LABEL_D_DS1], 2)
+                    flatElementtemplateApex1.defineField(flatCoordinates, -1, eftApexFlat)
+                    element.merge(flatElementtemplateApex1)
+                    element.setNodesByIdentifier(eftApexFlat, nodeIdentifiers)
+                    # set general linear map coefficients
+                    e1b = e1 - (elementsCountAround // 2)
+                    radiansAroundApexFlat = e1b * radiansPerElementAroundFlat
+                    radiansAroundApexFlatNext = (e1b + 1) * radiansPerElementAroundFlat
+                    scalefactorsFlat = [
+                        -1.0,
+                        math.sin(radiansAroundApexFlat), math.cos(radiansAroundApexFlat), radiansPerElementAroundFlat,
+                        math.sin(radiansAroundApexFlatNext), math.cos(radiansAroundApexFlatNext), radiansPerElementAroundFlat,
+                        math.sin(radiansAroundApexFlat), math.cos(radiansAroundApexFlat), radiansPerElementAroundFlat,
+                        math.sin(radiansAroundApexFlatNext), math.cos(radiansAroundApexFlatNext), radiansPerElementAroundFlat
+                    ]
+                    result = element.setScaleFactors(eftApexFlat, scalefactorsFlat)
+                    if onOpening:
+                        lnRemapV2 = [3, 6]
+                        eftApexOpen = eftApexFlat
+                        remapEftNodeValueLabelsVersion(eftApexOpen, lnRemapV2, allValueLabels, 2)
+                        flatElementtemplateApex2.defineField(flatCoordinates, -1, eftApexOpen)
+                        element.merge(flatElementtemplateApex2)
+                        element.setNodesByIdentifier(eftApexOpen, nodeIdentifiers)
+                        if eftApexOpen.getNumberOfLocalScaleFactors() > 0:
+                            element.setScaleFactor(eftApexOpen, 1, -1.0)
                 # set general linear map coefficients
                 radiansAround = e1 * radiansPerElementAround
                 radiansAroundNext = ((e1 + 1) % elementsCountAround) * radiansPerElementAround
@@ -672,7 +739,7 @@ def createNodesAndElements(region,
                     math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
                     math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround
                 ]
-                result = element.setScaleFactors(eft1, scalefactors)
+                result = element.setScaleFactors(eftApex, scalefactors)
                 elementIdentifier = elementIdentifier + 1
                 annotationGroups = annotationGroupsAround[e1] + annotationGroupsAlong[0] + \
                                    annotationGroupsThroughWall[e3]
