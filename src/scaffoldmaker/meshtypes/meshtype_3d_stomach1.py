@@ -279,15 +279,15 @@ class MeshType_3d_stomach1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [ 2.0, 0.0, 0.0 ], [ -0.6, 0.0, 0.0 ], [ 0.0, -0.5, 0.0 ], [ 0.0,  0.0, 0.0 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0,  0.0] ],
-                [ [ 1.5, 0.0, 0.0 ], [ -0.4, 0.0, 0.0 ], [ 0.0, -0.5, 0.0 ], [ 0.0,  0.0, 0.0 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0,  0.0] ],
-                [ [ 1.2, 0.0, 0.0 ], [ -0.2, 0.0, 0.0 ], [ 0.0, -0.5, 0.0 ], [ 0.0,  0.0, 0.0 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0,  0.0] ],
-                [ [ 1.0, 0.0, 0.0 ], [ -0.3, 0.0, 0.0 ], [ 0.0, -0.5, 0.0 ], [ 0.0,  0.0, 0.0 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0,  0.0] ],
-                [ [ 0.6, 0.0, 0.0 ], [ -0.3, 0.0, 0.0 ], [ 0.0, -0.5, 0.0 ], [ 0.0,  0.0, 0.0 ], [ 0.0, 0.0, 0.5 ], [ 0.0, 0.0,  0.0] ],
-                [ [ 0.4, 0.0, 0.0 ], [ -0.2, 0.0, 0.0 ], [ 0.0, -0.4, 0.0 ], [ 0.0,  0.1, 0.0 ], [ 0.0, 0.0, 0.4 ], [ 0.0, 0.0, -0.1] ],
-                [ [ 0.2, 0.0, 0.0 ], [ -0.2, 0.0, 0.0 ], [ 0.0, -0.2, 0.0 ], [ 0.0,  0.1, 0.0 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0, -0.1] ],
-                [ [ 0.0, 0.0, 0.0 ], [ -0.2, 0.0, 0.0 ], [ 0.0, -0.2, 0.0 ], [ 0.0, -0.1, 0.0 ], [ 0.0, 0.0, 0.2 ], [ 0.0, 0.0,  0.1] ] ] ),
-
+                [ [ 2.000, 0.000, 0.000 ], [ -0.600, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000 ] ],
+                [ [ 1.500, 0.000, 0.000 ], [ -0.400, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000 ] ],
+                [ [ 1.200, 0.000, 0.000 ], [ -0.250, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000 ] ],
+                [ [ 1.000, 0.000, 0.000 ], [ -0.300, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000 ] ],
+                [ [ 0.600, 0.000, 0.000 ], [ -0.300, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.067, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000, -0.067 ] ],
+                [ [ 0.400, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.400, 0.000 ], [ 0.000,  0.150, 0.000 ], [ 0.000, 0.000, 0.400 ], [ 0.000, 0.000, -0.150 ] ],
+                [ [ 0.200, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.200, 0.000 ], [ 0.000,  0.100, 0.000 ], [ 0.000, 0.000, 0.200 ], [ 0.000, 0.000, -0.100 ] ],
+                [ [ 0.000, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.200, 0.000 ], [ 0.000, -0.100, 0.000 ], [ 0.000, 0.000, 0.200 ], [ 0.000, 0.000,  0.100 ] ] ] ),
+                
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -1351,6 +1351,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             cd1Sections.append(cd1Section)
             cd2Sections.append(cd2Section)
             cd3Sections.append(cd3Section)
+
         else:
             elementsOutSection = elementCountGroupList[i]
             if elementsOutSection > 1:
@@ -1843,14 +1844,28 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         xAlongLCHalfDuod.append(xEllipseAroundAll[n2IdxEndBody + n2][elementsAroundHalfDuod])
 
     d2AlongLCHalfDuod = [d2AnnulusOuter[elementsAroundHalfEso]]
-    for n2 in range(1, len(xAlongLCHalfDuod) - 1):
-        d = findDerivativeBetweenPoints(xAlongLCHalfDuod[n2], xAlongLCHalfDuod[n2 + 1])
+    for n2 in range(1, len(xAlongLCHalfDuod)):
+        d = findDerivativeBetweenPoints(xAlongLCHalfDuod[n2 - 1], xAlongLCHalfDuod[n2])
         d2AlongLCHalfDuod.append(d)
-    d2AlongLCHalfDuod.append(cd1Sections[-1][-1])
+    d2AlongLCHalfDuod[-1] = cd1Sections[-1][-1]
 
-    d2AlongLCHalfDuod = \
-        interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
-                                                 fixStartDerivative=True, fixEndDirection=True)
+    if materialCoordinates:
+        # Break point along at body-antrum intersection and smooth separately to keep derivative at body end
+        d2AlongBody = \
+            interp.smoothCubicHermiteDerivativesLine(
+                xAlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
+                d2AlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
+                fixStartDirection=True, fixEndDirection=True)
+        d2AlongBodyDown = \
+            interp.smoothCubicHermiteDerivativesLine(
+                xAlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:],
+                d2AlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:],
+                fixStartDirection=True, fixEndDirection=True)
+        d2AlongLCHalfDuod = d2AlongBody[:-1] + d2AlongBodyDown
+    else:
+        d2AlongLCHalfDuod = \
+            interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
+                                                     fixStartDerivative=True, fixEndDirection=True)
 
     for n2 in range(len(xAlongLCHalfDuod)):
         xEllipseAroundAll[n2 + elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2][elementsAroundHalfDuod] = \
@@ -2118,12 +2133,27 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         else:
             d2Along = [d2ApexRot]
-            for n2 in range(1, len(xAlongAll[n1]) - 1):
-                d = findDerivativeBetweenPoints(xAlongAll[n1][n2], xAlongAll[n1][n2 + 1])
+            for n2 in range(1, len(xAlongAll[n1])):
+                d = findDerivativeBetweenPoints(xAlongAll[n1][n2 - 1], xAlongAll[n1][n2])
                 d2Along.append(d)
-            d2Along.append(cd1Sections[-1][-1])
-            d2Along = interp.smoothCubicHermiteDerivativesLine(xAlongAll[n1], d2Along, fixStartDirection=True,
-                                                               fixEndDirection=True)
+            d2Along[-1] = cd1Sections[-1][-1]
+
+            if materialCoordinates:
+                # Break point along at body-antrum intersection and smooth separately to keep derivative at body end
+                d2AlongFundusBody = \
+                    interp.smoothCubicHermiteDerivativesLine(
+                        xAlongAll[n1][:elementCountGroupList[0] + elementCountGroupList[1] + 1],
+                        d2Along[:elementCountGroupList[0] + elementCountGroupList[1] + 1],
+                        fixStartDirection=True, fixEndDirection=True)
+                d2AlongBodyDown = \
+                    interp.smoothCubicHermiteDerivativesLine(
+                        xAlongAll[n1][elementCountGroupList[0] + elementCountGroupList[1]:],
+                        d2Along[elementCountGroupList[0] + elementCountGroupList[1]:],
+                        fixStartDirection=True, fixEndDirection=True)
+                d2Along = d2AlongFundusBody[:-1] + d2AlongBodyDown
+            else:
+                d2Along = interp.smoothCubicHermiteDerivativesLine(xAlongAll[n1], d2Along, fixStartDirection=True,
+                                                                   fixEndDirection=True)
             if n1 == elementsAroundHalfDuod - 1 or n1 == elementsAroundHalfDuod + 1:
                 d2Along[elementsAlongFundusApexToCardia] = \
                     vector.setMagnitude(d2Along[elementsAlongFundusApexToCardia],
