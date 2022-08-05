@@ -231,6 +231,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 [ [ -10.631,  9.289, 0.000 ], [  0.344,  3.828, 0.000 ], [ -3.677,   0.048, 0.000 ], [  2.178,  0.343, 0.000 ], [ 0.000, 0.000, 2.800 ], [ 0.000, 0.000, -0.819 ] ] ,
                 [ [ -10.700, 12.200, 0.000 ], [ -0.350,  2.774, 0.000 ], [ -2.570,  -0.367, 0.000 ], [  0.160, -0.605, 0.000 ], [ 0.000, 0.000, 2.687 ], [ 0.000, 0.000,  0.259 ] ] ,
                 [ [ -11.300, 14.800, 0.000 ], [ -0.844,  2.407, 0.000 ], [ -3.131,  -1.116, 0.000 ], [ -1.282, -0.893, 0.000 ], [ 0.000, 0.000, 3.400 ], [ 0.000, 0.000, -0.259 ] ] ] ),
+                
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -1518,9 +1519,15 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         xProjectionAve = [0.5 * xProjectionQuarter[c] + 0.5 * xProjectionGC[c] for c in range(3)]
 
         cxFundus.append(xProjectionAve)
-        cd1Fundus.append(findDerivativeBetweenPoints(cxFundus[n2 - 1], cxFundus[n2]))
-        cd2Fundus.append(findDerivativeBetweenPoints(xProjectionGC, xFundusGCSampled[n2]))
-        cd3Fundus.append(findDerivativeBetweenPoints(xProjectionQuarter, xFundusQuarterSampled[n2]))
+        d1 = findDerivativeBetweenPoints(cxFundus[n2 - 1], cxFundus[n2])
+        d2 = findDerivativeBetweenPoints(xProjectionGC, xFundusGCSampled[n2])
+        d3 = findDerivativeBetweenPoints(xProjectionQuarter, xFundusQuarterSampled[n2])
+        cd3DV = vector.normalise(vector.crossproduct3(vector.normalise(d1), vector.normalise(d2)))
+        d3 = vector.setMagnitude(cd3DV, vector.magnitude(d3))
+
+        cd1Fundus.append(d1)
+        cd2Fundus.append(d2)
+        cd3Fundus.append(d3)
     cd1Fundus.append(cd1Fundus[-1])
 
     # Merge fundus with other groups on central path
@@ -1555,6 +1562,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         for n2 in range(1, len(cxSections[s])):
             px, pd1 = sampleEllipsePoints(cxSections[s][n2], cd2Sections[s][n2], cd3Sections[s][n2], 0.0, math.pi * 2.0,
                                           elementsCountAroundDuod)
+
             del px[-1], pd1[-1]
 
             d2Around = [zero for n in range(len(pd1))]
