@@ -900,19 +900,7 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
     px_transit, pd1_transit = createEllipsePoints(xTransition, 2 * math.pi, d2Transition, d3Transition, elementsCountAround,
                                                   startRadians=0.0)
 
-    # d2Around = []
-    # for n1 in range(elementsCountAround):
-    #     v1 = xDome[-1][n1]
-    #     v2 = px_transit[n1]
-    #     d2 = findDerivativeBetweenPoints(v1, v2)
-    #     # xAlong.append(v1)
-    #     d2Around.append(d2)
-    # d2Dome = d2Dome[:-1] + [d2Around]
-
     # Create ellipses along neck around the central path
-    sx_neck_new = [xTransition] + sx_neck_group[0][e:]
-    sd2_neck_new = [d2Transition] + sx_neck_group[2][e:]
-    sd3_neck_new = [d3Transition] + sx_neck_group[4][e:]
     xEllipses_neck = []
     d1Ellipses_neck = []
     for n in range(0, len(sx_neck_group[0])):
