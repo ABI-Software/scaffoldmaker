@@ -885,7 +885,8 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
 
     # Transition
     transitLength = (domeSegmentLength + neckSegmentLength) / 2
-    if transitLength < neckSegmentLength:
+    addingLength = transitLength - neckSegmentLength
+    if transitLength <= neckSegmentLength:
         e = 1
         xi = transitLength / neckSegmentLength
     else:
@@ -913,8 +914,8 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
     sd3_neck_new = [d3Transition] + sx_neck_group[4][e:]
     xEllipses_neck = []
     d1Ellipses_neck = []
-    for n in range(0, len(sx_neck_new)):
-        px, pd1 = createEllipsePoints(sx_neck_new[n], 2 * math.pi, sd2_neck_new[n], sd3_neck_new[n], elementsCountAround,
+    for n in range(0, len(sx_neck_group[0])):
+        px, pd1 = createEllipsePoints(sx_neck_group[0][n], 2 * math.pi, sx_neck_group[2][n], sx_neck_group[4][n], elementsCountAround,
                                       startRadians=0.0)
         xEllipses_neck.append(px)
         d1Ellipses_neck.append(pd1)
@@ -954,7 +955,7 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
             xAlong.append(xEllipses_neck[n2][n1])
             d2Along.append(d2Ellipses_neck_new[n2][n1])
         xSampledAlongNeck, d2SampledAlongNeck = interp.sampleCubicHermiteCurves(xAlong, d2Along,
-                                                                                elementsCountAlongNeck - 1,
+                                                                                elementsCountAlongNeck, addLengthStart=addingLength,
                                                                                 arcLengthDerivatives=True)[0:2]
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongNeck, d2SampledAlongNeck)
         xRawNeck.append(xSampledAlongNeck)
@@ -964,7 +965,7 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
     xSampledNeck = []
     d1SampledNeck = []
     d2SampledNeck = []
-    for n2 in range(elementsCountAlongNeck):
+    for n2 in range(elementsCountAlongNeck + 1):
         xAround = []
         d1Around = []
         d2Around = []
@@ -979,8 +980,9 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
             d1 = findDerivativeBetweenPoints(v1, v2)
             d1Around.append(d1)
         d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        xSampledNeck.append(xAround)
-        d1SampledNeck.append(d1Smoothed)
-        d2SampledNeck.append(d2Around)
+        if n2 != 0:
+            xSampledNeck.append(xAround)
+            d1SampledNeck.append(d1Smoothed)
+            d2SampledNeck.append(d2Around)
 
     return xSampledNeck, d1SampledNeck, d2SampledNeck, px_transit
