@@ -429,6 +429,7 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         xSampledAll = xDome + xNeck
         d1SampledAll = d1Dome + d1Neck
+        d2SampledAll = d2Dome + d2Neck
 
         # Smoothing d2 from apex to down the neck
         d2Raw = []
@@ -442,7 +443,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 xAlong.append(v1)
                 d2Along.append(d2)
             xAlong.append(xSampledAll[-1][n1])
-            d2Along.append(xSampledAll[-1][n1])
+            d2Along.append(d2SampledAll[-1][n1])
             d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
             d2Raw.append(d2Smoothed)
 
@@ -959,7 +960,7 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
                                                                                 arcLengthDerivatives=True)[0:2]
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongNeck, d2SampledAlongNeck)
         xRawNeck.append(xSampledAlongNeck)
-        d2RawNeck.append(d2Smoothed)
+        d2RawNeck.append(d2SampledAlongNeck)
 
     # Rearrange x and d2
     xSampledNeck = []
