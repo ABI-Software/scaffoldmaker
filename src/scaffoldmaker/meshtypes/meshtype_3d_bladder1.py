@@ -414,8 +414,8 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         xDome, d1Dome, d2Dome = findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome)
 
-        xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, neckSegmentLength, elementsCountAround, \
-                                                                             elementsCountAlongNeck, xDome, d2Dome)
+        xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, \
+                                                                      neckSegmentLength, elementsCountAround, elementsCountAlongNeck)
 
         # Replace d2 for the last layer of the dome based on the transition nodes
         d2Around = []
@@ -431,30 +431,27 @@ class MeshType_3d_bladder1(Scaffold_base):
         d1SampledAll = d1Dome + d1Neck
         d2SampledAll = d2Dome + d2Neck
 
-        # Smoothing d2 from apex to down the neck
-        d2Raw = []
-        for n1 in range(elementsCountAround):
-            xAlong = []
-            d2Along = []
-            for n2 in range(elementsCountAlongBladder):
-                v1 = xSampledAll[n2][n1]
-                v2 = xSampledAll[n2 + 1][n1]
-                d2 = findDerivativeBetweenPoints(v1, v2)
-                xAlong.append(v1)
-                d2Along.append(d2)
-            xAlong.append(xSampledAll[-1][n1])
-            d2Along.append(d2SampledAll[-1][n1])
-            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
-            d2Raw.append(d2Smoothed)
-
-        # Rearrange d2
-        d2SampledAll = []
-        for n2 in range(elementsCountAlongBladder + 1):
-            d2Around = []
-            for n1 in range(elementsCountAround):
-                d2 = d2Raw[n1][n2]
-                d2Around.append(d2)
-            d2SampledAll.append(d2Around)
+        # # Smoothing d2 from apex to down the neck
+        # d2Raw = []
+        # for n1 in range(elementsCountAround):
+        #     xAlong = []
+        #     d2Along = []
+        #     for n2 in range(elementsCountAlongBladder + 1):
+        #         x = xSampledAll[n2][n1]
+        #         d2 = d2SampledAll[n2][n1]
+        #         xAlong.append(x)
+        #         d2Along.append(d2)
+        #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along, fixAllDirections=True)
+        #     d2Raw.append(d2Smoothed)
+        #
+        # # Rearrange d2
+        # d2SampledAll = []
+        # for n2 in range(elementsCountAlongBladder + 1):
+        #     d2Around = []
+        #     for n1 in range(elementsCountAround):
+        #         d2 = d2Raw[n1][n2]
+        #         d2Around.append(d2)
+        #     d2SampledAll.append(d2Around)
 
         d3UnitOuter = []
         for n2 in range(1, elementsCountAlongBladder + 1):
@@ -882,7 +879,7 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
 
     return xSampledDome, d1SampledDome, d2SampledDome
 
-def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, neckSegmentLength, elementsCountAround, elementsCountAlongNeck, xDome, d2Dome):
+def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, neckSegmentLength, elementsCountAround, elementsCountAlongNeck):
 
     # Transition
     transitLength = (domeSegmentLength + neckSegmentLength) / 2
@@ -926,13 +923,13 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
         d2Raw.append(d2Along)
 
     # Rearrange d2
-    d2Ellipses_neck_new = []
+    d2Ellipses_neck = []
     for n2 in range(len(xEllipses_neck)):
         d2Around = []
         for n1 in range(elementsCountAround):
             d2 = d2Raw[n1][n2]
             d2Around.append(d2)
-        d2Ellipses_neck_new.append(d2Around)
+        d2Ellipses_neck.append(d2Around)
 
     # Spread out elements along neck of the bladder
     xRawNeck = []
@@ -942,7 +939,7 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
         d2Along = []
         for n2 in range(len(xEllipses_neck)):
             xAlong.append(xEllipses_neck[n2][n1])
-            d2Along.append(d2Ellipses_neck_new[n2][n1])
+            d2Along.append(d2Ellipses_neck[n2][n1])
         xSampledAlongNeck, d2SampledAlongNeck = interp.sampleCubicHermiteCurves(xAlong, d2Along,
                                                                                 elementsCountAlongNeck, addLengthStart=addingLength,
                                                                                 arcLengthDerivatives=True)[0:2]
