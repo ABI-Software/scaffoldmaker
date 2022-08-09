@@ -13,11 +13,11 @@ from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import MeshType_1d_stickman1,
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation3d2 import TrifurcationMesh, BranchType, PathNodes, BifurcationMesh
+from scaffoldmaker.utils.bifurcation3d import TrifurcationMesh, BranchType, PathNodes, BifurcationMesh
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
-class MeshType_3d_solidbifurcation2(Scaffold_base):
+class MeshType_3d_wholebody2(Scaffold_base):
     """
 Generates a whole body scaffold using a mesh of all cube elements,
  with features to control arms, torso, neck and head.
@@ -49,7 +49,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
     @staticmethod
     def getName():
-        return '3D Solid Bifurcation 2'
+        return '3D Whole Body 2'
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):

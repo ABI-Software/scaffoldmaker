@@ -40,10 +40,13 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from scaffoldmaker.meshtypes.meshtype_3d_solidbifurcation1 import MeshType_3d_solidbifurcation1
 from scaffoldmaker.meshtypes.meshtype_3d_solidbifurcation2 import MeshType_3d_solidbifurcation2
 >>>>>>> cfec53f (copied to 2nd one)
+=======
+>>>>>>> 85d7286 (rename filenames)
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
@@ -60,6 +63,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomac
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
+from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
@@ -104,10 +108,13 @@ class Scaffolds(object):
             MeshType_3d_smallintestine1,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             MeshType_3d_solidbifurcation1,
             MeshType_3d_solidbifurcation2,
 >>>>>>> cfec53f (copied to 2nd one)
+=======
+>>>>>>> 85d7286 (rename filenames)
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,
             MeshType_3d_solidsphere2,
@@ -123,7 +130,8 @@ class Scaffolds(object):
             MeshType_3d_stomachhuman1,
             MeshType_3d_tube1,
             MeshType_3d_tubeseptum1,
-            MeshType_3d_wholebody1
+            MeshType_3d_wholebody1,
+            MeshType_3d_wholebody2,
             ]
 
     def findScaffoldTypeByName(self, name):
