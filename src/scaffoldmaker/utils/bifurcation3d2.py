@@ -230,15 +230,27 @@ class BranchType(Enum):
 
 class TrifurcationMesh:
     """
-    Bifurction mesh generator.
+    Trifurcation mesh generator.
     """
-
     def __init__(self, fieldmodule, coordinates, region, torso_radius, left_arm_radius, right_arm_radius, neck_radius,
                  shoulder_height, neck_height, right_arm_angle, left_arm_angle, right_shoulder_length, armpit, elements_count):
         """
-        :param fieldModule: Zinc fieldModule to create elements in.
+        :param fieldmodule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
+        :param region: Zinc region
+        :param torso_radius:
+        :param left_arm_radius:
+        :param right_arm_radius:
+        :param neck_radius:
+        :param shoulder_height:
+        :param neck_height:
+        :param right_arm_angle:
+        :param left_arm_angle:
+        :param right_shoulder_length:
+        :param armpit:
+        :param elements_count:
         """
+
         # generate the mesh
         elementsCount = [2, 2, 5]
         self._elementsCount = elementsCount
