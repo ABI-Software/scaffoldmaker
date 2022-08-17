@@ -7,7 +7,8 @@ from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group, \
     find_or_create_field_stored_mesh_location, find_or_create_field_stored_string
 from opencmiss.zinc.element import Element, Mesh
-from opencmiss.zinc.field import Field, FieldFiniteElement, FieldGroup, FieldStoredMeshLocation, FieldStoredString
+from opencmiss.zinc.field import Field, FieldFiniteElement, FieldGroup, FieldStoredMeshLocation, FieldStoredString, \
+    FieldFindMeshLocation
 from opencmiss.zinc.fieldmodule import Fieldmodule
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
@@ -356,6 +357,7 @@ class AnnotationGroup(object):
                         constCoordinates, materialCoordinatesField, mesh)
                     fieldcache = fieldmodule.createFieldcache()
                     fieldcache.setNode(markerNode)
+                    findMeshLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
                     element, xi = findMeshLocation.evaluateMeshLocation(fieldcache, mesh.getDimension())
                     if not element.isValid():
                         self.setMarkerMaterialCoordinates(oldMaterialCoordinatesField)
