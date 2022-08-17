@@ -16,11 +16,17 @@ bladder_terms = [
     ("dorsal part of serosa of neck of urinary bladder", "ILX:0739280"),
     ("dorsal part of serosa of urethra", "ILX:0739283"),
     ("dorsal part of serosa of urinary bladder", "ILX:0739248"),
+    ("external urethral sphincter", "UBERON:0004919"),  # urinary_5
+    ("fundus of urinary bladder", "UBERON:0006082"),  # urinary_3
+    ("hypogastric nerve", "UBERON:0005303"),  # "keast_5"
     ("left hemi-bladder", "ILX:0793661"),
+    ("lumbar splanchnic nerve", "UBERON:0018683"),  # "keast_7"
     ("lumen of body of urinary bladder", "ILX:0739252"),
     ("lumen of neck of urinary bladder", "ILX:0739256"),
     ("lumen of urethra", "UBERON:0010390", "ILX:0736762"),
     ("neck of urinary bladder", "UBERON:0001258", "FMA:15912"),
+    ("pelvic splanchnic nerve", "UBERON:0018675"),  # "keast_4"
+    ("pudendal nerve", "UBERON:0011390"),  # keast_2
     ("right hemi-bladder", "ILX:0793662"),
     ("serosa of body of urinary bladder", "ILX:0739276"),
     ("serosa of neck of urinary bladder", "ILX:0739277"),

@@ -8,7 +8,8 @@ import copy
 import math
 
 from opencmiss.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
-    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString, findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -1161,6 +1162,25 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             markerName.assignString(cache, annotationGroup.getName())
             annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
             bladderNodesetGroup.addNode(markerPoint)
+            nodeIdentifier += 1
+
+        ################
+        # point markers
+        ################
+
+        markerTermNameBrainstemCoordinatesMap = {
+            # "pudendal nerve": [0.0, 1.0, 0.0],
+            # "pelvic splanchnic nerve": [0.0, 1.0, 0.0],
+            # "hypogastric nerve": [0.0, 1.0, 0.0],
+            # "lumbar splanchnic nerve": [0.0, 1.0, 0.0],
+            "fundus of urinary bladder": [14.6, 0.01, 23.1],
+            "external urethral sphincter": [-1.5, 6.7, 110.5],
+        }
+        bladder_coordinates = findOrCreateFieldCoordinates(fm)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        for termName, brainstemCoordinatesValues in markerTermNameBrainstemCoordinatesMap.items():
+            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term(termName))
+            annotationGroup.createMarkerNode(nodeIdentifier, bladder_coordinates, brainstemCoordinatesValues)
             nodeIdentifier += 1
 
         fm.endChange()
