@@ -760,9 +760,9 @@ class MeshType_3d_stomach1(Scaffold_base):
             'esophagogastric junction along the greater curvature on serosa': [1.3499935896233386, 0.4987847870339471, -2.4350160282618435e-17],
             'esophagogastric junction along the lesser curvature on luminal surface': [1.0489058130975502, 0.4491717442850351, 3.0345621453573164e-16],
             'esophagogastric junction along the lesser curvature on serosa': [1.050012637401148, 0.4991433628042418, 2.8296958630895795e-16],
-            'gastroduodenal junction along the greater curvature on luminal surface': [0.219190990654976, -0.15382959955035452, 0.0],
+            'gastroduodenal junction along the greater curvature on luminal surface': [0.2, -0.15, 0.0],
             'gastroduodenal junction along the greater curvature on serosa': [0.2, -0.2, 0.0],
-            'gastroduodenal junction along the lesser curvature on luminal surface': [0.219191, 0.15383, -4.94754e-17],
+            'gastroduodenal junction along the lesser curvature on luminal surface': [0.2, 0.15, 0.0],
             'gastroduodenal junction along the lesser curvature on serosa': [0.20, 0.20, 0.00],
             'limiting ridge at the greater curvature on the luminal surface' if limitingRidge else
             'fundus-body junction along the greater curvature on luminal surface': [1.1997241080276948, -0.4500013598322351, -0.0002446732391805909],
@@ -774,8 +774,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'body-antrum junction along the greater curvature on circular-longitudinal muscle interface': [0.6005229791747548, -0.48751094508048054, 0.0],
                 'esophagogastric junction along the greater curvature on circular-longitudinal muscle interface': [1.349980953124272, 0.4862847934211931, -2.8794001354466424e-17],
                 'esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface': [1.0497365634804512, 0.4866625412064305, 3.2195156437946623e-16],
-                'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [0.204797747663744, -0.18845739988758864, 0.0],
-                'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [0.20479774759705438, 0.1884573998598687, -6.06125226427643e-17],
+                'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [0.2, -0.1875, 0.0],
+                'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [0.2, 0.1875, 0.0],
                 'limiting ridge at the greater curvature on the circular-longitudinal muscle interface' if limitingRidge
                 else 'fundus-body junction along the greater curvature on circular-longitudinal muscle interface': [1.199934138287874, -0.48750032317766967, -6.116839191743296e-05]
             }
@@ -1396,6 +1396,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     interp.sampleCubicHermiteCurvesSmooth(cxGroup, cd1Group, elementsOutSection)
                 cd2Section = interp.interpolateSampleCubicHermite(cd2Group, cd12Group, pe, pxi, psf)[0]
                 cd3Section = interp.interpolateSampleCubicHermite(cd3Group, cd13Group, pe, pxi, psf)[0]
+
             else:
                 cxSection = cxGroup
                 arcLength = interp.getCubicHermiteArcLength(cxGroup[0], cd1Group[0],
