@@ -349,6 +349,7 @@ class AnnotationGroup(object):
                     assert RESULT_OK == nodetemplate.defineField(materialCoordinatesField)
                 assert RESULT_OK == markerNode.merge(nodetemplate)
                 self._markerMaterialCoordinatesField = materialCoordinatesField
+            fieldcache = fieldmodule.createFieldcache()
             if materialCoordinatesField:
                 if materialCoordinates is not None:
                     # find nearest location in mesh
@@ -356,7 +357,6 @@ class AnnotationGroup(object):
                     findMeshLocation = fieldmodule.createFieldFindMeshLocation(
                         constCoordinates, materialCoordinatesField, mesh)
                     findMeshLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
-                    fieldcache = fieldmodule.createFieldcache()
                     fieldcache.setNode(markerNode)
                     element, xi = findMeshLocation.evaluateMeshLocation(fieldcache, mesh.getDimension())
                     if not element.isValid():
@@ -368,13 +368,16 @@ class AnnotationGroup(object):
                     markerLocation = getAnnotationMarkerLocationField(fieldmodule, mesh)
                     markerLocation.assignMeshLocation(fieldcache, element, xi)
                     self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
-
                     del findMeshLocation
                     del constCoordinates
                 else:
                     element, xi = self.getMarkerLocation()
                     # following stores material coordinates at the current location:
-                    self.setMarkerLocation(element, xi)
+                    fieldcache.setMeshLocation(element, xi)
+                    result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
+                        fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
+                    fieldcache.setNode(markerNode)
+                    self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
 
     def getName(self):
         return self._name
