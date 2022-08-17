@@ -9,8 +9,7 @@ from __future__ import division
 import copy
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
 from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers, getMaximumNodeIdentifier
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
@@ -1360,6 +1359,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         cd12Group = centralPath.cd12Groups[i + 1]
         cd13Group = centralPath.cd13Groups[i + 1]
 
+        if materialCoordinates and i == len(elementCountGroupList) - 1:
+            for n in range(len(cxGroup)):
+                cd12Group[n] = zero
+                cd13Group[n] = zero
+
         # Break body into equal sized elements
         if i == 1:  # body
             cxSection, cd1Section, pe, pxi, psf = \
@@ -1884,18 +1888,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2AlongLCHalfDuod[-1] = cd1Sections[-1][-1]
 
     if materialCoordinates:
-        # Break point along at body-antrum intersection and smooth separately to keep derivative at body end
+        # Break point along at body-antrum and pylorus-duod intersection and smooth separately to keep derivative at
+        # body end
         d2AlongBody = \
             interp.smoothCubicHermiteDerivativesLine(
                 xAlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
                 d2AlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
                 fixStartDirection=True, fixEndDirection=True)
-        d2AlongBodyDown = \
+
+        for n in range(elementCountGroupList[-1] + 1):
+            d2AlongLCHalfDuod[-(n + 1)] = cd1Sections[-1][-1]
+
+        d2AlongBodyToPylorus = \
             interp.smoothCubicHermiteDerivativesLine(
-                xAlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:],
-                d2AlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:],
+                xAlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:-n],
+                d2AlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:-n],
                 fixStartDirection=True, fixEndDirection=True)
-        d2AlongLCHalfDuod = d2AlongBody[:-1] + d2AlongBodyDown
+        d2AlongDuod = \
+            interp.smoothCubicHermiteDerivativesLine(
+                xAlongLCHalfDuod[-(n + 1):], d2AlongLCHalfDuod[-(n + 1):], fixStartDirection=True, fixEndDirection=True)
+        d2AlongLCHalfDuod = d2AlongBody[:-1] + d2AlongBodyToPylorus[:-1] + d2AlongDuod
     else:
         d2AlongLCHalfDuod = \
             interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
@@ -2175,18 +2187,28 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d2Along[-1] = cd1Sections[-1][-1]
 
             if materialCoordinates:
-                # Break point along at body-antrum intersection and smooth separately to keep derivative at body end
+                # Break point along at body-antrum and pylorus-duod intersection and smooth separately to keep
+                # derivative at body end
                 d2AlongFundusBody = \
                     interp.smoothCubicHermiteDerivativesLine(
                         xAlongAll[n1][:elementCountGroupList[0] + elementCountGroupList[1] + 1],
                         d2Along[:elementCountGroupList[0] + elementCountGroupList[1] + 1],
                         fixStartDirection=True, fixEndDirection=True)
-                d2AlongBodyDown = \
+
+                for n in range(elementCountGroupList[-1] + 1):
+                    d2Along[-(n + 1)] = cd1Sections[-1][-1]
+
+                d2AlongBodyToPylorus = \
                     interp.smoothCubicHermiteDerivativesLine(
-                        xAlongAll[n1][elementCountGroupList[0] + elementCountGroupList[1]:],
-                        d2Along[elementCountGroupList[0] + elementCountGroupList[1]:],
+                        xAlongAll[n1][elementCountGroupList[0] + elementCountGroupList[1]:-n],
+                        d2Along[elementCountGroupList[0] + elementCountGroupList[1]:-n],
                         fixStartDirection=True, fixEndDirection=True)
-                d2Along = d2AlongFundusBody[:-1] + d2AlongBodyDown
+
+                d2AlongDuod = \
+                    interp.smoothCubicHermiteDerivativesLine(
+                        xAlongAll[n1][-(n + 1):], d2Along[-(n + 1):], fixStartDirection=True, fixEndDirection=True)
+
+                d2Along = d2AlongFundusBody[:-1] + d2AlongBodyToPylorus[:-1] + d2AlongDuod
             else:
                 d2Along = interp.smoothCubicHermiteDerivativesLine(xAlongAll[n1], d2Along, fixStartDirection=True,
                                                                    fixEndDirection=True)
