@@ -355,9 +355,9 @@ class AnnotationGroup(object):
                     constCoordinates = fieldmodule.createFieldConstant(materialCoordinates)
                     findMeshLocation = fieldmodule.createFieldFindMeshLocation(
                         constCoordinates, materialCoordinatesField, mesh)
+                    findMeshLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
                     fieldcache = fieldmodule.createFieldcache()
                     fieldcache.setNode(markerNode)
-                    findMeshLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
                     element, xi = findMeshLocation.evaluateMeshLocation(fieldcache, mesh.getDimension())
                     if not element.isValid():
                         self.setMarkerMaterialCoordinates(oldMaterialCoordinatesField)
@@ -365,12 +365,16 @@ class AnnotationGroup(object):
                         return
                     if not isinstance(xi, list):
                         xi = [xi]  # workaround for Zinc 1-D xi being a plain float
+                    markerLocation = getAnnotationMarkerLocationField(fieldmodule, mesh)
+                    markerLocation.assignMeshLocation(fieldcache, element, xi)
+                    self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
+
                     del findMeshLocation
                     del constCoordinates
                 else:
                     element, xi = self.getMarkerLocation()
-                # use this function to reassign material coordinates to be within mesh
-                self.setMarkerLocation(element, xi)
+                    # following stores material coordinates at the current location:
+                    self.setMarkerLocation(element, xi)
 
     def getName(self):
         return self._name
