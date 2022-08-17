@@ -1184,6 +1184,7 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
 
     return curvature
 
+
 def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups,
                         elementCountGroupList, centralPath, options, nodeIdentifier, elementIdentifier,
                         splitCoordinates, materialCoordinates=False):
@@ -1747,7 +1748,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
 
     stomachStartNode = nextNodeIdentifier
-    stomachStartElement = nextElementIdentifier
     nodeIdentifier = nextNodeIdentifier
     elementIdentifier = nextElementIdentifier
 
@@ -1976,10 +1976,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     derivativeStart=d1EllipseAroundAll[n2][elementsAroundQuarterDuod])
 
             nx, nd1 = \
-                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
-                                                                     derivativeMagnitudeStart=
-                                                                     vector.magnitude(d1EllipseAroundAll[n2]
-                                                                                      [elementsAroundQuarterDuod]))[0:2]
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                    nx, nd1, nd2, nd3, proportions,
+                    derivativeMagnitudeStart=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundQuarterDuod]))[0:2]
 
             xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nx[1:-1]
             d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nd1[1:-1]
@@ -2011,11 +2010,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     derivativeEnd=d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod])
 
             nx, nd1 = \
-                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
-                                                                     derivativeMagnitudeEnd=
-                                                                     vector.magnitude(d1EllipseAroundAll[n2]
-                                                                                      [elementsAroundHalfDuod +
-                                                                                       elementsAroundQuarterDuod]))[0:2]
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                    nx, nd1, nd2, nd3, proportions,
+                    derivativeMagnitudeEnd=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundHalfDuod +
+                                                                                   elementsAroundQuarterDuod]))[0:2]
 
             xEllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
                 nx[1:-1]
@@ -2690,7 +2688,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             e1IdxBni1 = e1 + 1
                             e1IdxBni3 = e1 + 2
                         elif elementsAlongFundusApexToCardia < e2 < elementsAlongFundusApexToCardia + \
-                                elementsAroundHalfEso - 3: # incomplete rings interior of eso
+                                elementsAroundHalfEso - 3:  # incomplete rings interior of eso
                             e1IdxBni1 = e1 + 1
                             e1IdxBni3 = e1 + 1
                     else:
@@ -2714,14 +2712,15 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
                         elementtemplateX.defineField(coordinates, -1, eft1)
                         elementtemplate1 = elementtemplateX
-
-                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and e1 == elementsAroundHalfDuod - 2:
+                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and \
+                            e1 == elementsAroundHalfDuod - 2:
                         eft1 = eftfactory.createEftNoCrossDerivatives()
                         remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                         elementtemplateX.defineField(coordinates, -1, eft1)
                         elementtemplate1 = elementtemplateX
-                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and e1 == elementsAroundHalfDuod - 1:
+                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and \
+                            e1 == elementsAroundHalfDuod - 1:
                         scaleFactors = [-1.0]
                         eft1 = eftfactory.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
@@ -2741,10 +2740,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     if e2 < fundusElements and limitingRidge and elementsCountThroughWall > 1 and e3 == 0:
                         fundusMucosaElementIdentifiers.append(elementIdentifier)
                     elementIdxAround.append(elementIdentifier)
-                    if e3 == 0 and e1 == 0 and \
-                            e2 == int(0.5 * (elementsAlongFundusApexToCardia + elementsAlongFundusApexToCardia +
-                                             elementsAroundHalfEso - 3)):
-                        fundusBodyJunctionInnerElementIdentifier = elementIdentifier
                     if scaleFactors:
                         element.setScaleFactors(eft1, scaleFactors)
                     elementIdentifier += 1
@@ -2860,8 +2855,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             elementIdxAround.append(n)
         elementIdxThroughWall.append(elementIdxAround)
     elementIdxMat.append(elementIdxThroughWall)
-
-    nodeIdentifier = nextNodeIdentifier
 
     # delete mucosa layer in fundus when there is a limiting ridge
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, fundusMucosaElementIdentifiers)
