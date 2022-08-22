@@ -13,6 +13,8 @@ from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field, FieldGroup
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh
 
 
 class ScaffoldPackage:
@@ -257,14 +259,16 @@ class ScaffoldPackage:
         """
         If this is the root scaffold and there are ranges of element identifiers to delete,
         remove these from the model.
-        Also remove marker group nodes embedded in those elements and any nodes used only by
-        the deleted elements.
+        Also check if marker group nodes embedded in those elements are shared with nearby elements and delete those
+        marker nodes if used only by the deleted elements.
+        :param deleteElementRanges: Range of elements to be deleted.
         """
         if (len(deleteElementRanges) == 0):
             return
+
         self._region = region
         fm = self._region.getFieldmodule()
-        mesh = self.getMesh()
+        mesh = get_highest_dimension_mesh(fm)
         meshDimension = mesh.getDimension()
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         with ChangeManager(fm):
@@ -277,13 +281,14 @@ class ScaffoldPackage:
             element = elementIter.next()
             while element.isValid():
                 identifier = element.getIdentifier()
-                for deleteElementRange in self._deleteElementRanges:
+                for deleteElementRange in deleteElementRanges:
                     if (identifier >= deleteElementRange[0]) and (identifier <= deleteElementRange[1]):
                         destroyMesh.addElement(element)
                 element = elementIter.next()
             del elementIter
             # print("Deleting", destroyMesh.getSize(), "element(s)")
             if destroyMesh.getSize() > 0:
+                fieldcache = fm.createFieldcache()
                 destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
                 destroyNodes = destroyNodeGroup.getNodesetGroup()
                 markerGroup = fm.findFieldByName("marker").castGroup()
@@ -291,8 +296,8 @@ class ScaffoldPackage:
                     markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
                     markerLocation = fm.findFieldByName("marker_location")
                     # markerName = fm.findFieldByName("marker_name")
+
                     if markerNodes.isValid() and markerLocation.isValid():
-                        fieldcache = fm.createFieldcache()
                         nodeIter = markerNodes.createNodeiterator()
                         node = nodeIter.next()
                         while node.isValid():
@@ -304,12 +309,36 @@ class ScaffoldPackage:
                             node = nodeIter.next()
                         del nodeIter
                         del fieldcache
+
                 # must destroy elements first as Zinc won't destroy nodes that are in use
                 mesh.destroyElementsConditional(destroyElementGroup)
+                annotationGroups = self._autoAnnotationGroups + self._userAnnotationGroups
+
+                for annotationGroup in annotationGroups:
+                    if annotationGroup.isMarker():
+                        materialCoordinatesField, materialCoordinates = annotationGroup.getMarkerMaterialCoordinates()
+                        removeMarkerGroup = True
+                        if materialCoordinates:
+                            annotationGroup.setMarkerMaterialCoordinates(materialCoordinatesField, materialCoordinates)
+                            evaluatedMaterialCoordinates = \
+                                annotationGroup.evaluateMaterialCoordinatesFromElementXi(materialCoordinatesField)
+                            diff = [abs(evaluatedMaterialCoordinates[c] - materialCoordinates[c]) for c in range(3)]
+
+                            if vector.magnitude(diff) < 1e-03:
+                                destroyNodes.removeNode(annotationGroup.getMarkerNode())
+                                removeMarkerGroup = False
+
+                        if removeMarkerGroup:
+                            if annotationGroup in self._autoAnnotationGroups:
+                                self._autoAnnotationGroups.remove(annotationGroup)
+                            else:
+                                self._userAnnotationGroups.remove(annotationGroup)
+
                 nodes.destroyNodesConditional(destroyNodeGroup)
                 # clean up group so no external code hears is notified of its existence
                 del destroyNodes
                 del destroyNodeGroup
+
             del destroyMesh
             del destroyElementGroup
             del destroyGroup

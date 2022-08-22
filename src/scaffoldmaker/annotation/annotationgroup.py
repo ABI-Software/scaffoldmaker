@@ -379,6 +379,23 @@ class AnnotationGroup(object):
                     fieldcache.setNode(markerNode)
                     self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
 
+    def evaluateMaterialCoordinatesFromElementXi(self, materialCoordinatesField):
+        """
+        Calculate the material coordinates from element and xi values.
+        :param materialCoordinatesField: Material coordinates field
+        :return: material coordinates derived from element and xi
+        """
+        fieldmodule = self._group.getFieldmodule()
+        fieldcache = fieldmodule.createFieldcache()
+        markerNode = self.getMarkerNode()
+        fieldcache.setNode(markerNode)
+        element, xi = self.getMarkerLocation()
+        fieldcache.setMeshLocation(element, xi)
+        result, evaluatedMaterialCoordinates = \
+            materialCoordinatesField.evaluateReal(fieldcache, materialCoordinatesField.getNumberOfComponents())
+
+        return evaluatedMaterialCoordinates
+
     def getName(self):
         return self._name
 
@@ -415,6 +432,14 @@ class AnnotationGroup(object):
                     markerName.assignString(fieldcache, self._name)
                 return True
         return False
+
+    def getMarkerNode(self):
+        '''
+        :return: Marker node in annotation group.
+        '''
+        fieldmodule = self._group.getFieldmodule()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        return self.getNodesetGroup(nodes).createNodeiterator().next()
 
     def getId(self):
         return self._id
