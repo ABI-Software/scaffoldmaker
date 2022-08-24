@@ -381,10 +381,11 @@ class AnnotationGroup(object):
 
     def evaluateMarkerMaterialCoordinatesFromElementXi(self, materialCoordinatesField):
         """
-        Calculate the material coordinates from element and xi values.
+        For a marker annotation group, calculate the material coordinates from element and xi values.
         :param materialCoordinatesField: Material coordinates field
         :return: material coordinates derived from element and xi
         """
+        assert self._isMarker
         fieldmodule = self._group.getFieldmodule()
         fieldcache = fieldmodule.createFieldcache()
         markerNode = self.getMarkerNode()
