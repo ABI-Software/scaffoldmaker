@@ -324,6 +324,7 @@ class ScaffoldPackage:
                                 annotationGroup.evaluateMarkerMaterialCoordinatesFromElementXi(materialCoordinatesField)
                             diff = [abs(evaluatedMaterialCoordinates[c] - materialCoordinates[c]) for c in range(3)]
 
+                            # threshold designed for material coordinates of nominally unit scale
                             if vector.magnitude(diff) < 1e-03:
                                 destroyNodes.removeNode(annotationGroup.getMarkerNode())
                                 removeMarkerGroup = False
