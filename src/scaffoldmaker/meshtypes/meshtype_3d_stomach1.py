@@ -9,9 +9,9 @@ from __future__ import division
 import copy
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
-from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
+from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers, getMaximumNodeIdentifier
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
@@ -363,7 +363,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
-                'Number of elements around ostium': 12,
+                'Number of elements around ostium': 8,
                 'Number of elements along': 2,
                 'Number of elements through wall': 4,
                 'Unit scale': 1.0,
@@ -425,7 +425,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'scaffoldSettings': {
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
-                'Number of elements around ostium': 12,
+                'Number of elements around ostium': 8,
                 'Number of elements along': 2,
                 'Number of elements through wall': 4,
                 'Unit scale': 1.0,
@@ -698,6 +698,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         cls.updateSubScaffoldOptions(options)
         geometricCentralPath = options['Central path']
         materialCentralPath = cls.centralPathDefaultScaffoldPackages['Material']
+        limitingRidge = options['Limiting ridge']
+        elementsCountThroughWall = options['Number of elements through wall']
         allAnnotationGroups = []
 
         stomachTermsAlong = [None, 'fundus of stomach', 'body of stomach',
@@ -716,34 +718,75 @@ class MeshType_3d_stomach1(Scaffold_base):
                                 options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
                                 materialCoordinates=False)
 
+        stomach_coordinates = findOrCreateFieldCoordinates(fm, name="stomach coordinates")
+
         # Material coordinates
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
-        tmp_stomach_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="stomach coordinates")
+        with ChangeManager(tmp_fm):
+            tmp_stomach_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="stomach coordinates")
 
-        materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
+            materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
 
-        allAnnotationGroups, elementCountGroupList = \
-            createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
-                                allAnnotationGroups, elementCountGroupList,
-                                centralPath=materialCentralPath, options=options, nodeIdentifier=1, elementIdentifier=1,
-                                splitCoordinates=False, materialCoordinates=True)
+            allAnnotationGroups, elementCountGroupList = \
+                createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
+                                    allAnnotationGroups, elementCountGroupList,
+                                    centralPath=materialCentralPath, options=options, nodeIdentifier=1,
+                                    elementIdentifier=1, splitCoordinates=False, materialCoordinates=True)
 
-        # Write two coordinates
-        sir = tmp_region.createStreaminformationRegion()
-        srm = sir.createStreamresourceMemory()
-        tmp_region.write(sir)
-        result, buffer = srm.getBuffer()
+            # Write two coordinates
+            sir = tmp_region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemory()
+            tmp_region.write(sir)
+            result, buffer = srm.getBuffer()
 
-        sir = region.createStreaminformationRegion()
-        srm = sir.createStreamresourceMemoryBuffer(buffer)
-        region.read(sir)
+            sir = region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemoryBuffer(buffer)
+            region.read(sir)
 
-        del srm
-        del sir
+            del srm
+            del sir
+            del tmp_stomach_coordinates
         del tmp_fm
-        del tmp_stomach_coordinates
         del tmp_region
+
+        # Create markers
+        markerTermNameStomachCoordinatesMap = {
+            'body-antrum junction along the greater curvature on luminal surface': [0.6020919166990195, -0.45004378032192227, 0.0],
+            'body-antrum junction along the greater curvature on serosa': [0.6, -0.5, 0.0],
+            'distal point of lower esophageal sphincter serosa on the greater curvature of stomach': [1.280068326927052, 0.7999733714717442, 4.9153708368810965e-16],
+            'distal point of lower esophageal sphincter serosa on the lesser curvature of stomach': [1.1200683310311637, 0.8000096111703247, 5.132730495672042e-16],
+            'esophagogastric junction along the greater curvature on luminal surface': [1.3499430436270714, 0.44878481258293096, -4.212552457001039e-17],
+            'esophagogastric junction along the greater curvature on serosa': [1.3499935896233386, 0.4987847870339471, -2.4350160282618435e-17],
+            'esophagogastric junction along the lesser curvature on luminal surface': [1.0489058130975502, 0.4491717442850351, 3.0345621453573164e-16],
+            'esophagogastric junction along the lesser curvature on serosa': [1.050012637401148, 0.4991433628042418, 2.8296958630895795e-16],
+            'gastroduodenal junction along the greater curvature on luminal surface': [0.2, -0.15, 0.0],
+            'gastroduodenal junction along the greater curvature on serosa': [0.2, -0.2, 0.0],
+            'gastroduodenal junction along the lesser curvature on luminal surface': [0.2, 0.15, 0.0],
+            'gastroduodenal junction along the lesser curvature on serosa': [0.20, 0.20, 0.00],
+            'limiting ridge at the greater curvature on the luminal surface' if limitingRidge else
+            'fundus-body junction along the greater curvature on luminal surface': [1.1997241080276948, -0.4500013598322351, -0.0002446732391805909],
+            'limiting ridge at the greater curvature on serosa' if limitingRidge else
+            'fundus-body junction along the greater curvature on serosa': [1.2, -0.5, 0.0]
+        }
+        if elementsCountThroughWall == 4:
+            markerTermNameStomachCoordinatesCMLMMap = {
+                'body-antrum junction along the greater curvature on circular-longitudinal muscle interface': [0.6005229791747548, -0.48751094508048054, 0.0],
+                'esophagogastric junction along the greater curvature on circular-longitudinal muscle interface': [1.349980953124272, 0.4862847934211931, -2.8794001354466424e-17],
+                'esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface': [1.0497365634804512, 0.4866625412064305, 3.2195156437946623e-16],
+                'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [0.2, -0.1875, 0.0],
+                'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [0.2, 0.1875, 0.0],
+                'limiting ridge at the greater curvature on the circular-longitudinal muscle interface' if limitingRidge
+                else 'fundus-body junction along the greater curvature on circular-longitudinal muscle interface': [1.199934138287874, -0.48750032317766967, -6.116839191743296e-05]
+            }
+            markerTermNameStomachCoordinatesMap.update(markerTermNameStomachCoordinatesCMLMMap)
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        for termName, stomachCoordinatesValues in markerTermNameStomachCoordinatesMap.items():
+            annotationGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term(termName))
+            annotationGroup.createMarkerNode(nodeIdentifier, stomach_coordinates, stomachCoordinatesValues)
+            nodeIdentifier += 1
 
         return allAnnotationGroups
 
@@ -1141,6 +1184,7 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
 
     return curvature
 
+
 def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups,
                         elementCountGroupList, centralPath, options, nodeIdentifier, elementIdentifier,
                         splitCoordinates, materialCoordinates=False):
@@ -1274,17 +1318,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                        [circularMuscleGroup],
                                        [longitudinalMuscleGroup]]
 
-    # annotation fiducial points
-    markerGroup = findOrCreateFieldGroup(fm, "marker")
-    markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-    markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-    markerTemplateInternal = nodes.createNodetemplate()
-    markerTemplateInternal.defineField(markerName)
-    markerTemplateInternal.defineField(markerLocation)
-
     # Spread out elements along groups
     elementsAlongFromBody = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
     arcLengthOfGroupsAlongFromBody = arcLengthOfGroupsAlong[0] - arcLengthOfGroupsAlong[1]
@@ -1327,6 +1360,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         cd12Group = centralPath.cd12Groups[i + 1]
         cd13Group = centralPath.cd13Groups[i + 1]
 
+        if materialCoordinates and i == len(elementCountGroupList) - 1:
+            for n in range(len(cxGroup)):
+                cd12Group[n] = zero
+                cd13Group[n] = zero
+
         # Break body into equal sized elements
         if i == 1:  # body
             cxSection, cd1Section, pe, pxi, psf = \
@@ -1359,6 +1397,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     interp.sampleCubicHermiteCurvesSmooth(cxGroup, cd1Group, elementsOutSection)
                 cd2Section = interp.interpolateSampleCubicHermite(cd2Group, cd12Group, pe, pxi, psf)[0]
                 cd3Section = interp.interpolateSampleCubicHermite(cd3Group, cd13Group, pe, pxi, psf)[0]
+
             else:
                 cxSection = cxGroup
                 arcLength = interp.getCubicHermiteArcLength(cxGroup[0], cd1Group[0],
@@ -1582,6 +1621,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xRawSampled = []
     d2RawSampled = []
     arcLengthsAlongTS = []
+
     for n1 in range(elementsCountAroundDuod):
         xAlong = []
         d2Along = []
@@ -1708,7 +1748,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
 
     stomachStartNode = nextNodeIdentifier
-    stomachStartElement = nextElementIdentifier
     nodeIdentifier = nextNodeIdentifier
     elementIdentifier = nextElementIdentifier
 
@@ -1850,18 +1889,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2AlongLCHalfDuod[-1] = cd1Sections[-1][-1]
 
     if materialCoordinates:
-        # Break point along at body-antrum intersection and smooth separately to keep derivative at body end
+        # Break point along at body-antrum and pylorus-duod intersection and smooth separately to keep derivative at
+        # body end
         d2AlongBody = \
             interp.smoothCubicHermiteDerivativesLine(
                 xAlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
                 d2AlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
                 fixStartDirection=True, fixEndDirection=True)
-        d2AlongBodyDown = \
+
+        for n in range(elementCountGroupList[-1] + 1):
+            d2AlongLCHalfDuod[-(n + 1)] = cd1Sections[-1][-1]
+
+        d2AlongBodyToPylorus = \
             interp.smoothCubicHermiteDerivativesLine(
-                xAlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:],
-                d2AlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:],
+                xAlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:-n],
+                d2AlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:-n],
                 fixStartDirection=True, fixEndDirection=True)
-        d2AlongLCHalfDuod = d2AlongBody[:-1] + d2AlongBodyDown
+        d2AlongDuod = \
+            interp.smoothCubicHermiteDerivativesLine(
+                xAlongLCHalfDuod[-(n + 1):], d2AlongLCHalfDuod[-(n + 1):], fixStartDirection=True, fixEndDirection=True)
+        d2AlongLCHalfDuod = d2AlongBody[:-1] + d2AlongBodyToPylorus[:-1] + d2AlongDuod
     else:
         d2AlongLCHalfDuod = \
             interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
@@ -1929,10 +1976,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     derivativeStart=d1EllipseAroundAll[n2][elementsAroundQuarterDuod])
 
             nx, nd1 = \
-                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
-                                                                     derivativeMagnitudeStart=
-                                                                     vector.magnitude(d1EllipseAroundAll[n2]
-                                                                                      [elementsAroundQuarterDuod]))[0:2]
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                    nx, nd1, nd2, nd3, proportions,
+                    derivativeMagnitudeStart=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundQuarterDuod]))[0:2]
 
             xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nx[1:-1]
             d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nd1[1:-1]
@@ -1964,11 +2010,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     derivativeEnd=d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod])
 
             nx, nd1 = \
-                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
-                                                                     derivativeMagnitudeEnd=
-                                                                     vector.magnitude(d1EllipseAroundAll[n2]
-                                                                                      [elementsAroundHalfDuod +
-                                                                                       elementsAroundQuarterDuod]))[0:2]
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+                    nx, nd1, nd2, nd3, proportions,
+                    derivativeMagnitudeEnd=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundHalfDuod +
+                                                                                   elementsAroundQuarterDuod]))[0:2]
 
             xEllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
                 nx[1:-1]
@@ -2110,7 +2155,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     sampledProportionsOneRight[1][0], sampledProportionsOneRight[1][1], 2,
                     derivativeStart=d1EllipseAroundAll[1][elementsAroundHalfDuod - 1],
                     derivativeEnd=d1EllipseAroundAll[1][elementsAroundHalfDuod + 1])[0]
+
             xEllipseAroundAll[1][elementsAroundHalfDuod] = nx[1]
+
             d1EllipseAroundAll[1] = interp.smoothCubicHermiteDerivativesLoop(xEllipseAroundAll[1],
                                                                              d1EllipseAroundAll[1])
 
@@ -2139,18 +2186,28 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d2Along[-1] = cd1Sections[-1][-1]
 
             if materialCoordinates:
-                # Break point along at body-antrum intersection and smooth separately to keep derivative at body end
+                # Break point along at body-antrum and pylorus-duod intersection and smooth separately to keep
+                # derivative at body end
                 d2AlongFundusBody = \
                     interp.smoothCubicHermiteDerivativesLine(
                         xAlongAll[n1][:elementCountGroupList[0] + elementCountGroupList[1] + 1],
                         d2Along[:elementCountGroupList[0] + elementCountGroupList[1] + 1],
                         fixStartDirection=True, fixEndDirection=True)
-                d2AlongBodyDown = \
+
+                for n in range(elementCountGroupList[-1] + 1):
+                    d2Along[-(n + 1)] = cd1Sections[-1][-1]
+
+                d2AlongBodyToPylorus = \
                     interp.smoothCubicHermiteDerivativesLine(
-                        xAlongAll[n1][elementCountGroupList[0] + elementCountGroupList[1]:],
-                        d2Along[elementCountGroupList[0] + elementCountGroupList[1]:],
+                        xAlongAll[n1][elementCountGroupList[0] + elementCountGroupList[1]:-n],
+                        d2Along[elementCountGroupList[0] + elementCountGroupList[1]:-n],
                         fixStartDirection=True, fixEndDirection=True)
-                d2Along = d2AlongFundusBody[:-1] + d2AlongBodyDown
+
+                d2AlongDuod = \
+                    interp.smoothCubicHermiteDerivativesLine(
+                        xAlongAll[n1][-(n + 1):], d2Along[-(n + 1):], fixStartDirection=True, fixEndDirection=True)
+
+                d2Along = d2AlongFundusBody[:-1] + d2AlongBodyToPylorus[:-1] + d2AlongDuod
             else:
                 d2Along = interp.smoothCubicHermiteDerivativesLine(xAlongAll[n1], d2Along, fixStartDirection=True,
                                                                    fixEndDirection=True)
@@ -2631,7 +2688,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             e1IdxBni1 = e1 + 1
                             e1IdxBni3 = e1 + 2
                         elif elementsAlongFundusApexToCardia < e2 < elementsAlongFundusApexToCardia + \
-                                elementsAroundHalfEso - 3: # incomplete rings interior of eso
+                                elementsAroundHalfEso - 3:  # incomplete rings interior of eso
                             e1IdxBni1 = e1 + 1
                             e1IdxBni3 = e1 + 1
                     else:
@@ -2655,14 +2712,15 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
                         elementtemplateX.defineField(coordinates, -1, eft1)
                         elementtemplate1 = elementtemplateX
-
-                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and e1 == elementsAroundHalfDuod - 2:
+                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and \
+                            e1 == elementsAroundHalfDuod - 2:
                         eft1 = eftfactory.createEftNoCrossDerivatives()
                         remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
                                                [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                         elementtemplateX.defineField(coordinates, -1, eft1)
                         elementtemplate1 = elementtemplateX
-                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and e1 == elementsAroundHalfDuod - 1:
+                    elif e2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 3 and \
+                            e1 == elementsAroundHalfDuod - 1:
                         scaleFactors = [-1.0]
                         eft1 = eftfactory.createEftNoCrossDerivatives()
                         setEftScaleFactorIds(eft1, [1], [])
@@ -2682,10 +2740,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     if e2 < fundusElements and limitingRidge and elementsCountThroughWall > 1 and e3 == 0:
                         fundusMucosaElementIdentifiers.append(elementIdentifier)
                     elementIdxAround.append(elementIdentifier)
-                    if e3 == 0 and e1 == 0 and \
-                            e2 == int(0.5 * (elementsAlongFundusApexToCardia + elementsAlongFundusApexToCardia +
-                                             elementsAroundHalfEso - 3)):
-                        fundusBodyJunctionInnerElementIdentifier = elementIdentifier
                     if scaleFactors:
                         element.setScaleFactors(eft1, scaleFactors)
                     elementIdentifier += 1
@@ -2802,83 +2856,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         elementIdxThroughWall.append(elementIdxAround)
     elementIdxMat.append(elementIdxThroughWall)
 
-    nodeIdentifier = nextNodeIdentifier
-
     # delete mucosa layer in fundus when there is a limiting ridge
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, fundusMucosaElementIdentifiers)
-
-    # annotation fiducial points for embedding in whole body
-    markerNames = [["esophagogastric junction along the greater curvature on luminal surface",
-                    "esophagogastric junction along the lesser curvature on luminal surface",
-                    "gastroduodenal junction along the greater curvature on luminal surface",
-                    "gastroduodenal junction along the lesser curvature on luminal surface",
-                    "body-antrum junction along the greater curvature on luminal surface",
-                    "limiting ridge at the greater curvature on the luminal surface" if limitingRidge else
-                    "fundus-body junction along the greater curvature on luminal surface"]]
-    if elementsCountThroughWall == 4:
-        markerNames.append(
-            ["esophagogastric junction along the greater curvature on circular-longitudinal muscle interface",
-             "esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface",
-             "gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface",
-             "gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface",
-             "body-antrum junction along the greater curvature on circular-longitudinal muscle interface",
-             "limiting ridge at the greater curvature on the circular-longitudinal muscle interface" if limitingRidge
-             else "fundus-body junction along the greater curvature on circular-longitudinal muscle interface"])
-    markerNames.append(["esophagogastric junction along the greater curvature on serosa",
-                        "esophagogastric junction along the lesser curvature on serosa",
-                        "gastroduodenal junction along the greater curvature on serosa",
-                        "gastroduodenal junction along the lesser curvature on serosa",
-                        "body-antrum junction along the greater curvature on serosa",
-                        "limiting ridge at the greater curvature on serosa" if limitingRidge else
-                        "fundus-body junction along the greater curvature on serosa",
-                        "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
-                        "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"])
-
-    markerInnerElementIdentifiers = [stomachStartElement - elementsCountThroughWall * elementsCountAroundEso,
-                                     stomachStartElement - (elementsCountThroughWall - 1) * elementsCountAroundEso -
-                                     elementsAroundHalfEso,
-                                     lastDuodenumElementIdentifier - elementsCountThroughWall *
-                                     elementsCountAroundDuod * (elementCountGroupList[-1] + 1),
-                                     lastDuodenumElementIdentifier - elementsCountThroughWall *
-                                     elementsCountAroundDuod * (elementCountGroupList[-1] + 1) +
-                                     elementsAroundHalfDuod,
-                                     lastDuodenumElementIdentifier - elementsCountThroughWall *
-                                     elementsCountAroundDuod * (sum(elementCountGroupList[-3:]) + 1),
-                                     fundusBodyJunctionInnerElementIdentifier,
-                                     elementsCountAroundEso * (elementsCountThroughWall - 1) + 1,
-                                     elementsCountAroundEso * elementsCountThroughWall - elementsAroundHalfEso + 1]
-
-    elementsCountAroundLayer = [elementsCountAroundEso, elementsCountAroundEso,
-                                elementsCountAroundDuod, elementsCountAroundDuod,
-                                elementsCountAroundDuod, elementsCountAroundDuod - 2]
-
-    for n3 in range(len(markerNames)):
-        for n in range(len(markerNames[n3])):
-            markerGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region,
-                                                             get_stomach_term(markerNames[n3][n]))
-            if n < 6:
-                markerElementIdentifier = \
-                    markerInnerElementIdentifiers[n] + \
-                    (0 if n3 == 0 or elementsCountThroughWall == 1 else elementsCountAroundLayer[n] *
-                                                                        (elementsCountThroughWall - 1))
-                if n == 5 and limitingRidge and n3 == 0:
-                    markerElementIdentifier = markerElementIdentifier + elementsCountAroundDuod - 2
-
-                markerXi = [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0] if n < len(markerNames[n3]) - 1 \
-                    else [0.0, 1.0, 0.0 if n3 != len(markerNames) - 1 else 1.0]
-            else:
-                markerElementIdentifier = markerInnerElementIdentifiers[n]
-                markerXi = [0.0, 0.0, 1.0]
-            markerElement = mesh.findElementByIdentifier(markerElementIdentifier)
-
-            cache.setMeshLocation(markerElement, markerXi)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, markerGroup.getName())
-            markerLocation.assignMeshLocation(cache, markerElement, markerXi)
-            for group in [stomachGroup, markerGroup]:
-                group.getNodesetGroup(nodes).addNode(markerPoint)
 
     # Create annotation groups for dorsal and ventral parts of the stomach
     dorsalGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("dorsal stomach"))
@@ -2950,36 +2929,36 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         nodeIter = nodes.createNodeiterator()
         node = nodeIter.next()
         while node.isValid():
-            if not markerPoints.containsNode(node):
-                cache.setNode(node)
-                identifier = node.getIdentifier()
-                marginNode = identifier in nodesOnSplitMargin
-                x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
-                d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)[1]
-                d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+            # if not markerPoints.containsNode(node):
+            cache.setNode(node)
+            identifier = node.getIdentifier()
+            marginNode = identifier in nodesOnSplitMargin
+            x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+            d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)[1]
+            d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+            if useCrossDerivatives:
+                d1d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)[1]
+            if useCubicHermiteThroughWall:
+                d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)[1]
                 if useCrossDerivatives:
-                    d1d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)[1]
-                if useCubicHermiteThroughWall:
-                    d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)[1]
-                    if useCrossDerivatives:
-                        d1d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)[1]
-                        d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, 3)[1]
-                        d1d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, 3)[1]
+                    d1d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)[1]
+                    d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, 3)[1]
+                    d1d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, 3)[1]
 
-                node.merge(splitNodetemplate2 if marginNode else splitNodetemplate1)
-                versionCount = 2 if marginNode else 1
-                for vn in range(versionCount):
-                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, vn + 1, x)
-                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, vn + 1, d1)
-                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, vn + 1, d2)
+            node.merge(splitNodetemplate2 if marginNode else splitNodetemplate1)
+            versionCount = 2 if marginNode else 1
+            for vn in range(versionCount):
+                splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, vn + 1, x)
+                splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, vn + 1, d1)
+                splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, vn + 1, d2)
+                if useCrossDerivatives:
+                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, vn + 1, d1d2)
+                if useCubicHermiteThroughWall:
+                    splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, vn + 1, d3)
                     if useCrossDerivatives:
-                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, vn + 1, d1d2)
-                    if useCubicHermiteThroughWall:
-                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, vn + 1, d3)
-                        if useCrossDerivatives:
-                            splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
-                            splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
-                            splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
+                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
+                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
+                        splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
 
             node = nodeIter.next()
 

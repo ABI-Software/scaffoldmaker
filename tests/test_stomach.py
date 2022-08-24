@@ -34,7 +34,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         ostiumOptions = options['Gastro-esophagal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         self.assertEqual(1, ostiumSettings.get("Number of vessels"))
-        self.assertEqual(12, ostiumSettings.get("Number of elements around ostium"))
+        self.assertEqual(8, ostiumSettings.get("Number of elements around ostium"))
         self.assertEqual(4, ostiumSettings.get("Number of elements through wall"))
         self.assertEqual(5.0, ostiumSettings.get("Ostium diameter"))
         self.assertEqual(5.0, ostiumSettings.get("Ostium length"))
@@ -163,8 +163,8 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(3901, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [0.0, 1.0, 1.0], 1.0E-10)
+        self.assertEqual(3840, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [1.0, 0.9996922150576828, 0.786908054385139], 1.0E-06)
 
 
 if __name__ == "__main__":

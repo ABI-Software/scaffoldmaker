@@ -11,6 +11,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
+from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
@@ -355,6 +356,86 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         elementOut, xiOut = fredGroup2.getMarkerLocation()
         self.assertEqual(105, elementOut.getIdentifier())
         assertAlmostEqualList(self, [0.3452673123795837, 1.0, 0.6634646029995092], xiOut, delta=TOL)
+
+    def test_deletion(self):
+        """
+        Test deletion of element ranges on a stomach scaffold with scaffold package.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_stomach1)
+        TOL = 1.0E-7
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        fieldmodule = region.getFieldmodule()
+        fieldcache = fieldmodule.createFieldcache()
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        scaffoldPackage.generate(region)
+        coordinates = fieldmodule.findFieldByName("coordinates")
+        stomachCoordinatesField = fieldmodule.findFieldByName("stomach coordinates")
+
+        # Check existing markers
+        bodyAntrumGCLuminal = \
+            scaffoldPackage.findAnnotationGroupByName('body-antrum junction along the greater curvature on luminal '
+                                                      'surface')
+        self.assertTrue(isinstance(bodyAntrumGCLuminal, AnnotationGroup))
+        self.assertTrue(bodyAntrumGCLuminal.isMarker())
+        bodyAntrumGCLuminalNode = bodyAntrumGCLuminal.getMarkerNode()
+        bodyAntrumGCLuminalNodeIdentifier = bodyAntrumGCLuminalNode.getIdentifier()
+        bodyAntrumGCLuminalMaterialCoordinates = bodyAntrumGCLuminal.getMarkerMaterialCoordinates()[1]
+        element, xi = bodyAntrumGCLuminal.getMarkerLocation()
+        fieldcache.setMeshLocation(element, xi)
+        bodyAntrumGCLuminalCoordinates = coordinates.evaluateReal(fieldcache, coordinates.getNumberOfComponents())[1]
+
+        # check a non-existent annotation group
+        bobGroup = scaffoldPackage.findAnnotationGroupByName("bob")
+        self.assertIsNone(bobGroup)
+
+        # now make a marker annotation named "bob" at a location to be deleted
+        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
+        self.assertFalse(bobGroup.isMarker())
+        nextNodeIdentifier = scaffoldPackage.getNextNodeIdentifier()
+        node = bobGroup.createMarkerNode(nextNodeIdentifier, stomachCoordinatesField, [0.900712, 0.291771, 0.391829])
+        bobNodeIdentifier = node.getIdentifier()
+        self.assertEqual(nextNodeIdentifier, bobNodeIdentifier)
+        stomachCoordinatesFieldOut, stomachCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
+        self.assertEqual([0.900712, 0.291771, 0.391829], stomachCoordinatesValueOut)
+
+        # check bob is made before deletion
+        bob = scaffoldPackage.findAnnotationGroupByName('bob')
+        self.assertTrue(isinstance(bob, AnnotationGroup))
+        self.assertTrue(bob.isMarker())
+
+        # delete element ranges for body
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(71, len(annotationGroups))
+        scaffoldPackage.deleteElementsInRanges(region, [[313, 496]])
+        self.assertEqual(600, mesh3d.getSize())
+        element = mesh3d.findElementByIdentifier(400)
+        self.assertFalse(element.isValid())
+
+        # check that body-antrum junction marker is still present after deletion
+        self.assertIn(bodyAntrumGCLuminal, annotationGroups)
+        self.assertTrue(bodyAntrumGCLuminal.isMarker())
+        node = nodes.findNodeByIdentifier(bodyAntrumGCLuminalNodeIdentifier)
+        self.assertTrue(node.isValid())
+        fieldcache.setNode(bodyAntrumGCLuminal.getMarkerNode())
+        markerMaterialCoordinates = bodyAntrumGCLuminal.getMarkerMaterialCoordinates()[1]
+        element, xi = bodyAntrumGCLuminal.getMarkerLocation()
+        fieldcache.setMeshLocation(element, xi)
+        result, markerCoordinates = coordinates.evaluateReal(fieldcache, coordinates.getNumberOfComponents())
+        assertAlmostEqualList(self, markerCoordinates, bodyAntrumGCLuminalCoordinates, delta=TOL)
+        assertAlmostEqualList(self, markerMaterialCoordinates, bodyAntrumGCLuminalMaterialCoordinates, delta=TOL)
+
+        # check that bob is deleted
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(70, len(annotationGroups))
+        bob = scaffoldPackage.findAnnotationGroupByName('bob')
+        self.assertNotIn(bob, annotationGroups)
+        node = nodes.findNodeByIdentifier(bobNodeIdentifier)
+        self.assertFalse(node.isValid())
 
     def test_utils_ellipsoid(self):
         """

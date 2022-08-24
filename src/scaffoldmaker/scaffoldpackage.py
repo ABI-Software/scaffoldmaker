@@ -10,9 +10,12 @@ from opencmiss.maths.vectorops import euler_to_rotation_matrix
 from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.finiteelement import get_maximum_node_identifier
 from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from opencmiss.zinc.field import Field, FieldGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
+    getAnnotationMarkerLocationField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh
 
 
 class ScaffoldPackage:
@@ -252,6 +255,94 @@ class ScaffoldPackage:
             self._isGenerated = True
             if applyTransformation:
                 self.applyTransformation()
+
+    def deleteElementsInRanges(self, region, deleteElementRanges):
+        """
+        If this is the root scaffold and there are ranges of element identifiers to delete,
+        remove these from the model.
+        Also check if marker group nodes embedded in those elements are shared with nearby elements and delete those
+        marker nodes if used only by the deleted elements.
+        :param deleteElementRanges: Range of elements to be deleted.
+        """
+        if (len(deleteElementRanges) == 0):
+            return
+
+        self._region = region
+        fm = self._region.getFieldmodule()
+        mesh = get_highest_dimension_mesh(fm)
+        meshDimension = mesh.getDimension()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        with ChangeManager(fm):
+            # put the elements in a group and use subelement handling to get nodes in use by it
+            destroyGroup = fm.createFieldGroup()
+            destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+            destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
+            destroyMesh = destroyElementGroup.getMeshGroup()
+            elementIter = mesh.createElementiterator()
+            element = elementIter.next()
+            while element.isValid():
+                identifier = element.getIdentifier()
+                for deleteElementRange in deleteElementRanges:
+                    if (identifier >= deleteElementRange[0]) and (identifier <= deleteElementRange[1]):
+                        destroyMesh.addElement(element)
+                element = elementIter.next()
+            del elementIter
+            # print("Deleting", destroyMesh.getSize(), "element(s)")
+            if destroyMesh.getSize() > 0:
+                fieldcache = fm.createFieldcache()
+                destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
+                destroyNodes = destroyNodeGroup.getNodesetGroup()
+                markerGroup = fm.findFieldByName("marker").castGroup()
+                if markerGroup.isValid():
+                    markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+                    markerLocation = getAnnotationMarkerLocationField(fm, mesh)
+
+                    if markerNodes.isValid() and markerLocation.isValid():
+                        nodeIter = markerNodes.createNodeiterator()
+                        node = nodeIter.next()
+                        while node.isValid():
+                            fieldcache.setNode(node)
+                            element, xi = markerLocation.evaluateMeshLocation(fieldcache, meshDimension)
+                            if element.isValid() and destroyMesh.containsElement(element):
+                                # print("Destroy marker '" + markerName.evaluateString(fieldcache) + "' node", node.getIdentifier(), "in destroyed element", element.getIdentifier(), "at", xi)
+                                destroyNodes.addNode(node)  # so destroyed with others below; can't do here as as may be kept if marker group can find a new location below
+                            node = nodeIter.next()
+                        del nodeIter
+                        del fieldcache
+
+                # must destroy elements first as Zinc won't destroy nodes that are in use
+                mesh.destroyElementsConditional(destroyElementGroup)
+                annotationGroups = self._autoAnnotationGroups + self._userAnnotationGroups
+
+                for annotationGroup in annotationGroups:
+                    if annotationGroup.isMarker():
+                        materialCoordinatesField, materialCoordinates = annotationGroup.getMarkerMaterialCoordinates()
+                        removeMarkerGroup = True
+                        if materialCoordinates:
+                            annotationGroup.setMarkerMaterialCoordinates(materialCoordinatesField, materialCoordinates)
+                            evaluatedMaterialCoordinates = \
+                                annotationGroup.evaluateMarkerMaterialCoordinatesFromElementXi(materialCoordinatesField)
+                            diff = [abs(evaluatedMaterialCoordinates[c] - materialCoordinates[c]) for c in range(3)]
+
+                            # threshold designed for material coordinates of nominally unit scale
+                            if vector.magnitude(diff) < 1e-03:
+                                destroyNodes.removeNode(annotationGroup.getMarkerNode())
+                                removeMarkerGroup = False
+
+                        if removeMarkerGroup:
+                            if annotationGroup in self._autoAnnotationGroups:
+                                self._autoAnnotationGroups.remove(annotationGroup)
+                            else:
+                                self._userAnnotationGroups.remove(annotationGroup)
+
+                nodes.destroyNodesConditional(destroyNodeGroup)
+                # clean up group so no external code hears is notified of its existence
+                del destroyNodes
+                del destroyNodeGroup
+
+            del destroyMesh
+            del destroyElementGroup
+            del destroyGroup
 
     def getNextNodeIdentifier(self):
         """
