@@ -11,7 +11,8 @@ from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from opencmiss.utils.zinc.finiteelement import get_maximum_node_identifier
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field, FieldGroup
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
+    getAnnotationMarkerLocationField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh
@@ -294,8 +295,7 @@ class ScaffoldPackage:
                 markerGroup = fm.findFieldByName("marker").castGroup()
                 if markerGroup.isValid():
                     markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
-                    markerLocation = fm.findFieldByName("marker_location")
-                    # markerName = fm.findFieldByName("marker_name")
+                    markerLocation = getAnnotationMarkerLocationField(fm, mesh)
 
                     if markerNodes.isValid() and markerLocation.isValid():
                         nodeIter = markerNodes.createNodeiterator()
