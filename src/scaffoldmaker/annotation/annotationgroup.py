@@ -438,6 +438,7 @@ class AnnotationGroup(object):
         '''
         :return: Marker node in annotation group.
         '''
+        assert self._isMarker
         fieldmodule = self._group.getFieldmodule()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         return self.getNodesetGroup(nodes).createNodeiterator().next()
