@@ -378,6 +378,19 @@ class MeshType_1d_nervecentreline2(Scaffold_base):
                 annotationMeshGroup = annotationGroup.getMeshGroup(mesh)
                 annotationMeshGroup.addElement(element)
                 elementIdentifier = elementIdentifier + 1
+                if 'ardell' in centreline[e3]['group'][0]:
+                    annotationGroup = AnnotationGroup(region, ('ardell_all', ''))
+                    annotationGroups.append(annotationGroup)
+                    annotationMeshGroup = annotationGroup.getMeshGroup(mesh)
+                    annotationMeshGroup.addElement(element)
+                for c in ['keast', 'n_58', 'bladder_n', 'pelvic_splanchnic_n', 'hypogastric_n',
+                          'lumbar_splanchnic_n', 'pudendal_n']:
+                    if c in centreline[e3]['group'][0]:
+                        annotationGroup = AnnotationGroup(region, ('keast_all', ''))
+                        annotationGroups.append(annotationGroup)
+                        annotationMeshGroup = annotationGroup.getMeshGroup(mesh)
+                        annotationMeshGroup.addElement(element)
+
 
         # Make a group consists of all segments
         is_vagus = fm.createFieldConstant(1)
