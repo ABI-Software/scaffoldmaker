@@ -441,7 +441,10 @@ class AnnotationGroup(object):
         assert self._isMarker
         fieldmodule = self._group.getFieldmodule()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        return self.getNodesetGroup(nodes).createNodeiterator().next()
+        markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
+        if markerNode.isValid():
+            return markerNode
+        return None
 
     def getId(self):
         return self._id
