@@ -19,16 +19,16 @@ from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh, get_next_
 
 
 class AnnotationGroup(object):
-    '''
+    """
     Describes subdomains of a scaffold with attached names and terms.
-    '''
+    """
 
     def __init__(self, region, term):
-        '''
+        """
         :param region: The Zinc region the AnnotationGroup is to be made for.
         :param term: Identifier for anatomical term, currently a tuple of name, id.
         e.g. ("heart", "FMA:7088")
-        '''
+        """
         self._name = term[0]
         self._id = term[1]
         self._group = find_or_create_field_group(region.getFieldmodule(), self._name, managed=False)
@@ -56,11 +56,11 @@ class AnnotationGroup(object):
             self._group.clear()
 
     def toDict(self):
-        '''
+        """
         Encodes object into a dictionary for JSON serialisation.
         Used only for user-defined annotation groups.
         :return: Dictionary containing object encoding.
-        '''
+        """
         # get identifier ranges from highest dimension domain in group
         dimension = self.getDimension()
         fieldmodule = self._group.getFieldmodule()
@@ -106,11 +106,11 @@ class AnnotationGroup(object):
 
     @classmethod
     def fromDict(cls, dct, region):
-        '''
+        """
         Instantiate from dict. See toDict()
         :param region: Zinc region.
         :return: AnnotationGroup
-        '''
+        """
         assert dct['_AnnotationGroup']
         name = dct['name']
         ontId = dct['ontId']
@@ -401,12 +401,12 @@ class AnnotationGroup(object):
         return self._name
 
     def setName(self, name):
-        '''
+        """
         Client must ensure name is unique for all annotation groups.
         First tries to rename zinc group field; if that fails, it won't rename group
         as the name is already in use.
         :return:  True on success, otherwise False
-        '''
+        """
         if self._name == name:
             return True
         fieldmodule = self._group.getFieldmodule()
@@ -435,9 +435,9 @@ class AnnotationGroup(object):
         return False
 
     def getMarkerNode(self):
-        '''
+        """
         :return: Marker node in annotation group.
-        '''
+        """
         assert self._isMarker
         fieldmodule = self._group.getFieldmodule()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -450,10 +450,10 @@ class AnnotationGroup(object):
         return self._id
 
     def setId(self, id):
-        '''
+        """
         Client must ensure id is unique for all annotation groups.
         :return:  True on success, otherwise False
-        '''
+        """
         self._id = id
         return True
 
@@ -472,66 +472,66 @@ class AnnotationGroup(object):
         return self._group
 
     def getDimension(self):
-        '''
+        """
         Get dimension 3, 2 or 1 of mesh which group is annotating, 0 if nodes or -1 if empty.
-        '''
+        """
         return group_get_highest_dimension(self._group)
 
     def getFieldElementGroup(self, mesh):
-        '''
+        """
         :param mesh: The Zinc mesh to manage a sub group of.
         :return: The Zinc element group field for mesh in this AnnotationGroup.
-        '''
+        """
         elementGroup = self._group.getFieldElementGroup(mesh)
         if not elementGroup.isValid():
             elementGroup = self._group.createFieldElementGroup(mesh)
         return elementGroup
 
     def getFieldNodeGroup(self, nodeset):
-        '''
+        """
         :param nodeset: The Zinc nodeset to manage a sub group of.
         :return: The Zinc node group field for nodeset in this AnnotationGroup.
-        '''
+        """
         nodeGroup = self._group.getFieldNodeGroup(nodeset)
         if not nodeGroup.isValid():
             nodeGroup = self._group.createFieldNodeGroup(nodeset)
         return nodeGroup
 
     def getMeshGroup(self, mesh):
-        '''
+        """
         :param mesh: The Zinc mesh to manage a sub group of.
         :return: The Zinc meshGroup for adding elements of mesh in this AnnotationGroup.
-        '''
+        """
         return self.getFieldElementGroup(mesh).getMeshGroup()
 
     def hasMeshGroup(self, mesh):
-        '''
+        """
         :param mesh: The Zinc mesh to query a sub group of.
         :return: True if MeshGroup for mesh exists and is not empty, otherwise False.
-        '''
+        """
         elementGroup = self._group.getFieldElementGroup(mesh)
         return elementGroup.isValid() and (elementGroup.getMeshGroup().getSize() > 0)
 
     def getNodesetGroup(self, nodeset):
-        '''
+        """
         :param nodeset: The Zinc nodeset to manage a sub group of.
         :return: The Zinc nodesetGroup for adding nodes from nodeset in this AnnotationGroup.
-        '''
+        """
         return self.getFieldNodeGroup(nodeset).getNodesetGroup()
 
     def hasNodesetGroup(self, nodeset):
-        '''
+        """
         :param nodeset: The Zinc nodeset to query a sub group of.
         :return: True if NodesetGroup for nodeset exists and is not empty, otherwise False.
-        '''
+        """
         nodeGroup = self._group.getFieldNodeGroup(nodeset)
         return nodeGroup.isValid() and (nodeGroup.getNodesetGroup().getSize() > 0)
 
     def addSubelements(self):
-        '''
+        """
         Call after group is complete and faces have been defined to add faces and
         nodes for elements in group to related subgroups.
-        '''
+        """
         self._group.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
         fm = self._group.getFieldmodule()
         for dimension in range(1, 4):
@@ -544,12 +544,12 @@ class AnnotationGroup(object):
 
 
 def findAnnotationGroupByName(annotationGroups: list, name: str):
-    '''
+    """
     Find existing annotation group for name.
     :param annotationGroups: list(AnnotationGroup)
     :param name: Name of group.
     :return: AnnotationGroup or None if not found.
-    '''
+    """
     for annotationGroup in annotationGroups:
         if annotationGroup._name == name:
             return annotationGroup
@@ -557,14 +557,14 @@ def findAnnotationGroupByName(annotationGroups: list, name: str):
 
 
 def findOrCreateAnnotationGroupForTerm(annotationGroups: list, region, term) -> AnnotationGroup:
-    '''
+    """
     Find existing annotation group for term, or create it for region if not found.
     If annotation group created here, append it to annotationGroups.
     :param annotationGroups: list(AnnotationGroup)
     :param region: Zinc region to create group for.
     :param term: Identifier for anatomical term, currently a tuple of name, id.
     :return: AnnotationGroup.
-    '''
+    """
     name = term[0]
     annotationGroup = findAnnotationGroupByName(annotationGroups, name)
     if annotationGroup:
@@ -577,12 +577,12 @@ def findOrCreateAnnotationGroupForTerm(annotationGroups: list, region, term) -> 
 
 
 def getAnnotationGroupForTerm(annotationGroups: list, term) -> AnnotationGroup:
-    '''
+    """
     Get existing annotation group for term. Raise exception if not found.
     :param annotationGroups: list(AnnotationGroup)
     :param term: Identifier for anatomical term, currently a tuple of name, id.
     :return: AnnotationGroup.
-    '''
+    """
     name = term[0]
     annotationGroup = findAnnotationGroupByName(annotationGroups, name)
     if annotationGroup:
@@ -593,13 +593,13 @@ def getAnnotationGroupForTerm(annotationGroups: list, term) -> AnnotationGroup:
 
 
 def mergeAnnotationGroups(*annotationGroupsIn):
-    '''
+    """
     Merge the supplied sequence of list(annotationGroups) to a single list,
     without duplicates.
     :param annotationGroupsIn: Variable number of list(AnnotationGroup) to merge.
      Groups must be for the same region.
     :return: Merged list(AnnotationGroup)
-    '''
+    """
     annotationGroups = []
     for agroups in annotationGroupsIn:
         for agroup in agroups:
