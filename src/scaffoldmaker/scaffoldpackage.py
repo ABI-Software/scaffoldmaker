@@ -321,7 +321,7 @@ class ScaffoldPackage:
                         if materialCoordinates:
                             annotationGroup.setMarkerMaterialCoordinates(materialCoordinatesField, materialCoordinates)
                             evaluatedMaterialCoordinates = \
-                                annotationGroup.evaluateMaterialCoordinatesFromElementXi(materialCoordinatesField)
+                                annotationGroup.evaluateMarkerMaterialCoordinatesFromElementXi(materialCoordinatesField)
                             diff = [abs(evaluatedMaterialCoordinates[c] - materialCoordinates[c]) for c in range(3)]
 
                             if vector.magnitude(diff) < 1e-03:

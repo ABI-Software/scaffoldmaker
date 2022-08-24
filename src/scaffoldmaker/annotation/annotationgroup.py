@@ -379,7 +379,7 @@ class AnnotationGroup(object):
                     fieldcache.setNode(markerNode)
                     self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
 
-    def evaluateMaterialCoordinatesFromElementXi(self, materialCoordinatesField):
+    def evaluateMarkerMaterialCoordinatesFromElementXi(self, materialCoordinatesField):
         """
         Calculate the material coordinates from element and xi values.
         :param materialCoordinatesField: Material coordinates field
