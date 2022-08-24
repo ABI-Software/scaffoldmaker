@@ -305,7 +305,7 @@ class ScaffoldPackage:
                             element, xi = markerLocation.evaluateMeshLocation(fieldcache, meshDimension)
                             if element.isValid() and destroyMesh.containsElement(element):
                                 # print("Destroy marker '" + markerName.evaluateString(fieldcache) + "' node", node.getIdentifier(), "in destroyed element", element.getIdentifier(), "at", xi)
-                                destroyNodes.addNode(node)  # so destroyed with others below; can't do here as
+                                destroyNodes.addNode(node)  # so destroyed with others below; can't do here as as may be kept if marker group can find a new location below
                             node = nodeIter.next()
                         del nodeIter
                         del fieldcache
