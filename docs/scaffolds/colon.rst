@@ -43,9 +43,6 @@ The mucosa, submucosa, circular muscle, longitudinal muscle and serosa layers of
 the scaffold when *Number of elements through wall* is set to ``4``. Alternatively, the entire colon wall can be
 represented as a single layer by setting *Number of elements through wall* to ``1``.
 
-[A special ``Material`` parameter set is provided to allow new species' parameters to be developed from the material
-coordinates definition (see below).]
-
 Coordinates
 -----------
 
