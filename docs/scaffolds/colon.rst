@@ -59,7 +59,7 @@ locations for embedding structures in the colon. It is a cylindrical tube and ca
 the *Display* tab of **Scaffold Creator**.
 
 The colon scaffold supports limited refinement/resampling by checking *Refine* (set parameter to ``true``) with chosen
-*Refine number of elements* parameter. Be aware that only the ``coordinates`` field is currently defined on the refined
+*Refine number of elements* parameters. Be aware that only the ``coordinates`` field is currently defined on the refined
 mesh (but annotations are transferred).
 
 Annotations
