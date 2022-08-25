@@ -10,7 +10,10 @@ This documentation is intended to be a resource describing details about using i
 .. toctree::
 
    install
-   scaffolds/heart
    scaffolds/brainstem
+   scaffolds/colon
+   scaffolds/heart
    scaffolds/lung
+   scaffolds/stomach
+
 

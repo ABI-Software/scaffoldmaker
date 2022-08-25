@@ -61,7 +61,7 @@ species, which is intended to be fitted to actual data for a specimen.
 The material coordinates field ``lung coordinates`` defines a highly idealized coordinate system to give
 permanent locations for embedding structures in the lungs, defined as 2 half ellipsoids for the left and right lung
 (excluding accessory lobe) and a triangular wedge for the accesory lobe, if present. These can be viewed by visualising
-this field in the *Display* tab of **Scaffiold Creator** or by switching to the special ``Material`` parameter set.
+this field in the *Display* tab of **Scaffold Creator** or by switching to the special ``Material`` parameter set.
 
 The lung scaffold supports limited refinement/resampling by checking *Refine* (set parameter to ``true``) with chosen
 *Refine number of elements* parameter. Be aware that only the ``coordinates`` field is currently defined on the refined
