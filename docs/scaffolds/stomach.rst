@@ -58,7 +58,7 @@ the margin between the dorsal and ventral stomach (the boundary where stomach sp
 halves for imaging purposes). This field is intended for fitting data obtained from the dorsal or ventral stomach.
 
 The material coordinates field ``stomach coordinates`` defines a highly idealized coordinate system to give permanent
-locations for embedding structures in the stomach. It is defined by a pill-shaped structure with an inlet cylindrical
+locations for embedding structures in the stomach. It is defined by a capsule-shaped structure with an inlet cylindrical
 tube representing the esophagus and another outlet tube representing the duodenum. This can be viewed by
 visualising this field in the *Display* tab of **Scaffold Creator** or by switching to the special ``Material``
 parameter set.
