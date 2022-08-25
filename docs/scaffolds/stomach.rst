@@ -64,7 +64,7 @@ visualising this field in the *Display* tab of **Scaffold Creator** or by switch
 parameter set.
 
 The stomach scaffold supports limited refinement/resampling by checking *Refine* (set parameter to ``true``) with chosen
-*Refine number of elements* parameter. Be aware that only the ``coordinates`` field is currently defined on the refined
+*Refine number of elements* parameters. Be aware that only the ``coordinates`` field is currently defined on the refined
 mesh (but annotations are transferred).
 
 Annotations
