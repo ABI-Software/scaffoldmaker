@@ -53,9 +53,9 @@ The stomach scaffold defines the geometric, split and material coordinates.
 The geometric ``coordinates`` field gives an approximate, idealized representation of the stomach shape for the species,
 which is intended to be fitted to actual data for a specimen.
 
-The ``split coordinates`` follows the geometric field but provides continuous derivatives for nodes on the margin
-between the dorsal and ventral stomach (the boundary where stomach specimens are usually dissected into halves for
-imaging purposes). This field is intended for fitting data obtained from the dorsal or ventral stomach.
+The ``split coordinates`` follows the geometric field but provides disconnected and duplicated derivatives for nodes on
+the margin between the dorsal and ventral stomach (the boundary where stomach specimens are usually dissected into
+halves for imaging purposes). This field is intended for fitting data obtained from the dorsal or ventral stomach.
 
 The material coordinates field ``stomach coordinates`` defines a highly idealized coordinate system to give permanent
 locations for embedding structures in the stomach. It is defined by a pill-shaped structure with an inlet cylindrical
