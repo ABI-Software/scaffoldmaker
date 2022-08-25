@@ -1,5 +1,5 @@
 Colon Scaffold
-=============
+==============
 
 The current colon scaffold is ``3D Colon 1`` built from ``class MeshType_3d_colon1``.
 The human variant is shown in :numref:`fig-scaffoldmaker-human-colon`.

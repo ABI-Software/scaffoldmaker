@@ -1,5 +1,5 @@
 Stomach Scaffold
-=============
+================
 
 The current stomach scaffold is ``3D Stomach 1`` built from ``class MeshType_3d_stomach1``.
 The human variant is shown in :numref:`fig-scaffoldmaker-human-stomach`.
