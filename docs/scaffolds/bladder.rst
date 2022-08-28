@@ -1,7 +1,7 @@
 Bladder Scaffold
 ================
 
-The current bladder scaffold is ``3D bladder with Urethra 1`` built from ``class MeshType_3d_bladderurethra1``;
+The current bladder scaffold is ``3D bladder with Urethra 1`` built from ``class MeshType_3d_bladderurethra1``.
 The cat variant is shown in :numref:`fig-scaffoldmaker-cat-bladder`.
 
 .. _fig-scaffoldmaker-cat-bladder:
@@ -68,10 +68,10 @@ Annotated 3-dimensional volume regions are defined by groups of 3-D elements inc
 
 **Terms for volume regions such as the above are not to be used for digitized contours!** They are used for applying different material properties in models and the strain/curvature penalty (stiffness) parameters in fitting.
 
-Annotated 2-dimensional surface regions are defined for matching annotated contours digitized from medical images including (where ``luminal`` means bordering the lumen or cavity of a tubular structure, ``outer`` is the outside boundary of a layer on the wall relative to the cavity):
+Annotated 2-dimensional surface regions are defined for matching annotated contours digitized from medical images including (using only one of the items separated by slash /):
 
 * bladder lumen
-* dorsal/ventral part of lumen/serosa of body/neck of urinary bladder(if need to distinguish)
+* dorsal/ventral part of lumen/serosa of body/neck of urinary bladder
 * dorsal/ventral part of lumen/serosa of urethra
 * dorsal/ventral part of serosa of urinary bladder
 * dorsal/ventral part of urinary bladder lumen
