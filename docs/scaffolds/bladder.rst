@@ -19,12 +19,12 @@ The current scaffold consists of different parts to represent the bladder body, 
 
 .. note::
 
-   Separate scaffold will be provided for the bladder.
+   A separate bladder-only scaffold is in development.
 
 Variants
 --------
 
-The bladder scaffold is provided with parameter sets for the following five species, which are very similar in nature but have small, intricate differences:
+The bladder scaffold is provided with parameter sets for the following five species, which differ subtly in shape and location of ureter inlets:
 
 * Cat
 * Human
@@ -35,6 +35,8 @@ The bladder scaffold is provided with parameter sets for the following five spec
 These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools. On the web, the latest published generic bladder scaffold variants can be viewed on the `SPARC Portal <https://sparc.science/>`_ by searching for ``bladder``, filtering for models, selecting a variant and viewing the scaffold in its Gallery tab.
 
 The bladder scaffold script generates the scaffold mesh and geometry based on some parameters include the diameters for different axes, wall thickness, neck angle (for bladder only), etc., which are all defined for the bladder and urethra separately. The ability to control these parameters, as well as variations of them throughout the length of the bladder and urethra allows the scaffold to be configurable for different species and individuals.
+
+The urethra is optional and can be turned on with the *Include urethra* setting. By default the ureter inlets are marker points on the inner (luminal) surface, but by checking the *Include ureters* option these can be made as 3D element structures.
 
 Importantly, the entire scaffold is generated based on a configurable central path defined from apex to urethra, which facilitates the initialization of the shape as well as annotation. The scaffold can now be used to register and map various data including neurons, or to define time-varying fields such as pressure or volume measured experimentally.
 
@@ -49,7 +51,7 @@ The geometric ``coordinates`` field gives an approximate, idealized representati
 
 The ``flat coordinates`` represents the geometric field when the bladder scaffold is cut along its length and laid flat. This field is intended for fitting data obtained from a flat bladder preparation.
 
-A material coordinates field is not provided, so to perform embedding at this time, it is necessary to use the generic ``coordinates`` field as material coordinates.
+A material coordinates field is not provided, so to perform embedding at this time, it is necessary to use the generic ``coordinates`` field as material coordinates. This omission will be fixed in the future bladder-only scaffold.
 
 The bladder scaffold supports limited refinement/resampling by checking *Refine* (set parameter to ``true``) with chosen *Refine number of elements~* parameters. Be aware that only the ``coordinates`` field is currently defined on the refined mesh (but annotations are transferred).
 
