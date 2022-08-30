@@ -12,7 +12,7 @@ from opencmiss.utils.zinc.finiteelement import get_maximum_node_identifier
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.field import Field, FieldGroup
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
-    getAnnotationMarkerLocationField
+    getAnnotationMarkerLocationField  # , getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh
@@ -304,8 +304,11 @@ class ScaffoldPackage:
                             fieldcache.setNode(node)
                             element, xi = markerLocation.evaluateMeshLocation(fieldcache, meshDimension)
                             if element.isValid() and destroyMesh.containsElement(element):
-                                # print("Destroy marker '" + markerName.evaluateString(fieldcache) + "' node", node.getIdentifier(), "in destroyed element", element.getIdentifier(), "at", xi)
-                                destroyNodes.addNode(node)  # so destroyed with others below; can't do here as as may be kept if marker group can find a new location below
+                                # markerName = getAnnotationMarkerNameField(fm)
+                                # print("Destroy marker '" + markerName.evaluateString(fieldcache) + "' node", \
+                                #       node.getIdentifier(), "in destroyed element", element.getIdentifier(), "at", xi)
+                                # following is reversed if a new location is found from material coordinates below:
+                                destroyNodes.addNode(node)
                             node = nodeIter.next()
                         del nodeIter
                         del fieldcache
@@ -314,8 +317,9 @@ class ScaffoldPackage:
                 mesh.destroyElementsConditional(destroyElementGroup)
                 annotationGroups = self._autoAnnotationGroups + self._userAnnotationGroups
 
+                # attempt to re-find locations of to-be-destroyed marker points with material coordinates:
                 for annotationGroup in annotationGroups:
-                    if annotationGroup.isMarker():
+                    if annotationGroup.isMarker() and destroyNodes.containsNode(annotationGroup.getMarkerNode()):
                         materialCoordinatesField, materialCoordinates = annotationGroup.getMarkerMaterialCoordinates()
                         removeMarkerGroup = True
                         if materialCoordinates:
