@@ -408,9 +408,24 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertTrue(isinstance(bob, AnnotationGroup))
         self.assertTrue(bob.isMarker())
 
+        # make a user marker named "fred" at a location not being deleted, but without material coordinates
+        # a bug was causing such markers to be deleted everywhere if any elements were deleted
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        self.assertTrue(scaffoldPackage.isUserAnnotationGroup(fredGroup))
+        self.assertFalse(fredGroup.isMarker())
+        element300 = mesh3d.findElementByIdentifier(300)
+        node = fredGroup.createMarkerNode(nextNodeIdentifier, element=element300, xi=[0.5, 0.5, 1.0])
+        fredNodeIdentifier = node.getIdentifier()
+        self.assertEqual(nextNodeIdentifier + 1, fredNodeIdentifier)
+
+        # check fred is made before deletion
+        fred = scaffoldPackage.findAnnotationGroupByName('fred')
+        self.assertTrue(isinstance(fred, AnnotationGroup))
+        self.assertTrue(fred.isMarker())
+
         # delete element ranges for body
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(71, len(annotationGroups))
+        self.assertEqual(72, len(annotationGroups))
         scaffoldPackage.deleteElementsInRanges(region, [[313, 496]])
         self.assertEqual(600, mesh3d.getSize())
         element = mesh3d.findElementByIdentifier(400)
@@ -431,11 +446,16 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # check that bob is deleted
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(70, len(annotationGroups))
+        self.assertEqual(71, len(annotationGroups))
         bob = scaffoldPackage.findAnnotationGroupByName('bob')
         self.assertNotIn(bob, annotationGroups)
         node = nodes.findNodeByIdentifier(bobNodeIdentifier)
         self.assertFalse(node.isValid())
+
+        # check that fred is still around
+        self.assertIn(fred, annotationGroups)
+        node = nodes.findNodeByIdentifier(fredNodeIdentifier)
+        self.assertTrue(node.isValid())
 
     def test_utils_ellipsoid(self):
         """
