@@ -27,7 +27,7 @@ requires = [
     # minimal requirements listing
     "opencmiss.maths",
     "opencmiss.utils >= 0.3",
-    "opencmiss.zinc >= 3.7",
+    "opencmiss.zinc >= 3.9",
     "scipy",
     "numpy",
 ]
@@ -35,7 +35,7 @@ source_license = readfile("LICENSE")
 
 setup(
     name="scaffoldmaker",
-    version="0.7.0",
+    version="0.7.1",
     description="Python client for generating anatomical scaffolds using OpenCMISS-Zinc",
     long_description="\n".join(readme) + source_license,
     long_description_content_type="text/x-rst",
