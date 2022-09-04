@@ -63,37 +63,6 @@ Generates a whole body scaffold using a mesh of all cube elements,
             'Left arm radius': 0.6,
             'Lower torso length': 2.6,
             'Lower torso number of elements': 4,
-<<<<<<< HEAD
-            'Lower torso radii': [1.3, 1.0],
-            'Neck height': 3.6,
-<<<<<<< HEAD
-            'Right arm angle': 0.0,
-<<<<<<< HEAD
-            'Right arm length': 1.7,
-=======
-            'Left arm angle': 0.0,
-            'Right shoulder length': 0.95,
-=======
-            'Neck length': 0.4,
-            'Neck number of elements': 2,
-            'Neck radius': 0.8,
-            'Neck radius 2': 0.8,
->>>>>>> 5bc5787 (change the order of options)
-            'Right arm length': 2.0,
-            'Right arm number of elements': 5,
-            'Right arm radius': 1.0,
-            'Right shoulder length': 0.95,
-            'Right wrist radius': 0.8,
-<<<<<<< HEAD
-            'Lower torso length': 5.5,
-            'Lower torso number of elements': 4,
-            'Lower torso radii': [1.3, 1.0],
->>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
-=======
-            'Shoulder height': 2.2,
-            'Torso radius': 1.0,
->>>>>>> 5bc5787 (change the order of options)
-=======
             'Lower torso radii': [1.3, 1.6],
             'Neck height': 3.3,
             'Neck length': 0.2,
@@ -107,7 +76,6 @@ Generates a whole body scaffold using a mesh of all cube elements,
             'Right wrist radius': 0.4,
             'Shoulder height': 2.1,
             'Torso radius': 1.3,
->>>>>>> 3e2b739 (Minor changes)
             'Number of elements across major': 4,
             'Number of elements across shell': 0,
             'Number of elements across transition': 1,
