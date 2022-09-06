@@ -136,11 +136,9 @@ class CylinderMesh:
 
     def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
-<<<<<<< HEAD
-                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False , meshGroupsElementsAlong=[], meshGroups=[]):
-=======
-                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False, rangeOfRequiredElementsAlong=None):
->>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
+                 tapered=None, cylinderCentralPath=None, useCrossDerivatives=False, meshGroupsElementsAlong=[],
+                 meshGroups=[], rangeOfRequiredElementsAlong=None):
+
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -398,13 +396,8 @@ class CylinderMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-<<<<<<< HEAD
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier,
-                                                          self._meshGroupsElementsAlong, self._meshGroups)
-=======
-        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [],
+        elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier, [], [],
                                                           rangeOfRequiredElementsAlong=rangeOfRequiredElementsAlong)
->>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
         self._endElementIdentifier = elementIdentifier
 
     def getElementsCountAround(self):
@@ -768,7 +761,6 @@ class Ellipse2D:
                     self.pd3[2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(
                         self.pd3[n2][n1])
 
-<<<<<<< HEAD
     def calculateD2(self):
         """
         :return:
@@ -782,8 +774,6 @@ class Ellipse2D:
                 if btx[n2][n1]:
                     btd2[n2][n1] = nte
 
-=======
->>>>>>> 33b365c (half of the right armpit)
     def getShield(self):
         return self.__shield
 

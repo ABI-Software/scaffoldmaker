@@ -483,12 +483,9 @@ class ShieldMesh2D:
 
         return nodeIdentifier
 
-<<<<<<< HEAD
-    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroupsElementsAlong=[], meshGroups=[]):
-=======
-    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroups=[],
-                         rangeOfRequiredElementsAlong=None):
->>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
+
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroupsElementsAlong=[],
+                         meshGroups=[], rangeOfRequiredElementsAlong=None):
         """
         Create shield elements from nodes.
         :param fieldmodule: Zinc fieldmodule to create elements in.
@@ -513,16 +510,14 @@ class ShieldMesh2D:
         elementtemplate1 = mesh.createElementtemplate()
         elementtemplate1.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-<<<<<<< HEAD
         elementEnd = []
         count = 0
         for c in meshGroupsElementsAlong:
             count += c
             elementEnd.append(count)
-=======
+
         if rangeOfRequiredElementsAlong is None:
             rangeOfRequiredElementsAlong = [0, self.elementsCountAlong]
->>>>>>> e91ccef (Add range of elements along cylinder parameter. Add arms,neck and head.)
 
         isEven = (self.elementsCountAcross % 2) == 0
         e1a = self.elementsCountRim
