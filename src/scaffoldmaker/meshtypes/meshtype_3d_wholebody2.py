@@ -43,6 +43,12 @@ Generates a whole body scaffold using a mesh of all cube elements,
         'control curves': ScaffoldPackage(MeshType_1d_stickman1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
+                'Arm length': 3.5,
+                'Leg length': 6.0,
+                'Left arm angle': 0.0,
+                'Left leg angle': 1.56,
+                'Right arm angle': 0.0,
+                'Right leg angle': 1.56
             }
         }),
     }
@@ -118,7 +124,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
-            return [MeshType_1d_path1]
+            return [MeshType_1d_stickman1]
         return []
 
     @classmethod
@@ -186,31 +192,33 @@ Generates a whole body scaffold using a mesh of all cube elements,
         shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
 
-        torso_radius = options['Torso radius']
-        left_arm_radius = options['Left arm radius']
-        right_arm_radius = options['Right arm radius']
-        neck_radius = options['Neck radius']
-        neck_radius2 = options['Neck radius 2']
-        neck_length = options['Neck length']
-        neck_number_of_elements = options['Neck number of elements']
-        shoulder_height = options['Shoulder height']
-        neck_height = options['Neck height']
-        right_shoulder_length = options['Right shoulder length']
-        right_arm_length = options['Right arm length']
-        rightArmNumberOfElements = options['Right arm number of elements']
-        righ_wrist_radius = options['Right wrist radius']
         armpit = options['Armpit']
         head_length = options['Head length']
         head_number_of_elements = options['Head number of elements']
         head_radius = options['Head radius']
+        left_arm_radius = options['Left arm radius']
         lower_torso_length = options['Lower torso length']
         lower_torso_number_of_elements = options['Lower torso number of elements']
         lower_torso_radii = options['Lower torso radii']
+        neck_height = options['Neck height']
+        neck_length = options['Neck length']
+        neck_number_of_elements = options['Neck number of elements']
+        neck_radius = options['Neck radius']
+        neck_radius2 = options['Neck radius 2']
+        righ_wrist_radius = options['Right wrist radius']
+        rightArmNumberOfElements = options['Right arm number of elements']
+        right_arm_length = options['Right arm length']
+        right_arm_radius = options['Right arm radius']
+        right_shoulder_length = options['Right shoulder length']
+        shoulder_height = options['Shoulder height']
+        torso_radius = options['Torso radius']
 
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         tmpRegion = region.createRegion()
+        scaffoldSettings = centralPath.getScaffoldSettings()
+        scaffoldSettings['Arm length'] = right_arm_length
         centralPath.generate(tmpRegion)
         cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
 
@@ -226,6 +234,14 @@ Generates a whole body scaffold using a mesh of all cube elements,
         left_arm_angle = limb_angle(cx[1], cx[5])
         right_leg_angle = limb_angle(cx[2], cx[4])
         left_leg_angle = limb_angle(cx[2], cx[6])
+
+        if centralPath._meshEdits:
+            scaffoldSettings['Left arm angle'] = left_arm_angle
+            scaffoldSettings['Left leg angle'] = left_leg_angle
+            scaffoldSettings['Right arm angle'] = right_arm_angle
+            scaffoldSettings['Right leg angle'] = right_leg_angle
+            centralPath._meshEdits = None
+            centralPath.generate(tmpRegion)
 
         # create torso, head and arms
         trifurcation1 = TrifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,

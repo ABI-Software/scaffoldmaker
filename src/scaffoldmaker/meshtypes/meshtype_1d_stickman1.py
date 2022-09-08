@@ -25,13 +25,25 @@ class MeshType_1d_stickman1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         return {
-            'Coordinate dimensions' : 3,
+            'Coordinate dimensions': 3,
+            'Arm length': 1.0,
+            'Leg length': 1.0,
+            'Left arm angle': 0.0,
+            'Left leg angle': 1.2,
+            'Right arm angle': 0.0,
+            'Right leg angle': 1.2,
         }
 
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Coordinate dimensions'
+            'Coordinate dimensions',
+            'Arm length',
+            'Leg length',
+            'Left arm angle',
+            'Left leg angle',
+            'Right arm angle',
+            'Right leg angle',
         ]
 
     @staticmethod
@@ -52,6 +64,13 @@ class MeshType_1d_stickman1(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fieldmodule, components_count=3)
         cache = fieldmodule.createFieldcache()
 
+        arm_length = options['Arm length']
+        leg_length = options['Leg length']
+        left_arm_angle = options['Left arm angle']
+        left_leg_angle = options['Left leg angle']
+        Right_arm_angle = options['Right arm angle']
+        Right_leg_angle = options['Right leg angle']
+
         six_stick = True
         #################
         # Create nodes
@@ -64,14 +83,34 @@ class MeshType_1d_stickman1(Scaffold_base):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
         nodeIdentifier = 1
+        height = arm_length + arm_length + leg_length
+        longitudinal = [0.0, 0.0, 1.0]
+        transverse = [1.0, 0.0, 0.0]
+        sagittal = vector.crossproduct3(longitudinal, transverse)
+        x_head = vector.scaleVector(longitudinal, height)
+        x_shoulder = vector.scaleVector(longitudinal, 0.75*height)
+        x_hip = vector.scaleVector(longitudinal, 0.5*height)
+        x_centre = vector.scaleVector(vector.addVectors([x_shoulder, x_hip], [1, 1]), 0.5)
+        x_left_hand = vector.scaleVector(vector.rotateVectorAroundVector(transverse,
+                                                                         sagittal, left_arm_angle), arm_length)
+        x_left_hand = vector.addVectors([x_shoulder, x_left_hand], [1, 1])
+        x_right_hand = vector.scaleVector(vector.rotateVectorAroundVector(vector.scaleVector(transverse, -1),
+                                                                          sagittal, -Right_arm_angle), arm_length)
+        x_right_hand = vector.addVectors([x_shoulder, x_right_hand], [1, 1])
+        x_left_leg = vector.scaleVector(vector.rotateVectorAroundVector(transverse, sagittal,
+                                                                        left_leg_angle), leg_length)
+        x_left_leg = vector.addVectors([x_hip, x_left_leg], [1, 1])
+        x_right_leg = vector.scaleVector(vector.rotateVectorAroundVector(vector.scaleVector(transverse, -1),
+                                                                          sagittal, -Right_leg_angle), leg_length)
+        x_right_leg = vector.addVectors([x_hip, x_right_leg], [1, 1])
         if six_stick:
-            x_list = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.75], [0.0, 0.0, 0.5],
-                      [-0.25, 0.0, 0.81], [-0.01, 0.0, 0.0], [0.25, 0.0, 0.81], [0.01, 0.0, 0.0]]
+            x_list = [x_head, x_shoulder, x_hip, x_right_hand, x_right_leg, x_left_hand, x_left_leg]
         else:
             x_list = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.75], [0.0, 0.0, 0.5],
                       [-0.25, 0.0, 0.81], [-0.25, 0.0, 0.25], [0.25, 0.0, 0.81], [0.25, 0.0, 0.25], [-0.5, 0.0, 0.87] , [-0.5, 0.0, 0.0],
                       [0.5, 0.0, 0.87], [0.5, 0.0, 0.0]]
 
+        x_list = [vector.addVectors([x, x_centre], [1, -1]) for x in x_list]
         for x in x_list:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
