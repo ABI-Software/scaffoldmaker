@@ -23,24 +23,7 @@ Generates a whole body scaffold using a mesh of all cube elements,
  with features to control arms, torso, neck and head.
     """
     centralPathDefaultScaffoldPackages = {
-        # 'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
-        #     'scaffoldSettings': {
-        #         'Coordinate dimensions': 3,
-        #         'D2 derivatives': True,
-        #         'D3 derivatives': True,
-        #         'Length': 3.0,
-        #         'Number of elements': 3
-        #     }#,
-        #     # 'meshEdits': exnodeStringFromNodeValues(
-        #     #     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-        #     #      Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-        #     #         [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-        #     #         [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-        #     #         [[0.0, 0.0, 2.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-        #     #         [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
-        #     #     ])
-        # }),
-        'control curves': ScaffoldPackage(MeshType_1d_stickman1, {
+        'Stickman': ScaffoldPackage(MeshType_1d_stickman1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
                 'Arm length': 3.5,
@@ -51,6 +34,46 @@ Generates a whole body scaffold using a mesh of all cube elements,
                 'Right leg angle': 1.56
             }
         }),
+        'Left arm': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Number of elements': 3
+            }  # ,
+            # 'meshEdits': exnodeStringFromNodeValues(
+            #     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+            #      Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+            #         [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, 0.0, 2.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+            #         [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
+            #     ])
+        }),
+        'Left leg': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Number of elements': 3
+            }
+        }),
+        'Right arm': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Number of elements': 3
+            }
+        }),
+        'Right leg': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Number of elements': 3
+            }
+        }),
     }
 
     @staticmethod
@@ -59,9 +82,17 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['control curves']
+        stickmanOption = cls.centralPathDefaultScaffoldPackages['Stickman']
+        leftArmOption = cls.centralPathDefaultScaffoldPackages['Left arm']
+        leftLegOption = cls.centralPathDefaultScaffoldPackages['Left leg']
+        rightArmOption = cls.centralPathDefaultScaffoldPackages['Right arm']
+        rightLegOption = cls.centralPathDefaultScaffoldPackages['Right leg']
         options = {
-            'Central path': copy.deepcopy(centralPathOption),
+            'Stickman': copy.deepcopy(stickmanOption),
+            'Left arm central path': copy.deepcopy(leftArmOption),
+            'Left leg central path': copy.deepcopy(leftLegOption),
+            'Right arm central path': copy.deepcopy(rightArmOption),
+            'Right leg central path': copy.deepcopy(rightLegOption),
             'Armpit': [1.6, 0.0, 1.2],
             'Head length': 1.5,
             'Head number of elements': 5,
@@ -96,7 +127,11 @@ Generates a whole body scaffold using a mesh of all cube elements,
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Stickman',
+            'Left arm central path',
+            'Left leg central path',
+            'Right arm central path',
+            'Right leg central path',
             'Armpit',
             'Head length',
             'Head number of elements',
@@ -123,13 +158,19 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Stickman':
             return [MeshType_1d_stickman1]
+        elif optionName in ['Left arm central path', 'Left leg central path',
+                            'Right arm central path', 'Right leg central path']:
+            return [MeshType_1d_path1]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
+        if optionName == 'Stickman':
+            return list(cls.centralPathDefaultScaffoldPackages.keys())
+        elif optionName in ['Left arm central path', 'Left leg central path',
+                            'Right arm central path', 'Right leg central path']:
             return list(cls.centralPathDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
@@ -146,7 +187,12 @@ Generates a whole body scaffold using a mesh of all cube elements,
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Stickman':
+            if not parameterSetName:
+                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
+            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+        elif optionName in ['Left arm central path', 'Left leg central path',
+                            'Right arm central path', 'Right leg central path']:
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
@@ -154,8 +200,8 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
+        if not options['Stickman'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Stickman'):
+            options['Stickman'] = cls.getOptionScaffoldPackage('Stickman', MeshType_1d_stickman1)
         dependentChanges = False
 
         if options['Number of elements across major'] < 4:
@@ -185,7 +231,11 @@ Generates a whole body scaffold using a mesh of all cube elements,
         :return: None
         """
 
-        centralPath = options['Central path']
+        stickman = options['Stickman']
+        left_arm_central_path = options['Left arm central path']
+        left_leg_central_path = options['Left leg central path']
+        right_arm_central_path = options['Right arm central path']
+        right_leg_central_path = options['Right leg central path']
         elementsCountAcrossMajor = options['Number of elements across major']
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAcrossTransition = options['Number of elements across transition']
@@ -217,9 +267,9 @@ Generates a whole body scaffold using a mesh of all cube elements,
         coordinates = findOrCreateFieldCoordinates(fm)
 
         tmpRegion = region.createRegion()
-        scaffoldSettings = centralPath.getScaffoldSettings()
+        scaffoldSettings = stickman.getScaffoldSettings()
         scaffoldSettings['Arm length'] = right_arm_length
-        centralPath.generate(tmpRegion)
+        stickman.generate(tmpRegion)
         cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
 
         def limb_angle(p1, p2):
@@ -235,13 +285,14 @@ Generates a whole body scaffold using a mesh of all cube elements,
         right_leg_angle = limb_angle(cx[2], cx[4])
         left_leg_angle = limb_angle(cx[2], cx[6])
 
-        if centralPath._meshEdits:
+        # set the angles and regenerate the stickman with the new settings.
+        if stickman.getMeshEdits():
             scaffoldSettings['Left arm angle'] = left_arm_angle
             scaffoldSettings['Left leg angle'] = left_leg_angle
             scaffoldSettings['Right arm angle'] = right_arm_angle
             scaffoldSettings['Right leg angle'] = right_leg_angle
-            centralPath._meshEdits = None
-            centralPath.generate(tmpRegion)
+            stickman.setMeshEdits(None)
+            stickman.generate(tmpRegion)
 
         # create torso, head and arms
         trifurcation1 = TrifurcationMesh(fm, coordinates, region, torso_radius, left_arm_radius, right_arm_radius,
@@ -298,7 +349,8 @@ Generates a whole body scaffold using a mesh of all cube elements,
 
         # create the legs
         bifurcation1 = BifurcationMesh(fm, coordinates, region, [0, 0, -lower_torso_length], lower_torso_radii,
-                                       right_leg_angle, left_leg_angle, part1=lower_torso_cylinder)
+                                       right_leg_angle, left_leg_angle,
+                                       left_leg_central_path, right_leg_central_path, part1=lower_torso_cylinder)
 
         # trifurcation1.smooth_all_derivatives()
 

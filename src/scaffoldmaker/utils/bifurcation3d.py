@@ -70,8 +70,8 @@ class BranchCylinder:
     """
     Generates a cylinder on top of the given part.
     """
-    def __init__(self, region, mesh, nodes, fieldmodule, coordinates, path_list, elements_count, part1,
-                 attach_bottom=True):
+    def __init__(self, region, mesh, nodes, fieldmodule, coordinates, elements_count, part1,
+                 attach_bottom=True, path_list=None, centralPath=None, centre=None):
         """
         Generate a cylinder to extend part1. see PathNodes class.
         :param region: Zinc region
@@ -93,22 +93,32 @@ class BranchCylinder:
             node_ranges = [0, elements_count[2] - 1]
 
         # generate the cylinder
-        centralPath = ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': len(path_list) - 1
-            },
-            'meshEdits': exnodeStringFromNodeValues(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+        if not centralPath:
+            centralPath = ScaffoldPackage(MeshType_1d_path1, {
+                'scaffoldSettings': {
+                    'Coordinate dimensions': 3,
+                    'D2 derivatives': True,
+                    'D3 derivatives': True,
+                    'Length': 1.0,
+                    'Number of elements': len(path_list) - 1
+                },
+                'meshEdits': exnodeStringFromNodeValues(
+                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                     Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                    path_list)
+            })
+            centre = path_list[0][0]
+        if not centralPath._meshEdits:
+            centralPath_settings = centralPath.getScaffoldSettings()
+            centralPath_settings['Number of elements'] = len(path_list) - 1
+            centralpath_meshEdits = exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
                 path_list)
-        })
+            centralPath.setMeshEdits(centralpath_meshEdits)
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elements_count[2])
         cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
-        centre = path_list[0][0]
+
         base = CylinderEnds(elements_count[1], elements_count[0], 0, 1, 1.0,
                             centre, cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
@@ -352,7 +362,7 @@ class TrifurcationMesh:
             pn = PathNodes(part1, radius, length, number_of_elements, attach_bottom=attach_bottom)
             path_list = pn.get_path_list()
         bc = BranchCylinder(self._region, self._mesh, self._nodes, self._fieldmodule, self._coordinates,
-                            path_list, number_of_elements, part1, attach_bottom=attach_bottom)
+                            number_of_elements, part1, attach_bottom=attach_bottom, path_list=path_list)
         cylinder = bc.get_cylinder()
 
         return cylinder
@@ -2391,7 +2401,8 @@ class BifurcationMesh:
     Bifurction mesh generator.
     """
 
-    def __init__(self, fieldModule, coordinates, region, centre, radii, right_leg_angle, left_leg_angle, part1=None):
+    def __init__(self, fieldModule, coordinates, region, centre, radii, right_leg_angle, left_leg_angle,
+                 left_leg_central_path, right_leg_central_path, part1=None):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -2404,6 +2415,8 @@ class BifurcationMesh:
         self._radii = radii
         self.right_leg_angle = right_leg_angle
         self.left_leg_angle = left_leg_angle
+        self._left_leg_central_path = left_leg_central_path
+        self._right_leg_central_path = right_leg_central_path
         self._part1 = part1
 
         self._coordinates = coordinates
@@ -2482,12 +2495,12 @@ class BifurcationMesh:
                                                              hip_distance)], [1, 1])
         Lv = vector.setMagnitude(vector.rotateVectorAroundVector(xa, kv, angle), hip_length)
         # Lv = vector.setMagnitude(vector.rotateVectorAroundVector(xa, kv, angle), hip_length)
-        centre = vector.addVectors([x_hip_joint, [0, 0, 0]], [1, 1])
+        centre_l = vector.addVectors([x_hip_joint, [0, 0, 0]], [1, 1])
         # centre = vector.addVectors([centre1, Lv], [1, 1])
         minorAxis = vector.setMagnitude(vector.vectorRejection(vector.scaleVector(xa, -1), Lv), radius1)
         majorAxis = vector.setMagnitude(vector.crossproduct3(Lv, minorAxis), radius2)
 
-        ellipse3 = Ellipse2D(centre, majorAxis, minorAxis, 2*self._elementsCount[0], 2*self._elementsCount[1],
+        ellipse3 = Ellipse2D(centre_l, majorAxis, minorAxis, 2*self._elementsCount[0], 2*self._elementsCount[1],
                              elementsCountAcrossShell, elementsCountAcrossTransition,
                              shellProportion, coreMajorRadius, coreMinorRadius,
                              ellipseShape=EllipseShape.Ellipse_SHAPE_FULL)
@@ -2573,14 +2586,15 @@ class BifurcationMesh:
 
         pn = PathNodes(hip_left, [[radius1]*2, [radius1*0.8]*2], 6.0, [4, 4, 7], attach_bottom=False)
         path_list = pn.get_path_list()
+
         bc = BranchCylinder(self._region, self._mesh, self._nodes, self._fieldmodule, self._coordinates,
-                            path_list, [4, 4, 7], hip_left, attach_bottom=False)
+                            [4, 4, 7], hip_left, attach_bottom=False, path_list=path_list, centralPath=self._left_leg_central_path, centre=centre_l)
         cylinder = bc.get_cylinder()
 
         pn = PathNodes(hip_right, [[radius1]*2, [radius1*0.8]*2], 6.0, [4, 4, 7], attach_bottom=False)
         path_list = pn.get_path_list()
         bc = BranchCylinder(self._region, self._mesh, self._nodes, self._fieldmodule, self._coordinates,
-                            path_list, [4, 4, 7], hip_right, attach_bottom=False)
+                            [4, 4, 7], hip_right, attach_bottom=False, path_list=path_list)
         cylinder = bc.get_cylinder()
 
     def generateNodes(self, nodes, fieldModule, coordinates, part_structure):
