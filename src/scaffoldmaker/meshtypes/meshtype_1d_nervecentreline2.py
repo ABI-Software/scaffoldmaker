@@ -244,6 +244,8 @@ class MeshType_1d_nervecentreline2(Scaffold_base):
             # if n3+1 in nodes_w_ver:
             #     nt = nodetemplate1
             # else:
+            if 'L6' in name or 'T13' in name:
+                continue
             nt = nodetemplate
             node = nodes.createNode(nodeIdentifier, nt)
             cache.setNode(node)
@@ -368,6 +370,10 @@ class MeshType_1d_nervecentreline2(Scaffold_base):
                                    'connects': [el[i], el[i+1]]})
             #  create elements of the centreline
             for e3 in range(len(centreline)):
+                if 'L6' in centreline[e3]['connects'][0] or 'T13' in centreline[e3]['connects'][0]:
+                    continue
+                if 'L6' in centreline[e3]['connects'][1] or 'T13' in centreline[e3]['connects'][1]:
+                    continue
                 elementtemplate = elementtemplate1
                 eft = eft1
                 element = mesh.createElement(elementIdentifier, elementtemplate)
