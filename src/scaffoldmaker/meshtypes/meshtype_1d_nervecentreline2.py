@@ -355,7 +355,10 @@ class MeshType_1d_nervecentreline2(Scaffold_base):
         elementIdentifier = 1
         #  create elements of each centreline and repeat for other centrelines
         for name, centreline_values in centreline_data.items():
-            el = [centreline_values['connects'][0]]
+            if '_dorsal_root' not in name:
+                el = [centreline_values['connects'][0]]
+            else:
+                el = [centreline_values['connects'][1]]
             try:
                 # el.extend(centreline_values['contained-in'])
                 for c in centreline_values['contained-in']:
@@ -363,7 +366,10 @@ class MeshType_1d_nervecentreline2(Scaffold_base):
                         el.append(c)
             except KeyError:
                 pass
-            el.extend(centreline_values['connects'][1:])
+            if '_dorsal_root' not in name:
+                el.extend(centreline_values['connects'][1:])
+            else:
+                el.append(centreline_values['connects'][0])
             centreline = []
             for i in range(len(el)-1):
                 centreline.append({'id': name, 'group': centreline_values['group'],
