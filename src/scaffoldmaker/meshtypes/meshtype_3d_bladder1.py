@@ -110,14 +110,14 @@ class MeshType_3d_bladder1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [[54.13, 48.48, 12.30], [-7.00, -7.20, -1.74], [2.81, -2.80, 0.27], [8.05, -8.69, 0.83], [-0.56, -0.25, 3.28], [-1.03, -0.38, 5.83]],
-                [[45.64, 40.32, 10.27], [-9.99, -9.12, -2.31], [9.36, -10.47, 0.88], [5.04, -6.65, 0.39], [-1.44, -0.57, 8.47], [-0.71, -0.27, 4.55]],
-                [[34.10, 30.30, 7.68], [-11.90, -9.54, -2.50], [12.45, -15.79, 0.99], [1.92, -4.02, -0.41], [-1.95, -0.77, 12.19], [-0.23, -0.37, 2.65]],
-                [[21.85, 21.25, 5.27], [-12.81, -9.14, -2.63], [13.20, -18.51, 0.06], [-0.36, -1.77, -0.92], [-1.90, -1.31, 13.78], [0.21, -0.36, 0.38]],
-                [[8.49, 12.04, 2.41], [-14.44, -8.62, -2.68], [11.66, -19.26, -0.86], [-2.78, 1.37, -0.56], [-1.51, -1.48, 12.86], [0.47, 0.09, -1.85]],
-                [[-6.98, 4.11, -0.07], [-14.87, -7.05, -2.20], [7.56, -15.62, -1.03], [-4.79, 7.26, -0.08], [-0.95, -1.12, 10.03], [0.68, 0.11, -3.53]],
-                [[-21.21, -2.10, -2.00], [-16.58, -6.58, -1.81], [2.15, -5.14, -1.02], [-3.60, 6.99, 0.36], [-0.15, -1.23, 5.87], [0.48, 0.38, -3.79]],
-                [[-40.17, -8.90, -3.57], [-21.33, -7.01, -1.33], [0.89, -2.66, -0.20], [1.07, -2.03, 1.29], [-0.09, -0.22, 2.55], [-0.35, 1.65, -2.85]]]),
+                [[26.51, 16.41, 4.08], [-9.57, -8.90, -0.96], [4.88, -5.26, 0.16], [1.94, -3.51, 0.19], [-0.47, -0.23, 6.83], [-0.95, -0.39, 8.28]],
+                [[16.73, 8.32, 2.96], [-9.96, -7.26, -1.27], [6.35, -8.72, -0.01], [1.01, -3.40, -0.53], [-1.09, -0.82, 13.21], [-0.30, -0.78, 4.48]],
+                [[6.67, 1.90, 1.56], [-10.64, -6.01, -1.39], [6.93, -12.06, -0.88], [-0.36, -1.94, -0.43], [-1.08, -1.78, 15.91], [-0.04, -0.39, 1.12]],
+                [[-4.52, -3.64, 0.18], [-10.61, -4.65, -1.28], [5.60, -12.53, -0.85], [-1.88, 1.30, -0.10], [-1.18, -1.56, 15.38], [0.03, -0.00, -1.59]],
+                [[-14.49, -7.47, -1.01], [-8.85, -2.84, -1.10], [3.25, -9.72, -1.06], [-2.15, 3.53, 0.17], [-1.04, -1.75, 12.88], [0.25, 0.35, -3.93]],
+                [[-22.12, -9.45, -1.99], [-7.82, -1.62, -0.91], [1.25, -5.66, -0.61], [-1.42, 3.63, 0.34], [-0.71, -1.00, 7.89], [0.41, 0.62, -4.91]],
+                [[-30.11, -10.70, -2.82], [-8.26, -1.29, -0.82], [0.42, -2.47, -0.38], [-0.55, 2.36, 0.22], [-0.22, -0.51, 3.06], [0.30, 0.34, -3.06]],
+                [[-38.65, -12.04, -3.63], [-8.81, -1.38, -0.79], [0.17, -1.00, -0.16], [0.04, 0.58, 0.21], [-0.12, -0.33, 1.88], [-0.09, 0.02, 0.71]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -178,14 +178,48 @@ class MeshType_3d_bladder1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [[26.51, 16.41, 4.08], [-9.57, -8.90, -0.96], [4.88, -5.26, 0.16], [1.94, -3.51, 0.19], [-0.47, -0.23, 6.83], [-0.95, -0.39, 8.28]],
-                [[16.73, 8.32, 2.96], [-9.96, -7.26, -1.27], [6.35, -8.72, -0.01], [1.01, -3.40, -0.53], [-1.09, -0.82, 13.21], [-0.30, -0.78, 4.48]],
-                [[6.67, 1.90, 1.56], [-10.64, -6.01, -1.39], [6.93, -12.06, -0.88], [-0.36, -1.94, -0.43], [-1.08, -1.78, 15.91], [-0.04, -0.39, 1.12]],
-                [[-4.52, -3.64, 0.18], [-10.61, -4.65, -1.28], [5.60, -12.53, -0.85], [-1.88, 1.30, -0.10], [-1.18, -1.56, 15.38], [0.03, -0.00, -1.59]],
-                [[-14.49, -7.47, -1.01], [-8.85, -2.84, -1.10], [3.25, -9.72, -1.06], [-2.15, 3.53, 0.17], [-1.04, -1.75, 12.88], [0.25, 0.35, -3.93]],
-                [[-22.12, -9.45, -1.99], [-7.82, -1.62, -0.91], [1.25, -5.66, -0.61], [-1.42, 3.63, 0.34], [-0.71, -1.00, 7.89], [0.41, 0.62, -4.91]],
-                [[-30.11, -10.70, -2.82], [-8.26, -1.29, -0.82], [0.42, -2.47, -0.38], [-0.55, 2.36, 0.22], [-0.22, -0.51, 3.06], [0.30, 0.34, -3.06]],
-                [[-38.65, -12.04, -3.63], [-8.81, -1.38, -0.79], [0.17, -1.00, -0.16], [0.04, 0.58, 0.21], [-0.12, -0.33, 1.88], [-0.09, 0.02, 0.71]]]),
+                [[54.13, 48.48, 12.30], [-7.00, -7.20, -1.74], [2.81, -2.80, 0.27], [8.05, -8.69, 0.83], [-0.56, -0.25, 3.28], [-1.03, -0.38, 5.83]],
+                [[45.64, 40.32, 10.27], [-9.99, -9.12, -2.31], [9.36, -10.47, 0.88], [5.04, -6.65, 0.39], [-1.44, -0.57, 8.47], [-0.71, -0.27, 4.55]],
+                [[34.10, 30.30, 7.68], [-11.90, -9.54, -2.50], [12.45, -15.79, 0.99], [1.92, -4.02, -0.41], [-1.95, -0.77, 12.19], [-0.23, -0.37, 2.65]],
+                [[21.85, 21.25, 5.27], [-12.81, -9.14, -2.63], [13.20, -18.51, 0.06], [-0.36, -1.77, -0.92], [-1.90, -1.31, 13.78], [0.21, -0.36, 0.38]],
+                [[8.49, 12.04, 2.41], [-14.44, -8.62, -2.68], [11.66, -19.26, -0.86], [-2.78, 1.37, -0.56], [-1.51, -1.48, 12.86], [0.47, 0.09, -1.85]],
+                [[-6.98, 4.11, -0.07], [-14.87, -7.05, -2.20], [7.56, -15.62, -1.03], [-4.79, 7.26, -0.08], [-0.95, -1.12, 10.03], [0.68, 0.11, -3.53]],
+                [[-21.21, -2.10, -2.00], [-16.58, -6.58, -1.81], [2.15, -5.14, -1.02], [-3.60, 6.99, 0.36], [-0.15, -1.23, 5.87], [0.48, 0.38, -3.79]],
+                [[-40.17, -8.90, -3.57], [-21.33, -7.01, -1.33], [0.89, -2.66, -0.20], [1.07, -2.03, 1.29], [-0.09, -0.22, 2.55], [-0.35, 1.65, -2.85]]]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-4',
+                    'name': get_bladder_term('dome of the bladder')[0],
+                    'ontId': get_bladder_term('dome of the bladder')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-7',
+                    'name': get_bladder_term('neck of urinary bladder')[0],
+                    'ontId': get_bladder_term('neck of urinary bladder')[1]
+                }]
+        }),
+        'Material': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 7
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                [[2.10, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.12, 0.00], [0.00, -0.21, -0.00], [0.00, 0.00, 0.15], [0.00, -0.01, 0.17]],
+                [[1.80, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.28, -0.00], [0.00, -0.11, -0.00], [0.00, -0.00, 0.28], [0.00, -0.00, 0.09]],
+                [[1.50, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.34, -0.01], [0.00, -0.04, 0.00], [0.00, -0.01, 0.33], [0.00, 0.00, 0.03]],
+                [[1.20, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.35, 0.00], [0.00, 0.02, 0.00], [0.00, 0.00, 0.35], [0.00, 0.00, -0.01]],
+                [[0.90, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.07, 0.00], [0.00, 0.00, 0.30], [0.00, 0.00, -0.10]],
+                [[0.60, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.20, 0.00], [0.00, 0.11, 0.00], [0.00, 0.00, 0.16], [0.00, 0.00, -0.11]],
+                [[0.30, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.08, 0.00], [0.00, 0.07, -0.00], [0.00, 0.00, 0.09], [0.00, -0.00, -0.05]],
+                [[0.00, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.05, 0.00], [0.00, -0.02, -0.00], [0.00, 0.00, 0.05], [0.00, -0.00, -0.03]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -216,7 +250,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Human 1',
             'Mouse 1',
             'Pig 1',
-            'Rat 1']
+            'Rat 1',
+            'Material']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -228,6 +263,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages_Bladder['Pig 1']
         elif 'Rat 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages_Bladder['Rat 1']
+        elif 'Material' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages_Bladder['Cat 1']
         options = {
@@ -263,6 +300,12 @@ class MeshType_3d_bladder1(Scaffold_base):
         if 'Rat 1' in parameterSetName:
             options['Wall thickness'] = 0.3
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+        if 'Material' in parameterSetName:
+            options['Number of elements along dome'] = 8
+            options['Number of elements along neck'] = 4
+            options['Number of elements around'] = 8
+            options['Wall thickness'] = 0.01
+            options['Ureter position around'] = 0.67
         return options
 
     @staticmethod
@@ -347,6 +390,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         :return: None
         """
         centralPath = options['Central path']
+        materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
         elementsCountAlongDome = options['Number of elements along dome']
         elementsCountAlongNeck = options['Number of elements along neck']
         elementsCountAround = options['Number of elements around']
@@ -365,167 +409,22 @@ class MeshType_3d_bladder1(Scaffold_base):
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
-        # Central path
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx_dome, cd1_dome, cd2_dome, cd3_dome, cd12_dome, cd13_dome = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                                        Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                            groupName='dome of the bladder')
-        cx_neck, cd1_neck, cd2_neck, cd3_neck, cd12_neck, cd13_neck = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                                        Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                            groupName='neck of urinary bladder')
-        # Find arcLength
-        # Dome
-        domeLength = 0.0
-        elementsCountInDome = len(cx_dome) - 1
-        for e in range(elementsCountInDome):
-            arcLength = interp.getCubicHermiteArcLength(cx_dome[e], cd1_dome[e],
-                                                        cx_dome[e + 1], cd1_dome[e + 1])
-            domeLength += arcLength
-        domeSegmentLength = domeLength / elementsCountAlongDome
-        # Neck
-        neckLength = 0.0
-        elementsCountInNeck = len(cx_neck) - 1
-        for e in range(elementsCountInNeck):
-            arcLength = interp.getCubicHermiteArcLength(cx_neck[e], cd1_neck[e],
-                                                        cx_neck[e + 1], cd1_neck[e + 1])
-            neckLength += arcLength
-        neckSegmentLength = neckLength / elementsCountAlongNeck
-        bladderCentralPathLength = domeLength + neckLength
-        del tmpRegion
+        # Geometric coordinates
+        geometricCentralPath = BladderCentralPath(region, centralPath, elementsCountAlongDome, elementsCountAlongNeck)
+        xFinal, d1Final, d2Final, d3Final = findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
+                                            elementsCountThroughWall, wallThickness, geometricCentralPath, materialCoordinates=False)
 
-        # Sample central path
-        # Dome
-        sx_dome, sd1_dome, se_dome, sxi_dome, ssf_dome = interp.sampleCubicHermiteCurves(cx_dome, cd1_dome, len(cx_dome))
-        sd2_dome, sd12_dome = interp.interpolateSampleCubicHermite(cd2_dome, cd12_dome, se_dome, sxi_dome, ssf_dome)
-        sd3_dome, sd13_dome = interp.interpolateSampleCubicHermite(cd3_dome, cd13_dome, se_dome, sxi_dome, ssf_dome)
-        # Neck
-        sx_neck, sd1_neck, se_neck, sxi_neck, ssf_neck = interp.sampleCubicHermiteCurves(cx_neck, cd1_neck, elementsCountAlongNeck)
-        sd2_neck, sd12_neck = interp.interpolateSampleCubicHermite(cd2_neck, cd12_neck, se_neck, sxi_neck, ssf_neck)
-        sd3_neck, sd13_neck = interp.interpolateSampleCubicHermite(cd3_neck, cd13_neck, se_neck, sxi_neck, ssf_neck)
+        sx_dome_group = geometricCentralPath.sx_dome_group
+        sx_neck_group = geometricCentralPath.sx_neck_group
+        bladderCentralPathLength = geometricCentralPath.bladderCentralPathLength
+        domeLength = geometricCentralPath.domeLength
 
-        # Find nodes of bladder dome and neck
-        sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
-        sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
-
-        xDome, d1Dome, d2Dome = findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome)
-
-        xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, \
-                                                                      neckSegmentLength, elementsCountAround, elementsCountAlongNeck)
-
-        # Replace d2 for the last layer of the dome based on the transition nodes
-        d2Around = []
-        for n1 in range(elementsCountAround):
-            v1 = xDome[-1][n1]
-            v2 = px_transit[n1]
-            d2 = findDerivativeBetweenPoints(v1, v2)
-            # xAlong.append(v1)
-            d2Around.append(d2)
-        d2Dome = d2Dome[:-1] + [d2Around]
-
-        xSampledAll = xDome + xNeck
-        d1SampledAll = d1Dome + d1Neck
-        d2SampledAll = d2Dome + d2Neck
-
-        # # Smoothing d2 from apex to down the neck
-        # d2Raw = []
-        # for n1 in range(elementsCountAround):
-        #     xAlong = []
-        #     d2Along = []
-        #     for n2 in range(elementsCountAlongBladder + 1):
-        #         x = xSampledAll[n2][n1]
-        #         d2 = d2SampledAll[n2][n1]
-        #         xAlong.append(x)
-        #         d2Along.append(d2)
-        #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along, fixAllDirections=True)
-        #     d2Raw.append(d2Smoothed)
-        #
-        # # Rearrange d2
-        # d2SampledAll = []
-        # for n2 in range(elementsCountAlongBladder + 1):
-        #     d2Around = []
-        #     for n1 in range(elementsCountAround):
-        #         d2 = d2Raw[n1][n2]
-        #         d2Around.append(d2)
-        #     d2SampledAll.append(d2Around)
-
-        d3UnitOuter = []
-        for n2 in range(1, elementsCountAlongBladder + 1):
-            d3Around = []
-            for n1 in range(elementsCountAround):
-                d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledAll[n2][n1]), vector.normalise(d2SampledAll[n2][n1]))))
-            d3UnitOuter.append(d3Around)
-
-        # Inner nodes
-        xInner = []
-        d1Inner = []
-        d2Inner = []
-        d3Inner = []
-        for n2 in range(elementsCountAlongBladder + 1):
-            for n1 in range(elementsCountAround):
-                x = xSampledAll[n2][n1]
-                d1 = d1SampledAll[n2][n1]
-                d2 = d2SampledAll[n2][n1]
-                d3 = d3UnitOuter[n2-1][n1]
-                xInner.append(x)
-                d1Inner.append(d1)
-                d2Inner.append(d2)
-                d3Inner.append(d3)
-
-        # Create outer layers from the inner nodes
-        wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
-        relativeThicknessList = []
-        transitElementList = [0] * elementsCountAround
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xInner, d1Inner,
-                                                                                        d2Inner, d3Inner,
-                                                                                        wallThicknessList,
-                                                                                        relativeThicknessList,
-                                                                                        elementsCountAround,
-                                                                                        elementsCountAlongBladder,
-                                                                                        elementsCountThroughWall,
-                                                                                        transitElementList)
-
-        # Deal with multiple nodes at the start point for closed proximal end
-        xApexInner = xList[0]
-        # Arclength between apex point and corresponding point on next face
-        mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
-                                              d2List[2 * elementsCountAround])
-        d2ApexInner = vector.setMagnitude(sd2_dome[0], mag)
-
-        d1ApexInner = vector.crossproduct3(sd1_dome[0], d2ApexInner)
-        d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
-        d3ApexUnit = vector.normalise(
-            vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
-        d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
-
-        # Final nodes on the bladder
-        xFinal = []
-        d1Final = []
-        d2Final = []
-        d3Final = []
-        for n3 in range(elementsCountThroughWall + 1):
-            xApex = [xApexInner[c] +
-                     d3ApexUnit[c] * wallThickness / elementsCountThroughWall * n3 for c in range(3)]
-            xFinal.append(xApex)
-            d1Final.append(d1ApexInner)
-            d2Final.append(d2ApexInner)
-            d3Final.append(d3ApexInner)
-
-        xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAround:]
-        d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]
-        d2Final += d2List[(elementsCountThroughWall + 1) * elementsCountAround:]
-        d3Final += d3List[(elementsCountThroughWall + 1) * elementsCountAround:]
-
-        # Obtain flat nodes coordinates
-        urethraOpeningRadius = vector.magnitude(sd2_neck[-1])
-        xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
-                                                       xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
-        xOrgan = d1Organ = d2Organ = []
+        # Material coordinates
+        tmp_region = region.createRegion()
+        materialCentralPath = BladderCentralPath(tmp_region, materialCentralPath, elementsCountAlongDome, elementsCountAlongNeck)
+        xOrgan, d1Organ, d2Organ, d3Organ = findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
+                                            elementsCountThroughWall, wallThickness, materialCentralPath, materialCoordinates=True)
+        del tmp_region
 
         # Create annotation groups for bladder
         bodyGroup = AnnotationGroup(region, get_bladder_term("dome of the bladder"))
@@ -554,9 +453,14 @@ class MeshType_3d_bladder1(Scaffold_base):
         for i in range(elementsCountThroughWall):
             annotationGroupsThroughWall.append([])
 
+        # Flat coordinates
+        urethraOpeningRadius = vector.magnitude(sx_neck_group[2][-1])
+        xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
+                                                       xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
+
         # Create nodes and elements
         nodeIdentifier, elementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-            region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
+            region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, "bladder coordinates",
             elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier,
@@ -569,9 +473,9 @@ class MeshType_3d_bladder1(Scaffold_base):
         for n2 in range(elementsCountAlongBladder + 1):
             for n1 in range(elementsCountAround):
                 idx = n2 * elementsCountAround + elementsCountAround + n1
-                xTrackSurface.append(xList[idx])
-                d1TrackSurface.append(d1List[idx])
-                d2TrackSurface.append(d2List[idx])
+                xTrackSurface.append(xFinal[idx])
+                d1TrackSurface.append(d1Final[idx])
+                d2TrackSurface.append(d2Final[idx])
         trackSurfaceBladder = TrackSurface(elementsCountAround, elementsCountAlongBladder,
                                            xTrackSurface, d1TrackSurface, d2TrackSurface, loop1=True)
 
@@ -787,7 +691,7 @@ def findDerivativeBetweenPoints(v1, v2):
 
 def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome):
 
-    # Find Apex nodes d2
+    # Find apex nodes d2
     d2Apex = []
     d2 = sx_dome_group[2][0]
     for n1 in range(elementsCountAround):
@@ -1153,3 +1057,192 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
                 d2Flat.append(d2flatList[i])
 
     return xFlat, d1Flat, d2Flat
+
+class BladderCentralPath:
+    """
+    Generates sampled central path for bladder scaffold.
+    """
+    def __init__(self, region, centralPath, elementsCountAlongDome, elementsCountAlongNeck):
+        """
+        :param region: Zinc region to define model in.
+        :param centralPath: Central path subscaffold from meshtype_1d_path1
+        :param elementsCountAlongDome, elementsCountAlongNeck: Nummber of elements along bladder dome and neck.
+        """
+
+        # Central path
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        cx_dome, cd1_dome, cd2_dome, cd3_dome, cd12_dome, cd13_dome = \
+            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                                                        Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
+                                            groupName='dome of the bladder')
+        cx_neck, cd1_neck, cd2_neck, cd3_neck, cd12_neck, cd13_neck = \
+            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                                                        Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
+                                            groupName='neck of urinary bladder')
+        # Find arcLength
+        # Dome
+        domeLength = 0.0
+        elementsCountInDome = len(cx_dome) - 1
+        for e in range(elementsCountInDome):
+            arcLength = interp.getCubicHermiteArcLength(cx_dome[e], cd1_dome[e],
+                                                        cx_dome[e + 1], cd1_dome[e + 1])
+            domeLength += arcLength
+        domeSegmentLength = domeLength / elementsCountAlongDome
+        # Neck
+        neckLength = 0.0
+        elementsCountInNeck = len(cx_neck) - 1
+        for e in range(elementsCountInNeck):
+            arcLength = interp.getCubicHermiteArcLength(cx_neck[e], cd1_neck[e],
+                                                        cx_neck[e + 1], cd1_neck[e + 1])
+            neckLength += arcLength
+        neckSegmentLength = neckLength / elementsCountAlongNeck
+        bladderCentralPathLength = domeLength + neckLength
+        del tmpRegion
+
+        # Sample central path
+        # Dome
+        sx_dome, sd1_dome, se_dome, sxi_dome, ssf_dome = interp.sampleCubicHermiteCurves(cx_dome, cd1_dome, len(cx_dome))
+        sd2_dome, sd12_dome = interp.interpolateSampleCubicHermite(cd2_dome, cd12_dome, se_dome, sxi_dome, ssf_dome)
+        sd3_dome, sd13_dome = interp.interpolateSampleCubicHermite(cd3_dome, cd13_dome, se_dome, sxi_dome, ssf_dome)
+        # Neck
+        sx_neck, sd1_neck, se_neck, sxi_neck, ssf_neck = interp.sampleCubicHermiteCurves(cx_neck, cd1_neck, elementsCountAlongNeck)
+        sd2_neck, sd12_neck = interp.interpolateSampleCubicHermite(cd2_neck, cd12_neck, se_neck, sxi_neck, ssf_neck)
+        sd3_neck, sd13_neck = interp.interpolateSampleCubicHermite(cd3_neck, cd13_neck, se_neck, sxi_neck, ssf_neck)
+
+        # Find nodes of bladder dome and neck
+        sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
+        sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
+
+        self.sx_dome_group = sx_dome_group
+        self.sx_neck_group = sx_neck_group
+        self.domeSegmentLength = domeSegmentLength
+        self.neckSegmentLength = neckSegmentLength
+        self.bladderCentralPathLength = bladderCentralPathLength
+        self.domeLength = domeLength
+
+def findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround, elementsCountThroughWall,
+                        wallThickness, centralPath, materialCoordinates=False):
+
+    if materialCoordinates:
+        wallThickness = 0.01
+
+    sx_dome_group = centralPath.sx_dome_group
+    sx_neck_group = centralPath.sx_neck_group
+    domeSegmentLength = centralPath.domeSegmentLength
+    neckSegmentLength = centralPath.neckSegmentLength
+
+    elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
+
+    xDome, d1Dome, d2Dome = findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome)
+
+    xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, \
+                                                                  neckSegmentLength, elementsCountAround, elementsCountAlongNeck)
+
+    # Replace d2 for the last layer of the dome based on the transition nodes
+    d2Around = []
+    for n1 in range(elementsCountAround):
+        v1 = xDome[-1][n1]
+        v2 = px_transit[n1]
+        d2 = findDerivativeBetweenPoints(v1, v2)
+        # xAlong.append(v1)
+        d2Around.append(d2)
+    d2Dome = d2Dome[:-1] + [d2Around]
+
+    xSampledAll = xDome + xNeck
+    d1SampledAll = d1Dome + d1Neck
+    d2SampledAll = d2Dome + d2Neck
+
+    # # Smoothing d2 from apex to down the neck
+    # d2Raw = []
+    # for n1 in range(elementsCountAround):
+    #     xAlong = []
+    #     d2Along = []
+    #     for n2 in range(elementsCountAlongBladder + 1):
+    #         x = xSampledAll[n2][n1]
+    #         d2 = d2SampledAll[n2][n1]
+    #         xAlong.append(x)
+    #         d2Along.append(d2)
+    #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along, fixAllDirections=True)
+    #     d2Raw.append(d2Smoothed)
+    #
+    # # Rearrange d2
+    # d2SampledAll = []
+    # for n2 in range(elementsCountAlongBladder + 1):
+    #     d2Around = []
+    #     for n1 in range(elementsCountAround):
+    #         d2 = d2Raw[n1][n2]
+    #         d2Around.append(d2)
+    #     d2SampledAll.append(d2Around)
+
+    d3UnitOuter = []
+    for n2 in range(1, elementsCountAlongBladder + 1):
+        d3Around = []
+        for n1 in range(elementsCountAround):
+            d3Around.append(vector.normalise(
+                vector.crossproduct3(vector.normalise(d1SampledAll[n2][n1]), vector.normalise(d2SampledAll[n2][n1]))))
+        d3UnitOuter.append(d3Around)
+
+    # Inner nodes
+    xInner = []
+    d1Inner = []
+    d2Inner = []
+    d3Inner = []
+    for n2 in range(elementsCountAlongBladder + 1):
+        for n1 in range(elementsCountAround):
+            x = xSampledAll[n2][n1]
+            d1 = d1SampledAll[n2][n1]
+            d2 = d2SampledAll[n2][n1]
+            d3 = d3UnitOuter[n2 - 1][n1]
+            xInner.append(x)
+            d1Inner.append(d1)
+            d2Inner.append(d2)
+            d3Inner.append(d3)
+
+    # Create outer layers from the inner nodes
+    wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
+    relativeThicknessList = []
+    transitElementList = [0] * elementsCountAround
+    xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xInner, d1Inner,
+                                                                                    d2Inner, d3Inner,
+                                                                                    wallThicknessList,
+                                                                                    relativeThicknessList,
+                                                                                    elementsCountAround,
+                                                                                    elementsCountAlongBladder,
+                                                                                    elementsCountThroughWall,
+                                                                                    transitElementList)
+
+    # Deal with multiple nodes at the start point for closed proximal end
+    xApexInner = xList[0]
+    # Arclength between apex point and corresponding point on next face
+    mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
+                                          d2List[2 * elementsCountAround])
+    d2ApexInner = vector.setMagnitude(sx_dome_group[2][0], mag)
+
+    d1ApexInner = vector.crossproduct3(sx_dome_group[1][0], d2ApexInner)
+    d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
+    d3ApexUnit = vector.normalise(
+        vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
+    d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
+
+    # Final nodes on the bladder
+    xFinal = []
+    d1Final = []
+    d2Final = []
+    d3Final = []
+    for n3 in range(elementsCountThroughWall + 1):
+        xApex = [xApexInner[c] +
+                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * n3 for c in range(3)]
+        xFinal.append(xApex)
+        d1Final.append(d1ApexInner)
+        d2Final.append(d2ApexInner)
+        d3Final.append(d3ApexInner)
+
+    xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAround:]
+    d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]
+    d2Final += d2List[(elementsCountThroughWall + 1) * elementsCountAround:]
+    d3Final += d3List[(elementsCountThroughWall + 1) * elementsCountAround:]
+
+    return xFinal, d1Final, d2Final, d3Final
