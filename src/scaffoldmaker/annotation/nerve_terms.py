@@ -485,6 +485,7 @@ nerve_terms = [
     ('sympathetic_trunk_T7-T8', ''),
     ]
 
+
 def get_nerve_term(name : str):
     """
     Find term by matching name to any identifier held for a term.
