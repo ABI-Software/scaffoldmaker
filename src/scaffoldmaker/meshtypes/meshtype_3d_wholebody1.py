@@ -230,8 +230,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
 
         elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
 
-        region.readFile(
-            fileName=r'C:\Users\egha355\Desktop\sparc3\codes\mapclient_workflows\workflowandfilesnewer2\whole-body.exf')
+        # region.readFile(
+        #     fileName=r'C:\Users\egha355\Desktop\sparc3\codes\mapclient_workflows\workflowandfilesnewer2\whole-body.exf')
         fieldmodule = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fieldmodule)
         mesh = fieldmodule.findMeshByDimension(3)
