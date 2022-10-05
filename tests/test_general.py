@@ -397,11 +397,11 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
         self.assertFalse(bobGroup.isMarker())
         nextNodeIdentifier = scaffoldPackage.getNextNodeIdentifier()
-        node = bobGroup.createMarkerNode(nextNodeIdentifier, stomachCoordinatesField, [0.900712, 0.291771, 0.391829])
+        node = bobGroup.createMarkerNode(nextNodeIdentifier, stomachCoordinatesField, [-0.299288, 0.291771, 0.391829])
         bobNodeIdentifier = node.getIdentifier()
         self.assertEqual(nextNodeIdentifier, bobNodeIdentifier)
         stomachCoordinatesFieldOut, stomachCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
-        self.assertEqual([0.900712, 0.291771, 0.391829], stomachCoordinatesValueOut)
+        self.assertEqual([-0.299288, 0.291771, 0.391829], stomachCoordinatesValueOut)
 
         # check bob is made before deletion
         bob = scaffoldPackage.findAnnotationGroupByName('bob')
