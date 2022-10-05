@@ -9,26 +9,24 @@ import copy
 
 from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
-from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
-from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
-from opencmiss.zinc.node import Node
+from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, get_element_node_identifiers
+from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from opencmiss.zinc.field import Field, FieldFindMeshLocation
+from opencmiss.zinc.node import Node
+from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms, brainstem_terms
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
 from scaffoldmaker.annotation.nerve_terms import get_nerve_term
-from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms, brainstem_terms
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field, FieldFindMeshLocation
-from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import setMagnitude
 from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
-
-from opencmiss.zinc.context import Context
 
 
 class MeshType_3d_wholebody1(Scaffold_base):
@@ -53,8 +51,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[0.0, 0.0, 0.0], setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]],
-                    [setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]]
+                    [[0.0, 0.0, 0.0], setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5),
+                     [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]],
+                    [setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis1, cylinder1Settings['Length']),
+                     setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]]
                 ])
         })
     }
@@ -228,159 +228,12 @@ Generates body coordinates using a solid cylinder of all cube elements,
         discontinuity = options['Discontinuity on the core boundary']
         useCrossDerivatives = options['Use cross derivatives']
 
-        elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck + elementsCountAlongHead
-
-        # region.readFile(
-        #     fileName=r'C:\Users\egha355\Desktop\sparc3\codes\mapclient_workflows\maker\whole_body_material_coordinates_3by3by14.exf')
+        elementsCountAlong = elementsCountAlongAbdomen + elementsCountAlongThorax + elementsCountAlongNeck +\
+                             elementsCountAlongHead
 
         fieldmodule = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fieldmodule)
-        # bodyCoordinates = fieldmodule.findFieldByName('body coordinates').castFiniteElement()
         mesh = fieldmodule.findMeshByDimension(3)
-
-        # read whole body and get the nerves coordinates.
-        # context = Context('cyl')
-        # cyl_region = context.createRegion()
-        # cyl_region.readFile(fileName=r'C:\Users\egha355\Desktop\sparc3\codes\mapclient_workflows\maker\whole_body_material_coordinates_3by3by14.exf')
-        # cyl_fieldmodule = cyl_region.getFieldmodule()
-        # body_coordinates = cyl_fieldmodule.findFieldByName('body coordinates').castFiniteElement()
-
-        # markerGroup = findOrCreateFieldGroup(fieldmodule, "nerve_marker")
-        # markerName = findOrCreateFieldStoredString(fieldmodule, name="nerve_marker_name")
-        # markerLocation = findOrCreateFieldStoredMeshLocation(fieldmodule, mesh, name="nerve_marker_location")
-        # markerBodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="nerve_marker_body_coordinates")
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        # markerTemplateInternal = nodes.createNodetemplate()
-        # markerTemplateInternal.defineField(markerName)
-        # markerTemplateInternal.defineField(markerLocation)
-        # markerTemplateInternal.defineField(markerBodyCoordinates)
-        # fieldcache = fieldmodule.createFieldcache()
-        #
-        # #
-        # if markerGroup.isValid():
-        #     markerGroup = markerGroup.castGroup()
-        #     markerNodeGroup = markerGroup.getFieldNodeGroup(nodes)
-        #     if markerNodeGroup.isValid():
-        #         markerNodes = markerNodeGroup.getNodesetGroup()
-        #
-        # if markerLocation.isValid() and markerName.isValid():
-        #     with ChangeManager(fieldmodule):
-        #         marker_coordinates = fieldmodule.createFieldEmbedded(bodyCoordinates,
-        #                                                                     markerLocation)
-        #         nodeIter = markerNodes.createNodeiterator()
-        #         node = nodeIter.next()
-        #         while node.isValid():
-        #
-        #             fieldcache.setNode(node)
-        #             result, x = marker_coordinates.evaluateReal(fieldcache, 3)
-        #             name = markerName.evaluateString(fieldcache)
-        #             # 'Gray communicating ramus': [-0.0071, -0.2439, 0.1798]
-        #             print(f'"{name}": {x},')
-        #             result = markerBodyCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1,
-        #                                                                x)
-        #             node = nodeIter.next()
-        # # context = Context('nerves_centrelines')
-        # # region_centreline = context.createRegion()
-        # # region_centreline.readFile(
-        # #     filename=r'C:\Users\egha355\Desktop\sparc3\codes\mapclient_workflows\workflowandfilesnewer2\nerves_centrelines_anatomical_terms.exf')
-        # bodyMarkerPoints = [
-
-        # ]
-        # # annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_nerve_term(termName))
-        # annotationGroup.createMarkerNode(nodeIdentifier, bodyCoordinates, nerveCoordinatesValues)
-        # fieldcache = fieldmodule.createFieldcache()
-        # nodes = self._field_module.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-
-        # marker_location_name, marker_name, marker_group_name = self.get_marker_fields()
-
-        # markerLocation = self._field_module.findFieldByName(marker_location_name)
-        # markerName = self._field_module.findFieldByName(marker_name)
-        # markerGroup = self._field_module.findFieldByName(marker_group_name)
-
-        # marker_region = region.createRegion()
-        # marker_fieldmodule = marker_region.getFieldmodule()
-        # temp_nodes = marker_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # marker_fieldCache = marker_fieldmodule.createFieldcache()
-        # marker_data_coordinates = findOrCreateFieldCoordinates(marker_fieldmodule, name="n_marker_data_coordinates",
-        #                                                        components_count=3)
-        # marker_data_name = findOrCreateFieldStoredString(marker_fieldmodule, name="n_marker_data_name")
-        # marker_data_group = findOrCreateFieldGroup(marker_fieldmodule, name="marker")
-        # marker_data_nodesGroup = marker_data_group.createFieldNodeGroup(temp_nodes).getNodesetGroup()
-        #
-        # markerTemplateInternal = temp_nodes.createNodetemplate()
-        # markerTemplateInternal.defineField(marker_data_name)
-        # markerTemplateInternal.defineField(marker_data_coordinates)
-        # markerTemplateInternal.setValueNumberOfVersions(marker_data_coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        #
-        # if markerGroup.isValid():
-        #     markerGroup = markerGroup.castGroup()
-        #     markerNodeGroup = markerGroup.getFieldNodeGroup(nodes)
-        #     if markerNodeGroup.isValid():
-        #         markerNodes = markerNodeGroup.getNodesetGroup()
-        #
-        # if markerLocation.isValid() and markerName.isValid():
-        #     with ChangeManager(marker_fieldmodule):
-        #         marker_coordinates = self._field_module.createFieldEmbedded(self._model_coordinates_field,
-        #                                                                     markerLocation)
-        #         nodeIter = markerNodes.createNodeiterator()
-        #         node = nodeIter.next()
-        #         while node.isValid():
-        #             marker_node = temp_nodes.createNode(node.getIdentifier(), markerTemplateInternal)
-        #             marker_data_nodesGroup.addNode(marker_node)
-        #
-        #             marker_fieldCache.setNode(marker_node)
-        #             field_cache.setNode(node)
-        #             result, x = marker_coordinates.evaluateReal(field_cache, 3)
-        #             result = marker_data_coordinates.setNodeParameters(marker_fieldCache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-        #             if result == RESULT_OK:
-        #                 name = markerName.evaluateString(field_cache)
-        #                 if name:
-        #                     marker_data_name.assignString(marker_fieldCache, name)
-        #             node = nodeIter.next()
-
-
-        ######
-        # with ChangeManager(fieldmodule):
-        #     # markerLocation = getAnnotationMarkerLocationField(fieldmodule, mesh)
-        #     node = nodeIter.next()
-        #     marker_node = nodes.createNode(node.getIdentifier(), markerTemplateInternal)
-        #     fieldcache = fieldmodule.createFieldcache()
-        #     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        #     # markerNode = self.getNodesetGroup(nodes).createNodeiterator().next()
-        #     fieldcache.setNode(markerNode)
-        #     markerLocation.assignMeshLocation(fieldcache, element, xi)
-        #     if self._markerMaterialCoordinatesField:
-        #         fieldcache.setMeshLocation(element, xi)
-        #         result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
-        #             fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
-        #         fieldcache.setNode(markerNode)
-        #         self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
-
-        #
-        # nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        # findMarkerLocation = fieldmodule.createFieldFindMeshLocation(markerBodyCoordinates, coordinates, mesh)
-        # findMarkerLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
-        # for bodyMarkerPoint in bodyMarkerPoints:
-        #     markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-        #     fieldcache.setNode(markerPoint)
-        #     markerBodyCoordinates.assignReal(fieldcache, bodyMarkerPoint["x"])
-        #     markerName.assignString(fieldcache, bodyMarkerPoint["name"])
-        #
-        #     element, xi = findMarkerLocation.evaluateMeshLocation(fieldcache, 3)
-        #     print(element.getIdentifier(), xi)
-        #     markerLocation.assignMeshLocation(fieldcache, element, xi)
-        #     nodeIdentifier += 1
-        # sir = region.createStreaminformationRegion()
-        # # # srm = sir.createStreamresourceMemory()
-        # # # sir.setResourceGroupName(srm, organ_name)
-        # # # sir.setResourceFieldNames(srm, fieldNames)
-        # with ChangeManager(fieldmodule):
-        #     region.write(sir)
-        #     region.writeFile(r'C:\Users\egha355\Desktop\sparc3\codes\mapclient_workflows\workflowandfilesnewer2\whole-body3333333311111.exf')
-
-
-
 
         bodyGroup = AnnotationGroup(region, get_body_term("body"))
         coreGroup = AnnotationGroup(region, get_body_term("core"))
@@ -510,16 +363,22 @@ Generates body coordinates using a solid cylinder of all cube elements,
                                     versionsCount = nodetemplate.getValueNumberOfVersions(coordinates, -1, valueLabel)
                                     if versionsCount == 1:
                                         fieldcache.setNode(node)
-                                        result0, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-                                        result0, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-                                        result0, d2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                                        result0, x = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                   Node.VALUE_LABEL_VALUE, 1, 3)
+                                        result0, d1 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                    Node.VALUE_LABEL_D_DS1, 1, 3)
+                                        result0, d2 = coordinates.getNodeParameters(fieldcache, -1,
+                                                                                    Node.VALUE_LABEL_D_DS2, 1, 3)
                                         result0, d3 = coordinates.getNodeParameters(fieldcache, -1, valueLabel, 1, 3)
                                         result1 = node.merge(undefineNodetemplate)
                                         result2 = nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, 2)
                                         result3 = node.merge(nodetemplate)
-                                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                                        result4 = coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                                        result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                Node.VALUE_LABEL_VALUE, 1, x)
+                                        result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                Node.VALUE_LABEL_D_DS1, 1, d1)
+                                        result4 = coordinates.setNodeParameters(fieldcache, -1,
+                                                                                Node.VALUE_LABEL_D_DS2, 1, d2)
                                         result4 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 1, d3)
                                         result5 = coordinates.setNodeParameters(fieldcache, -1, valueLabel, 2, d3)
                                 remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], 2)
@@ -557,26 +416,35 @@ Generates body coordinates using a solid cylinder of all cube elements,
         rightUreterJunctionWithBladder = bladder_terms.get_bladder_term('right ureter junction with bladder')
         urethraJunctionWithBladderDorsal = bladder_terms.get_bladder_term('urethra junction of dorsal bladder neck')
         urethraJunctionWithBladderVentral = bladder_terms.get_bladder_term('urethra junction of ventral bladder neck')
-        gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term('esophagogastric junction along the lesser curvature on serosa')
-        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term('limiting ridge at the greater curvature on serosa')
-        pylorusOnGreaterCurvature = stomach_terms.get_stomach_term('gastroduodenal junction along the greater curvature on serosa')
-        junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term("fundus-body junction along the greater curvature on serosa")
+        gastroesophagalJunctionOnLesserCurvature = stomach_terms.get_stomach_term(
+            'esophagogastric junction along the lesser curvature on serosa')
+        limitingRidgeOnGreaterCurvature = stomach_terms.get_stomach_term(
+            'limiting ridge at the greater curvature on serosa')
+        pylorusOnGreaterCurvature = stomach_terms.get_stomach_term(
+            'gastroduodenal junction along the greater curvature on serosa')
+        junctionBetweenFundusAndBodyOnGreaterCurvature = stomach_terms.get_stomach_term(
+            "fundus-body junction along the greater curvature on serosa")
         apexOfLeftLung = lung_terms.get_lung_term('apex of left lung')
         ventralBaseOfLeftLung = lung_terms.get_lung_term('ventral base of left lung')
         dorsalBaseOfLeftLung = lung_terms.get_lung_term('dorsal base of left lung')
         apexOfRightLung = lung_terms.get_lung_term('apex of right lung')
         ventralBaseOfRightLung = lung_terms.get_lung_term('ventral base of right lung')
         dorsalBaseOfRightLung = lung_terms.get_lung_term('dorsal base of right lung')
-        laterodorsalTipOfMiddleLobeOfRightLung = lung_terms.get_lung_term('laterodorsal tip of middle lobe of right lung')
+        laterodorsalTipOfMiddleLobeOfRightLung = lung_terms.get_lung_term(
+            'laterodorsal tip of middle lobe of right lung')
         apexOfRightLungAccessoryLobe = lung_terms.get_lung_term('apex of right lung accessory lobe')
         ventralBaseOfRightLungAccessoryLobe = lung_terms.get_lung_term('ventral base of right lung accessory lobe')
         dorsalBaseOfRightLungAccessoryLobe = lung_terms.get_lung_term('dorsal base of right lung accessory lobe')
         medialBaseOfLeftLung = lung_terms.get_lung_term("medial base of left lung")
         medialBaseOfRightLung = lung_terms.get_lung_term("medial base of right lung")
-        brainstemDorsalMidlineCaudalPoint = brainstem_terms.get_brainstem_term('brainstem dorsal midline caudal point')
-        brainstemDorsalMidlineCranialPoint = brainstem_terms.get_brainstem_term('brainstem dorsal midline cranial point')
-        brainstemVentralMidlineCaudalPoint = brainstem_terms.get_brainstem_term('brainstem ventral midline caudal point')
-        brainstemVentralMidlineCranialPoint = brainstem_terms.get_brainstem_term('brainstem ventral midline cranial point')
+        brainstemDorsalMidlineCaudalPoint = brainstem_terms.get_brainstem_term(
+            'brainstem dorsal midline caudal point')
+        brainstemDorsalMidlineCranialPoint = brainstem_terms.get_brainstem_term(
+            'brainstem dorsal midline cranial point')
+        brainstemVentralMidlineCaudalPoint = brainstem_terms.get_brainstem_term(
+            'brainstem ventral midline caudal point')
+        brainstemVentralMidlineCranialPoint = brainstem_terms.get_brainstem_term(
+            'brainstem ventral midline cranial point')
 
         # marker coordinates. In future we want to have only one table for all species.
         if isRat:
@@ -656,7 +524,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             markerLocation.assignMeshLocation(fieldcache, element, xi)
             nodeIdentifier += 1
 
-        # innnn  k,jjjd
+        # Add annotations for the nerves fiducials
         markerTermNameNerveCoordinatesMap = {
             "C3_C5_spinal_n-phrenic_n": [-0.010138285213950535, 0.046746867202612036, 2.5973140511178574],
             "C3_dorsal_root_end": [0.04009154377867926, 0.42235778666136586, 2.679594014258995],
@@ -1016,7 +884,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
         assert isinstance(meshRefinement, MeshRefinement)
         refineElementsCountAcrossMajor = options['Refine number of elements across major']
         refineElementsCountAlong = options['Refine number of elements along']
-        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong, refineElementsCountAcrossMajor)
+        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCountAcrossMajor, refineElementsCountAlong,
+                                                       refineElementsCountAcrossMajor)
 
     @classmethod
     def defineFaceAnnotations(cls, region, options, annotationGroups):
