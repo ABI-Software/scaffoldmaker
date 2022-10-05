@@ -752,32 +752,32 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         # Create markers
         markerTermNameStomachCoordinatesMap = {
-            'body-antrum junction along the greater curvature on luminal surface': [0.6020919166990195, -0.45004378032192227, 0.0],
-            'body-antrum junction along the greater curvature on serosa': [0.6, -0.5, 0.0],
-            'distal point of lower esophageal sphincter serosa on the greater curvature of stomach': [1.280068326927052, 0.7999733714717442, 4.9153708368810965e-16],
-            'distal point of lower esophageal sphincter serosa on the lesser curvature of stomach': [1.1200683310311637, 0.8000096111703247, 5.132730495672042e-16],
-            'esophagogastric junction along the greater curvature on luminal surface': [1.3499430436270714, 0.44878481258293096, -4.212552457001039e-17],
-            'esophagogastric junction along the greater curvature on serosa': [1.3499935896233386, 0.4987847870339471, -2.4350160282618435e-17],
-            'esophagogastric junction along the lesser curvature on luminal surface': [1.0489058130975502, 0.4491717442850351, 3.0345621453573164e-16],
-            'esophagogastric junction along the lesser curvature on serosa': [1.050012637401148, 0.4991433628042418, 2.8296958630895795e-16],
-            'gastroduodenal junction along the greater curvature on luminal surface': [0.2, -0.15, 0.0],
-            'gastroduodenal junction along the greater curvature on serosa': [0.2, -0.2, 0.0],
-            'gastroduodenal junction along the lesser curvature on luminal surface': [0.2, 0.15, 0.0],
-            'gastroduodenal junction along the lesser curvature on serosa': [0.20, 0.20, 0.00],
+            'body-antrum junction along the greater curvature on luminal surface': [-0.5979080833009805, -0.45004378032192227, 0.0],
+            'body-antrum junction along the greater curvature on serosa': [-0.6, -0.5, 0.0],
+            'distal point of lower esophageal sphincter serosa on the greater curvature of stomach': [0.080068326927052, 0.7999733714717442, 4.9153708368810965e-16],
+            'distal point of lower esophageal sphincter serosa on the lesser curvature of stomach': [-0.0799316689688363, 0.8000096111703247, 5.132730495672042e-16],
+            'esophagogastric junction along the greater curvature on luminal surface': [0.1499430436270714, 0.44878481258293096, -4.212552457001039e-17],
+            'esophagogastric junction along the greater curvature on serosa': [0.1499935896233386, 0.4987847870339471, -2.4350160282618435e-17],
+            'esophagogastric junction along the lesser curvature on luminal surface': [-0.1510941869024498, 0.4491717442850351, 3.0345621453573164e-16],
+            'esophagogastric junction along the lesser curvature on serosa': [-0.149987362598852, 0.4991433628042418, 2.8296958630895795e-16],
+            'gastroduodenal junction along the greater curvature on luminal surface': [-1.0, -0.15, 0.0],
+            'gastroduodenal junction along the greater curvature on serosa': [-1.0, -0.2, 0.0],
+            'gastroduodenal junction along the lesser curvature on luminal surface': [-1.0, 0.15, 0.0],
+            'gastroduodenal junction along the lesser curvature on serosa': [-1.0, 0.20, 0.00],
             'limiting ridge at the greater curvature on the luminal surface' if limitingRidge else
-            'fundus-body junction along the greater curvature on luminal surface': [1.1997241080276948, -0.4500013598322351, -0.0002446732391805909],
+            'fundus-body junction along the greater curvature on luminal surface': [-0.0002758919723052, -0.4500013598322351, -0.0002446732391805909],
             'limiting ridge at the greater curvature on serosa' if limitingRidge else
-            'fundus-body junction along the greater curvature on serosa': [1.2, -0.5, 0.0]
+            'fundus-body junction along the greater curvature on serosa': [0.0, -0.5, 0.0]
         }
         if elementsCountThroughWall == 4:
             markerTermNameStomachCoordinatesCMLMMap = {
-                'body-antrum junction along the greater curvature on circular-longitudinal muscle interface': [0.6005229791747548, -0.48751094508048054, 0.0],
-                'esophagogastric junction along the greater curvature on circular-longitudinal muscle interface': [1.349980953124272, 0.4862847934211931, -2.8794001354466424e-17],
-                'esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface': [1.0497365634804512, 0.4866625412064305, 3.2195156437946623e-16],
-                'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [0.2, -0.1875, 0.0],
-                'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [0.2, 0.1875, 0.0],
+                'body-antrum junction along the greater curvature on circular-longitudinal muscle interface': [-0.5994770208252452, -0.48751094508048054, 0.0],
+                'esophagogastric junction along the greater curvature on circular-longitudinal muscle interface': [0.149980953124272, 0.4862847934211931, -2.8794001354466424e-17],
+                'esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface': [-0.1502634365195488, 0.4866625412064305, 3.2195156437946623e-16],
+                'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [-1.0, -0.1875, 0.0],
+                'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [-1.0, 0.1875, 0.0],
                 'limiting ridge at the greater curvature on the circular-longitudinal muscle interface' if limitingRidge
-                else 'fundus-body junction along the greater curvature on circular-longitudinal muscle interface': [1.199934138287874, -0.48750032317766967, -6.116839191743296e-05]
+                else 'fundus-body junction along the greater curvature on circular-longitudinal muscle interface': [-0.000065861712126, -0.48750032317766967, -6.116839191743296e-05]
             }
             markerTermNameStomachCoordinatesMap.update(markerTermNameStomachCoordinatesCMLMMap)
 
