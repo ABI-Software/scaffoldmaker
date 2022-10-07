@@ -67,8 +67,8 @@ class StomachScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.725, -0.4440296937068191, -0.37800000000001466], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [0.766578360305655, 0.867, 0.37800000000001466], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [0.475, -0.4440296937068191, -0.37800000000001466], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [1.9665783603056544, 0.867, 0.37800000000001466], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
