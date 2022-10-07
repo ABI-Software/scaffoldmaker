@@ -763,7 +763,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'gastroduodenal junction along the greater curvature on luminal surface': [0.2, -0.15, 0.0],
             'gastroduodenal junction along the greater curvature on serosa': [0.2, -0.2, 0.0],
             'gastroduodenal junction along the lesser curvature on luminal surface': [0.2, 0.15, 0.0],
-            'gastroduodenal junction along the lesser curvature on serosa': [0.2, 0.20, 0.00],
+            'gastroduodenal junction along the lesser curvature on serosa': [0.20, 0.20, 0.00],
             'limiting ridge at the greater curvature on the luminal surface' if limitingRidge else
             'fundus-body junction along the greater curvature on luminal surface': [1.1997241080276948, -0.4500013598322351, -0.0002446732391805909],
             'limiting ridge at the greater curvature on serosa' if limitingRidge else
