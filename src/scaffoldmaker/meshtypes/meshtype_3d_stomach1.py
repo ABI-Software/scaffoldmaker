@@ -523,7 +523,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements between fundus apex and cardia': 3,
             'Number of elements between cardia and duodenum': 6,
             'Number of elements through wall': 4,
-            'Wall thickness': 5.0,
+            'Wall thickness': 0.0525,
             'Mucosa relative thickness': 0.55,
             'Submucosa relative thickness': 0.15,
             'Circular muscle layer relative thickness': 0.25,
@@ -539,7 +539,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 16
             options['Number of elements between fundus apex and cardia'] = 5
             options['Number of elements between cardia and duodenum'] = 5
-            options['Wall thickness'] = 0.35
+            options['Wall thickness'] = 0.05145
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
             options['Circular muscle layer relative thickness'] = 0.15
@@ -549,7 +549,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 16
             options['Number of elements between fundus apex and cardia'] = 3
             options['Number of elements between cardia and duodenum'] = 7
-            options['Wall thickness'] = 5.0
+            options['Wall thickness'] = 0.059
             options['Mucosa relative thickness'] = 0.47
             options['Submucosa relative thickness'] = 0.1
             options['Circular muscle layer relative thickness'] = 0.33
@@ -559,7 +559,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 16
             options['Number of elements between fundus apex and cardia'] = 5
             options['Number of elements between cardia and duodenum'] = 6
-            options['Wall thickness'] = 0.5
+            options['Wall thickness'] = 0.0215
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
             options['Circular muscle layer relative thickness'] = 0.18
@@ -669,9 +669,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         """
         Update ostium sub-scaffold options which depend on parent options.
         """
-        wallThickness = options['Wall thickness']
         ostiumOptions = options['Gastro-esophagal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
+        wallThickness = options['Wall thickness'] / ostiumSettings['Unit scale']
         ostiumSettings['Ostium wall thickness'] = wallThickness
         elementsCountThroughWall = options['Number of elements through wall']
         ostiumSettings['Number of elements through wall'] = elementsCountThroughWall
@@ -1222,7 +1222,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
     ostiumDiameter = GEJSettings['Ostium diameter']
     limitingRidge = options['Limiting ridge']
-    wallThickness = options['Wall thickness'] * GEJSettings['Unit scale']
+    wallThickness = options['Wall thickness']
 
     elementsCountAroundEso = 8
     elementsCountAcrossCardia = 1

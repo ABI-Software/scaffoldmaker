@@ -29,7 +29,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertEqual(16, len(options))
         self.assertEqual(16, options.get("Number of elements around duodenum"))
         self.assertEqual(6, options.get("Number of elements between cardia and duodenum"))
-        self.assertEqual(0.5, options.get("Wall thickness"))
+        self.assertEqual(0.0215, options.get("Wall thickness"))
         self.assertEqual(True, options.get("Limiting ridge"))
         ostiumOptions = options['Gastro-esophagal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
