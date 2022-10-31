@@ -135,7 +135,7 @@ class CylinderMesh:
     """
 
     def __init__(self, fieldModule, coordinates, elementsCountAlong, base=None, end=None,
-                 cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
+                 cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL, rangeOfRequiredElements=None,
                  tapered=None, cylinderCentralPath=None, useCrossDerivatives=False , meshGroupsElementsAlong=[], meshGroups=[]):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
@@ -144,6 +144,8 @@ class CylinderMesh:
         :param end: Cylinder end ellipse. It is an instance of class CylinderEnds.
         :param elementsCountAlong: Number of elements along the cylinder axis.
         :param cylinderShape: A value from enum CylinderMode specifying.
+        :param rangeOfRequiredElements: Specifies the range of elements required to be created. It can be used to
+         create the part of cylinder required. If None or same as elementsCountAcross the whole part will be created.
         """
 
         self._centres = None
@@ -177,6 +179,15 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
+        if rangeOfRequiredElements:
+            self._rangeOfRequiredElements = rangeOfRequiredElements
+        else:
+            self._rangeOfRequiredElements = [
+                [0, self._elementsCountAcrossMajor],
+                [0, self._elementsCountAcrossMinor],
+                [0, self._elementsCountAlong],
+            ]
+
         self._meshGroups = meshGroups
         self._meshGroupsElementsAlong = meshGroupsElementsAlong
         self._cylinderCentralPath = cylinderCentralPath
@@ -380,7 +391,8 @@ class CylinderMesh:
         """
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         self._startNodeIdentifier = nodeIdentifier
-        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier)
+        nodeIdentifier = self._shield.generateNodes(fieldModule, coordinates, nodeIdentifier,
+                                                    self._rangeOfRequiredElements)
         self._endNodeIdentifier = nodeIdentifier
 
     def generateElements(self, mesh, fieldModule, coordinates):
@@ -393,6 +405,7 @@ class CylinderMesh:
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
         elementIdentifier = self._shield.generateElements(fieldModule, coordinates, elementIdentifier,
+                                                          self._rangeOfRequiredElements,
                                                           self._meshGroupsElementsAlong, self._meshGroups)
         self._endElementIdentifier = elementIdentifier
 
