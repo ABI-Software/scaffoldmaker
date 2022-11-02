@@ -134,9 +134,10 @@ class MeshType_3d_heart1(Scaffold_base):
         atriaAnnotationGroups = MeshType_3d_heartatria1.generateBaseMesh(region, options)
         annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
         heartGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("heart"))
-        cruxGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("crux cordis"))
-        lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("left fibrous ring"))
-        rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("right fibrous ring"))
+        lFibrousRingGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("left fibrous ring"))
+        rFibrousRingGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("right fibrous ring"))
 
         ##############
         # Create nodes
@@ -383,6 +384,8 @@ class MeshType_3d_heart1(Scaffold_base):
                 meshGroup.addElement(element)
 
         # crux cordis annotation point
+        cruxGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_heart_term("crux cordis"), isMarker=True)
         cruxElement = mesh.findElementByIdentifier(cruxElementId)
         cruxXi = [ 0.5, 0.5, 1.0 ]
         markerNode = cruxGroup.createMarkerNode(nodeIdentifier, element=cruxElement, xi=cruxXi)

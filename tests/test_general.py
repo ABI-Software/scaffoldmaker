@@ -248,7 +248,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertIsNone(bobGroup)
 
         # now make a marker annotation named "bob" at the default location
-        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'), isMarker=True)
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
         self.assertFalse(bobGroup.isMarker())
         node = bobGroup.createMarkerNode(nextNodeIdentifier)
@@ -309,7 +309,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertFalse(node.isValid())
 
         # re-recreate fred with just element:xi location
-        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'), isMarker=True)
         element = mesh.findElementByIdentifier(105)
         node = fredGroup.createMarkerNode(nextNodeIdentifier, element=element,
                                           xi=[0.3452673123795837, 1.0, 0.6634646029995092])
@@ -393,7 +393,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertIsNone(bobGroup)
 
         # now make a marker annotation named "bob" at a location to be deleted
-        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'), isMarker=True)
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
         self.assertFalse(bobGroup.isMarker())
         nextNodeIdentifier = scaffoldPackage.getNextNodeIdentifier()
@@ -410,7 +410,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # make a user marker named "fred" at a location not being deleted, but without material coordinates
         # a bug was causing such markers to be deleted everywhere if any elements were deleted
-        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))  # not setting isMarker here
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(fredGroup))
         self.assertFalse(fredGroup.isMarker())
         element300 = mesh3d.findElementByIdentifier(300)

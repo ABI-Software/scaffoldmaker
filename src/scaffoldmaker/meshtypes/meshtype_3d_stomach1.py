@@ -785,7 +785,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         for termName, stomachCoordinatesValues in markerTermNameStomachCoordinatesMap.items():
-            annotationGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term(termName))
+            annotationGroup = findOrCreateAnnotationGroupForTerm(
+                allAnnotationGroups, region, get_stomach_term(termName), isMarker=True)
             annotationGroup.createMarkerNode(nodeIdentifier, stomach_coordinates, stomachCoordinatesValues)
             nodeIdentifier += 1
 
@@ -1077,9 +1078,10 @@ class StomachCentralPath:
         cd12Groups = []
         cd13Groups = []
 
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+
         for i in range(len(stomachTermsAlong)):
-            tmpRegion = region.createRegion()
-            centralPath.generate(tmpRegion)
             cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
                 extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
                                                             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
@@ -1098,7 +1100,7 @@ class StomachCentralPath:
             cd12Groups.append(cd12Group)
             cd13Groups.append(cd13Group)
 
-            del tmpRegion
+        del tmpRegion
 
         self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
         self.cxGroups = cxGroups

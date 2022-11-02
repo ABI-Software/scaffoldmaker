@@ -239,7 +239,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         mesh = fm.findMeshByDimension(3)
 
         heartGroup = AnnotationGroup(region, get_heart_term("heart"))
-        apexGroup = AnnotationGroup(region, get_heart_term("apex of heart"))
+        apexGroup = AnnotationGroup(region, get_heart_term("apex of heart"), isMarker=True)
         lvGroup = AnnotationGroup(region, get_heart_term("left ventricle myocardium"))
         rvGroup = AnnotationGroup(region, get_heart_term("right ventricle myocardium"))
         vSeptumGroup = AnnotationGroup(region, get_heart_term("interventricular septum"))
