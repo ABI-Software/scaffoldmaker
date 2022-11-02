@@ -667,6 +667,7 @@ def evaluateAnnotationMarkerNearestMeshLocation(fieldmodule: Fieldmodule, fieldc
             findMeshLocationField = fieldmodule.createFieldFindMeshLocation(
                 constCoordinatesField, materialCoordinatesField, mesh)
             assert RESULT_OK == findMeshLocationField.setName(name)
+            findMeshLocationField.setManaged(True)  # otherwise it will be repeatedly destroyed
             findMeshLocationField.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
         element, xi = findMeshLocationField.evaluateMeshLocation(fieldcache, mesh.getDimension())
         if element.isValid():
