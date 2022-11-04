@@ -210,7 +210,8 @@ class AnnotationGroup(object):
                          materialCoordinatesField: FieldFiniteElement=None, materialCoordinates=None,
                          element=None, xi=[0.0, 0.0, 0.0]):
         """
-        Complete construction of a marker point annotation group.
+        Complete construction of a marker point annotation group by specifiying either
+        (materialCoordinatesField, materialCoordinates) or (element, xi).
         Important: annotation group must currently be empty, and elements must exist.
         Must not currently have a marker node defined (self._markerIdentifier == None).
         The marker node is added to this group, which is the marker group.
@@ -220,11 +221,10 @@ class AnnotationGroup(object):
         :param materialCoordinatesField: Material coordinates field to define location of marker point in.
         Must be a finite element type field for which isTypeCoordinates() is True, with up to 3 components,
         and at least as many components as the highest mesh dimension.
-        Only one of materialCoordinatesField or element may be specified.
-        :param materialCoordinates: The coordinates to assign to the materialCoordinatesField, if field supplied.
-        The element:xi coordinates are computed from it.
+        :param materialCoordinates: The coordinates to assign to the materialCoordinatesField. If supplied,
+        the element:xi location is computed from it. If not supplied its values are computed at the
+        current element:xi location.
         :param element: Optional element to set initial location from; must be in highest dimension mesh.
-        Only one of materialCoordinatesField or element may be specified.
         If neither is specified the first element in the highest dimension mesh is used.
         :param xi: If element is supplied or first is assumed, the xi coordinates to embed at.
         :return: Zinc Node representing marker point, with either default location in first element or that supplied.
@@ -417,6 +417,7 @@ class AnnotationGroup(object):
         if self._name == name:
             return True
         fieldmodule = self._group.getFieldmodule()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         if self._isMarker:
             # groups is marker group used for all marker points, so don't rename
             # assign marker name to be same as this group's name. This needs to be maintained
@@ -435,7 +436,6 @@ class AnnotationGroup(object):
                     elementGroup = self._group.getFieldElementGroup(mesh)
                     if elementGroup.isValid():
                         elementGroup.setName(name + '.' + mesh.getName())
-                nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
                 nodeGroup = self._group.getFieldNodeGroup(nodes)
                 if nodeGroup.isValid():
                     nodeGroup.setName(name + '.' + nodes.getName())
@@ -642,34 +642,34 @@ def getAnnotationMarkerNameField(fieldmodule: Fieldmodule) -> FieldStoredString:
 
 def evaluateAnnotationMarkerNearestMeshLocation(fieldmodule: Fieldmodule, fieldcache: Fieldcache,
                                                 materialCoordinates: list, materialCoordinatesField: Field, mesh: Mesh):
-        """
-        Evaluate mesh location on highest dimension mesh at which materialCoordinatesField has nearest value to
-        materialCoordinates. Convenience function which caches and re-finds find mesh location field based on name
-        for efficiency.
-        Assumes called while ChangeManager(fieldmodule) is active.
-        :param fieldmodule: Owning Zinc Fieldmodule.
-        :param fieldcache: Zinc Fieldcache to use for evaluations.
-        :param materialCoordinates: List of coordinates to find.
-        :param materialCoordinatesField: Material coordinates field defined on highest dimension mesh.
-        :param mesh: Mesh to find locations in.
-        :return: Zinc Element, xi (list); or None, None if not found.
-        """
-        name = "find_mesh_location_" + materialCoordinatesField.getName()
-        existingField = fieldmodule.findFieldByName(name)
-        findMeshLocationField = None
-        if existingField.isValid():
-            findMeshLocationField = existingField.castFindMeshLocation()
-            assert findMeshLocationField.isValid()
-            constCoordinatesField = findMeshLocationField.getSourceField(1)
-            assert RESULT_OK == constCoordinatesField.assignReal(fieldcache, materialCoordinates)
-        else:
-            constCoordinatesField = fieldmodule.createFieldConstant(materialCoordinates)
-            findMeshLocationField = fieldmodule.createFieldFindMeshLocation(
-                constCoordinatesField, materialCoordinatesField, mesh)
-            assert RESULT_OK == findMeshLocationField.setName(name)
-            findMeshLocationField.setManaged(True)  # otherwise it will be repeatedly destroyed
-            findMeshLocationField.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
-        element, xi = findMeshLocationField.evaluateMeshLocation(fieldcache, mesh.getDimension())
-        if element.isValid():
-            return element, xi
-        return None, None
+    """
+    Evaluate mesh location on highest dimension mesh at which materialCoordinatesField has nearest value to
+    materialCoordinates. Convenience function which caches and re-finds find mesh location field based on name
+    for efficiency.
+    Assumes called while ChangeManager(fieldmodule) is active.
+    :param fieldmodule: Owning Zinc Fieldmodule.
+    :param fieldcache: Zinc Fieldcache to use for evaluations.
+    :param materialCoordinates: List of coordinates to find.
+    :param materialCoordinatesField: Material coordinates field defined on highest dimension mesh.
+    :param mesh: Mesh to find locations in.
+    :return: Zinc Element, xi (list); or None, None if not found.
+    """
+    name = "find_mesh_location_" + materialCoordinatesField.getName()
+    existingField = fieldmodule.findFieldByName(name)
+    findMeshLocationField = None
+    if existingField.isValid():
+        findMeshLocationField = existingField.castFindMeshLocation()
+        assert findMeshLocationField.isValid()
+        constCoordinatesField = findMeshLocationField.getSourceField(1)
+        assert RESULT_OK == constCoordinatesField.assignReal(fieldcache, materialCoordinates)
+    else:
+        constCoordinatesField = fieldmodule.createFieldConstant(materialCoordinates)
+        findMeshLocationField = fieldmodule.createFieldFindMeshLocation(
+            constCoordinatesField, materialCoordinatesField, mesh)
+        assert RESULT_OK == findMeshLocationField.setName(name)
+        findMeshLocationField.setManaged(True)  # otherwise it will be repeatedly destroyed
+        findMeshLocationField.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
+    element, xi = findMeshLocationField.evaluateMeshLocation(fieldcache, mesh.getDimension())
+    if element.isValid():
+        return element, xi
+    return None, None
