@@ -46,7 +46,8 @@ class AnnotationGroup(object):
             assert self._group.getName() == self._name, \
                 'AnnotationGroup found existing non-group field called ' + self._name
         self._markerIdentifier = None
-        self._markerMaterialCoordinatesField = None
+        self._materialCoordinatesField = None  # for finding element:xi location on model
+        self._markerMaterialCoordinatesField = None  # for storage on marker nodes, name prefixed with "marker "
 
     def clear(self):
         """
@@ -109,8 +110,9 @@ class AnnotationGroup(object):
         """
         assert self._isMarker
         markerDct = {}
-        if self._markerMaterialCoordinatesField:
-            markerDct[self._markerMaterialCoordinatesField.getName()] = self.getMarkerMaterialCoordinates()[1]
+        if self._materialCoordinatesField:
+            # serialize with original model material coordinates field name
+            markerDct[self._materialCoordinatesField.getName()] = self.getMarkerMaterialCoordinates()[1]
         element, xi = self.getMarkerLocation()
         markerDct['marker_location'] = [element.getIdentifier(), xi]
         return markerDct
@@ -211,7 +213,8 @@ class AnnotationGroup(object):
                          element=None, xi=[0.0, 0.0, 0.0]):
         """
         Complete construction of a marker point annotation group by specifiying either
-        (materialCoordinatesField, materialCoordinates) or (element, xi).
+        materialCoordinatesField (with or without materialCoordinates), element (with xi),
+        or neither (in which case first element in the highest dimension mesh is used).
         Important: annotation group must currently be empty, and elements must exist.
         Must not currently have a marker node defined (self._markerIdentifier == None).
         The marker node is added to this group, which is the marker group.
@@ -225,7 +228,6 @@ class AnnotationGroup(object):
         the element:xi location is computed from it. If not supplied its values are computed at the
         current element:xi location.
         :param element: Optional element to set initial location from; must be in highest dimension mesh.
-        If neither is specified the first element in the highest dimension mesh is used.
         :param xi: If element is supplied or first is assumed, the xi coordinates to embed at.
         :return: Zinc Node representing marker point, with either default location in first element or that supplied.
         """
@@ -251,7 +253,10 @@ class AnnotationGroup(object):
             markerName = getAnnotationMarkerNameField(fieldmodule)
             nodetemplate = nodes.createNodetemplate()
             if materialCoordinatesField:
-                assert RESULT_OK == nodetemplate.defineField(materialCoordinatesField)
+                self._materialCoordinatesField = materialCoordinatesField
+                self._markerMaterialCoordinatesField = \
+                    getAnnotationMarkerMaterialCoordinatesField(materialCoordinatesField)
+                assert RESULT_OK == nodetemplate.defineField(self._markerMaterialCoordinatesField)
             assert RESULT_OK == nodetemplate.defineField(markerLocation)
             assert RESULT_OK == nodetemplate.defineField(markerName)
             markerNode = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -321,16 +326,17 @@ class AnnotationGroup(object):
         :return: materialCoordinatesField, materialCoordinates or None, None
         """
         assert self._isMarker and self._markerIdentifier
-        if not self._markerMaterialCoordinatesField:
+        if not self._materialCoordinatesField:
             return None, None
         fieldmodule = self._group.getFieldmodule()
         fieldcache = fieldmodule.createFieldcache()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         markerNode = nodes.findNodeByIdentifier(self._markerIdentifier)
         fieldcache.setNode(markerNode)
+        # marker coordinates are stored in separate field from model material coordinates
         result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
             fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
-        return self._markerMaterialCoordinatesField, materialCoordinates
+        return self._materialCoordinatesField, materialCoordinates
 
     def setMarkerMaterialCoordinates(self, materialCoordinatesField, materialCoordinates=None):
         """
@@ -343,7 +349,7 @@ class AnnotationGroup(object):
         evaluate materialCoordinatesField at current marker location.
         """
         assert self._isMarker and self._markerIdentifier
-        if not (self._markerMaterialCoordinatesField or materialCoordinatesField):
+        if not (self._materialCoordinatesField or materialCoordinatesField):
             return
         fieldmodule = self._group.getFieldmodule()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -354,10 +360,14 @@ class AnnotationGroup(object):
                 nodetemplate = nodes.createNodetemplate()
                 if self._markerMaterialCoordinatesField:
                     assert RESULT_OK == nodetemplate.undefineField(self._markerMaterialCoordinatesField)
+                markerMaterialCoordinatesField = None
                 if materialCoordinatesField:
-                    assert RESULT_OK == nodetemplate.defineField(materialCoordinatesField)
+                    markerMaterialCoordinatesField = \
+                        getAnnotationMarkerMaterialCoordinatesField(materialCoordinatesField)
+                    assert RESULT_OK == nodetemplate.defineField(markerMaterialCoordinatesField)
                 assert RESULT_OK == markerNode.merge(nodetemplate)
-                self._markerMaterialCoordinatesField = materialCoordinatesField
+                self._materialCoordinatesField = materialCoordinatesField
+                self._markerMaterialCoordinatesField = markerMaterialCoordinatesField
             fieldcache = fieldmodule.createFieldcache()
             if materialCoordinatesField:
                 revert = False
@@ -378,7 +388,7 @@ class AnnotationGroup(object):
                     element, xi = self.getMarkerLocation()
                     # following stores material coordinates at the current location:
                     fieldcache.setMeshLocation(element, xi)
-                    result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
+                    result, materialCoordinates = self._materialCoordinatesField.evaluateReal(
                         fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
                     if result == RESULT_OK:
                         fieldcache.setNode(markerNode)
@@ -639,6 +649,18 @@ def getAnnotationMarkerNameField(fieldmodule: Fieldmodule) -> FieldStoredString:
     """
     return find_or_create_field_stored_string(fieldmodule, name="marker_name", managed=False)
 
+def getAnnotationMarkerMaterialCoordinatesField(materialCoordinatesField: Field) -> FieldFiniteElement:
+    """
+    Find or create a version of the supplied material coordinates field to define on marker points.
+    :param materialCoordinatesField: Material coordinates field defined on model, e.g. field "body coordinates".
+    """
+    name = "marker " + materialCoordinatesField.getName()
+    fieldmodule = materialCoordinatesField.getFieldmodule()
+    markerMaterialCoordinatesField = find_or_create_field_coordinates(
+        fieldmodule, name, materialCoordinatesField.getNumberOfComponents(), managed=True)
+    # workaround in case name unexepectedly in use by different type of field
+    assert markerMaterialCoordinatesField.getName() == name
+    return markerMaterialCoordinatesField
 
 def evaluateAnnotationMarkerNearestMeshLocation(fieldmodule: Fieldmodule, fieldcache: Fieldcache,
                                                 materialCoordinates: list, materialCoordinatesField: Field, mesh: Mesh):
