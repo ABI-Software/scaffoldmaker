@@ -368,7 +368,7 @@ class ScaffoldPackage:
         '''
         return findAnnotationGroupByName(self._autoAnnotationGroups + self._userAnnotationGroups, name)
 
-    def createUserAnnotationGroup(self, term=None):
+    def createUserAnnotationGroup(self, term=None, isMarker=False):
         '''
         Create a new, empty user annotation group.
         Only call after generate().
@@ -378,6 +378,8 @@ class ScaffoldPackage:
         must be unique i.e. unused in the list of annotation groups.
         The id should be a unique string, or use "None" if unknown.
         e.g. ('heart', 'FMA:7088') or None.
+        :param isMarker: Set to true if group will be used for a single marker point; must call
+        createMarkerNode immediately afterwards.
         :return: New AnnotationGroup.
         '''
         assert self._region
@@ -394,7 +396,7 @@ class ScaffoldPackage:
                     break
                 number += 1
             useTerm = (name, "None")
-        annotationGroup = AnnotationGroup(self._region, useTerm)
+        annotationGroup = AnnotationGroup(self._region, useTerm, isMarker=isMarker)
         self._userAnnotationGroups.append(annotationGroup)
         return annotationGroup
 

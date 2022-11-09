@@ -595,7 +595,8 @@ class MeshType_3d_brainstem1(Scaffold_base):
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
         for termName, brainstemCoordinatesValues in markerTermNameBrainstemCoordinatesMap.items():
-            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(termName))
+            annotationGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_brainstem_term(termName), isMarker=True)
             annotationGroup.createMarkerNode(nodeIdentifier, brainstem_coordinates, brainstemCoordinatesValues)
             nodeIdentifier += 1
 

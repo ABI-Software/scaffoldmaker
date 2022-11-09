@@ -843,8 +843,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         svcInletGroup = AnnotationGroup(region, get_heart_term("superior vena cava inlet"))
         ivcGroup = AnnotationGroup(region, get_heart_term("inferior vena cava"))
         svcGroup = AnnotationGroup(region, get_heart_term("superior vena cava"))
-        laeVenousMidpointGroup = AnnotationGroup(region, get_heart_term("left atrium epicardium venous midpoint"))
-        raeVenousMidpointGroup = AnnotationGroup(region, get_heart_term("right atrium epicardium venous midpoint"))
+        laeVenousMidpointGroup =\
+            AnnotationGroup(region, get_heart_term("left atrium epicardium venous midpoint"), isMarker=True)
+        raeVenousMidpointGroup =\
+            AnnotationGroup(region, get_heart_term("right atrium epicardium venous midpoint"), isMarker=True)
         # av boundary nodes are put in left and right fibrous ring groups so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))
