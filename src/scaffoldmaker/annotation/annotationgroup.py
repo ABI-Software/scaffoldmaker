@@ -658,7 +658,7 @@ def getAnnotationMarkerMaterialCoordinatesField(materialCoordinatesField: Field)
     name = "marker " + materialCoordinatesField.getName()
     fieldmodule = materialCoordinatesField.getFieldmodule()
     markerMaterialCoordinatesField = find_or_create_field_coordinates(
-        fieldmodule, name, materialCoordinatesField.getNumberOfComponents(), managed=True)
+        fieldmodule, name, materialCoordinatesField.getNumberOfComponents(), managed=False)
     # workaround in case name unexepectedly in use by different type of field
     assert markerMaterialCoordinatesField.getName() == name
     return markerMaterialCoordinatesField
