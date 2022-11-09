@@ -313,10 +313,11 @@ class AnnotationGroup(object):
             markerNode = nodes.findNodeByIdentifier(self._markerIdentifier)
             fieldcache.setNode(markerNode)
             markerLocation.assignMeshLocation(fieldcache, element, xi)
-            if self._markerMaterialCoordinatesField:
+            if self._materialCoordinatesField:
                 fieldcache.setMeshLocation(element, xi)
-                result, materialCoordinates = self._markerMaterialCoordinatesField.evaluateReal(
-                    fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
+                result, materialCoordinates = self._materialCoordinatesField.evaluateReal(
+                    fieldcache, self._materialCoordinatesField.getNumberOfComponents())
+                assert result == RESULT_OK
                 fieldcache.setNode(markerNode)
                 self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
 
@@ -389,7 +390,7 @@ class AnnotationGroup(object):
                     # following stores material coordinates at the current location:
                     fieldcache.setMeshLocation(element, xi)
                     result, materialCoordinates = self._materialCoordinatesField.evaluateReal(
-                        fieldcache, self._markerMaterialCoordinatesField.getNumberOfComponents())
+                        fieldcache, self._materialCoordinatesField.getNumberOfComponents())
                     if result == RESULT_OK:
                         fieldcache.setNode(markerNode)
                         self._markerMaterialCoordinatesField.assignReal(fieldcache, materialCoordinates)
