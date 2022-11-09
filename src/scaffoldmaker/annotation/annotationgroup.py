@@ -436,7 +436,7 @@ class AnnotationGroup(object):
             fieldcache = fieldmodule.createFieldcache()
             markerNode = nodes.findNodeByIdentifier(self._markerIdentifier)
             fieldcache.setNode(markerNode)
-            markerName.assignString(fieldcache, self._name)
+            markerName.assignString(fieldcache, name)
         else:
             with ChangeManager(fieldmodule):
                 if RESULT_OK != self._group.setName(name):

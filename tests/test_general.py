@@ -7,7 +7,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
@@ -297,6 +297,17 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(20, len(annotationGroups))
+
+        # test renaming group assigns the marker_name field:
+        fredGroup.setName("freddy")
+        self.assertEqual("freddy", fredGroup.getName())
+        node = fredGroup.getMarkerNode()
+        markerName = getAnnotationMarkerNameField(fieldmodule)
+        fieldcache = fieldmodule.createFieldcache()
+        fieldcache.setNode(node)
+        markerNodeName = markerName.evaluateString(fieldcache)
+        self.assertEqual("freddy", markerNodeName)
+        del node
 
         # test deleting a marker annotation group
         scaffoldPackage.deleteAnnotationGroup(fredGroup)
