@@ -32,7 +32,7 @@ The bladder scaffold is provided with parameter sets for the following five spec
 * Pig
 * Rat
 
-These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools. On the web, the latest published generic bladder scaffold variants can be viewed on the `SPARC Portal <https://sparc.science/>`_ by searching for ``bladder``, filtering for models, selecting a variant and viewing the scaffold in its Gallery tab.
+These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools. On the web, the latest published generic bladder scaffold variants can be viewed on the `SPARC Portal <https://sparc.science/>`_ by searching for ``bladder``, filtering for anatomical models, selecting a variant and viewing the scaffold in its Gallery tab or via the `Organ Scaffolds <https://docs.sparc.science/docs/organ-scaffolds>`_ help article.
 
 The bladder scaffold script generates the scaffold mesh and geometry based on some parameters include the diameters for different axes, wall thickness, neck angle (for bladder only), etc., which are all defined for the bladder and urethra separately. The ability to control these parameters, as well as variations of them throughout the length of the bladder and urethra allows the scaffold to be configurable for different species and individuals.
 
@@ -41,6 +41,8 @@ The urethra is optional and can be turned on with the *Include urethra* setting.
 Importantly, the entire scaffold is generated based on a configurable central path defined from apex to urethra, which facilitates the initialization of the shape as well as annotation. The scaffold can now be used to register and map various data including neurons, or to define time-varying fields such as pressure or volume measured experimentally.
 
 Instructions for editing the central path are given with the ABI Mapping Tools **Scaffold Creator** documentation.
+
+The cat bladder scaffold is generated from images provided by Margot Damaser group from Cleveland Clinic. Tissue samples for three male and female rats were provided by Janet Keast et al. from the University of Melbourne for high-resolution microCT imaging. The structures and layers of interest from these images were then segmented using the MBF Tissue Mapper software to provide data for generating the geometry of the generic rat bladder scaffold. The human, mouse and pig bladder scaffolds are created based on images obtained from the literature.
 
 Coordinates
 -----------

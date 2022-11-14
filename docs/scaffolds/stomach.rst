@@ -26,8 +26,9 @@ The stomach scaffold is provided with parameter sets for the following four spec
 
 These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools.
 On the web, the latest published generic stomach scaffold variants can be viewed on the
-`SPARC Portal <https://sparc.science/>`_ by searching for ``stomach``, filtering for models, selecting a variant and
-viewing the scaffold in its Gallery tab.
+`SPARC Portal <https://sparc.science/>`_ by searching for ``stomach``, filtering for anatomical models, selecting a
+variant and viewing the scaffold in its Gallery tab or via the `Organ Scaffolds
+<https://docs.sparc.science/docs/organ-scaffolds>`_ help article.
 
 The stomach scaffold script generates the scaffold mesh and geometry from an idealization of their shapes. The mesh is
 derived from ellipsoid and cubic functions based on a one dimensional central path with side axes controlling lateral
@@ -37,6 +38,10 @@ Instructions for editing the central path are given with the ABI Mapping Tools *
 Note that the D2 and D3 derivatives control the side dimensions, and derivatives D12 and D13 control the rate of change
 of these along the central path. If editing, use the Interactive Functions to *Smooth derivatives*,
 *Make side derivatives normal* and *Smooth side cross derivatives* to make these as smooth as required.
+
+The rat stomach scaffold is parameterized with average data from segmentation of Micro-CT image data of 11 animals
+performed at the Powley laboratory using Neurolucida (MBF Bioscience), while the human, mouse, and pig stomach scaffolds
+are parameterized with literature data to represent the anatomy as accurate as possible.
 
 The mucosa, submucosa, circular muscle, longitudinal muscle and serosa layers of the stomach are fully represented on
 the scaffold when *Number of elements through wall* is set to ``4``. Alternatively, the entire stomach wall can be

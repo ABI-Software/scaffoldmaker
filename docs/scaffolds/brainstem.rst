@@ -29,8 +29,9 @@ The brainstem scaffold is provided with parameter sets for the following six spe
 
 These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools.
 On the web, the latest published generic brainstem scaffold variants can be viewed on the
-`SPARC Portal <https://sparc.science/>`_ by searching for ``brainstem``, filtering for models, selecting a variant and
-viewing the scaffold in its Gallery tab.
+`SPARC Portal <https://sparc.science/>`_ by searching for ``brainstem``, filtering for anatomical models, selecting a
+variant and viewing the scaffold in its Gallery tab or via the `Organ Scaffolds
+<https://docs.sparc.science/docs/organ-scaffolds>`_ help article.
 
 The brainstem scaffold script generates the scaffold mesh and geometry from a solid cylinder function based on a
 one dimensional central path with side axes controlling lateral dimensions. The parameters were carefully tuned for
@@ -40,6 +41,12 @@ Instructions for editing the central path are given with the ABI Mapping Tools *
 Note that the D2 and D3 derivatives control the side dimensions, and derivatives D12 and D13 control the rate of change
 of these along the central path. If editing, use the Interactive Functions to *Smooth derivatives*,
 *Make side derivatives normal* and *Smooth side cross derivatives* to make these as smooth as required.
+
+The generic brainstem scaffolds are fitted and smoothed to the segmentation data from a human (`BodyParts3D V4.3i
+<https://doi.org/10.1093/nar/gkn613>`_), a pig (Beckman Institute for Advanced Science and Technology, Pig Imaging Group,
+University Of Illinois Urbana-Champaign), a rat
+(`NeuroRat V4.0 <https://itis.swiss/virtual-population/animal-models/animals/neurorat/neurorat-v4/>`_), and a sheep
+(`Nitzsche et al. <https://doi: 10.3389/fnana.2015.00069>`_).
 
 .. note::
 

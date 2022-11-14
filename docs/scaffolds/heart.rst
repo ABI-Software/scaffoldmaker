@@ -22,13 +22,15 @@ Variants
 The heart scaffold is provided with parameter sets for the following four species, which differ in shape, and in particular have different numbers of pulmonary veins:
 
 * Human (2 left, 2 right pulmonary veins)
+* Mouse (3 pulmonary veins: left, middle, right)
 * Pig (1 left, 1 right pulmonary veins)
 * Rat (3 pulmonary veins: left, middle, right)
-* Mouse (3 pulmonary veins: left, middle, right)
 
-These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools. On the web, the latest published generic heart scaffold variants can be viewed on the `SPARC Portal <https://sparc.science/>`_ by searching for ``heart``, filtering for models, selecting a variant and viewing the scaffold in its Gallery tab. 
+These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools. On the web, the latest published generic heart scaffold variants can be viewed on the `SPARC Portal <https://sparc.science/>`_ by searching for ``heart``, filtering for anatomical models, selecting a variant and viewing the scaffold in its Gallery tab or via the `Organ Scaffolds <https://docs.sparc.science/docs/organ-scaffolds>`_ help article.
 
 The heart scaffold script generates the scaffold mesh and geometry from ellipsoid and cubic functions with many parameters controlling the shape. The parameters were carefully tuned for each species, and it is not recommended that these be edited.
+
+The rat heart scaffold was calibrated using segmented image data provided from James Schwaber et al. (Thomas Jefferson University). Human and pig hearts were calibrated using data from the literature.
 
 An advanced optional feature is to check *Define epicardium layer* (set parameter to ``true``) which adds a layer of 3-D elements outside the myocardium to represent the thick epicardium layer consisting of epicardial fat and other tissue. This is currently only implemented over the atria, excluding the auricles.
 
