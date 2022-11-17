@@ -30,7 +30,7 @@ These variants' geometry and annotations are best viewed in the **Scaffold Creat
 
 The heart scaffold script generates the scaffold mesh and geometry from ellipsoid and cubic functions with many parameters controlling the shape. The parameters were carefully tuned for each species, and it is not recommended that these be edited.
 
-The rat heart scaffold was calibrated using segmented image data provided from James Schwaber et al. (Thomas Jefferson University). Human and pig hearts were calibrated using data from the literature.
+The rat heart scaffold was calibrated using segmented image data from Clara Leung, Jack Zixi Cheng, Raj Vadigepalli, James Schwaber et al. (TJU, UCF), in `SPARC dataset <https://doi.org/10.26275/pb3l-251h>`_. Human and pig hearts were calibrated using data from the literature.
 
 An advanced optional feature is to check *Define epicardium layer* (set parameter to ``true``) which adds a layer of 3-D elements outside the myocardium to represent the thick epicardium layer consisting of epicardial fat and other tissue. This is currently only implemented over the atria, excluding the auricles.
 

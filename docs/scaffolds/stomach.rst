@@ -41,7 +41,7 @@ of these along the central path. If editing, use the Interactive Functions to *S
 
 The rat stomach scaffold is parameterized with average data from segmentation of Micro-CT image data of 11 animals
 performed at the Powley laboratory using Neurolucida (MBF Bioscience), while the human, mouse, and pig stomach scaffolds
-are parameterized with literature data to represent the anatomy as accurate as possible.
+are parameterized with literature data to represent the anatomy accurately.
 
 The mucosa, submucosa, circular muscle, longitudinal muscle and serosa layers of the stomach are fully represented on
 the scaffold when *Number of elements through wall* is set to ``4``. Alternatively, the entire stomach wall can be

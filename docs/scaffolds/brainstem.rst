@@ -46,7 +46,7 @@ The generic brainstem scaffolds are fitted and smoothed to the segmentation data
 <https://doi.org/10.1093/nar/gkn613>`_), a pig (Beckman Institute for Advanced Science and Technology, Pig Imaging Group,
 University Of Illinois Urbana-Champaign), a rat
 (`NeuroRat V4.0 <https://itis.swiss/virtual-population/animal-models/animals/neurorat/neurorat-v4/>`_), and a sheep
-(`Nitzsche et al. <https://doi: 10.3389/fnana.2015.00069>`_).
+(`Nitzsche et al. <https://doi.org/10.3389/fnana.2015.00069>`_).
 
 .. note::
 
