@@ -20,7 +20,7 @@ class CylinderScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(12, len(options))
+        self.assertEqual(14, len(options))
         self.assertEqual(4, options.get("Number of elements across major"))
         self.assertEqual(4, options.get("Number of elements across minor"))
         self.assertEqual(0, options.get("Number of elements across shell"))

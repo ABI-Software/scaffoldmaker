@@ -30,19 +30,27 @@ The lung scaffold is provided with parameter sets for the following four species
 particular have different numbers of lobes:
 
 * Human (2 lobes in the left, 3 lobes in the right lung)
+* Mouse (1 lobe in the left, 4 lobes in the right lung)
 * Pig (2 lobes in the left, 4 lobes in the right lung)
 * Rat (1 lobe in the left, 4 lobes in the right lung)
-* Mouse (1 lobe in the left, 4 lobes in the right lung)
 
 These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools.
 On the web, the latest published generic lung scaffold variants can be viewed on the
-`SPARC Portal <https://sparc.science/>`_ by searching for ``lung``, filtering for models, selecting a variant and
-viewing the scaffold in its Gallery tab.
+`SPARC Portal <https://sparc.science/>`_ by searching for ``lung``, filtering for anatomical models, selecting a variant
+and viewing the scaffold in its Gallery tab or via the `Organ Scaffolds
+<https://docs.sparc.science/docs/organ-scaffolds>`_ help article.
 
 The lung scaffold script generates the scaffold mesh and geometry from an idealization of their shapes. The left and
 right lung (excluding accessory lobe) are generated as half ellipsoids which are then reshaped by smooth functions for
 which parameters are provided on the scaffold, to give approximately realistic geometry for the species.
 The accessory lobe is similarly created as a triangular prism and reshaped.
+
+The generic lung scaffolds are parameterized and fitted to segmentation data from CT and MRI images from the following
+sources: human (`Osanlouy et al. <https://doi.org/10.1038/s41598-020-73117-w>`_), mouse
+(`Beichel et al. <https://lapdmouse.iibi.uiowa.edu/>`_), pig
+(`Lee et al. <https://doi.org/10.1152/japplphysiol.00868.2012>`_), rat
+(`NeuroRat V4.0 <https://itis.swiss/virtual-population/animal-models/animals/neurorat/neurorat-v4/>`_).
+
 [A special ``Material`` parameter set is provided to allow new species' parameters to be developed from the material
 coordinates definition (see below).]
 These parameters were carefully tuned for each species, and it is not recommended that these be edited.

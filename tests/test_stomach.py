@@ -29,7 +29,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertEqual(16, len(options))
         self.assertEqual(16, options.get("Number of elements around duodenum"))
         self.assertEqual(6, options.get("Number of elements between cardia and duodenum"))
-        self.assertEqual(0.5, options.get("Wall thickness"))
+        self.assertEqual(0.0215, options.get("Wall thickness"))
         self.assertEqual(True, options.get("Limiting ridge"))
         ostiumOptions = options['Gastro-esophagal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
@@ -67,8 +67,8 @@ class StomachScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-17.096481817461417, -16.181000081315087, -8.8], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [ 17.845967033547907, 15.915999863325624, 8.799999497564551], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [0.475, -0.4440296937068191, -0.37800000000001466], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [1.9665783603056544, 0.867, 0.37800000000001466], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -80,10 +80,10 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 2283.062099947496, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 4.2162907021158285, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 744.624906783107, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 0.05913279323188687, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {

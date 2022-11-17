@@ -7,7 +7,7 @@ from opencmiss.zinc.context import Context
 from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatria1
@@ -248,7 +248,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertIsNone(bobGroup)
 
         # now make a marker annotation named "bob" at the default location
-        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'), isMarker=True)
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
         self.assertFalse(bobGroup.isMarker())
         node = bobGroup.createMarkerNode(nextNodeIdentifier)
@@ -298,6 +298,17 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(20, len(annotationGroups))
 
+        # test renaming group assigns the marker_name field:
+        fredGroup.setName("freddy")
+        self.assertEqual("freddy", fredGroup.getName())
+        node = fredGroup.getMarkerNode()
+        markerName = getAnnotationMarkerNameField(fieldmodule)
+        fieldcache = fieldmodule.createFieldcache()
+        fieldcache.setNode(node)
+        markerNodeName = markerName.evaluateString(fieldcache)
+        self.assertEqual("freddy", markerNodeName)
+        del node
+
         # test deleting a marker annotation group
         scaffoldPackage.deleteAnnotationGroup(fredGroup)
 
@@ -309,7 +320,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertFalse(node.isValid())
 
         # re-recreate fred with just element:xi location
-        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'), isMarker=True)
         element = mesh.findElementByIdentifier(105)
         node = fredGroup.createMarkerNode(nextNodeIdentifier, element=element,
                                           xi=[0.3452673123795837, 1.0, 0.6634646029995092])
@@ -393,7 +404,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertIsNone(bobGroup)
 
         # now make a marker annotation named "bob" at a location to be deleted
-        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        bobGroup = scaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'), isMarker=True)
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
         self.assertFalse(bobGroup.isMarker())
         nextNodeIdentifier = scaffoldPackage.getNextNodeIdentifier()
@@ -410,7 +421,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # make a user marker named "fred" at a location not being deleted, but without material coordinates
         # a bug was causing such markers to be deleted everywhere if any elements were deleted
-        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))
+        fredGroup = scaffoldPackage.createUserAnnotationGroup(('fred', 'FRED:1'))  # not setting isMarker here
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(fredGroup))
         self.assertFalse(fredGroup.isMarker())
         element300 = mesh3d.findElementByIdentifier(300)
