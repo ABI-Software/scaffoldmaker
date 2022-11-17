@@ -12,7 +12,6 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, get_element_node_identifiers
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field, FieldFindMeshLocation
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms, brainstem_terms
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
@@ -512,16 +511,10 @@ Generates body coordinates using a solid cylinder of all cube elements,
             ]
 
         nodeIdentifier = cylinder1._endNodeIdentifier
-        findMarkerLocation = fieldmodule.createFieldFindMeshLocation(markerBodyCoordinates, bodyCoordinates, mesh)
-        findMarkerLocation.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_EXACT)
         for bodyMarkerPoint in bodyMarkerPoints:
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            fieldcache.setNode(markerPoint)
-            markerBodyCoordinates.assignReal(fieldcache, bodyMarkerPoint["x"])
-            markerName.assignString(fieldcache, bodyMarkerPoint["group"][0])
-
-            element, xi = findMarkerLocation.evaluateMeshLocation(fieldcache, 3)
-            markerLocation.assignMeshLocation(fieldcache, element, xi)
+            annotationGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, bodyMarkerPoint["group"], isMarker=True)
+            annotationGroup.createMarkerNode(nodeIdentifier, bodyCoordinates, bodyMarkerPoint["x"])
             nodeIdentifier += 1
 
         # Add annotations for the nerves fiducials
@@ -865,10 +858,9 @@ Generates body coordinates using a solid cylinder of all cube elements,
             "splanchnic_n_start-9": [0.02556707992638514, 0.3084249870224194, 1.4718989375969862],
             "urinary_13-1": [0.26381665729734477, 0.010418541089591584, 0.9343432877685937],
         }
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+
         for name, nerveCoordinatesValues in markerTermNameNerveCoordinatesMap.items():
-            # annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_nerve_term(termName))
-            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, (name, ''))
+            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, (name, ''), isMarker=True)
             annotationGroup.createMarkerNode(nodeIdentifier, bodyCoordinates, nerveCoordinatesValues)
             nodeIdentifier += 1
 
