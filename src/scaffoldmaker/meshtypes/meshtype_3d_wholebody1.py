@@ -12,6 +12,7 @@ from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreat
 from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, get_element_node_identifiers
 from opencmiss.utils.zinc.general import ChangeManager
 from opencmiss.zinc.element import Element
+from opencmiss.zinc.field import Field
 from opencmiss.zinc.node import Node
 from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms, brainstem_terms
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
@@ -386,25 +387,6 @@ Generates body coordinates using a solid cylinder of all cube elements,
                                 result3 = element.setNodesByIdentifier(eft, nodeIds)
         else:
             fieldcache = fieldmodule.createFieldcache()
-
-        # Annotation fiducial point
-        markerGroup = findOrCreateFieldGroup(fieldmodule, "marker")
-        markerName = findOrCreateFieldStoredString(fieldmodule, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fieldmodule, mesh, name="marker_location")
-        markerBodyCoordinates = findOrCreateFieldCoordinates(fieldmodule, name="marker_body_coordinates")
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
-        markerTemplateInternal.defineField(markerBodyCoordinates)
-        #
-        middleLeft = elementsCountAcrossMinor//2
-        topElem = elementsCountAcrossMajor - 1
-        middleRight = middleLeft - 1
-        neckFirstElem = elementsCountAlongAbdomen+elementsCountAlongThorax
-        thoraxFirstElem = elementsCountAlongAbdomen
-        middleDown = elementsCountAcrossMajor//2 - 1
 
         # organ landmarks groups
         apexOfHeart = heart_terms.get_heart_term('apex of heart')
