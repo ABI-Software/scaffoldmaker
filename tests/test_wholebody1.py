@@ -104,5 +104,6 @@ class WholeBodyScaffoldTestCase(unittest.TestCase):
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(1760, mesh3d.getSize())
 
+
 if __name__ == "__main__":
     unittest.main()
