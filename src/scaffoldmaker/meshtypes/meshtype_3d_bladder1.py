@@ -278,7 +278,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements along': 4,
-            'Refine Number of elements around': 4,
+            'Refine number of elements around': 4,
             'Refine number of elements through wall': 1
         }
         if 'Human 1' in parameterSetName:
@@ -320,7 +320,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Ureter position around',
             'Use linear through wall',
             'Refine',
-            'Refine Number of elements around',
+            'Refine number of elements around',
             'Refine number of elements along',
             'Refine number of elements through wall']
         return optionNames
@@ -366,7 +366,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements around',
             'Number of elements through wall',
             'Refine number of elements along',
-            'Refine Number of elements around',
+            'Refine number of elements around',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
@@ -535,8 +535,8 @@ class MeshType_3d_bladder1(Scaffold_base):
         :param meshrefinement: MeshRefinement, which knows source and target region.
         :param options: Dict containing options. See getDefaultOptions().
         """
-        refineElementsCountAround = options['Refine number of elements along']
-        refineElementsCountAlong = options['Refine Number of elements around']
+        refineElementsCountAround = options['Refine number of elements around']
+        refineElementsCountAlong = options['Refine number of elements along']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
@@ -1115,11 +1115,9 @@ class BladderCentralPath:
         sd3_neck, sd13_neck = interp.interpolateSampleCubicHermite(cd3_neck, cd13_neck, se_neck, sxi_neck, ssf_neck)
 
         # Find nodes of bladder dome and neck
-        sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
-        sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
+        self.sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
+        self.sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
 
-        self.sx_dome_group = sx_dome_group
-        self.sx_neck_group = sx_neck_group
         self.domeSegmentLength = domeSegmentLength
         self.neckSegmentLength = neckSegmentLength
         self.bladderCentralPathLength = bladderCentralPathLength
