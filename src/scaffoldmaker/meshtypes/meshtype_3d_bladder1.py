@@ -509,10 +509,10 @@ class MeshType_3d_bladder1(Scaffold_base):
         markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
         idx2 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
         xi2 = [ureter1Position.xi1, 0.0, 0.0]
-        markerList.append({"group": leftUreterGroup, "elementId": idx2, "xi": xi2})
+        markerList.append({"group": rightUreterGroup, "elementId": idx2, "xi": xi2})
         idx3 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + elementsCountAround - ureterElementPositionAround
         xi3 = [1 - ureter1Position.xi1, 0.0, 0.0]
-        markerList.append({"group": rightUreterGroup, "elementId": idx3, "xi": xi3})
+        markerList.append({"group": leftUreterGroup, "elementId": idx3, "xi": xi3})
 
         bladderNodesetGroup = bladderGroup.getNodesetGroup(nodes)
         for marker in markerList:
