@@ -390,7 +390,6 @@ class MeshType_3d_bladder1(Scaffold_base):
         :return: None
         """
         centralPath = options['Central path']
-        materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
         elementsCountAlongDome = options['Number of elements along dome']
         elementsCountAlongNeck = options['Number of elements along neck']
         elementsCountAround = options['Number of elements around']
@@ -398,6 +397,9 @@ class MeshType_3d_bladder1(Scaffold_base):
         wallThickness = options['Wall thickness']
         useCrossDerivatives = False
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
+
+        materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
+        materialWallThickness = 0.01
 
         elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
 
@@ -412,7 +414,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         # Geometric coordinates
         geometricCentralPath = BladderCentralPath(region, centralPath, elementsCountAlongDome, elementsCountAlongNeck)
         xFinal, d1Final, d2Final, d3Final = findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
-                                            elementsCountThroughWall, wallThickness, geometricCentralPath, materialCoordinates=False)
+                                            elementsCountThroughWall, wallThickness, geometricCentralPath)
 
         sx_dome_group = geometricCentralPath.sx_dome_group
         sx_neck_group = geometricCentralPath.sx_neck_group
@@ -423,7 +425,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         tmp_region = region.createRegion()
         materialCentralPath = BladderCentralPath(tmp_region, materialCentralPath, elementsCountAlongDome, elementsCountAlongNeck)
         xOrgan, d1Organ, d2Organ, d3Organ = findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
-                                            elementsCountThroughWall, wallThickness, materialCentralPath, materialCoordinates=True)
+                                            elementsCountThroughWall, materialWallThickness, materialCentralPath)
         del tmp_region
 
         # Create annotation groups for bladder
@@ -1124,10 +1126,7 @@ class BladderCentralPath:
         self.domeLength = domeLength
 
 def findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround, elementsCountThroughWall,
-                        wallThickness, centralPath, materialCoordinates=False):
-
-    if materialCoordinates:
-        wallThickness = 0.01
+                        wallThickness, centralPath):
 
     sx_dome_group = centralPath.sx_dome_group
     sx_neck_group = centralPath.sx_neck_group
