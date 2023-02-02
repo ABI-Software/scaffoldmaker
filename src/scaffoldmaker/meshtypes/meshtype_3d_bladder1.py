@@ -42,14 +42,14 @@ class MeshType_3d_bladder1(Scaffold_base):
             },
             'meshEdits': exnodeStringFromNodeValues(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [[157.00, -94.00, 0.00], [-16.92, 20.23, 0.00], [-13.23, -11.07, -2.66], [-9.16, -14.75, 4.76], [-3.31, -2.77, 27.98], [6.21, 5.18, 20.05]],
-                [[137.00, -74.00, 0.00], [-23.00, 19.67, 0.00], [-19.55, -22.86, 1.80], [-3.47, -8.84, 4.17], [1.61, 1.88, 41.33], [3.63, 4.12, 6.65]],
-                [[110.98, -55.04, 0.00], [-23.55, 16.45, 0.00], [-19.79, -28.33, 5.63], [1.96, -0.91, 0.03], [3.77, 5.39, 40.36], [-0.30, -0.11, -4.73]],
-                [[90.00, -41.00, 0.00], [-21.91, 13.75, 0.00], [-16.10, -25.66, 2.68], [4.79, 4.63, -1.52], [1.54, 2.45, 32.68], [-1.30, -1.59, -9.65]],
-                [[67.17, -27.59, 0.00], [-23.60, 12.63, 0.00], [-10.16, -18.98, 2.65], [5.23, 6.43, -0.78], [1.22, 2.28, 20.96], [-0.54, -0.71, -9.24]],
-                [[42.83, -15.79, 0.00], [-23.33, 10.32, 0.00], [-5.66, -12.80, 1.10], [3.81, 6.13, -1.26], [0.45, 1.02, 14.25], [-0.58, -1.08, -6.15]],
-                [[20.60, -6.87, 0.00], [-21.44, 7.87, 0.00], [-2.46, -6.71, 0.09], [2.12, 4.09, -0.46], [0.04, 0.10, 8.60], [-0.19, -0.41, -3.79]],
-                [[0.00, 0.00, 0.00], [-19.75, 5.87, 0.00], [-1.32, -4.43, 0.12], [0.17, 0.47, 0.52], [0.05, 0.16, 6.50], [0.21, 0.52, -0.41]]]),
+                [[163.52, -70.16, -3.16], [-22.69, 11.05, 1.86], [-7.88, -15.96, -1.33], [-7.07, -15.21, 1.69], [0.94, -2.81, 28.14], [0.71, 2.72, 19.85]],
+                [[140.19, -58.93, -1.74], [-23.95, 11.41, 0.98], [-12.94, -27.16, -0.17], [-3.05, -7.19, 0.64], [1.28, -0.86, 41.30], [-0.03, 1.18, 6.47]],
+                [[115.62, -47.36, -1.23], [-24.14, 11.12, 0.64], [-13.89, -30.15, -0.07], [0.27, -0.17, 0.07], [0.85, -0.49, 40.76], [-0.34, 0.28, -4.40]],
+                [[91.93, -36.69, -0.47], [-23.87, 10.76, 0.53], [-12.46, -27.62, -0.02], [2.72, 5.15, 0.04], [0.59, -0.29, 32.68], [-0.33, 0.20, -8.49]],
+                [[67.89, -25.83, -0.18], [-24.55, 10.46, 0.24], [-8.44, -19.81, -0.00], [3.63, 7.32, 0.01], [0.19, -0.08, 23.77], [-0.27, 0.14, -9.21]],
+                [[42.83, -15.79, 0.00], [-23.65, 9.48, 0.08], [-5.21, -12.99, -0.00], [2.97, 6.53, 0.00], [0.04, -0.02, 14.25], [-0.09, 0.04, -7.47]],
+                [[20.60, -6.87, 0.00], [-21.44, 7.87, 0.00], [-2.46, -6.71, 0.00], [1.91, 4.18, 0.00], [0.00, 0.00, 8.60], [-0.02, 0.01, -3.79]],
+                [[0.00, 0.00, 0.00], [-19.75, 5.87, 0.00], [-1.32, -4.43, 0.00], [0.38, 0.37, -0.00], [0.00, 0.00, 6.50], [0.02, -0.01, -0.41]]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -717,14 +717,18 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
     for n1 in range(elementsCountAround):
         xAlong = []
         d2Along = []
-        for n2 in range(len(xEllipses_dome) - 1):
-            v1 = xEllipses_dome[n2][n1]
-            v2 = xEllipses_dome[n2 + 1][n1]
+        for n2 in range(len(xEllipses_dome)):
+            if n2 == 0:
+                v1 = sx_dome_group[0][0]
+                v2 = xEllipses_dome[n2][n1]
+            else:
+                v1 = xEllipses_dome[n2 - 1][n1]
+                v2 = xEllipses_dome[n2][n1]
             d2 = findDerivativeBetweenPoints(v1, v2)
-            xAlong.append(v1)
+            if n2 != 0:
+                xAlong.append(v1)
             d2Along.append(d2)
         xAlong.append(xEllipses_dome[-1][n1])
-        d2Along.append(d2)
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
         d2Raw.append(d2Smoothed)
 
@@ -788,7 +792,7 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
 
     return xSampledDome, d1SampledDome, d2SampledDome
 
-def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, neckSegmentLength, elementsCountAround, elementsCountAlongNeck):
+def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeSegmentLength, neckSegmentLength, elementsCountAround, elementsCountAlongNeck):
 
     # Transition
     transitLength = (domeSegmentLength + neckSegmentLength) / 2
@@ -820,16 +824,18 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, n
     for n1 in range(elementsCountAround):
         xAlong = []
         d2Along = []
-        for n2 in range(len(xEllipses_neck) - 1):
-            v1 = xEllipses_neck[n2][n1]
-            v2 = xEllipses_neck[n2 + 1][n1]
-            d2 = findDerivativeBetweenPoints(v1, v2)
-            xAlong.append(v1)
+        for n2 in range(len(xEllipses_neck)):
+            if n2 == 0:
+                v2 = xEllipses_neck[n2][n1]
+                d2 = d2SampledDome[-1][n1]
+            else:
+                v1 = xEllipses_neck[n2 - 1][n1]
+                v2 = xEllipses_neck[n2][n1]
+                d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlong.append(v2)
             d2Along.append(d2)
-        xAlong.append(xEllipses_neck[-1][n1])
-        d2Along.append(d2)
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
-        d2Raw.append(d2Along)
+        d2Raw.append(d2Smoothed)
 
     # Rearrange d2
     d2Ellipses_neck = []
@@ -1135,7 +1141,7 @@ def findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsC
 
     xDome, d1Dome, d2Dome = findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome)
 
-    xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, domeSegmentLength, \
+    xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2Dome, domeSegmentLength, \
                                                                   neckSegmentLength, elementsCountAround, elementsCountAlongNeck)
 
     # Replace d2 for the last layer of the dome based on the transition nodes
