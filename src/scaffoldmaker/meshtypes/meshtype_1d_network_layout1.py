@@ -1,40 +1,45 @@
 """
 Constructs a 1-D network layout mesh with specifiable structure.
 """
-
+from opencmiss.utils.zinc.field import findOrCreateFieldGroup
 from opencmiss.utils.zinc.general import ChangeManager
+from opencmiss.zinc.field import Field
+from opencmiss.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils import vector
+from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 
 
 class MeshType_1d_network_layout1(Scaffold_base):
-    '''
-    classdocs
-    '''
-    @staticmethod
-    def getName():
+    """
+    """
+
+    @classmethod
+    def getName(cls):
         return '1D Network Layout 1'
 
-    @staticmethod
-    def getDefaultOptions(parameterSetName='Default'):
+    @classmethod
+    def getDefaultOptions(cls, parameterSetName='Default'):
         return {
-            'Structure' : "1-2"
+            'Structure': "1-2"
         }
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         return [
             'Structure'
         ]
 
-    @staticmethod
-    def checkOptions(options):
+    @classmethod
+    def checkOptions(cls, options):
         dependentChanges = False
         return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
+        Generate the unrefined mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: [] empty list of AnnotationGroup
@@ -52,7 +57,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         makeD3Normal = functionOptions['Make D3 normal']
         if not (makeD2Normal or makeD3Normal):
             return False, False
-        valueLabels = [ Node.VALUE_LABEL_D_DS1 ]
+        valueLabels = [Node.VALUE_LABEL_D_DS1]
         valueLabels.append(Node.VALUE_LABEL_D_DS2)
         valueLabels.append(Node.VALUE_LABEL_D_DS3)
         parameters = extractPathParametersFromRegion(region, valueLabels)
@@ -82,11 +87,11 @@ class MeshType_1d_network_layout1(Scaffold_base):
         smoothD13 = functionOptions['Smooth D13']
         if not (smoothD12 or smoothD13):
             return False, False
-        valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
+        valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
         if smoothD12:
-            valueLabels += [ Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ]
+            valueLabels += [Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2]
         if smoothD13:
-            valueLabels += [ Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ]
+            valueLabels += [Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
         parameters = extractPathParametersFromRegion(region, valueLabels)
         x = parameters[0]
         d1 = parameters[1]
@@ -110,32 +115,36 @@ class MeshType_1d_network_layout1(Scaffold_base):
         """
         return Scaffold_base.getInteractiveFunctions() + [
             ("Make side derivatives normal...",
-                { 'Make D2 normal': True,
-                  'Make D3 normal': True },
-                lambda region, options, functionOptions, editGroupName: cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
+                {'Make D2 normal': True,
+                 'Make D3 normal': True},
+                lambda region, options, functionOptions, editGroupName:
+                    cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
             ("Smooth side cross derivatives...",
-                { 'Smooth D12' : True,
-                  'Smooth D13' : True },
-                lambda region, options, functionOptions, editGroupName: cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
+                {'Smooth D12': True,
+                 'Smooth D13': True},
+                lambda region, options, functionOptions, editGroupName:
+                    cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
         ]
 
 
 def extractPathParametersFromRegion(region, valueLabels, groupName=None):
-    '''
-    Returns parameters of all nodes in region in identifier order.
+    """
+    Returns coordinate parameters of all nodes in region in identifier order.
     Assumes nodes in region have field coordinates (1 to 3 components).
-    :param valueLabels: List of parameters required as list of node value labels. e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
+    :param region: Region to query coordinate parameters from.
+    :param valueLabels: List of parameters required as list of node value labels.
+    e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
     :param groupName: Optional name of Zinc group to get parameters from.
     :return: cx, cd1, cd2, cd12 (all padded with zeroes to 3 components)
-    '''
+    """
     fieldmodule = region.getFieldmodule()
     coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
     componentsCount = coordinates.getNumberOfComponents()
-    assert componentsCount in [ 1, 2, 3 ], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
+    assert componentsCount in [1, 2, 3], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
     cache = fieldmodule.createFieldcache()
 
     valueLabelsCount = len(valueLabels)
-    returnValues = [[] for i in range(valueLabelsCount)]
+    returnValues = [[] for _ in range(valueLabelsCount)]
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     if groupName:
         group = fieldmodule.findFieldByName(groupName).castGroup()
@@ -159,15 +168,15 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
 
 
 def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
-    '''
+    """
     Set node parameters for coordinates field in path from listed values.
-    :param nodeValueLabels: List of nodeValueLabels to set e.g. [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
-    :param nodeValues: List of values for each type e.g. [ xlist, d1list ]
+    :param region: Region to assign coordinate parameters in.
+    :param nodeValueLabels: List of nodeValueLabels to set e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
+    :param nodeValues: List of values for each type e.g. [xlist, d1list]
     :param editGroupName: Optional name of existing or new Zinc group to record modified nodes in.
-    '''
+    """
     fieldmodule = region.getFieldmodule()
     coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-    componentsCount = coordinates.getNumberOfComponents()
     # following requires at least one value label and node, assumes consistent values and components counts
     nodeValueLabelsCount = len(nodeValueLabels)
     nodesCount = len(nodeValues[0])

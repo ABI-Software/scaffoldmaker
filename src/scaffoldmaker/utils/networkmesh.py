@@ -18,19 +18,13 @@ class NetworkNode:
 
     def __init__(self, nodeIdentifier):
         self._nodeIdentifier = nodeIdentifier
-        self._inSegments = []
-        self._outSegments = []
+        self._inSegments = []  # segments leading in i.e. ending on this node
+        self._outSegments = []  # segments heading out i.e. starting on this node
         self._interiorSegment = None
-        self._versionCount = 1
-        self._posX = None  # integer x coordinate in default layout
+        self._versionsCount = 0
+        self._versionsUsed = set()  # set of version numbers actually used by elements
+        self._posX = None  # integer x-coordinate in default layout
         self._x = [None] * 3  # coordinates in default layout
-
-    def __hash__(self):
-        return hash(self._nodeIdentifier)
-
-    def __eq__(self, other):
-        if not isinstance(other, type(self)): return NotImplemented
-        return self._nodeIdentifier == other._nodeIdentifier
 
     def getNodeIdentifier(self):
         return self._nodeIdentifier
@@ -59,11 +53,24 @@ class NetworkNode:
     def getOutSegments(self):
         return self._outSegments
 
-    def getVersionCount(self):
-        return self._versionCount
+    def getVersionsCount(self):
+        return self._versionsCount
 
-    def incrementVersionCount(self):
-        self._versionCount += 1
+    def defineVersion(self, nodeVersion):
+        self._versionsCount = max(self._versionsCount, nodeVersion)
+        self._versionsUsed.add(nodeVersion)
+
+    def checkVersions(self) -> bool:
+        """
+        :return: True if all node version numbers are in use.
+        """
+        versionsOK = True
+        for nodeVersion in range(1, self._versionsCount + 1):
+            if nodeVersion not in self._versionsUsed:
+                print("Warning: Node", self._nodeIdentifier, "does not use version", nodeVersion, "of", self._versionsCount,
+                      file=sys.stderr)
+                versionsOK = False
+        return versionsOK
 
     def getPosX(self):
         return self._posX
@@ -80,35 +87,25 @@ class NetworkNode:
 
 class NetworkSegment:
     """
-    Describes a segment of a network between junctions as a sequence of nodes with start, end derivative versions.
+    Describes a segment of a network between junctions as a sequence of nodes with node derivative versions.
     """
 
-    def __init__(self, networkNodes, startNodeVersion=None, endNodeVersion=None):
+    def __init__(self, networkNodes, nodeVersions: list):
         """
         :param networkNodes: List of NetworkNodes from start to end. Must be at least 2.
-        :param startNodeVersion: Version number of derivatives at start node >= 1, or None to use current version
-        count of start node.
-        :param endNodeVersion: Version number of derivatives at end node >= 1, or None to use current version
-        count of end node.
+        :param nodeVersions: List of node versions to use for derivatives at network nodes.
         """
-        assert isinstance(networkNodes, list) and (len(networkNodes) > 1)
-        assert (startNodeVersion is None) or (startNodeVersion >= 1)
-        assert (endNodeVersion is None) or (endNodeVersion >= 1)
-        assert isinstance(networkNodes, list) and (len(networkNodes) > 1)
+        assert isinstance(networkNodes, list) and (len(networkNodes) > 1) and (len(nodeVersions) == len(networkNodes))
         self._networkNodes = networkNodes
+        self._nodeVersions = nodeVersions
         for networkNode in networkNodes[1:-1]:
             networkNode.setInteriorSegment(self)
-        self._startNodeVersion = startNodeVersion if startNodeVersion else networkNodes[0].getVersionCount()
-        self._endNodeVersion = endNodeVersion if endNodeVersion else networkNodes[-1].getVersionCount()
 
     def getNetworkNodes(self):
         return self._networkNodes
 
-    def getStartNodeVersion(self):
-        return self._startNodeVersion
-
-    def getEndNodeVersion(self):
-        return self._endNodeVersion
+    def getNodeVersions(self):
+        return self._nodeVersions
 
     def isCyclic(self):
         """
@@ -125,70 +122,81 @@ class NetworkSegment:
         """
         index = self._networkNodes.index(splitNetworkNode, 1, -1)  # throws exception if not an interior node
         splitNetworkNode.setInteriorSegment(None)
-        nextSegment = NetworkSegment(self._networkNodes[index:], 1, self._endNodeVersion)
+        nextSegment = NetworkSegment(self._networkNodes[index:], self._nodeVersions[index:])
         self._networkNodes = self._networkNodes[:index + 1]
-        self._endNodeVersion = 1
+        self._nodeVersions = self._nodeVersions[:index + 1]
         return nextSegment
 
 
 class NetworkMesh:
     """
-    Defines a 1-D network with lateral axes, and utility functions for fleshing into 1-D and higher dimensional meshes.
-    Only supports a subset of possible networks, e.g. limited to directed acyclic graphs, with fleshing limited to
-    bifurcating junctions only.
+    Defines a 1-D network with lateral axes, and utility functions for fleshing into higher dimensional meshes.
     """
 
     def __init__(self, structureString):
         """
-        Set up network structure from string description.
+        Set up network structure from structure string description.
         :param structureString: Comma-separated sequences of dash-separated node identifiers defining connectivity and
-        continuity throughout network. Each listing of a given node identifier adds an addition version of d1 and side
-        derivatives for use in that context. A single node identifier without connections divides a segment at that
-        point so annotations can be separate.
-        Example: "1-2-4-5-6,3-4-7,5-8" makes the following structure:
+        continuity throughout network.
+        Each listing of a given node identifier is either followed by a dot . and the version number, or version 1 is
+        assumed. Each version gives a full set of all derivatives.
+        Each sequence is a single contiguous segment until it is split by another sequence referencing an interior
+        node.
+        Example: "1-2-4-5-6,3-4.2-7,5-8" makes the following structure:
                   7
                  /
             1-2-4-5-6
                /   \
               3     8
         where C1 continuity is maintained along each sequence of connected nodes, e.g. 1-2-4-5-6 all use version 1 of
-        d1 and side derivatives; 3-4-7 uses version 2 at node 4, and 5-8 uses version 2 at node 5.
+        d1 and side derivatives; 3-4.2-7 uses version 2 at node 4, and 5-8 uses version 1 at node 5 so both output
+        segments at node 5 leave with the same longitudinal derivative and use the same side derivatives.
         """
         self._networkNodes = {}
         self._networkSegments = []
         sequenceStrings = structureString.split(",")
         for sequenceString in sequenceStrings:
-            nodeIdentifiers = [int(s) for s in sequenceString.split("-")]
+            nodeIdentifiers = []
+            nodeVersions = []
+            nodeVersionStrings = sequenceString.split("-")
+            if len(nodeVersionStrings) < 2:
+                print("Network mesh: Ignoring empty or single node sequence", sequenceString, file=sys.stderr)
+                continue
+            try:
+                for nodeVersionString in nodeVersionStrings:
+                    values = [int(s) for s in nodeVersionString.split(".", maxsplit=1)]
+                    nodeIdentifiers.append(values[0])
+                    nodeVersions.append(values[1] if (len(values) == 2) else 1)
+            except ValueError:
+                print("Network mesh: Skipping invalid sequence", sequenceString, file=sys.stderr)
+                continue
             sequenceNodes = []
-            for nodeIdentifier in nodeIdentifiers:
-                # if nodeIdentifiers.count(nodeIdentifier) > 1:
-                #     print("Ignoring sequence " + sequenceString + " due to repeated node", nodeIdentifier, \
-                #           file=sys.stderr)
-                #     break
+            sequenceVersions = []
+            for n in range(len(nodeIdentifiers)):
+                nodeIdentifier = nodeIdentifiers[n]
+                nodeVersion = nodeVersions[n]
                 networkNode = existingNetworkNode = self._networkNodes.get(nodeIdentifier)
                 if networkNode:
-                    # future: check whether making a cycle
                     interiorSegment = networkNode.getInteriorSegment()
                     if interiorSegment:
                         nextSegment = interiorSegment.split(networkNode)
                         index = self._networkSegments.index(interiorSegment) + 1
                         self._networkSegments.insert(index, nextSegment)
-                    if len(nodeIdentifiers) == 1:
-                        if not interiorSegment:
-                            print("Cannot split segment at non-interior node", nodeIdentifier, file=sys.stderr)
-                        break
-                    networkNode.incrementVersionCount()
                 else:
-                    if len(nodeIdentifiers) == 1:
-                        print("Missing split node", nodeIdentifier, file=sys.stderr)
-                        break
                     networkNode = NetworkNode(nodeIdentifier)
                     self._networkNodes[nodeIdentifier] = networkNode
+                networkNode.defineVersion(nodeVersion)
                 sequenceNodes.append(networkNode)
+                sequenceVersions.append(nodeVersion)
                 if (len(sequenceNodes) > 1) and (existingNetworkNode or (nodeIdentifier == nodeIdentifiers[-1])):
-                    networkSegment = NetworkSegment(sequenceNodes)
+                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions)
                     self._networkSegments.append(networkSegment)
                     sequenceNodes = sequenceNodes[-1:]
+                    sequenceVersions = sequenceVersions[-1:]
+
+        # warn about nodes without all versions in use
+        for networkNode in self._networkNodes.values():
+            networkNode.checkVersions()
 
         # set up in/out connectivity
         for networkSegment in self._networkSegments:
@@ -247,25 +255,28 @@ class NetworkMesh:
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplates = [None]
         fieldcache = fieldmodule.createFieldcache()
-
+        derivativeValueLabels = [
+            Node.VALUE_LABEL_D_DS1,
+            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+            Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
+        nodetemplate = None
         for nodeIdentifier, networkNode in self._networkNodes.items():
-            versionCount = networkNode.getVersionCount()
-            print("Node", nodeIdentifier, "versions", versionCount)
-            if versionCount < len(nodetemplates):
-                nodetemplate = nodetemplates[versionCount]
+            versionsCount = networkNode.getVersionsCount()
+            # print("Node", nodeIdentifier, "versions", versionsCount)
+            if versionsCount < len(nodetemplates):
+                nodetemplate = nodetemplates[versionsCount]
             else:
-                for v in range(len(nodetemplates), versionCount + 1):
+                for v in range(len(nodetemplates), versionsCount + 1):
                     nodetemplate = nodes.createNodetemplate()
                     nodetemplate.defineField(coordinates)
-                    for valueLabel in (Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                                       Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3):
-                        nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, versionCount)
+                    for valueLabel in derivativeValueLabels:
+                        nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, versionsCount)
                     nodetemplates.append(nodetemplate)
             node = nodes.createNode(networkNode.getNodeIdentifier(), nodetemplate)
             fieldcache.setNode(node)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, networkNode.getX())
             d1 = []
-            for version in range(1, versionCount + 1):
+            for nodeVersion in range(1, versionsCount + 1):
                 interiorSegment = networkNode.getInteriorSegment()
                 if interiorSegment:
                     segmentNodes = interiorSegment.getNetworkNodes()
@@ -275,37 +286,42 @@ class NetworkMesh:
                 else:
                     prevNetworkNode = None
                     for inNetworkSegment in networkNode.getInSegments():
-                        if inNetworkSegment.getEndNodeVersion() == version:
+                        if inNetworkSegment.getNodeVersions()[-1] == nodeVersion:
                             prevNetworkNode = inNetworkSegment.getNetworkNodes()[-2]
                             break
                     nextNetworkNode = None
                     for outNetworkSegment in networkNode.getOutSegments():
-                        if outNetworkSegment.getStartNodeVersion() == version:
+                        if outNetworkSegment.getNodeVersions()[0] == nodeVersion:
                             nextNetworkNode = outNetworkSegment.getNetworkNodes()[1]
                             break
-                if prevNetworkNode and nextNetworkNode:
-                    d1 = sub(nextNetworkNode.getX(), prevNetworkNode.getX())
-                elif prevNetworkNode:
-                    d1 = sub(networkNode.getX(), prevNetworkNode.getX())
+                if prevNetworkNode or nextNetworkNode:
+                    if prevNetworkNode and nextNetworkNode:
+                        d1 = sub(nextNetworkNode.getX(), prevNetworkNode.getX())
+                    elif prevNetworkNode:
+                        d1 = sub(networkNode.getX(), prevNetworkNode.getX())
+                    else:
+                        d1 = sub(nextNetworkNode.getX(), networkNode.getX())
+                    d1 = normalize(d1)
+                    d2 = [-0.25 * d1[1], 0.25 * d1[0], 0.0]
+                    d3 = cross(d1, d2)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, nodeVersion, d1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, nodeVersion, d2)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, nodeVersion, d3)
                 else:
-                    d1 = sub(nextNetworkNode.getX(), networkNode.getX())
-                d1 = normalize(d1)
-                d2 = [-0.25 * d1[1], 0.25 * d1[0], 0.0]
-                d3 = cross(d1, d2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, d1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, d2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, d3)
+                    print("Warning: No data to define derivative version", nodeVersion, "at node", nodeIdentifier, ".",
+                          file=sys.stderr)
 
         mesh = fieldmodule.findMeshByDimension(1)
         nextElementIdentifier = 1
         elementtemplates = {}  # dict (startVersion, endVersion) -> Elementtemplate
         for networkSegment in self._networkSegments:
             segmentNodes = networkSegment.getNetworkNodes()
+            segmentNodeVersions = networkSegment.getNodeVersions()
             segmentElementCount = len(segmentNodes) - 1
             for e in range(segmentElementCount):
-                startVersion = networkSegment.getStartNodeVersion() if (e == 0) else 1
-                endVersion = networkSegment.getEndNodeVersion() if (e == (segmentElementCount - 1)) else 1
-                print("Element", nextElementIdentifier, "versions", (startVersion, endVersion))
+                startVersion = segmentNodeVersions[e]
+                endVersion = segmentNodeVersions[e + 1]
+                # print("Element", nextElementIdentifier, "versions", (startVersion, endVersion))
                 elementtemplate_eft = elementtemplates.get((startVersion, endVersion))
                 if elementtemplate_eft:
                     elementtemplate, eft = elementtemplate_eft
