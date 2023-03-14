@@ -836,13 +836,20 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeS
             if n2 == 0:
                 v2 = xEllipses_neck[n2][n1]
                 d2 = d2SampledDome[-1][n1]
+            elif (n2 == len(xEllipses_neck) - 1):
+                v1 = xEllipses_neck[n2 - 1][n1]
+                v2 = xEllipses_neck[n2][n1]
+                d2vec = findDerivativeBetweenPoints(v1, v2)
+                d2mag = vector.magnitude(d2vec)
+                d2dir = vector.normalise(sx_neck_group[1][-1])
+                d2 = vector.setMagnitude(d2dir, d2mag)
             else:
                 v1 = xEllipses_neck[n2 - 1][n1]
                 v2 = xEllipses_neck[n2][n1]
                 d2 = findDerivativeBetweenPoints(v1, v2)
             xAlong.append(v2)
             d2Along.append(d2)
-        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along, fixEndDirection=True)
         d2Raw.append(d2Smoothed)
 
     # Rearrange d2
