@@ -90,7 +90,7 @@ class NetworkSegment:
     Describes a segment of a network between junctions as a sequence of nodes with node derivative versions.
     """
 
-    def __init__(self, networkNodes, nodeVersions: list):
+    def __init__(self, networkNodes: list, nodeVersions: list):
         """
         :param networkNodes: List of NetworkNodes from start to end. Must be at least 2.
         :param nodeVersions: List of node versions to use for derivatives at network nodes.
@@ -98,14 +98,30 @@ class NetworkSegment:
         assert isinstance(networkNodes, list) and (len(networkNodes) > 1) and (len(nodeVersions) == len(networkNodes))
         self._networkNodes = networkNodes
         self._nodeVersions = nodeVersions
+        self._elementIdentifiers = [None] * (len(networkNodes) - 1)
         for networkNode in networkNodes[1:-1]:
             networkNode.setInteriorSegment(self)
 
     def getNetworkNodes(self):
+        """
+        :return: List of NetworkNode in order along segment.
+        """
         return self._networkNodes
 
     def getNodeVersions(self):
+        """
+        :return: List of node version number in node order along segment.
+        """
         return self._nodeVersions
+
+    def getElementIdentifiers(self):
+        """
+        :return: List of element identifiers along segment. Note: identifiers are all None until mesh is generated
+        """
+        return self._elementIdentifiers
+
+    def setElementIdentifier(self, index, elementIdentifier):
+        self._elementIdentifiers[index] = elementIdentifier
 
     def isCyclic(self):
         """
@@ -243,6 +259,17 @@ class NetworkMesh:
                 x = [xx, rangeY * (-0.5 + (iy + 0.5) / countY), 0.0]
                 nodes[iy].setX(x)
 
+    def getNetworkNodes(self):
+        """
+        :return: dict mapping node identifier to NetworkNode
+        """
+        return self._networkSegments
+
+    def getNetworkSegments(self):
+        """
+        :return: List of segments.
+        """
+        return self._networkSegments
 
     def create1DLayoutMesh(self, region):
         """
@@ -312,7 +339,7 @@ class NetworkMesh:
                           file=sys.stderr)
 
         mesh = fieldmodule.findMeshByDimension(1)
-        nextElementIdentifier = 1
+        elementIdentifier = 1
         elementtemplates = {}  # dict (startVersion, endVersion) -> Elementtemplate
         for networkSegment in self._networkSegments:
             segmentNodes = networkSegment.getNetworkNodes()
@@ -336,7 +363,8 @@ class NetworkMesh:
                         eft.setTermNodeParameter(4, 1, 2, Node.VALUE_LABEL_D_DS1, endVersion)
                     elementtemplate.defineField(coordinates, -1, eft)
                     elementtemplates[(startVersion, endVersion)] = elementtemplate, eft
-                element = mesh.createElement(nextElementIdentifier, elementtemplate)
+                element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(
                     eft, [segmentNodes[e].getNodeIdentifier(), segmentNodes[e + 1].getNodeIdentifier()])
-                nextElementIdentifier += 1
+                networkSegment.setElementIdentifier(e, elementIdentifier)
+                elementIdentifier += 1

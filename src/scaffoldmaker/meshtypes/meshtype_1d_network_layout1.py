@@ -14,21 +14,30 @@ from scaffoldmaker.utils.networkmesh import NetworkMesh
 class MeshType_1d_network_layout1(Scaffold_base):
     """
     """
+    parameterSetStructureStrings = {
+        "Default": "1-2",
+        "Bifurcation": "1-2,2-3,2-4"
+    }
 
     @classmethod
     def getName(cls):
-        return '1D Network Layout 1'
+        return "1D Network Layout 1"
 
     @classmethod
-    def getDefaultOptions(cls, parameterSetName='Default'):
-        return {
-            'Structure': "1-2"
+    def getParameterSetNames(cls):
+        return ["Default", "Bifurcation"]
+
+    @classmethod
+    def getDefaultOptions(cls, parameterSetName="Default"):
+        options = {
+            "Structure": cls.parameterSetStructureStrings[parameterSetName]
         }
+        return options
 
     @classmethod
     def getOrderedOptionNames(cls):
         return [
-            'Structure'
+            "Structure"
         ]
 
     @classmethod
@@ -44,7 +53,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: [] empty list of AnnotationGroup
         """
-        structure = options['Structure']
+        structure = options["Structure"]
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -53,8 +62,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
     @classmethod
     def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):
-        makeD2Normal = functionOptions['Make D2 normal']
-        makeD3Normal = functionOptions['Make D3 normal']
+        makeD2Normal = functionOptions["Make D2 normal"]
+        makeD3Normal = functionOptions["Make D3 normal"]
         if not (makeD2Normal or makeD3Normal):
             return False, False
         valueLabels = [Node.VALUE_LABEL_D_DS1]
@@ -83,8 +92,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
     @classmethod
     def smoothSideCrossDerivatives(cls, region, options, functionOptions, editGroupName):
-        smoothD12 = functionOptions['Smooth D12']
-        smoothD13 = functionOptions['Smooth D13']
+        smoothD12 = functionOptions["Smooth D12"]
+        smoothD13 = functionOptions["Smooth D13"]
         if not (smoothD12 or smoothD13):
             return False, False
         valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
@@ -115,13 +124,13 @@ class MeshType_1d_network_layout1(Scaffold_base):
         """
         return Scaffold_base.getInteractiveFunctions() + [
             ("Make side derivatives normal...",
-                {'Make D2 normal': True,
-                 'Make D3 normal': True},
+                {"Make D2 normal": True,
+                 "Make D3 normal": True},
                 lambda region, options, functionOptions, editGroupName:
                     cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
             ("Smooth side cross derivatives...",
-                {'Smooth D12': True,
-                 'Smooth D13': True},
+                {"Smooth D12": True,
+                 "Smooth D13": True},
                 lambda region, options, functionOptions, editGroupName:
                     cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
         ]
@@ -138,9 +147,9 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
     :return: cx, cd1, cd2, cd12 (all padded with zeroes to 3 components)
     """
     fieldmodule = region.getFieldmodule()
-    coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
     componentsCount = coordinates.getNumberOfComponents()
-    assert componentsCount in [1, 2, 3], 'extractPathParametersFromRegion.  Invalid coordinates number of components'
+    assert componentsCount in [1, 2, 3], "extractPathParametersFromRegion.  Invalid coordinates number of components"
     cache = fieldmodule.createFieldcache()
 
     valueLabelsCount = len(valueLabels)
@@ -152,7 +161,7 @@ def extractPathParametersFromRegion(region, valueLabels, groupName=None):
         if nodeGroup.isValid():
             nodes = nodeGroup.getNodesetGroup()
         else:
-            print('extractPathParametersFromRegion: missing group "' + groupName + '"')
+            print("extractPathParametersFromRegion: missing group \"" + groupName + "\"")
     nodeIter = nodes.createNodeiterator()
     node = nodeIter.next()
     while node.isValid():
@@ -176,7 +185,7 @@ def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
     :param editGroupName: Optional name of existing or new Zinc group to record modified nodes in.
     """
     fieldmodule = region.getFieldmodule()
-    coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
     # following requires at least one value label and node, assumes consistent values and components counts
     nodeValueLabelsCount = len(nodeValueLabels)
     nodesCount = len(nodeValues[0])
