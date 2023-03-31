@@ -6,10 +6,10 @@ from __future__ import division
 
 import math
 
-from opencmiss.maths.vectorops import cross, mult, normalize, sub
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.maths.vectorops import cross, mult, normalize, sub
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, \
     make_tube_bifurcation_points, make_tube_bifurcation_elements_2d

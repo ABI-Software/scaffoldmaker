@@ -1,12 +1,12 @@
 import math
 import unittest
 
-from opencmiss.maths.vectorops import dot, magnitude, normalize, sub
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1

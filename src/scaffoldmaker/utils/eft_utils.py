@@ -1,9 +1,9 @@
 '''
 Utility functions for element field templates shared by mesh generators.
 '''
-from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
-from opencmiss.zinc.element import Elementfieldtemplate
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.finiteelement import getElementNodeIdentifiers
+from cmlibs.zinc.element import Elementfieldtemplate
+from cmlibs.zinc.result import RESULT_OK
 
 
 def getEftTermScaling(eft, functionIndex, termIndex):

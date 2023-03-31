@@ -7,7 +7,7 @@ from __future__ import division
 import copy
 import math
 
-from opencmiss.maths.vectorops import magnitude, mult
+from cmlibs.maths.vectorops import magnitude, mult
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 

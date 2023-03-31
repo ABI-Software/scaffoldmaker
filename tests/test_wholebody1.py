@@ -1,11 +1,11 @@
 import unittest
 from testutils import assertAlmostEqualList
 
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.field import Field
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.field import Field
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement

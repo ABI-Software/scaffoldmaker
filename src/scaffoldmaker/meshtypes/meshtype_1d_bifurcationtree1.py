@@ -5,12 +5,12 @@ Generates a 1-D tree of bifurcating curves with radius.
 from __future__ import division
 from math import cos, radians, sin
 
-from opencmiss.maths.vectorops import add, cross, magnitude, mult, normalize, sub
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFiniteElement
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.maths.vectorops import add, cross, magnitude, mult, normalize, sub
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFiniteElement
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 

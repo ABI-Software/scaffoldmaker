@@ -7,11 +7,11 @@ wall.
 import copy
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
+from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
 from scaffoldmaker.annotation.bladder_terms import get_bladder_term

@@ -6,11 +6,11 @@ Provenance information at http://models.cellml.org/workspace/516
 from __future__ import division
 
 import numpy as np
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFibres
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldFibres
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scipy.interpolate import splprep, splev
@@ -9506,7 +9506,7 @@ Element: 264
     
     def generateMesh(self,region,circumferentialElements,axialElements,wallElements,normalizeCircumferentialSegmentLengths,refineAtLength={},refineAtTheta={}):
         '''
-        region - opencmiss zinc region where mesh needs to be created
+        region - zinc region where mesh needs to be created
         circumferentialElements - number of elements along the circumference
         axialElements - number of elements along the axis
         wallElements - number of elements along the wall

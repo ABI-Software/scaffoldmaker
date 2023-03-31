@@ -7,13 +7,13 @@ from __future__ import division
 
 import copy
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
-from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, get_element_node_identifiers
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, get_element_node_identifiers
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, stomach_terms, brainstem_terms
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm

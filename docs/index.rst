@@ -1,7 +1,7 @@
-*scaffoldmaker library*
-=======================
+scaffoldmaker library
+=====================
 
-The *scaffoldmaker library* contains scripts for programmatically generating anatomical scaffolds for a range of organs and other structures, and includes utility code for building common geometric shapes, annotation, and refinement. The scripts generate the scaffold model in the data structures of the underlying *OpenCMISS-Zinc library*, and through the Zinc API clients can interrogate the model or export it for subsequent use.
+The *scaffoldmaker library* contains scripts for programmatically generating anatomical scaffolds for a range of organs and other structures, and includes utility code for building common geometric shapes, annotation, and refinement. The scripts generate the scaffold model in the data structures of the underlying *Zinc library*, and through the Zinc API clients can interrogate the model or export it for subsequent use.
 
 Most users will make scaffolds using the ABI Mapping Tools' **Scaffold Creator** user interface for this library, and its documentation gives a good introduction to anatomical scaffolds and some common features of them.
 
