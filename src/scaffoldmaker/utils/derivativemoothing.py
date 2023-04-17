@@ -5,11 +5,11 @@ from __future__ import division
 
 import math
 
-from opencmiss.maths.vectorops import magnitude
-from opencmiss.utils.zinc.field import findOrCreateFieldGroup
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
+from cmlibs.maths.vectorops import magnitude
+from cmlibs.utils.zinc.field import findOrCreateFieldGroup
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteArcLength, interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.vector import setMagnitude
 

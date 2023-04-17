@@ -8,14 +8,14 @@ from __future__ import division
 import copy
 import math
 
-from opencmiss.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
-from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field, FieldGroup
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field, FieldGroup
+from cmlibs.zinc.node import Node
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
     findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term

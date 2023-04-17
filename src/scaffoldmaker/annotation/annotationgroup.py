@@ -3,16 +3,16 @@ Describes subdomains of a scaffold with attached names and terms.
 """
 import sys
 
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group, \
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group, \
     find_or_create_field_stored_mesh_location, find_or_create_field_stored_string
-from opencmiss.zinc.element import Element, Mesh
-from opencmiss.zinc.field import Field, FieldFiniteElement, FieldGroup, FieldStoredMeshLocation, FieldStoredString, \
+from cmlibs.zinc.element import Element, Mesh
+from cmlibs.zinc.field import Field, FieldFiniteElement, FieldGroup, FieldStoredMeshLocation, FieldStoredString, \
     FieldFindMeshLocation
-from opencmiss.zinc.fieldcache import Fieldcache
-from opencmiss.zinc.fieldmodule import Fieldmodule
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.zinc.fieldcache import Fieldcache
+from cmlibs.zinc.fieldmodule import Fieldmodule
+from cmlibs.zinc.node import Node
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh, get_next_unused_node_identifier, \
     group_get_highest_dimension, identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \

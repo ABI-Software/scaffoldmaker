@@ -1,7 +1,7 @@
 Scaffold Maker
 ==============
 
-Anatomical scaffold generator using OpenCMISS-Zinc.
+Anatomical scaffold generator using Zinc.
 Install with::
 
   pip install scaffoldmaker
@@ -14,8 +14,8 @@ For developing scaffolds::
 
 Requires the following Python libraries to be installed.
 
-* opencmiss.zinc
-* opencmiss.utils
+* cmlibs.zinc
+* cmlibs.utils
 
 We recommend installing scaffoldmaker into a virtual python environment.
 See `python virtual environment documentation <https://docs.python.org/3/library/venv.html>`__ for information on virtual environments.

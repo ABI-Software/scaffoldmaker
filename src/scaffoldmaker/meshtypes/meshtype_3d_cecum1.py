@@ -7,8 +7,8 @@ variable radius and thickness along.
 import copy
 import math
 
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion

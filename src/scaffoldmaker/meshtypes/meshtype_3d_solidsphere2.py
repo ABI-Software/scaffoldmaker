@@ -5,7 +5,7 @@ Generates a solid sphere (spheroid/ellipsoid in general) using a ShieldMesh of a
 
 from __future__ import division
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector

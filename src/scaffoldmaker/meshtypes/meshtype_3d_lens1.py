@@ -7,8 +7,8 @@ from __future__ import division
 
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.field import Field
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.field import Field
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement

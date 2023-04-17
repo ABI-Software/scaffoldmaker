@@ -6,10 +6,10 @@ from __future__ import division
 
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import mergeAnnotationGroups
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix

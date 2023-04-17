@@ -8,10 +8,10 @@ and thickness along.
 import copy
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
     findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term

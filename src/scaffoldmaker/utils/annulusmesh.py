@@ -6,9 +6,9 @@ from __future__ import division
 import copy
 from collections.abc import Sequence
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.node import Node
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds

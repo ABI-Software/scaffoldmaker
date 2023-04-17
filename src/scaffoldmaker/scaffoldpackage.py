@@ -6,11 +6,11 @@ Supports serialisation to/from JSON. Can be used as a scaffold option.
 import copy
 import math
 
-from opencmiss.maths.vectorops import euler_to_rotation_matrix
-from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
-from opencmiss.utils.zinc.finiteelement import get_maximum_node_identifier
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field, FieldGroup
+from cmlibs.maths.vectorops import euler_to_rotation_matrix
+from cmlibs.utils.zinc.field import createFieldEulerAnglesRotationMatrix
+from cmlibs.utils.zinc.finiteelement import get_maximum_node_identifier
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.field import Field, FieldGroup
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
     getAnnotationMarkerLocationField  # , getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base

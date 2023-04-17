@@ -2,14 +2,14 @@
 Utility functions for easing use of Zinc API.
 '''
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.utils.zinc.general import ChangeManager, HierarchicalChangeManager
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.element import Mesh, MeshGroup
-from opencmiss.zinc.field import Field, FieldGroup
-from opencmiss.zinc.fieldmodule import Fieldmodule
-from opencmiss.zinc.node import Node, Nodeset
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.element import Mesh, MeshGroup
+from cmlibs.zinc.field import Field, FieldGroup
+from cmlibs.zinc.fieldmodule import Fieldmodule
+from cmlibs.zinc.node import Node, Nodeset
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
