@@ -148,7 +148,10 @@ def Scaffolds_decodeJSON(dct):
     Function for passing as object_hook argument to json.loads.
     Constructs scaffold objects from their JSON object encoding.
     '''
-    if ('_ScaffoldPackage' in dct):
+    for key in dct.keys():
+        if isinstance(dct[key], dict):
+            dct[key] = Scaffolds_decodeJSON(dct[key])
+    if '_ScaffoldPackage' in dct:
         scaffoldType = Scaffolds().findScaffoldTypeByName(dct['scaffoldTypeName'])
         #print('Scaffolds_decodeJSON scaffoldType',scaffoldType.getName(), dct)
         return ScaffoldPackage(scaffoldType, dct)
