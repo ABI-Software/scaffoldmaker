@@ -12,7 +12,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelsVersion, setEftScaleFactorIds
 from scaffoldmaker.utils.cylindermesh import createEllipsePerimeter
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from opencmiss.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.general import ChangeManager
 from scaffoldmaker.utils.geometry import createEllipsoidPoints, getEllipseRadiansToX, getEllipseArcLength, \
     getApproximateEllipsePerimeter, sampleEllipsePoints, updateEllipseAngleByArcLength, getEllipsoidPlaneA, \
     getEllipsoidPolarCoordinatesFromPosition, getEllipsoidPolarCoordinatesTangents
@@ -20,13 +20,13 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScali
     interpolateCubicHermiteDerivative
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import magnitude, setMagnitude, crossproduct3, normalise
-from opencmiss.maths.vectorops import add, cross, dot, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, dot, mult, normalize, sub
 from scaffoldmaker.utils.zinc_utils import disconnectFieldMeshGroupBoundaryNodes
-from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString, createFieldEulerAnglesRotationMatrix
-from opencmiss.utils.zinc.finiteelement import get_element_node_identifiers
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.node import Node
 
 class MeshType_3d_lung2(Scaffold_base):
     '''

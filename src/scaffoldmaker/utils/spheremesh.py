@@ -6,8 +6,8 @@ from enum import Enum
 
 import math
 
-from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
-from opencmiss.zinc.field import Field
+from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
+from cmlibs.zinc.field import Field
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape

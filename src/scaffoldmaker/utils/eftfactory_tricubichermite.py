@@ -3,11 +3,11 @@ Definitions of standard element field templates shared by mesh generators.
 '''
 import math
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiers
-from opencmiss.zinc.element import Element, Elementbasis, Elementfieldtemplate
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.finiteelement import getElementNodeIdentifiers
+from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import mapEftFunction1Node1Term, remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 

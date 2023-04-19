@@ -7,10 +7,10 @@ import os
 import sys
 from sys import version_info
 
-from opencmiss.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.finiteelement import getElementNodeIdentifiersBasisOrder
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.result import RESULT_OK
 
 
 class ExportVtk:

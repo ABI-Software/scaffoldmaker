@@ -6,13 +6,13 @@ from __future__ import division
 
 import copy
 
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.field import FieldFindMeshLocation
-from opencmiss.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.node import Node
+from cmlibs.zinc.field import FieldFindMeshLocation
+from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
     findOrCreateFieldStoredString
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.brainstem_terms import get_brainstem_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base

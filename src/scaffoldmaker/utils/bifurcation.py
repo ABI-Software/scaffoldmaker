@@ -4,9 +4,9 @@ Utilities for building bifurcating network meshes.
 
 from __future__ import division
 
-from opencmiss.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.node import Node
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
