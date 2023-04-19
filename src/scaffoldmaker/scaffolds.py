@@ -109,18 +109,18 @@ class Scaffolds(object):
         return None
 
     def getDefaultMeshType(self):
-        '''
+        """
         Deprecated: use getDefaultScaffoldType()
-        '''
+        """
         return self.getDefaultScaffoldType()
 
     def getDefaultScaffoldType(self):
         return MeshType_3d_box1
 
     def getMeshTypes(self):
-        '''
+        """
         Deprecated: use getScaffoldTypes()
-        '''
+        """
         return self.getScaffoldTypes()
 
     def getScaffoldTypes(self):
@@ -128,9 +128,9 @@ class Scaffolds(object):
 
 
 class Scaffolds_JSONEncoder(json.JSONEncoder):
-    '''
+    """
     Class encoding scaffold objects in JSON. Pass as cls argument to json.dumps.
-    '''
+    """
 
     def default(self, obj):
         if isinstance(obj, ScaffoldPackage):
@@ -144,10 +144,10 @@ class Scaffolds_JSONEncoder(json.JSONEncoder):
 
 
 def Scaffolds_decodeJSON(dct):
-    '''
+    """
     Function for passing as object_hook argument to json.loads.
     Constructs scaffold objects from their JSON object encoding.
-    '''
+    """
     for key in dct.keys():
         if isinstance(dct[key], dict):
             dct[key] = Scaffolds_decodeJSON(dct[key])
