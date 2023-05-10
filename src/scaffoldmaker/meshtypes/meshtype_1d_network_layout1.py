@@ -1,10 +1,10 @@
 """
 Constructs a 1-D network layout mesh with specifiable structure.
 """
-from opencmiss.utils.zinc.field import findOrCreateFieldGroup
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldGroup
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine

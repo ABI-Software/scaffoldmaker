@@ -2,11 +2,11 @@
 Utility class for defining network meshes from 1-D connectivity and lateral axes, with continuity control.
 """
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
-from opencmiss.maths.vectorops import cross, normalize, sub
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
+from cmlibs.maths.vectorops import cross, normalize, sub
 
 import sys
 
