@@ -88,12 +88,16 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
 def exnodeStringFromNodeValues(
         nodeValueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ],
         nodeValues = [
-            [ [ 0.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ],
-            [ [ 1.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ] ],
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+            [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]] ],
         groupName = 'meshEdits'):
     '''
     Return a string in Zinc EX format defining nodes 1..N with the supplied
-    coordinate values and their labels. Works in a private zinc context.
+    coordinate values and their labels.
+    Versions may be supplied for any node/value by supplying a list of coordinate
+    vectors e.g. [[0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]],
+    gives 2 versions of DS1 with the default nodeValueLabels.
+    Works in a private zinc context.
     '''
     # following requires at least one value label and node, assumes consistent values and components counts
     nodeValueLabelsCount = len(nodeValueLabels)
@@ -109,18 +113,34 @@ def exnodeStringFromNodeValues(
         group = fieldmodule.createFieldGroup()
         group.setName(groupName)
         nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
-        for nodeValueLabel in nodeValueLabels:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
+        # dict mapping from tuple of derivative versions to nodetemplate
+        nodetemplates = {}
         # create nodes
         for n in range(nodesCount):
+            derivativeVersions = []
+            for d in range(nodeValueLabelsCount):
+                if isinstance(nodeValues[n][d][0], list):
+                    derivativeVersions.append(len(nodeValues[n][d]))
+                else:
+                    derivativeVersions.append(1)
+            derivativeVersions = tuple(derivativeVersions)  # must be tuple to use as dict key
+            nodetemplate = nodetemplates.get(derivativeVersions)
+            if not nodetemplate:
+                nodetemplate = nodes.createNodetemplate()
+                nodetemplate.defineField(coordinates)
+                if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
+                    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+                for d in range(nodeValueLabelsCount):
+                    nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabels[d], derivativeVersions[d])
+                nodetemplates[derivativeVersions] = nodetemplate
             node = nodesetGroup.createNode(n + 1, nodetemplate)
             cache.setNode(node)
-            for v in range(nodeValueLabelsCount):
-                coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
+            for d in range(nodeValueLabelsCount):
+                if derivativeVersions[d] > 1:
+                    for v in range(1, derivativeVersions[d] + 1):
+                        coordinates.setNodeParameters(cache, -1, nodeValueLabels[d], 1, nodeValues[n][d])[v]
+                else:
+                    coordinates.setNodeParameters(cache, -1, nodeValueLabels[d], 1, nodeValues[n][d])
         # serialise to string
         sir = region.createStreaminformationRegion()
         srm = sir.createStreamresourceMemory()
