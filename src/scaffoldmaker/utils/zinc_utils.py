@@ -137,8 +137,8 @@ def exnodeStringFromNodeValues(
             cache.setNode(node)
             for d in range(nodeValueLabelsCount):
                 if derivativeVersions[d] > 1:
-                    for v in range(1, derivativeVersions[d] + 1):
-                        coordinates.setNodeParameters(cache, -1, nodeValueLabels[d], 1, nodeValues[n][d])[v]
+                    for v in range(derivativeVersions[d]):
+                        coordinates.setNodeParameters(cache, -1, nodeValueLabels[d], v + 1, nodeValues[n][d][v])
                 else:
                     coordinates.setNodeParameters(cache, -1, nodeValueLabels[d], 1, nodeValues[n][d])
         # serialise to string
