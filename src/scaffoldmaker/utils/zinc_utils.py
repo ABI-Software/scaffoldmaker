@@ -465,7 +465,9 @@ def parameter_lists_to_string(valuesList, format_string):
         return 'None'
     if len(valuesList) == 1:
         return '[' + ','.join(format_string.format(value) for value in valuesList[0]) + ']'
-    return '[ ' + ', '.join('[' + (','.join(format_string.format(value) for value in values)) for values in valuesList)  + '] ]'
+    return '[' + ','.join(
+        '[' + ','.join(format_string.format(value) for value in subValuesList) + ']'
+        for subValuesList in valuesList) + ']'
 
 
 def print_node_field_parameters(value_labels, node_field_parameters, format_string='{: 11e}'):
@@ -475,12 +477,14 @@ def print_node_field_parameters(value_labels, node_field_parameters, format_stri
     :param format_string: Default format uses exponential notation with 7 significant digits = single precision.
     '''
     valueLabelsStrings = [ None, 'Node.VALUE_LABEL_VALUE', 'Node.VALUE_LABEL_D_DS1', 'Node.VALUE_LABEL_D_DS2', 'Node.VALUE_LABEL_D2_DS1DS2', 'Node.VALUE_LABEL_D_DS3', 'Node.VALUE_LABEL_D2_DS1DS3', 'Node.VALUE_LABEL_D2_DS2DS3', 'Node.VALUE_LABEL_D3_DS1DS2DS3']
-    print('[ ' + ', '.join(valueLabelsStrings[v] for v in value_labels) + ' ]')
+    print('[' + ', '.join(valueLabelsStrings[v] for v in value_labels) + ']')
     print('[')
-    lastNodeIdentifier  = node_field_parameters[-1][0]
+    lastNodeIdentifier = node_field_parameters[-1][0]
     for nodeParameters in node_field_parameters:
         nodeIdentifier = nodeParameters[0]
-        print('( ' + str(nodeIdentifier) + ', [ ' + ', '.join(parameter_lists_to_string(valueParameters, format_string) for valueParameters in nodeParameters[1]) + ' ] )' +  (', ' if (nodeIdentifier != lastNodeIdentifier) else ''))
+        print('(' + str(nodeIdentifier) + ', [' + ', '.join(parameter_lists_to_string(valueParameters, format_string)
+                                                            for valueParameters in nodeParameters[1]) + '])' +
+              (', ' if (nodeIdentifier != lastNodeIdentifier) else ''))
     print(']\n')
 
 def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGroup2, nextNodeIdentifier):
