@@ -796,30 +796,26 @@ class CylindricalSegmentTubeMeshInnerPoints:
     """
 
     def __init__(self, elementsCountAround, elementsCountAlongSegment,
-                 segmentLength, wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList, startPhase):
+                 segmentLength, wallThickness, innerRadiusList, startPhase):
 
         self._elementsCountAround = elementsCountAround
         self._elementsCountAlongSegment = elementsCountAlongSegment
         self._segmentLength = segmentLength
         self._wallThickness = wallThickness
-        self._innerRadiusSegmentList = innerRadiusSegmentList
-        self._dInnerRadiusSegmentList = dInnerRadiusSegmentList
+        self._innerRadiusList = innerRadiusList
         self._xiList = []
         self._flatWidthList = []
         self._startPhase = startPhase
 
     def getCylindricalSegmentTubeMeshInnerPoints(self, nSegment):
 
-        # Unpack radius and rate of change of inner radius
-        startRadius = self._innerRadiusSegmentList[nSegment]
-        startRadiusDerivative = self._dInnerRadiusSegmentList[nSegment]
-        endRadius = self._innerRadiusSegmentList[nSegment+1]
-        endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
+        elementAlongStartIdx = nSegment * self._elementsCountAlongSegment
+        elementAlongEndIdx = (nSegment + 1) * self._elementsCountAlongSegment
 
         xInner, d1Inner, d2Inner, transitElementList, xiSegment, flatWidthSegment, segmentAxis, radiusAlongSegmentList \
             = getCylindricalSegmentInnerPoints(self._elementsCountAround, self._elementsCountAlongSegment,
-                                               self._segmentLength, self._wallThickness, startRadius,
-                                               startRadiusDerivative, endRadius, endRadiusDerivative,
+                                               self._segmentLength, self._wallThickness,
+                                               self._innerRadiusList[elementAlongStartIdx: elementAlongEndIdx + 1],
                                                self._startPhase)
 
         startIdx = 0 if nSegment == 0 else 1
@@ -835,8 +831,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
         return self._flatWidthList, self._xiList
 
 def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegment, segmentLength,
-                                     wallThickness, startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
-                                     startPhase):
+                                     wallThickness, radiusList, startPhase):
     """
     Generates a 3-D cylindrical segment mesh with variable numbers of elements
     around, along the central path, and through wall.
@@ -844,10 +839,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     :param elementsCountAlongSegment: Number of elements along cylindrical segment.
     :param segmentLength: Length of a cylindrical segment.
     :param wallThickness: Thickness of wall.
-    :param startRadius: Inner radius at proximal end.
-    :param startRadiusDerivative: Rate of change of inner radius at proximal end.
-    :param endRadius: Inner radius at distal end.
-    :param endRadiusDerivative: Rate of change of inner radius at distal end.
+    :param radiusList: Inner radius at elements along tube length.
     :param startPhase: Phase at start.
     :return coordinates, derivatives on inner surface of a cylindrical segment.
     :return transitElementList: stores true if element around is an element that
@@ -874,10 +866,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     sRadiusAlongSegment = []
 
     for n2 in range(elementsCountAlongSegment + 1):
-        phase = startPhase + n2 * 360.0 / elementsCountAlongSegment
-        xi = (phase if phase <= 360.0 else phase - 360.0) / 360.0
-        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative],
-                                                [endRadius], [endRadiusDerivative], xi)[0]
+        radius = radiusList[n2]
         sRadiusAlongSegment.append(radius)
         z = segmentLength / elementsCountAlongSegment * n2 + startPhase / 360.0 * segmentLength
 
