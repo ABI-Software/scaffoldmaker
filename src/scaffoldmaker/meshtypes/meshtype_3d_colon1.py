@@ -94,7 +94,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ -484.80, 594.40,   0.70 ], [  132.70,   97.00,   3.50 ], [   3.25,  -1.18,  -8.47 ], [  -2.78, -5.06,  -5.12 ], [  -5.07,   7.03, -2.92 ], [  -2.78, -5.06,  -5.12] ],
                 [ [ -318.10, 641.90,  -8.50 ], [  166.70,   17.60,   5.50 ], [   0.67,  -2.88,  -8.72 ], [  -2.15, -0.82,  -0.11 ], [  -0.82,   8.69, -2.93 ], [  -2.15, -0.82,  -0.11] ],
                 [ [ -158.30, 634.70,  -1.90 ], [  176.50,  -14.00,  10.80 ], [  -1.08,  -2.89,  -8.71 ], [  -0.81,  0.27,  -0.12 ], [   0.87,   8.70, -2.99 ], [  -0.81,  0.27,  -0.12] ],
-                [ [   32.70, 611.70,  13.60 ], [  205.50,  -32.20,  20.00 ], [  -0.76,  -2.28,  -8.98 ], [   1.46,  0.96,  -0.42 ], [   1.62,   8.84, -2.38 ], [   1.46,  0.96,  -0.42] ] ] )
+                [ [   32.70, 611.70,  13.60 ], [  205.50,  -32.20,  20.00 ], [  -0.76,  -2.28,  -8.98 ], [   1.46,  0.96,  -0.42 ], [   1.62,   8.84, -2.38 ], [   1.46,  0.96,  -0.42] ] ] ),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-8',
+                    'name': get_colon_term('right colon')[0],
+                    'ontId': get_colon_term('right colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '9-46',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '47-52',
+                    'name': get_colon_term('left colon')[0],
+                    'ontId': get_colon_term('left colon')[1]
+                }]
         }),
         'Human 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -114,7 +136,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ 443.90, 390.80, 0.00 ], [ 111.30,  -97.00, 0.00 ], [  14.07,  23.92,   8.44 ], [ 12.36,  -3.74, -23.50 ], [  -9.40,  -3.01, 27.28 ], [   1.00,  -6.00, -35.00] ],
                 [ [ 475.20, 168.00, 0.00 ], [  -0.80, -112.40, 0.00 ], [  20.78,   0.00, -20.78 ], [ -2.41, -19.32, -15.36 ], [  20.78,  -0.00, 20.78 ], [  15.00,  -1.00, -10.00] ],
                 [ [ 432.60, -32.30, 0.00 ], [ -90.50,  -59.00, 0.00 ], [  10.09, -15.13, -23.54 ], [ -9.58,  -7.07,  -2.37 ], [  13.01, -19.62, 18.19 ], [   8.00, -11.00, -13.00] ],
-                [ [ 272.40,   7.50, 0.00 ], [ -79.00,   47.40, 0.00 ], [   1.42, -15.65, -25.60 ], [ -7.76,   6.05,  -1.75 ], [  -5.22, -26.72, 12.68 ], [   4.00, -12.00, -12.00] ] ] )
+                [ [ 272.40,   7.50, 0.00 ], [ -79.00,   47.40, 0.00 ], [   1.42, -15.65, -25.60 ], [ -7.76,   6.05,  -1.75 ], [  -5.22, -26.72, 12.68 ], [   4.00, -12.00, -12.00] ] ] ),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_colon_term('ascending colon')[0],
+                    'ontId': get_colon_term('ascending colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-5',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6-8',
+                    'name': get_colon_term('descending colon')[0],
+                    'ontId': get_colon_term('descending colon')[1]
+                }]
         }),
         'Human 2': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -134,7 +178,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ 325.50,  381.70, -57.90 ], [  187.36, -116.61, -173.53 ], [  14.07,  23.92,   8.44 ], [ 12.05,  -5.07, -23.99 ], [   5.51, -10.97, 26.28 ], [   1.00,  -6.00, -35.00 ] ],
                 [ [ 354.00,  105.30, -24.40 ], [  -20.59, -269.54,   30.48 ], [  20.87,   0.00, -20.87 ], [ -2.92, -19.10, -14.61 ], [  20.81,   5.79, 20.11 ], [  15.00,  -1.00, -10.00 ] ],
                 [ [ 296.50, -121.20,  -0.60 ], [ -170.98, -102.19,  -18.39 ], [  10.15, -15.22, -23.67 ], [ -9.48,  -6.06,  -2.33 ], [  13.09, -19.73, 18.29 ], [   8.00, -11.00, -13.00 ] ],
-                [ [ 169.80,  -73.40, -33.50 ], [  -42.47,  101.91,  -24.43 ], [   1.43, -15.71, -25.71 ], [ -7.96,   5.07,  -1.75 ], [ -16.72, -21.84, 12.39 ], [   4.00, -12.00, -12.00 ] ] ] )
+                [ [ 169.80,  -73.40, -33.50 ], [  -42.47,  101.91,  -24.43 ], [   1.43, -15.71, -25.71 ], [ -7.96,   5.07,  -1.75 ], [ -16.72, -21.84, 12.39 ], [   4.00, -12.00, -12.00 ] ] ] ),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_colon_term('ascending colon')[0],
+                    'ontId': get_colon_term('ascending colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-5',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6-8',
+                    'name': get_colon_term('descending colon')[0],
+                    'ontId': get_colon_term('descending colon')[1]
+                }]
         }),
         'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -153,7 +219,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [ -16.00,  -4.00,  0.00 ], [  4.00, -3.00,  14.00 ], [ 0.23, -0.70,  0.00 ], [ -0.16, -0.02, -0.19 ], [  0.71,  0.18,  0.05 ], [ 0.00, 0.00, 0.50 ] ],
                 [ [  -7.00,  -8.00,  0.00 ], [  5.00, -1.00, -14.00 ], [ 0.00, -0.70,  0.00 ], [  0.03,  0.04, -0.12 ], [ -0.64, -0.00, -0.28 ], [ 0.00, 0.00, 0.50 ] ],
                 [ [  -1.00,  -6.00, -1.00 ], [  2.00, -2.00,   9.00 ], [ 0.21, -0.63, -0.21 ], [  0.12,  0.11, -0.23 ], [  0.64,  0.25, -0.11 ], [ 0.00, 0.00, 0.50 ] ],
-                [ [  -2.00, -14.00,  5.00 ], [ -2.00, -4.00,   2.00 ], [ 0.23, -0.47, -0.47 ], [ -0.08,  0.22, -0.28 ], [  0.53, -0.17,  0.42 ], [ 0.00, 0.00, 0.50 ] ] ] )
+                [ [  -2.00, -14.00,  5.00 ], [ -2.00, -4.00,   2.00 ], [ 0.23, -0.47, -0.47 ], [ -0.08,  0.22, -0.28 ], [  0.53, -0.17,  0.42 ], [ 0.00, 0.00, 0.50 ] ] ] ),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_colon_term('right colon')[0],
+                    'ontId': get_colon_term('right colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-4',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-7',
+                    'name': get_colon_term('left colon')[0],
+                    'ontId': get_colon_term('left colon')[1]
+                }]
         }),
         'Mouse 2': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -169,7 +257,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [   0.00,  0.00,  13.00 ], [ 0.00,  2.00,  28.00 ], [ 0.00, -0.96, 0.00 ], [ 0.00,  0.05, 0.00 ], [  0.95, -0.00, -0.07 ], [ 0.00, 0.00, 0.50 ] ],
                 [ [ -14.00, -2.00,  13.00 ], [ 0.00, -3.00, -19.00 ], [ 0.00, -0.88, 0.00 ], [ 0.00,  0.13, 0.00 ], [ -0.87, -0.02, -0.14 ], [ 0.00, 0.00, 0.50 ] ],
                 [ [ -14.00, -1.00, -10.00 ], [ 1.00,  1.00, -17.00 ], [ 0.00, -0.70, 0.00 ], [ 0.00,  0.08, 0.00 ], [ -0.70, -0.00, -0.00 ], [ 0.00, 0.00, 0.50 ] ],
-                [ [ -14.00,  0.00, -28.00 ], [ 0.00,  0.00, -11.00 ], [ 0.00, -0.70, 0.00 ], [ 0.00, -0.08, 0.00 ], [ -0.70, -0.00,  0.00 ], [ 0.00, 0.00, 0.50 ] ] ] )
+                [ [ -14.00,  0.00, -28.00 ], [ 0.00,  0.00, -11.00 ], [ 0.00, -0.70, 0.00 ], [ 0.00, -0.08, 0.00 ], [ -0.70, -0.00,  0.00 ], [ 0.00, 0.00, 0.50 ] ] ] ),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_colon_term('right colon')[0],
+                    'ontId': get_colon_term('right colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '4',
+                    'name': get_colon_term('left colon')[0],
+                    'ontId': get_colon_term('left colon')[1]
+                }]
         }),
         'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -220,7 +330,29 @@ class MeshType_3d_colon1(Scaffold_base):
                 [ [   24.80,   -0.40,  -48.80 ], [  -13.40,   23.90, -30.60 ], [ -6.57, -5.70,  2.41 ], [  4.46,  2.06,  2.31 ], [  -1.87,   3.95,  7.90 ], [  5.41,  2.39,  2.88 ] ],
                 [ [  -20.90,   15.30,  -77.90 ], [  -51.20,  -30.60,  21.10 ], [  3.74, -4.06,  6.43 ], [ -1.12,  2.71, -1.85 ], [  -2.63,   5.93,  5.46 ], [ -1.44,  3.31, -2.27 ] ],
                 [ [  -47.60,   33.90, -112.20 ], [   32.60,   30.70, -27.80 ], [ -8.36, -0.32, -1.04 ], [ -7.25,  2.76, -6.03 ], [  -3.75,   2.25,  7.20 ], [ -8.97,  3.42, -7.45 ] ],
-                [ [   19.60,   96.00, -167.50 ], [   19.90,   19.10, -18.40 ], [ -6.99,  0.72, -4.50 ], [  9.97, -0.68, -0.89 ], [  -2.97,   5.84,  5.17 ], [ 12.30, -0.82, -1.11 ] ] ])
+                [ [   19.60,   96.00, -167.50 ], [   19.90,   19.10, -18.40 ], [ -6.99,  0.72, -4.50 ], [  9.97, -0.68, -0.89 ], [  -2.97,   5.84,  5.17 ], [ 12.30, -0.82, -1.11 ] ] ] ),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-34',
+                    'name': get_colon_term('spiral colon')[0],
+                    'ontId': get_colon_term('spiral colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '35-36',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '37-39',
+                    'name': get_colon_term('descending colon')[0],
+                    'ontId': get_colon_term('descending colon')[1]
+                }]
         }),
         'Pig 2': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -283,9 +415,6 @@ class MeshType_3d_colon1(Scaffold_base):
             'Segment profile': segmentProfileOption,
             'Number of segments': 30,
             'Start phase': 0.0,
-            'Proximal length': 420.0,
-            'Transverse length': 460.0,
-            'Distal length': 620.0,
             'Proximal tenia coli width': 10.0,
             'Proximal-transverse tenia coli width': 10.0,
             'Transverse-distal tenia coli width': 10.0,
@@ -297,40 +426,24 @@ class MeshType_3d_colon1(Scaffold_base):
         }
         if 'Cattle 1' in parameterSetName:
             options['Number of segments'] = 40
-            options['Proximal length'] = 900.0
-            options['Transverse length'] = 3500.0
-            options['Distal length'] = 1650.0
             options['Proximal tenia coli width'] = 12.0
             options['Proximal-transverse tenia coli width'] = 6.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal tenia coli width'] = 3.0
-        elif 'Human 2' in parameterSetName:
-            options['Proximal length'] = 180.0
-            options['Transverse length'] = 620.0
-            options['Distal length'] = 700.0
         elif 'Mouse' in parameterSetName:
             options['Number of segments'] = 10
-            options['Proximal length'] = 30.0
-            options['Transverse length'] = 20.0
-            options['Distal length'] = 25.0
             options['Proximal tenia coli width'] = 0.5
             options['Proximal-transverse tenia coli width'] = 0.5
             options['Transverse-distal tenia coli width'] = 0.5
             options['Distal tenia coli width'] = 0.5
         elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 120
-            options['Proximal length'] = 3000.0
-            options['Transverse length'] = 200.0
-            options['Distal length'] = 200.0
             options['Proximal tenia coli width'] = 5.0
             options['Proximal-transverse tenia coli width'] = 4.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal tenia coli width'] = 1.5
         elif 'Pig 2' in parameterSetName:
             options['Number of segments'] = 3
-            options['Proximal length'] = 30.0
-            options['Transverse length'] = 30.0
-            options['Distal length'] = 30.0
             options['Proximal tenia coli width'] = 5.0
             options['Proximal-transverse tenia coli width'] = 5.0
             options['Transverse-distal tenia coli width'] = 5.0
@@ -344,9 +457,6 @@ class MeshType_3d_colon1(Scaffold_base):
             'Segment profile',
             'Number of segments',
             'Start phase',
-            'Proximal length',
-            'Transverse length',
-            'Distal length',
             'Proximal tenia coli width',
             'Proximal-transverse tenia coli width',
             'Transverse-distal tenia coli width',
@@ -407,9 +517,6 @@ class MeshType_3d_colon1(Scaffold_base):
             if options[key] < 1:
                 options[key] = 1
         for key in [
-            'Proximal length',
-            'Transverse length',
-            'Distal length',
             'Proximal tenia coli width',
             'Proximal-transverse tenia coli width',
             'Transverse-distal tenia coli width',
@@ -429,8 +536,6 @@ class MeshType_3d_colon1(Scaffold_base):
         segmentProfile = options['Segment profile']
         segmentCount = options['Number of segments']
         startPhase = options['Start phase'] % 360.0
-        proximalLength = options['Proximal length']
-        transverseLength = options['Transverse length']
         proximalTCWidth = options['Proximal tenia coli width']
         proximalTransverseTCWidth = options['Proximal-transverse tenia coli width']
         transverseDistalTCWidth = options['Transverse-distal tenia coli width']
@@ -468,13 +573,37 @@ class MeshType_3d_colon1(Scaffold_base):
         firstElementIdentifier = 1
 
         # Central path
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12, cd3, cd13 = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                                                        Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
-        del tmpRegion
+        if tcCount == 1:
+            colonTermsAlong = [None, 'right colon', 'transverse colon', 'left colon']
+        elif tcCount == 2:
+            colonTermsAlong = [None, 'spiral colon', 'transverse colon', 'descending colon']
+        elif tcCount == 3:
+            colonTermsAlong = [None, 'ascending colon', 'transverse colon', 'descending colon']
+
+        arcLengthOfGroupsAlong = []
+        for i in range(len(colonTermsAlong)):
+            tmpRegion = region.createRegion()
+            centralPath.generate(tmpRegion)
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
+                extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                                                            Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
+                                                groupName=colonTermsAlong[i])
+            arcLength = 0.0
+            for e in range(len(cxGroup) - 1):
+                arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
+                                                             cxGroup[e + 1], cd1Group[e + 1])
+            arcLengthOfGroupsAlong.append(arcLength)
+
+            if i == 0:
+                cx = cxGroup
+                cd1 = cd1Group
+                cd2 = cd2Group
+                cd3 = cd3Group
+                cd12 = cd12Group
+                cd13 = cd13Group
+
+            del tmpRegion
 
         # find arclength of colon
         length = 0.0
@@ -486,14 +615,45 @@ class MeshType_3d_colon1(Scaffold_base):
             # print(e+1, arcLength)
             length += arcLength
         segmentLength = length / segmentCount
-        elementAlongLength = length / elementsCountAlong
 
         # Sample central path
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
         sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
+        centralPathLength = arcLengthOfGroupsAlong[0]
+        elementAlongLength = centralPathLength / elementsCountAlong
+
+        elementsCountAlongGroups = []
+        groupLength = 0.0
+        e = 0
+        elementsCount = 1
+        length = elementAlongLength
+        for i in range(1, len(colonTermsAlong)):
+            groupLength += arcLengthOfGroupsAlong[i]
+            if e == elementsCountAlong - 2:
+                elementsCount += 1
+                elementsCountAlongGroups.append(elementsCount)
+            else:
+                while length < groupLength:
+                    elementsCount += 1
+                    e += 1
+                    length += elementAlongLength
+
+                # check which end is grouplength closer to
+                distToUpperEnd = abs(length - groupLength)
+                distToLowerEnd = abs(groupLength - (length - elementsCountAlong))
+                if distToLowerEnd < distToUpperEnd:
+                    elementsCount -= 1
+                    elementsCountAlongGroups.append(elementsCount)
+                    e -= 1
+                    length -= elementAlongLength
+                else:
+                    elementsCountAlongGroups.append(elementsCount)
+            elementsCount = 0
+
         # Generate variation of radius & tc width along length
-        lengthList = [0.0, proximalLength, proximalLength + transverseLength, length]
+        lengthList = [0.0, arcLengthOfGroupsAlong[1], arcLengthOfGroupsAlong[1] + arcLengthOfGroupsAlong[2],
+                      arcLengthOfGroupsAlong[0]]
 
         innerRadiusListCP = [vector.magnitude(c) for c in cd2]
         dInnerRadiusListCP = []
@@ -518,17 +678,12 @@ class MeshType_3d_colon1(Scaffold_base):
             haustrumInnerRadiusFactorAlongElementList = [haustrumInnerRadiusFactor] * (elementsCountAlong + 1)
 
         # Create annotation groups for colon sections
-        elementsAlongInProximal = round(proximalLength / elementAlongLength)
-        elementsAlongInTransverse = round(transverseLength / elementAlongLength)
-        elementsAlongInDistal = elementsCountAlong - elementsAlongInProximal - elementsAlongInTransverse
-        elementsCountAlongGroups = [elementsAlongInProximal, elementsAlongInTransverse, elementsAlongInDistal]
-
         colonGroup = AnnotationGroup(region, get_colon_term("colon"))
 
         if tcCount == 1:
-            proximalGroup = AnnotationGroup(region, get_colon_term("proximal colon"))
+            proximalGroup = AnnotationGroup(region, get_colon_term("right colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
-            distalGroup = AnnotationGroup(region, get_colon_term("distal colon"))
+            distalGroup = AnnotationGroup(region, get_colon_term("left colon"))
             annotationGroupAlong = [[colonGroup, proximalGroup],
                                     [colonGroup, transverseGroup],
                                     [colonGroup, distalGroup]]
@@ -536,7 +691,7 @@ class MeshType_3d_colon1(Scaffold_base):
         elif tcCount == 2:
             spiralGroup = AnnotationGroup(region, get_colon_term("spiral colon"))
             transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
-            distalGroup = AnnotationGroup(region, get_colon_term("distal colon"))
+            distalGroup = AnnotationGroup(region, get_colon_term("descending colon"))
             annotationGroupAlong = [[colonGroup, spiralGroup],
                                     [colonGroup, transverseGroup],
                                     [colonGroup, distalGroup]]
