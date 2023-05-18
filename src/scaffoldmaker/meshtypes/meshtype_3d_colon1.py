@@ -354,20 +354,6 @@ class MeshType_3d_colon1(Scaffold_base):
                     'ontId': get_colon_term('descending colon')[1]
                 }]
         }),
-        'Pig 2': ScaffoldPackage(MeshType_1d_path1, {
-            'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'Length': 90.0,
-                'Number of elements': 3
-            },
-            'meshEdits': exnodeStringFromNodeValues(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                [ [  0.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
-                [ [ 30.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
-                [ [ 60.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ],
-                [ [ 90.0, 0.0, 0.0 ], [ 30.0, 0.0, 0.0 ], [ 0.0, 1.0, 0.0 ], [ 0.0, 0.0, 0.0 ] ] ] )
-        }),
     }
 
     @staticmethod
@@ -383,8 +369,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Human 2',
             'Mouse 1',
             'Mouse 2',
-            'Pig 1',
-            'Pig 2']
+            'Pig 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -398,8 +383,6 @@ class MeshType_3d_colon1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 2']
         elif 'Pig 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
-        elif 'Pig 2' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 2']
         else:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         if 'Cattle' in parameterSetName:
@@ -442,12 +425,6 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Proximal-transverse tenia coli width'] = 4.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal tenia coli width'] = 1.5
-        elif 'Pig 2' in parameterSetName:
-            options['Number of segments'] = 3
-            options['Proximal tenia coli width'] = 5.0
-            options['Proximal-transverse tenia coli width'] = 5.0
-            options['Transverse-distal tenia coli width'] = 5.0
-            options['Distal tenia coli width'] = 5.0
         return options
 
     @staticmethod
