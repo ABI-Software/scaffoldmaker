@@ -69,6 +69,10 @@ def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
     sd1RefList.append(sd1[-1])
     sd2RefList.append(sd2[-1])
 
+    # Smooth sd1
+    sd1RefList = interp.smoothCubicHermiteDerivativesLine(sxRefList, sd1RefList, fixAllDirections=True,
+                                                          fixStartDerivative=True, fixEndDerivative=True)
+
     # Project sd2 to plane orthogonal to sd1
     sd2ProjectedListRef = []
 
@@ -164,7 +168,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                         cp = vector.normalise(cp)
                         signThetaRot2 = vector.dotproduct(unitTangent, cp)
                         thetaRot2 = math.acos(
-                            vector.dotproduct(vector.normalise(vectorToFirstNode), sd2[nAlongSegment]))
+                            vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2[nAlongSegment])))
                         axisRot2 = unitTangent
                         rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2*thetaRot2)
                     else:
@@ -183,7 +187,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
 
     # Scale d2 with curvature of central path
     d2WarpedListScaled = []
-    vProjectedList = []
     for nAlongSegment in range(elementsCountAlongSegment + 1):
         for n1 in range(elementsCountAround):
             n = nAlongSegment * elementsCountAround + n1
@@ -193,28 +196,30 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             dp = vector.dotproduct(v, sd1Normalised)
             dpScaled = [dp * c for c in sd1Normalised]
             vProjected = [v[c] - dpScaled[c] for c in range(3)]
-            vProjectedList.append(vProjected)
             if vector.magnitude(vProjected) > 0.0:
-                vProjectedNormlised = vector.normalise(vProjected)
+                vProjectedNormalised = vector.normalise(vProjected)
             else:
-                vProjectedNormlised = [0.0, 0.0, 0.0]
+                vProjectedNormalised = [0.0, 0.0, 0.0]
 
             # Calculate curvature along at each node
             if nAlongSegment == 0:
-                curvature = interp.getCubicHermiteCurvature(sx[0], sd1[0], sx[1], sd1[1], vProjectedNormlised, 0.0)
+                curvature = interp.getCubicHermiteCurvature(sx[0], sd1[0], sx[1], sd1[1], vProjectedNormalised, 0.0)
             elif nAlongSegment == elementsCountAlongSegment:
-                curvature = interp.getCubicHermiteCurvature(sx[-2], sd1[-2], sx[-1], sd1[-1], vProjectedNormlised, 1.0)
+                curvature = interp.getCubicHermiteCurvature(sx[-2], sd1[-2], sx[-1], sd1[-1], vProjectedNormalised, 1.0)
             else:
                 curvature = 0.5 * (interp.getCubicHermiteCurvature(sx[nAlongSegment - 1], sd1[nAlongSegment - 1],
                                                                    sx[nAlongSegment], sd1[nAlongSegment],
-                                                                   vProjectedNormlised, 1.0) +
+                                                                   vProjectedNormalised, 1.0) +
                                    interp.getCubicHermiteCurvature(sx[nAlongSegment], sd1[nAlongSegment],
                                                                    sx[nAlongSegment + 1], sd1[nAlongSegment + 1],
-                                                                   vProjectedNormlised, 0.0))
+                                                                   vProjectedNormalised, 0.0))
             # Scale
-            factor = 1.0 - curvature * innerRadiusAlong[nAlongSegment]
-            d2 = [factor * c for c in d2WarpedList[n]]
-            d2WarpedListScaled.append(d2)
+            if nAlongSegment < elementsCountAlongSegment:
+                factor = 1.0 - curvature * vector.magnitude(v)
+                d2 = [factor * c for c in d2WarpedList[n]]
+                d2WarpedListScaled.append(d2)
+            else:
+                d2WarpedListScaled.append(d2WarpedList[n])
 
     # Smooth d2 for segment
     smoothd2Raw = []
@@ -225,7 +230,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             n = n2*elementsCountAround + n1
             nx.append(xWarpedList[n])
             nd2.append(d2WarpedListScaled[n])
-        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)
+        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative=True, fixEndDerivative=True)
         smoothd2Raw.append(smoothd2)
 
     # Re-arrange smoothd2
