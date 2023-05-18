@@ -6,8 +6,10 @@ wall, with variable radius and thickness along.
 
 import copy
 
+from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    getAnnotationGroupForTerm
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -893,8 +895,12 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             'Number of segments': 100,
             'Number of elements around': 8,
             'Number of elements along segment': 4,
-            'Number of elements through wall': 1,
+            'Number of elements through wall': 4,
             'Wall thickness': 0.45,
+            'Mucosa relative thickness': 0.55,
+            'Submucosa relative thickness': 0.15,
+            'Circular muscle layer relative thickness': 0.25,
+            'Longitudinal muscle layer relative thickness': 0.05,
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -924,6 +930,10 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             'Number of elements along segment',
             'Number of elements through wall',
             'Wall thickness',
+            'Mucosa relative thickness',
+            'Submucosa relative thickness',
+            'Circular muscle layer relative thickness',
+            'Longitudinal muscle layer relative thickness',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -970,13 +980,13 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             'Number of segments',
             'Number of elements around',
             'Number of elements along segment',
-            'Number of elements through wall',
             'Refine number of elements around',
             'Refine number of elements along',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
-
+        if options['Number of elements through wall'] != (1 or 4):
+            options['Number of elements through wall'] = 4
         if options['Wall thickness'] < 0.0:
             options['Wall thickness'] = 0.0
 
@@ -994,6 +1004,10 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
+        mucosaRelThickness = options['Mucosa relative thickness']
+        submucosaRelThickness = options['Submucosa relative thickness']
+        circularRelThickness = options['Circular muscle layer relative thickness']
+        longitudinalRelThickness = options['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
@@ -1106,15 +1120,28 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         for i in range(elementsCountAround):
             annotationGroupsAround.append([ ])
 
-        annotationGroupsThroughWall = []
-        for i in range(elementsCountThroughWall):
-            annotationGroupsThroughWall.append([ ])
+        # Groups through wall
+        longitudinalMuscleGroup = AnnotationGroup(region,
+                                                  get_smallintestine_term(
+                                                      "longitudinal muscle layer of small intestine"))
+        circularMuscleGroup = AnnotationGroup(region,
+                                              get_smallintestine_term("circular muscle layer of small intestine"))
+        submucosaGroup = AnnotationGroup(region, get_smallintestine_term("submucosa of small intestine"))
+        mucosaGroup = AnnotationGroup(region, get_smallintestine_term("mucosa of small intestine"))
+
+        if elementsCountThroughWall == 1:
+            relativeThicknessList = [1.0]
+            annotationGroupsThroughWall = [[]]
+        else:
+            relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
+                                     circularRelThickness, longitudinalRelThickness]
+            annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup],
+                                           [circularMuscleGroup], [longitudinalMuscleGroup]]
 
         xExtrude = []
         d1Extrude = []
         d2Extrude = []
         d3UnitExtrude = []
-        relativeThicknessList = []
 
         # Create object
         smallIntestineSegmentTubeMeshInnerPoints = CylindricalSegmentTubeMeshInnerPoints(
@@ -1208,3 +1235,27 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
                                                        refineElementsCountThroughWall)
         return
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        '''
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        '''
+        # Create 2d surface mesh groups
+        fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
+
+        smallIntestineGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("small intestine"))
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+        is_smallIntestine = smallIntestineGroup.getFieldElementGroup(mesh2d)
+        is_serosa = fm.createFieldAnd(is_smallIntestine, is_exterior_face_xi3_1)
+        serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                    get_smallintestine_term("serosa of small intestine"))
+        serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
