@@ -575,7 +575,30 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                 [ [  -38.80,  367.10,   17.80 ], [   33.30,   56.60,  -27.60 ], [   4.46,  -9.04,   0.44 ], [   6.11,   6.76,  -2.78 ], [  -5.61,  -6.12,  -5.73 ], [   8.27,   9.14,  -3.76 ] ],
                 [ [  -55.20,  436.50,   11.50 ], [  -50.10,   54.50,   -0.10 ], [   6.83,   7.37,  -0.54 ], [   0.24,   8.59,  -0.86 ], [  -0.93,   0.22, -10.01 ], [   0.34,  11.63,  -1.17 ] ],
                 [ [ -121.40,  460.30,   17.10 ], [  -86.80,   60.90,   -1.80 ], [   5.06,   8.57,  -1.28 ], [   0.90,  -2.49,  -1.08 ], [  -1.24,  -0.68,  -9.93 ], [   1.24,  -3.38,  -1.46 ] ],
-                [ [ -164.50,  536.10,  -17.30 ], [   -9.90,   55.20,   -8.50 ], [   9.53,   1.13,  -2.81 ], [   8.03, -12.39,  -1.98 ], [  -2.54,  -2.06,  -9.45 ], [  10.93, -16.81,  -2.68 ] ] ] )
+                [ [ -164.50,  536.10,  -17.30 ], [   -9.90,   55.20,   -8.50 ], [   9.53,   1.13,  -2.81 ], [   8.03, -12.39,  -1.98 ], [  -2.54,  -2.06,  -9.45 ], [  10.93, -16.81,  -2.68 ] ] ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-17',
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '18-235',
+                    'name': get_smallintestine_term('jejunum')[0],
+                    'ontId': get_smallintestine_term('jejunum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '236-536',
+                    'name': get_smallintestine_term('ileum')[0],
+                    'ontId': get_smallintestine_term('ileum')[1]
+                }]
         } ),
         'Human 1' : ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings' : {
@@ -737,7 +760,30 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                 [ [ -55.63, -118.57,  867.17 ], [   8.19,  15.70,   8.57 ], [  0.64, -2.10,  3.23 ], [  0.89,  1.63,  1.44 ], [  3.88, -1.19, -1.54 ], [  0.13,  0.20,  0.14] ],
                 [ [ -52.38, -100.90,  869.76 ], [   4.76,  24.01,  12.61 ], [  0.45, -2.26,  4.14 ], [ -0.28, -0.30, -1.61 ], [  4.16, -0.46, -0.70 ], [ -2.29,  1.10,  4.28] ],
                 [ [ -41.73,  -76.29,  892.90 ], [ -14.02,  14.24,  19.65 ], [ -3.16, -2.70, -0.30 ], [  3.24, -2.89,  0.75 ], [  1.74, -2.36,  2.95 ], [ -5.09,  5.86,  6.61] ],
-                [ [ -58.69,  -78.02,  896.31 ], [  -2.60,  -3.83,  -1.89 ], [  4.23, -2.00, -1.76 ], [  3.24, -2.89,  0.75 ], [  0.59, -2.51,  4.28 ], [ -5.09,  5.86,  6.61] ] ] )
+                [ [ -58.69,  -78.02,  896.31 ], [  -2.60,  -3.83,  -1.89 ], [  4.23, -2.00, -1.76 ], [  3.24, -2.89,  0.75 ], [  0.59, -2.51,  4.28 ], [ -5.09,  5.86,  6.61] ] ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-5',
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6-82',
+                    'name': get_smallintestine_term('jejunum')[0],
+                    'ontId': get_smallintestine_term('jejunum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '83-150',
+                    'name': get_smallintestine_term('ileum')[0],
+                    'ontId': get_smallintestine_term('ileum')[1]
+                }]
         } ),
         
         'Mouse 1' : ScaffoldPackage(MeshType_1d_path1, {
@@ -795,7 +841,30 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                 [ [ -16.00, -0.70,  -7.40 ], [ -7.60,  1.20,   1.50 ], [ -0.05, -0.91, -0.41 ], [ -0.62,  0.61,  0.13 ], [  0.28, -0.43,  0.86 ], [ 0.00, 0.00, 0.50 ] ],
                 [ [ -20.50,  2.30,  -6.10 ], [  3.50,  7.20,  -2.90 ], [ -0.99,  0.09, -0.09 ], [ -0.21,  0.77, -0.11 ], [ -0.17,  0.12,  0.98 ], [ 0.00, 0.00, 0.50 ] ],
                 [ [ -11.40,  2.60, -10.10 ], [ 10.40,  1.50,  -0.20 ], [ -0.08,  0.51, -0.86 ], [  0.49,  0.10, -0.38 ], [ -0.10,  0.85,  0.51 ], [ 0.00, 0.00, 0.50 ] ],
-                [ [  -3.80,  4.20,  -7.30 ], [  3.50,  0.90,   2.70 ], [  0.07,  0.36, -0.93 ], [ -0.19, -0.40,  0.24 ], [ -0.73,  0.68,  0.01 ], [ 0.00, 0.00, 0.50 ] ] ] )
+                [ [  -3.80,  4.20,  -7.30 ], [  3.50,  0.90,   2.70 ], [  0.07,  0.36, -0.93 ], [ -0.19, -0.40,  0.24 ], [ -0.73,  0.68,  0.01 ], [ 0.00, 0.00, 0.50 ] ] ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-3',
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '4-43',
+                    'name': get_smallintestine_term('jejunum')[0],
+                    'ontId': get_smallintestine_term('jejunum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '44-45',
+                    'name': get_smallintestine_term('ileum')[0],
+                    'ontId': get_smallintestine_term('ileum')[1]
+                }]
             } )
         }
 
@@ -825,9 +894,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             'Number of elements around': 8,
             'Number of elements along segment': 4,
             'Number of elements through wall': 1,
-            'Duodenum length': 90.0,
-            'Jejunum length': 765.0,
-            'Ileum length': 675.0,
             'Wall thickness': 0.45,
             'Use cross derivatives': False,
             'Use linear through wall': True,
@@ -838,15 +904,9 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             }
         if 'Cattle 1' in parameterSetName:
             options['Number of segments'] = 300
-            options['Duodenum length'] = 1000.0
-            options['Jejunum length'] = 14700.0
-            options['Ileum length'] = 26500.0
             options['Wall thickness'] = 2.0
         elif 'Mouse 1' in parameterSetName:
             options['Number of segments'] = 100
-            options['Duodenum length'] = 25.0
-            options['Jejunum length'] = 240.0
-            options['Ileum length'] = 10.0
             options['Duodenum inner radius'] = 0.6
             options['Duodenum-jejunum inner radius'] = 1.0
             options['Jejunum-ileum inner radius'] = 1.0
@@ -863,9 +923,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             'Number of elements around',
             'Number of elements along segment',
             'Number of elements through wall',
-            'Duodenum length',
-            'Jejunum length',
-            'Ileum length',
             'Wall thickness',
             'Use cross derivatives',
             'Use linear through wall',
@@ -919,13 +976,9 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
-        for key in [
-            'Duodenum length',
-            'Jejunum length',
-            'Ileum length',
-            'Wall thickness']:
-            if options[key] < 0.0:
-                options[key] = 0.0
+
+        if options['Wall thickness'] < 0.0:
+            options['Wall thickness'] = 0.0
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -940,8 +993,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         elementsCountAround = options['Number of elements around']
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
-        duodenumLength = options['Duodenum length']
-        jejunumLength = options['Jejunum length']
         wallThickness = options['Wall thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
@@ -952,13 +1003,31 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         firstElementIdentifier = 1
 
         # Central path
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12, cd3, cd13 = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                                                        Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
-        del tmpRegion
+        smallIntestineTermsAlong = [None, 'duodenum', 'jejunum', 'ileum']
+        arcLengthOfGroupsAlong = []
+        for i in range(len(smallIntestineTermsAlong)):
+            tmpRegion = region.createRegion()
+            centralPath.generate(tmpRegion)
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
+                extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                                                            Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
+                                                groupName=smallIntestineTermsAlong[i])
+            arcLength = 0.0
+            for e in range(len(cxGroup) - 1):
+                arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
+                                                             cxGroup[e + 1], cd1Group[e + 1])
+            arcLengthOfGroupsAlong.append(arcLength)
+
+            if i == 0:
+                cx = cxGroup
+                cd1 = cd1Group
+                cd2 = cd2Group
+                cd3 = cd3Group
+                cd12 = cd12Group
+                cd13 = cd13Group
+
+            del tmpRegion
 
         # find arclength of colon
         length = 0.0
@@ -986,12 +1055,38 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         innerRadiusList, dInnerRadiusList = interp.interpolateSampleCubicHermite(
             innerRadiusListCP, dInnerRadiusListCP, se, sxi, ssf)
 
-        # Create annotation groups for small intestine sections
-        elementsAlongDuodenum = round(duodenumLength / elementAlongLength)
-        elementsAlongJejunum = round(jejunumLength / elementAlongLength)
-        elementsAlongIleum = elementsCountAlong - elementsAlongDuodenum - elementsAlongJejunum
-        elementsCountAlongGroups = [elementsAlongDuodenum, elementsAlongJejunum, elementsAlongIleum]
+        centralPathLength = arcLengthOfGroupsAlong[0]
+        elementAlongLength = centralPathLength / elementsCountAlong
 
+        elementsCountAlongGroups = []
+        groupLength = 0.0
+        e = 0
+        elementsCount = 1
+        length = elementAlongLength
+        for i in range(1, len(smallIntestineTermsAlong)):
+            groupLength += arcLengthOfGroupsAlong[i]
+            if e == elementsCountAlong - 2:
+                elementsCount += 1
+                elementsCountAlongGroups.append(elementsCount)
+            else:
+                while length < groupLength:
+                    elementsCount += 1
+                    e += 1
+                    length += elementAlongLength
+
+                # check which end is grouplength closer to
+                distToUpperEnd = abs(length - groupLength)
+                distToLowerEnd = abs(groupLength - (length - elementsCountAlong))
+                if distToLowerEnd < distToUpperEnd:
+                    elementsCount -= 1
+                    elementsCountAlongGroups.append(elementsCount)
+                    e -= 1
+                    length -= elementAlongLength
+                else:
+                    elementsCountAlongGroups.append(elementsCount)
+            elementsCount = 0
+
+        # Groups along small intestine
         smallintestineGroup = AnnotationGroup(region, get_smallintestine_term("small intestine"))
         duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
         jejunumGroup = AnnotationGroup(region, get_smallintestine_term("jejunum"))
