@@ -6,7 +6,6 @@ Common resource for colon annotation terms.
 colon_terms = [
     ("ascending colon", "UBERON:0001156", "FMA:14545", "ILX:0734393"),
     ("descending colon", "UBERON:0001158", "FMA:14547", "ILX:0724444"),
-    ("caecum", "UBERON:0001153", "FMA:14541", "ILX:0732270"),
     ("circular muscle layer of colon", "ILX:0772428"),
     ("colon", "UBERON:0001155", "FMA:14543", "ILX:0736005"),
     ("colonic mucosa", "UBERON:0000317", "FMA:14984", "ILX:0731046"),
