@@ -10,12 +10,12 @@ from enum import Enum
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 from scaffoldmaker.utils import vector, geometry
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.mirror import Mirror
 from scaffoldmaker.utils.shieldmesh import ShieldMesh2D, ShieldShape2D, ShieldRimDerivativeMode
+from scaffoldmaker.utils.zinc_utils import extractPathParametersFromRegion
 
 
 class CylinderShape(Enum):

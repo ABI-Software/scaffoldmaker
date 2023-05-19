@@ -9,7 +9,8 @@ from cmlibs.zinc.field import Field
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters, print_node_field_parameters
+from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, print_node_field_parameters, \
+    region_get_selection_group
 
 
 class Scaffold_base:
@@ -163,14 +164,14 @@ class Scaffold_base:
         '''
         fieldmodule = region.getFieldmodule()
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        selectionGroup = fieldmodule.findFieldByName('cmiss_selection').castGroup()
-        if selectionGroup.isValid():
+        selectionGroup = region_get_selection_group(region)
+        if selectionGroup:
             nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
             if not nodeset.isValid():
                 print('Print node field parameters: No nodes selected')
                 return False, False
         coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
+        valueLabels, fieldParameters = get_nodeset_field_parameters(nodeset, coordinates)
         numberFormat = '{:' + functionOptions['Number format (e.g. 8.3f)'] + '}'
         print_node_field_parameters(valueLabels, fieldParameters, numberFormat)
         return False, False  # no change to settings, nor node parameters
@@ -179,10 +180,8 @@ class Scaffold_base:
     def smoothDerivatives(cls, region, options, functionOptions, editGroupName):
         fieldmodule = region.getFieldmodule()
         coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        groupName = 'cmiss_selection'
-        selectionGroup = fieldmodule.findFieldByName(groupName).castGroup()
-        if not selectionGroup.isValid():
-            groupName = False  # smooth whole model
+        selectionGroup = region_get_selection_group(region)
+        groupName = selectionGroup.getName() if selectionGroup else None
         updateDirections = functionOptions['Update directions']
         scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN if functionOptions['Scaling mode']['Arithmetic mean'] else DerivativeScalingMode.HARMONIC_MEAN
         smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode, editGroupName)
