@@ -669,14 +669,15 @@ def print_node_field_parameters(value_labels, node_field_parameters, format_stri
     where node 2 has 2 versions of D_DS1.
     :param format_string: Default format uses exponential notation with 7 significant digits = single precision.
     """
-    print('[' + ', '.join('Node.VALUE_LABEL_' + Node.ValueLabelEnumToString(value_label) for v in value_labels) + ']')
+    print('[' + ', '.join('Node.VALUE_LABEL_' + Node.ValueLabelEnumToString(value_label)
+                          for value_label in value_labels) + ']')
     print('[')
     last_node_identifier = node_field_parameters[-1][0]
     for node_parameters in node_field_parameters:
         node_identifier = node_parameters[0]
-    print('(' + str(node_identifier) + ', [' + ', '.join(parameter_lists_to_string(valueParameters, format_string)
-                                                         for valueParameters in node_parameters[1]) + '])' +
-          (', ' if (node_identifier != last_node_identifier) else ''))
+        print('(' + str(node_identifier) + ', [' + ', '.join(parameter_lists_to_string(valueParameters, format_string)
+                                                             for valueParameters in node_parameters[1]) + '])' +
+              (', ' if (node_identifier != last_node_identifier) else ''))
     print(']\n')
 
 
