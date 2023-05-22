@@ -23,8 +23,8 @@ from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers,\
-    extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    mesh_destroy_elements_and_nodes_by_identifiers, extractPathParametersFromRegion
 
 class MeshType_3d_cecum1(Scaffold_base):
     '''
@@ -45,13 +45,14 @@ class MeshType_3d_cecum1(Scaffold_base):
                 'Length': 120.0,
                 'Number of elements': 3
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 60.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 120.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 180.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
-    } )
+                    (1, [[0.0, 0.0, 0.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+                    (2, [[0.0, 0.0, 60.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+                    (3, [[0.0, 0.0, 120.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+                    (4, [[0.0, 0.0, 180.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+                ])
+        } )
         }
 
     ostiumDefaultScaffoldPackages = {

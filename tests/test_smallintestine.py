@@ -11,8 +11,8 @@ from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues, \
-    extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
+    exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
 from testutils import assertAlmostEqualList
 
 
@@ -32,13 +32,14 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                     'Length': 1.0,
                     'Number of elements': 3
                 },
-                'meshEdits': exnodeStringFromNodeValues(
+                'meshEdits': exnode_string_from_nodeset_field_parameters(
                     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                      Node.VALUE_LABEL_D2_DS1DS2], [
-                        [[-2.3, 18.5, -4.4], [-4.2, -0.8, 3.7], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]],
-                        [[-8.6, 16.3, -0.4], [-7.1, -2.7, 1.6], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]],
-                        [[-18.3, 12.6, -1.5], [-6.4, -1.7, -3.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]],
-                        [[-15.6, 13.7, -6.1], [7.0, 2.1, -1.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]])
+                        (1, [[-2.3, 18.5, -4.4], [-4.2, -0.8, 3.7], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
+                        (2, [[-8.6, 16.3, -0.4], [-7.1, -2.7, 1.6], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
+                        (3, [[-18.3, 12.6, -1.5], [-6.4, -1.7, -3.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
+                        (4, [[-15.6, 13.7, -6.1], [7.0, 2.1, -1.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]])
+                    ])
             })
         }
         centralPathOption = centralPathDefaultScaffoldPackages['Test line']

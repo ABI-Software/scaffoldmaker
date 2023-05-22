@@ -12,8 +12,8 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues, \
-    extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
+    exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
 
 from testutils import assertAlmostEqualList
 
@@ -35,11 +35,12 @@ class ColonScaffoldTestCase(unittest.TestCase):
                     'Length': 1.0,
                     'Number of elements': 1
                 },
-                'meshEdits': exnodeStringFromNodeValues(
+                'meshEdits': exnode_string_from_nodeset_field_parameters(
                     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                      Node.VALUE_LABEL_D2_DS1DS2], [
-                        [[163.7, -25.2, 12.2], [-21.7, 50.1, -18.1], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]],
-                        [[117.2, 32.8, -2.6], [-64.3, 34.4, -3.9], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]]])
+                        (1, [[163.7, -25.2, 12.2], [-21.7, 50.1, -18.1], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]]),
+                        (2, [[117.2, 32.8, -2.6], [-64.3, 34.4, -3.9], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]])
+                    ])
             })
         }
         centralPathOption = centralPathDefaultScaffoldPackages['Test line']

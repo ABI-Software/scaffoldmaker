@@ -21,7 +21,7 @@ from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
 
 
 class MeshType_3d_esophagus1(Scaffold_base):
@@ -40,13 +40,14 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 4
                 },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  7.5, 289.8,  0.0 ], [  2.8,  -33.6,  0.0 ], [  9.9,  0.8, 0.0 ], [  0.1, -1.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [  8.9, 242.5,  0.0 ], [ -2.6,  -87.5,  0.0 ], [ 10.0, -0.3, 0.0 ], [  0.1, -0.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [ -2.5, 115.4,  0.0 ], [  3.9, -102.0,  0.0 ], [ 10.0,  0.4, 0.0 ], [ -0.3,  1.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [ 10.1,  40.3,  0.0 ], [ 17.8,  -57.9,  0.0 ], [  9.6,  2.9, 0.0 ], [ -1.3,  3.2, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [ 28.6,  -0.1,  0.0 ], [ 18.5,  -22.1,  0.0 ], [  7.7,  6.5, 0.0 ], [ -2.4,  3.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] ] ),
+                    (1, [[  7.5, 289.8,  0.0 ], [  2.8,  -33.6,  0.0 ], [  9.9,  0.8, 0.0 ], [  0.1, -1.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (2, [[  8.9, 242.5,  0.0 ], [ -2.6,  -87.5,  0.0 ], [ 10.0, -0.3, 0.0 ], [  0.1, -0.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (3, [[ -2.5, 115.4,  0.0 ], [  3.9, -102.0,  0.0 ], [ 10.0,  0.4, 0.0 ], [ -0.3,  1.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (4, [[ 10.1,  40.3,  0.0 ], [ 17.8,  -57.9,  0.0 ], [  9.6,  2.9, 0.0 ], [ -1.3,  3.2, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (5, [[ 28.6,  -0.1,  0.0 ], [ 18.5,  -22.1,  0.0 ], [  7.7,  6.5, 0.0 ], [ -2.4,  3.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
