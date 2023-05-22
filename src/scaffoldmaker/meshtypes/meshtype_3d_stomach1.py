@@ -17,6 +17,8 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
     getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
@@ -94,8 +96,65 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '7',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
+                }]
+        }),
+        'Human 2': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 7
+            },
+            'meshEdits': exnodeStringFromNodeValues(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                [ [  61.47, -101.30, 1152.18 ], [   1.92, -17.01, -22.36 ], [ 15.88,  -0.53,   2.00 ], [  -1.47, -0.53,  -7.23 ], [ -4.20, -32.38, 24.81 ], [  1.62, -4.46,  0.00 ] ],
+                [ [  61.43, -121.54, 1122.53 ], [  -2.01, -23.41, -36.85 ], [ 39.29,  -6.83,   2.36 ], [  -7.43, -2.71, -11.05 ], [ -7.56, -35.47, 23.07 ], [  0.31, -0.85,  0.00 ] ],
+                [ [  56.78, -147.38, 1078.66 ], [ -18.57, -19.78, -33.63 ], [ 37.34, -13.52, -12.67 ], [ -13.50, -4.91,  -7.49 ], [ -4.91, -35.87, 23.81 ], [ -1.83,  5.03,  0.00 ] ],
+                [ [  32.14, -159.44, 1058.12 ], [ -25.49,  -7.02, -11.18 ], [ 12.92, -15.68, -19.60 ], [ -13.60, -4.95,  -0.11 ], [ -1.59, -27.21, 20.72 ], [ -3.42,  9.40,  0.00 ] ],
+                [ [  10.36, -162.05, 1054.83 ], [ -21.12,   0.81,  -0.05 ], [ -0.49, -14.00, -17.23 ], [  -8.70, -3.17,   5.66 ], [ -0.74, -18.17, 14.78 ], [ -2.45,  6.74,  0.00 ] ],
+                [ [  -8.74, -158.28, 1057.63 ], [ -14.76,   6.59,   2.22 ], [ -6.11, -10.23, -10.22 ], [  -2.39,  4.12,   5.11 ], [ -3.26, -12.00, 13.95 ], [ -1.56,  6.63, -3.36 ] ],
+                [ [ -18.83, -150.69, 1059.20 ], [ -11.47,  11.36,   1.06 ], [ -6.41,  -5.88,  -6.34 ], [  -0.18,  2.75,   2.61 ], [ -4.20,  -5.07,  8.95 ], [ -1.21,  4.57, -2.38 ] ],
+                [ [ -30.74, -135.24, 1059.32 ], [ -10.69,  13.10,  -0.80 ], [ -6.40,  -5.57,  -5.67 ], [   1.20, -0.04,  -0.56 ], [ -5.80,  -4.09, 10.56 ], [  0.50,  1.74, -3.24 ] ] ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1',
+                    'name': get_stomach_term('fundus of stomach')[0],
+                    'ontId': get_stomach_term('fundus of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '2-3',
+                    'name': get_stomach_term('body of stomach')[0],
+                    'ontId': get_stomach_term('body of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '4-5',
+                    'name': get_stomach_term('pyloric antrum')[0],
+                    'ontId': get_stomach_term('pyloric antrum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
+                    'name': get_stomach_term('pyloric canal')[0],
+                    'ontId': get_stomach_term('pyloric canal')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '7',
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -152,8 +211,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '8',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -208,8 +267,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '7',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -265,8 +324,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '8',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Material': ScaffoldPackage(MeshType_1d_path1, {
@@ -321,8 +380,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '7',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
     }
@@ -351,6 +410,37 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        }),
+        'Human 2': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,
+                'Number of elements along': 2,
+                'Number of elements through wall': 1,  # 4, later
+                'Unit scale': 0.0105 * 101,
+                'Outlet': False,
+                'Ostium diameter': 25.0,
+                'Ostium length': 15.0,
+                'Ostium wall thickness': 5.0,
+                'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
+                'Ostium inter-vessel distance': 0.0,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 5.0,
+                'Vessel wall thickness': 3.0,
+                'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
+                'Vessel angle 1 degrees': -40.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': -60.0,
                 'Use linear through vessel wall': True,
                 'Use cross derivatives': False,
                 'Refine': False,
@@ -494,6 +584,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Human 2',
             'Mouse 1',
             'Pig 1',
             'Rat 1',
@@ -501,7 +592,10 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Mouse 1' in parameterSetName:
+        if 'Human 2' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 2']
+        elif 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
         elif 'Pig 1' in parameterSetName:
@@ -535,7 +629,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Refine number of elements surface': 4,
             'Refine number of elements through wall': 1
         }
-        if 'Mouse 1' in parameterSetName:
+        if 'Human 2' in parameterSetName:
+            options['Number of elements through wall'] = 1  # 4 later
+            options['Wall thickness'] = 0.0525 * 101
+        elif 'Mouse 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
             options['Number of elements between fundus apex and cardia'] = 5
             options['Number of elements between cardia and duodenum'] = 5
@@ -712,7 +809,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         geometricCentralPath = StomachCentralPath(region, geometricCentralPath, stomachTermsAlong)
 
         elementCountGroupList = []
-        allAnnotationGroups, elementCountGroupList = \
+        allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
                                 allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
                                 options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
@@ -728,7 +825,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
 
-            allAnnotationGroups, elementCountGroupList = \
+            allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
                 createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
                                     allAnnotationGroups, elementCountGroupList,
                                     centralPath=materialCentralPath, options=options, nodeIdentifier=1,
@@ -826,11 +923,11 @@ class MeshType_3d_stomach1(Scaffold_base):
         ventralStomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("ventral stomach"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
         cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
-        duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("duodenum"))
+        duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("duodenum"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
         antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
-        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_esophagus_term("esophagus"))
         nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
                                                 ("elements adjacent to lesser curvature", "None"))
 
@@ -849,13 +946,13 @@ class MeshType_3d_stomach1(Scaffold_base):
         cardiaSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                get_stomach_term("serosa of cardia of stomach"))
         duodenumLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_stomach_term("luminal surface of duodenum"))
+                                                                  get_smallintestine_term("luminal surface of duodenum"))
         duodenumSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 get_stomach_term("serosa of duodenum"))
+                                                                 get_smallintestine_term("serosa of duodenum"))
         esoLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                             get_stomach_term("luminal surface of esophagus"))
+                                                             get_esophagus_term("luminal surface of esophagus"))
         esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_stomach_term("serosa of esophagus"))
+                                                            get_esophagus_term("serosa of esophagus"))
         fundusLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                 get_stomach_term(
                                                                     "luminal surface of fundus of stomach"))
@@ -932,11 +1029,12 @@ class MeshType_3d_stomach1(Scaffold_base):
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
             duodenumCurvaturesCMLMGroup = \
-                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of first segment of the duodenum along the "
-                    "gastric-omentum attachment"))
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                   get_smallintestine_term("circular-longitudinal muscle interface of "
+                                                                           "first segment of the duodenum along the "
+                                                                           "gastric-omentum attachment"))
             esoCurvaturesCMLMGroup = \
-                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_esophagus_term(
                     "circular-longitudinal muscle interface of esophagus along the cut margin"))
             fundusCurvaturesCMLMGroup =\
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
@@ -1256,6 +1354,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         vesselInnerDiameter = GEJSettings['Vessel inner diameter']
         vesselWallThickness = GEJSettings['Vessel wall thickness']
         vesselWallRelThicknesses = GEJSettings['Vessel wall relative thicknesses']
+        vesselAngle1 = GEJSettings['Vessel angle 1 degrees']
+        vesselAngle2 = GEJSettings['Vessel angle 2 degrees']
 
         GEJSettings['Unit scale'] = 1.0
         GEJSettings['Ostium diameter'] = 0.3
@@ -1266,6 +1366,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         GEJSettings['Vessel wall thickness'] = wallThickness * 0.6
         GEJSettings['Vessel wall relative thicknesses'] = relThicknesses
         sf = (cardiaDiameterFactor - 1) * GEJSettings['Ostium diameter'] * 0.5
+        GEJSettings['Vessel angle 1 degrees'] = 0.0
+        GEJSettings['Vessel angle 2 degrees'] = 0.0
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -1302,7 +1404,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     bodyGroup = AnnotationGroup(region, get_stomach_term("body of stomach"))
     antrumGroup = AnnotationGroup(region, get_stomach_term("pyloric antrum"))
     pylorusGroup = AnnotationGroup(region, get_stomach_term("pyloric canal"))
-    duodenumGroup = AnnotationGroup(region, get_stomach_term("duodenum"))
+    duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
 
     annotationGroupAlong = [[stomachGroup, fundusGroup],
                             [stomachGroup, bodyGroup],
@@ -1458,6 +1560,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                         sd1Fundus[:elementEllipsoidEnd + 1] + [d1EllipsoidEnd],
                                         elementsAlong, arcLengthDerivatives=True)
 
+    sd2FundusEllipsoid, sd12FundusEllipsoid = \
+        interp.interpolateSampleCubicHermite(sd2Fundus[:elementEllipsoidEnd + 1] + [d2EllipsoidEnd],
+                                             sd12Fundus[:elementEllipsoidEnd + 1] + [d12EllipsoidEnd], pe, pxi, psf)
+
     # Create template fundus with path of fundus length for transformation
     xAroundAll = []
     for n2 in range(elementsAlong + 1):
@@ -1509,8 +1615,33 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         for n1 in range(len(xAroundAll[n2])):
             x = xAroundAll[n2][n1]
-            xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
-            xAroundTransformed.append([xRot1[j] + translateMatrix[j] for j in range(3)])
+            if vector.magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
+                xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in range(3)]
+            else:  # path tangent parallel to segment axis
+                xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in
+                         range(3)] if dp == -1.0 else x
+
+            # Check that the first node in each ellipse is aligned to sd2
+            if n1 == 0:
+                vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
+                if vector.magnitude(vectorToFirstNode) > 0.0:
+                    cp = vector.crossproduct3(vector.normalise(vectorToFirstNode),
+                                              vector.normalise(sd2FundusEllipsoid[n2]))
+                    if vector.magnitude(cp) > 1e-7:
+                        cp = vector.normalise(cp)
+                        signThetaRot2 = vector.dotproduct(unitTangent, cp)
+                        thetaRot2 = math.acos(
+                            vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2FundusEllipsoid[n2])))
+                        axisRot2 = unitTangent
+                        rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2 * thetaRot2)
+                    else:
+                        rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                else:
+                    rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+            xRot2 = [rotFrame2[j][0] * xRot1[0] + rotFrame2[j][1] * xRot1[1] + rotFrame2[j][2] * xRot1[2] for j in
+                     range(3)]
+            xAroundTransformed.append([xRot2[j] + translateMatrix[j] for j in range(3)])
         xAroundAllTransformed.append(xAroundTransformed)
 
     for n in range(elementEllipsoidEnd + 1, len(sxFundus) - 1):
@@ -1713,20 +1844,22 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(GEJPosition, derivatives=True)
     axis1 = d1Centre
 
-    esophagusGroup = AnnotationGroup(region, get_stomach_term("esophagus"))
+    esophagusGroup = AnnotationGroup(region, get_esophagus_term("esophagus"))
     esophagusMeshGroup = esophagusGroup.getMeshGroup(mesh)
+    abdominalEsoGroup = AnnotationGroup(region, get_esophagus_term("abdominal part of esophagus"))
+    abdominalEsoMeshGroup = abdominalEsoGroup.getMeshGroup(mesh)
     esophagogastricJunctionGroup = AnnotationGroup(region, get_stomach_term("esophagogastric junction"))
     esophagogastricJunctionMeshGroup = esophagogastricJunctionGroup.getMeshGroup(mesh)
     stomachMeshGroup = stomachGroup.getMeshGroup(mesh)
-    allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup]
+    allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup, abdominalEsoGroup]
 
     ostiumWallAnnotationGroups = []
     if elementsCountThroughWall == 4:
-        esophagusMucosaGroup = AnnotationGroup(region, get_stomach_term("esophagus mucosa"))
-        esophagusSubmucosaGroup = AnnotationGroup(region, get_stomach_term("submucosa of esophagus"))
-        esophagusCircularGroup = AnnotationGroup(region, get_stomach_term("esophagus smooth muscle circular layer"))
+        esophagusMucosaGroup = AnnotationGroup(region, get_esophagus_term("esophagus mucosa"))
+        esophagusSubmucosaGroup = AnnotationGroup(region, get_esophagus_term("submucosa of esophagus"))
+        esophagusCircularGroup = AnnotationGroup(region, get_esophagus_term("esophagus smooth muscle circular layer"))
         esophagusLongitudinalGroup = AnnotationGroup(region,
-                                                     get_stomach_term("esophagus smooth muscle longitudinal layer"))
+                                                     get_esophagus_term("esophagus smooth muscle longitudinal layer"))
 
         ostiumWallAnnotationGroups = [[esophagusMucosaGroup, mucosaGroup],
                                       [esophagusSubmucosaGroup, submucosaGroup],
@@ -1739,9 +1872,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
                            nodeIdentifier, elementIdentifier,
-                           vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup]],
+                           vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup, abdominalEsoMeshGroup]],
                            ostiumMeshGroups=[stomachMeshGroup, esophagogastricJunctionMeshGroup],
                            wallAnnotationGroups=ostiumWallAnnotationGroups, coordinates=coordinates)
+
+    stomachStartNode = nextNodeIdentifier
+    nodeIdentifier = nextNodeIdentifier
+    elementIdentifier = nextElementIdentifier
 
     if materialCoordinates:
         GEJSettings['Unit scale'] = unitScale
@@ -1752,10 +1889,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         GEJSettings['Vessel inner diameter'] = vesselInnerDiameter
         GEJSettings['Vessel wall thickness'] = vesselWallThickness
         GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
-
-    stomachStartNode = nextNodeIdentifier
-    nodeIdentifier = nextNodeIdentifier
-    elementIdentifier = nextElementIdentifier
+        GEJSettings['Vessel angle 1 degrees'] = vesselAngle1
+        GEJSettings['Vessel angle 2 degrees'] = vesselAngle2
 
     # Create location of annulus
     xAnnulusOuter = [[] for x in range(elementsCountAroundEso)]
@@ -3040,7 +3175,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         allAnnotationGroups.append(nearLCGroup)
 
-    return allAnnotationGroups, elementCountGroupList
+    return allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier
 
 
 def findCentreOnCentralPathFromCrossAxisEndPt(xPoint, xCentralPath, dCentralPath):

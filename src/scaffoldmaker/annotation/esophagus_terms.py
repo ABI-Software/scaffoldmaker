@@ -5,6 +5,7 @@ Common resource for esophagus annotation terms.
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 esophagus_terms = [
     ("abdominal part of esophagus", "UBERON:0035177", "FMA:9397", "ILX:0735274"),
+    ("circular-longitudinal muscle interface of esophagus along the cut margin", "ILX:0793091"),
     ("cervical part of esophagus", "UBERON:0035450", "FMA:9395", "ILX:0734725"),
     ("distal point of lower esophageal sphincter serosa on the greater curvature of stomach", "ILX:0793179"),
     ("distal point of lower esophageal sphincter serosa on the lesser curvature of stomach", "ILX:0793180"),
