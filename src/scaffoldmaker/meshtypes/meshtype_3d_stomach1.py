@@ -818,6 +818,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         stomach_coordinates = findOrCreateFieldCoordinates(fm, name="stomach coordinates")
 
         # Material coordinates
+        allAnnotationGroupsMaterial = []
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
         with ChangeManager(tmp_fm):
@@ -825,9 +826,9 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
 
-            allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
+            allAnnotationGroupsMaterial, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
                 createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
-                                    allAnnotationGroups, elementCountGroupList,
+                                    allAnnotationGroupsMaterial, elementCountGroupList,
                                     centralPath=materialCentralPath, options=options, nodeIdentifier=1,
                                     elementIdentifier=1, splitCoordinates=False, materialCoordinates=True)
 
