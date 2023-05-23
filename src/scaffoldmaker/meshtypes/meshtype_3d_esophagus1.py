@@ -193,6 +193,11 @@ class MeshType_3d_esophagus1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
 
+        # Esophagus coordinates
+        lengthToDiameterRatio = 15
+        wallThicknessToDiameterRatio = 0.15
+        relativeThicknessListEsoCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
+
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
@@ -412,15 +417,19 @@ class MeshType_3d_esophagus1(Scaffold_base):
                                                                elementsCountAlong, elementsCountThroughWall,
                                                                transitElementList)
 
+        # Create colon coordinates
+        xEso, d1Eso, d2Eso = \
+            tubemesh.createOrganCoordinates(xiList, relativeThicknessListEsoCoordinates, lengthToDiameterRatio,
+                                            wallThicknessToDiameterRatio, elementsCountAround, elementsCountAlong,
+                                            elementsCountThroughWall, transitElementList)
+
         # Create nodes and elements
-        xOrgan = []
-        d1Organ = []
-        d2Organ = []
         nodeIdentifier, elementIdentifier, annotationGroups = \
             tubemesh.createNodesAndElements(region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
-                                            xOrgan, d1Organ, d2Organ, None, elementsCountAround, elementsCountAlong,
-                                            elementsCountThroughWall, annotationGroupsAround, annotationGroupsAlong,
-                                            annotationGroupsThroughWall, firstNodeIdentifier, firstElementIdentifier,
+                                            xEso, d1Eso, d2Eso, "esophagus coordinates", elementsCountAround,
+                                            elementsCountAlong, elementsCountThroughWall, annotationGroupsAround,
+                                            annotationGroupsAlong, annotationGroupsThroughWall,
+                                            firstNodeIdentifier, firstElementIdentifier,
                                             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
 
         # annotation fiducial points
