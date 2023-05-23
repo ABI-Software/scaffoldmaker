@@ -812,7 +812,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
                                 allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
-                                options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
+                                options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
                                 materialCoordinates=False)
 
         stomach_coordinates = findOrCreateFieldCoordinates(fm, name="stomach coordinates")
@@ -3022,10 +3022,32 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     if ventralGroup not in allAnnotationGroups:
         allAnnotationGroups.append(ventralGroup)
 
+    nodesOnLCMargin = []
+    for n2 in range(elementsAlongEsophagus + 1):
+        for n3 in range(elementsThroughEsophagusWall + 1):
+            nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
+                                n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
+                                n3 * elementsCountAroundEso
+            nodesOnLCMargin.append(nodeIdxOnLCMargin)
+    allNodesOnLC = nodesOnLCMargin + nodeIdxLC
+
+    nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
+
+    elementIter = mesh.createElementiterator()
+    element = elementIter.next()
+    while element.isValid():
+        eft = element.getElementfieldtemplate(coordinates, -1)
+        nodeIdentifiers = get_element_node_identifiers(element, eft)
+        for n in range(len(nodeIdentifiers)):
+            if nodeIdentifiers[n] in allNodesOnLC:
+                nearLCGroup.getMeshGroup(mesh).addElement(element)
+                break
+        element = elementIter.next()
+    allAnnotationGroups.append(nearLCGroup)
+
     # Create split coordinate field
     if splitCoordinates:
         nodesOnSplitMargin = []
-        nodesOnLCMargin = []
 
         for n2 in range(elementsAlongEsophagus + 1):
             for n3 in range(elementsThroughEsophagusWall + 1):
@@ -3036,9 +3058,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                     n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
                                     n3 * elementsCountAroundEso
                 nodesOnSplitMargin.append(nodeIdxOnLCMargin)
-                nodesOnLCMargin.append(nodeIdxOnLCMargin)
+
         nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
-        allNodesOnLC = nodesOnLCMargin + nodeIdxLC
 
         splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
         splitNodetemplate1 = nodes.createNodetemplate()
@@ -3102,10 +3123,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
-
             node = nodeIter.next()
-
-        nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
 
         elementIter = mesh.createElementiterator()
         element = elementIter.next()
@@ -3124,10 +3142,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)
             nodeIdentifiers = get_element_node_identifiers(element, eft)
-            for n in range(len(nodeIdentifiers)):
-                if nodeIdentifiers[n] in allNodesOnLC:
-                    nearLCGroup.getMeshGroup(mesh).addElement(element)
-                    break
             elementId = element.getIdentifier()
             marginDorsal = False
             for n in range(len(nodeIdentifiers)):
