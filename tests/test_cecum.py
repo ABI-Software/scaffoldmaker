@@ -50,7 +50,7 @@ class CecumScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_cecum1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_cecum1.generateBaseMesh(region, options)[0]
         self.assertEqual(2, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

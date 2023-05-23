@@ -286,7 +286,7 @@ class MeshType_3d_lung2(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         '''
         # Generate two meshes: geometric[0] and lung[1] coordinates
         for coordinate in range(2):
@@ -718,7 +718,7 @@ class MeshType_3d_lung2(Scaffold_base):
             nodeIdentifier, copyIdentifiersRMU = disconnectFieldMeshGroupBoundaryNodes(
                 [coordinates_0, lung_coordinates], middleRightLungMeshGroup, upperRightLungMeshGroup, nodeIdentifier)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

@@ -179,7 +179,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         """
         centralPath = options['Central path']
         elementsCountAround = options['Number of elements around']
@@ -477,7 +477,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
         fm.endChange()
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

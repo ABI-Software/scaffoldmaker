@@ -163,7 +163,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
         elementsCountAroundAtria = options['Number of elements around atria']
         elementsCountAroundAtrialSeptum = options['Number of elements around atrial septum']
@@ -1392,7 +1392,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         nodeIdentifier += 12
 
         fm.endChange()
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

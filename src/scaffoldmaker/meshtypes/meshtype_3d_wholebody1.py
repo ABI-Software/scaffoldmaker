@@ -206,9 +206,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: List of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
-
         baseParameterSetName = options['Base parameter set']
         isHuman = 'Human' in baseParameterSetName
         isRat = 'Rat' in baseParameterSetName
@@ -848,7 +847,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             annotationGroup.createMarkerNode(nodeIdentifier, bodyCoordinates, nerveCoordinatesValues)
             nodeIdentifier += 1
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):

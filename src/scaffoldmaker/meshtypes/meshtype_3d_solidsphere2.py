@@ -131,7 +131,7 @@ with variable numbers of elements across axes and shell directions.
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup, None
         """
 
         elementsCountAcrossAxis1 = options['Number of elements across axis 1']
@@ -186,7 +186,7 @@ with variable numbers of elements across axes and shell directions.
                              sphereShape=sphere_shape, rangeOfRequiredElements=rangeOfRequiredElements,
                              boxDerivatives=sphereBoxDerivatives, useCrossDerivatives=False,  meshGroups=meshGroups)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):

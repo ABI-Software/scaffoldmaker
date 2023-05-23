@@ -18,7 +18,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
     """
     parameterSetStructureStrings = {
         "Default": "1-2",
-        "Bifurcation": "1-2,2-3,2-4"
+        "Bifurcation": "1-2,2-3,2.2-4"
     }
 
     @classmethod
@@ -53,14 +53,14 @@ class MeshType_1d_network_layout1(Scaffold_base):
         Generate the unrefined mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, NetworkMesh
         """
         structure = options["Structure"]
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
 
-        return []  # empty list of AnnotationGroup
+        return [], networkMesh
 
     @classmethod
     def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):

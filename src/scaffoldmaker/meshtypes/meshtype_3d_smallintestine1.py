@@ -773,7 +773,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         """
         centralPath = options['Central path']
         segmentCount = options['Number of segments']
@@ -940,7 +940,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
             closedProximalEnd=False)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

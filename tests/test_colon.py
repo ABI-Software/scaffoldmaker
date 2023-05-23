@@ -96,7 +96,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, cx[1], [117.2, 32.8, -2.6], 1.0E-6)
         del tmpRegion
 
-        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)[0]
         self.assertEqual(11, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -155,7 +155,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)[0]
         self.assertEqual(10, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

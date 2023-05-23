@@ -264,7 +264,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         """
         cls.updateSubScaffoldOptions(options)
         centralPath = options['Central path']
@@ -705,7 +705,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Delete elements under annulus mesh
         mesh_destroy_elements_and_nodes_by_identifiers(mesh, deleteElementIdentifier)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

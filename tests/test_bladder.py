@@ -47,7 +47,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateBaseMesh(region, options)
+        annotationGroups = scaffold.generateBaseMesh(region, options)[0]
         self.assertEqual(12, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

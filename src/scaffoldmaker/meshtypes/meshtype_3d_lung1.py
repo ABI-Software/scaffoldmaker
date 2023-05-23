@@ -69,7 +69,7 @@ class MeshType_3d_lung1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         '''
         parameterSetName = options['Base parameter set']
         isMouse = 'Mouse 1' in parameterSetName
@@ -1233,7 +1233,7 @@ class MeshType_3d_lung1(Scaffold_base):
             lungNodesetGroup.addNode(markerPoint)
             nodeIdentifier += 1
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

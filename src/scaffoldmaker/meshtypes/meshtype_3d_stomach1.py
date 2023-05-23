@@ -699,7 +699,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup, None
         """
         cls.updateSubScaffoldOptions(options)
         geometricCentralPath = options['Central path']
@@ -796,7 +796,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             annotationGroup.createMarkerNode(nodeIdentifier, stomach_coordinates, stomachCoordinatesValues)
             nodeIdentifier += 1
 
-        return allAnnotationGroups
+        return allAnnotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

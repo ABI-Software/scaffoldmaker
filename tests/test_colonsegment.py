@@ -40,7 +40,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)[0]
         self.assertEqual(8, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -91,7 +91,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)[0]
         self.assertEqual(7, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

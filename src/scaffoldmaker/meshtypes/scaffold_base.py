@@ -100,11 +100,13 @@ class Scaffold_base:
     def generateBaseMesh(cls, region, options):
         """
         Override to generate scaffold mesh in region using Zinc API with options.
+        If function makes a "construction object" needed by the caller, this is
+        returned as the second return value.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, construction object (or None)
         """
-        return []
+        return [], None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -132,21 +134,24 @@ class Scaffold_base:
     def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
-        Some classes may override to a simpler version just generating the base mesh.
+        If function makes a "construction object" needed by the caller, this is
+        returned as the second return value.
+        Note that no construction object is returned when using 'Refine'.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :return: list of AnnotationGroup, construction object (or None)
         """
         fieldmodule = region.getFieldmodule()
         with ChangeManager(fieldmodule):
+            constructionObject = None
             if options.get('Refine'):
                 baseRegion = region.createRegion()
-                annotationGroups = cls.generateBaseMesh(baseRegion, options)
+                annotationGroups = cls.generateBaseMesh(baseRegion, options)[0]
                 meshrefinement = MeshRefinement(baseRegion, region, annotationGroups)
                 cls.refineMesh(meshrefinement, options)
                 annotationGroups = meshrefinement.getAnnotationGroups()
             else:
-                annotationGroups = cls.generateBaseMesh(region, options)
+                annotationGroups, constructionObject = cls.generateBaseMesh(region, options)
             fieldmodule.defineAllFaces()
             oldAnnotationGroups = copy.copy(annotationGroups)
             for annotationGroup in annotationGroups:
@@ -155,7 +160,7 @@ class Scaffold_base:
             for annotationGroup in annotationGroups:
                 if annotationGroup not in oldAnnotationGroups:
                     annotationGroup.addSubelements()
-        return annotationGroups
+        return annotationGroups, constructionObject
 
     @classmethod
     def printNodeFieldParameters(cls, region, options, functionOptions, editGroupName):

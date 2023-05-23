@@ -73,7 +73,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, cx[2], [-18.3, 12.6, -1.5], 1.0E-6)
         del tmpRegion
 
-        annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)[0]
         self.assertEqual(4, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

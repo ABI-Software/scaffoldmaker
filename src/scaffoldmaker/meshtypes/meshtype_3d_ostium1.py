@@ -158,7 +158,7 @@ class MeshType_3d_ostium1(Scaffold_base):
         Generate the base tricubic/bicubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         unitScale = options['Unit scale']
         ostiumRadius = 0.5 * unitScale * options['Ostium diameter']
@@ -178,7 +178,7 @@ class MeshType_3d_ostium1(Scaffold_base):
         centrePosition = TrackSurfacePosition(0, 0, 0.5, 0.5)
         axis1 = [1.0, 0.0, 0.0]
         generateOstiumMesh(region, options, trackSurface, centrePosition, axis1)
-        return []  # no annotation groups
+        return [], None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

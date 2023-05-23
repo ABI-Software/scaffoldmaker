@@ -48,7 +48,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateBaseMesh(region, options)
+        annotationGroups = scaffold.generateBaseMesh(region, options)[0]
         self.assertEqual(40, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

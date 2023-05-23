@@ -60,7 +60,7 @@ class MeshType_1d_path1(Scaffold_base):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         coordinateDimensions = options['Coordinate dimensions']
         d2derivatives = options['D2 derivatives']
@@ -128,7 +128,7 @@ class MeshType_1d_path1(Scaffold_base):
             element.setNodesByIdentifier(eft, [ e + 1, e + 2 ])
             elementIdentifier = elementIdentifier + 1
 
-        return []
+        return [], None
 
     @classmethod
     def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):

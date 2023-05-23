@@ -41,7 +41,7 @@ class WholeBodyScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+        annotationGroups = scaffold.generateMesh(region, options)[0]
         self.assertEqual(373, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

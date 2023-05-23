@@ -188,7 +188,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: [] empty list of AnnotationGroup, None
         """
         parameterSetName = options['Base parameter set']
 
@@ -223,7 +223,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                                  cylinderShape=cylinderShape,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):

@@ -80,7 +80,7 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         Generate the base hermite-bilinear mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup, None
         """
         networkLayout = options["Network layout"]
 
@@ -93,7 +93,7 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         layoutCoordinates = findOrCreateFieldCoordinates(layoutFieldmodule)
         layoutFieldcache = layoutFieldmodule.createFieldcache()
 
-        networkMesh = NetworkMesh(networkLayout.getScaffoldSettings()["Structure"])
+        networkMesh = networkLayout.getConstructionObject()
 
         fieldmodule = region.getFieldmodule()
         fieldcache = fieldmodule.createFieldcache()
@@ -128,9 +128,8 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         slices = {}  # map from network layout node identifier to list of 4 box node identifiers on slice
         for networkSegment in networkSegments:
             segmentNodes = networkSegment.getNetworkNodes()
-            #segmentVersions = networkSegment.getNodeVersions()
-            # can't use these as not the original NetworkMesh:
-            # segmentElementIdentifiers = networkSegment.getElementIdentifiers()
+            # segmentVersions = networkSegment.getNodeVersions()
+            segmentElementIdentifiers = networkSegment.getElementIdentifiers()
             segmentSlices = []
             segmentNodeCount = len(segmentNodes)
             lastSlice = None
@@ -184,7 +183,7 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
                             lastSlice[2], slice[2],
                             lastSlice[3], slice[3]]
                     element.setNodesByIdentifier(eft, nids)
-                    layoutElementIdentifier = elementIdentifier  # future: segmentElementIdentifiers[n - 1]
+                    layoutElementIdentifier = segmentElementIdentifiers[n - 1]
                     layoutElement = layoutMesh.findElementByIdentifier(layoutElementIdentifier)
                     for layoutBoxMeshGroup in layoutBoxMeshGroups.values():
                         if layoutBoxMeshGroup[0].containsElement(layoutElement):
@@ -193,4 +192,4 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
 
                 lastSlice = slice
 
-        return annotationGroups
+        return annotationGroups, None

@@ -91,7 +91,7 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
         Generate the base bicubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         bifurcationTreeScaffold = options['Bifurcation tree']
         maxElementLength = options['Maximum element length']
@@ -144,4 +144,4 @@ class MeshType_2d_tubebifurcationtree1(Scaffold_base):
 
         elementIdentifier = 1
 
-        return []
+        return [], None

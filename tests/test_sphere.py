@@ -39,7 +39,7 @@ class SphereScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+        annotationGroups = scaffold.generateMesh(region, options)[0]
         self.assertEqual(2, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -151,7 +151,7 @@ class SphereScaffoldTestCase(unittest.TestCase):
         context2 = Context("Test2")
         region = context2.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold1.generateMesh(region, options)
+        annotationGroups = scaffold1.generateMesh(region, options)[0]
         self.assertEqual(2, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())

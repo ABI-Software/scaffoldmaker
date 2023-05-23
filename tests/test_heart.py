@@ -44,7 +44,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         # Need to do the following manually to save originalAnnotationGroups which has some temporary groups
         # annotationGroups = scaffold.generateMesh(region, options)
         with ChangeManager(fieldmodule):
-            annotationGroups = scaffold.generateBaseMesh(region, options)
+            annotationGroups = scaffold.generateBaseMesh(region, options)[0]
             fieldmodule.defineAllFaces()
             originalAnnotationGroups = copy.copy(annotationGroups)
             for annotationGroup in annotationGroups:
