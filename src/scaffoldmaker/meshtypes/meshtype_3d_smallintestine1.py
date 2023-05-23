@@ -1013,6 +1013,12 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         elementsCountAlong = int(elementsCountAlongSegment*segmentCount)
         startPhase = 0.0
 
+        # Small intestine coordinates
+        lengthToDiameterRatio = 200
+        wallThicknessToDiameterRatio = 0.15
+        relativeThicknessListSmallIntestineCoordinates = [1.0 / elementsCountThroughWall
+                                                          for n3 in range(elementsCountThroughWall)]
+
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
@@ -1209,11 +1215,17 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             xiList, flatWidthList, length, wallThickness, relativeThicknessList, elementsCountAround,
             elementsCountAlong, elementsCountThroughWall, transitElementList)
 
-        xOrgan = d1Organ = d2Organ = []
+        # Create small intestine coordinates
+        xSmallIntestine, d1SmallIntestine, d2SmallIntestine = \
+            tubemesh.createOrganCoordinates(xiList, relativeThicknessListSmallIntestineCoordinates,
+                                            lengthToDiameterRatio, wallThicknessToDiameterRatio,
+                                            elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                                            transitElementList)
 
         # Create nodes and elements
         nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
+            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
+            xSmallIntestine, d1SmallIntestine, d2SmallIntestine, "small intestine coordinates",
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
