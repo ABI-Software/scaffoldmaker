@@ -21,7 +21,8 @@ from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    get_nodeset_path_field_parameters
 
 
 class MeshType_3d_esophagus1(Scaffold_base):
@@ -197,24 +198,31 @@ class MeshType_3d_esophagus1(Scaffold_base):
         firstElementIdentifier = 1
 
         # Central path
-        esophagusTermsAlong = [None, 'cervical part of esophagus',
-                               'thoracic part of esophagus', 'abdominal part of esophagus']
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
+        esophagusTermsAlong =\
+            [None, 'cervical part of esophagus', 'thoracic part of esophagus', 'abdominal part of esophagus']
         arcLengthOfGroupsAlong = []
-        for i in range(len(esophagusTermsAlong)):
-            tmpRegion = region.createRegion()
-            centralPath.generate(tmpRegion)
-            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
-                extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                                            Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                                groupName=esophagusTermsAlong[i])
+
+        for termName in esophagusTermsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
             arcLength = 0.0
             for e in range(len(cxGroup) - 1):
                 arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
                                                              cxGroup[e + 1], cd1Group[e + 1])
             arcLengthOfGroupsAlong.append(arcLength)
 
-            if i == 0:
+            if not termName:
                 cx = cxGroup
                 cd1 = cd1Group
                 cd2 = cd2Group
@@ -222,7 +230,13 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 cd12 = cd12Group
                 cd13 = cd13Group
 
-            del tmpRegion
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
+        del tmpRegion
 
         # Sample central path
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)

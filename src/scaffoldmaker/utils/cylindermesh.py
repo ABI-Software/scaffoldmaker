@@ -15,7 +15,7 @@ from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpol
     smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.mirror import Mirror
 from scaffoldmaker.utils.shieldmesh import ShieldMesh2D, ShieldShape2D, ShieldRimDerivativeMode
-from scaffoldmaker.utils.zinc_utils import extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import get_nodeset_path_field_parameters
 
 
 class CylinderShape(Enum):
@@ -107,12 +107,13 @@ class CylinderCentralPath:
         """
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd3, cd12, cd13 = extractPathParametersFromRegion(tmpRegion,
-                                                                        [Node.VALUE_LABEL_VALUE,
-                                                                         Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                                                         Node.VALUE_LABEL_D_DS3,
-                                                                         Node.VALUE_LABEL_D2_DS1DS2,
-                                                                         Node.VALUE_LABEL_D2_DS1DS3])
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx, cd1, cd2, cd3, cd12, cd13 = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+             Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+        del tmpFieldmodule
         del tmpRegion
         # for i in range(len(cx)):
         #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], ',', cd3[i], ',', cd13[i], '],')

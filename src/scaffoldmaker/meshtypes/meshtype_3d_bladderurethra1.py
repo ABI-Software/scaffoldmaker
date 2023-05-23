@@ -28,7 +28,7 @@ from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
-    mesh_destroy_elements_and_nodes_by_identifiers, extractPathParametersFromRegion
+    mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_field_parameters
 
 
 class MeshType_3d_bladderurethra1(Scaffold_base):
@@ -643,22 +643,24 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Bladder part
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx_bladder, cd1_bladder, cd2_bladder, cd12_bladder = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
-                                            groupName='urinary bladder')
-        # for i in range(len(cx_bladder)):
-        #     print(i, '[', cx_bladder[i], ',', cd1_bladder[i], ',', cd2_bladder[i], ',', cd12_bladder[i], '],')
-        del tmpRegion
-        # Urethra part
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        cx_urethra, cd1_urethra, cd2_urethra, cd12_urethra = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
-                                            groupName='urethra')
-        # for i in range(len(cx_urethra)):
-        #     print(i, '[', cx_urethra[i], ',', cd1_urethra[i], ',', cd2_urethra[i], ',', cd12_urethra[i], '],')
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
+
+        tmpGroup = tmpFieldmodule.findFieldByName("urinary bladder").castGroup()
+        cx_bladder, cd1_bladder, cd2_bladder, cd12_bladder = get_nodeset_path_field_parameters(
+            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+
+        tmpGroup = tmpFieldmodule.findFieldByName("urethra").castGroup()
+        cx_urethra, cd1_urethra, cd2_urethra, cd12_urethra = get_nodeset_path_field_parameters(
+            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+
+        del tmpGroup
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
         del tmpRegion
 
         # Find arcLength

@@ -13,7 +13,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
-    exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
+    exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 
 from testutils import assertAlmostEqualList
 
@@ -90,10 +90,15 @@ class ColonScaffoldTestCase(unittest.TestCase):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(2, len(cx))
         assertAlmostEqualList(self, cx[0], [163.7, -25.2, 12.2], 1.0E-6)
         assertAlmostEqualList(self, cx[1], [117.2, 32.8, -2.6], 1.0E-6)
+        del tmpFieldmodule
         del tmpRegion
 
         annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)[0]

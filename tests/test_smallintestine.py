@@ -12,7 +12,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
-    exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
+    exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 from testutils import assertAlmostEqualList
 
 
@@ -67,10 +67,15 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(4, len(cx))
         assertAlmostEqualList(self, cx[0], [-2.3, 18.5, -4.4], 1.0E-6)
         assertAlmostEqualList(self, cx[2], [-18.3, 12.6, -1.5], 1.0E-6)
+        del tmpFieldmodule
         del tmpRegion
 
         annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)[0]

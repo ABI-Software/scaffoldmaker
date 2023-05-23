@@ -32,7 +32,7 @@ from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds, remapEftNodeValu
 from scaffoldmaker.utils.geometry import sampleEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
-    mesh_destroy_elements_and_nodes_by_identifiers, extractPathParametersFromRegion
+    mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_field_parameters
 
 
 class MeshType_3d_stomach1(Scaffold_base):
@@ -1086,13 +1086,19 @@ class StomachCentralPath:
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
 
-        for i in range(len(stomachTermsAlong)):
-            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
-                extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                                            Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                                groupName=stomachTermsAlong[i])
+        for termName in stomachTermsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
 
             arcLength = 0.0
             for e in range(len(cxGroup) - 1):
@@ -1106,6 +1112,12 @@ class StomachCentralPath:
             cd12Groups.append(cd12Group)
             cd13Groups.append(cd13Group)
 
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
         del tmpRegion
 
         self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong

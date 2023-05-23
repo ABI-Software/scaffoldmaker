@@ -6,8 +6,9 @@ variable radius and thickness along.
 
 import copy
 
-from cmlibs.zinc.node import Node
 from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
@@ -17,7 +18,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, extractPathParametersFromRegion
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    get_nodeset_path_field_parameters
 
 
 class MeshType_3d_colon1(Scaffold_base):
@@ -501,11 +503,12 @@ class MeshType_3d_colon1(Scaffold_base):
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion,
-                                                             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
-        # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx, cd1, cd2, cd12 = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+        del tmpFieldmodule
         del tmpRegion
 
         # find arclength of colon

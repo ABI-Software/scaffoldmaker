@@ -206,7 +206,7 @@ class Scaffold_base:
         These tell the client whether to redisplay the options or process
         the effects of node edits (which will be recorded in edit group if
         its name is supplied).
-        :return: list(tuples), (name : str, callable(region, options, editGroupName)).
+        :return: list(tuples), (name, functionOptions, callable(region, options, functionOptions, editGroupName)).
         """
         return [
             ("Print node parameters...",

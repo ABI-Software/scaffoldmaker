@@ -24,7 +24,7 @@ from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
-    mesh_destroy_elements_and_nodes_by_identifiers, extractPathParametersFromRegion
+    mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_field_parameters
 
 class MeshType_3d_cecum1(Scaffold_base):
     '''
@@ -309,11 +309,12 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion,
-                                                             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
-        # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx, cd1, cd2, cd12 = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+        del tmpFieldmodule
         del tmpRegion
 
         # find arclength of cecum

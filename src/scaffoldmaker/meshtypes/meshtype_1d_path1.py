@@ -13,7 +13,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils.zinc_utils import make_nodeset_derivatives_orthogonal, \
-    extractPathParametersFromRegion, setPathParameters
+    get_nodeset_path_field_parameters, setPathParameters
 
 class MeshType_1d_path1(Scaffold_base):
     '''
@@ -153,7 +153,11 @@ class MeshType_1d_path1(Scaffold_base):
             valueLabels += [ Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ]
         if smoothD13:
             valueLabels += [ Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ]
-        parameters = extractPathParametersFromRegion(region, valueLabels)
+        fieldmodule = region.getFieldmodule()
+        parameters = get_nodeset_path_field_parameters(
+            fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            fieldmodule.findFieldByName('coordinates'),
+            valueLabels)
         x = parameters[0]
         d1 = parameters[1]
         modifyParameters = []
