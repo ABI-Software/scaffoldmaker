@@ -892,9 +892,9 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Number of segments': 100,
+            'Number of segments': 80,
             'Number of elements around': 8,
-            'Number of elements along segment': 4,
+            'Number of elements along segment': 3,
             'Number of elements through wall': 4,
             'Wall thickness': 0.45,
             'Mucosa relative thickness': 0.55,
