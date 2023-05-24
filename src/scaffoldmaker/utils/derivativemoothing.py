@@ -374,7 +374,6 @@ class DerivativeSmoothing:
                         otherd = edge.getParameter(otherExpressionIndex)
                         bothEndsOnBoundary = False
                         otherExpression = edge.getExpression(otherExpressionIndex)
-                        otherTotalScaleFactor = 1.0
                         if len(otherExpression) == 1:
                             otherNodeIdentifier, otherValueLabel, otherNodeVersion, otherTotalScaleFactor = \
                                 otherExpression[0]
@@ -403,7 +402,7 @@ class DerivativeSmoothing:
                             mag = arcLength / totalScaleFactor
                         else:
                             othermag = magnitude(otherd)
-                            mag = (2.0*arcLength - othermag * otherTotalScaleFactor) / math.fabs(totalScaleFactor)
+                            mag = (2.0*arcLength - othermag) / math.fabs(totalScaleFactor)
                             if mag <= 0.0:
                                 print('Derivative smoothing: Node', nodeIdentifier, 'label', nodeValueLabel,
                                       'version', nodeVersion, 'has negative magnitude', mag)
