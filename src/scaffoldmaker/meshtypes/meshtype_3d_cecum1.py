@@ -10,7 +10,7 @@ import math
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.annotation.colon_terms import get_colon_term
+from scaffoldmaker.annotation.cecum_terms import get_cecum_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, \
     getFullProfileFromHalfHaustrum, getTeniaColi, createNodesAndElementsTeniaColi
@@ -370,7 +370,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             innerRadiusAlongCecum, dInnerRadiusAlongCecum, tcWidthAlongCecum, startPhase)
 
         # Create annotation
-        cecumGroup = AnnotationGroup(region, get_colon_term("caecum"))
+        cecumGroup = AnnotationGroup(region, get_cecum_term("caecum"))
         annotationGroupsAlong = []
         for i in range(elementsCountAlong):
             annotationGroupsAlong.append([cecumGroup])
