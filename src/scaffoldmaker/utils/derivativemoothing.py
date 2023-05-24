@@ -372,18 +372,19 @@ class DerivativeSmoothing:
                         fieldcache.setNode(self._nodes.findNodeByIdentifier(nodeIdentifier))
                         otherExpressionIndex = 3 if (expressionIndex == 1) else 1
                         otherd = edge.getParameter(otherExpressionIndex)
+                        bothEndsOnBoundary = False
+                        otherExpression = edge.getExpression(otherExpressionIndex)
+                        otherTotalScaleFactor = 1.0
+                        if len(otherExpression) == 1:
+                            otherNodeIdentifier, otherValueLabel, otherNodeVersion, otherTotalScaleFactor = \
+                                otherExpression[0]
+                            otherDerivativeKey = (otherNodeIdentifier, otherValueLabel, otherNodeVersion)
+                            otherDerivativeEdges = self._derivativeMap.get(otherDerivativeKey)
+                            bothEndsOnBoundary = \
+                                (otherDerivativeEdges is not None) and (len(otherDerivativeEdges) == 1)
                         if updateDirections:
                             thisx = edge.getParameter(expressionIndex - 1)
                             otherx = edge.getParameter(otherExpressionIndex - 1)
-                            bothEndsOnBoundary = False
-                            otherExpression = edge.getExpression(otherExpressionIndex)
-                            if len(otherExpression) == 1:
-                                otherNodeIdentifier, otherValueLabel, otherNodeVersion, otherTotalScaleFactor = \
-                                    otherExpression[0]
-                                otherDerivativeKey = (otherNodeIdentifier, otherValueLabel, otherNodeVersion)
-                                otherDerivativeEdges = self._derivativeMap.get(otherDerivativeKey)
-                                bothEndsOnBoundary = \
-                                    (otherDerivativeEdges is not None) and (len(otherDerivativeEdges) == 1)
                             if bothEndsOnBoundary:
                                 if expressionIndex == 1:
                                     x = [(otherx[c] - thisx[c]) for c in range(componentsCount)]
@@ -398,11 +399,14 @@ class DerivativeSmoothing:
                         else:
                             result, x = self._field.getNodeParameters(
                                 fieldcache, -1, nodeValueLabel, nodeVersion, componentsCount)
-                        othermag = magnitude(otherd)
-                        mag = (2.0*arcLength - othermag) / math.fabs(totalScaleFactor)
-                        if mag <= 0.0:
-                            print('Derivative smoothing: Node', nodeIdentifier, 'label', nodeValueLabel,
-                                  'version', nodeVersion, 'has negative magnitude', mag)
+                        if bothEndsOnBoundary:
+                            mag = arcLength / totalScaleFactor
+                        else:
+                            othermag = magnitude(otherd)
+                            mag = (2.0*arcLength - othermag * otherTotalScaleFactor) / math.fabs(totalScaleFactor)
+                            if mag <= 0.0:
+                                print('Derivative smoothing: Node', nodeIdentifier, 'label', nodeValueLabel,
+                                      'version', nodeVersion, 'has negative magnitude', mag)
                         x = setMagnitude(x, mag)
                         self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
             # record modified nodes while ChangeManager is in effect
