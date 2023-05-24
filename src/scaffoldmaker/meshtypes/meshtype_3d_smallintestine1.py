@@ -1271,3 +1271,17 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                     get_smallintestine_term("serosa of small intestine"))
         serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+
+        duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("duodenum"))
+        duodenumSerosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_smallintestine_term("serosa of duodenum"))
+        is_duodenum = duodenumGroup.getFieldElementGroup(mesh2d)
+        is_duodenumSerosa = fm.createFieldAnd(is_duodenum, is_exterior_face_xi3_1)
+        duodenumSerosa.getMeshGroup(mesh2d).addElementsConditional(is_duodenumSerosa)
+
+        is_duodenumLuminal = fm.createFieldAnd(is_duodenum, is_exterior_face_xi3_0)
+        duodenumLuminal = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                             get_smallintestine_term(
+                                                                 "luminal surface of duodenum"))
+        duodenumLuminal.getMeshGroup(mesh2d).addElementsConditional(is_duodenumLuminal)
+
