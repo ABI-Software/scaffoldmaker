@@ -426,7 +426,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
             tubemesh.warpSegmentPoints(xToWarp, d1ToWarp, d2ToWarp, segmentAxis, sxRefList, sd1RefList,
                                        sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
-                                       zRefList, innerRadiusAlongCecum, closedProximalEnd)
+                                       zRefList)
 
         # Create coordinates and derivatives
         wallThicknessList = [wallThickness] * (elementsCountAlong + 1)

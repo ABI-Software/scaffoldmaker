@@ -328,8 +328,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         # Warp segment points
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
             xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
-            elementsCountAround, elementsCountAlongSegment, zRefList, radiusAlongSegment,
-            closedProximalEnd)
+            elementsCountAround, elementsCountAlongSegment, zRefList)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 

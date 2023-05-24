@@ -6,7 +6,7 @@ from __future__ import division
 
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -85,9 +85,8 @@ def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
 
     return sxRefList, sd1RefList, sd2ProjectedListRef, zRefList
 
-def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
-                      sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
-                      refPointZ, innerRadiusAlong, closedProximalEnd):
+def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
+                      refPointZ):
     """
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
@@ -102,8 +101,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
     :param elementsCountAlongSegment: Number of elements along segment.
     :param refPointZ: z-coordinate of reference point for each element
     groups along the segment to be used for transformation.
-    :param innerRadiusAlong: radius of segment along length.
-    :param closedProximalEnd: True if proximal end of segment is a closed end.
     :return coordinates and derivatives of warped points.
     """
 

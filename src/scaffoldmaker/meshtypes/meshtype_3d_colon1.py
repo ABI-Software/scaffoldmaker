@@ -834,8 +834,7 @@ class MeshType_3d_colon1(Scaffold_base):
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
                 xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
-                elementsCountAround, elementsCountAlongSegment, zRefList, innerRadiusAlongElementList[start:end],
-                closedProximalEnd=False)
+                elementsCountAround, elementsCountAlongSegment, zRefList)
 
             # Store points along length
             xExtrude += xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:]

@@ -1166,8 +1166,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             # Warp segment points
             xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
                 xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
-                elementsCountAround, elementsCountAlongSegment, zRefList, radiusAlongSegmentList,
-                closedProximalEnd=False)
+                elementsCountAround, elementsCountAlongSegment, zRefList)
 
             # Store points along length
             xExtrude = xExtrude + (xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:])

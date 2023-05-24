@@ -871,7 +871,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
             tubemesh.warpSegmentPoints(innerNodes_x, innerNodes_d1, innerNodes_d2, segmentAxis, sxRefList, sd1RefList,
                                        sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
-                                       zRefList, innerRadiusAlong, closedProximalEnd=True)
+                                       zRefList)
 
         if includeUrethra:
             wallThicknessList = [bladderWallThickness] * (elementsCountAlongBladder + 1) + [urethraWallThickness] * \

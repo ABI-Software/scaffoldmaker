@@ -401,7 +401,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
             tubemesh.warpSegmentPoints(xToWarp, d1ToWarp, d2ToWarp, segmentAxis, sxRefList, sd1RefList,
                                        sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
-                                       zRefList, innerRadiusAlong, closedProximalEnd)
+                                       zRefList)
 
         # Create coordinates and derivatives
         transitElementList = [0]*elementsCountAround
