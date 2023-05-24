@@ -913,10 +913,6 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             options['Wall thickness'] = 2.0
         elif 'Mouse 1' in parameterSetName:
             options['Number of segments'] = 100
-            options['Duodenum inner radius'] = 0.6
-            options['Duodenum-jejunum inner radius'] = 1.0
-            options['Jejunum-ileum inner radius'] = 1.0
-            options['Ileum inner radius'] = 1.0
             options['Wall thickness'] = 0.1
 
         return options
