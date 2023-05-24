@@ -548,7 +548,8 @@ def get_nodeset_path_field_parameters(nodeset, field, value_labels):
 def get_nodeset_path_ordered_field_parameters(nodeset, field, value_labels, node_identifiers, versions):
     """
     Get vectors of field parameters of nodes from nodeset in specified identifier order
-    with a single specified version, for each specified value_labels.
+    for a single version (version 1 for VALUE, versions[n] for derivatives at the n'th node),
+    for each specified value_labels.
     Fails if any value_labels or versions are not defined for all nodes and field components.
     :param nodeset: Owning nodeset.
     :param field: The field to get parameters for. Must be finite element type.
@@ -574,8 +575,10 @@ def get_nodeset_path_ordered_field_parameters(nodeset, field, value_labels, node
         assert node.isValid(), "get_nodeset_path_field_parameters. Missing node"
         fieldcache.setNode(node)
         for i in range(value_labels_count):
+            value_label = value_labels[i]
+            version = 1 if (value_label == Node.VALUE_LABEL_VALUE) else versions[n]
             result, parameters = \
-                finite_element_field.getNodeParameters(fieldcache, -1, value_labels[i], versions[n], components_count)
+                finite_element_field.getNodeParameters(fieldcache, -1, value_label, version, components_count)
             assert result == RESULT_OK, "get_nodeset_path_ordered_field_parameters. Node value/version not defined"
             value_label_parameters[i].append(parameters)
     return value_label_parameters

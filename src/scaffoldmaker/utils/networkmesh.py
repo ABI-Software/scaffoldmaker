@@ -108,6 +108,12 @@ class NetworkSegment:
         """
         return self._networkNodes
 
+    def getNodeIdentifiers(self):
+        """
+        :return: List of node identifiers in order along segment.
+        """
+        return [networkNode.getNodeIdentifier() for networkNode in self._networkNodes]
+
     def getNodeVersions(self):
         """
         :return: List of node version number in node order along segment.
