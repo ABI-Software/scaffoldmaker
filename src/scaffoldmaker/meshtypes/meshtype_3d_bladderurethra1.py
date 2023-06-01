@@ -7,7 +7,7 @@ wall.
 import copy
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
+from cmlibs.utils.zinc.field import findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -632,7 +632,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
@@ -649,12 +649,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
 
         tmpGroup = tmpFieldmodule.findFieldByName("urinary bladder").castGroup()
         cx_bladder, cd1_bladder, cd2_bladder, cd12_bladder = get_nodeset_path_field_parameters(
-            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            tmpGroup.getNodesetGroup(tmpNodes), tmpCoordinates,
             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
 
         tmpGroup = tmpFieldmodule.findFieldByName("urethra").castGroup()
         cx_urethra, cd1_urethra, cd2_urethra, cd12_urethra = get_nodeset_path_field_parameters(
-            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            tmpGroup.getNodesetGroup(tmpNodes), tmpCoordinates,
             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
 
         del tmpGroup
@@ -1208,20 +1208,20 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
 
-        is_body = bodyGroup.getFieldElementGroup(mesh2d)
+        is_body = bodyGroup.getGroup()
         is_body_serosa = fm.createFieldAnd(is_body, is_exterior_face_xi3_1)
         is_body_lumen = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
 
-        is_neck = neckGroup.getFieldElementGroup(mesh2d)
+        is_neck = neckGroup.getGroup()
         is_neck_serosa = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
         is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
 
-        is_urinaryBladder = urinaryBladderGroup.getFieldElementGroup(mesh2d)
+        is_urinaryBladder = urinaryBladderGroup.getGroup()
         is_urinaryBladder_serosa = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_1)
         is_urinaryBladder_lumen = fm.createFieldAnd(is_urinaryBladder, is_exterior_face_xi3_0)
 
-        is_dorsal_bladder = bladderDorsalGroup.getFieldElementGroup(mesh2d)
-        is_ventral_bladder = bladderVentralGroup.getFieldElementGroup(mesh2d)
+        is_dorsal_bladder = bladderDorsalGroup.getGroup()
+        is_ventral_bladder = bladderVentralGroup.getGroup()
 
         serosaOfUrinaryBladder = \
             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("serosa of urinary bladder"))
@@ -1324,12 +1324,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                                                             get_bladder_term("ventral part of urethra"))
             urethraDorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("dorsal part of urethra"))
 
-            is_urethra = urethraGroup.getFieldElementGroup(mesh2d)
+            is_urethra = urethraGroup.getGroup()
             is_urethra_serosa = fm.createFieldAnd(is_urethra, is_exterior_face_xi3_1)
             is_urethra_lumen = fm.createFieldAnd(is_urethra, is_exterior_face_xi3_0)
 
-            is_dorsal_urethra = urethraDorsalGroup.getFieldElementGroup(mesh2d)
-            is_ventral_urethra = urethraVentralGroup.getFieldElementGroup(mesh2d)
+            is_dorsal_urethra = urethraDorsalGroup.getGroup()
+            is_ventral_urethra = urethraVentralGroup.getGroup()
 
             serosaOfUrethra = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                  get_bladder_term("serosa of urethra"))

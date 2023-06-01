@@ -295,8 +295,7 @@ class ScaffoldPackage:
             # put the elements in a group and use subelement handling to get nodes in use by it
             destroyGroup = fm.createFieldGroup()
             destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
-            destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
-            destroyMesh = destroyElementGroup.getMeshGroup()
+            destroyMesh = destroyGroup.createMeshGroup(mesh)
             elementIter = mesh.createElementiterator()
             element = elementIter.next()
             while element.isValid():
@@ -309,11 +308,10 @@ class ScaffoldPackage:
             # print("Deleting", destroyMesh.getSize(), "element(s)")
             if destroyMesh.getSize() > 0:
                 fieldcache = fm.createFieldcache()
-                destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
-                destroyNodes = destroyNodeGroup.getNodesetGroup()
+                destroyNodes = destroyGroup.getNodesetGroup(nodes)
                 markerGroup = fm.findFieldByName("marker").castGroup()
                 if markerGroup.isValid():
-                    markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+                    markerNodes = markerGroup.getNodesetGroup(nodes)
                     markerLocation = getAnnotationMarkerLocationField(fm, mesh)
 
                     if markerNodes.isValid() and markerLocation.isValid():
@@ -333,7 +331,7 @@ class ScaffoldPackage:
                         del fieldcache
 
                 # must destroy elements first as Zinc won't destroy nodes that are in use
-                mesh.destroyElementsConditional(destroyElementGroup)
+                mesh.destroyElementsConditional(destroyGroup)
                 annotationGroups = self._autoAnnotationGroups + self._userAnnotationGroups
 
                 # attempt to re-find locations of to-be-destroyed marker points with material coordinates:
@@ -358,13 +356,11 @@ class ScaffoldPackage:
                             else:
                                 self._userAnnotationGroups.remove(annotationGroup)
 
-                nodes.destroyNodesConditional(destroyNodeGroup)
+                nodes.destroyNodesConditional(destroyGroup)
                 # clean up group so no external code hears is notified of its existence
                 del destroyNodes
-                del destroyNodeGroup
 
             del destroyMesh
-            del destroyElementGroup
             del destroyGroup
 
     def getNextNodeIdentifier(self):

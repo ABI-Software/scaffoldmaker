@@ -94,8 +94,8 @@ def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType
         isExterior = fieldmodule.createFieldIsExterior()
         isOnFace = fieldmodule.createFieldIsOnFace(elementFaceType)
         mesh2d = fieldmodule.findMeshByDimension(2)
-        faceElementGroup = fieldmodule.createFieldElementGroup(mesh2d)
-        faceMeshGroup = faceElementGroup.getMeshGroup()
+        faceGroup = fieldmodule.createFieldGroup()
+        faceMeshGroup = faceGroup.createMeshGroup(mesh2d)
         faceMeshGroup.addElementsConditional(fieldmodule.createFieldAnd(isExterior, isOnFace))
         del isExterior
         del isOnFace
@@ -139,18 +139,12 @@ def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_
         for dimension in [ only_dimension ] if only_dimension else range(4):
             if dimension > 0:
                 mesh = other_fieldmodule.findMeshByDimension(dimension)
-                element_group = group.getFieldElementGroup(mesh)
-                if not element_group.isValid():
-                    element_group = group.createFieldElementGroup(mesh)
-                mesh_group = element_group.getMeshGroup()
-                mesh_group.addElementsConditional(other_group.getFieldElementGroup(mesh))
+                mesh_group = group.getOrCreateMeshGroup(mesh)
+                mesh_group.addElementsConditional(other_group)
             elif dimension == 0:
                 nodeset = other_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-                node_group = group.getFieldNodeGroup(nodeset)
-                if not node_group.isValid():
-                    node_group = group.createFieldNodeGroup(nodeset)
-                nodeset_group = node_group.getNodesetGroup()
-                nodeset_group.addNodesConditional(other_group.getFieldNodeGroup(nodeset))
+                nodeset_group = group.getOrCreateNodesetGroup(nodeset)
+                nodeset_group.addNodesConditional(other_group)
 
 
 def group_get_highest_dimension(group : FieldGroup):
@@ -161,12 +155,12 @@ def group_get_highest_dimension(group : FieldGroup):
     fieldmodule = group.getFieldmodule()
     for dimension in range(3, 0, -1):
         mesh = fieldmodule.findMeshByDimension(dimension)
-        element_group = group.getFieldElementGroup(mesh)
-        if element_group.isValid() and (element_group.getMeshGroup().getSize() > 0):
+        mesh_group = group.getMeshGroup(mesh)
+        if mesh_group.isValid() and (mesh_group.getSize() > 0):
             return dimension
     nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    node_group = group.getFieldNodeGroup(nodeset)
-    if node_group.isValid() and (node_group.getNodesetGroup().getSize() > 0):
+    nodeset_group = group.getNodesetGroup(nodeset)
+    if nodeset_group.isValid() and (nodeset_group.getSize() > 0):
         return 0
     return -1
 
@@ -328,22 +322,15 @@ def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
         # put the elements in a group and use subelement handling to get nodes in use by it
         destroyGroup = fm.createFieldGroup()
         destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
-        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
-        destroyMesh = destroyElementGroup.getMeshGroup()
+        destroyMesh = destroyGroup.createMeshGroup(mesh)
         for elementIdentifier in element_identifiers:
             element = mesh.findElementByIdentifier(elementIdentifier)
             destroyMesh.addElement(element)
         if destroyMesh.getSize() > 0:
-            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
-            destroyNodes = destroyNodeGroup.getNodesetGroup()
             # must destroy elements first as Zinc won't destroy nodes that are in use
-            mesh.destroyElementsConditional(destroyElementGroup)
-            nodes.destroyNodesConditional(destroyNodeGroup)
-            # clean up group so no external code hears is notified of its existence
-            del destroyNodes
-            del destroyNodeGroup
+            mesh.destroyElementsConditional(destroyGroup)
+            nodes.destroyNodesConditional(destroyGroup)
         del destroyMesh
-        del destroyElementGroup
         del destroyGroup
     return
 
@@ -438,10 +425,7 @@ def set_nodeset_field_parameters(nodeset, field, value_labels, node_field_parame
             if edit_group_name and changed_node_parameters:
                 if not edit_nodeset_group:
                     edit_group = find_or_create_field_group(fieldmodule, edit_group_name, managed=True)
-                    edit_node_group = edit_group.getFieldNodeGroup(nodeset)
-                    if not edit_node_group.isValid():
-                        edit_node_group = edit_node_group.createFieldNodeGroup(nodeset)
-                    edit_nodeset_group = edit_node_group.getNodesetGroup()
+                    edit_nodeset_group = edit_group.getOrCreateNodesetGroup(nodeset)
                 edit_nodeset_group.addNode(node)
 
 
@@ -603,10 +587,7 @@ def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
     with ChangeManager(fieldmodule):
         if editGroupName:
             editGroup = find_or_create_field_group(fieldmodule, editGroupName, managed=True)
-            editNodeGroup = editGroup.getFieldNodeGroup(nodes)
-            if not editNodeGroup.isValid():
-                editNodeGroup = editGroup.createFieldNodeGroup(nodes)
-            editNodesetGroup = editNodeGroup.getNodesetGroup()
+            editNodesetGroup = editGroup.getOrCreateNodesetGroup(nodes)
         cache = fieldmodule.createFieldcache()
         nodeiterator = nodes.createNodeiterator()
         node = nodeiterator.next()
@@ -694,7 +675,7 @@ def exnode_string_from_nodeset_field_parameters(
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         group = fieldmodule.createFieldGroup()
         group.setName(group_name)
-        nodeset_group = group.createFieldNodeGroup(nodes).getNodesetGroup()
+        nodeset_group = group.createNodesetGroup(nodes)
         # dict mapping from tuple of derivative versions to nodetemplate
         nodetemplates = {}
         # create nodes

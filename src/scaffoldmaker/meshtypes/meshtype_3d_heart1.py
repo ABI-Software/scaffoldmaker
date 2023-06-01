@@ -4,8 +4,7 @@ Generates a 3-D heart model including ventricles, base and atria.
 
 from __future__ import division
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -446,6 +445,6 @@ class MeshType_3d_heart1(Scaffold_base):
         epiGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("epicardium"))
         mesh2d = fm.findMeshByDimension(2)
         is_exterior_face_xi3_1 = fm.createFieldAnd(fm.createFieldIsExterior(), fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_non_septal_fibrous_ring = fm.createFieldXor(lFibrousRingGroup.getFieldElementGroup(mesh2d), rFibrousRingGroup.getFieldElementGroup(mesh2d))
+        is_non_septal_fibrous_ring = fm.createFieldXor(lFibrousRingGroup.getGroup(), rFibrousRingGroup.getGroup())
         is_non_septal_fibrous_ring_epi = fm.createFieldAnd(is_non_septal_fibrous_ring, is_exterior_face_xi3_1)
         epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_non_septal_fibrous_ring_epi)

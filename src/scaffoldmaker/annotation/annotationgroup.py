@@ -75,7 +75,7 @@ class AnnotationGroup(object):
         identifierRanges = []
         if dimension > 0:
             mesh = fieldmodule.findMeshByDimension(dimension)
-            meshGroup = self._group.getFieldElementGroup(mesh).getMeshGroup()
+            meshGroup = self._group.getMeshGroup(mesh)
             if meshGroup.isValid():
                 identifierRanges = mesh_group_to_identifier_ranges(meshGroup)
         else:
@@ -84,7 +84,7 @@ class AnnotationGroup(object):
                     identifierRanges = [[self._markerIdentifier, self._markerIdentifier]]
             else:
                 nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-                nodesetGroup = self._group.getFieldNodeGroup(nodes).getNodesetGroup()
+                nodesetGroup = self._group.getNodesetGroup(nodes)
                 if nodesetGroup.isValid():
                     identifierRanges = nodeset_group_to_identifier_ranges(nodesetGroup)
         dct = {
@@ -438,18 +438,8 @@ class AnnotationGroup(object):
             fieldcache.setNode(markerNode)
             markerName.assignString(fieldcache, name)
         else:
-            with ChangeManager(fieldmodule):
-                if RESULT_OK != self._group.setName(name):
-                    return False
-                # workaround for zinc issue: must rename subelement groups
-                for dimension in range(3, 0, -1):
-                    mesh = fieldmodule.findMeshByDimension(dimension)
-                    elementGroup = self._group.getFieldElementGroup(mesh)
-                    if elementGroup.isValid():
-                        elementGroup.setName(name + '.' + mesh.getName())
-                nodeGroup = self._group.getFieldNodeGroup(nodes)
-                if nodeGroup.isValid():
-                    nodeGroup.setName(name + '.' + nodes.getName())
+            if RESULT_OK != self._group.setName(name):
+                return False
         self._name = name
         return True
 
@@ -488,55 +478,37 @@ class AnnotationGroup(object):
         """
         return group_get_highest_dimension(self._group)
 
-    def getFieldElementGroup(self, mesh):
-        """
-        :param mesh: The Zinc mesh to manage a sub group of.
-        :return: The Zinc element group field for mesh in this AnnotationGroup.
-        """
-        elementGroup = self._group.getFieldElementGroup(mesh)
-        if not elementGroup.isValid():
-            elementGroup = self._group.createFieldElementGroup(mesh)
-        return elementGroup
-
-    def getFieldNodeGroup(self, nodeset):
-        """
-        :param nodeset: The Zinc nodeset to manage a sub group of.
-        :return: The Zinc node group field for nodeset in this AnnotationGroup.
-        """
-        nodeGroup = self._group.getFieldNodeGroup(nodeset)
-        if not nodeGroup.isValid():
-            nodeGroup = self._group.createFieldNodeGroup(nodeset)
-        return nodeGroup
-
     def getMeshGroup(self, mesh):
         """
+        Get or create mesh group.
         :param mesh: The Zinc mesh to manage a sub group of.
         :return: The Zinc meshGroup for adding elements of mesh in this AnnotationGroup.
         """
-        return self.getFieldElementGroup(mesh).getMeshGroup()
+        return self._group.getOrCreateMeshGroup(mesh)
 
     def hasMeshGroup(self, mesh):
         """
         :param mesh: The Zinc mesh to query a sub group of.
         :return: True if MeshGroup for mesh exists and is not empty, otherwise False.
         """
-        elementGroup = self._group.getFieldElementGroup(mesh)
-        return elementGroup.isValid() and (elementGroup.getMeshGroup().getSize() > 0)
+        meshGroup = self._group.getMeshGroup(mesh)
+        return meshGroup.isValid() and (meshGroup.getSize() > 0)
 
     def getNodesetGroup(self, nodeset):
         """
+        Get or create nodeset group.
         :param nodeset: The Zinc nodeset to manage a sub group of.
         :return: The Zinc nodesetGroup for adding nodes from nodeset in this AnnotationGroup.
         """
-        return self.getFieldNodeGroup(nodeset).getNodesetGroup()
+        return self._group.getOrCreateNodesetGroup(nodeset)
 
     def hasNodesetGroup(self, nodeset):
         """
         :param nodeset: The Zinc nodeset to query a sub group of.
         :return: True if NodesetGroup for nodeset exists and is not empty, otherwise False.
         """
-        nodeGroup = self._group.getFieldNodeGroup(nodeset)
-        return nodeGroup.isValid() and (nodeGroup.getNodesetGroup().getSize() > 0)
+        nodesetGroup = self._group.getNodesetGroup(nodeset)
+        return nodesetGroup.isValid() and (nodesetGroup.getSize() > 0)
 
     def addSubelements(self):
         """
@@ -546,11 +518,10 @@ class AnnotationGroup(object):
         fm = self._group.getFieldmodule()
         for dimension in range(1, 4):
             mesh = fm.findMeshByDimension(dimension)
-            elementGroup = self._group.getFieldElementGroup(mesh)
-            if elementGroup.isValid():
-                meshGroup = elementGroup.getMeshGroup()
+            meshGroup = self._group.getMeshGroup(mesh)
+            if meshGroup.isValid():
                 #print('Mesh group:', self._name, ', size', meshGroup.getSize())
-                meshGroup.addElementsConditional(elementGroup)  # use FieldElementGroup as conditional field
+                meshGroup.addElementsConditional(self._group)  # use whole group as conditional field
 
 
 def findAnnotationGroupByName(annotationGroups: list, name: str):

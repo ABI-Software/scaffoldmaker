@@ -171,7 +171,7 @@ class Scaffold_base:
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         selectionGroup = region_get_selection_group(region)
         if selectionGroup:
-            nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
+            nodeset = selectionGroup.getNodesetGroup(nodeset)
             if not nodeset.isValid():
                 print('Print node field parameters: No nodes selected')
                 return False, False

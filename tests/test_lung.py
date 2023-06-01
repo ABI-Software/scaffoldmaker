@@ -57,7 +57,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
             self.assertTrue(upperRightFissureGroup.isValid())
-            upperRightFissureMeshGroup = upperRightFissureGroup.getFieldElementGroup(mesh2d).getMeshGroup()
+            upperRightFissureMeshGroup = upperRightFissureGroup.getMeshGroup(mesh2d)
             self.assertTrue(upperRightFissureMeshGroup.isValid())
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, upperRightFissureMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
@@ -99,7 +99,7 @@ class LungScaffoldTestCase(unittest.TestCase):
 
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(nodes)
         self.assertEqual(9, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -167,7 +167,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(refinedNodes)
         self.assertEqual(9, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -235,7 +235,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
             self.assertTrue(upperRightFissureGroup.isValid())
-            upperRightFissureMeshGroup = upperRightFissureGroup.getFieldElementGroup(mesh2d).getMeshGroup()
+            upperRightFissureMeshGroup = upperRightFissureGroup.getMeshGroup(mesh2d)
             self.assertTrue(upperRightFissureMeshGroup.isValid())
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, upperRightFissureMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
@@ -324,7 +324,7 @@ class LungScaffoldTestCase(unittest.TestCase):
 
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(nodes)
         self.assertEqual(7, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -387,7 +387,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(refinedNodes)
         self.assertEqual(7, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -453,7 +453,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
             self.assertTrue(upperRightFissureGroup.isValid())
-            upperRightFissureMeshGroup = upperRightFissureGroup.getFieldElementGroup(mesh2d).getMeshGroup()
+            upperRightFissureMeshGroup = upperRightFissureGroup.getMeshGroup(mesh2d)
             self.assertTrue(upperRightFissureMeshGroup.isValid())
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, upperRightFissureMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
@@ -520,7 +520,7 @@ class LungScaffoldTestCase(unittest.TestCase):
 
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(nodes)
         self.assertEqual(13, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -588,7 +588,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(refinedNodes)
         self.assertEqual(13, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -642,7 +642,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
             self.assertTrue(upperRightFissureGroup.isValid())
-            upperRightFissureMeshGroup = upperRightFissureGroup.getFieldElementGroup(mesh2d).getMeshGroup()
+            upperRightFissureMeshGroup = upperRightFissureGroup.getMeshGroup(mesh2d)
             self.assertTrue(upperRightFissureMeshGroup.isValid())
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, upperRightFissureMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
@@ -722,7 +722,7 @@ class LungScaffoldTestCase(unittest.TestCase):
 
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(nodes)
         self.assertEqual(7, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -775,7 +775,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             one = fieldmodule.createFieldConstant(1.0)
             upperRightFissureGroup = fieldmodule.findFieldByName('upper lobe of right lung').castGroup()
             self.assertTrue(upperRightFissureGroup.isValid())
-            upperRightFissureMeshGroup = upperRightFissureGroup.getFieldElementGroup(mesh2d).getMeshGroup()
+            upperRightFissureMeshGroup = upperRightFissureGroup.getMeshGroup(mesh2d)
             self.assertTrue(upperRightFissureMeshGroup.isValid())
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, upperRightFissureMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
@@ -842,7 +842,7 @@ class LungScaffoldTestCase(unittest.TestCase):
 
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(nodes)
         self.assertEqual(13, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())

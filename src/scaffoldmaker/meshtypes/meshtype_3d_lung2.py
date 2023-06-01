@@ -4,27 +4,22 @@ Generates a 3D generic lung mesh.
 
 import copy
 import math
-from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
-    smoothCubicHermiteDerivativesLine, interpolateSampleLinear
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
+from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelsVersion, setEftScaleFactorIds
-from scaffoldmaker.utils.cylindermesh import createEllipsePerimeter
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from cmlibs.utils.zinc.general import ChangeManager
-from scaffoldmaker.utils.geometry import createEllipsoidPoints, getEllipseRadiansToX, getEllipseArcLength, \
-    getApproximateEllipsePerimeter, sampleEllipsePoints, updateEllipseAngleByArcLength, getEllipsoidPlaneA, \
+from scaffoldmaker.utils.geometry import sampleEllipsePoints, getEllipsoidPlaneA, \
     getEllipsoidPolarCoordinatesFromPosition, getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, interpolateCubicHermite, \
     interpolateCubicHermiteDerivative
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.vector import magnitude, setMagnitude, crossproduct3, normalise
-from cmlibs.maths.vectorops import add, cross, dot, mult, normalize, sub
+from scaffoldmaker.utils.vector import magnitude
+from cmlibs.maths.vectorops import cross, dot, mult, normalize, sub
 from scaffoldmaker.utils.zinc_utils import disconnectFieldMeshGroupBoundaryNodes
-from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString, createFieldEulerAnglesRotationMatrix
-from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers
+from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
 
@@ -763,7 +758,7 @@ class MeshType_3d_lung2(Scaffold_base):
         mediastanumTerms = ["anterior mediastinum of left lung", "anterior mediastinum of right lung"]
         for mediastanumTerm in mediastanumTerms:
             mediastanumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(mediastanumTerm))
-            is_anteriorBorderGroup = mediastanumGroup.getFieldElementGroup(mesh1d)
+            is_anteriorBorderGroup = mediastanumGroup.getGroup()
             is_mediastanumGroup_exterior = fm.createFieldAnd(is_anteriorBorderGroup, is_exterior)
             is_mediastanumGroup_exterior_xi1_0 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi1_0)
             is_mediastanumGroup_exterior_xi1_01 = fm.createFieldAnd(is_mediastanumGroup_exterior_xi1_0, is_xi1_1)
@@ -782,7 +777,7 @@ class MeshType_3d_lung2(Scaffold_base):
         arbTerms = ["upper lobe of left lung dorsal", "upper lobe of right lung dorsal"]
         for arbTerm in arbTerms:
             group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [arbTerm, "None"])
-            group2d = group.getFieldElementGroup(mesh2d)
+            group2d = group.getGroup()
             group2d_exterier = fm.createFieldAnd(group2d, is_exterior)
             arbLobe_group.update({arbTerm: group})
             arbLobe_2dgroup.update({arbTerm: group2d})
@@ -810,7 +805,7 @@ class MeshType_3d_lung2(Scaffold_base):
                 continue
 
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(term))
-            group2d = group.getFieldElementGroup(mesh2d)
+            group2d = group.getGroup()
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
 
             surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(term + " surface"))
@@ -916,37 +911,37 @@ class MeshType_3d_lung2(Scaffold_base):
 
             # add fissures to lobe surface groups
             if numberOfLeftLung > 1:
-                obliqueFissureOfLeftLungElementGroup = getAnnotationGroupForTerm(
-                    annotationGroups, get_lung_term("oblique fissure of left lung")).getFieldElementGroup(mesh2d)
+                obliqueFissureOfLeftLungGroup = getAnnotationGroupForTerm(
+                    annotationGroups, get_lung_term("oblique fissure of left lung")).getGroup()
                 for lobeSurfaceTerm in ("lower lobe of left lung surface", "upper lobe of left lung surface"):
                     lobeSurfaceGroup = getAnnotationGroupForTerm(
                         annotationGroups, get_lung_term(lobeSurfaceTerm))
-                    lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfLeftLungElementGroup)
-            horizontalFissureOfRightLungElementGroup = getAnnotationGroupForTerm(
+                    lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfLeftLungGroup)
+            horizontalFissureOfRightLungGroup = getAnnotationGroupForTerm(
                 annotationGroups,
-                get_lung_term("horizontal fissure of right lung")).getFieldElementGroup(mesh2d)
-            obliqueFissureOfRightLungElementGroup = getAnnotationGroupForTerm(
+                get_lung_term("horizontal fissure of right lung")).getGroup()
+            obliqueFissureOfRightLungGroup = getAnnotationGroupForTerm(
                 annotationGroups,
-                get_lung_term("oblique fissure of right lung")).getFieldElementGroup(mesh2d)
-            obliqueFissureOfMiddleLobeOfRightLungElementGroup = getAnnotationGroupForTerm(
+                get_lung_term("oblique fissure of right lung")).getGroup()
+            obliqueFissureOfMiddleLobeOfRightLungGroup = getAnnotationGroupForTerm(
                 annotationGroups,
-                get_lung_term("oblique fissure of middle lobe of right lung")).getFieldElementGroup(mesh2d)
-            obliqueFissureOfUpperLobeOfRightLungElementGroup = getAnnotationGroupForTerm(
+                get_lung_term("oblique fissure of middle lobe of right lung")).getGroup()
+            obliqueFissureOfUpperLobeOfRightLungGroup = getAnnotationGroupForTerm(
                 annotationGroups,
-                get_lung_term("oblique fissure of upper lobe of right lung")).getFieldElementGroup(mesh2d)
+                get_lung_term("oblique fissure of upper lobe of right lung")).getGroup()
             lobeSurfaceGroup = getAnnotationGroupForTerm(
                 annotationGroups, get_lung_term("lower lobe of right lung surface"))
-            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfRightLungElementGroup)
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfRightLungGroup)
             lobeSurfaceGroup = getAnnotationGroupForTerm(
                 annotationGroups, get_lung_term("middle lobe of right lung surface"))
             lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
-                fm.createFieldOr(obliqueFissureOfMiddleLobeOfRightLungElementGroup,
-                                 horizontalFissureOfRightLungElementGroup))
+                fm.createFieldOr(obliqueFissureOfMiddleLobeOfRightLungGroup,
+                                 horizontalFissureOfRightLungGroup))
             lobeSurfaceGroup = getAnnotationGroupForTerm(
                 annotationGroups, get_lung_term("upper lobe of right lung surface"))
             lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
-                fm.createFieldOr(obliqueFissureOfUpperLobeOfRightLungElementGroup,
-                                 horizontalFissureOfRightLungElementGroup))
+                fm.createFieldOr(obliqueFissureOfUpperLobeOfRightLungGroup,
+                                 horizontalFissureOfRightLungGroup))
 
         if openFissures:
             if numberOfLeftLung > 1:
