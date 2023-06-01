@@ -64,6 +64,14 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
     @classmethod
     def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):
+        """
+        Make side directions normal to d1 and each other. Works for all versions.
+        :param region: Region containing model to change parameters of.
+        :param options: The scaffold settings used to create the original model, pre-edits.
+        :param functionOptions: Which side directions to make normal.
+        :param editGroupName: Name of Zinc group to put edited nodes in.
+        :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
+        """
         fieldmodule = region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -77,12 +85,13 @@ class MeshType_1d_network_layout1(Scaffold_base):
     @classmethod
     def smoothSideCrossDerivatives(cls, region, options, functionOptions, editGroupName):
         """
+        Smooth side cross derivatives giving rate of change of side directions d2, d3 w.r.t. d1.
         Note: only works for a single path with version 1.
-        :param region:
-        :param options:
-        :param functionOptions:
-        :param editGroupName:
-        :return:
+        :param region: Region containing model to change parameters of.
+        :param options: The scaffold settings used to create the original model, pre-edits.
+        :param functionOptions: Which side derivatives to smooth.
+        :param editGroupName: Name of Zinc group to put edited nodes in.
+        :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
         """
         smoothD12 = functionOptions["Smooth D12"]
         smoothD13 = functionOptions["Smooth D13"]
