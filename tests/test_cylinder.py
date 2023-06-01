@@ -30,7 +30,7 @@ class CylinderScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+        annotationGroups = scaffold.generateMesh(region, options)[0]
         self.assertEqual(0, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)

@@ -79,7 +79,7 @@ class MeshType_3d_sphereshellseptum1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         elementsCountUp = options['Number of elements up']
         elementsCountAcross = options['Number of elements across']
@@ -1031,4 +1031,4 @@ class MeshType_3d_sphereshellseptum1(Scaffold_base):
             result = fieldassignment.assign()
 
         fm.endChange()
-        return []
+        return [], None

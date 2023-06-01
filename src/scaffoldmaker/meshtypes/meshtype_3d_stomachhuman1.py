@@ -9585,7 +9585,7 @@ class MeshType_3d_stomachhuman1(Scaffold_base):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         #print(options)
         axialElements = options['Number of elements along the axis']
@@ -9595,4 +9595,4 @@ class MeshType_3d_stomachhuman1(Scaffold_base):
         
         cls.hostStomach.generateMesh(region, circumferentialElements,
             axialElements, wallElements, normalizeCircumferentialSegmentLengths,{}, {})
-        return []
+        return [], None

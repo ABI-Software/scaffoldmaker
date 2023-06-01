@@ -8,11 +8,12 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
+    exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 
 from testutils import assertAlmostEqualList
 
@@ -34,11 +35,12 @@ class ColonScaffoldTestCase(unittest.TestCase):
                     'Length': 1.0,
                     'Number of elements': 1
                 },
-                'meshEdits': exnodeStringFromNodeValues(
+                'meshEdits': exnode_string_from_nodeset_field_parameters(
                     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                      Node.VALUE_LABEL_D2_DS1DS2], [
-                        [[163.7, -25.2, 12.2], [-21.7, 50.1, -18.1], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]],
-                        [[117.2, 32.8, -2.6], [-64.3, 34.4, -3.9], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]]])
+                        (1, [[163.7, -25.2, 12.2], [-21.7, 50.1, -18.1], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]]),
+                        (2, [[117.2, 32.8, -2.6], [-64.3, 34.4, -3.9], [0.0, 0.0, 5.0], [0.0, 0.0, 0.5]])
+                    ])
             })
         }
         centralPathOption = centralPathDefaultScaffoldPackages['Test line']
@@ -88,13 +90,18 @@ class ColonScaffoldTestCase(unittest.TestCase):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(2, len(cx))
         assertAlmostEqualList(self, cx[0], [163.7, -25.2, 12.2], 1.0E-6)
         assertAlmostEqualList(self, cx[1], [117.2, 32.8, -2.6], 1.0E-6)
+        del tmpFieldmodule
         del tmpRegion
 
-        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)[0]
         self.assertEqual(11, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -153,7 +160,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colon1.generateBaseMesh(region, options)[0]
         self.assertEqual(10, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

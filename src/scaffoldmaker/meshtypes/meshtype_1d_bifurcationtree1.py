@@ -95,12 +95,11 @@ class MeshType_1d_bifurcationtree1(Scaffold_base):
         Generate the base 1D Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, BifurcationTree
         """
-        generationCount = options['Number of generations']
         bifurcationTree = cls.generateBifurcationTree(options)
         bifurcationTree.generateZincModel(region)
-        return []
+        return [], bifurcationTree
 
 
 class TreeNode:

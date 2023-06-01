@@ -5,6 +5,7 @@ Class for listing and accessing all mesh type scripts supported by scaffoldmaker
 import json
 
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
@@ -15,6 +16,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
+from scaffoldmaker.meshtypes.meshtype_3d_boxnetwork1 import MeshType_3d_boxnetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
@@ -56,6 +58,7 @@ class Scaffolds(object):
     def __init__(self):
         self._allScaffoldTypes = [
             MeshType_1d_bifurcationtree1,
+            MeshType_1d_network_layout1,
             MeshType_1d_path1,
             MeshType_2d_plate1,
             MeshType_2d_platehole1,
@@ -67,6 +70,7 @@ class Scaffolds(object):
             MeshType_3d_bladderurethra1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
+            MeshType_3d_boxnetwork1,
             MeshType_3d_brainstem1,
             MeshType_3d_cecum1,
             MeshType_3d_colon1,

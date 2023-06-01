@@ -236,7 +236,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup, None
         """
         elementsCountAroundTC = options['Number of elements around tenia coli']
         elementsCountAroundHaustrum = options['Number of elements around haustrum']
@@ -387,7 +387,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                 firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
                 closedProximalEnd)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

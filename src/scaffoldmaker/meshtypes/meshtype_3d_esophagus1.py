@@ -14,14 +14,15 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
     findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    get_nodeset_path_field_parameters
 
 
 class MeshType_3d_esophagus1(Scaffold_base):
@@ -40,13 +41,14 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 4
                 },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  7.5, 289.8,  0.0 ], [  2.8,  -33.6,  0.0 ], [  9.9,  0.8, 0.0 ], [  0.1, -1.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [  8.9, 242.5,  0.0 ], [ -2.6,  -87.5,  0.0 ], [ 10.0, -0.3, 0.0 ], [  0.1, -0.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [ -2.5, 115.4,  0.0 ], [  3.9, -102.0,  0.0 ], [ 10.0,  0.4, 0.0 ], [ -0.3,  1.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [ 10.1,  40.3,  0.0 ], [ 17.8,  -57.9,  0.0 ], [  9.6,  2.9, 0.0 ], [ -1.3,  3.2, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] , 
-                [ [ 28.6,  -0.1,  0.0 ], [ 18.5,  -22.1,  0.0 ], [  7.7,  6.5, 0.0 ], [ -2.4,  3.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0] ] ] ),
+                    (1, [[  7.5, 289.8,  0.0 ], [  2.8,  -33.6,  0.0 ], [  9.9,  0.8, 0.0 ], [  0.1, -1.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (2, [[  8.9, 242.5,  0.0 ], [ -2.6,  -87.5,  0.0 ], [ 10.0, -0.3, 0.0 ], [  0.1, -0.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (3, [[ -2.5, 115.4,  0.0 ], [  3.9, -102.0,  0.0 ], [ 10.0,  0.4, 0.0 ], [ -0.3,  1.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (4, [[ 10.1,  40.3,  0.0 ], [ 17.8,  -57.9,  0.0 ], [  9.6,  2.9, 0.0 ], [ -1.3,  3.2, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
+                    (5, [[ 28.6,  -0.1,  0.0 ], [ 18.5,  -22.1,  0.0 ], [  7.7,  6.5, 0.0 ], [ -2.4,  3.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -178,7 +180,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         """
         centralPath = options['Central path']
         elementsCountAround = options['Number of elements around']
@@ -196,24 +198,31 @@ class MeshType_3d_esophagus1(Scaffold_base):
         firstElementIdentifier = 1
 
         # Central path
-        esophagusTermsAlong = [None, 'cervical part of esophagus',
-                               'thoracic part of esophagus', 'abdominal part of esophagus']
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
+        esophagusTermsAlong =\
+            [None, 'cervical part of esophagus', 'thoracic part of esophagus', 'abdominal part of esophagus']
         arcLengthOfGroupsAlong = []
-        for i in range(len(esophagusTermsAlong)):
-            tmpRegion = region.createRegion()
-            centralPath.generate(tmpRegion)
-            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
-                extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                                            Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                                groupName=esophagusTermsAlong[i])
+
+        for termName in esophagusTermsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
             arcLength = 0.0
             for e in range(len(cxGroup) - 1):
                 arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
                                                              cxGroup[e + 1], cd1Group[e + 1])
             arcLengthOfGroupsAlong.append(arcLength)
 
-            if i == 0:
+            if not termName:
                 cx = cxGroup
                 cd1 = cd1Group
                 cd2 = cd2Group
@@ -221,7 +230,13 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 cd12 = cd12Group
                 cd13 = cd13Group
 
-            del tmpRegion
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
+        del tmpRegion
 
         # Sample central path
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
@@ -476,7 +491,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
         fm.endChange()
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

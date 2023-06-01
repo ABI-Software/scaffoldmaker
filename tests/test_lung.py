@@ -33,7 +33,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+        annotationGroups = scaffold.generateMesh(region, options)[0]
         self.assertEqual(20, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -200,7 +200,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         # annotationGroups = scaffold.generateMesh(region, options)
         with ChangeManager(fieldmodule):
-            annotationGroups = scaffold.generateBaseMesh(region, options)
+            annotationGroups = scaffold.generateBaseMesh(region, options)[0]
             fieldmodule.defineAllFaces()
             originalAnnotationGroups = copy.copy(annotationGroups)
             for annotationGroup in annotationGroups:
@@ -420,7 +420,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         # annotationGroups = scaffold.generateMesh(region, options)
         with ChangeManager(fieldmodule):
-            annotationGroups = scaffold.generateBaseMesh(region, options)
+            annotationGroups = scaffold.generateBaseMesh(region, options)[0]
             fieldmodule.defineAllFaces()
             originalAnnotationGroups = copy.copy(annotationGroups)
             for annotationGroup in annotationGroups:
@@ -618,7 +618,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
 
-        annotationGroups = scaffold.generateMesh(region, options)
+        annotationGroups = scaffold.generateMesh(region, options)[0]
         self.assertEqual(54, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -751,7 +751,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)
+        annotationGroups = scaffold.generateMesh(region, options)[0]
         self.assertEqual(54, len(annotationGroups))
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)

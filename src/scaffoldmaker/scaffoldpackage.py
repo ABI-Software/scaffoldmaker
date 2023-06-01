@@ -66,6 +66,9 @@ class ScaffoldPackage:
         self._userAnnotationGroups = []
         # region is set in generate(); can only instantiate user AnnotationGroups then
         self._region = None
+        # a scaffold/mesh type may optionally store an object used in its construction for
+        # use by a parent scaffold/mesh type
+        self._constructionObject = None
         self._nextNodeIdentifier = 1
 
     def __eq__(self, other):
@@ -118,6 +121,13 @@ class ScaffoldPackage:
         if self._isGenerated:
             self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
 
+    def getConstructionObject(self):
+        """
+        Get optional object used in constructing mesh.
+        :return: Any scaffold/mesh type specific object, or None if none.
+        """
+        return self._constructionObject
+
     def getMeshEdits(self):
         return self._meshEdits
 
@@ -129,6 +139,14 @@ class ScaffoldPackage:
 
     def getScaffoldType(self):
         return self._scaffoldType
+
+    def getRegion(self):
+        """
+        Get Zinc Region mesh is constructed in.
+        Only set by calling generate().
+        :return: Region or None if generate() has not been called.
+        """
+        return self._region
 
     def getRotation(self):
         return self._rotation
@@ -240,7 +258,8 @@ class ScaffoldPackage:
         '''
         self._region = region
         with ChangeManager(region.getFieldmodule()):
-            self._autoAnnotationGroups = self._scaffoldType.generateMesh(region, self._scaffoldSettings)
+            self._autoAnnotationGroups, self._constructionObject = \
+                self._scaffoldType.generateMesh(region, self._scaffoldSettings)
             # need next node identifier for creating user-defined marker points
             nodes = region.getFieldmodule().findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
             self._nextNodeIdentifier = get_maximum_node_identifier(nodes) + 1

@@ -26,7 +26,7 @@ from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, Cylind
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.vector import setMagnitude
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 
 
 class MeshType_3d_wholebody1(Scaffold_base):
@@ -48,13 +48,15 @@ Generates body coordinates using a solid cylinder of all cube elements,
     centralPathDefaultScaffoldPackages = {
         'Default': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': cylinder1Settings,
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[0.0, 0.0, 0.0], setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5),
-                     [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]],
-                    [setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis1, cylinder1Settings['Length']),
-                     setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]]
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[0.0, 0.0, 0.0], setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5),
+                         [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]]),
+                    (2, [setMagnitude(axis1, cylinder1Settings['Length']),
+                         setMagnitude(axis1, cylinder1Settings['Length']),
+                         setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]])
                 ])
         })
     }
@@ -204,9 +206,8 @@ Generates body coordinates using a solid cylinder of all cube elements,
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: List of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
-
         baseParameterSetName = options['Base parameter set']
         isHuman = 'Human' in baseParameterSetName
         isRat = 'Rat' in baseParameterSetName
@@ -846,7 +847,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
             annotationGroup.createMarkerNode(nodeIdentifier, bodyCoordinates, nerveCoordinatesValues)
             nodeIdentifier += 1
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):
