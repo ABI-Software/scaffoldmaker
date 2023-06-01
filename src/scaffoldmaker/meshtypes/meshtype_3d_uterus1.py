@@ -14,7 +14,7 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.uterus_terms import get_uterus_term
-from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -23,7 +23,7 @@ from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, get_bifurcation_triple_point
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.geometry import createEllipsePoints
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 
 class MeshType_3d_uterus1(Scaffold_base):
     """
@@ -36,22 +36,22 @@ class MeshType_3d_uterus1(Scaffold_base):
             'scaffoldSettings': {
                 "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11-12-13-14"
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24], [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]],
-                    [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]],
-                    [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22], [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]],
-                    [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20], [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]],
-                    [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]], [0.36, 0.18, -0.92], [-0.10, 0.09, 0.10], [0.07, -0.98, -0.16], [-0.01, 0.01, -0.10]],
-                    [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40], [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]],
-                    [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22], [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]],
-                    [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22], [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]],
-                    [[-5.97, 0.24, 3.53], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20], [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]],
-                    [[0.00, 0.00, -2.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15], [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]],
-                    [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]],
-                    [[0.00, 0.00, -6.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]],
-                    [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]],
-                    [[0.00, 0.00, -10.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]]),
+                    (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24], [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
+                    (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
+                    (3, [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22], [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]]),
+                    (4, [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20], [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]]),
+                    (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]], [0.36, 0.18, -0.92], [-0.10, 0.09, 0.10], [0.07, -0.98, -0.16], [-0.01, 0.01, -0.10]]),
+                    (6, [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40], [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
+                    (7, [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22], [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
+                    (8, [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22], [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
+                    (9, [[-5.97, 0.24, 3.53], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20], [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]]),
+                    (10, [[0.00, 0.00, -2.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15], [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]]),
+                    (11, [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (12, [[0.00, 0.00, -6.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (13, [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (14, [[0.00, 0.00, -10.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -364,7 +364,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                  meshGroups=[vaginaMeshGroup, uterusMeshGroup])
 
         fm.endChange()
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -409,47 +409,30 @@ class UterusCentralPath:
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
-                                            groupName='right uterine horn')
-        cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
-                                            groupName='left uterine horn')
-        # should be fixed here (find a general way that works for any segment sequences)
-        # Remove the first node of the left horn and add it to the end of the list
-        cx_leftHorn.append(cx_leftHorn[0])
-        cd1_leftHorn.append(cd1_leftHorn[0])
-        cd2_leftHorn.append(cd2_leftHorn[0])
-        cd12_leftHorn.append(cd12_leftHorn[0])
-        cx_leftHorn = cx_leftHorn[1:]
-        cd1_leftHorn = cd1_leftHorn[1:]
-        cd2_leftHorn = cd2_leftHorn[1:]
-        cd12_leftHorn = cd12_leftHorn[1:]
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
 
-        # [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]]
-        cd1_leftHorn = cd1_leftHorn[:-1]
-        cd1_leftHorn.append([6.82, -0.07, -2.67])
-        cd2_leftHorn = cd2_leftHorn[:-1]
-        cd2_leftHorn.append([0.85, -0.02, 0.53])
+        tmpGroup = tmpFieldmodule.findFieldByName('right uterine horn').castGroup()
+        cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn = get_nodeset_path_field_parameters(
+            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
 
-        cx_cervix, cd1, cd2, cd12_cervix = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
-                                            groupName='uterine cervix')
+        tmpGroup = tmpFieldmodule.findFieldByName('left uterine horn').castGroup()
+        cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn = get_nodeset_path_field_parameters(
+            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
 
-        cd1_cervix = []
-        cd1_cervix.append([0.00, 0.00, -2.00])
-        cd1_cervix += cd1[1:]
-        cd2_cervix = []
-        cd2_cervix.append([1.00, 0.00, 0.00])
-        cd2_cervix += cd2[1:]
+        tmpGroup = tmpFieldmodule.findFieldByName('uterine cervix').castGroup()
+        cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix = get_nodeset_path_field_parameters(
+            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
 
-        cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina = \
-            extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                        Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
-                                            groupName='vagina')
+        tmpGroup = tmpFieldmodule.findFieldByName('vagina').castGroup()
+        cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina = get_nodeset_path_field_parameters(
+            tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+
 
         # Find arcLength
         # Right horn
@@ -524,6 +507,10 @@ class UterusCentralPath:
         sx_cervix_group = [sx_cervix, sd1_cervix, sd2_cervix, sd12_cervix]
         sx_vagina_group = [sx_vagina, sd1_vagina, sd2_vagina, sd12_vagina]
 
+        del tmpGroup
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
         del tmpRegion
 
         # Find nodes of uterus cervix and horn
@@ -544,6 +531,156 @@ class UterusCentralPath:
         self.sx_left_horn_group = sx_left_horn_group
         self.sx_cervix_group = sx_cervix_group
         self.sx_vagina_group = sx_vagina_group
+
+
+# class UterusCentralPath:
+#     """
+#     Generates sampled central path for uterus scaffold.
+#     """
+#     def __init__(self, region, centralPath, targetElementLength):
+#         """
+#         :param region: Zinc region to define model in.
+#         :param centralPath: Central path subscaffold from MeshType_1d_network_layout1
+#         """
+#
+#         # Central path
+#         tmpRegion = region.createRegion()
+#         centralPath.generate(tmpRegion)
+#         cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn = \
+#             extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+#                                                         Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
+#                                             groupName='right uterine horn')
+#         cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn = \
+#             extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+#                                                         Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
+#                                             groupName='left uterine horn')
+#         # should be fixed here (find a general way that works for any segment sequences)
+#         # Remove the first node of the left horn and add it to the end of the list
+#         cx_leftHorn.append(cx_leftHorn[0])
+#         cd1_leftHorn.append(cd1_leftHorn[0])
+#         cd2_leftHorn.append(cd2_leftHorn[0])
+#         cd12_leftHorn.append(cd12_leftHorn[0])
+#         cx_leftHorn = cx_leftHorn[1:]
+#         cd1_leftHorn = cd1_leftHorn[1:]
+#         cd2_leftHorn = cd2_leftHorn[1:]
+#         cd12_leftHorn = cd12_leftHorn[1:]
+#
+#         # [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]]
+#         cd1_leftHorn = cd1_leftHorn[:-1]
+#         cd1_leftHorn.append([6.82, -0.07, -2.67])
+#         cd2_leftHorn = cd2_leftHorn[:-1]
+#         cd2_leftHorn.append([0.85, -0.02, 0.53])
+#
+#         cx_cervix, cd1, cd2, cd12_cervix = \
+#             extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+#                                                         Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
+#                                             groupName='uterine cervix')
+#
+#         cd1_cervix = []
+#         cd1_cervix.append([0.00, 0.00, -2.00])
+#         cd1_cervix += cd1[1:]
+#         cd2_cervix = []
+#         cd2_cervix.append([1.00, 0.00, 0.00])
+#         cd2_cervix += cd2[1:]
+#
+#         cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina = \
+#             extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+#                                                         Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2],
+#                                             groupName='vagina')
+#
+#         # Find arcLength
+#         # Right horn
+#         rightHornLength = 0.0
+#         rightHornSegmentLengthList = []
+#         elementsCountInRightHorn = len(cx_rightHorn) - 1
+#         for e in range(elementsCountInRightHorn):
+#             arcLength = interp.getCubicHermiteArcLength(cx_rightHorn[e], cd1_rightHorn[e],
+#                                                         cx_rightHorn[e + 1], cd1_rightHorn[e + 1])
+#             rightHornSegmentLengthList.append(arcLength)
+#             rightHornLength += arcLength
+#         elementsAlongRightHorn = math.ceil(rightHornLength / targetElementLength)
+#
+#         # Left horn
+#         leftHornLength = 0.0
+#         leftHornSegmentLengthList = []
+#         elementsCountInLeftHorn = len(cx_leftHorn) - 1
+#         for e in range(elementsCountInLeftHorn):
+#             arcLength = interp.getCubicHermiteArcLength(cx_leftHorn[e], cd1_leftHorn[e],
+#                                                         cx_leftHorn[e + 1], cd1_leftHorn[e + 1])
+#             leftHornSegmentLengthList.append(arcLength)
+#             leftHornLength += arcLength
+#         elementsAlongLeftHorn = math.ceil(leftHornLength / targetElementLength)
+#
+#         # Cervix
+#         cervixLength = 0.0
+#         cervixSegmentLengthList = []
+#         elementsCountInCervix = len(cx_cervix) - 1
+#         for e in range(elementsCountInCervix):
+#             arcLength = interp.getCubicHermiteArcLength(cx_cervix[e], cd1_cervix[e],
+#                                                         cx_cervix[e + 1], cd1_cervix[e + 1])
+#             cervixSegmentLengthList.append(arcLength)
+#             cervixLength += arcLength
+#         elementsAlongCervix = math.ceil(cervixLength / targetElementLength)
+#
+#         # Vagina
+#         vaginaLength = 0.0
+#         vaginaSegmentLengthList = []
+#         elementsCountInVagina = len(cx_vagina) - 1
+#         for e in range(elementsCountInVagina):
+#             arcLength = interp.getCubicHermiteArcLength(cx_vagina[e], cd1_vagina[e],
+#                                                         cx_vagina[e + 1], cd1_vagina[e + 1])
+#             vaginaSegmentLengthList.append(arcLength)
+#             vaginaLength += arcLength
+#         elementsAlongVagina = math.ceil(vaginaLength / targetElementLength)
+#
+#         # Sample central path
+#         sx_rightHorn, sd1_rightHorn, se_rightHorn, sxi_rightHorn, ssf_rightHorn = interp.sampleCubicHermiteCurves(
+#             cx_rightHorn, cd1_rightHorn, elementsAlongRightHorn)
+#         sd2_rightHorn, sd12_rightHorn = interp.interpolateSampleCubicHermite(cd2_rightHorn, cd12_rightHorn,
+#                                                                              se_rightHorn, sxi_rightHorn, ssf_rightHorn)
+#         # sd3_rightHorn, sd13_rightHorn = interp.interpolateSampleCubicHermite(cd3_rightHorn, cd13_rightHorn,
+#         #                                                                      se_rightHorn, sxi_rightHorn, ssf_rightHorn)
+#
+#         sx_leftHorn, sd1_leftHorn, se_leftHorn, sxi_leftHorn, ssf_leftHorn = interp.sampleCubicHermiteCurves(
+#             cx_leftHorn, cd1_leftHorn, elementsAlongLeftHorn)
+#         sd2_leftHorn, sd12_leftHorn = interp.interpolateSampleCubicHermite(cd2_leftHorn, cd12_leftHorn, se_leftHorn,
+#                                                                            sxi_leftHorn, ssf_leftHorn)
+#
+#         sx_cervix, sd1_cervix, se_cervix, sxi_cervix, ssf_cervix = interp.sampleCubicHermiteCurves(
+#             cx_cervix, cd1_cervix, elementsAlongCervix)
+#         sd2_cervix, sd12_cervix = interp.interpolateSampleCubicHermite(cd2_cervix, cd12_cervix, se_cervix, sxi_cervix,
+#                                                                        ssf_cervix)
+#
+#         sx_vagina, sd1_vagina, se_vagina, sxi_vagina, ssf_vagina = interp.sampleCubicHermiteCurves(
+#             cx_vagina, cd1_vagina, elementsAlongVagina)
+#         sd2_vagina, sd12_vagina = interp.interpolateSampleCubicHermite(cd2_vagina, cd12_vagina, se_vagina, sxi_vagina,
+#                                                                        ssf_vagina)
+#
+#         sx_right_horn_group = [sx_rightHorn, sd1_rightHorn, sd2_rightHorn, sd12_rightHorn]
+#         sx_left_horn_group = [sx_leftHorn, sd1_leftHorn, sd2_leftHorn, sd12_leftHorn]
+#         sx_cervix_group = [sx_cervix, sd1_cervix, sd2_cervix, sd12_cervix]
+#         sx_vagina_group = [sx_vagina, sd1_vagina, sd2_vagina, sd12_vagina]
+#
+#         del tmpRegion
+#
+#         # Find nodes of uterus cervix and horn
+#         self.cx_right_horn_group = [cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn]
+#         self.cx_left_horn_group = [cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn]
+#         self.cx_cervix_group = [cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix]
+#         self.cx_vagina_group = [cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina]
+#         self.rightHornLength = rightHornLength
+#         self.rightHornSegmentLengthList = rightHornSegmentLengthList
+#         self.leftHornLength = leftHornLength
+#         self.leftHornSegmentLengthList = leftHornSegmentLengthList
+#         self.cervixLength = cervixLength
+#         self.cervixSegmentLengthList = cervixSegmentLengthList
+#         self.vaginaLength = vaginaLength
+#         self.vaginaSegmentLengthList = vaginaSegmentLengthList
+#
+#         self.sx_right_horn_group = sx_right_horn_group
+#         self.sx_left_horn_group = sx_left_horn_group
+#         self.sx_cervix_group = sx_cervix_group
+#         self.sx_vagina_group = sx_vagina_group
 
 def getCoordinatesAlongTube3D(sx_group, elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
                               wallThickness, startRadian):
