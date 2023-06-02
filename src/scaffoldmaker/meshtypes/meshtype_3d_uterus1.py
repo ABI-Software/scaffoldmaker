@@ -42,7 +42,9 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
                     (3, [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22], [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]]),
                     (4, [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20], [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]]),
-                    (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]], [0.36, 0.18, -0.92], [-0.10, 0.09, 0.10], [0.07, -0.98, -0.16], [-0.01, 0.01, -0.10]]),
+                    (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]],
+                         [[0.66, 0.01, -0.76], [0.66, -0.01, 0.76], [1.00, 0.00, 0.00]], [-0.10, 0.09, 0.10],
+                         [[0.05, -1.00, 0.03], [0.05, -1.00, 0.03], [0.05, -1.00, 0.03]], [-0.01, 0.01, -0.10]]),
                     (6, [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40], [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
                     (7, [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22], [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
                     (8, [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22], [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
@@ -414,24 +416,53 @@ class UterusCentralPath:
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
 
         tmpGroup = tmpFieldmodule.findFieldByName('right uterine horn').castGroup()
-        cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn = get_nodeset_path_field_parameters(
+        cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn, cd3_rightHorn, cd13_rightHorn = get_nodeset_path_field_parameters(
             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+             Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
 
         tmpGroup = tmpFieldmodule.findFieldByName('left uterine horn').castGroup()
-        cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn = get_nodeset_path_field_parameters(
+        cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn, cd3_leftHorn, cd13_leftHorn = get_nodeset_path_field_parameters(
             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+             Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
 
         tmpGroup = tmpFieldmodule.findFieldByName('uterine cervix').castGroup()
-        cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix = get_nodeset_path_field_parameters(
+        cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix, cd3_cervix, cd13_cervix = get_nodeset_path_field_parameters(
             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+             Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
+        cx_leftHorn.append(cx_leftHorn[0])
+        cd1_leftHorn.append(cd1_leftHorn[0])
+        cd2_leftHorn.append(cd2_leftHorn[0])
+        cd12_leftHorn.append(cd12_leftHorn[0])
+        cd3_leftHorn.append(cd3_leftHorn[0])
+        cd13_leftHorn.append(cd13_leftHorn[0])
+        cx_leftHorn = cx_leftHorn[1:]
+        cd1_leftHorn = cd1_leftHorn[1:]
+        cd2_leftHorn = cd2_leftHorn[1:]
+        cd12_leftHorn = cd12_leftHorn[1:]
+        cd3_leftHorn = cd3_leftHorn[1:]
+        cd13_leftHorn = cd13_leftHorn[1:]
+
+        # # [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]]
+        # cd1_leftHorn = cd1_leftHorn[:-1]
+        # cd1_leftHorn.append([6.82, -0.07, -2.67])
+        # cd2_leftHorn = cd2_leftHorn[:-1]
+        # cd2_leftHorn.append([0.66, -0.01, 0.76])
+        #
+        # cd1_cervix = []
+        # cd1_cervix.append([0.00, 0.00, -2.00])
+        # cd1_cervix += cd1[1:]
+        # cd2_cervix = []
+        # cd2_cervix.append([1.00, 0.00, 0.00])
+        # cd2_cervix += cd2[1:]
 
         tmpGroup = tmpFieldmodule.findFieldByName('vagina').castGroup()
-        cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina = get_nodeset_path_field_parameters(
+        cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina, cd3_vagina, cd13_vagina = get_nodeset_path_field_parameters(
             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+             Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
 
 
         # Find arcLength
@@ -484,28 +515,34 @@ class UterusCentralPath:
             cx_rightHorn, cd1_rightHorn, elementsAlongRightHorn)
         sd2_rightHorn, sd12_rightHorn = interp.interpolateSampleCubicHermite(cd2_rightHorn, cd12_rightHorn,
                                                                              se_rightHorn, sxi_rightHorn, ssf_rightHorn)
-        # sd3_rightHorn, sd13_rightHorn = interp.interpolateSampleCubicHermite(cd3_rightHorn, cd13_rightHorn,
-        #                                                                      se_rightHorn, sxi_rightHorn, ssf_rightHorn)
+        sd3_rightHorn, sd13_rightHorn = interp.interpolateSampleCubicHermite(cd3_rightHorn, cd13_rightHorn,
+                                                                             se_rightHorn, sxi_rightHorn, ssf_rightHorn)
 
         sx_leftHorn, sd1_leftHorn, se_leftHorn, sxi_leftHorn, ssf_leftHorn = interp.sampleCubicHermiteCurves(
             cx_leftHorn, cd1_leftHorn, elementsAlongLeftHorn)
         sd2_leftHorn, sd12_leftHorn = interp.interpolateSampleCubicHermite(cd2_leftHorn, cd12_leftHorn, se_leftHorn,
                                                                            sxi_leftHorn, ssf_leftHorn)
+        sd3_leftHorn, sd13_leftHorn = interp.interpolateSampleCubicHermite(cd3_leftHorn, cd13_leftHorn,
+                                                                             se_leftHorn, sxi_rightHorn, ssf_leftHorn)
 
         sx_cervix, sd1_cervix, se_cervix, sxi_cervix, ssf_cervix = interp.sampleCubicHermiteCurves(
             cx_cervix, cd1_cervix, elementsAlongCervix)
         sd2_cervix, sd12_cervix = interp.interpolateSampleCubicHermite(cd2_cervix, cd12_cervix, se_cervix, sxi_cervix,
                                                                        ssf_cervix)
+        sd3_cervix, sd13_cervix = interp.interpolateSampleCubicHermite(cd3_cervix, cd13_cervix,
+                                                                             se_cervix, sxi_cervix, ssf_cervix)
 
         sx_vagina, sd1_vagina, se_vagina, sxi_vagina, ssf_vagina = interp.sampleCubicHermiteCurves(
             cx_vagina, cd1_vagina, elementsAlongVagina)
         sd2_vagina, sd12_vagina = interp.interpolateSampleCubicHermite(cd2_vagina, cd12_vagina, se_vagina, sxi_vagina,
                                                                        ssf_vagina)
+        sd3_vagina, sd13_vagina = interp.interpolateSampleCubicHermite(cd3_vagina, cd13_vagina,
+                                                                             se_vagina, sxi_vagina, ssf_vagina)
 
-        sx_right_horn_group = [sx_rightHorn, sd1_rightHorn, sd2_rightHorn, sd12_rightHorn]
-        sx_left_horn_group = [sx_leftHorn, sd1_leftHorn, sd2_leftHorn, sd12_leftHorn]
-        sx_cervix_group = [sx_cervix, sd1_cervix, sd2_cervix, sd12_cervix]
-        sx_vagina_group = [sx_vagina, sd1_vagina, sd2_vagina, sd12_vagina]
+        sx_right_horn_group = [sx_rightHorn, sd1_rightHorn, sd2_rightHorn, sd12_rightHorn, sd3_rightHorn, sd13_rightHorn]
+        sx_left_horn_group = [sx_leftHorn, sd1_leftHorn, sd2_leftHorn, sd12_leftHorn, sd3_leftHorn, sd13_leftHorn]
+        sx_cervix_group = [sx_cervix, sd1_cervix, sd2_cervix, sd12_cervix, sd3_cervix, sd13_cervix]
+        sx_vagina_group = [sx_vagina, sd1_vagina, sd2_vagina, sd12_vagina, sd3_vagina, sd13_vagina]
 
         del tmpGroup
         del tmpCoordinates
@@ -514,10 +551,10 @@ class UterusCentralPath:
         del tmpRegion
 
         # Find nodes of uterus cervix and horn
-        self.cx_right_horn_group = [cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn]
-        self.cx_left_horn_group = [cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn]
-        self.cx_cervix_group = [cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix]
-        self.cx_vagina_group = [cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina]
+        self.cx_right_horn_group = [cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn, cd3_rightHorn, cd13_rightHorn]
+        self.cx_left_horn_group = [cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn, cd3_leftHorn, cd13_leftHorn]
+        self.cx_cervix_group = [cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix, cd3_cervix, cd13_cervix]
+        self.cx_vagina_group = [cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina, cd3_vagina, cd13_vagina]
         self.rightHornLength = rightHornLength
         self.rightHornSegmentLengthList = rightHornSegmentLengthList
         self.leftHornLength = leftHornLength
@@ -685,18 +722,18 @@ class UterusCentralPath:
 def getCoordinatesAlongTube3D(sx_group, elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
                               wallThickness, startRadian):
 
-    d3List = []
-    for n in range(len(sx_group[0])):
-        d3Dir = vector.normalise(vector.crossproduct3(sx_group[1][n], sx_group[2][n]))
-        d3Mag = vector.magnitude(sx_group[2][n])
-        v = vector.setMagnitude(d3Dir, d3Mag)
-        d3List.append(v)
+    # d3List = []
+    # for n in range(len(sx_group[0])):
+    #     d3Dir = vector.normalise(vector.crossproduct3(sx_group[1][n], sx_group[2][n]))
+    #     d3Mag = vector.magnitude(sx_group[2][n])
+    #     v = vector.setMagnitude(d3Dir, d3Mag)
+    #     d3List.append(v)
 
     # Create ellipses along tube around the central path
     xEllipsesAlong = []
     d1EllipsesAlong = []
     for n in range(len(sx_group[0])):
-        px, pd1 = createEllipsePoints(sx_group[0][n], 2 * math.pi, sx_group[2][n], d3List[n], elementsCountAround,
+        px, pd1 = createEllipsePoints(sx_group[0][n], 2 * math.pi, sx_group[2][n], sx_group[4][n], elementsCountAround,
                                       startRadians=startRadian)
         xEllipsesAlong.append(px)
         d1EllipsesAlong.append(pd1)
