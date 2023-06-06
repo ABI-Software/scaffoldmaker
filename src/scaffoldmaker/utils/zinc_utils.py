@@ -126,7 +126,7 @@ def get_next_unused_node_identifier(nodeset: Nodeset, start_identifier=1) -> int
     return identifier
 
 
-def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_dimension=None):
+def group_add_group_elements(group: FieldGroup, other_group: FieldGroup, only_dimension=None):
     '''
     Add to group elements and/or nodes from other_group, which may be in a descendent region.
     :param group: The FieldGroup to modify.
@@ -139,12 +139,16 @@ def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_
         for dimension in [ only_dimension ] if only_dimension else range(4):
             if dimension > 0:
                 mesh = other_fieldmodule.findMeshByDimension(dimension)
-                mesh_group = group.getOrCreateMeshGroup(mesh)
-                mesh_group.addElementsConditional(other_group)
+                other_mesh_group = other_group.getMeshGroup(mesh)
+                if other_mesh_group.isValid() and (other_mesh_group.getSize() > 0):
+                    mesh_group = group.getOrCreateMeshGroup(mesh)
+                    mesh_group.addElementsConditional(other_group)
             elif dimension == 0:
                 nodeset = other_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-                nodeset_group = group.getOrCreateNodesetGroup(nodeset)
-                nodeset_group.addNodesConditional(other_group)
+                other_nodeset_group = other_group.getNodesetGroup(nodeset)
+                if other_nodeset_group.isValid() and (other_nodeset_group.getSize() > 0):
+                    nodeset_group = group.getOrCreateNodesetGroup(nodeset)
+                    nodeset_group.addNodesConditional(other_group)
 
 
 def group_get_highest_dimension(group : FieldGroup):
