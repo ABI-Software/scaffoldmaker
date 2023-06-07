@@ -29,18 +29,18 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
             'Test line': ScaffoldPackage(MeshType_1d_path1, {
                 'scaffoldSettings': {
                     'D2 derivatives': True,
+                    'D3 derivatives': True,
                     'Coordinate dimensions': 3,
                     'Length': 1.0,
                     'Number of elements': 3
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
-                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                     Node.VALUE_LABEL_D2_DS1DS2], [
-                        (1, [[-2.3, 18.5, -4.4], [-4.2, -0.8, 3.7], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
-                        (2, [[-8.6, 16.3, -0.4], [-7.1, -2.7, 1.6], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
-                        (3, [[-18.3, 12.6, -1.5], [-6.4, -1.7, -3.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
-                        (4, [[-15.6, 13.7, -6.1], [7.0, 2.1, -1.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]])
-                    ]),
+                    [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [
+                    (1,  [ [  -2.30, 18.50,  -4.40 ], [ -4.20, -0.80,   3.70 ], [  0.00,  0.60,  0.00 ], [  0.00,  0.11,  0.00 ], [ -0.33,  0.01, -0.50 ], [ 0.00, 0.00, 0.50 ] ] ),
+                    (2,  [ [  -8.60, 16.30,  -0.40 ], [ -7.10, -2.70,   1.60 ], [  0.00,  0.73,  0.00 ], [  0.00,  0.14,  0.00 ], [  0.08,  0.09, -0.72 ], [ 0.00, 0.00, 0.50 ] ] ),
+                    (3,  [ [ -18.30, 12.60,  -1.50 ], [ -6.40, -1.70,  -3.80 ], [  0.00,  0.90,  0.00 ], [  0.00,  0.13,  0.00 ], [  0.61,  0.04, -0.65 ], [ 0.00, 0.00, 0.50 ] ] ),
+                    (4,  [ [ -15.60, 13.70,  -6.10 ], [  7.00,  2.10,  -1.80 ], [  0.00,  1.00,  0.00 ], [  0.00,  0.05,  0.00 ], [  0.50,  0.08,  0.86 ], [ 0.00, 0.00, 0.50 ] ] ) ] ),
+                    
                 'userAnnotationGroups': [
                     {
                         '_AnnotationGroup': True,
