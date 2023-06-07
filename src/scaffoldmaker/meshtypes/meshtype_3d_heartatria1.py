@@ -707,7 +707,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
         cls.updateSubScaffoldOptions(options)
 
@@ -3465,7 +3465,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
                     nid1 = fpTrackSurfaceFirstNodeIdentifier + e2 * nodesCount1 + e1
                     element.setNodesByIdentifier(eft2d, [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1])
 
-        return annotationGroups
+        return annotationGroups, None
 
 
     @classmethod

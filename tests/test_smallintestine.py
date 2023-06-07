@@ -9,11 +9,11 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, exnodeStringFromNodeValues
-
+from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
+    exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 from testutils import assertAlmostEqualList
 
 
@@ -33,35 +33,36 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                     'Length': 1.0,
                     'Number of elements': 3
                 },
-                'meshEdits': exnodeStringFromNodeValues(
-                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    [ [  -2.30, 18.50,  -4.40 ], [ -4.20, -0.80,   3.70 ], [  0.00,  0.60,  0.00 ], [  0.00,  0.11,  0.00 ], [ -0.33,  0.01, -0.50 ], [ 0.00, 0.00, 0.50 ] ],
-                    [ [  -8.60, 16.30,  -0.40 ], [ -7.10, -2.70,   1.60 ], [  0.00,  0.73,  0.00 ], [  0.00,  0.14,  0.00 ], [  0.08,  0.09, -0.72 ], [ 0.00, 0.00, 0.50 ] ],
-                    [ [ -18.30, 12.60,  -1.50 ], [ -6.40, -1.70,  -3.80 ], [  0.00,  0.90,  0.00 ], [  0.00,  0.13,  0.00 ], [  0.61,  0.04, -0.65 ], [ 0.00, 0.00, 0.50 ] ],
-                    [ [ -15.60, 13.70,  -6.10 ], [  7.00,  2.10,  -1.80 ], [  0.00,  1.00,  0.00 ], [  0.00,  0.05,  0.00 ], [  0.50,  0.08,  0.86 ], [ 0.00, 0.00, 0.50 ] ] ] ),
-                
+                'meshEdits': exnode_string_from_nodeset_field_parameters(
+                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                     Node.VALUE_LABEL_D2_DS1DS2], [
+                        (1, [[-2.3, 18.5, -4.4], [-4.2, -0.8, 3.7], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
+                        (2, [[-8.6, 16.3, -0.4], [-7.1, -2.7, 1.6], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
+                        (3, [[-18.3, 12.6, -1.5], [-6.4, -1.7, -3.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]]),
+                        (4, [[-15.6, 13.7, -6.1], [7.0, 2.1, -1.8], [0.0, 5.0, 0.0], [0.0, 0.0, 0.5]])
+                    ]),
                 'userAnnotationGroups': [
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1',
-                    'name': get_smallintestine_term('duodenum')[0],
-                    'ontId': get_smallintestine_term('duodenum')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '2',
-                    'name': get_smallintestine_term('jejunum')[0],
-                    'ontId': get_smallintestine_term('jejunum')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '3',
-                    'name': get_smallintestine_term('ileum')[0],
-                    'ontId': get_smallintestine_term('ileum')[1]
-                }]
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '1',
+                        'name': get_smallintestine_term('duodenum')[0],
+                        'ontId': get_smallintestine_term('duodenum')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '2',
+                        'name': get_smallintestine_term('jejunum')[0],
+                        'ontId': get_smallintestine_term('jejunum')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '3',
+                        'name': get_smallintestine_term('ileum')[0],
+                        'ontId': get_smallintestine_term('ileum')[1]
+                    }]
             })
         }
         centralPathOption = centralPathDefaultScaffoldPackages['Test line']
@@ -84,13 +85,18 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx = extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE])[0]
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE])[0]
         self.assertEqual(4, len(cx))
         assertAlmostEqualList(self, cx[0], [-2.3, 18.5, -4.4], 1.0E-6)
         assertAlmostEqualList(self, cx[2], [-18.3, 12.6, -1.5], 1.0E-6)
+        del tmpFieldmodule
         del tmpRegion
 
-        annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)[0]
         self.assertEqual(8, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

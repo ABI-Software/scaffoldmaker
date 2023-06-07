@@ -9,7 +9,8 @@ from cmlibs.zinc.field import Field
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import extract_node_field_parameters, print_node_field_parameters
+from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, print_node_field_parameters, \
+    region_get_selection_group
 
 
 class Scaffold_base:
@@ -99,11 +100,13 @@ class Scaffold_base:
     def generateBaseMesh(cls, region, options):
         """
         Override to generate scaffold mesh in region using Zinc API with options.
+        If function makes a "construction object" needed by the caller, this is
+        returned as the second return value.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, construction object (or None)
         """
-        return []
+        return [], None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -131,21 +134,24 @@ class Scaffold_base:
     def generateMesh(cls, region, options):
         """
         Generate base or refined mesh.
-        Some classes may override to a simpler version just generating the base mesh.
+        If function makes a "construction object" needed by the caller, this is
+        returned as the second return value.
+        Note that no construction object is returned when using 'Refine'.
         :param region: Zinc region to create mesh in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup for mesh.
+        :return: list of AnnotationGroup, construction object (or None)
         """
         fieldmodule = region.getFieldmodule()
         with ChangeManager(fieldmodule):
+            constructionObject = None
             if options.get('Refine'):
                 baseRegion = region.createRegion()
-                annotationGroups = cls.generateBaseMesh(baseRegion, options)
+                annotationGroups = cls.generateBaseMesh(baseRegion, options)[0]
                 meshrefinement = MeshRefinement(baseRegion, region, annotationGroups)
                 cls.refineMesh(meshrefinement, options)
                 annotationGroups = meshrefinement.getAnnotationGroups()
             else:
-                annotationGroups = cls.generateBaseMesh(region, options)
+                annotationGroups, constructionObject = cls.generateBaseMesh(region, options)
             fieldmodule.defineAllFaces()
             oldAnnotationGroups = copy.copy(annotationGroups)
             for annotationGroup in annotationGroups:
@@ -154,7 +160,7 @@ class Scaffold_base:
             for annotationGroup in annotationGroups:
                 if annotationGroup not in oldAnnotationGroups:
                     annotationGroup.addSubelements()
-        return annotationGroups
+        return annotationGroups, constructionObject
 
     @classmethod
     def printNodeFieldParameters(cls, region, options, functionOptions, editGroupName):
@@ -163,14 +169,14 @@ class Scaffold_base:
         '''
         fieldmodule = region.getFieldmodule()
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        selectionGroup = fieldmodule.findFieldByName('cmiss_selection').castGroup()
-        if selectionGroup.isValid():
+        selectionGroup = region_get_selection_group(region)
+        if selectionGroup:
             nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
             if not nodeset.isValid():
                 print('Print node field parameters: No nodes selected')
                 return False, False
         coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        valueLabels, fieldParameters = extract_node_field_parameters(nodeset, coordinates)
+        valueLabels, fieldParameters = get_nodeset_field_parameters(nodeset, coordinates)
         numberFormat = '{:' + functionOptions['Number format (e.g. 8.3f)'] + '}'
         print_node_field_parameters(valueLabels, fieldParameters, numberFormat)
         return False, False  # no change to settings, nor node parameters
@@ -179,10 +185,8 @@ class Scaffold_base:
     def smoothDerivatives(cls, region, options, functionOptions, editGroupName):
         fieldmodule = region.getFieldmodule()
         coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        groupName = 'cmiss_selection'
-        selectionGroup = fieldmodule.findFieldByName(groupName).castGroup()
-        if not selectionGroup.isValid():
-            groupName = False  # smooth whole model
+        selectionGroup = region_get_selection_group(region)
+        groupName = selectionGroup.getName() if selectionGroup else None
         updateDirections = functionOptions['Update directions']
         scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN if functionOptions['Scaling mode']['Arithmetic mean'] else DerivativeScalingMode.HARMONIC_MEAN
         smoothing = DerivativeSmoothing(region, coordinatesField, groupName, scalingMode, editGroupName)
@@ -202,7 +206,7 @@ class Scaffold_base:
         These tell the client whether to redisplay the options or process
         the effects of node edits (which will be recorded in edit group if
         its name is supplied).
-        :return: list(tuples), (name : str, callable(region, options, editGroupName)).
+        :return: list(tuples), (name, functionOptions, callable(region, options, functionOptions, editGroupName)).
         """
         return [
             ("Print node parameters...",

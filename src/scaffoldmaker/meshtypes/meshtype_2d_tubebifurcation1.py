@@ -102,7 +102,7 @@ class MeshType_2d_tubebifurcation1(Scaffold_base):
         Generate the base bicubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
         paCount = options['Number of elements around parent']
         c1Count = options['Number of elements around child 1']
@@ -224,4 +224,4 @@ class MeshType_2d_tubebifurcation1(Scaffold_base):
         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
             paNodeId, paStartIndex, c1NodeId, c1StartIndex, c2NodeId, c2StartIndex, roNodeId, coNodeId, useCrossDerivatives)
 
-        return []
+        return [], None

@@ -65,7 +65,7 @@ class MeshType_3d_box1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         elementsCount1 = options['Number of elements 1']
         elementsCount2 = options['Number of elements 2']
@@ -141,7 +141,7 @@ class MeshType_3d_box1(Scaffold_base):
                     elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
-        return []
+        return [], None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

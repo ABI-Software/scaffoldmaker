@@ -11,7 +11,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.cecum_terms import get_cecum_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, \
     getFullProfileFromHalfHaustrum, getTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
@@ -23,8 +23,8 @@ from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
-
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_field_parameters
 
 class MeshType_3d_cecum1(Scaffold_base):
     '''
@@ -45,13 +45,14 @@ class MeshType_3d_cecum1(Scaffold_base):
                 'Length': 120.0,
                 'Number of elements': 3
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 60.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 120.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 180.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]])
-    } )
+                    (1, [[0.0, 0.0, 0.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+                    (2, [[0.0, 0.0, 60.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+                    (3, [[0.0, 0.0, 120.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
+                    (4, [[0.0, 0.0, 180.0], [0.0, 0.0, 60.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+                ])
+        } )
         }
 
     ostiumDefaultScaffoldPackages = {
@@ -263,7 +264,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         """
         cls.updateSubScaffoldOptions(options)
         centralPath = options['Central path']
@@ -308,11 +309,12 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Central path
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
-        cx, cd1, cd2, cd12 = extractPathParametersFromRegion(tmpRegion,
-                                                             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
-        # for i in range(len(cx)):
-        #     print(i, '[', cx[i], ',', cd1[i], ',', cd2[i], ',', cd12[i], '],')
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        cx, cd1, cd2, cd12 = get_nodeset_path_field_parameters(
+            tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
+            tmpFieldmodule.findFieldByName('coordinates'),
+            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2])
+        del tmpFieldmodule
         del tmpRegion
 
         # find arclength of cecum
@@ -704,7 +706,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         # Delete elements under annulus mesh
         mesh_destroy_elements_and_nodes_by_identifiers(mesh, deleteElementIdentifier)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

@@ -102,8 +102,8 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
         :param baseCentre: Centre of valve on ventriculo-arterial junction.
         :param axisSide: Unit vector in first side direction where angle around starts.
         :param axisUp: Unit vector in outflow direction of valve.
-        :return: list of AnnotationGroup
-         """
+        :return: list of AnnotationGroup, None
+        """
         unitScale = options['Unit scale']
         outerHeight = unitScale*options['Outer height']
         innerDepth = unitScale*options['Inner depth']
@@ -492,7 +492,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
                     meshGroup.addElement(element)
 
         fm.endChange()
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

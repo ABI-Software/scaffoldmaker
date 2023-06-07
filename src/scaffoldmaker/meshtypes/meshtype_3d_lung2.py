@@ -286,7 +286,7 @@ class MeshType_3d_lung2(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         '''
         # Generate two meshes: geometric[0] and lung[1] coordinates
         for coordinate in range(2):
@@ -441,31 +441,22 @@ class MeshType_3d_lung2(Scaffold_base):
                 rightMedialLungNodesetGroup = rightMedialLungGroup.getNodesetGroup(nodes)
                 leftMedialLungNodesetGroup = leftMedialLungGroup.getNodesetGroup(nodes)
 
-            # Marker points/groups
-            leftApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                               get_lung_term("apex of left lung"))
-            rightApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                get_lung_term("apex of right lung"))
-            leftVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_lung_term("ventral base of left lung"))
-            rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_lung_term("ventral base of right lung"))
-            rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_lung_term(
-                                                                       "laterodorsal tip of middle lobe of right lung"))
-            leftMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 get_lung_term("medial base of left lung"))
-            rightMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_lung_term("medial base of right lung"))
-
-            # Annotation fiducial point
-            markerGroup = findOrCreateFieldGroup(fm, "marker")
-            markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-            markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-            markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
-            markerTemplateInternal = nodes.createNodetemplate()
-            markerTemplateInternal.defineField(markerName)
-            markerTemplateInternal.defineField(markerLocation)
+                # Marker points/groups
+                leftApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_lung_term("apex of left lung"))
+                rightApexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                    get_lung_term("apex of right lung"))
+                leftVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                      get_lung_term("ventral base of left lung"))
+                rightVentralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                       get_lung_term("ventral base of right lung"))
+                rightLateralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                       get_lung_term(
+                                                                           "laterodorsal tip of middle lobe of right lung"))
+                leftMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                     get_lung_term("medial base of left lung"))
+                rightMedialGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                      get_lung_term("medial base of right lung"))
 
             cache = fm.createFieldcache()
 
@@ -648,74 +639,73 @@ class MeshType_3d_lung2(Scaffold_base):
                     concavingDiaphragmaticSurface(diaphragmCurvatureX, diaphragmCurvatureY, fm, coordinates, diaphragmCentreX,
                                                   diaphragmCentreY, lungNodesetGroup)
 
-            ###############
-            # Marker points
-            ###############
-            markerList = []
+        ###############
+        # Marker points
+        ###############
+        markerList = []
 
-            lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
+        lowerLeftElementCount = (lElementsCount1 * (lElementsCount2-1) * lElementsCount3 + lElementsCount1)
 
-            idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
-            markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 1.0, 1.0]})
+        idx = lowerLeftElementCount + (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
+        markerList.append({ "group" : leftApexGroup, "elementId" : idx, "xi" : [0.0, 1.0, 1.0]})
 
-            idx = lElementsCount1 * (lElementsCount2 // 2)
-            markerList.append({"group": leftMedialGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
+        idx = lElementsCount1 * (lElementsCount2 // 2)
+        markerList.append({"group": leftMedialGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
 
-            idx = lowerLeftElementCount + (uElementsCount1 * (uElementsCount2 - 2))
-            markerList.append({"group": leftVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+        idx = lowerLeftElementCount + (uElementsCount1 * (uElementsCount2 - 2))
+        markerList.append({"group": leftVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
-            upperLeftElementCount = (uElementsCount1 * uElementsCount2 * (uElementsCount3-1))
-            leftLungElementCount = lowerLeftElementCount + upperLeftElementCount
-            lowerRightElementCount = lowerLeftElementCount
+        upperLeftElementCount = (uElementsCount1 * uElementsCount2 * (uElementsCount3-1))
+        leftLungElementCount = lowerLeftElementCount + upperLeftElementCount
+        lowerRightElementCount = lowerLeftElementCount
 
-            idx = leftLungElementCount + lowerRightElementCount + \
-                  (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
-            markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
+        idx = leftLungElementCount + lowerRightElementCount + \
+              (uElementsCount1 * uElementsCount2 * (uElementsCount3//2) + uElementsCount2)
+        markerList.append({"group": rightApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
 
-            idx = leftLungElementCount + lElementsCount1 + 1
-            markerList.append({"group": rightMedialGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+        idx = leftLungElementCount + lElementsCount1 + 1
+        markerList.append({"group": rightMedialGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
-            idx = leftLungElementCount + lowerRightElementCount + (uElementsCount1 * (uElementsCount2 - 2))
-            markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+        idx = leftLungElementCount + lowerRightElementCount + (uElementsCount1 * (uElementsCount2 - 2))
+        markerList.append({"group": rightVentralGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
-            idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
-            markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
+        idx = leftLungElementCount + (lElementsCount1 * lElementsCount2 * lElementsCount3) + lElementsCount1
+        markerList.append({"group": rightLateralGroup, "elementId": idx, "xi": [1.0, 0.0, 1.0]})
 
-            if hasAccessoryLobe:
-                rightLungElementCount = leftLungElementCount
+        if hasAccessoryLobe:
+            rightLungElementCount = leftLungElementCount
 
-                idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1) + 1
-                idx = rightLungElementCount + leftLungElementCount + idx_temp
-                markerList.append({"group": accessoryDorsalApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+            idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1) + 1
+            idx = rightLungElementCount + leftLungElementCount + idx_temp
+            markerList.append({"group": accessoryDorsalApexGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
 
-                idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3)
-                idx = rightLungElementCount + leftLungElementCount + idx_temp
-                markerList.append({"group": accessoryVentralApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
+            idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3)
+            idx = rightLungElementCount + leftLungElementCount + idx_temp
+            markerList.append({"group": accessoryVentralApexGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
 
-                idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1)
-                idx = rightLungElementCount + leftLungElementCount + idx_temp
-                markerList.append({"group": accessoryVentralRightGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
+            idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1)
+            idx = rightLungElementCount + leftLungElementCount + idx_temp
+            markerList.append({"group": accessoryVentralRightGroup, "elementId": idx, "xi": [1.0, 1.0, 0.0]})
 
-                idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1) - 1
-                idx = rightLungElementCount + leftLungElementCount + idx_temp
-                markerList.append({"group": accessoryVentralLeftGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
+            idx_temp = accesssoryLobeElementsCount1 * accesssoryLobeElementsCount2 * (accesssoryLobeElementsCount3 - 1) - 1
+            idx = rightLungElementCount + leftLungElementCount + idx_temp
+            markerList.append({"group": accessoryVentralLeftGroup, "elementId": idx, "xi": [0.0, 1.0, 0.0]})
 
-                idx = rightLungElementCount + leftLungElementCount + 1
-                markerList.append({"group": accessoryDorsalLeftGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
+            idx = rightLungElementCount + leftLungElementCount + 1
+            markerList.append({"group": accessoryDorsalLeftGroup, "elementId": idx, "xi": [0.0, 0.0, 0.0]})
 
-                idx = rightLungElementCount + leftLungElementCount + 2
-                markerList.append({"group": accessoryDorsalRightGroup, "elementId": idx, "xi": [1.0, 0.0, 0.0]})
+            idx = rightLungElementCount + leftLungElementCount + 2
+            markerList.append({"group": accessoryDorsalRightGroup, "elementId": idx, "xi": [1.0, 0.0, 0.0]})
 
-            for marker in markerList:
-                annotationGroup = marker["group"]
-                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-                cache.setNode(markerPoint)
-                markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]),
-                                                  marker["xi"])
-                markerName.assignString(cache, annotationGroup.getName())
-                annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
-                lungNodesetGroup.addNode(markerPoint)
-                nodeIdentifier += 1
+        # Marker point annotations
+        mesh = fm_0.findMeshByDimension(3)
+        for marker in markerList:
+            annotationGroup = marker["group"]
+            markerNode = annotationGroup.createMarkerNode(
+                nodeIdentifier, element=mesh.findElementByIdentifier(marker["elementId"]), xi=marker["xi"])
+            annotationGroup.setMarkerMaterialCoordinates(lung_coordinates)
+            lungNodesetGroup.addNode(markerNode)
+            nodeIdentifier += 1
 
         if isOpenfissure:
             if numberOfLeftLung > 1:
@@ -728,7 +718,7 @@ class MeshType_3d_lung2(Scaffold_base):
             nodeIdentifier, copyIdentifiersRMU = disconnectFieldMeshGroupBoundaryNodes(
                 [coordinates_0, lung_coordinates], middleRightLungMeshGroup, upperRightLungMeshGroup, nodeIdentifier)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
