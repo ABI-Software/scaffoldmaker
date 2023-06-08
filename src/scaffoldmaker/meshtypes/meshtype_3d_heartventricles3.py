@@ -935,9 +935,13 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         #print("LV elements")
-        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, lvMeshGroup ])
+        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier,
+                                                      meshGroupsElementsAlong=[1, 1],
+                                                      meshGroups=[heartMeshGroup, lvMeshGroup])
         #print("RV elements")
-        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, rvMeshGroup ])
+        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier,
+                                                      meshGroupsElementsAlong=[1, 1],
+                                                      meshGroups=[heartMeshGroup, rvMeshGroup])
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         elementtemplate1 = mesh.createElementtemplate()
