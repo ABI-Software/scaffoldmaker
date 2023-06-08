@@ -20,7 +20,8 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, get_bifurcation_triple_point
+from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, \
+    get_bifurcation_triple_point
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
@@ -262,8 +263,9 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                              omitStartRows=0, omitEndRows=1)
 
         # Get left horn nodes
-        leftHornCoordinates = getCoordinatesAlongTube3D(cx_left_horn_group, elementsCountAround, elementsCountInLeftHorn,
-                                                        elementsCountThroughWall, wallThickness, startRadian=-math.pi/2)
+        leftHornCoordinates = getCoordinatesAlongTube3D(cx_left_horn_group, elementsCountAround,
+                                                        elementsCountInLeftHorn, elementsCountThroughWall,
+                                                        wallThickness, startRadian=-math.pi/2)
 
         lhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAround,
                                                                     elementsCountInLeftHorn, elementsCountThroughWall,
@@ -361,7 +363,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                  meshGroups=[cervixMeshGroup, uterusMeshGroup])
 
         # Create vagina elements
-        startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
+        startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall+1)
         elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInVagina,
                                                  elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                                  omitStartRows=0, omitEndRows=0,
@@ -384,6 +386,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
                                                        refineElementsCountThroughWall)
         return
+
 
 def findDerivativeBetweenPoints(v1, v2):
     """
@@ -466,192 +469,15 @@ class UterusNetworkLayout:
         self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
         self.elementsCountAlongList = elementsCountAlongList
 
-# class UterusCentralPath:
-#     """
-#     Generates sampled central path for uterus scaffold.
-#     """
-#     def __init__(self, region, centralPath, targetElementLength):
-#         """
-#         :param region: Zinc region to define model in.
-#         :param centralPath: Central path subscaffold from MeshType_1d_network_layout1
-#         """
-#
-#         # Central path
-#         tmpRegion = region.createRegion()
-#         centralPath.generate(tmpRegion)
-#         tmpFieldmodule = tmpRegion.getFieldmodule()
-#         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-#         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
-#
-#         tmpGroup = tmpFieldmodule.findFieldByName('right uterine horn').castGroup()
-#         cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn, cd3_rightHorn, cd13_rightHorn = get_nodeset_path_field_parameters(
-#             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-#             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-#              Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
-#
-#         tmpGroup = tmpFieldmodule.findFieldByName('left uterine horn').castGroup()
-#         cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn, cd3_leftHorn, cd13_leftHorn = get_nodeset_path_field_parameters(
-#             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-#             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-#              Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
-#
-#         tmpGroup = tmpFieldmodule.findFieldByName('uterine cervix').castGroup()
-#         cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix, cd3_cervix, cd13_cervix = get_nodeset_path_field_parameters(
-#             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-#             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-#              Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
-#         cx_leftHorn.append(cx_leftHorn[0])
-#         cd1_leftHorn.append(cd1_leftHorn[0])
-#         cd2_leftHorn.append(cd2_leftHorn[0])
-#         cd12_leftHorn.append(cd12_leftHorn[0])
-#         cd3_leftHorn.append(cd3_leftHorn[0])
-#         cd13_leftHorn.append(cd13_leftHorn[0])
-#         cx_leftHorn = cx_leftHorn[1:]
-#         cd1_leftHorn = cd1_leftHorn[1:]
-#         cd2_leftHorn = cd2_leftHorn[1:]
-#         cd12_leftHorn = cd12_leftHorn[1:]
-#         cd3_leftHorn = cd3_leftHorn[1:]
-#         cd13_leftHorn = cd13_leftHorn[1:]
-#
-#         # # [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]]
-#         # cd1_leftHorn = cd1_leftHorn[:-1]
-#         # cd1_leftHorn.append([6.82, -0.07, -2.67])
-#         # cd2_leftHorn = cd2_leftHorn[:-1]
-#         # cd2_leftHorn.append([0.66, -0.01, 0.76])
-#         #
-#         # cd1_cervix = []
-#         # cd1_cervix.append([0.00, 0.00, -2.00])
-#         # cd1_cervix += cd1[1:]
-#         # cd2_cervix = []
-#         # cd2_cervix.append([1.00, 0.00, 0.00])
-#         # cd2_cervix += cd2[1:]
-#
-#         tmpGroup = tmpFieldmodule.findFieldByName('vagina').castGroup()
-#         cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina, cd3_vagina, cd13_vagina = get_nodeset_path_field_parameters(
-#             tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup(), tmpCoordinates,
-#             [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-#              Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3])
-#
-#
-#         # Find arcLength
-#         # Right horn
-#         rightHornLength = 0.0
-#         rightHornSegmentLengthList = []
-#         elementsCountInRightHorn = len(cx_rightHorn) - 1
-#         for e in range(elementsCountInRightHorn):
-#             arcLength = interp.getCubicHermiteArcLength(cx_rightHorn[e], cd1_rightHorn[e],
-#                                                         cx_rightHorn[e + 1], cd1_rightHorn[e + 1])
-#             rightHornSegmentLengthList.append(arcLength)
-#             rightHornLength += arcLength
-#         elementsAlongRightHorn = math.ceil(rightHornLength / targetElementLength)
-#
-#         # Left horn
-#         leftHornLength = 0.0
-#         leftHornSegmentLengthList = []
-#         elementsCountInLeftHorn = len(cx_leftHorn) - 1
-#         for e in range(elementsCountInLeftHorn):
-#             arcLength = interp.getCubicHermiteArcLength(cx_leftHorn[e], cd1_leftHorn[e],
-#                                                         cx_leftHorn[e + 1], cd1_leftHorn[e + 1])
-#             leftHornSegmentLengthList.append(arcLength)
-#             leftHornLength += arcLength
-#         elementsAlongLeftHorn = math.ceil(leftHornLength / targetElementLength)
-#
-#         # Cervix
-#         cervixLength = 0.0
-#         cervixSegmentLengthList = []
-#         elementsCountInCervix = len(cx_cervix) - 1
-#         for e in range(elementsCountInCervix):
-#             arcLength = interp.getCubicHermiteArcLength(cx_cervix[e], cd1_cervix[e],
-#                                                         cx_cervix[e + 1], cd1_cervix[e + 1])
-#             cervixSegmentLengthList.append(arcLength)
-#             cervixLength += arcLength
-#         elementsAlongCervix = math.ceil(cervixLength / targetElementLength)
-#
-#         # Vagina
-#         vaginaLength = 0.0
-#         vaginaSegmentLengthList = []
-#         elementsCountInVagina = len(cx_vagina) - 1
-#         for e in range(elementsCountInVagina):
-#             arcLength = interp.getCubicHermiteArcLength(cx_vagina[e], cd1_vagina[e],
-#                                                         cx_vagina[e + 1], cd1_vagina[e + 1])
-#             vaginaSegmentLengthList.append(arcLength)
-#             vaginaLength += arcLength
-#         elementsAlongVagina = math.ceil(vaginaLength / targetElementLength)
-#
-#         # Sample central path
-#         sx_rightHorn, sd1_rightHorn, se_rightHorn, sxi_rightHorn, ssf_rightHorn = interp.sampleCubicHermiteCurves(
-#             cx_rightHorn, cd1_rightHorn, elementsAlongRightHorn)
-#         sd2_rightHorn, sd12_rightHorn = interp.interpolateSampleCubicHermite(cd2_rightHorn, cd12_rightHorn,
-#                                                                              se_rightHorn, sxi_rightHorn, ssf_rightHorn)
-#         sd3_rightHorn, sd13_rightHorn = interp.interpolateSampleCubicHermite(cd3_rightHorn, cd13_rightHorn,
-#                                                                              se_rightHorn, sxi_rightHorn, ssf_rightHorn)
-#
-#         sx_leftHorn, sd1_leftHorn, se_leftHorn, sxi_leftHorn, ssf_leftHorn = interp.sampleCubicHermiteCurves(
-#             cx_leftHorn, cd1_leftHorn, elementsAlongLeftHorn)
-#         sd2_leftHorn, sd12_leftHorn = interp.interpolateSampleCubicHermite(cd2_leftHorn, cd12_leftHorn, se_leftHorn,
-#                                                                            sxi_leftHorn, ssf_leftHorn)
-#         sd3_leftHorn, sd13_leftHorn = interp.interpolateSampleCubicHermite(cd3_leftHorn, cd13_leftHorn,
-#                                                                              se_leftHorn, sxi_rightHorn, ssf_leftHorn)
-#
-#         sx_cervix, sd1_cervix, se_cervix, sxi_cervix, ssf_cervix = interp.sampleCubicHermiteCurves(
-#             cx_cervix, cd1_cervix, elementsAlongCervix)
-#         sd2_cervix, sd12_cervix = interp.interpolateSampleCubicHermite(cd2_cervix, cd12_cervix, se_cervix, sxi_cervix,
-#                                                                        ssf_cervix)
-#         sd3_cervix, sd13_cervix = interp.interpolateSampleCubicHermite(cd3_cervix, cd13_cervix,
-#                                                                              se_cervix, sxi_cervix, ssf_cervix)
-#
-#         sx_vagina, sd1_vagina, se_vagina, sxi_vagina, ssf_vagina = interp.sampleCubicHermiteCurves(
-#             cx_vagina, cd1_vagina, elementsAlongVagina)
-#         sd2_vagina, sd12_vagina = interp.interpolateSampleCubicHermite(cd2_vagina, cd12_vagina, se_vagina, sxi_vagina,
-#                                                                        ssf_vagina)
-#         sd3_vagina, sd13_vagina = interp.interpolateSampleCubicHermite(cd3_vagina, cd13_vagina,
-#                                                                              se_vagina, sxi_vagina, ssf_vagina)
-#
-#         sx_right_horn_group = [sx_rightHorn, sd1_rightHorn, sd2_rightHorn, sd12_rightHorn, sd3_rightHorn, sd13_rightHorn]
-#         sx_left_horn_group = [sx_leftHorn, sd1_leftHorn, sd2_leftHorn, sd12_leftHorn, sd3_leftHorn, sd13_leftHorn]
-#         sx_cervix_group = [sx_cervix, sd1_cervix, sd2_cervix, sd12_cervix, sd3_cervix, sd13_cervix]
-#         sx_vagina_group = [sx_vagina, sd1_vagina, sd2_vagina, sd12_vagina, sd3_vagina, sd13_vagina]
-#
-#         del tmpGroup
-#         del tmpCoordinates
-#         del tmpNodes
-#         del tmpFieldmodule
-#         del tmpRegion
-#
-#         # Find nodes of uterus cervix and horn
-#         self.cx_right_horn_group = [cx_rightHorn, cd1_rightHorn, cd2_rightHorn, cd12_rightHorn, cd3_rightHorn, cd13_rightHorn]
-#         self.cx_left_horn_group = [cx_leftHorn, cd1_leftHorn, cd2_leftHorn, cd12_leftHorn, cd3_leftHorn, cd13_leftHorn]
-#         self.cx_cervix_group = [cx_cervix, cd1_cervix, cd2_cervix, cd12_cervix, cd3_cervix, cd13_cervix]
-#         self.cx_vagina_group = [cx_vagina, cd1_vagina, cd2_vagina, cd12_vagina, cd3_vagina, cd13_vagina]
-#         self.rightHornLength = rightHornLength
-#         self.rightHornSegmentLengthList = rightHornSegmentLengthList
-#         self.leftHornLength = leftHornLength
-#         self.leftHornSegmentLengthList = leftHornSegmentLengthList
-#         self.cervixLength = cervixLength
-#         self.cervixSegmentLengthList = cervixSegmentLengthList
-#         self.vaginaLength = vaginaLength
-#         self.vaginaSegmentLengthList = vaginaSegmentLengthList
-#
-#         self.sx_right_horn_group = sx_right_horn_group
-#         self.sx_left_horn_group = sx_left_horn_group
-#         self.sx_cervix_group = sx_cervix_group
-#         self.sx_vagina_group = sx_vagina_group
 
-def getCoordinatesAlongTube3D(sx_group, elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
+def getCoordinatesAlongTube3D(cx_group, elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
                               wallThickness, startRadian):
-
-    # d3List = []
-    # for n in range(len(sx_group[0])):
-    #     d3Dir = vector.normalise(vector.crossproduct3(sx_group[1][n], sx_group[2][n]))
-    #     d3Mag = vector.magnitude(sx_group[2][n])
-    #     v = vector.setMagnitude(d3Dir, d3Mag)
-    #     d3List.append(v)
 
     # Create ellipses along tube around the central path
     xEllipsesAlong = []
     d1EllipsesAlong = []
-    for n in range(len(sx_group[0])):
-        px, pd1 = createEllipsePoints(sx_group[0][n], 2 * math.pi, sx_group[2][n], sx_group[4][n], elementsCountAround,
+    for n in range(len(cx_group[0])):
+        px, pd1 = createEllipsePoints(cx_group[0][n], 2 * math.pi, cx_group[2][n], cx_group[4][n], elementsCountAround,
                                       startRadians=startRadian)
         xEllipsesAlong.append(px)
         d1EllipsesAlong.append(pd1)
@@ -755,13 +581,15 @@ def getCoordinatesAlongTube3D(sx_group, elementsCountAround, elementsCountAlongT
     # else:
     #     relativeThicknessList = []
     relativeThicknessList = []
-    xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xInner, d1Inner,
-        d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1), relativeThicknessList,
-        elementsCountAround, elementsCountAlongTube, elementsCountThroughWall, transitElementList)
+    xList, d1List, d2List, d3List, curvatureList = \
+        tubemesh.getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1),
+                                         relativeThicknessList, elementsCountAround, elementsCountAlongTube,
+                                         elementsCountThroughWall, transitElementList)
 
     coordinatesList = [xList, d1List, d2List, d3List]
 
     return coordinatesList
+
 
 def generateTubeNodes(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongTube, elementsCountAround,
                       elementsCountThroughWall, omitStartRows, omitEndRows, startNodes=None):
@@ -866,6 +694,7 @@ def generateTubeNodes(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongTub
                     d3FirstRing.append(d3FirstRingThroughWall)
 
     return nodeIdentifier
+
 
 def generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountAlongTube, elementsCountAround,
                          elementsCountThroughWall, useCrossDerivatives, omitStartRows, omitEndRows, startNodes=None,
@@ -980,14 +809,17 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
                 if e1 == 0:
                     scalefactors = [-1.0]
                     setEftScaleFactorIds(eft, [1], [])
-                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                 elif e1 == pac1Count - 1:
-                    remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elif e1 == pac1Count:
                     scalefactors = [-1.0]
                     setEftScaleFactorIds(eft, [1], [])
-                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
+                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                 elif e1 == c1Count - 1:
                     scalefactors = [-1.0]
@@ -1004,10 +836,10 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
                 result3 = '-'
             elementIdentifier += 1
             for meshGroup in meshGroups:
-               if meshGroups.index(meshGroup) == 1:
+                if meshGroups.index(meshGroup) == 1:
                     meshGroup.addElement(element)
-               elif meshGroups.index(meshGroup) == 3:
-                   meshGroup.addElement(element)
+                elif meshGroups.index(meshGroup) == 3:
+                    meshGroup.addElement(element)
 
     # Left tube part
     for e3 in range(elementsCountThroughWall):
@@ -1036,7 +868,7 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
                 bni1 = c2NodeId[e3][e1]
                 bni2 = c2NodeId[e3][(e1 + 1) % c1Count]
                 bni3 = roNodeId[e3][e1]
-                bni4 = roNodeId[e3][(e1 + 1)%c2Count]
+                bni4 = roNodeId[e3][(e1 + 1) % c2Count]
                 bni5 = bni1 + elementsCountAround
                 bni6 = bni2 + elementsCountAround
                 bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
@@ -1044,10 +876,11 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             if e1 <= c1c2Count:
                 eft = eftfactory.createEftBasic()
-                scalefactors = [ -1.0 ]
+                scalefactors = [-1.0]
                 setEftScaleFactorIds(eft, [1], [])
                 if e1 == 0:
-                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                     scaleEftNodeValueLabels(eft, [4, 8], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
                 elif e1 < (c1c2Count - 1):
@@ -1058,12 +891,14 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
                     remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
                 elif e1 == c1c2Count:
                     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft)
                 elementtemplate = elementtemplateMod
             elif e1 == c2Count - 1:
                 eft = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft)
                 elementtemplate = elementtemplateMod
             element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -1098,7 +933,8 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
             if e1 in (0, pac1Count):
                 eft = eftfactory.createEftBasic()
                 if e1 in (0, pac1Count):
-                    remapEftNodeValueLabel(eft, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft)
                 elementtemplate = elementtemplateMod
             element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -1308,11 +1144,11 @@ def create3dBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, c1Cent
 
 
 def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
-    '''
+    """
     Gets first ring of coordinates and derivatives between parent pa and
     children c1, c2, and over the crotch between c1 and c2.
-    :return rox, rod1, rod2, cox, cod1, cod2
-    '''
+    :return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
+    """
     paCount = len(pax)
     c1Count = len(c1x)
     c2Count = len(c2x)
@@ -1324,51 +1160,40 @@ def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
     paStartIndex = 0
     c1StartIndex = 0
     c2StartIndex = 0
-    pac1x  = [ None ]*pac1NodeCount
-    pac1d1 = [ None ]*pac1NodeCount
-    pac1d2 = [ None ]*pac1NodeCount
+    pac1x = [None] * pac1NodeCount
+    pac1d1 = [None] * pac1NodeCount
+    pac1d2 = [None] * pac1NodeCount
     for n in range(pac1NodeCount):
         pan = (paStartIndex + n) % paCount
         c1n = (c1StartIndex + n) % c1Count
-        # x1, d1, x2, d2 = pax[pan], mult(pad2[pan], 2.0), c1x[c1n], mult(c1d2[c1n], 2.0)
         x1, d1, x2, d2 = c1x[c1n], mult(c1d2[c1n], 2.0), pax[pan], mult(pad2[pan], 2.0)
-        pac1x [n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
-        pac1d1[n] = [ 0.0, 0.0, 0.0 ]
+        pac1x[n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
+        pac1d1[n] = [0.0, 0.0, 0.0]
         pac1d2[n] = mult(interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, 0.5), 0.5)
     paStartIndex2 = paStartIndex + pac1Count
     c1StartIndex2 = c1StartIndex + pac1Count
     c2StartIndex2 = c2StartIndex + c1c2Count
-    pac2x  = [ None ]*pac2NodeCount
-    pac2d1 = [ None ]*pac2NodeCount
-    pac2d2 = [ None ]*pac2NodeCount
+    pac2x = [None] * pac2NodeCount
+    pac2d1 = [None] * pac2NodeCount
+    pac2d2 = [None] * pac2NodeCount
     for n in range(pac2NodeCount):
         pan = (paStartIndex2 + n) % paCount
         c2n = (c2StartIndex2 + n) % c2Count
-        # x1, d1, x2, d2 = pax[pan], mult(pad2[pan], 2.0), c2x[c2n], mult(c2d2[c2n], 2.0)
         x1, d1, x2, d2 = c2x[c2n], mult(c2d2[c2n], 2.0), pax[pan], mult(pad2[pan], 2.0)
-        pac2x [n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
-        pac2d1[n] = [ 0.0, 0.0, 0.0 ]
+        pac2x[n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
+        pac2d1[n] = [0.0, 0.0, 0.0]
         pac2d2[n] = mult(interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, 0.5), 0.5)
-    c1c2x  = [ None ]*c1c2NodeCount
-    c1c2d1 = [ None ]*c1c2NodeCount
-    c1c2d2 = [ None ]*c1c2NodeCount
+    c1c2x = [None] * c1c2NodeCount
+    c1c2d1 = [None] * c1c2NodeCount
+    c1c2d2 = [None] * c1c2NodeCount
     for n in range(c1c2NodeCount):
         c1n = (c1StartIndex2 + n) % c1Count
         c2n = (c2StartIndex2 - n) % c2Count  # note: reversed
-        # x1, d1, x2, d2 = c2x[c2n], mult(c2d2[c2n], -2.0), c1x[c1n], mult(c1d2[c1n], 2.0)
         x1, d1, x2, d2 = c1x[c1n], mult(c1d2[c1n], 2.0), c2x[c2n], mult(c2d2[c2n], -2.0)
-        c1c2x [n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
-        c1c2d1[n] = [ 0.0, 0.0, 0.0 ]
+        c1c2x[n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
+        c1c2d1[n] = [0.0, 0.0, 0.0]
         c1c2d2[n] = mult(interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, 0.5), 0.5)
     # get hex triple points
-    # hex1, hex1d1, hex1d2 = get_bifurcation_triple_point(
-    #     pax[paStartIndex], mult(pad2[paStartIndex], -1.0),
-    #     c1x[c1StartIndex], c1d2[c1StartIndex],
-    #     c2x[c1StartIndex], c2d2[c2StartIndex])
-    # hex2, hex2d1, hex2d2 = get_bifurcation_triple_point(
-    #     pax[paStartIndex2], mult(pad2[paStartIndex2], -1.0),
-    #     c2x[c2StartIndex2], c2d2[c2StartIndex2],
-    #     c1x[c1StartIndex2], c1d2[c1StartIndex2])
     hex1, hex1d1, hex1d2 = get_bifurcation_triple_point(
         c2x[c1StartIndex], mult(c2d2[c2StartIndex], -1.0),
         c1x[c1StartIndex], mult(c1d2[c1StartIndex], -1.0),
@@ -1378,24 +1203,24 @@ def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
         c2x[c2StartIndex2], mult(c2d2[c2StartIndex2], -1.0),
         pax[paStartIndex2], pad2[paStartIndex2])
     # smooth around loops through hex points to get d1
-    loop1x  = [ hex2 ] + pac2x[1:-1] + [ hex1 ]
-    loop1d1 = [ [ -d for d in hex2d2 ] ] + pac2d1[1:-1] + [ hex1d1 ]
-    loop2x  = [ hex1 ] + pac1x[1:-1] + [ hex2 ]
-    loop2d1 = [ [ -d for d in hex1d2 ] ] + pac1d1[1:-1] + [ hex2d1 ]
+    loop1x = [hex2] + pac2x[1:-1] + [hex1]
+    loop1d1 = [[-d for d in hex2d2]] + pac2d1[1:-1] + [hex1d1]
+    loop2x = [hex1] + pac1x[1:-1] + [hex2]
+    loop2d1 = [[-d for d in hex1d2]] + pac1d1[1:-1] + [hex2d1]
     loop1d1 = interp.smoothCubicHermiteDerivativesLine(loop1x, loop1d1, fixStartDirection=True, fixEndDirection=True,
                                                        magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
     loop2d1 = interp.smoothCubicHermiteDerivativesLine(loop2x, loop2d1, fixStartDirection=True, fixEndDirection=True,
                                                        magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
     # smooth over "crotch" between c1 and c2
-    crotchx = [ hex2 ] + c1c2x[1:-1] + [ hex1 ]
-    crotchd1 = [ add(hex2d1, hex2d2) ] + c1c2d1[1:-1] + [ [ (-hex1d1[c] - hex1d2[c]) for c in range(3) ] ]
+    crotchx = [hex2] + c1c2x[1:-1] + [hex1]
+    crotchd1 = [add(hex2d1, hex2d2)] + c1c2d1[1:-1] + [[(-hex1d1[c] - hex1d2[c]) for c in range(3)]]
     crotchd1 = interp.smoothCubicHermiteDerivativesLine(crotchx, crotchd1, fixStartDerivative=True,
                                                         fixEndDerivative=True,
                                                         magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-    rox  = [ hex1 ] + pac1x[1:-1] + [ hex2 ] + pac2x[1:-1]
-    rod1 = [ loop1d1[-1] ] + loop2d1[1:] + loop1d1[1:-1]
-    rod2 = [ [ -d for d in loop2d1[ 0] ] ] + pac1d2[1:-1] + [ [ -d for d in loop1d1[0] ] ] + pac2d2[1:-1]
-    cox  = crotchx [1:-1]
+    rox = [hex1] + pac1x[1:-1] + [hex2] + pac2x[1:-1]
+    rod1 = [loop1d1[-1]] + loop2d1[1:] + loop1d1[1:-1]
+    rod2 = [[-d for d in loop2d1[0]]] + pac1d2[1:-1] + [[-d for d in loop1d1[0]]] + pac2d2[1:-1]
+    cox = crotchx[1:-1]
     cod1 = crotchd1[1:-1]
     cod2 = c1c2d2[1:-1]
     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
