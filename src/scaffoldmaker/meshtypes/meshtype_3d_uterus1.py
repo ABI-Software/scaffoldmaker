@@ -197,17 +197,8 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        cache = fm.createFieldcache()
         mesh = fm.findMeshByDimension(3)
         coordinates = findOrCreateFieldCoordinates(fm)
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
         firstNodeIdentifier = 1
         elementIdentifier = 1
@@ -247,7 +238,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         sx_right_horn_group = geometricNetworkLayout.sxGroups[0]
         sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
         sx_cervix_group = geometricNetworkLayout.sxGroups[2]
-        sx_vagina_group = geometricNetworkLayout.sxGroups[3]
+        # sx_vagina_group = geometricNetworkLayout.sxGroups[3]
 
         # Get right horn nodes
         rightHornCoordinates = getCoordinatesAlongTube3D(cx_right_horn_group, elementsCountAround,
@@ -286,9 +277,9 @@ class MeshType_3d_uterus1(Scaffold_base):
         vaginaCoordinates = getCoordinatesAlongTube3D(cx_vagina_group, elementsCountAround, elementsCountInVagina,
                                                       elementsCountThroughWall, wallThickness, startRadian=-math.pi/2)
 
-        vFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(vaginaCoordinates, elementsCountAround,
-                                                                    elementsCountInVagina, elementsCountThroughWall,
-                                                                    omitStartRows=0, omitEndRows=0)
+        # vFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(vaginaCoordinates, elementsCountAround,
+        #                                                             elementsCountInVagina, elementsCountThroughWall,
+        #                                                             omitStartRows=0, omitEndRows=0)
 
         # Create nodes
         # Create right horn nodes
@@ -306,8 +297,8 @@ class MeshType_3d_uterus1(Scaffold_base):
         c1Centre = sx_right_horn_group[0][-2]
         c2Centre = sx_left_horn_group[0][-2]
         paxList = cFirstRingNodeCoordinates[0]
-        pad1List = cFirstRingNodeCoordinates[1]
-        pad2List = cFirstRingNodeCoordinates[2]
+        # pad1List = cFirstRingNodeCoordinates[1]
+        # pad2List = cFirstRingNodeCoordinates[2]
         pad2 = cFirstRingNodeCoordinates[2]
         c1xList = rhLastRingNodeCoordinates[0]
         c1d2 = rhLastRingNodeCoordinates[2]
@@ -617,8 +608,6 @@ def generateTubeNodes(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongTub
     d2FirstRing = []
     d3FirstRing = []
     for n2 in range(elementsCountAlongTube + 1):
-        if n2 == 0:
-            startNodeId = nodeIdentifier - 1
         for n3 in range(elementsCountThroughWall + 1):
             lastRingNodeIdThroughWall = []
             xLastRingThroughWall = []
@@ -700,7 +689,6 @@ def generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountAlongT
                          elementsCountThroughWall, useCrossDerivatives, omitStartRows, omitEndRows, startNodes=None,
                          meshGroups=None):
 
-    cache = fm.createFieldcache()
     mesh = fm.findMeshByDimension(3)
     coordinates = findOrCreateFieldCoordinates(fm)
 
@@ -1087,7 +1075,6 @@ def create3dBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, c1Cent
                              c2d2, elementsCountThroughWall):
 
     cache = fm.createFieldcache()
-    mesh = fm.findMeshByDimension(3)
     coordinates = findOrCreateFieldCoordinates(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
