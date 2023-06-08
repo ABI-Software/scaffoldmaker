@@ -6,17 +6,17 @@ import sys
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group, \
     find_or_create_field_stored_mesh_location, find_or_create_field_stored_string
+from cmlibs.utils.zinc.finiteelement import get_highest_dimension_mesh, get_next_unused_node_identifier
+from cmlibs.utils.zinc.group import group_get_highest_dimension, \
+    identifier_ranges_from_string, identifier_ranges_to_string, \
+    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
+    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 from cmlibs.zinc.element import Element, Mesh
 from cmlibs.zinc.field import Field, FieldFiniteElement, FieldGroup, FieldStoredMeshLocation, FieldStoredString, \
     FieldFindMeshLocation
 from cmlibs.zinc.fieldcache import Fieldcache
 from cmlibs.zinc.fieldmodule import Fieldmodule
-from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh, get_next_unused_node_identifier, \
-    group_get_highest_dimension, identifier_ranges_from_string, identifier_ranges_to_string, \
-    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
-    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 
 
 class AnnotationGroup(object):

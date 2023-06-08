@@ -8,14 +8,13 @@ import math
 
 from cmlibs.maths.vectorops import euler_to_rotation_matrix
 from cmlibs.utils.zinc.field import createFieldEulerAnglesRotationMatrix
-from cmlibs.utils.zinc.finiteelement import get_maximum_node_identifier
+from cmlibs.utils.zinc.finiteelement import get_highest_dimension_mesh, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.field import Field, FieldGroup
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
     getAnnotationMarkerLocationField  # , getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.zinc_utils import get_highest_dimension_mesh
 
 
 class ScaffoldPackage:

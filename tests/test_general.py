@@ -3,6 +3,9 @@ import unittest
 
 from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
+    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
+    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -16,9 +19,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
-from scaffoldmaker.utils.zinc_utils import identifier_ranges_from_string, identifier_ranges_to_string, \
-    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
-    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 
 from testutils import assertAlmostEqualList
 
