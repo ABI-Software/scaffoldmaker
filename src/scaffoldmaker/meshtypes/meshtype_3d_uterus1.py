@@ -1205,8 +1205,8 @@ def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
                                                         fixEndDerivative=True,
                                                         magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
     rox = [hex1] + pac1x[1:-1] + [hex2] + pac2x[1:-1]
-    rod1 = [loop1d1[-1]] + loop2d1[1:] + loop1d1[1:-1]
-    rod2 = [[-d for d in loop2d1[0]]] + pac1d2[1:-1] + [[-d for d in loop1d1[0]]] + pac2d2[1:-1]
+    rod1 = [hex1d1] + loop2d1[1:-1] + [hex2d1] + loop1d1[1:-1]
+    rod2 = [hex1d2] + pac1d2[1:-1] + [hex2d2] + pac2d2[1:-1]
     cox = crotchx[1:-1]
     cod1 = crotchd1[1:-1]
     cod2 = c1c2d2[1:-1]
