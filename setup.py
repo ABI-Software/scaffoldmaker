@@ -26,7 +26,7 @@ readme.append('')
 requires = [
     # minimal requirements listing
     "cmlibs.maths >= 0.3",
-    "cmlibs.utils >= 0.4",
+    "cmlibs.utils >= 0.6",
     "cmlibs.zinc >= 4.0",
     "scipy",
     "numpy",
