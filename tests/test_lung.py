@@ -12,7 +12,6 @@ from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import mesh_group_to_identifier_ranges
 
 from testutils import assertAlmostEqualList
 
