@@ -5,6 +5,7 @@ Common resource for esophagus annotation terms.
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 esophagus_terms = [
     ("abdominal part of esophagus", "UBERON:0035177", "FMA:9397", "ILX:0735274"),
+    ("circular-longitudinal muscle interface of esophagus along the cut margin", "ILX:0793091"),
     ("cervical part of esophagus", "UBERON:0035450", "FMA:9395", "ILX:0734725"),
     ("distal point of lower esophageal sphincter serosa on the greater curvature of stomach", "ILX:0793179"),
     ("distal point of lower esophageal sphincter serosa on the lesser curvature of stomach", "ILX:0793180"),
@@ -12,6 +13,7 @@ esophagus_terms = [
     ("esophagus mucosa", "UBERON:0002469", "FMA:62996", "ILX:0725079"),
     ("esophagus smooth muscle circular layer", "UBERON:0009960", "FMA:67605", "ILX:0727608"),
     ("esophagus smooth muscle longitudinal layer", "UBERON:0009961", "FMA:63573", "ILX:0735992"),
+    ("luminal surface of esophagus", "ILX:0793122"),
     ("proximodorsal midpoint on serosa of upper esophageal sphincter", "ILX:0793181"),
     ("proximoventral midpoint on serosa of upper esophageal sphincter", "ILX:0793182"),
     ("serosa of esophagus", "UBERON:0001975", "FMA:63057", "ILX:0725745"),
