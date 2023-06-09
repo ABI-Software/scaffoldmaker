@@ -43,12 +43,12 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[  7.5, 289.8,  0.0 ], [  2.8,  -33.6,  0.0 ], [  9.9,  0.8, 0.0 ], [  0.1, -1.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
-                    (2, [[  8.9, 242.5,  0.0 ], [ -2.6,  -87.5,  0.0 ], [ 10.0, -0.3, 0.0 ], [  0.1, -0.6, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
-                    (3, [[ -2.5, 115.4,  0.0 ], [  3.9, -102.0,  0.0 ], [ 10.0,  0.4, 0.0 ], [ -0.3,  1.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
-                    (4, [[ 10.1,  40.3,  0.0 ], [ 17.8,  -57.9,  0.0 ], [  9.6,  2.9, 0.0 ], [ -1.3,  3.2, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]]),
-                    (5, [[ 28.6,  -0.1,  0.0 ], [ 18.5,  -22.1,  0.0 ], [  7.7,  6.5, 0.0 ], [ -2.4,  3.9, 0.0 ], [ 0.0, 0.0, 10.0 ], [ 0.0, 0.0, 0.0]])
-                ]),
+                (1, [ [ -0.42, -100.50, 1401.88 ], [  0.74,  14.22, -46.12 ], [ 7.85, -0.56, -0.05 ], [  0.69,  0.03, 0.02 ], [ -0.22, -2.98, -0.92 ], [  0.19, 1.51, 0.43 ] ] ),
+                (2, [ [  0.52,  -84.95, 1340.25 ], [  1.15,  16.87, -77.08 ], [ 7.08, -0.66, -0.04 ], [ -0.25, -0.13, 0.05 ], [ -0.19, -2.04, -0.45 ], [ -0.03, 0.34, 0.51 ] ] ),
+                (3, [ [  1.85,  -67.80, 1247.93 ], [ -0.05,  -4.17, -89.62 ], [ 6.13, -0.92,  0.04 ], [ -0.56,  0.20, 0.44 ], [ -0.38, -2.56,  0.12 ], [  0.00, 0.08, 0.61 ] ] ),
+                (4, [ [  0.55,  -90.99, 1166.45 ], [  6.95, -24.56, -60.26 ], [ 4.15,  1.65, -0.20 ], [ -1.22,  1.08, 1.18 ], [  0.88, -2.09,  0.95 ], [ -0.02, 0.46, 0.61 ] ] ),
+                (5, [ [  9.34, -111.30, 1127.62 ], [  3.74,  -1.54,  -6.85 ], [ 1.93,  1.69,  0.67 ], [ -2.29,  1.59, 1.62 ], [  1.32, -1.98,  1.17 ], [ -0.24, 0.29, 0.57 ] ] )] ),
+
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -90,9 +90,9 @@ class MeshType_3d_esophagus1(Scaffold_base):
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around': 8,
-            'Number of elements along': 12,
+            'Number of elements along': 20,
             'Number of elements through wall': 4,
-            'Wall thickness': 5.0,  # 3.0mm when relaxed
+            'Wall thickness': 3.2,
             'Mucosa relative thickness': 0.35,
             'Submucosa relative thickness': 0.15,
             'Circular muscle layer relative thickness': 0.25,
@@ -193,6 +193,11 @@ class MeshType_3d_esophagus1(Scaffold_base):
         longitudinalRelThickness = options['Longitudinal muscle layer relative thickness']
         useCrossDerivatives = options['Use cross derivatives']
         useCubicHermiteThroughWall = not(options['Use linear through wall'])
+
+        # Esophagus coordinates
+        lengthToDiameterRatio = 15
+        wallThicknessToDiameterRatio = 0.15
+        relativeThicknessListEsoCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
 
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
@@ -410,7 +415,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
             tubemesh.warpSegmentPoints(xToWarp, d1ToWarp, d2ToWarp, segmentAxis, sxRefList, sd1RefList,
                                        sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
-                                       zRefList, innerRadiusAlong, closedProximalEnd)
+                                       zRefList)
 
         # Create coordinates and derivatives
         transitElementList = [0]*elementsCountAround
@@ -426,15 +431,19 @@ class MeshType_3d_esophagus1(Scaffold_base):
                                                                elementsCountAlong, elementsCountThroughWall,
                                                                transitElementList)
 
+        # Create colon coordinates
+        xEso, d1Eso, d2Eso = \
+            tubemesh.createOrganCoordinates(xiList, relativeThicknessListEsoCoordinates, lengthToDiameterRatio,
+                                            wallThicknessToDiameterRatio, elementsCountAround, elementsCountAlong,
+                                            elementsCountThroughWall, transitElementList)
+
         # Create nodes and elements
-        xOrgan = []
-        d1Organ = []
-        d2Organ = []
         nodeIdentifier, elementIdentifier, annotationGroups = \
             tubemesh.createNodesAndElements(region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
-                                            xOrgan, d1Organ, d2Organ, None, elementsCountAround, elementsCountAlong,
-                                            elementsCountThroughWall, annotationGroupsAround, annotationGroupsAlong,
-                                            annotationGroupsThroughWall, firstNodeIdentifier, firstElementIdentifier,
+                                            xEso, d1Eso, d2Eso, "esophagus coordinates", elementsCountAround,
+                                            elementsCountAlong, elementsCountThroughWall, annotationGroupsAround,
+                                            annotationGroupsAlong, annotationGroupsThroughWall,
+                                            firstNodeIdentifier, firstElementIdentifier,
                                             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
 
         # annotation fiducial points
@@ -525,7 +534,12 @@ class MeshType_3d_esophagus1(Scaffold_base):
         esophagusGroup = getAnnotationGroupForTerm(annotationGroups, get_esophagus_term("esophagus"))
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_esophagus = esophagusGroup.getGroup()
         is_serosa = fm.createFieldAnd(is_esophagus, is_exterior_face_xi3_1)
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_esophagus_term("serosa of esophagus"))
         serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)
+        is_mucosaInnerSurface = fm.createFieldAnd(is_esophagus, is_exterior_face_xi3_0)
+        mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_esophagus_term("luminal surface of esophagus"))
+        mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)

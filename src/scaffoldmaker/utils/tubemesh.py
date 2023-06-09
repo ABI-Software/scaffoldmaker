@@ -6,7 +6,7 @@ from __future__ import division
 
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldTextureCoordinates
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -69,6 +69,10 @@ def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
     sd1RefList.append(sd1[-1])
     sd2RefList.append(sd2[-1])
 
+    # Smooth sd1
+    sd1RefList = interp.smoothCubicHermiteDerivativesLine(sxRefList, sd1RefList, fixAllDirections=True,
+                                                          fixStartDerivative=True, fixEndDerivative=True)
+
     # Project sd2 to plane orthogonal to sd1
     sd2ProjectedListRef = []
 
@@ -81,9 +85,8 @@ def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
 
     return sxRefList, sd1RefList, sd2ProjectedListRef, zRefList
 
-def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
-                      sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
-                      refPointZ, innerRadiusAlong, closedProximalEnd):
+def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elementsCountAround, elementsCountAlongSegment,
+                      refPointZ):
     """
     Warps points in segment to account for bending and twisting
     along central path defined by nodes sx and derivatives sd1 and sd2.
@@ -98,8 +101,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
     :param elementsCountAlongSegment: Number of elements along segment.
     :param refPointZ: z-coordinate of reference point for each element
     groups along the segment to be used for transformation.
-    :param innerRadiusAlong: radius of segment along length.
-    :param closedProximalEnd: True if proximal end of segment is a closed end.
     :return coordinates and derivatives of warped points.
     """
 
@@ -164,7 +165,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
                         cp = vector.normalise(cp)
                         signThetaRot2 = vector.dotproduct(unitTangent, cp)
                         thetaRot2 = math.acos(
-                            vector.dotproduct(vector.normalise(vectorToFirstNode), sd2[nAlongSegment]))
+                            vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2[nAlongSegment])))
                         axisRot2 = unitTangent
                         rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2*thetaRot2)
                     else:
@@ -183,7 +184,6 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
 
     # Scale d2 with curvature of central path
     d2WarpedListScaled = []
-    vProjectedList = []
     for nAlongSegment in range(elementsCountAlongSegment + 1):
         for n1 in range(elementsCountAround):
             n = nAlongSegment * elementsCountAround + n1
@@ -193,28 +193,30 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             dp = vector.dotproduct(v, sd1Normalised)
             dpScaled = [dp * c for c in sd1Normalised]
             vProjected = [v[c] - dpScaled[c] for c in range(3)]
-            vProjectedList.append(vProjected)
             if vector.magnitude(vProjected) > 0.0:
-                vProjectedNormlised = vector.normalise(vProjected)
+                vProjectedNormalised = vector.normalise(vProjected)
             else:
-                vProjectedNormlised = [0.0, 0.0, 0.0]
+                vProjectedNormalised = [0.0, 0.0, 0.0]
 
             # Calculate curvature along at each node
             if nAlongSegment == 0:
-                curvature = interp.getCubicHermiteCurvature(sx[0], sd1[0], sx[1], sd1[1], vProjectedNormlised, 0.0)
+                curvature = interp.getCubicHermiteCurvature(sx[0], sd1[0], sx[1], sd1[1], vProjectedNormalised, 0.0)
             elif nAlongSegment == elementsCountAlongSegment:
-                curvature = interp.getCubicHermiteCurvature(sx[-2], sd1[-2], sx[-1], sd1[-1], vProjectedNormlised, 1.0)
+                curvature = interp.getCubicHermiteCurvature(sx[-2], sd1[-2], sx[-1], sd1[-1], vProjectedNormalised, 1.0)
             else:
                 curvature = 0.5 * (interp.getCubicHermiteCurvature(sx[nAlongSegment - 1], sd1[nAlongSegment - 1],
                                                                    sx[nAlongSegment], sd1[nAlongSegment],
-                                                                   vProjectedNormlised, 1.0) +
+                                                                   vProjectedNormalised, 1.0) +
                                    interp.getCubicHermiteCurvature(sx[nAlongSegment], sd1[nAlongSegment],
                                                                    sx[nAlongSegment + 1], sd1[nAlongSegment + 1],
-                                                                   vProjectedNormlised, 0.0))
+                                                                   vProjectedNormalised, 0.0))
             # Scale
-            factor = 1.0 - curvature * innerRadiusAlong[nAlongSegment]
-            d2 = [factor * c for c in d2WarpedList[n]]
-            d2WarpedListScaled.append(d2)
+            if nAlongSegment < elementsCountAlongSegment:
+                factor = 1.0 - curvature * vector.magnitude(v)
+                d2 = [factor * c for c in d2WarpedList[n]]
+                d2WarpedListScaled.append(d2)
+            else:
+                d2WarpedListScaled.append(d2WarpedList[n])
 
     # Smooth d2 for segment
     smoothd2Raw = []
@@ -225,7 +227,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis,
             n = n2*elementsCountAround + n1
             nx.append(xWarpedList[n])
             nd2.append(d2WarpedListScaled[n])
-        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True, fixEndDerivative = True)
+        smoothd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative=True, fixEndDerivative=True)
         smoothd2Raw.append(smoothd2)
 
     # Re-arrange smoothd2
@@ -796,30 +798,26 @@ class CylindricalSegmentTubeMeshInnerPoints:
     """
 
     def __init__(self, elementsCountAround, elementsCountAlongSegment,
-                 segmentLength, wallThickness, innerRadiusSegmentList, dInnerRadiusSegmentList, startPhase):
+                 segmentLength, wallThickness, innerRadiusList, startPhase):
 
         self._elementsCountAround = elementsCountAround
         self._elementsCountAlongSegment = elementsCountAlongSegment
         self._segmentLength = segmentLength
         self._wallThickness = wallThickness
-        self._innerRadiusSegmentList = innerRadiusSegmentList
-        self._dInnerRadiusSegmentList = dInnerRadiusSegmentList
+        self._innerRadiusList = innerRadiusList
         self._xiList = []
         self._flatWidthList = []
         self._startPhase = startPhase
 
     def getCylindricalSegmentTubeMeshInnerPoints(self, nSegment):
 
-        # Unpack radius and rate of change of inner radius
-        startRadius = self._innerRadiusSegmentList[nSegment]
-        startRadiusDerivative = self._dInnerRadiusSegmentList[nSegment]
-        endRadius = self._innerRadiusSegmentList[nSegment+1]
-        endRadiusDerivative = self._dInnerRadiusSegmentList[nSegment+1]
+        elementAlongStartIdx = nSegment * self._elementsCountAlongSegment
+        elementAlongEndIdx = (nSegment + 1) * self._elementsCountAlongSegment
 
         xInner, d1Inner, d2Inner, transitElementList, xiSegment, flatWidthSegment, segmentAxis, radiusAlongSegmentList \
             = getCylindricalSegmentInnerPoints(self._elementsCountAround, self._elementsCountAlongSegment,
-                                               self._segmentLength, self._wallThickness, startRadius,
-                                               startRadiusDerivative, endRadius, endRadiusDerivative,
+                                               self._segmentLength, self._wallThickness,
+                                               self._innerRadiusList[elementAlongStartIdx: elementAlongEndIdx + 1],
                                                self._startPhase)
 
         startIdx = 0 if nSegment == 0 else 1
@@ -835,8 +833,7 @@ class CylindricalSegmentTubeMeshInnerPoints:
         return self._flatWidthList, self._xiList
 
 def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegment, segmentLength,
-                                     wallThickness, startRadius, startRadiusDerivative, endRadius, endRadiusDerivative,
-                                     startPhase):
+                                     wallThickness, radiusList, startPhase):
     """
     Generates a 3-D cylindrical segment mesh with variable numbers of elements
     around, along the central path, and through wall.
@@ -844,10 +841,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     :param elementsCountAlongSegment: Number of elements along cylindrical segment.
     :param segmentLength: Length of a cylindrical segment.
     :param wallThickness: Thickness of wall.
-    :param startRadius: Inner radius at proximal end.
-    :param startRadiusDerivative: Rate of change of inner radius at proximal end.
-    :param endRadius: Inner radius at distal end.
-    :param endRadiusDerivative: Rate of change of inner radius at distal end.
+    :param radiusList: Inner radius at elements along tube length.
     :param startPhase: Phase at start.
     :return coordinates, derivatives on inner surface of a cylindrical segment.
     :return transitElementList: stores true if element around is an element that
@@ -874,10 +868,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     sRadiusAlongSegment = []
 
     for n2 in range(elementsCountAlongSegment + 1):
-        phase = startPhase + n2 * 360.0 / elementsCountAlongSegment
-        xi = (phase if phase <= 360.0 else phase - 360.0) / 360.0
-        radius = interp.interpolateCubicHermite([startRadius], [startRadiusDerivative],
-                                                [endRadius], [endRadiusDerivative], xi)[0]
+        radius = radiusList[n2]
         sRadiusAlongSegment.append(radius)
         z = segmentLength / elementsCountAlongSegment * n2 + startPhase / 360.0 * segmentLength
 

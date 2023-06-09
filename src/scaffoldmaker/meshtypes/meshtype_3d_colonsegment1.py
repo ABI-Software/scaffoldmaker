@@ -49,6 +49,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Default',
             'Cattle 1',
             'Human 1',
+            'Human 2',
             'Mouse 1',
             'Pig 1']
 
@@ -99,6 +100,9 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['End tenia coli width'] = 3.0
             options['Tenia coli thickness'] = 0.0
             options['Wall thickness'] = 3.02
+        elif 'Human 2' in parameterSetName:
+            options['Haustrum inner radius factor'] = 0.4
+            options['Tenia coli thickness'] = 1.6
         elif 'Mouse' in parameterSetName:
             options['Start inner radius'] = 0.94
             options['End inner radius'] = 0.94
@@ -115,7 +119,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['Submucosa relative thickness'] = 0.1
             options['Circular muscle layer relative thickness'] = 0.3
             options['Longitudinal muscle layer relative thickness'] = 0.2
-
         elif 'Pig' in parameterSetName:
             options['Start inner radius'] = 20.0
             options['End inner radius'] = 20.0
@@ -325,8 +328,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         # Warp segment points
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
             xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
-            elementsCountAround, elementsCountAlongSegment, zRefList, radiusAlongSegment,
-            closedProximalEnd)
+            elementsCountAround, elementsCountAlongSegment, zRefList)
 
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
