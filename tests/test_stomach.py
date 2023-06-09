@@ -8,6 +8,8 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
+from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -24,7 +26,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_stomach1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Mouse 1", "Pig 1", "Rat 1", "Material"])
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Mouse 1", "Pig 1", "Rat 1", "Material"])
         options = scaffold.getDefaultOptions("Rat 1")
         self.assertEqual(16, len(options))
         self.assertEqual(16, options.get("Number of elements around duodenum"))
@@ -49,7 +51,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateBaseMesh(region, options)[0]
-        self.assertEqual(40, len(annotationGroups))
+        self.assertEqual(41, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -70,6 +72,11 @@ class StomachScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, minimums, [0.475, -0.4440296937068191, -0.37800000000001466], 1.0E-6)
         assertAlmostEqualList(self, maximums, [1.9665783603056544, 0.867, 0.37800000000001466], 1.0E-6)
 
+        stomachCoordinates = fieldmodule.findFieldByName("stomach coordinates").castFiniteElement()
+        minimums, maximums = evaluateFieldNodesetRange(stomachCoordinates, nodes)
+        assertAlmostEqualList(self, minimums, [0.0, -0.509814453125, -0.509814453125], 1.0E-4)
+        assertAlmostEqualList(self, maximums, [2.0, 0.8001543944920241, 0.509814453125], 1.0E-4)
+
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             faceMeshGroup = createFaceMeshGroupExteriorOnFace(fieldmodule, Element.FACE_TYPE_XI3_1)
@@ -88,16 +95,23 @@ class StomachScaffoldTestCase(unittest.TestCase):
         # check some annotationGroups:
         expectedSizes3d = {
             "body of stomach": 248,
-            "cardia of stomach": 24,
-            "duodenum": 64,
             "esophagus": 64,
+            "cardia of stomach": 24,
             "fundus of stomach": 282,
             "pyloric antrum": 64,
             "pyloric canal": 64,
+            "duodenum": 64,
             "stomach": 810
             }
+
         for name in expectedSizes3d:
-            group = getAnnotationGroupForTerm(annotationGroups, get_stomach_term(name))
+            if name == "duodenum":
+                term = get_smallintestine_term(name)
+            elif name == "esophagus":
+                term = get_esophagus_term(name)
+            else:
+                term = get_stomach_term(name)
+            group = getAnnotationGroupForTerm(annotationGroups, term)
             size = group.getMeshGroup(mesh3d).getSize()
             self.assertEqual(expectedSizes3d[name], size, name)
 
@@ -111,7 +125,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
 
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(40, len(annotationGroups))
+        self.assertEqual(41, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -129,7 +143,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(74, len(annotationGroups))
+        self.assertEqual(75, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(51840, mesh3d.getSize())
@@ -144,7 +158,13 @@ class StomachScaffoldTestCase(unittest.TestCase):
 
         # check some refined annotationGroups:
         for name in expectedSizes3d:
-            group = getAnnotationGroupForTerm(annotationGroups, get_stomach_term(name))
+            if name == "duodenum":
+                term = get_smallintestine_term(name)
+            elif name == "esophagus":
+                term = get_esophagus_term(name)
+            else:
+                term = get_stomach_term(name)
+            group = getAnnotationGroupForTerm(annotationGroups, term)
             size = group.getMeshGroup(mesh3d).getSize()
             self.assertEqual(expectedSizes3d[name]*64, size, name)
 

@@ -13,8 +13,10 @@ This documentation is intended to be a resource describing details about using i
    scaffolds/bladder
    scaffolds/brainstem
    scaffolds/colon
+   scaffolds/esophagus
    scaffolds/heart
    scaffolds/lung
+   scaffolds/smallintestine
    scaffolds/stomach
 
 
