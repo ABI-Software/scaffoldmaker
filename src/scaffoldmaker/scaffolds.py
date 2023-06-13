@@ -7,6 +7,7 @@ import json
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_2d_divergingbifurcation1 import MeshType_2d_divergingbifurcation1
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
@@ -61,6 +62,7 @@ class Scaffolds(object):
             MeshType_1d_bifurcationtree1,
             MeshType_1d_network_layout1,
             MeshType_1d_path1,
+            MeshType_2d_divergingbifurcation1,
             MeshType_2d_plate1,
             MeshType_2d_platehole1,
             MeshType_2d_sphere1,
