@@ -131,7 +131,7 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '3D Uterus 2'
+        return '3D Diverged Bifurcation 1'
 
     @staticmethod
     def getParameterSetNames():
