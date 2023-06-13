@@ -13,7 +13,6 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.annotation.uterus_terms import get_uterus_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -110,22 +109,22 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '1-5',
-                    'name': get_uterus_term('uterine cervix')[0],
-                    'ontId': get_uterus_term('uterine cervix')[1]
+                    'name': 'parent',
+                    'ontId': 'None'
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '6-9',
-                    'name': get_uterus_term('left uterine horn')[0],
-                    'ontId': get_uterus_term('left uterine horn')[1]
+                    'name': 'child 1',
+                    'ontId': 'None'
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '10-13',
-                    'name': get_uterus_term('right uterine horn')[0],
-                    'ontId': get_uterus_term('right uterine horn')[1]
+                    'name': 'child 2',
+                    'ontId': 'None'
                 }]
         })
     }
@@ -245,10 +244,10 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
         elementIdentifier = 1
 
         # Create annotation groups
-        rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
-        leftHornGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
-        cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
-        uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
+        rightHornGroup = AnnotationGroup(region, "child 2", "None")
+        leftHornGroup = AnnotationGroup(region, "child 1", "None")
+        cervixGroup = AnnotationGroup(region, "parent", "None")
+        uterusGroup = AnnotationGroup(region, "diverging bifurcation", "None")
         annotationGroups = [cervixGroup, leftHornGroup, rightHornGroup, uterusGroup]
 
         rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
