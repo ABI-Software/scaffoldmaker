@@ -165,35 +165,35 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
         elementIdentifier = 1
 
         # Create annotation groups
-        child2Group = AnnotationGroup(region, ("child 2", "None"))
-        child1Group = AnnotationGroup(region, ("child 1", "None"))
         parentGroup = AnnotationGroup(region, ("parent", "None"))
+        child1Group = AnnotationGroup(region, ("child 1", "None"))
+        child2Group = AnnotationGroup(region, ("child 2", "None"))
         bifurcationGroup = AnnotationGroup(region, ("diverging bifurcation", "None"))
         annotationGroups = [parentGroup, child1Group, child2Group, bifurcationGroup]
 
-        child2MeshGroup = child2Group.getMeshGroup(mesh)
-        child1MeshGroup = child1Group.getMeshGroup(mesh)
         parentMeshGroup = parentGroup.getMeshGroup(mesh)
+        child1MeshGroup = child1Group.getMeshGroup(mesh)
+        child2MeshGroup = child2Group.getMeshGroup(mesh)
         bifurcationMeshGroup = bifurcationGroup.getMeshGroup(mesh)
 
         # Geometric coordinates
         geometricNetworkLayout = BifurcationNetworkLayout(region, networkLayout, targetElementLength)
 
-        child2Length = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
-        child1Length = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
         parentLength = geometricNetworkLayout.arcLengthOfGroupsAlong[0]
+        child1Length = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
+        child2Length = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
 
-        elementsCountInChild2 = math.ceil(child2Length / targetElementLength)
-        elementsCountInChild1 = math.ceil(child1Length / targetElementLength)
         elementsCountInParent = math.ceil(parentLength / targetElementLength)
+        elementsCountInChild1 = math.ceil(child1Length / targetElementLength)
+        elementsCountInChild2 = math.ceil(child2Length / targetElementLength)
 
-        cx_child2_group = geometricNetworkLayout.cxGroups[2]
-        cx_child1_group = geometricNetworkLayout.cxGroups[1]
         cx_parent_group = geometricNetworkLayout.cxGroups[0]
+        cx_child1_group = geometricNetworkLayout.cxGroups[1]
+        cx_child2_group = geometricNetworkLayout.cxGroups[2]
 
-        sx_child2_group = geometricNetworkLayout.sxGroups[2]
-        sx_child1_group = geometricNetworkLayout.sxGroups[1]
         sx_parent_group = geometricNetworkLayout.sxGroups[0]
+        sx_child1_group = geometricNetworkLayout.sxGroups[1]
+        sx_child2_group = geometricNetworkLayout.sxGroups[2]
 
         # Get parent nodes
         parentCoordinates = getCoordinatesAlongTube2D(cx_parent_group, elementsCountAround, elementsCountInParent,
@@ -257,12 +257,14 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
 
         # Create bifurcation elements
         parentLastRingNodeId, nodeCount = getTargetedRingNodesId2D(firstNodeIdentifier, elementsCountAround,
-                                                              elementsCountInParent, omitStartRows=0, omitEndRows=1)
+                                                                   elementsCountInParent, omitStartRows=0,
+                                                                   omitEndRows=1)
         child1FirstRingNodeId, nodeCount = getTargetedRingNodesId2D(nextNodeId, elementsCountAround,
-                                                                elementsCountInChild1, omitStartRows=1, omitEndRows=0)
+                                                                    elementsCountInChild1, omitStartRows=1,
+                                                                    omitEndRows=0)
         child2FirstRingNodeId, nodeCount = getTargetedRingNodesId2D(nodeCount, elementsCountAround,
-                                                                elementsCountInChild2, omitStartRows=1,
-                                                                omitEndRows=0)
+                                                                    elementsCountInChild2, omitStartRows=1,
+                                                                    omitEndRows=0)
 
         paNodeId = parentLastRingNodeId
         c1NodeId = child2FirstRingNodeId
@@ -604,7 +606,6 @@ def generateTubeNodes2D(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongT
 
 def getTargetedRingNodesId2D(nodeCount, elementsCountAround, elementsCountAlongTube, omitStartRows, omitEndRows):
 
-    # Create tube nodes
     lastRingsNodeId = []
     firstRingsNodeId = []
     for n2 in range(elementsCountAlongTube + 1):
@@ -704,6 +705,7 @@ def generate2DTubeElements(fm, startNodeId, elementIdentifier, elementsCountAlon
     return elementIdentifier
 
 
+# This function should be modified in the bifurcation.py to include the annotation groups.
 # def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
 #         paNodeId, paStartIndex, c1NodeId, c1StartIndex, c2NodeId, c2StartIndex, roNodeId, coNodeId, useCrossDerivatives=False, meshGroups=None):
 #     '''
