@@ -74,35 +74,22 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
                     # (13, [[12.56, 1.40, 14.10], [2.03, -0.65, 6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
                     # (14, [[13.84, 2.07, 20.50], [0.53, -0.68, 6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24], [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]])]),
 
-                    (1, [[0.00, 0.00, -10.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                         [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (2, [[0.00, 0.00, -8.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                         [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (3, [[0.00, 0.00, -6.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                         [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (4, [[0.00, 0.00, -4.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                         [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (5, [[0.00, 0.00, -2.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15],
-                         [0.00, 1.00, 0.00], [0.01, -0.00, -0.01]]),
+                    (1, [[0.00, 0.00, -10.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (2, [[0.00, 0.00, -8.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (3, [[0.00, 0.00, -6.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (4, [[0.00, 0.00, -4.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (5, [[0.00, 0.00, -2.00], [0.00, 0.00, 2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15], [0.00, 1.00, 0.00], [0.01, -0.00, -0.01]]),
                     (6, [[0.00, 0.00, 0.00], [[0.00, 0.00, 2.00], [-6.82, 0.07, 2.67], [6.82, 0.07, 2.67]],
                          [[1.00, 0.00, 0.00], [0.37, -0.01, 0.94], [0.37, 0.01, -0.94]], [-0.10, 0.09, 0.10],
                          [[0.00, 1.00, 0.00], [0.01, 1.00, 0.00], [-0.01, 1.00, 0.00]], [-0.01, 0.01, -0.10]]),
-                    (7, [[-5.97, 0.24, 3.53], [-4.99, 0.41, 4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20],
-                         [0.05, 1.00, -0.03], [0.03, 0.00, -0.03]]),
-                    (8, [[-9.85, 0.78, 8.39], [-3.33, 0.59, 5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22],
-                         [0.07, 1.00, -0.07], [0.00, -0.01, -0.03]]),
-                    (9, [[-12.56, 1.40, 14.10], [-2.03, 0.65, 6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22],
-                         [0.06, 0.99, -0.09], [-0.01, -0.01, -0.01]]),
-                    (10, [[-13.84, 2.07, 20.50], [-0.53, 0.68, 6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40],
-                          [0.05, 0.99, -0.10], [-0.03, -0.00, 0.04]]),
-                    (11, [[5.97, 0.24, 3.53], [4.99, 0.41, 4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20],
-                          [-0.05, 1.00, -0.03], [0.01, 0.01, -0.11]]),
-                    (12, [[9.85, 0.78, 8.39], [3.33, 0.59, 5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22],
-                          [-0.06, 1.00, -0.07], [-0.00, -0.00, -0.03]]),
-                    (13, [[12.56, 1.40, 14.10], [2.03, 0.65, 6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22],
-                          [-0.06, 1.00, -0.09], [-0.01, -0.00, -0.01]]),
-                    (14, [[13.84, 2.07, 20.50], [0.53, 0.68, 6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
-                          [-0.08, 0.99, -0.10], [-0.02, -0.01, -0.01]])]),
+                    (7, [[-5.97, 0.24, 3.53], [-4.99, 0.41, 4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20], [0.05, 1.00, -0.03], [0.03, 0.00, -0.03]]),
+                    (8, [[-9.85, 0.78, 8.39], [-3.33, 0.59, 5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22], [0.07, 1.00, -0.07], [0.00, -0.01, -0.03]]),
+                    (9, [[-12.56, 1.40, 14.10], [-2.03, 0.65, 6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22], [0.06, 0.99, -0.09], [-0.01, -0.01, -0.01]]),
+                    (10, [[-13.84, 2.07, 20.50], [-0.53, 0.68, 6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40], [0.05, 0.99, -0.10], [-0.03, -0.00, 0.04]]),
+                    (11, [[5.97, 0.24, 3.53], [4.99, 0.41, 4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20], [-0.05, 1.00, -0.03], [0.01, 0.01, -0.11]]),
+                    (12, [[9.85, 0.78, 8.39], [3.33, 0.59, 5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22], [-0.06, 1.00, -0.07], [-0.00, -0.00, -0.03]]),
+                    (13, [[12.56, 1.40, 14.10], [2.03, 0.65, 6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [-0.06, 1.00, -0.09], [-0.01, -0.00, -0.01]]),
+                    (14, [[13.84, 2.07, 20.50], [0.53, 0.68, 6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24], [-0.08, 0.99, -0.10], [-0.02, -0.01, -0.01]])]),
 
             'userAnnotationGroups': [
                 {
@@ -244,61 +231,61 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
         elementIdentifier = 1
 
         # Create annotation groups
-        child2Group = AnnotationGroup(region, ("child 2", "None"))
-        child1Group = AnnotationGroup(region, ("child 1", "None"))
         parentGroup = AnnotationGroup(region, ("parent", "None"))
+        child1Group = AnnotationGroup(region, ("child 1", "None"))
+        child2Group = AnnotationGroup(region, ("child 2", "None"))
         bifurcationGroup = AnnotationGroup(region, ("diverging bifurcation", "None"))
         annotationGroups = [parentGroup, child1Group, child2Group, bifurcationGroup]
 
-        child2MeshGroup = child2Group.getMeshGroup(mesh)
-        child1MeshGroup = child1Group.getMeshGroup(mesh)
         parentMeshGroup = parentGroup.getMeshGroup(mesh)
+        child1MeshGroup = child1Group.getMeshGroup(mesh)
+        child2MeshGroup = child2Group.getMeshGroup(mesh)
         bifurcationMeshGroup = bifurcationGroup.getMeshGroup(mesh)
 
         # Geometric coordinates
         geometricNetworkLayout = BifurcationNetworkLayout(region, networkLayout, targetElementLength)
 
-        child2Length = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
-        child1Length = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
         parentLength = geometricNetworkLayout.arcLengthOfGroupsAlong[0]
+        child1Length = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
+        child2Length = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
 
-        elementsCountInChild2 = math.ceil(child2Length / targetElementLength)
-        elementsCountInChild1 = math.ceil(child1Length / targetElementLength)
         elementsCountInParent = math.ceil(parentLength / targetElementLength)
+        elementsCountInChild1 = math.ceil(child1Length / targetElementLength)
+        elementsCountInChild2 = math.ceil(child2Length / targetElementLength)
 
-        cx_child2_group = geometricNetworkLayout.cxGroups[2]
-        cx_child1_group = geometricNetworkLayout.cxGroups[1]
         cx_parent_group = geometricNetworkLayout.cxGroups[0]
+        cx_child1_group = geometricNetworkLayout.cxGroups[1]
+        cx_child2_group = geometricNetworkLayout.cxGroups[2]
 
-        sx_child2_group = geometricNetworkLayout.sxGroups[2]
-        sx_child1_group = geometricNetworkLayout.sxGroups[1]
         sx_parent_group = geometricNetworkLayout.sxGroups[0]
+        sx_child1_group = geometricNetworkLayout.sxGroups[1]
+        sx_child2_group = geometricNetworkLayout.sxGroups[2]
 
         # Get parent nodes
         parentCoordinates = getCoordinatesAlongTube3D(cx_parent_group, elementsCountAround, elementsCountInParent,
                                                       elementsCountThroughWall, wallThickness, startRadian=-math.pi/2)
 
         parentLastRingNodeCoordinates = getTargetedRingNodesCoordinates(parentCoordinates, elementsCountAround,
-                                                                    elementsCountInParent, elementsCountThroughWall,
-                                                                    omitStartRows=0, omitEndRows=1)
+                                                                        elementsCountInParent, elementsCountThroughWall,
+                                                                        omitStartRows=0, omitEndRows=1)
 
         # Get child1 nodes
-        child1Coordinates = getCoordinatesAlongTube3D(cx_child1_group, elementsCountAround,
-                                                        elementsCountInChild1, elementsCountThroughWall,
-                                                        wallThickness, startRadian=-math.pi/2)
+        child1Coordinates = getCoordinatesAlongTube3D(cx_child1_group, elementsCountAround, elementsCountInChild1,
+                                                      elementsCountThroughWall, wallThickness, startRadian=-math.pi/2)
 
         child1FirstRingNodeCoordinates = getTargetedRingNodesCoordinates(child1Coordinates, elementsCountAround,
-                                                                    elementsCountInChild1, elementsCountThroughWall,
-                                                                    omitStartRows=1, omitEndRows=0)
+                                                                         elementsCountInChild1,
+                                                                         elementsCountThroughWall, omitStartRows=1,
+                                                                         omitEndRows=0)
 
         # Get child2 nodes
-        child2Coordinates = getCoordinatesAlongTube3D(cx_child2_group, elementsCountAround,
-                                                         elementsCountInChild2, elementsCountThroughWall,
-                                                         wallThickness, startRadian=-math.pi/2)
+        child2Coordinates = getCoordinatesAlongTube3D(cx_child2_group, elementsCountAround, elementsCountInChild2,
+                                                      elementsCountThroughWall, wallThickness, startRadian=-math.pi/2)
 
         child2FirstRingNodeCoordinates = getTargetedRingNodesCoordinates(child2Coordinates, elementsCountAround,
-                                                                    elementsCountInChild2, elementsCountThroughWall,
-                                                                    omitStartRows=1, omitEndRows=0)
+                                                                         elementsCountInChild2,
+                                                                         elementsCountThroughWall, omitStartRows=1,
+                                                                         omitEndRows=0)
 
         # Create nodes
         # Create parent nodes
@@ -318,10 +305,10 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
         c1d2 = child2FirstRingNodeCoordinates[2]
         c2xList = child1FirstRingNodeCoordinates[0]
         c2d2 = child1FirstRingNodeCoordinates[2]
-        nodeIdentifier, roNodeId, coNodeId, nextNodeId = create3dBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2,
-                                                                      c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2,
-                                                                      elementsCountThroughWall)
-
+        nodeIdentifier, roNodeId, coNodeId, nextNodeId = create3dBifurcationNodes(fm, nodeIdentifier, paCentre, paxList,
+                                                                                  pad2, c1Centre, c1xList, c1d2,
+                                                                                  c2Centre, c2xList, c2d2,
+                                                                                  elementsCountThroughWall)
 
         # Create child1 nodes
         nodeIdentifier = generateTubeNodes(fm, nodeIdentifier, child1Coordinates, elementsCountInChild1,
@@ -329,7 +316,7 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
                                            omitEndRows=0, startNodes=None)
 
         # Create child2 nodes
-        nodeIdentifier = generateTubeNodes(fm, nodeIdentifier,child2Coordinates, elementsCountInChild2,
+        nodeIdentifier = generateTubeNodes(fm, nodeIdentifier, child2Coordinates, elementsCountInChild2,
                                            elementsCountAround, elementsCountThroughWall, omitStartRows=1,
                                            omitEndRows=0, startNodes=None)
 
@@ -343,22 +330,24 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
 
         # Create bifurcation elements
         parentLastRingNodeId, nodeCount = getTargetedRingNodesId(firstNodeIdentifier, elementsCountAround,
-                                                             elementsCountInParent,
-                                                             elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
-        child1FirstRingNodeId, nodeCount = getTargetedRingNodesId(nextNodeId, elementsCountAround, elementsCountInChild1,
-                                                             elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
-        child2FirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround,
-                                                             elementsCountInChild2, elementsCountThroughWall,
-                                                             omitStartRows=1, omitEndRows=0)
+                                                                 elementsCountInParent, elementsCountThroughWall,
+                                                                 omitStartRows=0, omitEndRows=1)
+        child1FirstRingNodeId, nodeCount = getTargetedRingNodesId(nextNodeId, elementsCountAround,
+                                                                  elementsCountInChild1, elementsCountThroughWall,
+                                                                  omitStartRows=1, omitEndRows=0)
+        child2FirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInChild2,
+                                                                  elementsCountThroughWall, omitStartRows=1,
+                                                                  omitEndRows=0)
 
         paNodeId = parentLastRingNodeId
         c1NodeId = child2FirstRingNodeId
         c2NodeId = child1FirstRingNodeId
-        elementIdentifier = make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIdentifier,
-                                                              elementsCountAround, elementsCountThroughWall, paNodeId,
-                                                              c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                                              meshGroups=[parentMeshGroup, child2MeshGroup,
-                                                                          child1MeshGroup, bifurcationMeshGroup])
+        elementIdentifier = \
+            make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIdentifier, elementsCountAround,
+                                                        elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId,
+                                                        roNodeId, coNodeId,
+                                                        meshGroups=[parentMeshGroup, child2MeshGroup, child1MeshGroup,
+                                                                    bifurcationMeshGroup])
 
         # Create child1 elements
         startNodeId = child1FirstRingNodeId[0][0]
@@ -373,7 +362,6 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
                                                  elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                                  omitStartRows=0, omitEndRows=1,
                                                  meshGroups=[child2MeshGroup, bifurcationMeshGroup])
-
 
         fm.endChange()
         return annotationGroups, None
@@ -575,7 +563,6 @@ def getCoordinatesAlongTube3D(cx_group, elementsCountAround, elementsCountAlongT
     d3Inner = []
     for n2 in range(elementsCountAlongTube + 1):
         for n1 in range(elementsCountAround):
-            n = n2 * elementsCountAround + n1
             xInner.append(xSampledTube[n2][n1])
             d1Inner.append(d1SampledTube[n2][n1])
             d2Inner.append(d2SampledTube[n2][n1])
@@ -1109,7 +1096,7 @@ def create3dBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, c1Cent
     for n3 in range(elementsCountThroughWall + 1):
         roxOuter, rod1Outer, rod2Outer, coxOuter, cod1Outer, cod2Outer, paStartIndex, c1StartIndex, c2StartIndex = \
             make_tube_bifurcation_points_diverging(paCentre, paxList[n3], pad2[n3], c1Centre, c1xList[n3], c1d2[n3],
-                                                    c2Centre, c2xList[n3], c2d2[n3])
+                                                   c2Centre, c2xList[n3], c2d2[n3])
         roxList.append(roxOuter)
         rod1List.append(rod1Outer)
         rod2List.append(rod2Outer)
