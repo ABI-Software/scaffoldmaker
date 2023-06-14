@@ -104,7 +104,7 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
                     (14, [[13.84, 2.07, 20.50], [0.53, 0.68, 6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
                           [-0.08, 0.99, -0.10], [-0.02, -0.01, -0.01]])]),
 
-                    'userAnnotationGroups': [
+            'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
@@ -244,10 +244,10 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
         elementIdentifier = 1
 
         # Create annotation groups
-        rightHornGroup = AnnotationGroup(region, "child 2", "None")
-        leftHornGroup = AnnotationGroup(region, "child 1", "None")
-        cervixGroup = AnnotationGroup(region, "parent", "None")
-        uterusGroup = AnnotationGroup(region, "diverging bifurcation", "None")
+        rightHornGroup = AnnotationGroup(region, ("child 2", "None"))
+        leftHornGroup = AnnotationGroup(region, ("child 1", "None"))
+        cervixGroup = AnnotationGroup(region, ("parent", "None"))
+        uterusGroup = AnnotationGroup(region, ("diverging bifurcation", "None"))
         annotationGroups = [cervixGroup, leftHornGroup, rightHornGroup, uterusGroup]
 
         rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
