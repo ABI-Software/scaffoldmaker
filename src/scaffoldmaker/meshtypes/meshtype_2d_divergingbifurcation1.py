@@ -256,29 +256,29 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
                                                    meshGroups=[parentMeshGroup, bifurcationMeshGroup])
 
         # Create bifurcation elements
-        cLastRingNodeId, nodeCount = getTargetedRingNodesId2D(firstNodeIdentifier, elementsCountAround,
+        parentLastRingNodeId, nodeCount = getTargetedRingNodesId2D(firstNodeIdentifier, elementsCountAround,
                                                               elementsCountInParent, omitStartRows=0, omitEndRows=1)
-        lhFirstRingNodeId, nodeCount = getTargetedRingNodesId2D(nextNodeId, elementsCountAround,
+        child1FirstRingNodeId, nodeCount = getTargetedRingNodesId2D(nextNodeId, elementsCountAround,
                                                                 elementsCountInChild1, omitStartRows=1, omitEndRows=0)
-        rhFirstRingNodeId, nodeCount = getTargetedRingNodesId2D(nodeCount, elementsCountAround,
+        child2FirstRingNodeId, nodeCount = getTargetedRingNodesId2D(nodeCount, elementsCountAround,
                                                                 elementsCountInChild2, omitStartRows=1,
                                                                 omitEndRows=0)
 
-        paNodeId = cLastRingNodeId
-        c1NodeId = rhFirstRingNodeId
-        c2NodeId = lhFirstRingNodeId
+        paNodeId = parentLastRingNodeId
+        c1NodeId = child2FirstRingNodeId
+        c2NodeId = child1FirstRingNodeId
         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier, paNodeId,
                                                               paStartIndex, c1NodeId, c1StartIndex, c2NodeId,
                                                               c2StartIndex, roNodeId, coNodeId)
 
         # Create child1 elements
-        startNodeId = lhFirstRingNodeId[0]
+        startNodeId = child1FirstRingNodeId[0]
         elementIdentifier = generate2DTubeElements(fm, startNodeId, elementIdentifier, elementsCountInChild1,
                                                    elementsCountAround, omitStartRows=1, omitEndRows=0,
                                                    meshGroups=[child1MeshGroup, bifurcationMeshGroup])
 
         # Create child2 elements
-        startNodeId = rhFirstRingNodeId[0]
+        startNodeId = child2FirstRingNodeId[0]
         elementIdentifier = generate2DTubeElements(fm, startNodeId, elementIdentifier, elementsCountInChild2,
                                                    elementsCountAround, omitStartRows=0, omitEndRows=1,
                                                    meshGroups=[child2MeshGroup, bifurcationMeshGroup])
