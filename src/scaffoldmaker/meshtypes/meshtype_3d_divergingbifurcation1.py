@@ -1,6 +1,6 @@
 """
-Generates a 3-D uterus mesh along the central line, with variable
-numbers of elements around, along and through wall.
+Generates a 2-D diverging bifurcation network mesh from a 1-D network layout, with variable
+numbers of elements around, and through wall.
 """
 
 import copy
@@ -29,9 +29,9 @@ from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parame
 
 class MeshType_3d_divergingbifurcation1(Scaffold_base):
     """
-    Generates a 3-D uterus mesh with variable numbers of elements around, along the central line, and through wall.
-    The uterus is created using a central path as the longitudinal axis of the uterus. Magnitude of D2 and D3 are
-    the radii of the uterus in the respective directions.
+    Generates a 2-D diverging bifurcation network mesh from a 1-D network layout, with variable
+    numbers of elements around, and through wall.
+    Magnitude of D2 and D3 are the radii of the tube in the respective directions.
     """
     parameterSetStructureStrings = {
         'Mouse 1': ScaffoldPackage(MeshType_1d_network_layout1, {
@@ -244,135 +244,135 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
         elementIdentifier = 1
 
         # Create annotation groups
-        rightHornGroup = AnnotationGroup(region, ("child 2", "None"))
-        leftHornGroup = AnnotationGroup(region, ("child 1", "None"))
-        cervixGroup = AnnotationGroup(region, ("parent", "None"))
-        uterusGroup = AnnotationGroup(region, ("diverging bifurcation", "None"))
-        annotationGroups = [cervixGroup, leftHornGroup, rightHornGroup, uterusGroup]
+        child2Group = AnnotationGroup(region, ("child 2", "None"))
+        child1Group = AnnotationGroup(region, ("child 1", "None"))
+        parentGroup = AnnotationGroup(region, ("parent", "None"))
+        bifurcationGroup = AnnotationGroup(region, ("diverging bifurcation", "None"))
+        annotationGroups = [parentGroup, child1Group, child2Group, bifurcationGroup]
 
-        rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
-        leftHornMeshGroup = leftHornGroup.getMeshGroup(mesh)
-        cervixMeshGroup = cervixGroup.getMeshGroup(mesh)
-        uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
+        child2MeshGroup = child2Group.getMeshGroup(mesh)
+        child1MeshGroup = child1Group.getMeshGroup(mesh)
+        parentMeshGroup = parentGroup.getMeshGroup(mesh)
+        bifurcationMeshGroup = bifurcationGroup.getMeshGroup(mesh)
 
         # Geometric coordinates
-        geometricNetworkLayout = UterusNetworkLayout(region, networkLayout, targetElementLength)
+        geometricNetworkLayout = BifurcationNetworkLayout(region, networkLayout, targetElementLength)
 
-        rightHornLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
-        leftHornLength = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
-        cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[0]
+        child2Length = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
+        child1Length = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
+        parentLength = geometricNetworkLayout.arcLengthOfGroupsAlong[0]
 
-        elementsCountInRightHorn = math.ceil(rightHornLength / targetElementLength)
-        elementsCountInLeftHorn = math.ceil(leftHornLength / targetElementLength)
-        elementsCountInCervix = math.ceil(cervixLength / targetElementLength)
+        elementsCountInChild2 = math.ceil(child2Length / targetElementLength)
+        elementsCountInChild1 = math.ceil(child1Length / targetElementLength)
+        elementsCountInParent = math.ceil(parentLength / targetElementLength)
 
-        cx_right_horn_group = geometricNetworkLayout.cxGroups[2]
-        cx_left_horn_group = geometricNetworkLayout.cxGroups[1]
-        cx_cervix_group = geometricNetworkLayout.cxGroups[0]
+        cx_child2_group = geometricNetworkLayout.cxGroups[2]
+        cx_child1_group = geometricNetworkLayout.cxGroups[1]
+        cx_parent_group = geometricNetworkLayout.cxGroups[0]
 
-        sx_right_horn_group = geometricNetworkLayout.sxGroups[2]
-        sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
-        sx_cervix_group = geometricNetworkLayout.sxGroups[0]
+        sx_child2_group = geometricNetworkLayout.sxGroups[2]
+        sx_child1_group = geometricNetworkLayout.sxGroups[1]
+        sx_parent_group = geometricNetworkLayout.sxGroups[0]
 
-        # Get cervix nodes
-        cervixCoordinates = getCoordinatesAlongTube3D(cx_cervix_group, elementsCountAround, elementsCountInCervix,
+        # Get parent nodes
+        parentCoordinates = getCoordinatesAlongTube3D(cx_parent_group, elementsCountAround, elementsCountInParent,
                                                       elementsCountThroughWall, wallThickness, startRadian=-math.pi/2)
 
-        cLastRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
-                                                                    elementsCountInCervix, elementsCountThroughWall,
+        parentLastRingNodeCoordinates = getTargetedRingNodesCoordinates(parentCoordinates, elementsCountAround,
+                                                                    elementsCountInParent, elementsCountThroughWall,
                                                                     omitStartRows=0, omitEndRows=1)
 
-        # Get left horn nodes
-        leftHornCoordinates = getCoordinatesAlongTube3D(cx_left_horn_group, elementsCountAround,
-                                                        elementsCountInLeftHorn, elementsCountThroughWall,
+        # Get child1 nodes
+        child1Coordinates = getCoordinatesAlongTube3D(cx_child1_group, elementsCountAround,
+                                                        elementsCountInChild1, elementsCountThroughWall,
                                                         wallThickness, startRadian=-math.pi/2)
 
-        lhFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAround,
-                                                                    elementsCountInLeftHorn, elementsCountThroughWall,
+        child1FirstRingNodeCoordinates = getTargetedRingNodesCoordinates(child1Coordinates, elementsCountAround,
+                                                                    elementsCountInChild1, elementsCountThroughWall,
                                                                     omitStartRows=1, omitEndRows=0)
 
-        # Get right horn nodes
-        rightHornCoordinates = getCoordinatesAlongTube3D(cx_right_horn_group, elementsCountAround,
-                                                         elementsCountInRightHorn, elementsCountThroughWall,
+        # Get child2 nodes
+        child2Coordinates = getCoordinatesAlongTube3D(cx_child2_group, elementsCountAround,
+                                                         elementsCountInChild2, elementsCountThroughWall,
                                                          wallThickness, startRadian=-math.pi/2)
 
-        rhFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(rightHornCoordinates, elementsCountAround,
-                                                                    elementsCountInRightHorn, elementsCountThroughWall,
+        child2FirstRingNodeCoordinates = getTargetedRingNodesCoordinates(child2Coordinates, elementsCountAround,
+                                                                    elementsCountInChild2, elementsCountThroughWall,
                                                                     omitStartRows=1, omitEndRows=0)
 
         # Create nodes
-        # Create cervix nodes
-        nodeIdentifier = generateTubeNodes(fm, firstNodeIdentifier, cervixCoordinates, elementsCountInCervix,
+        # Create parent nodes
+        nodeIdentifier = generateTubeNodes(fm, firstNodeIdentifier, parentCoordinates, elementsCountInParent,
                                            elementsCountAround, elementsCountThroughWall, omitStartRows=0,
                                            omitEndRows=1, startNodes=None)
 
         # Create bifurcation nodes
-        paCentre = sx_cervix_group[0][1]
-        c1Centre = sx_right_horn_group[0][-2]
-        c2Centre = sx_left_horn_group[0][-2]
-        paxList = cLastRingNodeCoordinates[0]
+        paCentre = sx_parent_group[0][1]
+        c1Centre = sx_child2_group[0][-2]
+        c2Centre = sx_child1_group[0][-2]
+        paxList = parentLastRingNodeCoordinates[0]
         # pad1List = cFirstRingNodeCoordinates[1]
         # pad2List = cFirstRingNodeCoordinates[2]
-        pad2 = cLastRingNodeCoordinates[2]
-        c1xList = rhFirstRingNodeCoordinates[0]
-        c1d2 = rhFirstRingNodeCoordinates[2]
-        c2xList = lhFirstRingNodeCoordinates[0]
-        c2d2 = lhFirstRingNodeCoordinates[2]
+        pad2 = parentLastRingNodeCoordinates[2]
+        c1xList = child2FirstRingNodeCoordinates[0]
+        c1d2 = child2FirstRingNodeCoordinates[2]
+        c2xList = child1FirstRingNodeCoordinates[0]
+        c2d2 = child1FirstRingNodeCoordinates[2]
         nodeIdentifier, roNodeId, coNodeId, nextNodeId = create3dBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2,
                                                                       c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2,
                                                                       elementsCountThroughWall)
 
 
-        # Create left horn nodes
-        nodeIdentifier = generateTubeNodes(fm, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
+        # Create child1 nodes
+        nodeIdentifier = generateTubeNodes(fm, nodeIdentifier, child1Coordinates, elementsCountInChild1,
                                            elementsCountAround, elementsCountThroughWall, omitStartRows=1,
                                            omitEndRows=0, startNodes=None)
 
-        # Create right horn nodes
-        nodeIdentifier = generateTubeNodes(fm, nodeIdentifier, rightHornCoordinates, elementsCountInRightHorn,
+        # Create child2 nodes
+        nodeIdentifier = generateTubeNodes(fm, nodeIdentifier,child2Coordinates, elementsCountInChild2,
                                            elementsCountAround, elementsCountThroughWall, omitStartRows=1,
                                            omitEndRows=0, startNodes=None)
 
         # Create elements
-        # Create cervix elements
+        # Create parent elements
         startNodeId = firstNodeIdentifier
-        elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInCervix,
+        elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInParent,
                                                  elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                                  omitStartRows=1, omitEndRows=0,
-                                                 meshGroups=[cervixMeshGroup, uterusMeshGroup])
+                                                 meshGroups=[parentMeshGroup, bifurcationMeshGroup])
 
         # Create bifurcation elements
-        cLastRingNodeId, nodeCount = getTargetedRingNodesId(firstNodeIdentifier, elementsCountAround,
-                                                             elementsCountInCervix,
+        parentLastRingNodeId, nodeCount = getTargetedRingNodesId(firstNodeIdentifier, elementsCountAround,
+                                                             elementsCountInParent,
                                                              elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
-        lhFirstRingNodeId, nodeCount = getTargetedRingNodesId(nextNodeId, elementsCountAround, elementsCountInLeftHorn,
+        child1FirstRingNodeId, nodeCount = getTargetedRingNodesId(nextNodeId, elementsCountAround, elementsCountInChild1,
                                                              elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
-        rhFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround,
-                                                             elementsCountInRightHorn, elementsCountThroughWall,
+        child2FirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround,
+                                                             elementsCountInChild2, elementsCountThroughWall,
                                                              omitStartRows=1, omitEndRows=0)
 
-        paNodeId = cLastRingNodeId
-        c1NodeId = rhFirstRingNodeId
-        c2NodeId = lhFirstRingNodeId
+        paNodeId = parentLastRingNodeId
+        c1NodeId = child2FirstRingNodeId
+        c2NodeId = child1FirstRingNodeId
         elementIdentifier = make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIdentifier,
                                                               elementsCountAround, elementsCountThroughWall, paNodeId,
                                                               c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                                              meshGroups=[cervixMeshGroup, rightHornMeshGroup,
-                                                                          leftHornMeshGroup, uterusMeshGroup])
+                                                              meshGroups=[parentMeshGroup, child2MeshGroup,
+                                                                          child1MeshGroup, bifurcationMeshGroup])
 
-        # Create left horn elements
-        startNodeId = lhFirstRingNodeId[0][0]
-        elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInLeftHorn,
+        # Create child1 elements
+        startNodeId = child1FirstRingNodeId[0][0]
+        elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInChild1,
                                                  elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                                  omitStartRows=1, omitEndRows=0,
-                                                 meshGroups=[leftHornMeshGroup, uterusMeshGroup])
+                                                 meshGroups=[child1MeshGroup, bifurcationMeshGroup])
 
-        # Create right horn elements
-        startNodeId = rhFirstRingNodeId[0][0]
-        elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInRightHorn,
+        # Create child2 elements
+        startNodeId = child2FirstRingNodeId[0][0]
+        elementIdentifier = generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountInChild2,
                                                  elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                                  omitStartRows=0, omitEndRows=1,
-                                                 meshGroups=[rightHornMeshGroup, uterusMeshGroup])
+                                                 meshGroups=[child2MeshGroup, bifurcationMeshGroup])
 
 
         fm.endChange()
@@ -409,9 +409,9 @@ def findDerivativeBetweenPoints(v1, v2):
     return d
 
 
-class UterusNetworkLayout:
+class BifurcationNetworkLayout:
     """
-    Generates network layout for uterus scaffold.
+    Generates network layout for bifurcation scaffold.
     """
     def __init__(self, region, networkLayout, targetElementLength):
         """
@@ -767,7 +767,7 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
     elementtemplateMod = mesh.createElementtemplate()
     elementtemplateMod.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-    # Right tube part
+    # Child2 part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(c1Count):
             eft = eftStd
@@ -844,7 +844,7 @@ def make_tube_bifurcation_elements_3d(region, coordinates, elementIdentifier, el
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    # Left tube part
+    # Child1 part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(c2Count):
             eft = eftStd
@@ -1405,7 +1405,7 @@ def make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIden
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    # Left tube part
+    # Child1 part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(c2Count):
             eft = eftStd
@@ -1472,7 +1472,7 @@ def make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIden
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    # Right tube part
+    # Child2 part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(c1Count):
             eft = eftStd
