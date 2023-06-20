@@ -515,3 +515,19 @@ def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadi
 
     return px, pd1
 
+
+def get_plane_normal_vector_and_distance(p1, p2, p3):
+    """
+    Find plane equation using three points on the plane. n.r - d = 0
+    :param P1, P2, P3: Points on the plane given as a list
+    :return: normal to vector and distance from origin.
+    """
+    v = vector.addVectors([p2, p1], [1, -1])
+    w = vector.addVectors([p3, p1], [1, -1])
+    n = vector.normalise(vector.crossproduct3(v, w))
+    d = vector.dotproduct(n, p1)
+
+    return n, d
+
+
+

@@ -434,7 +434,8 @@ class ShieldMesh2D:
                         self.pd2[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd2[n3][n2][n1])
                         self.pd3[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd3[n3][n2][n1])
 
-    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, rangeOfRequiredElements, mirrorPlane=None):
+    def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, mirrorPlane=None,
+                      rangeOfRequiredElementsAlong=None):
         """
         Create shield nodes from coordinates.
         :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
@@ -463,13 +464,14 @@ class ShieldMesh2D:
         if self._mode == ShieldShape2D.SHIELD_SHAPE_FULL and mirrorPlane:
             self.generateNodesForOtherHalf(mirrorPlane)
 
+        if rangeOfRequiredElementsAlong is None:
+            rangeOfRequiredElementsAlong = [0, self.elementsCountAlong]
+
         for n2 in range(self.elementsCountUpFull + 1):
             for n3 in range(self.elementsCountAlong+1):
+                if n3 < rangeOfRequiredElementsAlong[0] or n3 > rangeOfRequiredElementsAlong[1]:
+                    continue
                 for n1 in range(self.elementsCountAcross + 1):
-                    if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0]\
-                            or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0]\
-                            or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
-                        continue
                     if self.px[n3][n2][n1]:
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         self.nodeId[n3][n2][n1] = nodeIdentifier
@@ -482,8 +484,8 @@ class ShieldMesh2D:
 
         return nodeIdentifier
 
-    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, rangeOfRequiredElements,
-                         meshGroupsElementsAlong=[], meshGroups=[]):
+    def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroupsElementsAlong=[],
+                         meshGroups=[], rangeOfRequiredElementsAlong=None):
         """
         Create shield elements from nodes.
         :param fieldmodule: Zinc fieldmodule to create elements in.
@@ -515,6 +517,9 @@ class ShieldMesh2D:
             count += c
             elementEnd.append(count)
 
+        if rangeOfRequiredElementsAlong is None:
+            rangeOfRequiredElementsAlong = [0, self.elementsCountAlong]
+
         isEven = (self.elementsCountAcross % 2) == 0
         e1a = self.elementsCountRim
         e1b = e1a + 1
@@ -527,12 +532,10 @@ class ShieldMesh2D:
         e2y = e2z - 1
         e2x = e2z - 2
         for e3 in range(self.elementsCountAlong):
+            if e3 < rangeOfRequiredElementsAlong[0] or e3 > rangeOfRequiredElementsAlong[1]:
+                continue
             for e2 in range(self.elementsCountUpFull):
                 for e1 in range(self.elementsCountAcross):
-                    if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or\
-                            e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0]\
-                            or e1 >= rangeOfRequiredElements[1][1] or e1 < rangeOfRequiredElements[1][0]:
-                        continue
                     eft1 = eft
                     scalefactors = None
                     if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:

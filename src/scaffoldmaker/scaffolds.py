@@ -7,6 +7,7 @@ import json
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import MeshType_1d_stickman1
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
@@ -42,6 +43,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smal
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
+from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
+from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
@@ -50,6 +53,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomac
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
+from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
@@ -60,6 +64,7 @@ class Scaffolds(object):
             MeshType_1d_bifurcationtree1,
             MeshType_1d_network_layout1,
             MeshType_1d_path1,
+            MeshType_1d_stickman1,
             MeshType_2d_plate1,
             MeshType_2d_platehole1,
             MeshType_2d_sphere1,
@@ -96,6 +101,8 @@ class Scaffolds(object):
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,
             MeshType_3d_solidsphere2,
+            MeshType_3d_solidcylinder1,
+            MeshType_3d_solidsphere1,
             MeshType_3d_sphereshell1,
             MeshType_3d_sphereshellseptum1,
             MeshType_3d_stellate1,
@@ -103,7 +110,8 @@ class Scaffolds(object):
             MeshType_3d_stomachhuman1,
             MeshType_3d_tube1,
             MeshType_3d_tubeseptum1,
-            MeshType_3d_wholebody1
+            MeshType_3d_wholebody1,
+            MeshType_3d_wholebody2,
             ]
 
     def findScaffoldTypeByName(self, name):
