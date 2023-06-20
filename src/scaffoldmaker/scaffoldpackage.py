@@ -6,11 +6,11 @@ Supports serialisation to/from JSON. Can be used as a scaffold option.
 import copy
 import math
 
-from opencmiss.maths.vectorops import euler_to_rotation_matrix
-from opencmiss.utils.zinc.field import createFieldEulerAnglesRotationMatrix
-from opencmiss.utils.zinc.finiteelement import get_maximum_node_identifier
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field, FieldGroup
+from cmlibs.maths.vectorops import euler_to_rotation_matrix
+from cmlibs.utils.zinc.field import createFieldEulerAnglesRotationMatrix
+from cmlibs.utils.zinc.finiteelement import get_maximum_node_identifier
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.field import Field, FieldGroup
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
     getAnnotationMarkerLocationField  # , getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -368,7 +368,7 @@ class ScaffoldPackage:
         '''
         return findAnnotationGroupByName(self._autoAnnotationGroups + self._userAnnotationGroups, name)
 
-    def createUserAnnotationGroup(self, term=None):
+    def createUserAnnotationGroup(self, term=None, isMarker=False):
         '''
         Create a new, empty user annotation group.
         Only call after generate().
@@ -378,6 +378,8 @@ class ScaffoldPackage:
         must be unique i.e. unused in the list of annotation groups.
         The id should be a unique string, or use "None" if unknown.
         e.g. ('heart', 'FMA:7088') or None.
+        :param isMarker: Set to true if group will be used for a single marker point; must call
+        createMarkerNode immediately afterwards.
         :return: New AnnotationGroup.
         '''
         assert self._region
@@ -394,7 +396,7 @@ class ScaffoldPackage:
                     break
                 number += 1
             useTerm = (name, "None")
-        annotationGroup = AnnotationGroup(self._region, useTerm)
+        annotationGroup = AnnotationGroup(self._region, useTerm, isMarker=isMarker)
         self._userAnnotationGroups.append(annotationGroup)
         return annotationGroup
 

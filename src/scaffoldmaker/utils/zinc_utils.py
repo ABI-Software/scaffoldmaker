@@ -2,14 +2,14 @@
 Utility functions for easing use of Zinc API.
 '''
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.element import Mesh, MeshGroup
-from opencmiss.zinc.field import Field, FieldGroup
-from opencmiss.zinc.fieldmodule import Fieldmodule
-from opencmiss.zinc.node import Node, Nodeset
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.element import Mesh, MeshGroup
+from cmlibs.zinc.field import Field, FieldGroup
+from cmlibs.zinc.fieldmodule import Fieldmodule
+from cmlibs.zinc.node import Node, Nodeset
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
@@ -173,21 +173,24 @@ def get_next_unused_node_identifier(nodeset: Nodeset, start_identifier=1) -> int
 
 def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_dimension=None):
     '''
-    Add to group elements and/or nodes from other_group.
+    Add to group elements and/or nodes from other_group, which may be in a descendent region.
+    :param group: The FieldGroup to modify.
+    :param other_group: FieldGroup within region tree of group's region to add contents from.
     :param only_dimension: If set, only add objects of this dimension.
     '''
-    fieldmodule = group.getFieldmodule()
-    with ChangeManager(fieldmodule):
+    region = group.getFieldmodule().getRegion()
+    with HierarchicalChangeManager(region):
+        other_fieldmodule = other_group.getFieldmodule()
         for dimension in [ only_dimension ] if only_dimension else range(4):
             if dimension > 0:
-                mesh = fieldmodule.findMeshByDimension(dimension)
+                mesh = other_fieldmodule.findMeshByDimension(dimension)
                 element_group = group.getFieldElementGroup(mesh)
                 if not element_group.isValid():
                     element_group = group.createFieldElementGroup(mesh)
                 mesh_group = element_group.getMeshGroup()
                 mesh_group.addElementsConditional(other_group.getFieldElementGroup(mesh))
             elif dimension == 0:
-                nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+                nodeset = other_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
                 node_group = group.getFieldNodeGroup(nodeset)
                 if not node_group.isValid():
                     node_group = group.createFieldNodeGroup(nodeset)

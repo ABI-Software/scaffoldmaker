@@ -26,8 +26,9 @@ particular have different numbers of tenia coli:
 
 These variants' geometry and annotations are best viewed in the **Scaffold Creator** tool in the ABI Mapping Tools.
 On the web, the latest published generic colon scaffold variants can be viewed on the
-`SPARC Portal <https://sparc.science/>`_ by searching for ``colon``, filtering for models, selecting a variant and
-viewing the scaffold in its Gallery tab.
+`SPARC Portal <https://sparc.science/>`_ by searching for ``colon``, filtering for anatomical models, selecting a
+variant and viewing the scaffold in its Gallery tab or via the `Organ Scaffolds
+<https://docs.sparc.science/docs/organ-scaffolds>`_ help article.
 
 The colon scaffold script generates the scaffold mesh and geometry from an idealization of their cross-sectional profile
 shapes. The mesh is derived from ellipsoid and cubic functions based on a one dimensional central path which describes
@@ -38,6 +39,12 @@ Instructions for editing the central path are given with the ABI Mapping Tools *
 Note that the D2 derivative along the path points towards the first node around the cross-section along the colon.
 If editing, use the Interactive Functions to *Smooth derivatives*, and *Smooth side cross derivatives* to make these as
 smooth as required.
+
+The central path used to generate the current mouse colon scaffold is obtained from tracing a central path from a
+dissection image obtained from the literature. Lixin Wang (UCLA), Yvette Tache (UCLA), and Marthe Howard
+(University of Toledo) provided lengths and diameter data for mouse colon. The pig colon scaffold is generated from
+images and measurements provided by Million Mulugeta, Muriel Larauche, and Yvette Tache (UCLA). The human colon scaffold
+is created based on average dimensions and images obtained from the literature.
 
 The mucosa, submucosa, circular muscle, longitudinal muscle and serosa layers of the colon are fully represented on
 the scaffold when *Number of elements through wall* is set to ``4``. Alternatively, the entire colon wall can be

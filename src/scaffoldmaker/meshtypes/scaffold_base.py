@@ -4,8 +4,8 @@ Describes methods each scaffold must or may override.
 """
 import copy
 
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.field import Field
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.field import Field
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement

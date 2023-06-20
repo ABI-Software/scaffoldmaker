@@ -6,8 +6,8 @@ Generates a whole body scaffold using a mesh of all cube elements,
 from __future__ import division
 import copy
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_1d_stickman1 import MeshType_1d_stickman1, extractPathParametersFromRegion
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base

@@ -4,11 +4,11 @@ Generates a 1-D stickman that is used for body posture.
 
 from __future__ import division
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine

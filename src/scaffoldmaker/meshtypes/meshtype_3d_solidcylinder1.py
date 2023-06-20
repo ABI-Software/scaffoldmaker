@@ -7,8 +7,8 @@ from __future__ import division
 
 import copy
 
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -57,7 +57,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across transition': 1,
             'Number of elements along': 1,
             'Shell element thickness proportion': 1.0,
-            'Lower half': False,
+            'Crop number of elements across major': [0, 0],
+            'Crop number of elements across minor': [0, 0],
+            'Crop number of elements along': [0, 0],
             'Use cross derivatives': False,
             'Refine': False,
             'Refine number of elements across major': 1,
@@ -75,7 +77,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across transition',
             'Number of elements along',
             'Shell element thickness proportion',
-            'Lower half',
+            'Crop number of elements across major',
+            'Crop number of elements across minor',
+            'Crop number of elements along',
             'Refine',
             'Refine number of elements across major',
             'Refine number of elements along'
@@ -140,6 +144,24 @@ with variable numbers of elements in major, minor, shell and axial directions.
         if options['Shell element thickness proportion'] < 0.15:
             options['Shell element thickness proportion'] = 1.0
 
+        maxelems = [options['Number of elements across major'],
+                    options['Number of elements across minor'],
+                    options['Number of elements along']]
+
+        cropElements = [
+            options['Crop number of elements across major'],
+            options['Crop number of elements across minor'],
+            options['Crop number of elements along'],
+        ]
+
+        for j in [0, 1]:
+            if not (1 + options['Number of elements across shell'] < cropElements[0][j] < maxelems[0]):
+                options['Crop number of elements across major'][j] = 0
+            if not (1 + options['Number of elements across shell'] < cropElements[1][j] < maxelems[1] - 1):
+                options['Crop number of elements across minor'][j] = 0
+            if not (0 <= options['Crop number of elements along'][j] < options['Number of elements along']):
+                options['Crop number of elements along'][j] = 0
+
         return dependentChanges
 
     @staticmethod
@@ -152,10 +174,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         """
 
         centralPath = options['Central path']
-        full = not options['Lower half']
         elementsCountAcrossMajor = options['Number of elements across major']
-        if not full:
-            elementsCountAcrossMajor //= 2
         elementsCountAcrossMinor = options['Number of elements across minor']
         elementsCountAcrossShell = options['Number of elements across shell']
         elementsCountAcrossTransition = options['Number of elements across transition']
@@ -163,12 +182,23 @@ with variable numbers of elements in major, minor, shell and axial directions.
         shellProportion = options['Shell element thickness proportion']
         useCrossDerivatives = options['Use cross derivatives']
 
+        cropElements = [
+            options['Crop number of elements across major'],
+            options['Crop number of elements across minor'],
+            options['Crop number of elements along'],
+        ]
+        rangeOfRequiredElements = [
+            [cropElements[0][0], elementsCountAcrossMajor - cropElements[0][1]],
+            [cropElements[1][0], elementsCountAcrossMinor - cropElements[1][1]],
+            [cropElements[2][0], elementsCountAlong - cropElements[2][1]],
+        ]
+
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
 
         cylinderCentralPath = CylinderCentralPath(region, centralPath, elementsCountAlong)
 
-        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL if full else CylinderShape.CYLINDER_SHAPE_LOWER_HALF
+        cylinderShape = CylinderShape.CYLINDER_SHAPE_FULL
 
         base = CylinderEnds(elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
                             elementsCountAcrossTransition,
@@ -176,7 +206,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                             [0.0, 0.0, 0.0], cylinderCentralPath.alongAxis[0], cylinderCentralPath.majorAxis[0],
                             cylinderCentralPath.minorRadii[0])
         cylinder1 = CylinderMesh(fm, coordinates, elementsCountAlong, base,
-                                 cylinderShape=cylinderShape,
+                                 cylinderShape=cylinderShape, rangeOfRequiredElements=rangeOfRequiredElements,
                                  cylinderCentralPath=cylinderCentralPath, useCrossDerivatives=False)
 
         annotationGroup = []

@@ -7,9 +7,9 @@ a solid truncated cone. It also can be used for transition from a 2D base to ano
 import math
 from enum import Enum
 
-from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import extractPathParametersFromRegion
 from scaffoldmaker.utils import vector, geometry
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
@@ -138,7 +138,6 @@ class CylinderMesh:
                  cylinderShape=CylinderShape.CYLINDER_SHAPE_FULL,
                  tapered=None, cylinderCentralPath=None, useCrossDerivatives=False, meshGroupsElementsAlong=[],
                  meshGroups=[], rangeOfRequiredElementsAlong=None):
-
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -146,6 +145,8 @@ class CylinderMesh:
         :param end: Cylinder end ellipse. It is an instance of class CylinderEnds.
         :param elementsCountAlong: Number of elements along the cylinder axis.
         :param cylinderShape: A value from enum CylinderMode specifying.
+        :param rangeOfRequiredElements: Specifies the range of elements required to be created. It can be used to
+         create the part of cylinder required. If None or same as elementsCountAcross the whole part will be created.
         """
 
         self._centres = None
@@ -180,6 +181,9 @@ class CylinderMesh:
             self._cylinderType = CylinderType.CYLINDER_TAPERED
             self._tapered = tapered
         self._useCrossDerivatives = useCrossDerivatives
+        if rangeOfRequiredElementsAlong:
+            self._rangeOfRequiredElementsAlong = rangeOfRequiredElementsAlong
+
         self._meshGroups = meshGroups
         self._meshGroupsElementsAlong = meshGroupsElementsAlong
         self._cylinderCentralPath = cylinderCentralPath

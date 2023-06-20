@@ -1,11 +1,11 @@
 import unittest
 from testutils import assertAlmostEqualList
 
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.field import Field
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.field import Field
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -31,9 +31,9 @@ class SphereScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1.0, options.get("Radius2"))
         self.assertEqual(1.0, options.get("Radius3"))
         self.assertEqual(1.0, options.get("Shell element thickness proportion"))
-        self.assertEqual([0, 4], options.get("Range of elements required in direction 1"))
-        self.assertEqual([0, 4], options.get("Range of elements required in direction 2"))
-        self.assertEqual([0, 4], options.get("Range of elements required in direction 3"))
+        self.assertEqual([0, 0], options.get("Crop number of elements in direction 1"))
+        self.assertEqual([0, 0], options.get("Crop number of elements in direction 2"))
+        self.assertEqual([0, 0], options.get("Crop number of elements in direction 3"))
         self.assertEqual([1, 2, 3], options.get("Box derivatives"))
 
         context = Context("Test")
@@ -140,9 +140,9 @@ class SphereScaffoldTestCase(unittest.TestCase):
         options['Number of elements across axis 1'] = 4
         options['Number of elements across axis 2'] = 6
         options['Number of elements across axis 3'] = 8
-        options['Range of elements required in direction 1'] = [0, 4]
-        options['Range of elements required in direction 2'] = [0, 6]
-        options['Range of elements required in direction 3'] = [0, 8]
+        options['Crop number of elements in direction 1'] = [0, 0]
+        options['Crop number of elements in direction 2'] = [0, 0]
+        options['Crop number of elements in direction 3'] = [0, 0]
 
         options['Radius1'] = 0.5
         options['Radius2'] = 0.8

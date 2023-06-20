@@ -8,14 +8,14 @@ from __future__ import division
 import copy
 import math
 
-from opencmiss.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
-from opencmiss.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
-from opencmiss.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
-from opencmiss.zinc.element import Element, Elementbasis
-from opencmiss.zinc.field import Field, FieldGroup
-from opencmiss.zinc.node import Node
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field, FieldGroup
+from cmlibs.zinc.node import Node
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
     findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.heart_terms import get_heart_term
@@ -843,8 +843,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         svcInletGroup = AnnotationGroup(region, get_heart_term("superior vena cava inlet"))
         ivcGroup = AnnotationGroup(region, get_heart_term("inferior vena cava"))
         svcGroup = AnnotationGroup(region, get_heart_term("superior vena cava"))
-        laeVenousMidpointGroup = AnnotationGroup(region, get_heart_term("left atrium epicardium venous midpoint"))
-        raeVenousMidpointGroup = AnnotationGroup(region, get_heart_term("right atrium epicardium venous midpoint"))
+        laeVenousMidpointGroup =\
+            AnnotationGroup(region, get_heart_term("left atrium epicardium venous midpoint"), isMarker=True)
+        raeVenousMidpointGroup =\
+            AnnotationGroup(region, get_heart_term("right atrium epicardium venous midpoint"), isMarker=True)
         # av boundary nodes are put in left and right fibrous ring groups so they can be found by heart1
         lFibrousRingGroup = AnnotationGroup(region, get_heart_term("left fibrous ring"))
         rFibrousRingGroup = AnnotationGroup(region, get_heart_term("right fibrous ring"))

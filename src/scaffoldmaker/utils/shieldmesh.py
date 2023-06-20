@@ -8,9 +8,9 @@ from __future__ import division
 import copy
 from enum import Enum
 
-from opencmiss.zinc.element import Element
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.node import Node
+from cmlibs.zinc.element import Element
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -441,6 +441,7 @@ class ShieldMesh2D:
         :param fieldmodule: Zinc fieldmodule to create nodes in. Uses DOMAIN_TYPE_NODES.
         :param coordinates: Coordinate field to define.
         :param startNodeIdentifier: First node identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
         :param mirrorPlane: mirror plane ax+by+cz=d in form of [a,b,c,d]
         :return: next nodeIdentifier.
          """
@@ -483,7 +484,6 @@ class ShieldMesh2D:
 
         return nodeIdentifier
 
-
     def generateElements(self, fieldmodule, coordinates, startElementIdentifier, meshGroupsElementsAlong=[],
                          meshGroups=[], rangeOfRequiredElementsAlong=None):
         """
@@ -491,6 +491,7 @@ class ShieldMesh2D:
         :param fieldmodule: Zinc fieldmodule to create elements in.
         :param coordinates: Coordinate field to define.
         :param startElementIdentifier: First element identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
         :param meshGroups, meshGroupsElementsAlong: Zinc mesh groups to add elements to. meshGroupsElementsAlong is a
         list that specifies number of elements along the cylinder to be added to the same meshGroup.
         :return: next elementIdentifier.

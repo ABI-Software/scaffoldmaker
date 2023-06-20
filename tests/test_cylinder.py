@@ -1,10 +1,10 @@
 import unittest
 
-from opencmiss.utils.zinc.finiteelement import evaluateFieldNodesetRange
-from opencmiss.utils.zinc.general import ChangeManager
-from opencmiss.zinc.context import Context
-from opencmiss.zinc.field import Field
-from opencmiss.zinc.result import RESULT_OK
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 
 from testutils import assertAlmostEqualList
@@ -20,7 +20,7 @@ class CylinderScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(12, len(options))
+        self.assertEqual(14, len(options))
         self.assertEqual(4, options.get("Number of elements across major"))
         self.assertEqual(4, options.get("Number of elements across minor"))
         self.assertEqual(0, options.get("Number of elements across shell"))
