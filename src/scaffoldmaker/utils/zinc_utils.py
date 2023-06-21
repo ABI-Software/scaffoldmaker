@@ -1,11 +1,11 @@
-'''
+"""
 Utility functions for easing use of Zinc API.
-'''
+"""
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
-from cmlibs.zinc.element import Mesh, MeshGroup
+from cmlibs.zinc.element import MeshGroup
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, Nodeset
@@ -14,8 +14,8 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 
 
-def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale, \
-        node1, derivative1, scale1, cross_derivative1, cross_scale1, \
+def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
+        node1, derivative1, scale1, cross_derivative1, cross_scale1,
         node2, derivative2, scale2, cross_derivative2, cross_scale2):
     """
     Interpolates position and first derivative with cubic Hermite basis.
@@ -85,51 +85,6 @@ def computeNodeDerivativeHermiteLagrange(cache, coordinates, node1, derivative1,
     return d2
 
 
-def exnodeStringFromNodeValues(
-        nodeValueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ],
-        nodeValues = [
-            [ [ 0.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ],
-            [ [ 1.0, 0.0, 0.0 ], [ 1.0, 0.0, 0.0 ] ] ],
-        groupName = 'meshEdits'):
-    '''
-    Return a string in Zinc EX format defining nodes 1..N with the supplied
-    coordinate values and their labels. Works in a private zinc context.
-    '''
-    # following requires at least one value label and node, assumes consistent values and components counts
-    nodeValueLabelsCount = len(nodeValueLabels)
-    nodesCount = len(nodeValues)
-    componentsCount = len(nodeValues[0][0])
-    context = Context('exnodeStringFromNodeValues')
-    region = context.getDefaultRegion()
-    fieldmodule = region.getFieldmodule()
-    with ChangeManager(fieldmodule):
-        cache = fieldmodule.createFieldcache()
-        coordinates = findOrCreateFieldCoordinates(fieldmodule, components_count = componentsCount)
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        group = fieldmodule.createFieldGroup()
-        group.setName(groupName)
-        nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        if not Node.VALUE_LABEL_VALUE in nodeValueLabels:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
-        for nodeValueLabel in nodeValueLabels:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, nodeValueLabel, 1)
-        # create nodes
-        for n in range(nodesCount):
-            node = nodesetGroup.createNode(n + 1, nodetemplate)
-            cache.setNode(node)
-            for v in range(nodeValueLabelsCount):
-                coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[n][v])
-        # serialise to string
-        sir = region.createStreaminformationRegion()
-        srm = sir.createStreamresourceMemory()
-        sir.setResourceGroupName(srm, groupName)
-        region.write(sir)
-        result, exString = srm.getBuffer()
-    return exString
-
-
 def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType) -> MeshGroup:
     """
     Returns mesh group for the exterior surface on the face described
@@ -147,7 +102,7 @@ def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType
     return faceMeshGroup
 
 
-def get_highest_dimension_mesh(fieldmodule : Fieldmodule) -> Mesh:
+def get_highest_dimension_mesh(fieldmodule : Fieldmodule):
     '''
     Get highest dimension non-empty mesh.
     :return: Zinc Mesh or None if all are empty.
@@ -254,7 +209,7 @@ def identifier_ranges_from_string(identifier_ranges_string):
                 for i in range(len(digits)):
                     if not digits[i].isdigit():
                         digits = digits[:i]
-                        break;
+                        break
                 identifier_range_ends[e] = digits
             start = int(identifier_range_ends[0])
             if len(identifier_range_ends) == 1:
@@ -393,75 +348,389 @@ def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
     return
 
 
-def extract_node_field_parameters(nodeset, field, only_value_labels=None):
-    '''
+def get_nodeset_field_parameters(nodeset, field, only_value_labels=None):
+    """
     Returns parameters of field from nodes in nodeset in identifier order.
     Assumes all components have the same labels and versions.
-    :param onlyValueLabels: Optional list of node value labels to limit extraction from e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
-    :return: list of valueLabels returned, list of (node identifier, list over value labels of list of versions of parameters.
-    '''
+    :param nodeset: Owning nodeset nodes are from.
+    :param field: The field to get parameters for. Must be finite element type.
+    :param only_value_labels: Optional list of node value labels to limit extraction from
+    e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
+    :return: list of valueLabels returned, list of node field parameters.
+    Parameters are a tuple of (node identifier, node parameters),
+    where node parameters are a list over value labels of a list of versions of parameters.
+    Value labels without any parameters are removed before returning.
+    """
     fieldmodule = nodeset.getFieldmodule()
-    componentsCount = field.getNumberOfComponents()
+    finite_element_field = field.castFiniteElement()
+    assert finite_element_field.isValid(), "get_nodeset_field_parameters:  Field is not finite element type"
+    components_count = field.getNumberOfComponents()
     fieldcache = fieldmodule.createFieldcache()
-    valueLabels = only_value_labels if only_value_labels else \
-        [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3, Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3 ]
-    valueLabelsCount = len(valueLabels)
-    fieldParameters = []
-    valueLabelParameterCounts = [ 0 for valueLabel in valueLabels ]
-    nodeIter = nodeset.createNodeiterator()
-    node = nodeIter.next()
+    value_labels = only_value_labels if only_value_labels else [
+        Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+        Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3, Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+    value_labels_count = len(value_labels)
+    value_labels_parameter_counts = [0 for value_label in value_labels]
+    node_field_parameters = []
+    nodeiterator = nodeset.createNodeiterator()
+    node = nodeiterator.next()
     while node.isValid():
         fieldcache.setNode(node)
-        nodeParameters = []
-        fieldDefinedAtNode = False
-        for i in range(valueLabelsCount):
-            valueParameters = []
+        node_parameters = []
+        field_defined_at_node = False
+        for i in range(value_labels_count):
+            value_parameters = []
             version = 1
             while True:
-                result, parameters = field.getNodeParameters(fieldcache, -1, valueLabels[i], version, componentsCount)
+                result, parameters = finite_element_field.getNodeParameters(
+                    fieldcache, -1, value_labels[i], version, components_count)
                 if result != RESULT_OK:
-                    break;
-                fieldDefinedAtNode = True
-                valueParameters.append(parameters)
-                valueLabelParameterCounts[i] += 1
+                    break
+                field_defined_at_node = True
+                value_parameters.append(parameters)
+                value_labels_parameter_counts[i] += 1
                 version += 1
-            nodeParameters.append(valueParameters)
-        if fieldDefinedAtNode:
-            fieldParameters.append( ( node.getIdentifier(), nodeParameters ) )
-        node = nodeIter.next()
-    for i in range(valueLabelsCount - 1, -1, -1):
-        if valueLabelParameterCounts[i] == 0:
-            valueLabels.pop(i)
-            for nodeParameters in fieldParameters:
-                nodeParameters[1].pop(i)
-    return valueLabels, fieldParameters
+            node_parameters.append(value_parameters)
+        if field_defined_at_node:
+            node_field_parameters.append((node.getIdentifier(), node_parameters))
+        node = nodeiterator.next()
+    for i in range(value_labels_count - 1, -1, -1):
+        if value_labels_parameter_counts[i] == 0:
+            value_labels.pop(i)
+            for node_parameters in node_field_parameters:
+                node_parameters[1].pop(i)
+    return value_labels, node_field_parameters
 
 
-def parameter_lists_to_string(valuesList, format_string):
+def set_nodeset_field_parameters(nodeset, field, value_labels, node_field_parameters, edit_group_name=None):
+    """
+    Set node parameters for coordinates field in path from listed values.
+    :param nodeset: Owning nodeset nodes are from.
+    :param field: The field to set parameters for. Must be finite element type.
+    :param value_labels: List of node values/derivatives to set e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
+    :param node_field_parameters: List of tuple of (node identifier, node parameters),
+    where node parameters are a list over value labels of a list of versions of parameters,
+    as returned by get_nodeset_field_parameters().
+    If a particular node / value label / version is None or an empty list, no assignment is made.
+    :param edit_group_name: Optional name of group to get or create and put modified nodes in the
+    respective nodeset group.
+    """
+    fieldmodule = nodeset.getFieldmodule()
+    finite_element_field = field.castFiniteElement()
+    assert finite_element_field.isValid(), "set_nodeset_field_parameters:  Field is not finite element type"
+    value_labels_count = len(value_labels)
+    edit_nodeset_group = None
+    with ChangeManager(fieldmodule):
+        fieldcache = fieldmodule.createFieldcache()
+        for node_identifier, node_parameters in node_field_parameters:
+            node = nodeset.findNodeByIdentifier(node_identifier)
+            assert(node.isValid()), "set_nodeset_field_parameters: Missing node " + str(node_identifier)
+            fieldcache.setNode(node)
+            changed_node_parameters = False
+            for d in range(value_labels_count):
+                node_value_parameters = node_parameters[d]
+                versions_count = len(node_value_parameters)
+                for v in range(versions_count):
+                    if node_value_parameters[v]:
+                        changed_node_parameters = True
+                        finite_element_field.setNodeParameters(
+                            fieldcache, -1, value_labels[d], v + 1, node_value_parameters[v])
+            if edit_group_name and changed_node_parameters:
+                if not edit_nodeset_group:
+                    edit_group = find_or_create_field_group(fieldmodule, edit_group_name, managed=True)
+                    edit_node_group = edit_group.getFieldNodeGroup(nodeset)
+                    if not edit_node_group.isValid():
+                        edit_node_group = edit_node_group.createFieldNodeGroup(nodeset)
+                    edit_nodeset_group = edit_node_group.getNodesetGroup()
+                edit_nodeset_group.addNode(node)
+
+
+def make_nodeset_derivatives_orthogonal(nodeset, field, make_d2_normal: bool=True, make_d3_normal:bool=True,
+                                        edit_group_name=None):
+    """
+    Make d2 and/or d3 normal to d1 for all nodes and versions of field parameters in nodeset.
+    Side derivatives keep their current magnitudes.
+    All derivatives must have the same number of versions.
+    :param nodeset: Owning nodeset containing nodes to modify.
+    :param field: The field to modify parameters for. Must be finite element type with 1-3 real components.
+    :param make_d2_normal: Set to true if d2 is to be made normal to d1.
+    :param make_d3_normal: Set to true if d3 is to be made normal to d1 and d2.
+    :param edit_group_name: Optional name of group to get or create and put modified nodes in the
+    respective nodeset group.
+    """
+    assert make_d2_normal or make_d3_normal
+    finite_element_field = field.castFiniteElement()
+    assert finite_element_field.isValid(), "make_nodeset_derivatives_orthogonal:  Field is not finite element type"
+    assert field.getNumberOfComponents() <= 3, "make_nodeset_derivatives_orthogonal:  Field has more than 3 components"
+    value_labels_in = [Node.VALUE_LABEL_D_DS1]
+    if make_d2_normal or make_d3_normal:
+        value_labels_in.append(Node.VALUE_LABEL_D_DS2)
+    if make_d3_normal:
+        value_labels_in.append(Node.VALUE_LABEL_D_DS3)
+    value_labels, node_field_parameters = get_nodeset_field_parameters(nodeset, field, value_labels_in)
+    assert Node.VALUE_LABEL_D_DS1 in value_labels, "make_nodeset_derivatives_orthogonal. Missing d/ds1 parameters"
+    assert (not make_d2_normal) or Node.VALUE_LABEL_D_DS2 in value_labels, \
+        "make_nodeset_derivatives_orthogonal. Missing d/ds2 parameters"
+    assert (not make_d3_normal) or Node.VALUE_LABEL_D_DS3 in value_labels, \
+        "make_nodeset_derivatives_orthogonal. Missing d/ds3 parameters"
+    d1_index = value_labels.index(Node.VALUE_LABEL_D_DS1)
+    d2_index = value_labels.index(Node.VALUE_LABEL_D_DS2) if (Node.VALUE_LABEL_D_DS2 in value_labels) else None
+    d3_index = value_labels.index(Node.VALUE_LABEL_D_DS3) if (Node.VALUE_LABEL_D_DS3 in value_labels) else None
+    for node_identifier, node_parameters in node_field_parameters:
+        versions_count = len(node_parameters[d1_index])
+        assert (((d2_index is None) or (len(node_parameters[d2_index]) == versions_count)) and
+                ((d3_index is None) or (len(node_parameters[d3_index]) == versions_count))), \
+            "make_nodeset_derivatives_orthogonal. Mismatched numbers of derivative versions at node " \
+            + str(node_identifier)
+        for v in range(versions_count):
+            d1 = node_parameters[d1_index][v]
+            d2 = node_parameters[d2_index][v] if (d2_index is not None) else None
+            if make_d2_normal:
+                td2 = vector.vectorRejection(d2, d1)
+                td2 = vector.setMagnitude(td2, vector.magnitude(d2))
+                d2 = node_parameters[d2_index][v] = td2
+            if make_d3_normal:
+                d3 = node_parameters[d3_index][v]
+                if d2:
+                    td3 = vector.crossproduct3(d1, d2)
+                else:
+                    td3 = vector.vectorRejection(d3, d1)
+                td3 = vector.setMagnitude(td3, vector.magnitude(d3))
+                d3 = node_parameters[d3_index][v] = td3
+    remove_indexes = [d1_index]
+    if (d2_index is not None) and (not make_d2_normal):
+        # order from highest index to lowest
+        if d1_index < d2_index:
+            remove_indexes.insert(0, d2_index)
+        else:
+            remove_indexes.append(d2_index)
+    for i in remove_indexes:
+        value_labels.pop(i)
+    for node_identifier, node_parameters in node_field_parameters:
+        for i in remove_indexes:
+            node_parameters.pop(i)
+    set_nodeset_field_parameters(nodeset, field, value_labels, node_field_parameters, edit_group_name)
+
+
+def get_nodeset_path_field_parameters(nodeset, field, value_labels):
+    """
+    Get vectors of field parameters of nodes from nodeset in identifier order for
+    each specified value_labels. Only first version of each parameter is obtained per node.
+    Fails if any value_labels or version is not defined for all nodes and field components.
+    :param nodeset: Owning nodeset.
+    :param field: The field to get parameters for. Must be finite element type.
+    :param value_labels: List of parameters required as list of node value labels.
+    e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
+    :return: List of value_label_parameters in order of value_labels e.g x[], d1[].
+    """
+    fieldmodule = nodeset.getFieldmodule()
+    finite_element_field = field.castFiniteElement()
+    assert finite_element_field.isValid(), "get_nodeset_path_field_parameters:  Field is not finite element type"
+    components_count = field.getNumberOfComponents()
+    value_labels_count = len(value_labels)
+    assert value_labels_count > 0
+    fieldcache = fieldmodule.createFieldcache()
+    value_label_parameters = [[] for i in range(value_labels_count)]
+    nodeiterator = nodeset.createNodeiterator()
+    node = nodeiterator.next()
+    while node.isValid():
+        fieldcache.setNode(node)
+        version = 1
+        for i in range(value_labels_count):
+            result, parameters = \
+                finite_element_field.getNodeParameters(fieldcache, -1, value_labels[i], version, components_count)
+            assert result == RESULT_OK, "get_nodeset_path_field_parameters. Node value/version not defined"
+            value_label_parameters[i].append(parameters)
+        node = nodeiterator.next()
+    return value_label_parameters
+
+
+def get_nodeset_path_ordered_field_parameters(nodeset, field, value_labels, node_identifiers, versions):
+    """
+    Get vectors of field parameters of nodes from nodeset in specified identifier order
+    for a single version (version 1 for VALUE, versions[n] for derivatives at the n'th node),
+    for each specified value_labels.
+    Fails if any value_labels or versions are not defined for all nodes and field components.
+    :param nodeset: Owning nodeset.
+    :param field: The field to get parameters for. Must be finite element type.
+    :param value_labels: List of parameters required as list of node value labels.
+    e.g. [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1].
+    :param node_identifiers: List of node identifiers to only get parameters for.
+    :param versions: List of node parameter versions for the above node identifiers, starting at 1.
+    :return: List of value_label_parameters in order of value_labels e.g x[], d1[].
+    """
+    fieldmodule = nodeset.getFieldmodule()
+    finite_element_field = field.castFiniteElement()
+    assert finite_element_field.isValid(), \
+        "get_nodeset_path_ordered_field_parameters:  Field is not finite element type"
+    components_count = field.getNumberOfComponents()
+    value_labels_count = len(value_labels)
+    assert value_labels_count > 0
+    node_identifiers_count = len(node_identifiers)
+    assert node_identifiers_count == len(versions)
+    fieldcache = fieldmodule.createFieldcache()
+    value_label_parameters = [[] for i in range(value_labels_count)]
+    for n in range(len(node_identifiers)):
+        node = nodeset.findNodeByIdentifier(node_identifiers[n])
+        assert node.isValid(), "get_nodeset_path_field_parameters. Missing node"
+        fieldcache.setNode(node)
+        for i in range(value_labels_count):
+            value_label = value_labels[i]
+            version = 1 if (value_label == Node.VALUE_LABEL_VALUE) else versions[n]
+            result, parameters = \
+                finite_element_field.getNodeParameters(fieldcache, -1, value_label, version, components_count)
+            assert result == RESULT_OK, "get_nodeset_path_ordered_field_parameters. Node value/version not defined"
+            value_label_parameters[i].append(parameters)
+    return value_label_parameters
+
+
+def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
+    '''
+    Set node parameters for coordinates field in path from listed values.
+    Only handles version 1.
+    :param nodeValueLabels: List of nodeValueLabels to set e.g. [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
+    :param nodeValues: List of values for each type e.g. [ xlist, d1list ]
+    :param editGroupName: Optional name of existing or new Zinc group to record modified nodes in.
+    '''
+    fieldmodule = region.getFieldmodule()
+    coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
+    componentsCount = coordinates.getNumberOfComponents()
+    # following requires at least one value label and node, assumes consistent values and components counts
+    nodeValueLabelsCount = len(nodeValueLabels)
+    nodesCount = len(nodeValues[0])
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    assert nodesCount == nodes.getSize()
+    with ChangeManager(fieldmodule):
+        if editGroupName:
+            editGroup = find_or_create_field_group(fieldmodule, editGroupName, managed=True)
+            editNodeGroup = editGroup.getFieldNodeGroup(nodes)
+            if not editNodeGroup.isValid():
+                editNodeGroup = editGroup.createFieldNodeGroup(nodes)
+            editNodesetGroup = editNodeGroup.getNodesetGroup()
+        cache = fieldmodule.createFieldcache()
+        nodeiterator = nodes.createNodeiterator()
+        node = nodeiterator.next()
+        n = 0
+        while node.isValid():
+            cache.setNode(node)
+            for v in range(nodeValueLabelsCount):
+                coordinates.setNodeParameters(cache, -1, nodeValueLabels[v], 1, nodeValues[v][n])
+            if editGroupName:
+                editNodesetGroup.addNode(node)
+            node = nodeiterator.next()
+            n += 1
+
+
+def parameter_lists_to_string(values_list, format_string):
     '''
     :return: 'None' if values is an empty list, the values in the first item if only one, otherwise the lists of values.
     '''
-    if not valuesList:
+    if not values_list:
         return 'None'
-    if len(valuesList) == 1:
-        return '[' + ','.join(format_string.format(value) for value in valuesList[0]) + ']'
-    return '[ ' + ', '.join('[' + (','.join(format_string.format(value) for value in values)) for values in valuesList)  + '] ]'
+    if len(values_list) == 1:
+        return '[' + ','.join(format_string.format(value) for value in values_list[0]) + ']'
+    return '[' + ','.join(
+        '[' + ','.join(format_string.format(value) for value in sub_values_list) + ']'
+        for sub_values_list in values_list) + ']'
 
 
 def print_node_field_parameters(value_labels, node_field_parameters, format_string='{: 11e}'):
-    '''
-    Print value labels and parameters returned by extract_node_field_parameters ready for
-    pasting into python code.
+    """
+    Print value labels and node parameters returned by get_nodeset_field_parameters ready for
+    pasting into python code. Example:
+    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
+    [
+    (1, [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    (2, [[0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
+    ]
+    where node 2 has 2 versions of D_DS1.
     :param format_string: Default format uses exponential notation with 7 significant digits = single precision.
-    '''
-    valueLabelsStrings = [ None, 'Node.VALUE_LABEL_VALUE', 'Node.VALUE_LABEL_D_DS1', 'Node.VALUE_LABEL_D_DS2', 'Node.VALUE_LABEL_D2_DS1DS2', 'Node.VALUE_LABEL_D_DS3', 'Node.VALUE_LABEL_D2_DS1DS3', 'Node.VALUE_LABEL_D2_DS2DS3', 'Node.VALUE_LABEL_D3_DS1DS2DS3']
-    print('[ ' + ', '.join(valueLabelsStrings[v] for v in value_labels) + ' ]')
+    """
+    print('[' + ', '.join('Node.VALUE_LABEL_' + Node.ValueLabelEnumToString(value_label)
+                          for value_label in value_labels) + ']')
     print('[')
-    lastNodeIdentifier  = node_field_parameters[-1][0]
-    for nodeParameters in node_field_parameters:
-        nodeIdentifier = nodeParameters[0]
-        print('( ' + str(nodeIdentifier) + ', [ ' + ', '.join(parameter_lists_to_string(valueParameters, format_string) for valueParameters in nodeParameters[1]) + ' ] )' +  (', ' if (nodeIdentifier != lastNodeIdentifier) else ''))
+    last_node_identifier = node_field_parameters[-1][0]
+    for node_identifier, node_parameters in node_field_parameters:
+        print('(' + str(node_identifier) + ', [' + ', '.join(parameter_lists_to_string(valueParameters, format_string)
+                                                             for valueParameters in node_parameters) + '])' +
+              (', ' if (node_identifier != last_node_identifier) else ''))
     print(']\n')
+
+
+def exnode_string_from_nodeset_field_parameters(
+        value_labels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1],
+        node_field_parameters = [
+            (1, [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+            (2, [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+        ],
+        group_name = 'meshEdits'):
+    """
+    Return a string in Zinc EX format defining nodes with the supplied identifiers
+    and coordinate field parameters.
+    Works in a private zinc context.
+    :param value_labels: List of Node.ValueLabels supplied for each node.
+    :param node_field_parameters: List of tuples of node identifier and parameters for
+    each of the node values supplied. Versions may be supplied for any node/value
+    by supplying a list of coordinate vectors. A single version can be supplied
+    either as a single vector, or as a list containing a single vector.
+    e.g. (1, [[0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]]),
+    defines node 1 with 2 versions of DS1 using the default value_labels.
+    Note: If node identifier is -1 it uses the first available identifier starting at 1;
+    if used, this should be used for all node identifiers.
+    :param group_name:  Name of group to put nodes in.
+    """
+    # following requires at least one value label and node, assumes consistent values and components counts
+    value_labels_count = len(value_labels)
+    assert len(node_field_parameters) > 0
+    node_parameters = node_field_parameters[0][1]
+    components_count = \
+        len(node_parameters[0][0]) if isinstance(node_parameters[0][0], list) else len(node_parameters[0])
+    context = Context('exnode_string_from_nodeset_field_parameters')
+    region = context.getDefaultRegion()
+    fieldmodule = region.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        fieldcache = fieldmodule.createFieldcache()
+        coordinates = find_or_create_field_coordinates(fieldmodule, components_count=components_count)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        group = fieldmodule.createFieldGroup()
+        group.setName(group_name)
+        nodeset_group = group.createFieldNodeGroup(nodes).getNodesetGroup()
+        # dict mapping from tuple of derivative versions to nodetemplate
+        nodetemplates = {}
+        # create nodes
+        for node_identifier, node_parameters in node_field_parameters:
+            value_labels_versions = []
+            for d in range(value_labels_count):
+                if isinstance(node_parameters[d][0], list):
+                    value_labels_versions.append(len(node_parameters[d]))
+                else:
+                    value_labels_versions.append(1)
+            value_labels_versions = tuple(value_labels_versions)  # must be tuple to use as dict key
+            nodetemplate = nodetemplates.get(value_labels_versions)
+            if not nodetemplate:
+                nodetemplate = nodes.createNodetemplate()
+                nodetemplate.defineField(coordinates)
+                if not Node.VALUE_LABEL_VALUE in value_labels:
+                    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+                for d in range(value_labels_count):
+                    nodetemplate.setValueNumberOfVersions(coordinates, -1, value_labels[d], value_labels_versions[d])
+                nodetemplates[value_labels_versions] = nodetemplate
+            node = nodeset_group.createNode(node_identifier, nodetemplate)
+            fieldcache.setNode(node)
+            for d in range(value_labels_count):
+                if isinstance(node_parameters[d][0], list):
+                    for v in range(value_labels_versions[d]):
+                        coordinates.setNodeParameters(fieldcache, -1, value_labels[d], v + 1, node_parameters[d][v])
+                else:
+                    coordinates.setNodeParameters(fieldcache, -1, value_labels[d], 1, node_parameters[d])
+        # serialise to string
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        sir.setResourceGroupName(srm, group_name)
+        region.write(sir)
+        result, exString = srm.getBuffer()
+    return exString
+
 
 def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGroup2, nextNodeIdentifier):
     """
@@ -518,7 +787,7 @@ def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGrou
 
                         # copy field parameters from existingNode to copyNode
                         for coordinateField in coordinateFields:
-                            componentsCount = coordinateField.getNumberOfComponents()
+                            components_count = coordinateField.getNumberOfComponents()
 
                             for valueLabel in allValueLabels:
                                 versionCount = nodetemplate.getValueNumberOfVersions(coordinateField, -1, valueLabel)
@@ -526,7 +795,7 @@ def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGrou
                                 for version in range(1, versionCount + 1):
                                     fieldcache.setNode(existingNode)
                                     result, values = coordinateField.getNodeParameters(
-                                        fieldcache, -1, valueLabel, version, componentsCount)
+                                        fieldcache, -1, valueLabel, version, components_count)
                                     fieldcache.setNode(copyNode)
                                     coordinateField.setNodeParameters(
                                         fieldcache, -1, valueLabel, version, values)
@@ -538,3 +807,26 @@ def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGrou
             element = elemiter.next()
 
     return nextNodeIdentifier, list(copyIdentifiersMap.values())
+
+
+def region_get_selection_group(region):
+    """
+    Get current selection group in this region, if any.
+    Note finds related group from selection field in ancestor regions.
+    :param region: Region to query.
+    :return: Selection FieldGroup or None if none.
+    """
+    tmp_region = region
+    while tmp_region.isValid():
+        scene = tmp_region.getScene()
+        selection_group = scene.getSelectionField().castGroup()
+        if selection_group.isValid():
+            if tmp_region is region:
+                return selection_group
+            selection_group_name = selection_group.getName()
+            selection_group = region.getFieldmodule().findFieldByName(selection_group_name).castGroup()
+            if selection_group.isValid():
+                return selection_group
+            break
+        tmp_region = tmp_region.getParent()
+    return None

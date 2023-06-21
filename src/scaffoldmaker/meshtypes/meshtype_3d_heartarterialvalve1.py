@@ -360,7 +360,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         Optional extra parameters allow centre and axes to be set.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
          """
         fieldmodule = region.getFieldmodule()
         with ChangeManager(fieldmodule):
@@ -368,7 +368,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
             x, d1, d2, d3 = cls.getPoints(options)
             nodeId = cls.generateNodes(fieldmodule, coordinates, x, d1, d2, d3)[1]
             cls.generateElements(fieldmodule, coordinates, nodeId)[0]
-        return []  # annotationGroups
+        return [], None
     
     @classmethod
     def refineMesh(cls, meshrefinement, options):

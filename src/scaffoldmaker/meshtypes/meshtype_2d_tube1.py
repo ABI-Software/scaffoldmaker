@@ -49,7 +49,7 @@ class MeshType_2d_tube1(Scaffold_base):
         """
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         elementsCountAlong = options['Number of elements along']
         elementsCountAround = options['Number of elements around']
@@ -119,4 +119,4 @@ class MeshType_2d_tube1(Scaffold_base):
                 elementIdentifier = elementIdentifier + 1
 
         fm.endChange()
-        return []
+        return [], None

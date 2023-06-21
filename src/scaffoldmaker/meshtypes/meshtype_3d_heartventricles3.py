@@ -301,7 +301,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
         elementsCountAroundFull, elementsCountUpLVApex, \
             elementsCountAcrossIVSeptum, elementsCountUpIVSeptum, \
@@ -1041,7 +1041,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         for group in [ heartGroup, lvGroup, apexGroup ]:
             group.getNodesetGroup(nodes).addNode(markerPoint)
 
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

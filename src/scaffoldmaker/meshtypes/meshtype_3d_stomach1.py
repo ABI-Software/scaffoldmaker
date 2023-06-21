@@ -17,8 +17,10 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
     getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, extractPathParametersFromRegion
+from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -31,7 +33,8 @@ from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubiche
 from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds, remapEftNodeValueLabel, remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.geometry import sampleEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.zinc_utils import exnodeStringFromNodeValues, mesh_destroy_elements_and_nodes_by_identifiers
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_field_parameters
 
 
 class MeshType_3d_stomach1(Scaffold_base):
@@ -50,16 +53,17 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 7
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [ 1.406,  0.437, 0.000 ], [ -0.179, -0.503, 0.000 ], [  0.413, -0.146, 0.000 ], [ -0.039, -0.062, 0.000 ], [ 0.000, 0.000, 0.406 ], [ 0.000, 0.000,  0.047 ] ],
-                [ [ 1.200,  0.000, 0.000 ], [ -0.234, -0.366, 0.000 ], [  0.338, -0.215, 0.000 ], [ -0.111, -0.076, 0.000 ], [ 0.000, 0.000, 0.435 ], [ 0.000, 0.000,  0.009 ] ],
-                [ [ 0.955, -0.294, 0.000 ], [ -0.291, -0.193, 0.000 ], [  0.196, -0.296, 0.000 ], [ -0.159, -0.021, 0.000 ], [ 0.000, 0.000, 0.429 ], [ 0.000, 0.000, -0.053 ] ],
-                [ [ 0.660, -0.383, 0.000 ], [ -0.294, -0.027, 0.000 ], [  0.024, -0.269, 0.000 ], [ -0.135,  0.048, 0.000 ], [ 0.000, 0.000, 0.339 ], [ 0.000, 0.000, -0.099 ] ],
-                [ [ 0.385, -0.352, 0.000 ], [ -0.216,  0.084, 0.000 ], [ -0.079, -0.202, 0.000 ], [ -0.067,  0.084, 0.000 ], [ 0.000, 0.000, 0.232 ], [ 0.000, 0.000, -0.071 ] ],
-                [ [ 0.237, -0.244, 0.000 ], [ -0.116,  0.131, 0.000 ], [ -0.122, -0.107, 0.000 ], [ -0.004,  0.082, 0.000 ], [ 0.000, 0.000, 0.185 ], [ 0.000, 0.000, -0.062 ] ],
-                [ [ 0.158, -0.101, 0.000 ], [ -0.067,  0.165, 0.000 ], [ -0.090, -0.037, 0.000 ], [  0.004,  0.046, 0.000 ], [ 0.000, 0.000, 0.110 ], [ 0.000, 0.000, -0.033 ] ],
-                [ [ 0.108,  0.083, 0.000 ], [ -0.034,  0.203, 0.000 ], [ -0.117, -0.020, 0.000 ], [ -0.058, -0.012, 0.000 ], [ 0.000, 0.000, 0.126 ], [ 0.000, 0.000,  0.064 ] ] ] ),
+                    (1, [[ 1.406,  0.437, 0.000 ], [ -0.179, -0.503, 0.000 ], [  0.413, -0.146, 0.000 ], [ -0.039, -0.062, 0.000 ], [ 0.000, 0.000, 0.406 ], [ 0.000, 0.000,  0.047 ]]),
+                    (2, [[ 1.200,  0.000, 0.000 ], [ -0.234, -0.366, 0.000 ], [  0.338, -0.215, 0.000 ], [ -0.111, -0.076, 0.000 ], [ 0.000, 0.000, 0.435 ], [ 0.000, 0.000,  0.009 ]]),
+                    (3, [[ 0.955, -0.294, 0.000 ], [ -0.291, -0.193, 0.000 ], [  0.196, -0.296, 0.000 ], [ -0.159, -0.021, 0.000 ], [ 0.000, 0.000, 0.429 ], [ 0.000, 0.000, -0.053 ]]),
+                    (4, [[ 0.660, -0.383, 0.000 ], [ -0.294, -0.027, 0.000 ], [  0.024, -0.269, 0.000 ], [ -0.135,  0.048, 0.000 ], [ 0.000, 0.000, 0.339 ], [ 0.000, 0.000, -0.099 ]]),
+                    (5, [[ 0.385, -0.352, 0.000 ], [ -0.216,  0.084, 0.000 ], [ -0.079, -0.202, 0.000 ], [ -0.067,  0.084, 0.000 ], [ 0.000, 0.000, 0.232 ], [ 0.000, 0.000, -0.071 ]]),
+                    (6, [[ 0.237, -0.244, 0.000 ], [ -0.116,  0.131, 0.000 ], [ -0.122, -0.107, 0.000 ], [ -0.004,  0.082, 0.000 ], [ 0.000, 0.000, 0.185 ], [ 0.000, 0.000, -0.062 ]]),
+                    (7, [[ 0.158, -0.101, 0.000 ], [ -0.067,  0.165, 0.000 ], [ -0.090, -0.037, 0.000 ], [  0.004,  0.046, 0.000 ], [ 0.000, 0.000, 0.110 ], [ 0.000, 0.000, -0.033 ]]),
+                    (8, [[ 0.108,  0.083, 0.000 ], [ -0.034,  0.203, 0.000 ], [ -0.117, -0.020, 0.000 ], [ -0.058, -0.012, 0.000 ], [ 0.000, 0.000, 0.126 ], [ 0.000, 0.000,  0.064 ]])
+                ]),
 
             'userAnnotationGroups': [
                 {
@@ -94,8 +98,64 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '7',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
+                }]
+        }),
+        'Human 2': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 1.0,
+                'Number of elements': 7
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                (1, [ [  61.47, -101.30, 1152.18 ], [   1.92, -17.01, -22.36 ], [ 15.88,  -0.53,   2.00 ], [  -1.47, -0.53,  -7.23 ], [ -4.20, -32.38, 24.81 ], [  1.62, -4.46,  0.00 ] ] ),
+                (2, [ [  61.43, -121.54, 1122.53 ], [  -2.01, -23.41, -36.85 ], [ 39.29,  -6.83,   2.36 ], [  -7.43, -2.71, -11.05 ], [ -7.56, -35.47, 23.07 ], [  0.31, -0.85,  0.00 ] ] ),
+                (3, [ [  56.78, -147.38, 1078.66 ], [ -18.57, -19.78, -33.63 ], [ 37.34, -13.52, -12.67 ], [ -13.50, -4.91,  -7.49 ], [ -4.91, -35.87, 23.81 ], [ -1.83,  5.03,  0.00 ] ] ),
+                (4, [ [  32.14, -159.44, 1058.12 ], [ -25.49,  -7.02, -11.18 ], [ 12.92, -15.68, -19.60 ], [ -13.60, -4.95,  -0.11 ], [ -1.59, -27.21, 20.72 ], [ -3.42,  9.40,  0.00 ] ] ),
+                (5, [ [  10.36, -162.05, 1054.83 ], [ -21.12,   0.81,  -0.05 ], [ -0.49, -14.00, -17.23 ], [  -8.70, -3.17,   5.66 ], [ -0.74, -18.17, 14.78 ], [ -2.45,  6.74,  0.00 ] ] ),
+                (6, [ [  -8.74, -158.28, 1057.63 ], [ -14.76,   6.59,   2.22 ], [ -6.11, -10.23, -10.22 ], [  -2.39,  4.12,   5.11 ], [ -3.26, -12.00, 13.95 ], [ -1.56,  6.63, -3.36 ] ] ),
+                (7, [ [ -18.83, -150.69, 1059.20 ], [ -11.47,  11.36,   1.06 ], [ -6.41,  -5.88,  -6.34 ], [  -0.18,  2.75,   2.61 ], [ -4.20,  -5.07,  8.95 ], [ -1.21,  4.57, -2.38 ] ] ),
+                (8, [ [ -30.74, -135.24, 1059.32 ], [ -10.69,  13.10,  -0.80 ], [ -6.40,  -5.57,  -5.67 ], [   1.20, -0.04,  -0.56 ], [ -5.80,  -4.09, 10.56 ], [  0.50,  1.74, -3.24 ] ] ) ] ),
+
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1',
+                    'name': get_stomach_term('fundus of stomach')[0],
+                    'ontId': get_stomach_term('fundus of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '2-3',
+                    'name': get_stomach_term('body of stomach')[0],
+                    'ontId': get_stomach_term('body of stomach')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '4-5',
+                    'name': get_stomach_term('pyloric antrum')[0],
+                    'ontId': get_stomach_term('pyloric antrum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
+                    'name': get_stomach_term('pyloric canal')[0],
+                    'ontId': get_stomach_term('pyloric canal')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '7',
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -106,18 +166,19 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 8
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [ 1.700, 0.603, 0.000 ], [  0.103, -0.338, 0.000 ], [  0.470, -0.088, 0.000 ], [ -0.191, -0.149, 0.000 ], [ 0.000, 0.000, 0.382 ], [ 0.000, 0.000,  0.121] ],
-                [ [ 1.690, 0.280, 0.000 ], [ -0.147, -0.294, 0.000 ], [  0.294, -0.221, 0.000 ], [ -0.161, -0.117, 0.000 ], [ 0.000, 0.000, 0.456 ], [ 0.000, 0.000,  0.027] ],
-                [ [ 1.498, 0.059, 0.000 ], [ -0.294, -0.132, 0.000 ], [  0.147, -0.323, 0.000 ], [ -0.169, -0.102, 0.000 ], [ 0.000, 0.000, 0.441 ], [ 0.000, 0.000, -0.022] ],
-                [ [ 1.200, 0.000, 0.000 ], [ -0.338,  0.044, 0.000 ], [ -0.044, -0.426, 0.000 ], [ -0.198, -0.003, 0.000 ], [ 0.000, 0.000, 0.412 ], [ 0.000, 0.000, -0.032] ],
-                [ [ 0.862, 0.147, 0.000 ], [ -0.221,  0.206, 0.000 ], [ -0.250, -0.309, 0.000 ], [ -0.103,  0.149, 0.000 ], [ 0.000, 0.000, 0.377 ], [ 0.000, 0.000, -0.046] ],
-                [ [ 0.759, 0.368, 0.000 ], [ -0.029,  0.206, 0.000 ], [ -0.284, -0.139, 0.000 ], [  0.048,  0.118, 0.000 ], [ 0.000, 0.000, 0.324 ], [ 0.000, 0.000, -0.091] ],
-                [ [ 0.765, 0.543, 0.000 ], [  0.015,  0.147, 0.000 ], [ -0.178, -0.057, 0.000 ], [  0.089,  0.068, 0.000 ], [ 0.000, 0.000, 0.206 ], [ 0.000, 0.000, -0.093] ],
-                [ [ 0.799, 0.677, 0.000 ], [  0.000,  0.132, 0.000 ], [ -0.103,  0.000, 0.000 ], [  0.035,  0.027, 0.000 ], [ 0.000, 0.000, 0.132 ], [ 0.000, 0.000, -0.043] ],
-                [ [ 0.788, 0.809, 0.000 ], [ -0.015,  0.132, 0.000 ], [ -0.107, -0.002, 0.000 ], [ -0.043, -0.031, 0.000 ], [ 0.000, 0.000, 0.118 ], [ 0.000, 0.000,  0.015] ] ] ),
+                    (1, [[ 1.700, 0.603, 0.000 ], [  0.103, -0.338, 0.000 ], [  0.470, -0.088, 0.000 ], [ -0.191, -0.149, 0.000 ], [ 0.000, 0.000, 0.382 ], [ 0.000, 0.000,  0.121]]),
+                    (2, [[ 1.690, 0.280, 0.000 ], [ -0.147, -0.294, 0.000 ], [  0.294, -0.221, 0.000 ], [ -0.161, -0.117, 0.000 ], [ 0.000, 0.000, 0.456 ], [ 0.000, 0.000,  0.027]]),
+                    (3, [[ 1.498, 0.059, 0.000 ], [ -0.294, -0.132, 0.000 ], [  0.147, -0.323, 0.000 ], [ -0.169, -0.102, 0.000 ], [ 0.000, 0.000, 0.441 ], [ 0.000, 0.000, -0.022]]),
+                    (4, [[ 1.200, 0.000, 0.000 ], [ -0.338,  0.044, 0.000 ], [ -0.044, -0.426, 0.000 ], [ -0.198, -0.003, 0.000 ], [ 0.000, 0.000, 0.412 ], [ 0.000, 0.000, -0.032]]),
+                    (5, [[ 0.862, 0.147, 0.000 ], [ -0.221,  0.206, 0.000 ], [ -0.250, -0.309, 0.000 ], [ -0.103,  0.149, 0.000 ], [ 0.000, 0.000, 0.377 ], [ 0.000, 0.000, -0.046]]),
+                    (6, [[ 0.759, 0.368, 0.000 ], [ -0.029,  0.206, 0.000 ], [ -0.284, -0.139, 0.000 ], [  0.048,  0.118, 0.000 ], [ 0.000, 0.000, 0.324 ], [ 0.000, 0.000, -0.091]]),
+                    (7, [[ 0.765, 0.543, 0.000 ], [  0.015,  0.147, 0.000 ], [ -0.178, -0.057, 0.000 ], [  0.089,  0.068, 0.000 ], [ 0.000, 0.000, 0.206 ], [ 0.000, 0.000, -0.093]]),
+                    (8, [[ 0.799, 0.677, 0.000 ], [  0.000,  0.132, 0.000 ], [ -0.103,  0.000, 0.000 ], [  0.035,  0.027, 0.000 ], [ 0.000, 0.000, 0.132 ], [ 0.000, 0.000, -0.043]]),
+                    (9, [[ 0.788, 0.809, 0.000 ], [ -0.015,  0.132, 0.000 ], [ -0.107, -0.002, 0.000 ], [ -0.043, -0.031, 0.000 ], [ 0.000, 0.000, 0.118 ], [ 0.000, 0.000,  0.015]])
+                ]),
 
             'userAnnotationGroups': [
                 {
@@ -152,8 +213,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '8',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -164,16 +225,17 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 7
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [ 1.401,  0.390, 0.000 ], [ -0.244, -0.494, 0.000 ], [  0.218, -0.129, 0.000 ], [  0.219, -0.097, 0.000 ], [ 0.000, 0.000, 0.328 ], [ 0.000, 0.000,  0.101] ],
-                [ [ 1.200,  0.000, 0.000 ], [ -0.157, -0.287, 0.000 ], [  0.366, -0.195, 0.000 ], [  0.054, -0.047, 0.000 ], [ 0.000, 0.000, 0.393 ], [ 0.000, 0.000,  0.028] ],
-                [ [ 1.093, -0.185, 0.000 ], [ -0.140, -0.215, 0.000 ], [  0.356, -0.232, 0.000 ], [ -0.051, -0.053, 0.000 ], [ 0.000, 0.000, 0.398 ], [ 0.000, 0.000, -0.008] ],
-                [ [ 0.916, -0.425, 0.000 ], [ -0.230, -0.170, 0.000 ], [  0.244, -0.312, 0.000 ], [ -0.162, -0.058, 0.000 ], [ 0.000, 0.000, 0.373 ], [ 0.000, 0.000, -0.044] ],
-                [ [ 0.664, -0.512, 0.000 ], [ -0.287,  0.022, 0.000 ], [  0.037, -0.350, 0.000 ], [ -0.197,  0.057, 0.000 ], [ 0.000, 0.000, 0.313 ], [ 0.000, 0.000, -0.104] ],
-                [ [ 0.405, -0.372, 0.000 ], [ -0.170,  0.231, 0.000 ], [ -0.150, -0.188, 0.000 ], [ -0.048,  0.159, 0.000 ], [ 0.000, 0.000, 0.159 ], [ 0.000, 0.000, -0.092] ],
-                [ [ 0.352, -0.110, 0.000 ], [ -0.098,  0.216, 0.000 ], [ -0.072, -0.057, 0.000 ], [  0.033,  0.052, 0.000 ], [ 0.000, 0.000, 0.085 ], [ 0.000, 0.000, -0.020] ],
-                [ [ 0.229,  0.051, 0.000 ], [ -0.139,  0.099, 0.000 ], [ -0.052, -0.071, 0.000 ], [ -0.031, -0.104, 0.000 ], [ 0.000, 0.000, 0.094 ], [ 0.000, 0.000,  0.006] ] ] ),
+                    (1, [[ 1.401,  0.390, 0.000 ], [ -0.244, -0.494, 0.000 ], [  0.218, -0.129, 0.000 ], [  0.219, -0.097, 0.000 ], [ 0.000, 0.000, 0.328 ], [ 0.000, 0.000,  0.101]]),
+                    (2, [[ 1.200,  0.000, 0.000 ], [ -0.157, -0.287, 0.000 ], [  0.366, -0.195, 0.000 ], [  0.054, -0.047, 0.000 ], [ 0.000, 0.000, 0.393 ], [ 0.000, 0.000,  0.028]]),
+                    (3, [[ 1.093, -0.185, 0.000 ], [ -0.140, -0.215, 0.000 ], [  0.356, -0.232, 0.000 ], [ -0.051, -0.053, 0.000 ], [ 0.000, 0.000, 0.398 ], [ 0.000, 0.000, -0.008]]),
+                    (4, [[ 0.916, -0.425, 0.000 ], [ -0.230, -0.170, 0.000 ], [  0.244, -0.312, 0.000 ], [ -0.162, -0.058, 0.000 ], [ 0.000, 0.000, 0.373 ], [ 0.000, 0.000, -0.044]]),
+                    (5, [[ 0.664, -0.512, 0.000 ], [ -0.287,  0.022, 0.000 ], [  0.037, -0.350, 0.000 ], [ -0.197,  0.057, 0.000 ], [ 0.000, 0.000, 0.313 ], [ 0.000, 0.000, -0.104]]),
+                    (6, [[ 0.405, -0.372, 0.000 ], [ -0.170,  0.231, 0.000 ], [ -0.150, -0.188, 0.000 ], [ -0.048,  0.159, 0.000 ], [ 0.000, 0.000, 0.159 ], [ 0.000, 0.000, -0.092]]),
+                    (7, [[ 0.352, -0.110, 0.000 ], [ -0.098,  0.216, 0.000 ], [ -0.072, -0.057, 0.000 ], [  0.033,  0.052, 0.000 ], [ 0.000, 0.000, 0.085 ], [ 0.000, 0.000, -0.020]]),
+                    (8, [[ 0.229,  0.051, 0.000 ], [ -0.139,  0.099, 0.000 ], [ -0.052, -0.071, 0.000 ], [ -0.031, -0.104, 0.000 ], [ 0.000, 0.000, 0.094 ], [ 0.000, 0.000,  0.006]])
+                ]),
 
             'userAnnotationGroups': [
                 {
@@ -208,8 +270,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '7',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Rat 1': ScaffoldPackage(MeshType_1d_path1, {
@@ -220,17 +282,18 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 8
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [ 1.666, 0.636, 0.000 ], [  0.039, -0.249, 0.000 ], [  0.282,  0.044, 0.000 ], [  0.215, -0.158, 0.000 ], [ 0.000, 0.000, 0.318 ], [ 0.000, 0.000,  0.060] ],
-                [ [ 1.643, 0.375, 0.000 ], [ -0.086, -0.263, 0.000 ], [  0.392, -0.127, 0.000 ], [  0.008, -0.184, 0.000 ], [ 0.000, 0.000, 0.365 ], [ 0.000, 0.000,  0.035] ],
-                [ [ 1.496, 0.130, 0.000 ], [ -0.231, -0.204, 0.000 ], [  0.287, -0.326, 0.000 ], [ -0.167, -0.162, 0.000 ], [ 0.000, 0.000, 0.387 ], [ 0.000, 0.000,  0.007] ],
-                [ [ 1.200, 0.000, 0.000 ], [ -0.322, -0.034, 0.000 ], [  0.048, -0.444, 0.000 ], [ -0.262, -0.032, 0.000 ], [ 0.000, 0.000, 0.378 ], [ 0.000, 0.000, -0.020] ],
-                [ [ 0.879, 0.088, 0.000 ], [ -0.291,  0.191, 0.000 ], [ -0.223, -0.365, 0.000 ], [ -0.175,  0.165, 0.000 ], [ 0.000, 0.000, 0.348 ], [ 0.000, 0.000, -0.058] ],
-                [ [ 0.694, 0.378, 0.000 ], [ -0.083,  0.278, 0.000 ], [ -0.219, -0.145, 0.000 ], [  0.041,  0.183, 0.000 ], [ 0.000, 0.000, 0.267 ], [ 0.000, 0.000, -0.114] ],
-                [ [ 0.689, 0.568, 0.000 ], [ -0.014,  0.165, 0.000 ], [ -0.156, -0.025, 0.000 ], [  0.090,  0.031, 0.000 ], [ 0.000, 0.000, 0.120 ], [ 0.000, 0.000, -0.035] ],
-                [ [ 0.664, 0.691, 0.000 ], [ -0.035,  0.115, 0.000 ], [ -0.107, -0.035, 0.000 ], [  0.011, -0.024, 0.000 ], [ 0.000, 0.000, 0.116 ], [ 0.000, 0.000,  0.011] ],
-                [ [ 0.619, 0.796, 0.000 ], [ -0.054,  0.096, 0.000 ], [ -0.125, -0.071, 0.000 ], [ -0.048, -0.047, 0.000 ], [ 0.000, 0.000, 0.146 ], [ 0.000, 0.000, -0.011] ] ] ),
+                    (1, [[ 1.666, 0.636, 0.000 ], [  0.039, -0.249, 0.000 ], [  0.282,  0.044, 0.000 ], [  0.215, -0.158, 0.000 ], [ 0.000, 0.000, 0.318 ], [ 0.000, 0.000,  0.060]]),
+                    (2, [[ 1.643, 0.375, 0.000 ], [ -0.086, -0.263, 0.000 ], [  0.392, -0.127, 0.000 ], [  0.008, -0.184, 0.000 ], [ 0.000, 0.000, 0.365 ], [ 0.000, 0.000,  0.035]]),
+                    (3, [[ 1.496, 0.130, 0.000 ], [ -0.231, -0.204, 0.000 ], [  0.287, -0.326, 0.000 ], [ -0.167, -0.162, 0.000 ], [ 0.000, 0.000, 0.387 ], [ 0.000, 0.000,  0.007]]),
+                    (4, [[ 1.200, 0.000, 0.000 ], [ -0.322, -0.034, 0.000 ], [  0.048, -0.444, 0.000 ], [ -0.262, -0.032, 0.000 ], [ 0.000, 0.000, 0.378 ], [ 0.000, 0.000, -0.020]]),
+                    (5, [[ 0.879, 0.088, 0.000 ], [ -0.291,  0.191, 0.000 ], [ -0.223, -0.365, 0.000 ], [ -0.175,  0.165, 0.000 ], [ 0.000, 0.000, 0.348 ], [ 0.000, 0.000, -0.058]]),
+                    (6, [[ 0.694, 0.378, 0.000 ], [ -0.083,  0.278, 0.000 ], [ -0.219, -0.145, 0.000 ], [  0.041,  0.183, 0.000 ], [ 0.000, 0.000, 0.267 ], [ 0.000, 0.000, -0.114]]),
+                    (7, [[ 0.689, 0.568, 0.000 ], [ -0.014,  0.165, 0.000 ], [ -0.156, -0.025, 0.000 ], [  0.090,  0.031, 0.000 ], [ 0.000, 0.000, 0.120 ], [ 0.000, 0.000, -0.035]]),
+                    (8, [[ 0.664, 0.691, 0.000 ], [ -0.035,  0.115, 0.000 ], [ -0.107, -0.035, 0.000 ], [  0.011, -0.024, 0.000 ], [ 0.000, 0.000, 0.116 ], [ 0.000, 0.000,  0.011]]),
+                    (9, [[ 0.619, 0.796, 0.000 ], [ -0.054,  0.096, 0.000 ], [ -0.125, -0.071, 0.000 ], [ -0.048, -0.047, 0.000 ], [ 0.000, 0.000, 0.146 ], [ 0.000, 0.000, -0.011]])
+                ]),
                 
             'userAnnotationGroups': [
                 {
@@ -265,8 +328,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '8',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
         'Material': ScaffoldPackage(MeshType_1d_path1, {
@@ -277,16 +340,17 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Length': 1.0,
                 'Number of elements': 7
             },
-            'meshEdits': exnodeStringFromNodeValues(
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                [ [  2.000, 0.000, 0.000 ], [ -0.600, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000] ],
-                [ [  1.500, 0.000, 0.000 ], [ -0.400, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000] ],
-                [ [  1.200, 0.000, 0.000 ], [ -0.250, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000] ],
-                [ [  1.000, 0.000, 0.000 ], [ -0.300, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000] ],
-                [ [  0.600, 0.000, 0.000 ], [ -0.300, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.067, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000, -0.067] ],
-                [ [  0.400, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.400, 0.000 ], [ 0.000,  0.150, 0.000 ], [ 0.000, 0.000, 0.400 ], [ 0.000, 0.000, -0.150] ],
-                [ [  0.200, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.200, 0.000 ], [ 0.000,  0.100, 0.000 ], [ 0.000, 0.000, 0.200 ], [ 0.000, 0.000, -0.100] ],
-                [ [  0.000, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.200, 0.000 ], [ 0.000, -0.100, 0.000 ], [ 0.000, 0.000, 0.200 ], [ 0.000, 0.000,  0.100] ] ] ),
+                    (1, [[  2.000, 0.000, 0.000 ], [ -0.600, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000]]),
+                    (2, [[  1.500, 0.000, 0.000 ], [ -0.400, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000]]),
+                    (3, [[  1.200, 0.000, 0.000 ], [ -0.250, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000]]),
+                    (4, [[  1.000, 0.000, 0.000 ], [ -0.300, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.000, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000,  0.000]]),
+                    (5, [[  0.600, 0.000, 0.000 ], [ -0.300, 0.000, 0.000 ], [ 0.000, -0.500, 0.000 ], [ 0.000,  0.067, 0.000 ], [ 0.000, 0.000, 0.500 ], [ 0.000, 0.000, -0.067]]),
+                    (6, [[  0.400, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.400, 0.000 ], [ 0.000,  0.150, 0.000 ], [ 0.000, 0.000, 0.400 ], [ 0.000, 0.000, -0.150]]),
+                    (7, [[  0.200, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.200, 0.000 ], [ 0.000,  0.100, 0.000 ], [ 0.000, 0.000, 0.200 ], [ 0.000, 0.000, -0.100]]),
+                    (8, [[  0.000, 0.000, 0.000 ], [ -0.200, 0.000, 0.000 ], [ 0.000, -0.200, 0.000 ], [ 0.000, -0.100, 0.000 ], [ 0.000, 0.000, 0.200 ], [ 0.000, 0.000,  0.100]])
+                ]),
                 
             'userAnnotationGroups': [
                 {
@@ -321,8 +385,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '7',
-                    'name': get_stomach_term('duodenum')[0],
-                    'ontId': get_stomach_term('duodenum')[1]
+                    'name': get_smallintestine_term('duodenum')[0],
+                    'ontId': get_smallintestine_term('duodenum')[1]
                 }]
         }),
     }
@@ -351,6 +415,37 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Vessel angle 1 degrees': 0.0,
                 'Vessel angle 1 spread degrees': 0.0,
                 'Vessel angle 2 degrees': 0.0,
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1
+            },
+        }),
+        'Human 2': ScaffoldPackage(MeshType_3d_ostium1, {
+            'scaffoldSettings': {
+                'Number of vessels': 1,
+                'Number of elements across common': 2,
+                'Number of elements around ostium': 8,
+                'Number of elements along': 2,
+                'Number of elements through wall': 1,  # 4, later
+                'Unit scale': 0.0105 * 101,
+                'Outlet': False,
+                'Ostium diameter': 25.0,
+                'Ostium length': 15.0,
+                'Ostium wall thickness': 5.0,
+                'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
+                'Ostium inter-vessel distance': 0.0,
+                'Ostium inter-vessel height': 0.0,
+                'Use linear through ostium wall': True,
+                'Vessel end length factor': 1.0,
+                'Vessel inner diameter': 5.0,
+                'Vessel wall thickness': 3.0,
+                'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
+                'Vessel angle 1 degrees': -40.0,
+                'Vessel angle 1 spread degrees': 0.0,
+                'Vessel angle 2 degrees': -60.0,
                 'Use linear through vessel wall': True,
                 'Use cross derivatives': False,
                 'Refine': False,
@@ -494,6 +589,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         return [
             'Default',
             'Human 1',
+            'Human 2',
             'Mouse 1',
             'Pig 1',
             'Rat 1',
@@ -501,7 +597,10 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Mouse 1' in parameterSetName:
+        if 'Human 2' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 2']
+        elif 'Mouse 1' in parameterSetName:
             centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
         elif 'Pig 1' in parameterSetName:
@@ -535,7 +634,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Refine number of elements surface': 4,
             'Refine number of elements through wall': 1
         }
-        if 'Mouse 1' in parameterSetName:
+        if 'Human 2' in parameterSetName:
+            options['Number of elements through wall'] = 1  # 4 later
+            options['Wall thickness'] = 0.0525 * 101
+        elif 'Mouse 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
             options['Number of elements between fundus apex and cardia'] = 5
             options['Number of elements between cardia and duodenum'] = 5
@@ -693,7 +795,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup, None
         """
         cls.updateSubScaffoldOptions(options)
         geometricCentralPath = options['Central path']
@@ -712,15 +814,16 @@ class MeshType_3d_stomach1(Scaffold_base):
         geometricCentralPath = StomachCentralPath(region, geometricCentralPath, stomachTermsAlong)
 
         elementCountGroupList = []
-        allAnnotationGroups, elementCountGroupList = \
+        allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
                                 allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
-                                options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=True,
+                                options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
                                 materialCoordinates=False)
 
         stomach_coordinates = findOrCreateFieldCoordinates(fm, name="stomach coordinates")
 
         # Material coordinates
+        allAnnotationGroupsMaterial = []
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
         with ChangeManager(tmp_fm):
@@ -728,9 +831,9 @@ class MeshType_3d_stomach1(Scaffold_base):
 
             materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
 
-            allAnnotationGroups, elementCountGroupList = \
+            allAnnotationGroupsMaterial, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
                 createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
-                                    allAnnotationGroups, elementCountGroupList,
+                                    allAnnotationGroupsMaterial, elementCountGroupList,
                                     centralPath=materialCentralPath, options=options, nodeIdentifier=1,
                                     elementIdentifier=1, splitCoordinates=False, materialCoordinates=True)
 
@@ -790,7 +893,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             annotationGroup.createMarkerNode(nodeIdentifier, stomach_coordinates, stomachCoordinatesValues)
             nodeIdentifier += 1
 
-        return allAnnotationGroups
+        return allAnnotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -826,11 +929,11 @@ class MeshType_3d_stomach1(Scaffold_base):
         ventralStomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("ventral stomach"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
         cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
-        duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("duodenum"))
+        duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("duodenum"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
         antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
         pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
-        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("esophagus"))
+        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_esophagus_term("esophagus"))
         nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
                                                 ("elements adjacent to lesser curvature", "None"))
 
@@ -849,13 +952,13 @@ class MeshType_3d_stomach1(Scaffold_base):
         cardiaSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                get_stomach_term("serosa of cardia of stomach"))
         duodenumLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_stomach_term("luminal surface of duodenum"))
+                                                                  get_smallintestine_term("luminal surface of duodenum"))
         duodenumSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 get_stomach_term("serosa of duodenum"))
+                                                                 get_smallintestine_term("serosa of duodenum"))
         esoLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                             get_stomach_term("luminal surface of esophagus"))
+                                                             get_esophagus_term("luminal surface of esophagus"))
         esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_stomach_term("serosa of esophagus"))
+                                                            get_esophagus_term("serosa of esophagus"))
         fundusLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                 get_stomach_term(
                                                                     "luminal surface of fundus of stomach"))
@@ -932,11 +1035,12 @@ class MeshType_3d_stomach1(Scaffold_base):
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
                     "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
             duodenumCurvaturesCMLMGroup = \
-                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-                    "circular-longitudinal muscle interface of first segment of the duodenum along the "
-                    "gastric-omentum attachment"))
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                   get_smallintestine_term("circular-longitudinal muscle interface of "
+                                                                           "first segment of the duodenum along the "
+                                                                           "gastric-omentum attachment"))
             esoCurvaturesCMLMGroup = \
-                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_esophagus_term(
                     "circular-longitudinal muscle interface of esophagus along the cut margin"))
             fundusCurvaturesCMLMGroup =\
                 findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
@@ -1080,13 +1184,19 @@ class StomachCentralPath:
 
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
 
-        for i in range(len(stomachTermsAlong)):
-            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
-                extractPathParametersFromRegion(tmpRegion, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                                            Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                                groupName=stomachTermsAlong[i])
+        for termName in stomachTermsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
 
             arcLength = 0.0
             for e in range(len(cxGroup) - 1):
@@ -1100,6 +1210,12 @@ class StomachCentralPath:
             cd12Groups.append(cd12Group)
             cd13Groups.append(cd13Group)
 
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
         del tmpRegion
 
         self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
@@ -1256,6 +1372,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         vesselInnerDiameter = GEJSettings['Vessel inner diameter']
         vesselWallThickness = GEJSettings['Vessel wall thickness']
         vesselWallRelThicknesses = GEJSettings['Vessel wall relative thicknesses']
+        vesselAngle1 = GEJSettings['Vessel angle 1 degrees']
+        vesselAngle2 = GEJSettings['Vessel angle 2 degrees']
 
         GEJSettings['Unit scale'] = 1.0
         GEJSettings['Ostium diameter'] = 0.3
@@ -1266,6 +1384,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         GEJSettings['Vessel wall thickness'] = wallThickness * 0.6
         GEJSettings['Vessel wall relative thicknesses'] = relThicknesses
         sf = (cardiaDiameterFactor - 1) * GEJSettings['Ostium diameter'] * 0.5
+        GEJSettings['Vessel angle 1 degrees'] = 0.0
+        GEJSettings['Vessel angle 2 degrees'] = 0.0
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -1302,7 +1422,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     bodyGroup = AnnotationGroup(region, get_stomach_term("body of stomach"))
     antrumGroup = AnnotationGroup(region, get_stomach_term("pyloric antrum"))
     pylorusGroup = AnnotationGroup(region, get_stomach_term("pyloric canal"))
-    duodenumGroup = AnnotationGroup(region, get_stomach_term("duodenum"))
+    duodenumGroup = AnnotationGroup(region, get_smallintestine_term("duodenum"))
 
     annotationGroupAlong = [[stomachGroup, fundusGroup],
                             [stomachGroup, bodyGroup],
@@ -1458,6 +1578,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                         sd1Fundus[:elementEllipsoidEnd + 1] + [d1EllipsoidEnd],
                                         elementsAlong, arcLengthDerivatives=True)
 
+    sd2FundusEllipsoid, sd12FundusEllipsoid = \
+        interp.interpolateSampleCubicHermite(sd2Fundus[:elementEllipsoidEnd + 1] + [d2EllipsoidEnd],
+                                             sd12Fundus[:elementEllipsoidEnd + 1] + [d12EllipsoidEnd], pe, pxi, psf)
+
     # Create template fundus with path of fundus length for transformation
     xAroundAll = []
     for n2 in range(elementsAlong + 1):
@@ -1509,8 +1633,33 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         for n1 in range(len(xAroundAll[n2])):
             x = xAroundAll[n2][n1]
-            xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
-            xAroundTransformed.append([xRot1[j] + translateMatrix[j] for j in range(3)])
+            if vector.magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
+                xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in range(3)]
+            else:  # path tangent parallel to segment axis
+                xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in
+                         range(3)] if dp == -1.0 else x
+
+            # Check that the first node in each ellipse is aligned to sd2
+            if n1 == 0:
+                vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
+                if vector.magnitude(vectorToFirstNode) > 0.0:
+                    cp = vector.crossproduct3(vector.normalise(vectorToFirstNode),
+                                              vector.normalise(sd2FundusEllipsoid[n2]))
+                    if vector.magnitude(cp) > 1e-7:
+                        cp = vector.normalise(cp)
+                        signThetaRot2 = vector.dotproduct(unitTangent, cp)
+                        thetaRot2 = math.acos(
+                            vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2FundusEllipsoid[n2])))
+                        axisRot2 = unitTangent
+                        rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2 * thetaRot2)
+                    else:
+                        rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                else:
+                    rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+            xRot2 = [rotFrame2[j][0] * xRot1[0] + rotFrame2[j][1] * xRot1[1] + rotFrame2[j][2] * xRot1[2] for j in
+                     range(3)]
+            xAroundTransformed.append([xRot2[j] + translateMatrix[j] for j in range(3)])
         xAroundAllTransformed.append(xAroundTransformed)
 
     for n in range(elementEllipsoidEnd + 1, len(sxFundus) - 1):
@@ -1713,20 +1862,22 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(GEJPosition, derivatives=True)
     axis1 = d1Centre
 
-    esophagusGroup = AnnotationGroup(region, get_stomach_term("esophagus"))
+    esophagusGroup = AnnotationGroup(region, get_esophagus_term("esophagus"))
     esophagusMeshGroup = esophagusGroup.getMeshGroup(mesh)
+    abdominalEsoGroup = AnnotationGroup(region, get_esophagus_term("abdominal part of esophagus"))
+    abdominalEsoMeshGroup = abdominalEsoGroup.getMeshGroup(mesh)
     esophagogastricJunctionGroup = AnnotationGroup(region, get_stomach_term("esophagogastric junction"))
     esophagogastricJunctionMeshGroup = esophagogastricJunctionGroup.getMeshGroup(mesh)
     stomachMeshGroup = stomachGroup.getMeshGroup(mesh)
-    allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup]
+    allAnnotationGroups += [esophagusGroup, esophagogastricJunctionGroup, abdominalEsoGroup]
 
     ostiumWallAnnotationGroups = []
     if elementsCountThroughWall == 4:
-        esophagusMucosaGroup = AnnotationGroup(region, get_stomach_term("esophagus mucosa"))
-        esophagusSubmucosaGroup = AnnotationGroup(region, get_stomach_term("submucosa of esophagus"))
-        esophagusCircularGroup = AnnotationGroup(region, get_stomach_term("esophagus smooth muscle circular layer"))
+        esophagusMucosaGroup = AnnotationGroup(region, get_esophagus_term("esophagus mucosa"))
+        esophagusSubmucosaGroup = AnnotationGroup(region, get_esophagus_term("submucosa of esophagus"))
+        esophagusCircularGroup = AnnotationGroup(region, get_esophagus_term("esophagus smooth muscle circular layer"))
         esophagusLongitudinalGroup = AnnotationGroup(region,
-                                                     get_stomach_term("esophagus smooth muscle longitudinal layer"))
+                                                     get_esophagus_term("esophagus smooth muscle longitudinal layer"))
 
         ostiumWallAnnotationGroups = [[esophagusMucosaGroup, mucosaGroup],
                                       [esophagusSubmucosaGroup, submucosaGroup],
@@ -1739,9 +1890,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, GEJPosition, axis1,
                            nodeIdentifier, elementIdentifier,
-                           vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup]],
+                           vesselMeshGroups=[[stomachMeshGroup, esophagusMeshGroup, abdominalEsoMeshGroup]],
                            ostiumMeshGroups=[stomachMeshGroup, esophagogastricJunctionMeshGroup],
                            wallAnnotationGroups=ostiumWallAnnotationGroups, coordinates=coordinates)
+
+    stomachStartNode = nextNodeIdentifier
+    nodeIdentifier = nextNodeIdentifier
+    elementIdentifier = nextElementIdentifier
 
     if materialCoordinates:
         GEJSettings['Unit scale'] = unitScale
@@ -1752,10 +1907,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         GEJSettings['Vessel inner diameter'] = vesselInnerDiameter
         GEJSettings['Vessel wall thickness'] = vesselWallThickness
         GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
-
-    stomachStartNode = nextNodeIdentifier
-    nodeIdentifier = nextNodeIdentifier
-    elementIdentifier = nextElementIdentifier
+        GEJSettings['Vessel angle 1 degrees'] = vesselAngle1
+        GEJSettings['Vessel angle 2 degrees'] = vesselAngle2
 
     # Create location of annulus
     xAnnulusOuter = [[] for x in range(elementsCountAroundEso)]
@@ -2886,10 +3039,32 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     if ventralGroup not in allAnnotationGroups:
         allAnnotationGroups.append(ventralGroup)
 
+    nodesOnLCMargin = []
+    for n2 in range(elementsAlongEsophagus + 1):
+        for n3 in range(elementsThroughEsophagusWall + 1):
+            nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
+                                n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
+                                n3 * elementsCountAroundEso
+            nodesOnLCMargin.append(nodeIdxOnLCMargin)
+    allNodesOnLC = nodesOnLCMargin + nodeIdxLC
+
+    nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
+
+    elementIter = mesh.createElementiterator()
+    element = elementIter.next()
+    while element.isValid():
+        eft = element.getElementfieldtemplate(coordinates, -1)
+        nodeIdentifiers = get_element_node_identifiers(element, eft)
+        for n in range(len(nodeIdentifiers)):
+            if nodeIdentifiers[n] in allNodesOnLC:
+                nearLCGroup.getMeshGroup(mesh).addElement(element)
+                break
+        element = elementIter.next()
+    allAnnotationGroups.append(nearLCGroup)
+
     # Create split coordinate field
     if splitCoordinates:
         nodesOnSplitMargin = []
-        nodesOnLCMargin = []
 
         for n2 in range(elementsAlongEsophagus + 1):
             for n3 in range(elementsThroughEsophagusWall + 1):
@@ -2900,9 +3075,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                     n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
                                     n3 * elementsCountAroundEso
                 nodesOnSplitMargin.append(nodeIdxOnLCMargin)
-                nodesOnLCMargin.append(nodeIdxOnLCMargin)
+
         nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
-        allNodesOnLC = nodesOnLCMargin + nodeIdxLC
 
         splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
         splitNodetemplate1 = nodes.createNodetemplate()
@@ -2966,10 +3140,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
                         splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
-
             node = nodeIter.next()
-
-        nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
 
         elementIter = mesh.createElementiterator()
         element = elementIter.next()
@@ -2988,10 +3159,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         while element.isValid():
             eft = element.getElementfieldtemplate(coordinates, -1)
             nodeIdentifiers = get_element_node_identifiers(element, eft)
-            for n in range(len(nodeIdentifiers)):
-                if nodeIdentifiers[n] in allNodesOnLC:
-                    nearLCGroup.getMeshGroup(mesh).addElement(element)
-                    break
             elementId = element.getIdentifier()
             marginDorsal = False
             for n in range(len(nodeIdentifiers)):
@@ -3040,7 +3207,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         allAnnotationGroups.append(nearLCGroup)
 
-    return allAnnotationGroups, elementCountGroupList
+    return allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier
 
 
 def findCentreOnCentralPathFromCrossAxisEndPt(xPoint, xCentralPath, dCentralPath):

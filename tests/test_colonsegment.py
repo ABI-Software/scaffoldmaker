@@ -19,7 +19,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         Test creation of human colon segment scaffold.
         """
         parameterSetNames = MeshType_3d_colonsegment1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Mouse 1", "Pig 1"])
+        self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Mouse 1", "Pig 1"])
         options = MeshType_3d_colonsegment1.getDefaultOptions("Human 1")
         self.assertEqual(31, len(options))
         self.assertEqual(0.0, options.get("Start phase"))
@@ -40,7 +40,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)[0]
         self.assertEqual(8, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -91,7 +91,7 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)
+        annotationGroups = MeshType_3d_colonsegment1.generateBaseMesh(region, options)[0]
         self.assertEqual(7, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()

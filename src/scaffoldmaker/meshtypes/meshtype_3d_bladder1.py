@@ -217,7 +217,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         Generate the base bicubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
         '''
         elementsCountUpNeck = options['Number of elements up neck']
         elementsCountUpBody = options['Number of elements up body']
@@ -836,7 +836,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                 elementIdentifier += 1
 
         fm.endChange()
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

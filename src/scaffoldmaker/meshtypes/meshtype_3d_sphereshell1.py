@@ -99,7 +99,7 @@ class MeshType_3d_sphereshell1(Scaffold_base):
         Generate the base tricubic Hermite or bicubic Hermite linear mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: [] empty list of AnnotationGroup
+        :return: [] empty list of AnnotationGroup, None
         """
         elementsCountAround = options['Number of elements around']
         elementsCountUp = options['Number of elements up']
@@ -409,7 +409,7 @@ class MeshType_3d_sphereshell1(Scaffold_base):
             fieldassignment.assign()
 
         fm.endChange()
-        return []
+        return [], None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):

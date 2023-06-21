@@ -72,7 +72,7 @@ class MeshType_3d_heart2(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup
+        :return: list of AnnotationGroup, None
         """
         # set dependent outer diameter used in atria2
         options['LV outlet outer diameter'] = options['LV outlet inner diameter'] + 2.0*options['LV outlet wall thickness']
@@ -83,12 +83,12 @@ class MeshType_3d_heart2(Scaffold_base):
         cache = fm.createFieldcache()
 
         # generate heartventriclesbase2 model and put atria2 on it
-        ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase2.generateBaseMesh(region, options)
-        atriaAnnotationGroups = MeshType_3d_heartatria2.generateBaseMesh(region, options)
+        ventriclesAnnotationGroups = MeshType_3d_heartventriclesbase2.generateBaseMesh(region, options)[0]
+        atriaAnnotationGroups = MeshType_3d_heartatria2.generateBaseMesh(region, options)[0]
         annotationGroups = mergeAnnotationGroups(ventriclesAnnotationGroups, atriaAnnotationGroups)
 
         fm.endChange()
-        return annotationGroups
+        return annotationGroups, None
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
