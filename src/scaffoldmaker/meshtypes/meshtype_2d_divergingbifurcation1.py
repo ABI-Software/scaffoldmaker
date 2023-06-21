@@ -27,7 +27,7 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
     Magnitude of D2 and D3 are the radii of the tube in the respective directions.
     """
     parameterSetStructureStrings = {
-        'Mouse 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+        'Default': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3-4-5-6, 6.2-7-8-9-10, 6.3-11-12-13-14"
             },
@@ -80,13 +80,11 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
 
     @staticmethod
     def getParameterSetNames():
-        return [
-            'Default',
-            'Mouse 1']
+        return ['Default']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
+        networkLayoutOption = cls.parameterSetStructureStrings['Default']
         options = {
             'Network layout': copy.deepcopy(networkLayoutOption),
             'Target element length': 4.0,
