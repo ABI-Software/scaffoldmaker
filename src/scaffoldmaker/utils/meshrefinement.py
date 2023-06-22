@@ -5,7 +5,7 @@ from __future__ import division
 
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, \
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
@@ -90,7 +90,7 @@ class MeshRefinement:
         sourceMarkerGroup = findOrCreateFieldGroup(self._sourceFm, "marker")
         sourceMarkerName = findOrCreateFieldStoredString(self._sourceFm, name="marker_name")
         sourceMarkerLocation = findOrCreateFieldStoredMeshLocation(self._sourceFm, self._sourceMesh, name="marker_location")
-        sourceMarkerNodes = findOrCreateFieldNodeGroup(sourceMarkerGroup, sourceNodes).getNodesetGroup()
+        sourceMarkerNodes = sourceMarkerGroup.getNodesetGroup(sourceNodes)
         nodeIter = sourceMarkerNodes.createNodeiterator()
         node = nodeIter.next()
         while node.isValid():
@@ -109,7 +109,7 @@ class MeshRefinement:
             self._targetMarkerGroup = findOrCreateFieldGroup(self._targetFm, "marker")
             self._targetMarkerName = findOrCreateFieldStoredString(self._targetFm, name="marker_name")
             self._targetMarkerLocation = findOrCreateFieldStoredMeshLocation(self._targetFm, self._targetMesh, name="marker_location")
-            self._targetMarkerNodes = findOrCreateFieldNodeGroup(self._targetMarkerGroup, self._targetNodes).getNodesetGroup()
+            self._targetMarkerNodes = self._targetMarkerGroup.getOrCreateNodesetGroup(self._targetNodes)
             self._targetMarkerTemplate = self._targetMarkerNodes.createNodetemplate()
             self._targetMarkerTemplate.defineField(self._targetMarkerName)
             self._targetMarkerTemplate.defineField(self._targetMarkerLocation)

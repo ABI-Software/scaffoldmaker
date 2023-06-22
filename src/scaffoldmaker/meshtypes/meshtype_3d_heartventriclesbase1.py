@@ -10,7 +10,7 @@ import copy
 import math
 
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field, FieldGroup
@@ -363,7 +363,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         fieldassignment = coordinates.createFieldassignment(newCoordinates)
         fieldassignment.setNodeset(nodes)
         # marker points are not rotated
-        fieldassignment.setConditionalField(fm.createFieldNot(markerGroup.getFieldNodeGroup(nodes)))
+        fieldassignment.setConditionalField(fm.createFieldNot(markerGroup))
         fieldassignment.assign()
 
         # discover ventricles top LV inner, RV inner, V Outer nodes, coordinates and derivatives
@@ -1439,18 +1439,18 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             is_face_xi2_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1)
             lvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left ventricle myocardium"))
             rvGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right ventricle myocardium"))
-            is_lv = lvGroup.getFieldElementGroup(mesh2d)
-            is_rv = rvGroup.getFieldElementGroup(mesh2d)
-            is_lvo = lvOutletGroup.getFieldElementGroup(mesh2d)
-            is_mac = mitralAorticCurtainGroup.getFieldElementGroup(mesh2d)
+            is_lv = lvGroup.getGroup()
+            is_rv = rvGroup.getGroup()
+            is_lvo = lvOutletGroup.getGroup()
+            is_mac = mitralAorticCurtainGroup.getGroup()
             is_lfr = fm.createFieldAnd(
                 is_exterior,
                 fm.createFieldOr(
                     fm.createFieldAnd(fm.createFieldAnd(is_lv, fm.createFieldNot(is_lvo)), is_face_xi2_1),
                     fm.createFieldAnd(is_mac, is_face_xi2_0)))
             lFibrousRingGroup.getMeshGroup(mesh2d).addElementsConditional(is_lfr)
-            is_ca = conusArteriosusGroup.getFieldElementGroup(mesh2d)
-            is_svc = supraventricularCrestGroup.getFieldElementGroup(mesh2d)
+            is_ca = conusArteriosusGroup.getGroup()
+            is_svc = supraventricularCrestGroup.getGroup()
             is_rfr = fm.createFieldAnd(
                 is_exterior,
                 fm.createFieldAnd(

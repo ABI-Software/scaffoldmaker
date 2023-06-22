@@ -118,10 +118,7 @@ class DerivativeSmoothing:
         # edited nodes are added to the edit nodeset group, if group is supplied
         if editGroupName:
             editGroup = findOrCreateFieldGroup(self._fieldmodule, editGroupName, managed=True)
-            editNodeGroup = editGroup.getFieldNodeGroup(self._nodes)
-            if not editNodeGroup.isValid():
-                editNodeGroup = editGroup.createFieldNodeGroup(self._nodes)
-            self._editNodesetGroup = editNodeGroup.getNodesetGroup()
+            self._editNodesetGroup = editGroup.getOrCreateNodesetGroup(self._nodes)
         else:
             self._editNodesetGroup = None
         # edges define curves with 4 expressions for x1, d1, x2, d2, followed by the arcLength
@@ -136,7 +133,7 @@ class DerivativeSmoothing:
             if not self._selectionGroup.isValid():
                 print('DerivativeSmoothing: Selection group not found')
                 return
-            self._selectionNodes = self._selectionGroup.getFieldNodeGroup(self._nodes).getNodesetGroup()
+            self._selectionNodes = self._selectionGroup.getNodesetGroup(self._nodes)
             if (not self._selectionNodes.isValid()) or (self._selectionNodes.getSize() == 0):
                 print('DerivativeSmoothing: No nodes selected for smoothing')
                 return

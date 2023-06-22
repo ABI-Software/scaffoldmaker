@@ -8,7 +8,7 @@ from __future__ import division
 import math
 
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -351,7 +351,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         markerName = findOrCreateFieldStoredString(fieldmodule, name="marker_name")
         markerLocation = findOrCreateFieldStoredMeshLocation(fieldmodule, mesh, name="marker_location")
 
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
@@ -935,9 +935,13 @@ class MeshType_3d_heartventricles3(Scaffold_base):
 
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         #print("LV elements")
-        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, lvMeshGroup ])
+        elementIdentifier = lvShield.generateElements(fieldmodule, coordinates, elementIdentifier,
+                                                      meshGroupsElementsAlong=[1, 1],
+                                                      meshGroups=[heartMeshGroup, lvMeshGroup])
         #print("RV elements")
-        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier, [ heartMeshGroup, rvMeshGroup ])
+        elementIdentifier = rvShield.generateElements(fieldmodule, coordinates, elementIdentifier,
+                                                      meshGroupsElementsAlong=[1, 1],
+                                                      meshGroups=[heartMeshGroup, rvMeshGroup])
 
         tricubichermite = eftfactory_tricubichermite(mesh, useCrossDerivatives)
         elementtemplate1 = mesh.createElementtemplate()
@@ -1105,15 +1109,15 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_lv = lvGroup.getFieldElementGroup(mesh2d)
-        is_rv = rvGroup.getFieldElementGroup(mesh2d)
+        is_lv = lvGroup.getGroup()
+        is_rv = rvGroup.getGroup()
         is_lv_endo = fm.createFieldAnd(is_lv, is_exterior_face_xi3_0)
         is_rv_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rv, is_exterior_face_xi3_0),
                                                         fm.createFieldNot(is_lv_endo)),
-                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1))
+                                      fm.createFieldAnd(vSeptumGroup.getGroup(), is_exterior_face_xi3_1))
         is_v_epi = fm.createFieldAnd(fm.createFieldOr(is_lv, is_rv),
                                      fm.createFieldAnd(is_exterior_face_xi3_1,
-                                                     fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d))))
+                                                       fm.createFieldNot(vSeptumGroup.getGroup())))
         epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
         epiGroup.getMeshGroup(mesh2d).addElementsConditional(is_v_epi)
         lvEndoGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("endocardium of left ventricle"))

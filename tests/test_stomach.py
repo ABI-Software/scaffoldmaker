@@ -171,7 +171,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(refinedNodes)
         self.assertEqual(20, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())

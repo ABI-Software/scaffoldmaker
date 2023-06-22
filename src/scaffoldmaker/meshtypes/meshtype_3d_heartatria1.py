@@ -10,7 +10,7 @@ import math
 
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field, FieldGroup
@@ -3236,14 +3236,14 @@ class MeshType_3d_heartatria1(Scaffold_base):
         if defineEpicardiumLayer:
             # project epicardial points over atria to build fat pad
             epiGroup = fm.createFieldGroup()
-            epiMesh = epiGroup.createFieldElementGroup(mesh).getMeshGroup()
-            is_a = fm.createFieldOr(lamGroup.getFieldElementGroup(mesh), ramGroup.getFieldElementGroup(mesh))
-            is_aa = fm.createFieldOr(laaGroup.getFieldElementGroup(mesh), raaGroup.getFieldElementGroup(mesh))
-            is_not_epi = fm.createFieldNot(fm.createFieldOr(is_aa, aSeptumGroup.getFieldElementGroup(mesh)))
+            epiMesh = epiGroup.createMeshGroup(mesh)
+            is_a = fm.createFieldOr(lamGroup.getGroup(), ramGroup.getGroup())
+            is_aa = fm.createFieldOr(laaGroup.getGroup(), raaGroup.getGroup())
+            is_not_epi = fm.createFieldNot(fm.createFieldOr(is_aa, aSeptumGroup.getGroup()))
             is_a_epi = fm.createFieldAnd(is_a, is_not_epi)
             epiMesh.addElementsConditional(is_a_epi)
             # print("epiMesh.getSize()", epiMesh.getSize())
-            epiNodes = epiGroup.createFieldNodeGroup(nodes).getNodesetGroup()
+            epiNodes = epiGroup.createNodesetGroup(nodes)
             # add nodes on xi3=1 of epiMesh to epiNodes
             epiElementIdentifiers = []
             elementIterator = epiMesh.createElementiterator()
@@ -3273,10 +3273,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 epiNode = nodeIterator.next()
             fpGroup = fm.createFieldGroup()
             fpGroup.setName("fp")
-            fpNodes = fpGroup.createFieldNodeGroup(nodes).getNodesetGroup()
+            fpNodes = fpGroup.createNodesetGroup(nodes)
             bridgeGroup = fm.createFieldGroup()
             bridgeGroup.setName("ia_bridge")
-            bridgeNodes = bridgeGroup.createFieldNodeGroup(nodes).getNodesetGroup()
+            bridgeNodes = bridgeGroup.createNodesetGroup(nodes)
             bridgeNodeTangents = {}
 
             # parameters for shifting centre of fatpad to spread elements around PV, VC inlets
@@ -3487,10 +3487,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
         sourceFm = meshrefinement._sourceFm
         annotationGroups = meshrefinement._sourceAnnotationGroups
-        laGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
-        laElementGroupField = laGroup.getFieldElementGroup(meshrefinement._sourceMesh)
-        raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
-        raElementGroupField = raGroup.getFieldElementGroup(meshrefinement._sourceMesh)
+        # laGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("left atrium myocardium"))
+        # laElementGroupField = laGroup.getGroup()
+        # raGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("right atrium myocardium"))
+        # raElementGroupField = raGroup.getGroup()
         aSeptumGroup = getAnnotationGroupForTerm(annotationGroups, get_heart_term("interatrial septum"))
         aSeptumMeshGroup = aSeptumGroup.getMeshGroup(meshrefinement._sourceMesh)
         epicardiumGroup = None
@@ -3569,25 +3569,24 @@ class MeshType_3d_heartatria1(Scaffold_base):
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_lam = lamGroup.getFieldElementGroup(mesh2d)
-        is_ram = ramGroup.getFieldElementGroup(mesh2d)
+        is_lam = lamGroup.getGroup()
+        is_ram = ramGroup.getGroup()
         is_lam_endo = fm.createFieldAnd(is_lam, is_exterior_face_xi3_0)
         is_ram_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_ram, is_exterior_face_xi3_0),
                                                         fm.createFieldNot(is_lam_endo)),
-                                      fm.createFieldAnd(aSeptumGroup.getFieldElementGroup(mesh2d),
+                                      fm.createFieldAnd(aSeptumGroup.getGroup(),
                                                         is_exterior_face_xi3_1))
-        is_laa = laaGroup.getFieldElementGroup(mesh2d)
-        is_raa = raaGroup.getFieldElementGroup(mesh2d)
+        is_laa = laaGroup.getGroup()
+        is_raa = raaGroup.getGroup()
         is_laa_endo = fm.createFieldAnd(is_laa, is_exterior_face_xi3_0)
         is_raa_endo = fm.createFieldAnd(is_raa, is_exterior_face_xi3_0)
-        is_laa_epi = fm.createFieldAnd(laaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1)
-        is_raa_epi = fm.createFieldAnd(raaGroup.getFieldElementGroup(mesh2d), is_exterior_face_xi3_1)
-        # is_myocardium = fm.createFieldOr(is_lam, is_ram)
+        is_laa_epi = fm.createFieldAnd(laaGroup.getGroup(), is_exterior_face_xi3_1)
+        is_raa_epi = fm.createFieldAnd(raaGroup.getGroup(), is_exterior_face_xi3_1)
         is_ext_xi3_1_and_not_septum = fm.createFieldAnd(
-            is_exterior_face_xi3_1, fm.createFieldNot(aSeptumGroup.getFieldElementGroup(mesh2d)))
+            is_exterior_face_xi3_1, fm.createFieldNot(aSeptumGroup.getGroup()))
         is_os_lam = fm.createFieldAnd(is_lam, is_ext_xi3_1_and_not_septum)
         is_os_ram = fm.createFieldAnd(is_ram, is_ext_xi3_1_and_not_septum)
-        is_epi = epiGroup.getFieldElementGroup(mesh2d)
+        is_epi = epiGroup.getGroup()
 
         # luminal surfaces of endocardium of left/right atrium
         lslaEndoGroup = findOrCreateAnnotationGroupForTerm(
@@ -3599,10 +3598,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # endocardium groups are defined identically to luminal surfaces at scaffold scale
         laEndoGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("left atrium endocardium"))
-        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lslaEndoGroup.getFieldElementGroup(mesh2d))
+        laEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lslaEndoGroup.getGroup())
         raEndoGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("right atrium endocardium"))
-        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lsraEndoGroup.getFieldElementGroup(mesh2d))
+        raEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lsraEndoGroup.getGroup())
 
         laaEndoGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("endocardium of left auricle"))
@@ -3628,8 +3627,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             osramGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(is_ram, is_epi))
         osmGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("outer surface of myocardium"))
-        osmGroup.getMeshGroup(mesh2d).addElementsConditional(oslamGroup.getFieldElementGroup(mesh2d))
-        osmGroup.getMeshGroup(mesh2d).addElementsConditional(osramGroup.getFieldElementGroup(mesh2d))
+        osmGroup.getMeshGroup(mesh2d).addElementsConditional(oslamGroup.getGroup())
+        osmGroup.getMeshGroup(mesh2d).addElementsConditional(osramGroup.getGroup())
         if defineEpicardiumLayer:
             # future: limit to atria once ventricles have epicardium layer
             is_os_epi = fm.createFieldAnd(is_epi, is_exterior_face_xi3_1)
@@ -3639,16 +3638,16 @@ class MeshType_3d_heartatria1(Scaffold_base):
             # note: epiGroup only contains 3-D elements in this case
         else:
             # if no volumetric epicardium group, add outer surface of atrial myocardium
-            epiGroup.getMeshGroup(mesh2d).addElementsConditional(oslamGroup.getFieldElementGroup(mesh2d))
-            epiGroup.getMeshGroup(mesh2d).addElementsConditional(osramGroup.getFieldElementGroup(mesh2d))
+            epiGroup.getMeshGroup(mesh2d).addElementsConditional(oslamGroup.getGroup())
+            epiGroup.getMeshGroup(mesh2d).addElementsConditional(osramGroup.getGroup())
 
         lslpvGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("luminal surface of left pulmonary vein"))
         lsrpvGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("luminal surface of right pulmonary vein"))
-        is_lpv = lpvGroup.getFieldElementGroup(mesh2d)
-        is_mpv = mpvGroup.getFieldElementGroup(mesh2d) if mpvGroup else None
-        is_rpv = rpvGroup.getFieldElementGroup(mesh2d)
+        is_lpv = lpvGroup.getGroup()
+        is_mpv = mpvGroup.getGroup() if mpvGroup else None
+        is_rpv = rpvGroup.getGroup()
         lslpvGroup.getMeshGroup(mesh2d).addElementsConditional(
             fm.createFieldAnd(is_exterior_face_xi3_0, is_lpv))
         if mpvGroup:
@@ -3663,8 +3662,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             annotationGroups, region, get_heart_term("luminal surface of inferior vena cava"))
         lssvcGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("luminal surface of superior vena cava"))
-        is_ivc = ivcGroup.getFieldElementGroup(mesh2d)
-        is_svc = svcGroup.getFieldElementGroup(mesh2d)
+        is_ivc = ivcGroup.getGroup()
+        is_svc = svcGroup.getGroup()
         lsivcGroup.getMeshGroup(mesh2d).addElementsConditional(
             fm.createFieldAnd(is_exterior_face_xi3_0, is_ivc))
         lssvcGroup.getMeshGroup(mesh2d).addElementsConditional(

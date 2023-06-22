@@ -872,11 +872,11 @@ class MeshType_3d_bladder1(Scaffold_base):
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
 
-        is_body = bodyGroup.getFieldElementGroup(mesh2d)
+        is_body = bodyGroup.getGroup()
         is_body_serosa = fm.createFieldAnd(is_body, is_exterior_face_xi3_1)
         is_body_lumen = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
 
-        is_neck = neckGroup.getFieldElementGroup(mesh2d)
+        is_neck = neckGroup.getGroup()
         is_neck_serosa = fm.createFieldAnd(is_neck, is_exterior_face_xi3_1)
         is_neck_lumen = fm.createFieldAnd(is_neck, is_exterior_face_xi3_0)
 
