@@ -39,9 +39,7 @@ class ExportVtk:
         markerGroup = self._fieldmodule.findFieldByName("marker")
         if markerGroup.isValid():
             markerGroup = markerGroup.castGroup()
-            markerNodeGroup = markerGroup.getFieldNodeGroup(self._nodes)
-            if markerNodeGroup.isValid():
-                self._markerNodes = markerNodeGroup.getNodesetGroup()
+            self._markerNodes = markerGroup.getNodesetGroup(self._nodes)
 
     def _write(self, outstream):
         if version_info.major > 2:

@@ -345,7 +345,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         leftFibrousRingGroup = fm.findFieldByName('left fibrous ring').castGroup()
         mergeWithBase = False
         if leftFibrousRingGroup.isValid():
-            leftFibrousRingMeshGroup = leftFibrousRingGroup.getFieldElementGroup(fm.findMeshByDimension(3)).getMeshGroup()
+            leftFibrousRingMeshGroup = leftFibrousRingGroup.getMeshGroup(fm.findMeshByDimension(3))
             elementiter = leftFibrousRingMeshGroup.createElementiterator()
             element = elementiter.next()
             element = elementiter.next()
