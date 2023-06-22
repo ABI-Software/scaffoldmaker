@@ -20,6 +20,8 @@ uterus_terms = [
     ("lumen of right horn", "None"),
     ("serosa of left horn", "None"),
     ("lumen of left horn", "None"),
+    ("serosa of uterus", "UBERON:0001297"),
+    ("lumen of uterus", "None"),
     ("vagina", "UBERON:0000996")
 ]
 
