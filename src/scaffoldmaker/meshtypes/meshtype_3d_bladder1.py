@@ -1130,8 +1130,10 @@ class BladderCentralPath:
         sd3_neck, sd13_neck = interp.interpolateSampleCubicHermite(cd3_neck, cd13_neck, se_neck, sxi_neck, ssf_neck)
 
         # Find nodes of bladder dome and neck
-        self.sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
-        self.sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
+        # self.sx_dome_group = [sx_dome, sd1_dome, sd2_dome, sd12_dome, sd3_dome, sd13_dome]
+        # self.sx_neck_group = [sx_neck, sd1_neck, sd2_neck, sd12_neck, sd3_neck, sd13_neck]
+        self.sx_dome_group = [cx_dome, cd1_dome, cd2_dome, cd12_dome, cd3_dome, cd13_dome]
+        self.sx_neck_group = [cx_neck, cd1_neck, cd2_neck, cd12_neck, cd3_neck, cd13_neck]
 
         self.domeSegmentLength = domeSegmentLength
         self.neckSegmentLength = neckSegmentLength
