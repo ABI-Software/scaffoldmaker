@@ -282,19 +282,19 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Human 1' in parameterSetName:
-            options['Number of elements along dome'] = 10
-            options['Number of elements along neck'] = 6
-            options['Number of elements around'] = 12
+            # options['Number of elements along dome'] = 10
+            # options['Number of elements along neck'] = 6
+            # options['Number of elements around'] = 12
             options['Wall thickness'] = 3.0
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Mouse 1' in parameterSetName:
-            options['Number of elements along neck'] = 6
+            # options['Number of elements along neck'] = 6
             options['Wall thickness'] = 0.5
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Pig 1' in parameterSetName:
-            options['Number of elements along dome'] = 10
-            options['Number of elements along neck'] = 5
-            options['Number of elements around'] = 12
+            # options['Number of elements along dome'] = 10
+            # options['Number of elements along neck'] = 5
+            # options['Number of elements around'] = 12
             options['Wall thickness'] = 2.5
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Rat 1' in parameterSetName:
