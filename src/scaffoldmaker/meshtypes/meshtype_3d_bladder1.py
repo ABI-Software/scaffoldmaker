@@ -797,18 +797,18 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeS
     # Transition
     transitLength = (domeSegmentLength + neckSegmentLength) / 2
     addingLength = transitLength - neckSegmentLength
-    if transitLength <= neckSegmentLength:
-        e = 1
-        xi = transitLength / neckSegmentLength
-    else:
-        e = int(transitLength / neckSegmentLength) + 1
-        xi = transitLength / (e * neckSegmentLength)
-    xTransition = interp.interpolateCubicHermite(sx_dome_group[0][-1], sx_dome_group[1][-1], sx_neck_group[0][e], sx_neck_group[1][e], xi)
-    # d1Transition = interp.interpolateCubicHermiteDerivative(sx_dome_group[0][-1], sx_dome_group[1][-1], sx_neck_group[0][e], sx_neck_group[1][e], xi)
-    d2Transition = interp.interpolateCubicHermite(sx_dome_group[2][-1], sx_dome_group[3][-1], sx_neck_group[2][e], sx_neck_group[3][e], xi)
-    d3Transition = interp.interpolateCubicHermite(sx_dome_group[4][-1], sx_dome_group[5][-1], sx_neck_group[4][e], sx_neck_group[5][e], xi)
-    px_transit, pd1_transit = createEllipsePoints(xTransition, 2 * math.pi, d2Transition, d3Transition, elementsCountAround,
-                                                  startRadians=0.0)
+    # if transitLength <= neckSegmentLength:
+    #     e = 1
+    #     xi = transitLength / neckSegmentLength
+    # else:
+    #     e = int(transitLength / neckSegmentLength) + 1
+    #     xi = transitLength / (e * neckSegmentLength)
+    # xTransition = interp.interpolateCubicHermite(sx_dome_group[0][-1], sx_dome_group[1][-1], sx_neck_group[0][e], sx_neck_group[1][e], xi)
+    # # d1Transition = interp.interpolateCubicHermiteDerivative(sx_dome_group[0][-1], sx_dome_group[1][-1], sx_neck_group[0][e], sx_neck_group[1][e], xi)
+    # d2Transition = interp.interpolateCubicHermite(sx_dome_group[2][-1], sx_dome_group[3][-1], sx_neck_group[2][e], sx_neck_group[3][e], xi)
+    # d3Transition = interp.interpolateCubicHermite(sx_dome_group[4][-1], sx_dome_group[5][-1], sx_neck_group[4][e], sx_neck_group[5][e], xi)
+    # px_transit, pd1_transit = createEllipsePoints(xTransition, 2 * math.pi, d2Transition, d3Transition, elementsCountAround,
+    #                                               startRadians=0.0)
 
     # Create ellipses along neck around the central path
     xEllipses_neck = []
