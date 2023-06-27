@@ -5,12 +5,12 @@ Describes methods each scaffold must or may override.
 import copy
 
 from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.scene import scene_get_selection_group
 from cmlibs.zinc.field import Field
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, print_node_field_parameters, \
-    region_get_selection_group
+from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, print_node_field_parameters
 
 
 class Scaffold_base:
@@ -169,9 +169,9 @@ class Scaffold_base:
         '''
         fieldmodule = region.getFieldmodule()
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        selectionGroup = region_get_selection_group(region)
+        selectionGroup = scene_get_selection_group(region.getScene(), inherit_root_region=region.getRoot())
         if selectionGroup:
-            nodeset = selectionGroup.getFieldNodeGroup(nodeset).getNodesetGroup()
+            nodeset = selectionGroup.getNodesetGroup(nodeset)
             if not nodeset.isValid():
                 print('Print node field parameters: No nodes selected')
                 return False, False
@@ -185,7 +185,7 @@ class Scaffold_base:
     def smoothDerivatives(cls, region, options, functionOptions, editGroupName):
         fieldmodule = region.getFieldmodule()
         coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        selectionGroup = region_get_selection_group(region)
+        selectionGroup = scene_get_selection_group(region.getScene(), inherit_root_region=region.getRoot())
         groupName = selectionGroup.getName() if selectionGroup else None
         updateDirections = functionOptions['Update directions']
         scalingMode = DerivativeScalingMode.ARITHMETIC_MEAN if functionOptions['Scaling mode']['Arithmetic mean'] else DerivativeScalingMode.HARMONIC_MEAN

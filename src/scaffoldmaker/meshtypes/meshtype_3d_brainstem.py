@@ -8,9 +8,7 @@ import copy
 
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
-from cmlibs.zinc.field import FieldFindMeshLocation
-from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
-    findOrCreateFieldStoredString
+from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldStoredString
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
@@ -626,7 +624,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         groupNames = ['brainstem', 'midbrain', 'medulla oblongata', 'pons']
         for groupName in groupNames:
             subGroup = AnnotationGroup(region, get_brainstem_term(groupName))
-            issub = subGroup.getFieldElementGroup(mesh2d)
+            issub = subGroup.getGroup()
             is_subface_ext = fm.createFieldOr(fm.createFieldAnd(issub, is_exterior_face_xi1), fm.createFieldAnd(issub, is_exterior_face_xi3))
             subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_brainstem_term(groupName + ' exterior'))
             subFaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_subface_ext)
@@ -636,7 +634,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
         for groupName in groupNames:
             subGroupName = 'midbrain' if groupName == 'thalamus-brainstem interface' else 'medulla oblongata'
             subGroup = AnnotationGroup(region, get_brainstem_term(subGroupName))
-            issub = subGroup.getFieldElementGroup(mesh2d)
+            issub = subGroup.getGroup()
             is_subface_ext = fm.createFieldAnd(issub, is_exterior_face_xi2)
             subFaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                               get_brainstem_term(groupName))

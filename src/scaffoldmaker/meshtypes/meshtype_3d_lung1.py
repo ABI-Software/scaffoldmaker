@@ -3,7 +3,7 @@ Generates 3D lung surface mesh.
 '''
 
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -170,7 +170,7 @@ class MeshType_3d_lung1(Scaffold_base):
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
@@ -1269,8 +1269,8 @@ class MeshType_3d_lung1(Scaffold_base):
             upperLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("upper lobe of left lung"))
             lowerLeftGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of left lung"))
 
-            is_upperLeftGroup = upperLeftGroup.getFieldElementGroup(mesh2d)
-            is_lowerLeftGroup = lowerLeftGroup.getFieldElementGroup(mesh2d)
+            is_upperLeftGroup = upperLeftGroup.getGroup()
+            is_lowerLeftGroup = lowerLeftGroup.getGroup()
 
             is_obliqueLeftGroup = fm.createFieldAnd(is_upperLeftGroup, is_lowerLeftGroup)
             obliqueLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("oblique fissure of left lung"))
@@ -1281,9 +1281,9 @@ class MeshType_3d_lung1(Scaffold_base):
             middleRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("middle lobe of right lung"))
             lowerRightGroup = getAnnotationGroupForTerm(annotationGroups, get_lung_term("lower lobe of right lung"))
 
-            is_upperRightGroup = upperRightGroup.getFieldElementGroup(mesh2d)
-            is_middleRightGroup = middleRightGroup.getFieldElementGroup(mesh2d)
-            is_lowerRightGroup = lowerRightGroup.getFieldElementGroup(mesh2d)
+            is_upperRightGroup = upperRightGroup.getGroup()
+            is_middleRightGroup = middleRightGroup.getGroup()
+            is_lowerRightGroup = lowerRightGroup.getGroup()
 
             is_obliqueRightGroup = fm.createFieldAnd(fm.createFieldOr(is_middleRightGroup, is_upperRightGroup),
                                                      is_lowerRightGroup)
