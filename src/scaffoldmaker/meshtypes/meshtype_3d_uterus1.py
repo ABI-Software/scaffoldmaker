@@ -1,5 +1,5 @@
 """
-Generates a 3-D uterus mesh along the central line, with variable
+Generates a 3-D uterus mesh from a 1-D network layout, with variable
 numbers of elements around, along and through wall.
 """
 
@@ -32,9 +32,9 @@ from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parame
 
 class MeshType_3d_uterus1(Scaffold_base):
     """
-    Generates a 3-D uterus mesh with variable numbers of elements around, along the central line, and through wall.
-    The uterus is created using a central path as the longitudinal axis of the uterus. Magnitude of D2 and D3 are
-    the radii of the uterus in the respective directions.
+    Generates a 3-D uterus mesh from a 1-D network layout with variable numbers of elements around, along and through
+    wall.
+    Magnitude of D2 and D3 are the radii of the uterus in the respective directions.
     """
     parameterSetStructureStrings = {
         'Mouse 1': ScaffoldPackage(MeshType_1d_network_layout1, {
@@ -95,21 +95,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    # (1, [[2.00, 0.00, 0.00], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24], [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
-                    # (2, [[1.00, 0.00, 0.00], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
-                    # (3, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]],
-                    #      [[0.66, 0.01, -0.76], [0.66, -0.01, 0.76], [1.00, 0.00, 0.00]], [-0.10, 0.09, 0.10],
-                    #      [[0.05, -1.00, 0.03], [0.05, -1.00, 0.03], [0.05, -1.00, 0.03]], [-0.01, 0.01, -0.10]]),
-                    # (4, [[-2.00, 0.00, 0.00], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40], [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
-                    # (5, [[-1.00, 0.00, 0.00], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22], [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
-                    # (6, [[0.00, 0.00, -1.00], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22], [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
-                    # (7, [[0.00, 0.00, -2.00], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20], [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]]),
-                    # (8, [[0.00, 0.00, -3.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15], [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]]),
-                    # (9, [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
-                    # # (12, [[0.00, 0.00, -6.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    # # (13, [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    # # (14, [[0.00, 0.00, -10.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
-
                     (1, [[2.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.10], [0.02, -0.05, -0.24], [0.00, -0.10, 0.00], [-0.02, -0.01, -0.01]]),
                     (2, [[1.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.10], [-0.08, -0.03, -0.22], [0.00, -0.10, 0.00], [-0.01, -0.00, -0.01]]),
                     (3, [[0.00, 0.00, 0.00], [[-1.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, -1.00]],
@@ -166,7 +151,6 @@ class MeshType_3d_uterus1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        # networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
         if 'Mouse 1' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
         elif 'Material' in parameterSetName:
@@ -273,14 +257,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         materialWallThickness = 0.1
         materialTargetElementLength = 0.5
 
-        # fm = region.getFieldmodule()
-        # # fm.beginChange()
-        # # mesh = fm.findMeshByDimension(3)
-        # coordinates = findOrCreateFieldCoordinates(fm)
-        #
-        # firstNodeIdentifier = 1
-        # elementIdentifier = 1
-
         # Geometric coordinates
         fm = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fm)
@@ -330,8 +306,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         del tmp_fm
         del tmp_region
 
-
-        # fm.endChange()
         return annotationGroups, None
 
     @classmethod
@@ -389,35 +363,35 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
 
         serosaOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("serosa of uerine cervix"))
+                                                            get_uterus_term("serosa of uerine cervix"))
         serosaOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("lumen of uerine cervix"))
+                                                           get_uterus_term("lumen of uerine cervix"))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
 
         serosaOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                          get_uterus_term("serosa of right horn"))
+                                                               get_uterus_term("serosa of right horn"))
         serosaOfRightHorn.getMeshGroup(mesh2d).addElementsConditional(is_rightHorn_outer)
 
         lumenOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_uterus_term("lumen of right horn"))
+                                                              get_uterus_term("lumen of right horn"))
         lumenOfRightHorn.getMeshGroup(mesh2d).addElementsConditional(is_rightHorn_inner)
 
         serosaOfLeftHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                          get_uterus_term("serosa of left horn"))
+                                                              get_uterus_term("serosa of left horn"))
         serosaOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_outer)
 
         lumenOfLeftHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_uterus_term("lumen of left horn"))
+                                                             get_uterus_term("lumen of left horn"))
         lumenOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_inner)
 
         serosaOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("serosa of uterus"))
+                                                            get_uterus_term("serosa of uterus"))
         serosaOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
 
         lumenOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("lumen of uterus"))
+                                                           get_uterus_term("lumen of uterus"))
         lumenOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
 
 
@@ -573,17 +547,7 @@ def getCoordinatesAlongTube3D(cx_group, elementsCountAround, elementsCountAlongT
             v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 1 else 0][n2]
             d1 = findDerivativeBetweenPoints(v1, v2)
             d1Around.append(d1)
-            # if n2 > 0:
-            #     v1 = xRaw[n1][n2]
-            #     v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 2 else 0][n2]
-            #     d1 = findDerivativeBetweenPoints(v1, v2)
-            #     d1Around.append(d1)
-            # else:
-            #     d1Around.append(d2Raw[n2][0])
-        # if n2 > 0:
         d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        # else:
-        #     d1Smoothed = d1Around
         xSampledTube.append(xAround)
         d1SampledTube.append(d1Smoothed)
         d2SampledTube.append(d2Around)
@@ -609,10 +573,6 @@ def getCoordinatesAlongTube3D(cx_group, elementsCountAround, elementsCountAlongT
             d3Inner.append(d3Tube[n2][n1])
 
     transitElementList = [0] * elementsCountAround
-    # if elementsCountThroughWall == 2:
-    #     relativeThicknessList = [0.3, 0.7]
-    # else:
-    #     relativeThicknessList = []
     relativeThicknessList = []
     xList, d1List, d2List, d3List, curvatureList = \
         tubemesh.getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1),
@@ -1113,8 +1073,8 @@ def getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountAlongTub
     return targetedRingNodeId, nodeCount
 
 
-def create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
-                             c2d2, elementsCountThroughWall):
+def create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2,
+                             c2Centre, c2xList, c2d2, elementsCountThroughWall):
 
     cache = fm.createFieldcache()
     # coordinates = findOrCreateFieldCoordinates(fm)
@@ -1264,16 +1224,6 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     firstNodeIdentifier = 1
     firstElementIdentifier = 1
 
-    # rightHornLength = geometricNetworkLayout.arcLengthOfGroupsAlong[0]
-    # leftHornLength = geometricNetworkLayout.arcLengthOfGroupsAlong[1]
-    # cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
-    # vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
-    #
-    # elementsCountInRightHorn = math.ceil(rightHornLength / targetElementLength)
-    # elementsCountInLeftHorn = math.ceil(leftHornLength / targetElementLength)
-    # elementsCountInCervix = math.ceil(cervixLength / targetElementLength)
-    # elementsCountInVagina = math.ceil(vaginaLength / targetElementLength)
-
     cx_right_horn_group = geometricNetworkLayout.cxGroups[0]
     cx_left_horn_group = geometricNetworkLayout.cxGroups[1]
     cx_cervix_group = geometricNetworkLayout.cxGroups[2]
@@ -1341,9 +1291,9 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
 
     # Create nodes
     # Create right horn nodes
-    nodeIdentifier = generateTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates, elementsCountInRightHorn,
-                                       elementsCountAround, elementsCountThroughWall, omitStartRows=0,
-                                       omitEndRows=1, startNodes=None)
+    nodeIdentifier = generateTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
+                                       elementsCountInRightHorn, elementsCountAround, elementsCountThroughWall,
+                                       omitStartRows=0, omitEndRows=1, startNodes=None)
 
     # Create left horn nodes
     nodeIdentifier = generateTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
@@ -1362,9 +1312,9 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     c1d2 = rhLastRingNodeCoordinates[2]
     c2xList = lhLastRingNodeCoordinates[0]
     c2d2 = lhLastRingNodeCoordinates[2]
-    nodeIdentifier, roNodeId, coNodeId = create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2,
-                                                                  c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2,
-                                                                  elementsCountThroughWall)
+    nodeIdentifier, roNodeId, coNodeId = create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
+                                                                  pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
+                                                                  c2d2, elementsCountThroughWall)
 
     # Create cervix nodes
     nodeCount = nodeIdentifier
@@ -1380,10 +1330,10 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     # Create elements
     # Create right horn elements
     startNodeId = firstNodeIdentifier
-    elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, firstElementIdentifier, elementsCountInRightHorn,
-                                             elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-                                             omitStartRows=0, omitEndRows=1,
-                                             meshGroups=[rightHornMeshGroup, uterusMeshGroup])
+    elementIdentifier = \
+        generateTubeElements(fm, coordinates, startNodeId, firstElementIdentifier, elementsCountInRightHorn,
+                             elementsCountAround, elementsCountThroughWall, useCrossDerivatives, omitStartRows=0,
+                             omitEndRows=1, meshGroups=[rightHornMeshGroup, uterusMeshGroup])
 
     # Create left horn elements
     startNodeId = rhLastRingNodeId[-1][-1] + 1
