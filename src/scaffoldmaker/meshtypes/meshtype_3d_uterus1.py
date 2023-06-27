@@ -13,7 +13,8 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
+    findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.uterus_terms import get_uterus_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -347,6 +348,77 @@ class MeshType_3d_uterus1(Scaffold_base):
         meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
                                                        refineElementsCountThroughWall)
         return
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        # Create 2d surface mesh groups
+        fm = region.getFieldmodule()
+        cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
+        rightHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine horn"))
+        leftHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine horn"))
+        uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
+
+        mesh2d = fm.findMeshByDimension(2)
+
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+
+        is_cervix = cervixGroup.getFieldElementGroup(mesh2d)
+        is_cervix_outer = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_1)
+        is_cervix_inner = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_0)
+
+        is_rightHorn = rightHornGroup.getFieldElementGroup(mesh2d)
+        is_rightHorn_outer = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_1)
+        is_rightHorn_inner = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_0)
+
+        is_leftHorn = leftHornGroup.getFieldElementGroup(mesh2d)
+        is_leftHorn_outer = fm.createFieldAnd(is_leftHorn, is_exterior_face_xi3_1)
+        is_leftHorn_inner = fm.createFieldAnd(is_leftHorn, is_exterior_face_xi3_0)
+
+        is_uterus = uterusGroup.getFieldElementGroup(mesh2d)
+        is_uterus_outer = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_1)
+        is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
+
+        serosaOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                               get_uterus_term("serosa of uerine cervix"))
+        serosaOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
+
+        lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                               get_uterus_term("lumen of uerine cervix"))
+        lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
+
+        serosaOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                          get_uterus_term("serosa of right horn"))
+        serosaOfRightHorn.getMeshGroup(mesh2d).addElementsConditional(is_rightHorn_outer)
+
+        lumenOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_uterus_term("lumen of right horn"))
+        lumenOfRightHorn.getMeshGroup(mesh2d).addElementsConditional(is_rightHorn_inner)
+
+        serosaOfLeftHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                          get_uterus_term("serosa of left horn"))
+        serosaOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_outer)
+
+        lumenOfLeftHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_uterus_term("lumen of left horn"))
+        lumenOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_inner)
+
+        serosaOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                               get_uterus_term("serosa of uterus"))
+        serosaOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
+
+        lumenOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                               get_uterus_term("lumen of uterus"))
+        lumenOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
 
 
 def findDerivativeBetweenPoints(v1, v2):
@@ -1344,6 +1416,6 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
                                              elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                              omitStartRows=0, omitEndRows=0,
-                                             meshGroups=[vaginaMeshGroup, uterusMeshGroup])
+                                             meshGroups=[vaginaMeshGroup])
 
     return nodeIdentifier, elementIdentifier, annotationGroups
