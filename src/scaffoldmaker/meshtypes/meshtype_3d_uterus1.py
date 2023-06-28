@@ -346,19 +346,19 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
 
-        is_cervix = cervixGroup.getFieldElementGroup(mesh2d)
+        is_cervix = cervixGroup.getGroup()
         is_cervix_outer = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_1)
         is_cervix_inner = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_0)
 
-        is_rightHorn = rightHornGroup.getFieldElementGroup(mesh2d)
+        is_rightHorn = rightHornGroup.getGroup()
         is_rightHorn_outer = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_1)
         is_rightHorn_inner = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_0)
 
-        is_leftHorn = leftHornGroup.getFieldElementGroup(mesh2d)
+        is_leftHorn = leftHornGroup.getGroup()
         is_leftHorn_outer = fm.createFieldAnd(is_leftHorn, is_exterior_face_xi3_1)
         is_leftHorn_inner = fm.createFieldAnd(is_leftHorn, is_exterior_face_xi3_0)
 
-        is_uterus = uterusGroup.getFieldElementGroup(mesh2d)
+        is_uterus = uterusGroup.getGroup()
         is_uterus_outer = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_1)
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
 
