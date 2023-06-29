@@ -7,7 +7,7 @@ wall, with variable radius and thickness along.
 import copy
 import math
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
-    findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
+    findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -214,7 +214,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
         for termName in esophagusTermsAlong:
             tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
-            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
 
             cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
                 tmpNodeset, tmpCoordinates,
@@ -457,7 +457,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
         markerTemplateInternal = nodes.createNodetemplate()
         markerTemplateInternal.defineField(markerName)
         markerTemplateInternal.defineField(markerLocation)
@@ -535,7 +535,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-        is_esophagus = esophagusGroup.getFieldElementGroup(mesh2d)
+        is_esophagus = esophagusGroup.getGroup()
         is_serosa = fm.createFieldAnd(is_esophagus, is_exterior_face_xi3_1)
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_esophagus_term("serosa of esophagus"))
         serosa.getMeshGroup(mesh2d).addElementsConditional(is_serosa)

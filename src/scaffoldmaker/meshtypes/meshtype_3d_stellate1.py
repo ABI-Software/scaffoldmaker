@@ -6,8 +6,8 @@ from __future__ import division
 
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, \
-    findOrCreateFieldStoredString
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
+    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -249,7 +249,7 @@ class MeshType_3d_stellate1(Scaffold_base):
             markerName = findOrCreateFieldStoredString(fm, name="marker_name")
             markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
 
-            markerPoints = findOrCreateFieldNodeGroup(markerGroup, nodes).getNodesetGroup()
+            markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
             markerTemplateInternal = nodes.createNodetemplate()
             markerTemplateInternal.defineField(markerName)
             markerTemplateInternal.defineField(markerLocation)
@@ -584,7 +584,7 @@ class MeshType_3d_stellate1(Scaffold_base):
         armTerms, faceTerms = getAutomaticArmFaceTerms(armCount)
 
         armGroups = [getAnnotationGroupForTerm(annotationGroups, armTerm) for armTerm in armTerms]
-        isArm =[armGroup.getFieldElementGroup(mesh2d) for armGroup in armGroups]
+        isArm =[armGroup.getGroup() for armGroup in armGroups]
         for arm in range(armCount):
             is_face = fm.createFieldOr(
             fm.createFieldAnd(isArm[arm - 1], is_exterior_face_xi2_1),

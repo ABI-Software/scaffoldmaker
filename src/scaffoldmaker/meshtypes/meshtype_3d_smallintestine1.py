@@ -1031,7 +1031,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
 
         for termName in smallIntestineTermsAlong:
             tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
-            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
 
             cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
                 tmpNodeset, tmpCoordinates,
@@ -1276,7 +1276,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-        is_smallIntestine = smallIntestineGroup.getFieldElementGroup(mesh2d)
+        is_smallIntestine = smallIntestineGroup.getGroup()
         is_serosa = fm.createFieldAnd(is_smallIntestine, is_exterior_face_xi3_1)
         serosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                     get_smallintestine_term("serosa of small intestine"))
@@ -1285,7 +1285,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("duodenum"))
         duodenumSerosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                  get_smallintestine_term("serosa of duodenum"))
-        is_duodenum = duodenumGroup.getFieldElementGroup(mesh2d)
+        is_duodenum = duodenumGroup.getGroup()
         is_duodenumSerosa = fm.createFieldAnd(is_duodenum, is_exterior_face_xi3_1)
         duodenumSerosa.getMeshGroup(mesh2d).addElementsConditional(is_duodenumSerosa)
 

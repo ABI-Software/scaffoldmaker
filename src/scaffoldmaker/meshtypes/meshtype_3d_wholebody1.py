@@ -7,9 +7,8 @@ from __future__ import division
 
 import copy
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldStoredString, findOrCreateFieldStoredMeshLocation, findOrCreateFieldNodeGroup
-from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, get_element_node_identifiers
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -18,7 +17,6 @@ from scaffoldmaker.annotation import heart_terms, bladder_terms, lung_terms, sto
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
-from scaffoldmaker.annotation.nerve_terms import get_nerve_term
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage

@@ -94,227 +94,12 @@ def createFaceMeshGroupExteriorOnFace(fieldmodule : Fieldmodule, elementFaceType
         isExterior = fieldmodule.createFieldIsExterior()
         isOnFace = fieldmodule.createFieldIsOnFace(elementFaceType)
         mesh2d = fieldmodule.findMeshByDimension(2)
-        faceElementGroup = fieldmodule.createFieldElementGroup(mesh2d)
-        faceMeshGroup = faceElementGroup.getMeshGroup()
+        faceGroup = fieldmodule.createFieldGroup()
+        faceMeshGroup = faceGroup.createMeshGroup(mesh2d)
         faceMeshGroup.addElementsConditional(fieldmodule.createFieldAnd(isExterior, isOnFace))
         del isExterior
         del isOnFace
     return faceMeshGroup
-
-
-def get_highest_dimension_mesh(fieldmodule : Fieldmodule):
-    '''
-    Get highest dimension non-empty mesh.
-    :return: Zinc Mesh or None if all are empty.
-    '''
-    for dimension in range(3, 0, -1):
-        mesh = fieldmodule.findMeshByDimension(dimension)
-        if mesh.getSize() > 0:
-            return mesh
-    return None
-
-
-def get_next_unused_node_identifier(nodeset: Nodeset, start_identifier=1) -> int:
-    """
-    :return: Unused node identifier >= start_identifier.
-    """
-    identifier = start_identifier
-    node = nodeset.findNodeByIdentifier(identifier)
-    while node.isValid():
-        identifier += 1
-        node = nodeset.findNodeByIdentifier(identifier)
-    return identifier
-
-
-def group_add_group_elements(group : FieldGroup, other_group : FieldGroup, only_dimension=None):
-    '''
-    Add to group elements and/or nodes from other_group, which may be in a descendent region.
-    :param group: The FieldGroup to modify.
-    :param other_group: FieldGroup within region tree of group's region to add contents from.
-    :param only_dimension: If set, only add objects of this dimension.
-    '''
-    region = group.getFieldmodule().getRegion()
-    with HierarchicalChangeManager(region):
-        other_fieldmodule = other_group.getFieldmodule()
-        for dimension in [ only_dimension ] if only_dimension else range(4):
-            if dimension > 0:
-                mesh = other_fieldmodule.findMeshByDimension(dimension)
-                element_group = group.getFieldElementGroup(mesh)
-                if not element_group.isValid():
-                    element_group = group.createFieldElementGroup(mesh)
-                mesh_group = element_group.getMeshGroup()
-                mesh_group.addElementsConditional(other_group.getFieldElementGroup(mesh))
-            elif dimension == 0:
-                nodeset = other_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-                node_group = group.getFieldNodeGroup(nodeset)
-                if not node_group.isValid():
-                    node_group = group.createFieldNodeGroup(nodeset)
-                nodeset_group = node_group.getNodesetGroup()
-                nodeset_group.addNodesConditional(other_group.getFieldNodeGroup(nodeset))
-
-
-def group_get_highest_dimension(group : FieldGroup):
-    '''
-    Get highest dimension of elements or nodes in group.
-    :return: Dimensions from 3-0, or -1 if empty.
-    '''
-    fieldmodule = group.getFieldmodule()
-    for dimension in range(3, 0, -1):
-        mesh = fieldmodule.findMeshByDimension(dimension)
-        element_group = group.getFieldElementGroup(mesh)
-        if element_group.isValid() and (element_group.getMeshGroup().getSize() > 0):
-            return dimension
-    nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    node_group = group.getFieldNodeGroup(nodeset)
-    if node_group.isValid() and (node_group.getNodesetGroup().getSize() > 0):
-        return 0
-    return -1
-
-
-def identifier_ranges_fix(identifier_ranges):
-    '''
-    Sort from lowest to highest identifier and merge adjacent and overlapping
-    ranges.
-    :param identifier_ranges: List of identifier ranges. Modified in situ.
-    '''
-    identifier_ranges.sort()
-    i = 1
-    while i < len(identifier_ranges):
-        if identifier_ranges[i][0] <= (identifier_ranges[i - 1][1] + 1):
-            if identifier_ranges[i][1] > identifier_ranges[i - 1][1]:
-                identifier_ranges[i - 1][1] = identifier_ranges[i][1]
-            identifier_ranges.pop(i)
-        else:
-            i += 1
-
-
-def identifier_ranges_from_string(identifier_ranges_string):
-    '''
-    Parse string containing identifiers and identifier ranges.
-    Function is suitable for processing manual input with whitespace, trailing non-digits.
-    Ranges are sorted so strictly increasing. Overlapping ranges are merged.
-    Future: migrate to use .. as separator for compatibility with EX file groups and cmgui.
-    :param identifier_ranges_string: Identifier ranges as a string e.g. '1-30,55,66-70'.
-    '30-1, 55,66-70s' also produces the same result.
-    :return: Ordered list of identifier ranges e.g. [[1,30],[55,55],[66,70]]
-    '''
-    identifier_ranges = []
-    for identifier_range_string in identifier_ranges_string.split(','):
-        try:
-            identifier_range_ends = identifier_range_string.split('-')
-            # after leading whitespace, stop at first non-digit
-            for e in range(len(identifier_range_ends)):
-                # strip whitespace, trailing non digits
-                digits = identifier_range_ends[e].strip()
-                for i in range(len(digits)):
-                    if not digits[i].isdigit():
-                        digits = digits[:i]
-                        break
-                identifier_range_ends[e] = digits
-            start = int(identifier_range_ends[0])
-            if len(identifier_range_ends) == 1:
-                stop = start
-            else:
-                stop = int(identifier_range_ends[1])
-                # ensure range is low-high
-                if stop < start:
-                    start, stop = stop, start
-            identifier_ranges.append([start, stop])
-        except:
-            pass
-    identifier_ranges_fix(identifier_ranges)
-    return identifier_ranges
-
-
-def identifier_ranges_to_string(identifier_ranges):
-    '''
-    Convert ranges to a string, contracting single object ranges.
-    Future: migrate to use .. as separator for compatibility with EX file groups and cmgui.
-    :param identifier_ranges: Ordered list of identifier ranges e.g. [[1,30],[55,55],[66,70]]
-    :return: Identifier ranges as a string e.g. '1-30,55,66-70'
-    '''
-    identifier_ranges_string = ''
-    first = True
-    for identifier_range in identifier_ranges:
-        if identifier_range[0] == identifier_range[1]:
-            identifier_range_string = str(identifier_range[0])
-        else:
-            identifier_range_string = str(identifier_range[0]) + '-' + str(identifier_range[1])
-        if first:
-            identifier_ranges_string = identifier_range_string
-            first = False
-        else:
-            identifier_ranges_string += ',' + identifier_range_string
-    return identifier_ranges_string
-
-
-def domain_iterator_to_identifier_ranges(iterator):
-    '''
-    Extract sorted identifier ranges from iterator.
-    Currently requires iterator to be in lowest-highest identifier order.
-    Objects must support getIdentifier() method returning unique integer.
-    :param iterator: A Zinc Elementiterator or Nodeiterator.
-    :return: List of sorted identifier ranges [start,stop] e.g. [[1,30],[55,55],[66,70]]
-    '''
-    identifier_ranges = []
-    obj = iterator.next()
-    if obj.isValid():
-        stop = start = obj.getIdentifier()
-        obj = iterator.next()
-        while obj.isValid():
-            identifier = obj.getIdentifier()
-            if identifier == (stop + 1):
-                stop = identifier
-            else:
-                identifier_ranges.append([ start, stop ])
-                stop = start = identifier
-            obj = iterator.next()
-        identifier_ranges.append([ start, stop ])
-    return identifier_ranges
-
-
-def mesh_group_add_identifier_ranges(mesh_group, identifier_ranges):
-    '''
-    Add elements with the supplied identifier ranges to mesh_group.
-    :param mesh_group: Zinc MeshGroup to modify.
-    '''
-    mesh = mesh_group.getMasterMesh()
-    fieldmodule = mesh.getFieldmodule()
-    with ChangeManager(fieldmodule):
-        for identifier_range in identifier_ranges:
-            for identifier in range(identifier_range[0], identifier_range[1] + 1):
-                element = mesh.findElementByIdentifier(identifier)
-                mesh_group.addElement(element)
-
-
-def mesh_group_to_identifier_ranges(mesh_group):
-    '''
-    :param mesh_group: Zinc MeshGroup.
-    :return: Ordered list of element identifier ranges e.g. [[1,30],[55,55],[66,70]]
-    '''
-    return domain_iterator_to_identifier_ranges(mesh_group.createElementiterator())
-
-
-def nodeset_group_add_identifier_ranges(nodeset_group, identifier_ranges):
-    '''
-    Add nodes with the supplied identifier ranges to nodeset_group.
-    :param nodeset_group: Zinc NodesetGroup to modify.
-    '''
-    nodeset = nodeset_group.getMasterNodeset()
-    fieldmodule = nodeset.getFieldmodule()
-    with ChangeManager(fieldmodule):
-        for identifier_range in identifier_ranges:
-            for identifier in range(identifier_range[0], identifier_range[1] + 1):
-                node = nodeset.findNodeByIdentifier(identifier)
-                nodeset_group.addNode(node)
-
-
-def nodeset_group_to_identifier_ranges(nodeset_group):
-    '''
-    :param nodeset_group: Zinc NodesetGroup.
-    :return: Ordered list of node identifier ranges e.g. [[1,30],[55,55],[66,70]]
-    '''
-    return domain_iterator_to_identifier_ranges(nodeset_group.createNodeiterator())
 
 
 def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
@@ -328,22 +113,15 @@ def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
         # put the elements in a group and use subelement handling to get nodes in use by it
         destroyGroup = fm.createFieldGroup()
         destroyGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
-        destroyElementGroup = destroyGroup.createFieldElementGroup(mesh)
-        destroyMesh = destroyElementGroup.getMeshGroup()
+        destroyMesh = destroyGroup.createMeshGroup(mesh)
         for elementIdentifier in element_identifiers:
             element = mesh.findElementByIdentifier(elementIdentifier)
             destroyMesh.addElement(element)
         if destroyMesh.getSize() > 0:
-            destroyNodeGroup = destroyGroup.getFieldNodeGroup(nodes)
-            destroyNodes = destroyNodeGroup.getNodesetGroup()
             # must destroy elements first as Zinc won't destroy nodes that are in use
-            mesh.destroyElementsConditional(destroyElementGroup)
-            nodes.destroyNodesConditional(destroyNodeGroup)
-            # clean up group so no external code hears is notified of its existence
-            del destroyNodes
-            del destroyNodeGroup
+            mesh.destroyElementsConditional(destroyGroup)
+            nodes.destroyNodesConditional(destroyGroup)
         del destroyMesh
-        del destroyElementGroup
         del destroyGroup
     return
 
@@ -438,10 +216,7 @@ def set_nodeset_field_parameters(nodeset, field, value_labels, node_field_parame
             if edit_group_name and changed_node_parameters:
                 if not edit_nodeset_group:
                     edit_group = find_or_create_field_group(fieldmodule, edit_group_name, managed=True)
-                    edit_node_group = edit_group.getFieldNodeGroup(nodeset)
-                    if not edit_node_group.isValid():
-                        edit_node_group = edit_node_group.createFieldNodeGroup(nodeset)
-                    edit_nodeset_group = edit_node_group.getNodesetGroup()
+                    edit_nodeset_group = edit_group.getOrCreateNodesetGroup(nodeset)
                 edit_nodeset_group.addNode(node)
 
 
@@ -603,10 +378,7 @@ def setPathParameters(region, nodeValueLabels, nodeValues, editGroupName=None):
     with ChangeManager(fieldmodule):
         if editGroupName:
             editGroup = find_or_create_field_group(fieldmodule, editGroupName, managed=True)
-            editNodeGroup = editGroup.getFieldNodeGroup(nodes)
-            if not editNodeGroup.isValid():
-                editNodeGroup = editGroup.createFieldNodeGroup(nodes)
-            editNodesetGroup = editNodeGroup.getNodesetGroup()
+            editNodesetGroup = editGroup.getOrCreateNodesetGroup(nodes)
         cache = fieldmodule.createFieldcache()
         nodeiterator = nodes.createNodeiterator()
         node = nodeiterator.next()
@@ -694,7 +466,7 @@ def exnode_string_from_nodeset_field_parameters(
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         group = fieldmodule.createFieldGroup()
         group.setName(group_name)
-        nodeset_group = group.createFieldNodeGroup(nodes).getNodesetGroup()
+        nodeset_group = group.createNodesetGroup(nodes)
         # dict mapping from tuple of derivative versions to nodetemplate
         nodetemplates = {}
         # create nodes
@@ -807,26 +579,3 @@ def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGrou
             element = elemiter.next()
 
     return nextNodeIdentifier, list(copyIdentifiersMap.values())
-
-
-def region_get_selection_group(region):
-    """
-    Get current selection group in this region, if any.
-    Note finds related group from selection field in ancestor regions.
-    :param region: Region to query.
-    :return: Selection FieldGroup or None if none.
-    """
-    tmp_region = region
-    while tmp_region.isValid():
-        scene = tmp_region.getScene()
-        selection_group = scene.getSelectionField().castGroup()
-        if selection_group.isValid():
-            if tmp_region is region:
-                return selection_group
-            selection_group_name = selection_group.getName()
-            selection_group = region.getFieldmodule().findFieldByName(selection_group_name).castGroup()
-            if selection_group.isValid():
-                return selection_group
-            break
-        tmp_region = tmp_region.getParent()
-    return None

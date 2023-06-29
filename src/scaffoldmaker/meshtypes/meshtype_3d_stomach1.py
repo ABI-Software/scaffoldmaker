@@ -1190,7 +1190,7 @@ class StomachCentralPath:
 
         for termName in stomachTermsAlong:
             tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
-            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
 
             cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
                 tmpNodeset, tmpCoordinates,

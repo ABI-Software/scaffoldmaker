@@ -76,7 +76,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
             one = fieldmodule.createFieldConstant(1.0)
             epicardiumGroup = fieldmodule.findFieldByName('epicardium').castGroup()
             self.assertTrue(epicardiumGroup.isValid())
-            epicardiumMeshGroup = epicardiumGroup.getFieldElementGroup(mesh2d).getMeshGroup()
+            epicardiumMeshGroup = epicardiumGroup.getMeshGroup(mesh2d)
             self.assertTrue(epicardiumMeshGroup.isValid())
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, epicardiumMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
@@ -117,7 +117,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
 
         # test finding a marker in scaffold
         markerGroup = fieldmodule.findFieldByName("marker").castGroup()
-        markerNodes = markerGroup.getFieldNodeGroup(nodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(nodes)
         self.assertEqual(4, markerNodes.getSize())
         markerName = fieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
@@ -188,7 +188,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
         refinedNodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerNodes = markerGroup.getFieldNodeGroup(refinedNodes).getNodesetGroup()
+        markerNodes = markerGroup.getNodesetGroup(refinedNodes)
         self.assertEqual(4, markerNodes.getSize())
         markerName = refineFieldmodule.findFieldByName("marker_name")
         self.assertTrue(markerName.isValid())
