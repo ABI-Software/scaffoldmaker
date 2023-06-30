@@ -7,6 +7,7 @@ smallintestine_terms = [
     ("circular-longitudinal muscle interface of first segment of the duodenum along the gastric-omentum attachment", "ILX:0793090"),
     ("circular muscle layer of small intestine", "ILX:0772669"),
     ("duodenum", "UBERON:0002114", "FMA:7206", "ILX:0726125"),
+    ("ileocecal junction", "UBERON:0001073", "FMA:11338", "ILX:0730012"),
     ("ileum", "UBERON:0002116", "FMA:7208", "ILX:0728151"),
     ("jejunum", "UBERON:0002115", "FMA:7207", "ILX:0724224"),
     ("longitudinal muscle layer of small intestine", "ILX:0772125"),
