@@ -417,15 +417,13 @@ class UterusNetworkLayout:
     def __init__(self, region, networkLayout, targetElementLength):
         """
         :param region: Zinc region to define model in.
-        :param networkLayout: Network layout subscaffold from MeshType_1d_network_layout1
+        :param networkLayout: Network layout subscaffold from MeshType_1d_network_layout1.
         """
 
         layoutRegion = region.createRegion()
         layoutFieldmodule = layoutRegion.getFieldmodule()
         layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # layoutMesh = layoutFieldmodule.findMeshByDimension(1)
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
-        # layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         layoutCoordinates = findOrCreateFieldCoordinates(layoutFieldmodule)
         layoutFieldcache = layoutFieldmodule.createFieldcache()
 
@@ -588,7 +586,6 @@ def generateTubeNodes(fm, coordinates, nodeIdentifier, tubeCoordinates, elements
                       elementsCountThroughWall, omitStartRows, omitEndRows, startNodes=None):
 
     cache = fm.createFieldcache()
-    # coordinates = findOrCreateFieldCoordinates(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -692,7 +689,6 @@ def generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elemen
                          meshGroups=None):
 
     mesh = fm.findMeshByDimension(3)
-    # coordinates = findOrCreateFieldCoordinates(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -726,10 +722,6 @@ def generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elemen
                     meshGroup.addElement(element)
                 elementIdentifier += 1
 
-    # if omitStartRows == 1 or omitEndRows == 1:
-    #     lastNodeId = elementsCountAlongTube * elementsCountAround * (elementsCountThroughWall + 1) + startNodeId
-    # else:
-    #     lastNodeId = (elementsCountAlongTube + 1) * elementsCountAround * (elementsCountThroughWall + 1) + startNodeId
     return elementIdentifier
 
 
@@ -939,8 +931,7 @@ def make_tube_bifurcation_elements_3d(fm, coordinates, elementIdentifier, elemen
                     meshGroup.addElement(element)
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
-    # lastNodeId = startNodeIndex + (elementsCountThroughWall + 1) * (len(roNodeId) + len(coNodeId)) + 1
-    # lastNodeId = paNodeId[0][0]
+
     return elementIdentifier
 
 
@@ -959,8 +950,6 @@ def getTargetedRingNodesCoordinates(tubeCoordinates, elementsCountAround, elemen
     d2FirstRing = []
     d3FirstRing = []
     for n2 in range(elementsCountAlongTube + 1):
-        # if n2 == 0:
-        #     startNodeId = nodeIdentifier - 1
         for n3 in range(elementsCountThroughWall + 1):
             lastRingNodeIdThroughWall = []
             xLastRingThroughWall = []
@@ -983,25 +972,19 @@ def getTargetedRingNodesCoordinates(tubeCoordinates, elementsCountAround, elemen
                         pass
                     else:
                         if n2 == elementsCountAlongTube - 1:
-                            # lastRingNodeIdThroughWall.append(nodeCount)
                             xLastRingThroughWall.append(x)
                             d1LastRingThroughWall.append(d1)
                             d2LastRingThroughWall.append(d2)
                             d3LastRingThroughWall.append(d3)
-                        # nodeCount += 1
                 elif omitStartRows == 1:  # diverging from bifurcation
                     if n2 == 0:
                         pass
                     else:
                         if n2 == 1:
-                            # firstRingNodeIdThroughWall.append(nodeCount)
                             xFirstRingThroughWall.append(x)
                             d1FirstRingThroughWall.append(d1)
                             d2FirstRingThroughWall.append(d2)
                             d3FirstRingThroughWall.append(d3)
-                        # nodeCount += 1
-                # else:
-                #     nodeCount += 1
             if omitEndRows == 1:
                 if n2 == elementsCountAlongTube - 1:
                     lastRingsNodeId.append(lastRingNodeIdThroughWall)
@@ -1034,8 +1017,6 @@ def getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountAlongTub
     lastRingsNodeId = []
     firstRingsNodeId = []
     for n2 in range(elementsCountAlongTube + 1):
-        # if n2 == 0:
-        #     startNodeId = nodeIdentifier - 1
         for n3 in range(elementsCountThroughWall + 1):
             lastRingNodeIdThroughWall = []
             firstRingNodeIdThroughWall = []
@@ -1077,7 +1058,6 @@ def create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
                              c2Centre, c2xList, c2d2, elementsCountThroughWall):
 
     cache = fm.createFieldcache()
-    # coordinates = findOrCreateFieldCoordinates(fm)
 
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -1232,7 +1212,6 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     sx_right_horn_group = geometricNetworkLayout.sxGroups[0]
     sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
     sx_cervix_group = geometricNetworkLayout.sxGroups[2]
-    # sx_vagina_group = geometricNetworkLayout.sxGroups[3]
 
     # Create annotation groups
     rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
@@ -1285,9 +1264,6 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     vaginaCoordinates = getCoordinatesAlongTube3D(cx_vagina_group, elementsCountAround, elementsCountInVagina,
                                                   elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
 
-    # vFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(vaginaCoordinates, elementsCountAround,
-    #                                                             elementsCountInVagina, elementsCountThroughWall,
-    #                                                             omitStartRows=0, omitEndRows=0)
 
     # Create nodes
     # Create right horn nodes
