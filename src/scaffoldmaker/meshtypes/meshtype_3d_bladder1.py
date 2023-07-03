@@ -407,7 +407,6 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         fm = region.getFieldmodule()
         fm.beginChange()
-        cache = fm.createFieldcache()
         mesh = fm.findMeshByDimension(3)
 
         firstNodeIdentifier = 1
@@ -415,7 +414,7 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         # Geometric coordinates
         geometricCentralPath = BladderCentralPath(region, centralPath, elementsCountAlongDome, elementsCountAlongNeck)
-        xFinal, d1Final, d2Final, d3Final = findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
+        xFinal, d1Final, d2Final, d3Final = getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
                                             elementsCountThroughWall, wallThickness, geometricCentralPath)
 
         sx_dome_group = geometricCentralPath.sx_dome_group
@@ -426,7 +425,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         # Material coordinates
         tmp_region = region.createRegion()
         materialCentralPath = BladderCentralPath(tmp_region, materialCentralPath, elementsCountAlongDome, elementsCountAlongNeck)
-        xOrgan, d1Organ, d2Organ, d3Organ = findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
+        xOrgan, d1Organ, d2Organ, d3Organ = getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
                                             elementsCountThroughWall, materialWallThickness, materialCentralPath)
         del tmp_region
 
@@ -463,12 +462,15 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                        xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
 
         # Create nodes and elements
+        bladderCoordinatesFieldName = "bladder coordinates"
         nodeIdentifier, elementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-            region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, "bladder coordinates",
-            elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
+            region, xFinal, d1Final, d2Final, d3Final, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ,
+            bladderCoordinatesFieldName, elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier,
             useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
+
+        bladderCoordinates = fm.findFieldByName(bladderCoordinatesFieldName)
 
         # Define trackSurface to put the ureter markers on
         xTrackSurface = []
@@ -489,16 +491,9 @@ class MeshType_3d_bladder1(Scaffold_base):
         ureter1Position = trackSurfaceBladder.createPositionProportion(ureterPositionAroundFactor, neckStartPositionAlongFactor)
         ureterElementPositionAround = ureter1Position.e1
 
-        # Annotation fiducial point
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+        # Annotation fiducial points
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
 
         # Define markers for apex and ureter junctions with bladder
         apexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("apex of urinary bladder"))
@@ -519,12 +514,12 @@ class MeshType_3d_bladder1(Scaffold_base):
         bladderNodesetGroup = bladderGroup.getNodesetGroup(nodes)
         for marker in markerList:
             annotationGroup = marker["group"]
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            cache.setNode(markerPoint)
-            markerLocation.assignMeshLocation(cache, mesh.findElementByIdentifier(marker["elementId"]), marker["xi"])
-            markerName.assignString(cache, annotationGroup.getName())
-            annotationGroup.getNodesetGroup(nodes).addNode(markerPoint)
-            bladderNodesetGroup.addNode(markerPoint)
+            element = mesh.findElementByIdentifier(marker["elementId"])
+            # create marker points with element locations
+            markerNode = annotationGroup.createMarkerNode(nodeIdentifier, element=element, xi=marker["xi"])
+            # calculate bladder coordinates automatically from element:xi
+            annotationGroup.setMarkerMaterialCoordinates(bladderCoordinates)
+            bladderNodesetGroup.addNode(markerNode)
             nodeIdentifier += 1
 
         fm.endChange()
@@ -1149,8 +1144,8 @@ class BladderCentralPath:
         self.bladderCentralPathLength = bladderCentralPathLength
         self.domeLength = domeLength
 
-def findBladderNodes3D(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround, elementsCountThroughWall,
-                        wallThickness, centralPath):
+def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround, elementsCountThroughWall,
+                             wallThickness, centralPath):
 
     sx_dome_group = centralPath.sx_dome_group
     sx_neck_group = centralPath.sx_neck_group
