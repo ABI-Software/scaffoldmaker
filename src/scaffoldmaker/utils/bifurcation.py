@@ -168,8 +168,9 @@ def make_tube_bifurcation_points(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Cen
     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
 
-def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
-        paNodeId, paStartIndex, c1NodeId, c1StartIndex, c2NodeId, c2StartIndex, roNodeId, coNodeId, useCrossDerivatives=False):
+def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier, paNodeId, paStartIndex, c1NodeId,
+                                      c1StartIndex, c2NodeId, c2StartIndex, roNodeId, coNodeId,
+                                      useCrossDerivatives=False, meshGroups=None):
     '''
     Creates elements from parent, ring/row, crotch/column, child1 and child2 nodes.
     Assumes client has active ChangeManager(fieldmodule).
@@ -204,7 +205,6 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         np = e1 + paStartIndex
         nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
         scalefactors = None
-        meshGroups = [ ]
 
         if e1 in (0, pac1Count - 1, pac1Count, paCount - 1):
             eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
@@ -230,7 +230,10 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         #print('create element tube bifurcation pa', element.isValid(), elementIdentifier, result2, result3, nids)
         elementIdentifier += 1
         for meshGroup in meshGroups:
-            meshGroup.addElement(element)
+            if meshGroups.index(meshGroup) == 0:
+                meshGroup.addElement(element)
+            elif meshGroups.index(meshGroup) == 3:
+                meshGroup.addElement(element)
 
     for e1 in range(c1Count):
         eft = eftStd
@@ -244,7 +247,6 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
                 #nids[0] = coNodeId[(e1 - pac1Count - 1)]
                 nids[0] = coNodeId[(e1 - pac1Count - 1) % c1Count]
         scalefactors = None
-        meshGroups = [ ]
 
         if e1 in (0, pac1Count, c1Count - 1):
             eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
@@ -275,7 +277,10 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         #print('create element tube bifurcation c1', element.isValid(), elementIdentifier, result2, result3, nids)
         elementIdentifier += 1
         for meshGroup in meshGroups:
-            meshGroup.addElement(element)
+            if meshGroups.index(meshGroup) == 1:
+                meshGroup.addElement(element)
+            elif meshGroups.index(meshGroup) == 3:
+                meshGroup.addElement(element)
 
     for e1 in range(c2Count):
         eft = eftStd
@@ -288,7 +293,6 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         if 0 < e1 <= (c1c2Count - 1):
             nids[0] = coNodeId[c1c2Count - e1 - 1]
         scalefactors = None
-        meshGroups = [ ]
 
         if e1 <= c1c2Count:
             eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
@@ -321,6 +325,9 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         #print('create element tube bifurcation c2', element.isValid(), elementIdentifier, result2, result3, nids)
         elementIdentifier += 1
         for meshGroup in meshGroups:
-            meshGroup.addElement(element)
+            if meshGroups.index(meshGroup) == 2:
+                meshGroup.addElement(element)
+            elif meshGroups.index(meshGroup) == 3:
+                meshGroup.addElement(element)
 
     return elementIdentifier
