@@ -84,7 +84,7 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '3D Diverged Bifurcation 1'
+        return '3D Diverging Bifurcation 1'
 
     @staticmethod
     def getParameterSetNames():
@@ -262,8 +262,6 @@ class MeshType_3d_divergingbifurcation1(Scaffold_base):
         c1Centre = sx_child2_group[0][-2]
         c2Centre = sx_child1_group[0][-2]
         paxList = parentLastRingNodeCoordinates[0]
-        # pad1List = cFirstRingNodeCoordinates[1]
-        # pad2List = cFirstRingNodeCoordinates[2]
         pad2 = parentLastRingNodeCoordinates[2]
         c1xList = child2FirstRingNodeCoordinates[0]
         c1d2 = child2FirstRingNodeCoordinates[2]
@@ -374,9 +372,7 @@ class BifurcationNetworkLayout:
         layoutRegion = region.createRegion()
         layoutFieldmodule = layoutRegion.getFieldmodule()
         layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # layoutMesh = layoutFieldmodule.findMeshByDimension(1)
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
-        # layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         layoutCoordinates = findOrCreateFieldCoordinates(layoutFieldmodule)
         layoutFieldcache = layoutFieldmodule.createFieldcache()
 
@@ -498,17 +494,7 @@ def getCoordinatesAlongTube3D(cx_group, elementsCountAround, elementsCountAlongT
             v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 1 else 0][n2]
             d1 = findDerivativeBetweenPoints(v1, v2)
             d1Around.append(d1)
-            # if n2 > 0:
-            #     v1 = xRaw[n1][n2]
-            #     v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 2 else 0][n2]
-            #     d1 = findDerivativeBetweenPoints(v1, v2)
-            #     d1Around.append(d1)
-            # else:
-            #     d1Around.append(d2Raw[n2][0])
-        # if n2 > 0:
         d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        # else:
-        #     d1Smoothed = d1Around
         xSampledTube.append(xAround)
         d1SampledTube.append(d1Smoothed)
         d2SampledTube.append(d2Around)
@@ -533,10 +519,6 @@ def getCoordinatesAlongTube3D(cx_group, elementsCountAround, elementsCountAlongT
             d3Inner.append(d3Tube[n2][n1])
 
     transitElementList = [0] * elementsCountAround
-    # if elementsCountThroughWall == 2:
-    #     relativeThicknessList = [0.3, 0.7]
-    # else:
-    #     relativeThicknessList = []
     relativeThicknessList = []
     xList, d1List, d2List, d3List, curvatureList = \
         tubemesh.getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1),
@@ -682,10 +664,6 @@ def generateTubeElements(fm, startNodeId, elementIdentifier, elementsCountAlongT
                     meshGroup.addElement(element)
                 elementIdentifier += 1
 
-    # if omitStartRows == 1 or omitEndRows == 1:
-    #     lastNodeId = elementsCountAlongTube * elementsCountAround * (elementsCountThroughWall + 1) + startNodeId
-    # else:
-    #     lastNodeId = (elementsCountAlongTube + 1) * elementsCountAround * (elementsCountThroughWall + 1) + startNodeId
     return elementIdentifier
 
 
@@ -704,8 +682,6 @@ def getTargetedRingNodesCoordinates(tubeCoordinates, elementsCountAround, elemen
     d2FirstRing = []
     d3FirstRing = []
     for n2 in range(elementsCountAlongTube + 1):
-        # if n2 == 0:
-        #     startNodeId = nodeIdentifier - 1
         for n3 in range(elementsCountThroughWall + 1):
             lastRingNodeIdThroughWall = []
             xLastRingThroughWall = []
@@ -728,25 +704,19 @@ def getTargetedRingNodesCoordinates(tubeCoordinates, elementsCountAround, elemen
                         pass
                     else:
                         if n2 == elementsCountAlongTube - 1:
-                            # lastRingNodeIdThroughWall.append(nodeCount)
                             xLastRingThroughWall.append(x)
                             d1LastRingThroughWall.append(d1)
                             d2LastRingThroughWall.append(d2)
                             d3LastRingThroughWall.append(d3)
-                        # nodeCount += 1
                 elif omitStartRows == 1:  # diverging from bifurcation
                     if n2 == 0:
                         pass
                     else:
                         if n2 == 1:
-                            # firstRingNodeIdThroughWall.append(nodeCount)
                             xFirstRingThroughWall.append(x)
                             d1FirstRingThroughWall.append(d1)
                             d2FirstRingThroughWall.append(d2)
                             d3FirstRingThroughWall.append(d3)
-                        # nodeCount += 1
-                # else:
-                #     nodeCount += 1
             if omitEndRows == 1:
                 if n2 == elementsCountAlongTube - 1:
                     lastRingsNodeId.append(lastRingNodeIdThroughWall)
@@ -779,8 +749,6 @@ def getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountAlongTub
     lastRingsNodeId = []
     firstRingsNodeId = []
     for n2 in range(elementsCountAlongTube + 1):
-        # if n2 == 0:
-        #     startNodeId = nodeIdentifier - 1
         for n3 in range(elementsCountThroughWall + 1):
             lastRingNodeIdThroughWall = []
             firstRingNodeIdThroughWall = []
@@ -900,7 +868,6 @@ def make_tube_bifurcation_points_diverging(paCentre, pax, pad2, c1Centre, c1x, c
     for n in range(pac1NodeCount):
         pan = (paStartIndex + n) % paCount
         c1n = (c1StartIndex + n) % c1Count
-        # x1, d1, x2, d2 = c1x[c1n], mult(c1d2[c1n], 2.0), pax[pan], mult(pad2[pan], 2.0)
         x1, d1, x2, d2 = pax[pan], mult(pad2[pan], 2.0), c1x[c1n], mult(c1d2[c1n], 2.0)
         pac1x[n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
         pac1d1[n] = [0.0, 0.0, 0.0]
@@ -914,7 +881,6 @@ def make_tube_bifurcation_points_diverging(paCentre, pax, pad2, c1Centre, c1x, c
     for n in range(pac2NodeCount):
         pan = (paStartIndex2 + n) % paCount
         c2n = (c2StartIndex2 + n) % c2Count
-        # x1, d1, x2, d2 = c2x[c2n], mult(c2d2[c2n], 2.0), pax[pan], mult(pad2[pan], 2.0)
         x1, d1, x2, d2 = pax[pan], mult(pad2[pan], 2.0), c2x[c2n], mult(c2d2[c2n], 2.0)
         pac2x[n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
         pac2d1[n] = [0.0, 0.0, 0.0]
@@ -925,42 +891,10 @@ def make_tube_bifurcation_points_diverging(paCentre, pax, pad2, c1Centre, c1x, c
     for n in range(c1c2NodeCount):
         c1n = (c1StartIndex2 + n) % c1Count
         c2n = (c2StartIndex2 - n) % c2Count  # note: reversed
-        # x1, d1, x2, d2 = c1x[c1n], mult(c1d2[c1n], 2.0), c2x[c2n], mult(c2d2[c2n], -2.0)
         x1, d1, x2, d2 = c2x[c2n], mult(c2d2[c2n], -2.0), c1x[c1n], mult(c1d2[c1n], 2.0)
         c1c2x[n] = interp.interpolateCubicHermite(x1, d1, x2, d2, 0.5)
         c1c2d1[n] = [0.0, 0.0, 0.0]
         c1c2d2[n] = mult(interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, 0.5), 0.5)
-    # # get hex triple points
-    # hex1, hex1d1, hex1d2 = get_bifurcation_triple_point(
-    #     c2x[c1StartIndex], mult(c2d2[c2StartIndex], -1.0),
-    #     c1x[c1StartIndex], mult(c1d2[c1StartIndex], -1.0),
-    #     pax[paStartIndex], pad2[paStartIndex])
-    # hex2, hex2d1, hex2d2 = get_bifurcation_triple_point(
-    #     c1x[c1StartIndex2], mult(c1d2[c1StartIndex2], -1.0),
-    #     c2x[c2StartIndex2], mult(c2d2[c2StartIndex2], -1.0),
-    #     pax[paStartIndex2], pad2[paStartIndex2])
-    # # smooth around loops through hex points to get d1
-    # loop1x = [hex2] + pac2x[1:-1] + [hex1]
-    # loop1d1 = [[-d for d in hex2d2]] + pac2d1[1:-1] + [hex1d1]
-    # loop2x = [hex1] + pac1x[1:-1] + [hex2]
-    # loop2d1 = [[-d for d in hex1d2]] + pac1d1[1:-1] + [hex2d1]
-    # loop1d1 = interp.smoothCubicHermiteDerivativesLine(loop1x, loop1d1, fixStartDirection=True, fixEndDirection=True,
-    #                                                    magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-    # loop2d1 = interp.smoothCubicHermiteDerivativesLine(loop2x, loop2d1, fixStartDirection=True, fixEndDirection=True,
-    #                                                    magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-    # # smooth over "crotch" between c1 and c2
-    # crotchx = [hex2] + c1c2x[1:-1] + [hex1]
-    # crotchd1 = [add(hex2d1, hex2d2)] + c1c2d1[1:-1] + [[(-hex1d1[c] - hex1d2[c]) for c in range(3)]]
-    # crotchd1 = interp.smoothCubicHermiteDerivativesLine(crotchx, crotchd1, fixStartDerivative=True,
-    #                                                     fixEndDerivative=True,
-    #                                                     magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-    # rox = [hex1] + pac1x[1:-1] + [hex2] + pac2x[1:-1]
-    # rod1 = [hex1d1] + loop2d1[1:-1] + [hex2d1] + loop1d1[1:-1]
-    # rod2 = [hex1d2] + pac1d2[1:-1] + [hex2d2] + pac2d2[1:-1]
-    # cox = crotchx[1:-1]
-    # cod1 = crotchd1[1:-1]
-    # cod2 = c1c2d2[1:-1]
-    # return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
     # get hex triple points
     hex1, hex1d1, hex1d2 = get_bifurcation_triple_point(
@@ -972,28 +906,32 @@ def make_tube_bifurcation_points_diverging(paCentre, pax, pad2, c1Centre, c1x, c
         c2x[c2StartIndex2], c2d2[c2StartIndex2],
         c1x[c1StartIndex2], c1d2[c1StartIndex2])
     # smooth around loops through hex points to get d1
-    loop1x  = [ hex2 ] + pac2x[1:-1] + [ hex1 ]
-    loop1d1 = [ [ -d for d in hex2d2 ] ] + pac2d1[1:-1] + [ hex1d1 ]
-    loop2x  = [ hex1 ] + pac1x[1:-1] + [ hex2 ]
-    loop2d1 = [ [ -d for d in hex1d2 ] ] + pac1d1[1:-1] + [ hex2d1 ]
-    loop1d1 = interp.smoothCubicHermiteDerivativesLine(loop1x, loop1d1, fixStartDirection=True, fixEndDirection=True, magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-    loop2d1 = interp.smoothCubicHermiteDerivativesLine(loop2x, loop2d1, fixStartDirection=True, fixEndDirection=True, magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
+    loop1x = [hex2] + pac2x[1:-1] + [hex1]
+    loop1d1 = [[-d for d in hex2d2]] + pac2d1[1:-1] + [hex1d1]
+    loop2x = [hex1] + pac1x[1:-1] + [hex2]
+    loop2d1 = [[-d for d in hex1d2]] + pac1d1[1:-1] + [hex2d1]
+    loop1d1 = interp.smoothCubicHermiteDerivativesLine(loop1x, loop1d1, fixStartDirection=True, fixEndDirection=True,
+                                                       magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
+    loop2d1 = interp.smoothCubicHermiteDerivativesLine(loop2x, loop2d1, fixStartDirection=True, fixEndDirection=True,
+                                                       magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
     # smooth over "crotch" between c1 and c2
-    crotchx = [ hex2 ] + c1c2x[1:-1] + [ hex1 ]
-    crotchd1 = [ add(hex2d1, hex2d2) ] + c1c2d1[1:-1] + [ [ (-hex1d1[c] - hex1d2[c]) for c in range(3) ] ]
-    crotchd1 = interp.smoothCubicHermiteDerivativesLine(crotchx, crotchd1, fixStartDerivative=True, fixEndDerivative=True, magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-    rox  = [ hex1 ] + pac1x[1:-1] + [ hex2 ] + pac2x[1:-1]
-    rod1 = [ loop1d1[-1] ] + loop2d1[1:] + loop1d1[1:-1]
-    rod2 = [ [ -d for d in loop2d1[ 0] ] ] + pac1d2[1:-1] + [ [ -d for d in loop1d1[0] ] ] + pac2d2[1:-1]
-    cox  = crotchx [1:-1]
+    crotchx = [hex2] + c1c2x[1:-1] + [hex1]
+    crotchd1 = [add(hex2d1, hex2d2)] + c1c2d1[1:-1] + [[(-hex1d1[c] - hex1d2[c]) for c in range(3)]]
+    crotchd1 = interp.smoothCubicHermiteDerivativesLine(crotchx, crotchd1, fixStartDerivative=True,
+                                                        fixEndDerivative=True,
+                                                        magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
+    rox = [hex1] + pac1x[1:-1] + [hex2] + pac2x[1:-1]
+    rod1 = [loop1d1[-1]] + loop2d1[1:] + loop1d1[1:-1]
+    rod2 = [[-d for d in loop2d1[0]]] + pac1d2[1:-1] + [[-d for d in loop1d1[0]]] + pac2d2[1:-1]
+    cox = crotchx[1:-1]
     cod1 = crotchd1[1:-1]
     cod2 = c1c2d2[1:-1]
     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
 
 def make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIdentifier, elementsCountAround,
-                                      elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                      meshGroups=None):
+                                                elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId,
+                                                coNodeId, meshGroups=None):
 
     paCount = len(paNodeId[0])
     c1Count = len(c1NodeId[0])
@@ -1101,7 +1039,8 @@ def make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIden
                                             [1])
                 elif e1 == (c1c2Count - 1):
                     scaleEftNodeValueLabels(eft, [1, 5], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
-                    remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
                     remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
                 elif e1 == c1c2Count:
                     remapEftNodeValueLabel(eft, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
@@ -1170,7 +1109,8 @@ def make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIden
                 elif e1 == c1Count - 1:
                     scalefactors = [-1.0]
                     setEftScaleFactorIds(eft, [1], [])
-                    remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
                     remapEftNodeValueLabel(eft, [2, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft)
                 elementtemplate = elementtemplateMod
@@ -1187,6 +1127,4 @@ def make_tube_bifurcation_elements_3d_diverging(region, coordinates, elementIden
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    # lastNodeId = startNodeIndex + (elementsCountThroughWall + 1) * (len(roNodeId) + len(coNodeId)) + 1
-    # lastNodeId = paNodeId[0][0]
     return elementIdentifier
