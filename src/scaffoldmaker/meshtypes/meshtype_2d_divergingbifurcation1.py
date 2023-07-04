@@ -76,7 +76,7 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
 
     @staticmethod
     def getName():
-        return '2D Diverged Bifurcation 1'
+        return '2D Diverging Bifurcation 1'
 
     @staticmethod
     def getParameterSetNames():
@@ -227,8 +227,6 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
         c1Centre = sx_child2_group[0][-2]
         c2Centre = sx_child1_group[0][-2]
         paxList = parentLastRingNodeCoordinates[0]
-        # pad1List = parentLastRingNodeCoordinates[1]
-        # pad2List = parentLastRingNodeCoordinates[2]
         pad2 = parentLastRingNodeCoordinates[2]
         c1xList = child2FirstRingNodeCoordinates[0]
         c1d2 = child2FirstRingNodeCoordinates[2]
@@ -269,7 +267,9 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
         c2NodeId = child1FirstRingNodeId
         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier, paNodeId,
                                                               paStartIndex, c1NodeId, c1StartIndex, c2NodeId,
-                                                              c2StartIndex, roNodeId, coNodeId)
+                                                              c2StartIndex, roNodeId, coNodeId,
+                                                              meshGroups=[parentMeshGroup, child1MeshGroup,
+                                                                          child2MeshGroup, bifurcationMeshGroup])
 
         # Create child1 elements
         startNodeId = child1FirstRingNodeId[0]
@@ -315,14 +315,11 @@ class BifurcationNetworkLayout:
         layoutRegion = region.createRegion()
         layoutFieldmodule = layoutRegion.getFieldmodule()
         layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # layoutMesh = layoutFieldmodule.findMeshByDimension(1)
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
-        # layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         layoutCoordinates = findOrCreateFieldCoordinates(layoutFieldmodule)
         layoutFieldcache = layoutFieldmodule.createFieldcache()
 
         networkMesh = networkLayout.getConstructionObject()
-
         networkSegments = networkMesh.getNetworkSegments()
 
         arcLengthOfGroupsAlong = []
@@ -438,17 +435,7 @@ def getCoordinatesAlongTube2D(cx_group, elementsCountAround, elementsCountAlongT
             v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 1 else 0][n2]
             d1 = findDerivativeBetweenPoints(v1, v2)
             d1Around.append(d1)
-            # if n2 > 0:
-            #     v1 = xRaw[n1][n2]
-            #     v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 2 else 0][n2]
-            #     d1 = findDerivativeBetweenPoints(v1, v2)
-            #     d1Around.append(d1)
-            # else:
-            #     d1Around.append(d2Raw[n2][0])
-        # if n2 > 0:
         d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        # else:
-        #     d1Smoothed = d1Around
         xSampledTube.append(xAround)
         d1SampledTube.append(d1Smoothed)
         d2SampledTube.append(d2Around)
@@ -490,7 +477,6 @@ def getTargetedRingNodesCoordinates2D(tubeCoordinates, elementsCountAround, elem
                         xLastRing.append(x)
                         d1LastRing.append(d1)
                         d2LastRing.append(d2)
-                    # nodeCount += 1
             elif omitStartRows == 1:  # diverging from bifurcation
                 if n2 == 0:
                     pass
@@ -499,9 +485,6 @@ def getTargetedRingNodesCoordinates2D(tubeCoordinates, elementsCountAround, elem
                         xFirstRing.append(x)
                         d1FirstRing.append(d1)
                         d2FirstRing.append(d2)
-                    # nodeCount += 1
-            # else:
-            #     nodeCount += 1
 
     if omitStartRows == 1:
         targetedRingCoordinates = [xFirstRing, d1FirstRing, d2FirstRing]
@@ -701,177 +684,3 @@ def generate2DTubeElements(fm, startNodeId, elementIdentifier, elementsCountAlon
             elementIdentifier += 1
 
     return elementIdentifier
-
-
-# This function should be modified in the bifurcation.py to include the annotation groups.
-# def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
-#         paNodeId, paStartIndex, c1NodeId, c1StartIndex, c2NodeId, c2StartIndex, roNodeId, coNodeId, useCrossDerivatives=False, meshGroups=None):
-#     '''
-#     Creates elements from parent, ring/row, crotch/column, child1 and child2 nodes.
-#     Assumes client has active ChangeManager(fieldmodule).
-#     :param paNodeId, paStartIndex, c1NodeId, c1StartIndex, c2NodeId, c2StartIndex:
-#     Lists of parent, child1, child2 nodes and their starting index to be at hex2
-#     :param roNodeId, coNodeId: Lists of ring/row and crotch/column nodes,
-#     starting at hex2 and between hex1 and hex2, respectively.
-#     :return next elementIdentifier.
-#     '''
-#     paCount = len(paNodeId)
-#     c1Count = len(c1NodeId)
-#     c2Count = len(c2NodeId)
-#     pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
-#
-#     fieldmodule = region.getFieldmodule()
-#     mesh = fieldmodule.findMeshByDimension(2)
-#
-#     elementtemplateStd = mesh.createElementtemplate()
-#     elementtemplateStd.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-#     bicubicHermiteBasis = fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-#     eftStd = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-#     if not useCrossDerivatives:
-#         for n in range(4):
-#             eftStd.setFunctionNumberOfTerms(n*4 + 4, 0)
-#     elementtemplateStd.defineField(coordinates, -1, eftStd)
-#     elementtemplateMod = mesh.createElementtemplate()
-#     elementtemplateMod.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-#
-#     for e1 in range(paCount):
-#         eft = eftStd
-#         elementtemplate = elementtemplateStd
-#         np = e1 + paStartIndex
-#         nids = [ paNodeId[np % paCount], paNodeId[(np + 1) % paCount], roNodeId[e1], roNodeId[(e1 + 1) % paCount] ]
-#         scalefactors = None
-#         # meshGroups = [ ]
-#
-#         if e1 in (0, pac1Count - 1, pac1Count, paCount - 1):
-#             eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-#             if not useCrossDerivatives:
-#                 for n in range(4):
-#                     eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-#             if e1 in (0, pac1Count):
-#                 scalefactors = [ -1.0 ]
-#                 setEftScaleFactorIds(eft, [1], [])
-#                 remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-#                 remapEftNodeValueLabel(eft, [ 3 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-#             elif e1 in (pac1Count - 1, paCount - 1):
-#                 remapEftNodeValueLabel(eft, [ 4 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ), ( Node.VALUE_LABEL_D_DS2, [] ) ])
-#             elementtemplateMod.defineField(coordinates, -1, eft)
-#             elementtemplate = elementtemplateMod
-#
-#         element = mesh.createElement(elementIdentifier, elementtemplate)
-#         result2 = element.setNodesByIdentifier(eft, nids)
-#         if scalefactors:
-#             result3 = element.setScaleFactors(eft, scalefactors)
-#         else:
-#             result3 = '-'
-#         #print('create element tube bifurcation pa', element.isValid(), elementIdentifier, result2, result3, nids)
-#         elementIdentifier += 1
-#         # for meshGroup in meshGroups:
-#         #     meshGroup.addElement(element)
-#         for meshGroup in meshGroups:
-#             if meshGroups.index(meshGroup) == 0:
-#                 meshGroup.addElement(element)
-#             elif meshGroups.index(meshGroup) == 3:
-#                 meshGroup.addElement(element)
-#
-#     for e1 in range(c1Count):
-#         eft = eftStd
-#         elementtemplate = elementtemplateStd
-#         nr = e1
-#         nc = e1 + c1StartIndex
-#         nids = [ roNodeId[nr % paCount], roNodeId[(nr + 1) % paCount], c1NodeId[nc % c1Count], c1NodeId[(nc + 1) % c1Count] ]
-#         if e1 >= pac1Count:
-#             nids[1] = roNodeId[0] if (e1 == (c1Count - 1)) else coNodeId[e1 - pac1Count]
-#             if e1 > pac1Count:
-#                 #nids[0] = coNodeId[(e1 - pac1Count - 1)]
-#                 nids[0] = coNodeId[(e1 - pac1Count - 1) % c1Count]
-#         scalefactors = None
-#         # meshGroups = [ ]
-#
-#         if e1 in (0, pac1Count, c1Count - 1):
-#             eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-#             if not useCrossDerivatives:
-#                 for n in range(4):
-#                     eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-#             if e1 == 0:
-#                 scalefactors = [ -1.0 ]
-#                 setEftScaleFactorIds(eft, [1], [])
-#                 remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-#                 remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-#             elif e1 == pac1Count:
-#                 remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-#             elif e1 == (c1Count - 1):
-#                 scalefactors = [ -1.0 ]
-#                 setEftScaleFactorIds(eft, [1], [])
-#                 remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-#                 remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [] ) ])
-#             elementtemplateMod.defineField(coordinates, -1, eft)
-#             elementtemplate = elementtemplateMod
-#
-#         element = mesh.createElement(elementIdentifier, elementtemplate)
-#         result2 = element.setNodesByIdentifier(eft, nids)
-#         if scalefactors:
-#             result3 = element.setScaleFactors(eft, scalefactors)
-#         else:
-#             result3 = '-'
-#         #print('create element tube bifurcation c1', element.isValid(), elementIdentifier, result2, result3, nids)
-#         elementIdentifier += 1
-#         # for meshGroup in meshGroups:
-#         #     meshGroup.addElement(element)
-#         for meshGroup in meshGroups:
-#             if meshGroups.index(meshGroup) == 1:
-#                 meshGroup.addElement(element)
-#             elif meshGroups.index(meshGroup) == 3:
-#                 meshGroup.addElement(element)
-#
-#     for e1 in range(c2Count):
-#         eft = eftStd
-#         elementtemplate = elementtemplateStd
-#         nr = 0 if (e1 == 0) else (paCount - c2Count + e1)
-#         nc = e1 + c2StartIndex
-#         nids = [ roNodeId[nr % paCount], roNodeId[(nr + 1) % paCount], c2NodeId[nc % c2Count], c2NodeId[(nc + 1) % c2Count] ]
-#         if 0 <= e1 < (c1c2Count - 1):
-#             nids[1] = coNodeId[c1c2Count - e1 - 2]
-#         if 0 < e1 <= (c1c2Count - 1):
-#             nids[0] = coNodeId[c1c2Count - e1 - 1]
-#         scalefactors = None
-#         # meshGroups = [ ]
-#
-#         if e1 <= c1c2Count:
-#             eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-#             if not useCrossDerivatives:
-#                 for n in range(4):
-#                     eft.setFunctionNumberOfTerms(n*4 + 4, 0)
-#             scalefactors = [ -1.0 ]
-#             setEftScaleFactorIds(eft, [1], [])
-#             if e1 == 0:
-#                 remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ ] ), ( Node.VALUE_LABEL_D_DS2, [ ] ) ])
-#                 scaleEftNodeValueLabels(eft, [ 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-#             elif e1 < (c1c2Count - 1):
-#                 scaleEftNodeValueLabels(eft, [ 1, 2 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-#             elif e1 == (c1c2Count - 1):
-#                 scaleEftNodeValueLabels(eft, [ 1 ], [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], [ 1 ])
-#                 remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS1, [ 1 ] ), ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-#                 remapEftNodeValueLabel(eft, [ 2 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
-#             elif e1 == c1c2Count:
-#                 remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS1, [ ( Node.VALUE_LABEL_D_DS2, [ 1 ] ) ])
-#                 remapEftNodeValueLabel(eft, [ 1 ], Node.VALUE_LABEL_D_DS2, [ ( Node.VALUE_LABEL_D_DS1, [ ] ) ])
-#             elementtemplateMod.defineField(coordinates, -1, eft)
-#             elementtemplate = elementtemplateMod
-#
-#         element = mesh.createElement(elementIdentifier, elementtemplate)
-#         result2 = element.setNodesByIdentifier(eft, nids)
-#         if scalefactors:
-#             result3 = element.setScaleFactors(eft, scalefactors)
-#         else:
-#             result3 = '-'
-#         #print('create element tube bifurcation c2', element.isValid(), elementIdentifier, result2, result3, nids)
-#         elementIdentifier += 1
-#         # for meshGroup in meshGroups:
-#         #     meshGroup.addElement(element)
-#         for meshGroup in meshGroups:
-#             if meshGroups.index(meshGroup) == 2:
-#                 meshGroup.addElement(element)
-#             elif meshGroups.index(meshGroup) == 3:
-#                 meshGroup.addElement(element)
-#
-#     return elementIdentifier
