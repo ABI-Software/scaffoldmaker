@@ -268,8 +268,8 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
         elementIdentifier = make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier, paNodeId,
                                                               paStartIndex, c1NodeId, c1StartIndex, c2NodeId,
                                                               c2StartIndex, roNodeId, coNodeId,
-                                                              meshGroups=[parentMeshGroup, child1MeshGroup,
-                                                                          child2MeshGroup, bifurcationMeshGroup])
+                                                              meshGroups=[parentMeshGroup, child2MeshGroup,
+                                                                          child1MeshGroup, bifurcationMeshGroup])
 
         # Create child1 elements
         startNodeId = child1FirstRingNodeId[0]
