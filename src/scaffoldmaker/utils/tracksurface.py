@@ -6,6 +6,13 @@ from __future__ import division
 
 import copy
 import math
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates
+from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
+
 from enum import Enum
 
 from scaffoldmaker.utils import interpolation as interp
@@ -487,6 +494,52 @@ class TrackSurface:
         #    print('!!! Reached boundary of face', faceNumber, 'position', position)
         return onBoundary
 
+    def generateMesh(self, region):
+        """
+        Generate nodes and surface elements in region.
+        :param region:
+        :return:
+        """
+        fieldmodule = region.getFieldmodule()
+        coordinates = find_or_create_field_coordinates(fieldmodule)
+
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        startNodeIdentifier = nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+
+        mesh = fieldmodule.findMeshByDimension(2)
+        elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+        bicubicHermiteBasis = fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+        # remote cross derivative terms
+        for n in range(4):
+            eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
+        elementtemplate.defineField(coordinates, -1, eft)
+
+        fieldcache = fieldmodule.createFieldcache()
+        with ChangeManager(fieldmodule):
+            for n1 in range(len(self.nx)):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                fieldcache.setNode(node)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, self.nx[n1])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, self.nd1[n1])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, self.nd2[n1])
+                nodeIdentifier += 1
+            del n1
+            nodesCount1 = self.elementsCount1 + 1
+            for e2 in range(self.elementsCount2):
+                for e1 in range(self.elementsCount1):
+                    nid1 = startNodeIdentifier + e2 * nodesCount1 + e1
+                    nids = [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1]
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+                    # print(elementIdentifier, element.isValid(), nids)
+                    elementIdentifier += 1
 
 def calculate_surface_delta_xi(d1, d2, direction):
     '''
