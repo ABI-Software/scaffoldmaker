@@ -457,9 +457,10 @@ class MeshType_3d_bladder1(Scaffold_base):
             annotationGroupsThroughWall.append([])
 
         # Flat coordinates
-        urethraOpeningRadius = vector.magnitude(sx_neck_group[2][-1])
-        xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
-                                                       xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
+        # urethraOpeningRadius = vector.magnitude(sx_neck_group[2][-1])
+        # xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
+        #                                                xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
+        xFlat = d1Flat = d2Flat = []
 
         # Create nodes and elements
         bladderCoordinatesFieldName = "bladder coordinates"
