@@ -873,7 +873,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             modGroups[maxIdx] = arcLengthOfGroupsAlong[maxIdx] - estElementLengthFromBody * \
                                 elementCountGroupList[maxIdx]
 
-        allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
+        allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
                                 allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
                                 options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
@@ -890,7 +890,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
             materialCentralPath._path_region.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_path_material.exf")
 
-            allAnnotationGroupsMaterial, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
+            allAnnotationGroupsMaterial, nextNodeIdentifier, nextElementIdentifier = \
                 createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
                                     allAnnotationGroupsMaterial, elementCountGroupList,
                                     centralPath=materialCentralPath, options=options, nodeIdentifier=1,
@@ -3267,7 +3267,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         allAnnotationGroups.append(nearLCGroup)
 
-    return allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier
+    return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier
 
 
 def findCentreOnCentralPathFromCrossAxisEndPt(xPoint, xCentralPath, dCentralPath):
