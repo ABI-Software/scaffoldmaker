@@ -829,6 +829,10 @@ class MeshType_3d_stomach1(Scaffold_base):
         materialCentralPath = cls.centralPathDefaultScaffoldPackages['Material']
         limitingRidge = options['Limiting ridge']
         elementsCountThroughWall = options['Number of elements through wall']
+        elementsAlongFundusApexToCardia = options['Number of elements between fundus apex and cardia']
+        elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
+        elementsCountAroundEso = 8
+        elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
         allAnnotationGroups = []
 
         stomachTermsAlong = [None, 'fundus of stomach', 'body of stomach',
@@ -840,17 +844,43 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         geometricCentralPath = StomachCentralPath(region, geometricCentralPath, stomachTermsAlong)
         geometricCentralPath._path_region.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_path.exf")
+        arcLengthOfGroupsAlong = geometricCentralPath.arcLengthOfGroupsAlong
 
-        elementCountGroupList = []
+        # Pre-calculate element numbers in each group
+        elementsAlongFromBody = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
+        arcLengthOfGroupsAlongFromBody = arcLengthOfGroupsAlong[0] - arcLengthOfGroupsAlong[1]
+        estElementLengthFromBody = arcLengthOfGroupsAlongFromBody / elementsAlongFromBody
+
+        modGroups = [0.0]
+        elementsAlongCPFundus = elementsAlongFundusApexToCardia + elementsAroundQuarterEso - 1
+        elementCountGroupList = [elementsAlongCPFundus]
+        elementsTally = 0
+        for i in range(2, len(stomachTermsAlong)):
+            numberOfElementsGroup = int(arcLengthOfGroupsAlong[i] // estElementLengthFromBody)
+            if numberOfElementsGroup < 1:
+                numberOfElementsGroup = 1
+
+            mod = arcLengthOfGroupsAlong[i] - estElementLengthFromBody * numberOfElementsGroup
+            modGroups.append(mod)
+
+            elementsTally += numberOfElementsGroup
+            elementCountGroupList.append(numberOfElementsGroup)
+
+        excessElements = elementsAlongFromBody - elementsTally
+        for i in range(excessElements):
+            maxIdx = max(range(len(modGroups)), key=modGroups.__getitem__)
+            elementCountGroupList[maxIdx] += 1
+            modGroups[maxIdx] = arcLengthOfGroupsAlong[maxIdx] - estElementLengthFromBody * \
+                                elementCountGroupList[maxIdx]
+
         allAnnotationGroups, elementCountGroupList, nextNodeIdentifier, nextElementIdentifier = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
                                 allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
                                 options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
                                 materialCoordinates=False)
 
-        stomach_coordinates = findOrCreateFieldCoordinates(fm, name="stomach coordinates")
-
         # Material coordinates
+        stomach_coordinates = findOrCreateFieldCoordinates(fm, name="stomach coordinates")
         allAnnotationGroupsMaterial = []
         tmp_region = region.createRegion()
         tmp_fm = tmp_region.getFieldmodule()
@@ -1374,7 +1404,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     elementsCountAcrossCardia = 1
     cardiaDiameterFactor = 1.4  # scale to ostium diameter
     sf = (cardiaDiameterFactor - 1) * ostiumDiameter * 0.5 * GEJSettings['Unit scale']
-    fundusStraightFactor = 0.2
+    # fundusStraightFactor = 0.2
 
     elementsAroundHalfEso = int(elementsCountAroundEso * 0.5)
     elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
@@ -1470,34 +1500,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                        [submucosaGroup],
                                        [circularMuscleGroup],
                                        [longitudinalMuscleGroup]]
-
-    # Spread out elements along groups
-    elementsAlongFromBody = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
-    arcLengthOfGroupsAlongFromBody = arcLengthOfGroupsAlong[0] - arcLengthOfGroupsAlong[1]
-    estElementLengthFromBody = arcLengthOfGroupsAlongFromBody / elementsAlongFromBody
-
-    if not materialCoordinates:
-        modGroups = [0.0]
-        elementsAlongCPFundus = elementsAlongFundusApexToCardia + elementsAroundQuarterEso - 1
-        elementCountGroupList = [elementsAlongCPFundus]
-        elementsTally = 0
-        for i in range(2, len(stomachTermsAlong)):
-            numberOfElementsGroup = int(arcLengthOfGroupsAlong[i] // estElementLengthFromBody)
-            if numberOfElementsGroup < 1:
-                numberOfElementsGroup = 1
-
-            mod = arcLengthOfGroupsAlong[i] - estElementLengthFromBody * numberOfElementsGroup
-            modGroups.append(mod)
-
-            elementsTally += numberOfElementsGroup
-            elementCountGroupList.append(numberOfElementsGroup)
-
-        excessElements = elementsAlongFromBody - elementsTally
-        for i in range(excessElements):
-            maxIdx = max(range(len(modGroups)), key=modGroups.__getitem__)
-            elementCountGroupList[maxIdx] += 1
-            modGroups[maxIdx] = arcLengthOfGroupsAlong[maxIdx] - estElementLengthFromBody * \
-                                elementCountGroupList[maxIdx]
 
     # Break central path into elements allocation to each group
     cxSections = []
