@@ -148,7 +148,7 @@ class MeshType_2d_divergingbifurcation1(Scaffold_base):
         Generate the base tricubic Hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: None
+        :return: list of AnnotationGroup, None
         """
         networkLayout = options['Network layout']
         elementsCountAround = options['Number of elements around']
