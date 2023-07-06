@@ -654,7 +654,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Circular muscle layer relative thickness': 0.25,
             'Longitudinal muscle layer relative thickness': 0.05,
             'Limiting ridge': False,
-            'Gastro-esophagal junction': copy.deepcopy(ostiumOption),
+            'Gastro-esophageal junction': copy.deepcopy(ostiumOption),
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements surface': 4,
@@ -722,7 +722,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Circular muscle layer relative thickness',
             'Longitudinal muscle layer relative thickness',
             'Limiting ridge',
-            'Gastro-esophagal junction',
+            'Gastro-esophageal junction',
             'Use linear through wall',
             'Refine',
             'Refine number of elements surface',
@@ -732,7 +732,7 @@ class MeshType_3d_stomach1(Scaffold_base):
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
             return [MeshType_1d_path1]
-        if optionName == 'Gastro-esophagal junction':
+        if optionName == 'Gastro-esophageal junction':
             return [MeshType_3d_ostium1]
         return []
 
@@ -740,7 +740,7 @@ class MeshType_3d_stomach1(Scaffold_base):
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
             return list(cls.centralPathDefaultScaffoldPackages.keys())
-        if optionName == 'Gastro-esophagal junction':
+        if optionName == 'Gastro-esophageal junction':
             return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
@@ -761,7 +761,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             if not parameterSetName:
                 parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
-        if optionName == 'Gastro-esophagal junction':
+        if optionName == 'Gastro-esophageal junction':
             if not parameterSetName:
                 parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
             return copy.deepcopy(cls.ostiumDefaultScaffoldPackages[parameterSetName])
@@ -771,9 +771,9 @@ class MeshType_3d_stomach1(Scaffold_base):
     def checkOptions(cls, options):
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
-        if not options['Gastro-esophagal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes(
-                'Gastro-esophagal junction'):
-            options['Gastro-esophagal junction'] = cls.getOptionScaffoldPackage('Gastro-esophagal junction',
+        if not options['Gastro-esophageal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes(
+                'Gastro-esophageal junction'):
+            options['Gastro-esophageal junction'] = cls.getOptionScaffoldPackage('Gastro-esophageal junction',
                                                                                 MeshType_3d_ostium1)
         if options['Number of elements around duodenum'] < 12:
             options['Number of elements around duodenum'] = 12
@@ -798,7 +798,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         """
         Update ostium sub-scaffold options which depend on parent options.
         """
-        ostiumOptions = options['Gastro-esophagal junction']
+        ostiumOptions = options['Gastro-esophageal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         wallThickness = options['Wall thickness'] / ostiumSettings['Unit scale']
         ostiumSettings['Ostium wall thickness'] = wallThickness
@@ -1362,7 +1362,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     useCrossDerivatives = False
     useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
-    GEJOptions = options['Gastro-esophagal junction']
+    GEJOptions = options['Gastro-esophageal junction']
     GEJSettings = GEJOptions.getScaffoldSettings()
     elementsAlongEsophagus = GEJSettings['Number of elements along']
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
@@ -1910,7 +1910,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     tmpRegion.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_tracksurface.exf")
     del tmpRegion
 
-    # Set up gastro-esophagal junction with midpoint aligned to fundus-body junction
+    # Set up gastro-esophageal junction with midpoint aligned to fundus-body junction
     GEJSettings['Number of elements around ostium'] = elementsCountAroundEso
     GEJPosition = trackSurfaceStomach.findNearestPosition(xGEJ)
     xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(GEJPosition, derivatives=True)
