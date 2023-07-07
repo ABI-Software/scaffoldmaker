@@ -1221,7 +1221,6 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         annotationGroups.remove(nearLCGroup)
 
-
 class StomachCentralPath:
     """
     Generates sampled central path for stomach scaffold.
@@ -1404,7 +1403,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     elementsCountAcrossCardia = 1
     cardiaDiameterFactor = 1.4  # scale to ostium diameter
     sf = (cardiaDiameterFactor - 1) * ostiumDiameter * 0.5 * GEJSettings['Unit scale']
-    # fundusStraightFactor = 0.2
 
     elementsAroundHalfEso = int(elementsCountAroundEso * 0.5)
     elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
@@ -1467,9 +1465,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     arcLengthRatioForGroupsFromFundusApex = []
     arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
     stomachCentralPathLength = arcLengthOfGroupsAlong[0]
-    # xApex = centralPath.cxGroups[0][0]
-    # d1Apex = centralPath.cd2Groups[0][0]
-    # d2Apex = centralPath.cd3Groups[0][0]
 
     for i in range(1, len(stomachTermsAlong)):
         arcLengthRatio = arcLengthOfGroupsAlong[i] / stomachCentralPathLength
@@ -1557,215 +1552,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         cd2MinusSections.append(cd2MinusSection)
         cd3MinusSections.append(cd3MinusSection)
 
-        # if i == 1:  # body: calculate end of fundus stuff
-        #     for n in range(len(cxSection)):
-        #         px, pd1 = sampleEllipsePoints(cxSection[n], cd2Section[n], cd3Section[n], 0.0, math.pi * 2.0,
-        #                                       elementsCountAroundDuod)
-        #         del px[-1], pd1[-1]
-        #
-        #         if n == 0:
-        #             pxFundusEndQuarter = px[elementsAroundQuarterDuod]
-        #             d2FundusEndQuarter = cd1Section[0]
-        #             pxFundusEndGC = px[0]
-        #         if n == 1:
-        #             d2FundusEndGC = findDerivativeBetweenPoints(pxFundusEndGC, px[0])
-
     # put fundus section first
     for values in [cxSections, cd1Sections, cd2Sections, cd3Sections,
                    cxPlusSections, cd2PlusSections, cd3PlusSections,
                    cxMinusSections, cd2MinusSections, cd3MinusSections]:
         values.insert(0, values.pop())
-
-    # # Create straight tube joined to ellipsoid for fundus
-    # lengthOfFundusAlongCP = centralPath.arcLengthOfGroupsAlong[1]
-    # ellipsoidHeight = (1 - fundusStraightFactor) * lengthOfFundusAlongCP
-    #
-    # elementsAlong = 10
-    # xQuarterFundus = []
-    # xGCFundus = []
-    # xLine = []
-    # dLine = []
-    # d2Line = []
-    #
-    # # Sample ellipsoid part of central path into elementsAlong
-    # cxFundus = centralPath.cxGroups[1]
-    # cd1Fundus = centralPath.cd1Groups[1]
-    # cd2Fundus = centralPath.cd2Groups[1]
-    # cd3Fundus = centralPath.cd3Groups[1]
-    # cd12Fundus = centralPath.cd12Groups[1]
-    # cd13Fundus = centralPath.cd13Groups[1]
-    #
-    # sxFundus, sd1Fundus, pe, pxi, psf = interp.sampleCubicHermiteCurves(cxFundus, cd1Fundus, elementsAlong)
-    # sd2Fundus, sd12Fundus = interp.interpolateSampleCubicHermite(cd2Fundus, cd12Fundus, pe, pxi, psf)
-    # sd3Fundus, sd13Fundus = interp.interpolateSampleCubicHermite(cd3Fundus, cd13Fundus, pe, pxi, psf)
-    #
-    # xEllipsoidEnd, d1EllipsoidEnd, elementEllipsoidEnd, xi = \
-    #     interp.getCubicHermiteCurvesPointAtArcDistance(sxFundus, sd1Fundus, ellipsoidHeight)
-    # d2EllipsoidEnd, d12EllipsoidEnd = interp.getCubicHermiteCurvesPointAtArcDistance(sd2Fundus, sd12Fundus,
-    #                                                                                  ellipsoidHeight)[0:2]
-    # d3EllipsoidEnd, d13EllipsoidEnd = interp.getCubicHermiteCurvesPointAtArcDistance(sd3Fundus, sd13Fundus,
-    #                                                                                  ellipsoidHeight)[0:2]
-    #
-    # ellipsoidMajorDiameter = vector.magnitude(d2EllipsoidEnd)
-    # ellipsoidMinorDiameter = vector.magnitude(d3EllipsoidEnd)
-    #
-    # # resample just ellipsoidal part
-    # sxFundusEllipsoid, sd1FundusEllipsoid, pe, pxi, psf = \
-    #     interp.sampleCubicHermiteCurves(sxFundus[:elementEllipsoidEnd + 1] + [xEllipsoidEnd],
-    #                                     sd1Fundus[:elementEllipsoidEnd + 1] + [d1EllipsoidEnd],
-    #                                     elementsAlong, arcLengthDerivatives=True)
-    #
-    # sd2FundusEllipsoid, sd12FundusEllipsoid = \
-    #     interp.interpolateSampleCubicHermite(sd2Fundus[:elementEllipsoidEnd + 1] + [d2EllipsoidEnd],
-    #                                          sd12Fundus[:elementEllipsoidEnd + 1] + [d12EllipsoidEnd], pe, pxi, psf)
-    #
-    # # Create template fundus with path of fundus length for transformation
-    # xAroundAll = []
-    # for n2 in range(elementsAlong + 1):
-    #     xLine.append([-ellipsoidHeight/elementsAlong * n2, 0.0, 0.0])
-    #     dLine.append([-ellipsoidHeight/elementsAlong, 0.0, 0.0])
-    #     d2Line.append([0.0, -10.0, 0.0])
-    #     theta = math.acos((-ellipsoidHeight/elementsAlong * n2 + ellipsoidHeight)/ellipsoidHeight)
-    #     xAround = []
-    #
-    #     for n1 in range(elementsCountAroundDuod):
-    #         psi = math.pi * 2.0 / elementsCountAroundDuod * n1
-    #         x = [ellipsoidHeight * math.cos(theta) - ellipsoidHeight,
-    #              -ellipsoidMajorDiameter * math.sin(theta) * math.cos(psi),
-    #              ellipsoidMinorDiameter * math.sin(theta) * math.sin(psi)]
-    #         xAround.append(x)
-    #     xAroundAll.append(xAround)
-    #
-    # # Transform ellipse ring to align with central path
-    # xAroundAllTransformed = []
-    # for n2 in range(elementsAlong + 1):
-    #     xAroundTransformed = []
-    #     unitTangent = vector.normalise(sd1FundusEllipsoid[n2])
-    #     unitVectorLine = vector.normalise(dLine[n2])
-    #     cp = vector.crossproduct3(unitVectorLine, unitTangent)
-    #     dp = vector.dotproduct(dLine[n2], sd1FundusEllipsoid[n2])
-    #     centroid = xLine[n2]
-    #     d2 = d2Line[n2]
-    #
-    #     if vector.magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
-    #         axisRot = vector.normalise(cp)
-    #         thetaRot = math.acos(dp / (vector.magnitude(dLine[n2]) * vector.magnitude(sd1FundusEllipsoid[n2])))
-    #         rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-    #         centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] +
-    #                        rotFrame[j][2]*centroid[2] for j in range(3)]
-    #
-    #     else:  # path tangent parallel to unitVectorLine (x-axis)
-    #         if dp == -1.0:  # path tangent opposite direction to unitVectorLine
-    #             thetaRot = math.pi
-    #             axisRot = [1.0, 0, 0]
-    #             rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
-    #             centroidRot = [rotFrame[j][0] * centroid[0] + rotFrame[j][1] * centroid[1] +
-    #                            rotFrame[j][2] * centroid[2] for j in range(3)]
-    #
-    #         else:  # unitVectorLine in same direction as unit tangent
-    #             rotFrame = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    #             centroidRot = centroid
-    #
-    #     translateMatrix = [sxFundusEllipsoid[n2][j] - centroidRot[j] for j in range(3)]
-    #
-    #     for n1 in range(len(xAroundAll[n2])):
-    #         x = xAroundAll[n2][n1]
-    #         if vector.magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
-    #             xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in range(3)]
-    #         else:  # path tangent parallel to segment axis
-    #             xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in
-    #                      range(3)] if dp == -1.0 else x
-    #
-    #         # Check that the first node in each ellipse is aligned to sd2
-    #         if n1 == 0:
-    #             vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
-    #             if vector.magnitude(vectorToFirstNode) > 0.0:
-    #                 cp = vector.crossproduct3(vector.normalise(vectorToFirstNode),
-    #                                           vector.normalise(sd2FundusEllipsoid[n2]))
-    #                 if vector.magnitude(cp) > 1e-7:
-    #                     cp = vector.normalise(cp)
-    #                     signThetaRot2 = vector.dotproduct(unitTangent, cp)
-    #                     thetaRot2 = math.acos(
-    #                         vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2FundusEllipsoid[n2])))
-    #                     axisRot2 = unitTangent
-    #                     rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2 * thetaRot2)
-    #                 else:
-    #                     rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    #             else:
-    #                 rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    #
-    #         xRot2 = [rotFrame2[j][0] * xRot1[0] + rotFrame2[j][1] * xRot1[1] + rotFrame2[j][2] * xRot1[2] for j in
-    #                  range(3)]
-    #         xAroundTransformed.append([xRot2[j] + translateMatrix[j] for j in range(3)])
-    #     xAroundAllTransformed.append(xAroundTransformed)
-    #
-    # for n in range(elementEllipsoidEnd + 1, len(sxFundus) - 1):
-    #     x = sampleEllipsePoints(sxFundus[n], sd2Fundus[n], sd3Fundus[n], 0.0, math.pi * 2.0, elementsCountAroundDuod)[0]
-    #     del x[-1]
-    #
-    #     xAroundAllTransformed.append(x)
-    #
-    # for n2 in range(elementsAlong):
-    #     xGCFundus.append(xAroundAllTransformed[n2][0])
-    #     xQuarterFundus.append(xAroundAllTransformed[n2][elementsAroundQuarterDuod])
-    # xQuarterFundus.append(pxFundusEndQuarter)
-    # xGCFundus.append(pxFundusEndGC)
-    #
-    # # Find derivative and sample fundus
-    # # Quarter
-    # d2FundusQuarter = [d2Apex]
-    # for n in range(1, len(xQuarterFundus) - 1):
-    #     d2FundusQuarter.append(findDerivativeBetweenPoints(xQuarterFundus[n], xQuarterFundus[n + 1]))
-    # d2FundusQuarter.append(d2FundusEndQuarter)
-    #
-    # xFundusQuarterSampled, d2FundusQuarterSampled = \
-    #     interp.sampleCubicHermiteCurvesSmooth(xQuarterFundus, d2FundusQuarter, elementCountGroupList[0],
-    #                                           derivativeMagnitudeEnd=vector.magnitude(d2FundusEndQuarter))[0:2]
-    #
-    # # GC
-    # d2FundusGC = [d1Apex]
-    # for n in range(1, len(xGCFundus) - 1):
-    #     d2FundusGC.append(findDerivativeBetweenPoints(xGCFundus[n], xGCFundus[n + 1]))
-    # d2FundusGC.append(d2FundusEndGC)
-    #
-    # xFundusGCSampled, d2FundusGCSampled = \
-    #     interp.sampleCubicHermiteCurvesSmooth(xGCFundus, d2FundusGC, elementCountGroupList[0],
-    #                                           derivativeMagnitudeStart=vector.magnitude(d2FundusQuarterSampled[0]),
-    #                                           derivativeMagnitudeEnd=vector.magnitude(d2FundusEndGC))[0:2]
-    #
-    # for n2 in range(elementsAlong):
-    #     xGCFundus.append(xAroundAllTransformed[n2][0])
-    #     xQuarterFundus.append(xAroundAllTransformed[n2][elementsAroundQuarterDuod])
-    # xQuarterFundus.append(pxFundusEndQuarter)
-    # xGCFundus.append(pxFundusEndGC)
-    #
-    # cxFundus = [xApex]
-    # cd1Fundus = []
-    # cd2Fundus = [d1Apex]
-    # cd3Fundus = [d2Apex]
-    #
-    # for n2 in range(1, len(xFundusQuarterSampled)):  # skip apex
-    #     xProjectionQuarter = findCentreOnCentralPathFromCrossAxisEndPt(xFundusQuarterSampled[n2], sxFundus, sd1Fundus)
-    #     xProjectionGC = findCentreOnCentralPathFromCrossAxisEndPt(xFundusGCSampled[n2], sxFundus, sd1Fundus)
-    #     xProjectionAve = [0.5 * xProjectionQuarter[c] + 0.5 * xProjectionGC[c] for c in range(3)]
-    #
-    #     cxFundus.append(xProjectionAve)
-    #     d1 = findDerivativeBetweenPoints(cxFundus[n2 - 1], cxFundus[n2])
-    #     d2 = findDerivativeBetweenPoints(xProjectionGC, xFundusGCSampled[n2])
-    #     d3 = findDerivativeBetweenPoints(xProjectionQuarter, xFundusQuarterSampled[n2])
-    #     cd3DV = vector.normalise(vector.crossproduct3(vector.normalise(d1), vector.normalise(d2)))
-    #     d3 = vector.setMagnitude(cd3DV, vector.magnitude(d3))
-    #
-    #     cd1Fundus.append(d1)
-    #     cd2Fundus.append(d2)
-    #     cd3Fundus.append(d3)
-    # cd1Fundus.append(cd1Fundus[-1])
-
-    # # Merge fundus with other groups on central path
-    # cxSections = [cxFundus] + cxSections
-    # cd1Sections = [cd1Fundus] + cd1Sections
-    # cd2Sections = [cd2Fundus] + cd2Sections
-    # cd3Sections = [cd3Fundus] + cd3Sections
 
     # Create ellipses
     cxApex = cxSections[0][0]
@@ -1819,12 +1610,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 xGEJ = px[elementsAroundHalfDuod]
 
     # Scale d1 and d2 at apex
-    d1EllipseAroundAll[0][0] = vector.setMagnitude(d1EllipseAroundAll[0][0], interp.computeCubicHermiteArcLength(xEllipseAroundAll[0][0], d1EllipseAroundAll[0][0],
-                                                                                                                 xEllipseAroundAll[1][elementsAroundQuarterDuod],
-                                                                                                                 d2EllipseAroundAll[1][elementsAroundQuarterDuod], True))
-    d2EllipseAroundAll[0][0] = vector.setMagnitude(d2EllipseAroundAll[0][0], interp.computeCubicHermiteArcLength(xEllipseAroundAll[0][0], d2EllipseAroundAll[0][0],
-                                                                                                                 xEllipseAroundAll[1][0], d2EllipseAroundAll[1][0], True))
-
+    d1EllipseAroundAll[0][0] = \
+        vector.setMagnitude(d1EllipseAroundAll[0][0],
+                            interp.computeCubicHermiteArcLength(xEllipseAroundAll[0][0], d1EllipseAroundAll[0][0],
+                                                                xEllipseAroundAll[1][elementsAroundQuarterDuod],
+                                                                d2EllipseAroundAll[1][elementsAroundQuarterDuod], True))
+    d2EllipseAroundAll[0][0] = \
+        vector.setMagnitude(d2EllipseAroundAll[0][0],
+                            interp.computeCubicHermiteArcLength(xEllipseAroundAll[0][0], d2EllipseAroundAll[0][0],
+                                                                xEllipseAroundAll[1][0], d2EllipseAroundAll[1][0],
+                                                                True))
 
     # Create track surface
     # Find d2
@@ -1839,18 +1634,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         xAlong = []
         d2Along = []
         for n2 in range(len(xEllipseAroundAll)):
-            # d2 = findDerivativeBetweenPoints(xEllipseAroundAll[n2][n1], xEllipseAroundAll[n2 + 1][n1])
             xAlong.append(xEllipseAroundAll[n2][n1])
             d2Along.append(d2EllipseAroundAll[n2][n1])
-        # xAlong.append(xEllipseAroundAll[-1][n1])
-        # d2Along.append(d2)
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along, fixAllDirections=True)
         d2Raw.append(d2Smoothed)
 
         # sample
         xAlongSampled, d2AlongSampled = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongTS)[0:2]
         xRawSampled.append(xAlongSampled)
-        # d2AlongSampledSmoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSampled, d2AlongSampled)
         d2RawSampled.append(d2AlongSampled)
 
         if n1 in [elementsAroundQuarterDuod, elementsAroundHalfDuod,
