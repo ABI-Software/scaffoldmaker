@@ -606,6 +606,9 @@ def createNodesAndElements(region,
         organElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
         organElementtemplate.defineField(organCoordinates, -1, eftOrgan)
 
+        organElementtemplateApex = mesh.createElementtemplate()
+        organElementtemplateApex.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
     # Create nodes
     # Coordinates field
     for n in range(len(x)):
@@ -701,6 +704,13 @@ def createNodesAndElements(region,
                 nodeIdentifiers = [bni1, bni2, bni3, bni1 + 1, bni2 + elementsCountAround, bni3 + elementsCountAround]
                 element.setNodesByIdentifier(eftApex, nodeIdentifiers)
                 onOpening = e1 > elementsCountAround - 2
+                if xOrgan:
+                    vao = e1
+                    vbo = (e1 + 1) % elementsCountAround
+                    eftApexOrgan = eftfactory.createEftShellPoleBottom(vao * 100, vbo * 100)
+                    organElementtemplateApex.defineField(organCoordinates, -1, eftApexOrgan)
+                    element.merge(organElementtemplateApex)
+                    element.setNodesByIdentifier(eftApexOrgan, nodeIdentifiers)
                 if xFlat:
                     vaf = e1 + elementsCountAround
                     vbf = vaf + 1
