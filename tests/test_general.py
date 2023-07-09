@@ -3,6 +3,9 @@ import unittest
 
 from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
+    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
+    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -16,9 +19,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
-from scaffoldmaker.utils.zinc_utils import identifier_ranges_from_string, identifier_ranges_to_string, \
-    mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
-    nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
 
 from testutils import assertAlmostEqualList
 
@@ -126,7 +126,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         group = annotationGroup1.getGroup()
         self.assertTrue(group.isValid())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        meshGroup = group.createFieldElementGroup(mesh2d).getMeshGroup()
+        meshGroup = group.createMeshGroup(mesh2d)
         mesh_group_add_identifier_ranges(meshGroup, [[1,2],[4,4]])
         self.assertEqual(3, meshGroup.getSize())
         self.assertEqual(2, annotationGroup1.getDimension())
@@ -139,7 +139,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(annotationGroup2))
         group = annotationGroup2.getGroup()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodesetGroup = group.createFieldNodeGroup(nodes).getNodesetGroup()
+        nodesetGroup = group.createNodesetGroup(nodes)
         nodeset_group_add_identifier_ranges(nodesetGroup, identifier_ranges_from_string('1,3-5,7'))
         self.assertEqual(5, nodesetGroup.getSize())
         self.assertEqual(0, annotationGroup2.getDimension())

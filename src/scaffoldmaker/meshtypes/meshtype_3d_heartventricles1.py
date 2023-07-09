@@ -7,8 +7,7 @@ from __future__ import division
 
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldNodeGroup, findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -1228,15 +1227,14 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_0 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-        is_lvm = lvmGroup.getFieldElementGroup(mesh2d)
-        is_rvm = rvmGroup.getFieldElementGroup(mesh2d)
+        is_lvm = lvmGroup.getGroup()
+        is_rvm = rvmGroup.getGroup()
         is_lvm_endo = fm.createFieldAnd(is_lvm, is_exterior_face_xi3_0)
         is_rvm_endo = fm.createFieldOr(fm.createFieldAnd(fm.createFieldAnd(is_rvm, is_exterior_face_xi3_0),
-                                                        fm.createFieldNot(is_lvm_endo)),
-                                      fm.createFieldAnd(vSeptumGroup.getFieldElementGroup(mesh2d),
-                                                        is_exterior_face_xi3_1))
+                                                         fm.createFieldNot(is_lvm_endo)),
+                                       fm.createFieldAnd(vSeptumGroup.getGroup(), is_exterior_face_xi3_1))
         is_ext_xi3_1_and_not_septum = fm.createFieldAnd(
-            is_exterior_face_xi3_1, fm.createFieldNot(vSeptumGroup.getFieldElementGroup(mesh2d)))
+            is_exterior_face_xi3_1, fm.createFieldNot(vSeptumGroup.getGroup()))
         is_os_lvm = fm.createFieldAnd(is_lvm, is_ext_xi3_1_and_not_septum)
         is_os_rvm = fm.createFieldAnd(is_rvm, is_ext_xi3_1_and_not_septum)
 
@@ -1250,10 +1248,10 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         # endocardium groups are defined identically to luminal surfaces at scaffold scale
         lvEndoGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("endocardium of left ventricle"))
-        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lslvEndoGroup.getFieldElementGroup(mesh2d))
+        lvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lslvEndoGroup.getGroup())
         rvEndoGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("endocardium of right ventricle"))
-        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lsrvEndoGroup.getFieldElementGroup(mesh2d))
+        rvEndoGroup.getMeshGroup(mesh2d).addElementsConditional(lsrvEndoGroup.getGroup())
 
         oslvmGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("outer surface of myocardium of left ventricle"))
@@ -1263,11 +1261,11 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         osrvmGroup.getMeshGroup(mesh2d).addElementsConditional(is_os_rvm)
         osmGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_heart_term("outer surface of myocardium"))
-        osmGroup.getMeshGroup(mesh2d).addElementsConditional(oslvmGroup.getFieldElementGroup(mesh2d))
-        osmGroup.getMeshGroup(mesh2d).addElementsConditional(osrvmGroup.getFieldElementGroup(mesh2d))
+        osmGroup.getMeshGroup(mesh2d).addElementsConditional(oslvmGroup.getGroup())
+        osmGroup.getMeshGroup(mesh2d).addElementsConditional(osrvmGroup.getGroup())
         # if no volumetric epicardium group, add outer surface of myocardium
         epiGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_heart_term("epicardium"))
-        epiGroup.getMeshGroup(mesh2d).addElementsConditional(osmGroup.getFieldElementGroup(mesh2d))
+        epiGroup.getMeshGroup(mesh2d).addElementsConditional(osmGroup.getGroup())
 
 
 def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundVSeptum, z, n3):
