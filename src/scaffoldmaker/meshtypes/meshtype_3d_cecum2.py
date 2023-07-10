@@ -1973,7 +1973,7 @@ def createCecumMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, zero)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
             nextNodeIdentifier += 1
-
+        
     # Create elements
     elementIdxMat = []
 
@@ -2314,7 +2314,7 @@ class CecumCentralPath:
 
         for termName in termsAlong:
             tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
-            tmpNodeset = tmpGroup.getFieldNodeGroup(tmpNodes).getNodesetGroup() if tmpGroup else tmpNodes
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
 
             if termName == "caecum":
                 for i in range(2):
