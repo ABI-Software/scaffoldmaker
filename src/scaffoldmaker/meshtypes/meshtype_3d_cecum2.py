@@ -1999,8 +1999,8 @@ def createCecumMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
             for e3 in range(elementsCountThroughWall):
                 elementIdxAround = []
                 for e1 in range(elementsCountAroundHaustrum):
-                    va = e1
-                    vb = (e1 + 1)
+                    va = e1 + startIdxElementsAround
+                    vb = (e1 + startIdxElementsAround + 1)
                     eft1 = eftfactory.createEftShellPoleBottom(va * 100, vb * 100)
                     elementtemplateX.defineField(coordinates, -1, eft1)
                     element = mesh.createElement(elementIdentifier, elementtemplateX)
