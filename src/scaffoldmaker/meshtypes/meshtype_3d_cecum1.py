@@ -105,6 +105,34 @@ class MeshType_3d_cecum1(Scaffold_base):
                     'ontId': get_smallintestine_term('ileum')[1]
                 }]
         }),
+        'Human 3': ScaffoldPackage(MeshType_1d_network_layout1, {
+            'scaffoldSettings': {
+                "Structure": "1-2-3.2, 4-3-5"
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                (1, [[-60.63,-80.53,895.25], [-6.17,-10.10,-5.87], [2.66,0.73,-4.05], [2.38,0.99,-1.14], [3.31,-2.97,1.64], [2.38,0.99,-1.14]]),
+                (2, [[-68.64,-93.29,888.06], [-9.85,-15.42,-8.51], [3.88,1.20,-6.66], [2.38,0.99,-1.14], [2.82,-2.46,1.20], [2.38,0.99,-1.14]]),
+                (3, [[-80.39,-111.37,878.29], [[-7.24,-1.01,11.64],[-13.65,-20.74,-11.03]], [[19.37,-3.78,11.72],[5.59,1.31,-9.38]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]], [[2.31,22.26,3.37],[1.51,-1.37,0.71]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]]]),
+                (4, [[-72.87,-109.11,867.41], [-7.88,-3.47,10.51], [16.11,-4.49,10.60], [3.73,0.68,4.20], [0.76,18.44,6.66], [3.74,0.69,4.20]]),
+                (5, [[-87.21,-111.06,890.54], [-4.75,0.41,12.39], [20.72,-2.80,8.04], [2.46,-0.39,-2.95], [2.85,22.11,0.36], [1.83,0.46,-4.31]])]),
+ 
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3-4',
+                    'name': get_cecum_term('caecum')[0],
+                    'ontId': get_cecum_term('caecum')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-2',
+                    'name': get_smallintestine_term('ileum')[0],
+                    'ontId': get_smallintestine_term('ileum')[1]
+                }]
+        }),
         'Pig 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-3-7"
@@ -188,12 +216,16 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Default',
             'Human 1',
             'Human 2',
+            'Human 3',
             'Pig 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
             centralPathOption = cls.parameterSetStructureStrings['Human 2']
+            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
+        if 'Human 3' in parameterSetName:
+            centralPathOption = cls.parameterSetStructureStrings['Human 3']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
         elif 'Pig 1' in parameterSetName:
             centralPathOption = cls.parameterSetStructureStrings['Pig 1']
@@ -212,13 +244,13 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Corner inner radius factor': 0.5,
             'Haustrum inner radius factor': 0.4,
             'Segment length end derivative factor': 0.5,
-            'Segment length mid derivative factor': 1.0, # 3.0,
+            'Segment length mid derivative factor': 1.0,
             'Number of tenia coli': 3,
-            'Start tenia coli width': 2.0, #10.0,
-            'Start tenia coli width derivative': 2.0, #0.0,
-            'End tenia coli width': 4.0, #10.0,
-            'End tenia coli width derivative': 2.0, #0.0,
-            'Tenia coli thickness': 0.5, #1.6,
+            'Start tenia coli width': 2.0,
+            'Start tenia coli width derivative': 2.0,
+            'End tenia coli width': 4.0,
+            'End tenia coli width derivative': 2.0,
+            'Tenia coli thickness': 0.5,
             'Wall thickness': 1.6,
             'Mucosa relative thickness': 0.55,
             'Submucosa relative thickness': 0.15,
@@ -233,7 +265,15 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
 
-        if 'Pig 1' in parameterSetName:
+        if 'Human 3' in parameterSetName:
+            options['Segment length mid derivative factor'] = 3.0
+            options['Start tenia coli width'] = 10.0
+            options['Start tenia coli width derivative'] = 0.0
+            options['End tenia coli width'] = 10.0
+            options['End tenia coli width derivative'] = 0.0
+            options[ 'Tenia coli thickness'] = 1.6
+
+        elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 5
             options['Haustrum inner radius factor'] = 0.25
             options['Segment length end derivative factor'] = 1.0
@@ -2321,4 +2361,3 @@ class CustomCentralPath:
         self.cd3Path = cd3
         self.cd12Path = cd12
         self.cd13Path = cd13
-        
