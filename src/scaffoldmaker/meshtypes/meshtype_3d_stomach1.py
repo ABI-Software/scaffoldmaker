@@ -1241,7 +1241,7 @@ def findD1CurvatureAround(xAround, d1Around, normsAround):
     xLoop = xAround[int(len(xAround) * 0.5 + 1):] + xAround[: int(len(xAround) * 0.5 + 1)]
     d1Loop = d1Around[int(len(d1Around) * 0.5 + 1):] + d1Around[: int(len(d1Around) * 0.5 + 1)]
     normsLoop = normsAround[int(len(d1Around) * 0.5 + 1):] + normsAround[: int(len(d1Around) * 0.5 + 1)]
-    curvature = findCurvatureAlongLine(xLoop, d1Loop, normsLoop)
+    curvature = interp.findCurvatureAlongLine(xLoop, d1Loop, normsLoop)
     # Rearrange to correct order
     d1CurvatureAround = curvature[int(len(xAround) * 0.5):] + curvature[: int(len(xAround) * 0.5):]
 
@@ -1261,48 +1261,6 @@ def findDerivativeBetweenPoints(v1, v2):
     d = [c * arcLengthAround for c in vector.normalise(d)]
 
     return d
-
-
-def findCurvatureAroundLoop(nx, nd, radialVectors):
-    """
-    Calculate curvature for points lying along a loop.
-    :param nx: points on loop
-    :param nd: derivative of points on loop
-    :param radialVectors: radial direction, assumed normal to curve tangent at point
-    :return: curvatures along points on loop
-    """
-    curvature = []
-    for n in range(len(nx)):
-        prevIdx = n - 1 if n > 0 else -1
-        nextIdx = n + 1 if n < len(nx) - 1 else 0
-        kappam = interp.getCubicHermiteCurvature(nx[prevIdx], nd[prevIdx], nx[n], nd[n], radialVectors[n], 1.0)
-        kappap = interp.getCubicHermiteCurvature(nx[n], nd[n], nx[nextIdx], nd[nextIdx], radialVectors[n], 0.0)
-        curvature.append(0.5 * (kappam + kappap))
-
-    return curvature
-
-
-def findCurvatureAlongLine(nx, nd, radialVectors):
-    """
-    Calculate curvature for points lying along a line.
-    :param nx: points on line
-    :param nd: derivative of points on line
-    :param radialVectors: radial direction, assumed normal to curve tangent at point
-    :return: curvatures along points on line
-    """
-    curvature = []
-    for n in range(len(nx)):
-        if n == 0:
-            curvature.append(interp.getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0))
-        elif n == len(nx) - 1:
-            curvature.append(interp.getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0))
-        else:
-            curvature.append(0.5 * (
-                    interp.getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0) +
-                    interp.getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0)))
-
-    return curvature
-
 
 def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups,
                         elementCountGroupList, centralPath, options, nodeIdentifier, elementIdentifier,
@@ -1933,7 +1891,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     for n in range(elementsCountAroundEso):
         d3 = vector.normalise(vector.crossproduct3(vector.normalise(d2AnnulusOuter[n]), d1AnnulusNorm[n]))
         d3Annulus.append(d3)
-    annulusD2Curvature = findCurvatureAroundLoop(xAnnulusOuter, d2AnnulusOuter, d3Annulus)
+    annulusD2Curvature = interp.findCurvatureAroundLoop(xAnnulusOuter, d2AnnulusOuter, d3Annulus)
 
     # Adjust annulus derivatives
     # Make d2 on second half of eso point towards duodenum
@@ -2433,7 +2391,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                             vector.normalise(o1_d2[-1][esoCount])))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
             d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-            d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod] + [o1_x[-1][esoCount]],
+            d1CurvatureFirstHalf = interp.findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod] + [o1_x[-1][esoCount]],
                                                           d1Outer[n2][:elementsAroundHalfDuod] + [d2Rot],
                                                           d3UnitOuter[n2][:elementsAroundHalfDuod] + [rotAxis])
             curvature = interp.getCubicHermiteCurvature(xAnnulusOuter[esoCount], d1AnnulusOuter[esoCount],
@@ -2443,7 +2401,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             d3 = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][-esoCount]),
                                                        vector.normalise(o1_d2[-1][-esoCount])))
-            d1CurvatureSecondHalf = findCurvatureAlongLine([o1_x[-1][-esoCount]] +
+            d1CurvatureSecondHalf = interp.findCurvatureAlongLine([o1_x[-1][-esoCount]] +
                                                            xOuter[n2][elementsAroundHalfDuod:] + [xOuter[n2][0]],
                                                            [o1_d2[-1][-esoCount]] +
                                                            d1Outer[n2][elementsAroundHalfDuod:] + [d1Outer[n2][0]],
@@ -2458,11 +2416,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             esoCount += 1
 
         elif completeRingsOnCardia:
-            d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod],
+            d1CurvatureFirstHalf = interp.findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod],
                                                           d1Outer[n2][:elementsAroundHalfDuod],
                                                           d3UnitOuter[n2][:elementsAroundHalfDuod])
 
-            d1CurvatureSecondHalf = findCurvatureAlongLine(xOuter[n2][elementsAroundHalfDuod + 1:] + [xOuter[n2][0]],
+            d1CurvatureSecondHalf = interp.findCurvatureAlongLine(xOuter[n2][elementsAroundHalfDuod + 1:] + [xOuter[n2][0]],
                                                            d1Outer[n2][elementsAroundHalfDuod + 1:] + [d1Outer[n2][0]],
                                                            d3UnitOuter[n2][elementsAroundHalfDuod + 1:] +
                                                            [d3UnitOuter[n2][0]])[:-1]
@@ -2518,13 +2476,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     for n1 in range(len(xAlongAll)):
         if n1 == elementsAroundHalfDuod:  # Process LC and GC
             # GC
-            d2CurvatureAlongGCHalfDuod = findCurvatureAlongLine(xAlongGCHalfDuod, d2AlongGCHalfDuod, d3AlongGCHalfDuod)
+            d2CurvatureAlongGCHalfDuod = interp.findCurvatureAlongLine(xAlongGCHalfDuod, d2AlongGCHalfDuod, d3AlongGCHalfDuod)
             # LC
-            d2CurvatureAlongLCHalfDuod = findCurvatureAlongLine(xAlongLCHalfDuod, d2AlongLCHalfDuod, d3AlongLCHalfDuod)
+            d2CurvatureAlongLCHalfDuod = interp.findCurvatureAlongLine(xAlongLCHalfDuod, d2AlongLCHalfDuod, d3AlongLCHalfDuod)
             d2CurvaturesAlongCurvature = d2CurvatureAlongGCHalfDuod + d2CurvatureAlongLCHalfDuod
             d2CurvatureAlong.append(d2CurvaturesAlongCurvature)
         else:
-            curvature = findCurvatureAlongLine(xAlongAll[n1], d2AlongAll[n1], d3UnitAlongAll[n1])
+            curvature = interp.findCurvatureAlongLine(xAlongAll[n1], d2AlongAll[n1], d3UnitAlongAll[n1])
             # replace with curvature from annulus
             if n1 == elementsAroundHalfDuod - 1 or n1 == elementsAroundHalfDuod + 1:
                 for n2 in range(2, elementsAroundHalfEso - 1):

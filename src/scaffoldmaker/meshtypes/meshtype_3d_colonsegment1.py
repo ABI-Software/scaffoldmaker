@@ -15,6 +15,7 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
     findOrCreateAnnotationGroupForTerm, findAnnotationGroupByName, getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
+from scaffoldmaker.annotation.cecum_terms import get_cecum_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
@@ -1922,10 +1923,13 @@ def createNodesAndElementsTeniaColi(region,
     allAnnotationGroups = []
 
     for group in annotationGroupsThroughWall:
-        longitudinalMuscle = findAnnotationGroupByName(group, "longitudinal muscle layer of colon")
+        longitudinalMuscle = findAnnotationGroupByName(group, ("longitudinal muscle layer of cecum" if closedProximalEnd
+                                                               else "longitudinal muscle layer of colon"))
 
     if longitudinalMuscle:
-        longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
+        longitudinalMuscleGroup = \
+        AnnotationGroup(region, (get_cecum_term("longitudinal muscle layer of cecum") if closedProximalEnd
+                                 else get_colon_term("longitudinal muscle layer of colon")))
 
     if closedProximalEnd:
         elementtemplate3 = mesh.createElementtemplate()

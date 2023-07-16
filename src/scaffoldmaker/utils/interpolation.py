@@ -973,3 +973,42 @@ def sampleParameterAlongLine(lengthList, paramList, elementsCountOut):
     sdP.append(dpdx*lengthPerElementOut)
 
     return sP, sdP
+
+def findCurvatureAroundLoop(nx, nd, radialVectors):
+    """
+    Calculate curvature for points lying along a loop.
+    :param nx: points on loop
+    :param nd: derivative of points on loop
+    :param radialVectors: radial direction, assumed normal to curve tangent at point
+    :return: curvatures along points on loop
+    """
+    curvature = []
+    for n in range(len(nx)):
+        prevIdx = n - 1 if n > 0 else -1
+        nextIdx = n + 1 if n < len(nx) - 1 else 0
+        kappam = getCubicHermiteCurvature(nx[prevIdx], nd[prevIdx], nx[n], nd[n], radialVectors[n], 1.0)
+        kappap = getCubicHermiteCurvature(nx[n], nd[n], nx[nextIdx], nd[nextIdx], radialVectors[n], 0.0)
+        curvature.append(0.5 * (kappam + kappap))
+
+    return curvature
+
+def findCurvatureAlongLine(nx, nd, radialVectors):
+    """
+    Calculate curvature for points lying along a line.
+    :param nx: points on line
+    :param nd: derivative of points on line
+    :param radialVectors: radial direction, assumed normal to curve tangent at point
+    :return: curvatures along points on line
+    """
+    curvature = []
+    for n in range(len(nx)):
+        if n == 0:
+            curvature.append(getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0))
+        elif n == len(nx) - 1:
+            curvature.append(getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0))
+        else:
+            curvature.append(0.5 * (
+                    getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0) +
+                    getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0)))
+
+    return curvature
